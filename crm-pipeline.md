@@ -74,3 +74,7 @@ All at `/api/v1/crm/`:
 ## Known bugs
 
 - CRM task creation 500 error (hit during S222 for Leo @ Wayy follow-up task)
+
+## Morning briefing
+
+The daily CRM briefing email is documented in [morning-briefing.md](morning-briefing.md). The CRM Steward agent fires it at 07:00 UTC (08:00 CET) via `CRMBriefingService` (Gmail).

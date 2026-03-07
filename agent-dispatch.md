@@ -23,7 +23,7 @@ call_mp dispatched
   → MPClient succeeds with gpt-5.4-pro-2026-03-05
 ```
 
-**Known issue:** Recovery cache stale enforcement (15 call limit) can block MP's MCP tool calls when MP uses tools heavily. This caused the S223 audit to route to CC instead.
+**Known issue:** Recovery cache stale enforcement (30 call limit) can block MP's MCP tool calls when MP uses tools heavily. This caused the S223 audit to route to CC instead.
 
 ## Council gates
 
@@ -48,3 +48,8 @@ call_mp dispatched
 - Auto-push to main after tests pass
 - Use `dispatch_build` for background, `call_claude_code` for foreground
 - `run_background` does NOT inherit PATH — always prefix with `export PATH="/opt/homebrew/bin:$PATH"`
+
+## Known bugs (S226)
+
+- **Checkpoint gate deadlock:** `kd_recovery_write` is NOT on the exempt list. If the call counter exceeds 30 without a cache write, ALL tools are blocked including `kd_recovery_write` itself — deadlock. Fix pending: add `kd_recovery_write` to exempt list alongside `kd_session_open` and `kd_session_close`.
+- **Call limit:** Bumped from 15 to 30 in S225 (commit 58adccb). `kd_session_open` and `kd_session_close` are exempt and reset the counter.

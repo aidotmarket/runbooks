@@ -46,7 +46,7 @@ Vulcan calls: kd_recovery_read()
 ## Recovery cache discipline
 
 - Write after every significant step (build dispatch, gate decision, state change)
-- 15 tool calls without a write = STALE warning and blocked tools
+- 30 tool calls without a write = STALE warning and blocked tools
 - Stale cache > 10 min during active work = process violation
 
 ## When it breaks
@@ -57,3 +57,4 @@ Vulcan calls: kd_recovery_read()
 | "RECOVERY CACHE STALE" | Too many calls without kd_recovery_write | Write recovery cache |
 | HANDOFF.md empty/stale | Session closed incorrectly | Check session DB, re-read from allAI |
 | MCP server not responding | Process died | `pkill -f koskadeux_server.py` (launchd restarts) |
+| All tools return errors | Checkpoint gate deadlock | See agent-dispatch.md Known bugs — kd_recovery_write not exempt |
