@@ -57,4 +57,4 @@ Vulcan calls: kd_recovery_read()
 | "RECOVERY CACHE STALE" | Too many calls without kd_recovery_write | Write recovery cache |
 | HANDOFF.md empty/stale | Session closed incorrectly | Check session DB, re-read from allAI |
 | MCP server not responding | Process died | `pkill -f koskadeux_server.py` (launchd restarts) |
-| All tools return errors | Checkpoint gate deadlock | See agent-dispatch.md Known bugs — kd_recovery_write not exempt |
+| All tools return errors | MCP transport dead | Restart gateway (see mcp-gateway.md) |

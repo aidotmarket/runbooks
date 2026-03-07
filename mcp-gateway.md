@@ -42,7 +42,7 @@ Wait 5-10 seconds after restart for processes to come up and tunnel to connect.
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | All MCP tools return errors | Gateway stale (most common) | `pkill -f gateway_server.py; pkill -f 'cloudflared tunnel'` |
-| All MCP tools return errors | Checkpoint gate deadlock | Write `kd_recovery_write` first (may need gateway restart too) |
+| All MCP tools return errors | Gateway transport dead | Restart gateway: `pkill -f gateway_server.py; pkill -f "cloudflared tunnel"` |
 | Tools work briefly then die | Gateway degrades under load after ~45 min | Restart gateway |
 | MCP works but MP/AG fail | Agent-specific issue, not gateway | Check agent logs |
 | Can't restart (remote) | No backup access path | Need Tailscale (see below) |
@@ -69,10 +69,10 @@ fi
 ## Known issues
 
 - Gateway connections degrade silently after extended heavy use (~45 min). Launchd only restarts on crash, not on stale connections.
-- Checkpoint gate counter can block ALL tools including kd_recovery_write (deadlock). Fix pending.
+- Checkpoint gate messages ("CHECKPOINT REQUIRED") look identical to transport failures from Claude's side. If kd_recovery_write also fails, it's transport, not the gate.
 - MCP transport reconnection after gateway restart takes 5-15 minutes from Claude's perspective.
 
 ## History
 
 - S225: Checkpoint gate bumped 15→30, session_open/close exempted
-- S226: Gateway dropped 3x during session. Root cause: stale connections + checkpoint deadlock. Tailscale backup proposed.
+- S226: Gateway dropped 3x during session. Root cause: stale connections (not checkpoint gate — kd_recovery_write IS exempt). Tailscale backup proposed.
