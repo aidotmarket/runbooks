@@ -122,3 +122,24 @@ council_request(agent=cc, task=..., cwd=..., bq_code=...)
 ---
 
 *Last updated: S293 (2026-03-19)*
+
+## AG Vertex AI Auth (CRITICAL — do not revert)
+
+AG uses **Vertex AI** via `VERTEX_API_KEY`, NOT the AI Studio `GEMINI_API_KEY`. The AI Studio key has a 250 req/day limit; Vertex AI has no daily cap.
+
+**Auth priority in `antigravity_client.py`:**
+1. `VERTEX_API_KEY` → Vertex AI with API key (preferred, no daily limits)
+2. `GOOGLE_GENAI_USE_GCA=true` → Vertex AI with gcloud ADC
+3. `GEMINI_API_KEY` → AI Studio (has daily quota limits — avoid)
+
+**Where keys live:**
+- `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` (NOT in Doppler — .env is sourced by launch script)
+- `launch_ag_server.sh` sources `.env` then falls back to Doppler for `GEMINI_API_KEY`
+
+**If AG hits 429 RESOURCE_EXHAUSTED:**
+1. Check `~/koskadeux-mcp/.env` has `VERTEX_API_KEY=AQ.Ab8...`
+2. Check `launch_ag_server.sh` sources `.env` (not just Doppler)
+3. Restart: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist && sleep 2 && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist`
+4. Verify: `curl http://localhost:8766/health`
+
+**History:** Fixed S87, S155, S156, S305. Keep reverting because launch script only pulled from Doppler.
