@@ -8,9 +8,9 @@ Proxies vectorAIz installer scripts from GitHub. Serves stable, RC, and marketpl
 
 | Route | Behavior | Channel |
 |-------|----------|---------|
-| `get.vectoraiz.com/` | Stable installer from `main` branch | `direct` (default) |
+| `get.vectoraiz.com/` | Stable installer from `main` branch | `stable` |
 | `get.vectoraiz.com/market` | Marketplace installer — sets `VECTORAIZ_CHANNEL=marketplace` | `marketplace` |
-| `get.vectoraiz.com/rc` | Latest RC installer (fetches latest prerelease, generates wrapper) | `stable` (RC) |
+| `get.vectoraiz.com/rc` | Latest RC installer (fetches latest prerelease, generates wrapper) | `rc` |
 | `get.vectoraiz.com/{path}` | Any file from `main` branch | n/a |
 
 ## How channels work
@@ -30,62 +30,72 @@ Proxies vectorAIz installer scripts from GitHub. Serves stable, RC, and marketpl
 
 ## Cache
 
-- Stable: 5 min
-- Marketplace: 5 min
+- Stable & marketplace: 5 min
 - RC: 2 min
 
 ## Configuration
 
-- Format: ES modules (migrated from Service Worker in S215)
-- Source: Cloudflare dashboard via API
+- Format: ES modules
+- Cloudflare account ID: `d5346d3e0f8f344c5f4915aaca689adf`
+- Worker name: `vectoraiz-installer`
 - Secret binding: `GITHUB_TOKEN` for authenticated GitHub API calls (5000 req/hr)
-- Worker name: `get-vectoraiz-installer` (in Cloudflare dashboard)
+- API token: `CLOUDFLARE_API_TOKEN` in Doppler (ai-market/prd)
+- Last deployed: 2026-03-20
 
-## Adding / updating the `/market` route
+## Deploy via API
 
-The Worker code lives in the Cloudflare dashboard (Workers & Pages → `get-vectoraiz-installer` → Quick Edit). The `/market` handler generates a wrapper bash script:
+```bash
+CF_TOKEN=$(doppler secrets get CLOUDFLARE_API_TOKEN -p ai-market --config prd --plain)
+ACCT_ID="d5346d3e0f8f344c5f4915aaca689adf"
 
-```javascript
-// Inside the fetch handler's route matching:
-if (url.pathname === '/market') {
-  const stableScript = await fetchFromGitHub('install.sh', env);
-  const wrapper = `#!/bin/bash
-export VECTORAIZ_CHANNEL=marketplace
-${stableScript}`;
-  return new Response(wrapper, {
-    headers: {
-      'content-type': 'text/plain; charset=utf-8',
-      'cache-control': 'public, max-age=300',
-      'x-vectoraiz-installer': 'v1',
-      'x-vectoraiz-channel': 'marketplace',
-    },
-  });
-}
+# Build multipart body (ES modules format — part name must match main_module)
+cat > /tmp/cf_body << MULTIPART
+------CloudflareWorkerUpload
+Content-Disposition: form-data; name="metadata"
+Content-Type: application/json
+
+{"main_module":"worker.js","keep_bindings":["secret_text"]}
+------CloudflareWorkerUpload
+Content-Disposition: form-data; name="worker.js"; filename="worker.js"
+Content-Type: application/javascript+module
+
+$(cat /path/to/worker.js)
+------CloudflareWorkerUpload--
+MULTIPART
+
+curl -s -X PUT \
+  -H "Authorization: Bearer $CF_TOKEN" \
+  -H "Content-Type: multipart/form-data; boundary=----CloudflareWorkerUpload" \
+  --data-binary @/tmp/cf_body \
+  "https://api.cloudflare.com/client/v4/accounts/$ACCT_ID/workers/scripts/vectoraiz-installer"
 ```
 
-After editing, click "Save and deploy" in the Cloudflare dashboard.
+NOTE: `Content-Type: application/javascript` (non-multipart) uploads fail with "Unexpected token 'export'" because CF treats it as Service Worker format. Must use multipart with `application/javascript+module`.
 
 ## Verify after deploy
 
 ```bash
-# Should return installer with VECTORAIZ_CHANNEL=marketplace near the top
-curl -sL https://get.vectoraiz.com/market | head -5
+# Should show VECTORAIZ_CHANNEL=marketplace
+curl -sL https://get.vectoraiz.com/market | head -10
 
-# Should return standard installer (no channel export)
+# Standard installer
 curl -sL https://get.vectoraiz.com | head -5
 
-# Should return RC installer
+# RC installer
 curl -sL https://get.vectoraiz.com/rc | head -5
+
+# Headers check
+curl -sI https://get.vectoraiz.com/market | grep x-vectoraiz
 ```
 
 ## When it breaks
 
 | Symptom | Fix |
 |---------|-----|
-| `/market` returns 404 | Route handler missing in Worker code — re-add per snippet above |
+| `/market` returns 404 | Route handler missing in Worker code — redeploy via API |
 | Installer 404 | Check GitHub repo has `install.sh` on `main` branch |
 | RC returns stale version | Wait 2 min for cache expiry |
 | Rate limited | Check `GITHUB_TOKEN` binding in Cloudflare dashboard |
-| Worker errors | Cloudflare dashboard → Workers → `get-vectoraiz-installer` → Logs |
+| Worker errors | Cloudflare dashboard → Workers → Logs |
 | Channel not set after install | Check VZ `.env` file has `VECTORAIZ_CHANNEL=marketplace` |
-| Wrong channel in VZ | Re-install with correct URL, or manually edit `.env` and restart |
+| Deploy fails "Unexpected token export" | Use multipart upload, not plain `Content-Type: application/javascript` |
