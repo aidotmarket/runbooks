@@ -3,7 +3,7 @@
 > **Deployed**: S357 (2026-03-30)
 > **URL**: https://secrets.ai.market
 > **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326`
-> **Replaces**: Doppler (demoted to archive-only)
+> **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 
 ## Quick Reference
 
@@ -18,6 +18,22 @@
 ## Environments
 
 Each project has three environments: `dev`, `staging`, `prod`.
+
+## SMTP Configuration
+
+SMTP is configured via Resend for outbound email (invites, MFA codes, notifications).
+
+| Variable | Value |
+|---|---|
+| `SMTP_HOST` | smtp.resend.com |
+| `SMTP_PORT` | 587 |
+| `SMTP_SECURE` | false (STARTTLS) |
+| `SMTP_FROM_ADDRESS` | noreply@ai.market |
+| `SMTP_FROM_NAME` | ai.market |
+| `SMTP_USERNAME` | resend |
+| `SMTP_PASSWORD` | (Resend API key — stored in Railway env vars) |
+
+**Status**: MFA and email invites are now available.
 
 ## Accessing Secrets
 
@@ -65,13 +81,19 @@ curl -s "https://secrets.ai.market/api/v3/secrets/raw?workspaceId=<PROJECT_ID>&e
 - **Emergency Kit PDF**: Saved during initial setup — required if admin account is locked out
 - **Railway project**: Can be redeployed from template if Infisical service fails
 - **Postgres backup**: Railway volume snapshots — enable scheduled backups in Railway dashboard
+- **SMTP recovery**: If Resend key is rotated, update `SMTP_PASSWORD` in Railway env vars for the Infisical project, then redeploy
 
 ## Architecture Notes
 
 - Infisical runs as a separate Railway project (isolated from ai-market services)
 - Postgres + Redis on private networking (not publicly accessible)
 - User registration disabled — admin creates accounts manually
-- SMTP not configured — email features (invites, MFA) are disabled
+- SMTP configured via Resend (S358) — email invites and MFA are active
+
+## Cleanup TODO (requires web UI)
+
+- [ ] Delete 3 duplicate/test projects in Infisical dashboard
+- [ ] Rename organization from default to "ai.market"
 
 ## Legacy: Doppler
 

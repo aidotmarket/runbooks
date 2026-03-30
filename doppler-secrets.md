@@ -1,10 +1,17 @@
 # Doppler Secrets Management
 
-## What it does
+> **⚠️ DEPRECATED** — Doppler is no longer the source of truth for secrets.
+> Replaced by self-hosted Infisical as of S357 (2026-03-30).
+> See `infisical-secrets.md` for the current runbook.
+> Doppler retains a frozen snapshot of secrets but should NOT be updated.
 
-All secrets and API keys for ai.market are stored in Doppler. Never hunt in `.env` files or hardcode tokens.
+---
 
-## Configs
+## What it was
+
+All secrets and API keys for ai.market were stored in Doppler. This has been replaced by self-hosted Infisical at https://secrets.ai.market.
+
+## Configs (archived)
 
 | Config | Where used |
 |--------|----------|
@@ -12,43 +19,12 @@ All secrets and API keys for ai.market are stored in Doppler. Never hunt in `.en
 | `dev_personal` | Titan-1 local development |
 | `dev` | Local development |
 
-## Project
-
-```bash
-doppler projects  # Lists: ai-market, example-project
-```
-
-## Common operations
+## Common operations (for reference only)
 
 ```bash
 # View a secret
 doppler secrets get SECRET_NAME --config prd --project ai-market
 
-# Set a secret
-doppler secrets set SECRET_NAME=value --config prd --project ai-market
-
 # List all secrets
 doppler secrets --config prd --project ai-market
 ```
-
-## Key secrets
-
-| Secret | Purpose |
-|--------|--------|
-| `INTERNAL_API_KEY` | Internal API auth (ROTATE — see audit C1) |
-| `SECRET_KEY` | JWT signing |
-| `STRIPE_SECRET_KEY` | Stripe API |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification |
-| `OPENAI_API_KEY` | MP / GPT API |
-| `ANTHROPIC_API_KEY` | allAI proxy |
-| `GMAIL_TOPIC_NAME` | GCP Pub/Sub topic for Gmail |
-| `GCP_PROJECT_ID` | GCP project |
-| `DOWNLOAD_TOKEN_SECRET_KEY` | VZ download token signing |
-
-## When it breaks
-
-| Symptom | Fix |
-|---------|-----|
-| "Secret not found" | Check project name (`ai-market`, not `ai-market-backend`) |
-| Railway not picking up changes | Railway auto-syncs from Doppler — redeploy if stuck |
-| Local dev missing secrets | `doppler run -- python ...` or check `dev_personal` config |
