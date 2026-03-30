@@ -67,7 +67,7 @@ Suggested next steps            → action items per person
 
 ### Drive watch not receiving notifications
 1. Check Drive API scope is enabled in GCP Console
-2. Verify `DRIVE_TOPIC_NAME` in Doppler/settings
+2. Verify `DRIVE_TOPIC_NAME` in Railway env vars
 3. Check Drive watch channel hasn't expired (7-day lifecycle, renewed daily)
 4. Verify webhook endpoint is accessible: `POST /api/v1/webhooks/drive-notifications`
 

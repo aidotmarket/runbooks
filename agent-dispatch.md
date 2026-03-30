@@ -24,7 +24,7 @@ council_request(agent=ag, task=..., cwd=...)
   → Returns result_text + token metrics
 ```
 
-**Important:** AG runs through `ag_server.py` on port 8766 (LaunchAgent: `com.koskadeux.ag_server`), which uses the **paid Gemini API key** from Doppler. This bypasses the old free-tier CLI that had a 250 requests/day quota. The free-tier `antigravity_cli_bridge.py` is dead code — do not use it.
+**Important:** AG runs through `ag_server.py` on port 8766 (LaunchAgent: `com.koskadeux.ag_server`), which uses the **paid Gemini API key** from .env. This bypasses the old free-tier CLI that had a 250 requests/day quota. The free-tier `antigravity_cli_bridge.py` is dead code — do not use it.
 
 ### AG safety rules
 
@@ -133,13 +133,13 @@ AG uses **Vertex AI** via `VERTEX_API_KEY`, NOT the AI Studio `GEMINI_API_KEY`. 
 3. `GEMINI_API_KEY` → AI Studio (has daily quota limits — avoid)
 
 **Where keys live:**
-- `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` (NOT in Doppler — .env is sourced by launch script)
-- `launch_ag_server.sh` sources `.env` then falls back to Doppler for `GEMINI_API_KEY`
+- `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` (sourced by launch script from .env)
+- `launch_ag_server.sh` sources `.env` for `GEMINI_API_KEY`
 
 **If AG hits 429 RESOURCE_EXHAUSTED:**
 1. Check `~/koskadeux-mcp/.env` has `VERTEX_API_KEY=AQ.Ab8...`
-2. Check `launch_ag_server.sh` sources `.env` (not just Doppler)
+2. Check `launch_ag_server.sh` sources `.env`
 3. Restart: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist && sleep 2 && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist`
 4. Verify: `curl http://localhost:8766/health`
 
-**History:** Fixed S87, S155, S156, S305. Keep reverting because launch script only pulled from Doppler.
+**History:** Fixed S87, S155, S156, S305. Keep reverting because launch script previously only pulled from Doppler (now fixed).

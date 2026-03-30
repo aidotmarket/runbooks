@@ -50,8 +50,8 @@ Email arrives at drop@ai.market (cc or direct)
 
 | Variable | Location | Value |
 |----------|----------|-------|
-| `GMAIL_TOPIC_NAME` | Doppler (prd) | `projects/aimarket-prod/topics/gmail-push` |
-| `GCP_PROJECT_ID` | Doppler (prd) | `aimarket-prod` |
+| `GMAIL_TOPIC_NAME` | Railway env var | `projects/aimarket-prod/topics/gmail-push` |
+| `GCP_PROJECT_ID` | Railway env var | `aimarket-prod` |
 | Gmail OAuth tokens | Database (`gmail_tokens` table) | Refresh token auto-refreshes access token |
 | Gmail filter | Gmail settings > Filters | `to:(drop@ai.market)` → Skip Inbox, label "CRM-Drop" |
 
@@ -77,7 +77,7 @@ The GCP OAuth app (`aimarket-prod`) may still be in "Testing" mode. In testing m
 **If tokens expire (manual re-auth required):**
 ```bash
 cd ~/Projects/ai-market/ai-market-backend
-doppler run -p ai-market -c prd -- python3 scripts/setup_gmail_auth.py
+python3 scripts/setup_gmail_auth.py  # secrets loaded from Railway env vars
 ```
 This opens a browser for Google consent. The script saves the new refresh token, but it connects to `postgres.railway.internal` which isn't reachable from Titan-1. Push the token to Railway DB manually:
 ```bash
@@ -117,7 +117,7 @@ railway redeploy --yes
 | Emails not appearing in CRM | Gmail filter deleted | Re-create filter in Gmail settings: `to:(drop@ai.market)` → Skip Inbox, Apply "CRM-Drop" |
 | Pub/Sub 403 errors | GCP auth token expired | `gcloud auth login --account=max@ai.market` |
 | Webhook returning 500 | Railway deploy issue | Check Railway logs for ai-market-backend |
-| "GMAIL_TOPIC_NAME not configured" | Doppler var missing | Check Doppler prd config |
+| "GMAIL_TOPIC_NAME not configured" | Railway env var missing | Check Railway service variables |
 | New emails not detected | historyId gap | Stop and re-create watch (redeploy) |
 
 ## History of breakage

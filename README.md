@@ -13,7 +13,7 @@ Operational runbooks for how Max interacts with the ai.market system. One file p
 | 5 | [Session Lifecycle](session-lifecycle.md) | `session-lifecycle.md` | Updated S226 |
 | 6 | [Email Drafting](email-drafting.md) | `email-drafting.md` | Operational |
 | 7 | [Agent Dispatch](agent-dispatch.md) | `agent-dispatch.md` | Updated S226 |
-| 8 | [Doppler Secrets](doppler-secrets.md) | `doppler-secrets.md` | Operational |
+| 8 | [Doppler Secrets](doppler-secrets.md) | `doppler-secrets.md` | **DEPRECATED** — see infisical-secrets.md |
 | 9 | [Docker Testing](docker-testing.md) | `docker-testing.md` | Operational |
 | 10 | [GCP Auth](gcp-auth.md) | `gcp-auth.md` | Operational |
 | 11 | [Cloudflare Worker](cloudflare-worker.md) | `cloudflare-worker.md` | Operational |
