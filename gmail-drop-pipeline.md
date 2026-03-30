@@ -22,7 +22,7 @@ This filter ensures drop emails don't clutter the inbox. The pipeline still pick
 Email arrives at drop@ai.market (cc or direct)
   → Gmail filter: skip inbox, apply "CRM-Drop" label
   → Gmail watch (users.watch, NO labelIds filter) detects mailbox change
-  → Gmail publishes to GCP Pub/Sub topic: projects/aimarket-prod/topics/gmail-push
+  → Gmail publishes to GCP Pub/Sub topic: projects/aimarket-prod/topics/gmail-crm-drop
   → Push subscription POSTs to: https://api.ai.market/api/v1/webhooks/gmail
   → Backend webhook handler:
     1. Decodes Pub/Sub message (base64 historyId)
@@ -38,7 +38,7 @@ Email arrives at drop@ai.market (cc or direct)
 ## Key files
 
 | File | Purpose |
-|------|--------|
+|------|---------|
 | `app/api/v1/endpoints/gmail_webhook.py` | Webhook endpoint |
 | `app/services/gmail_watch_service.py` | Gmail watch setup, renewal, and notification processing |
 | `app/services/gmail_service.py` | Gmail API client (auth, fetch, send) |
@@ -50,7 +50,7 @@ Email arrives at drop@ai.market (cc or direct)
 
 | Variable | Location | Value |
 |----------|----------|-------|
-| `GMAIL_TOPIC_NAME` | Railway env var | `projects/aimarket-prod/topics/gmail-push` |
+| `GMAIL_TOPIC_NAME` | Railway env var | `projects/aimarket-prod/topics/gmail-crm-drop` |
 | `GCP_PROJECT_ID` | Railway env var | `aimarket-prod` |
 | Gmail OAuth tokens | Database (`gmail_tokens` table) | Refresh token auto-refreshes access token |
 | Gmail filter | Gmail settings > Filters | `to:(drop@ai.market)` → Skip Inbox, label "CRM-Drop" |
@@ -58,10 +58,10 @@ Email arrives at drop@ai.market (cc or direct)
 ## GCP Resources
 
 | Resource | Details |
-|----------|--------|
+|----------|---------|
 | Project | `aimarket-prod` |
-| Topic | `gmail-push` |
-| Subscription | `gmail-push-sub` (push to `https://api.ai.market/api/v1/webhooks/gmail`, 60s ack) |
+| Topic | `gmail-crm-drop` |
+| Subscription | `gmail-crm-drop-sub` (push to `https://api.ai.market/api/v1/webhooks/gmail`, 60s ack) |
 | Auth account | `max@ai.market` |
 
 ## Gmail watch renewal
@@ -81,7 +81,7 @@ python3 scripts/setup_gmail_auth.py  # secrets loaded from Railway env vars
 ```
 This opens a browser for Google consent. The script saves the new refresh token, but it connects to `postgres.railway.internal` which isn't reachable from Titan-1. Push the token to Railway DB manually:
 ```bash
-echo "UPDATE gmail_tokens SET refresh_token = '<NEW_TOKEN>', updated_at = NOW() WHERE email_address IN ('max@ai.market', 'ally@ai.market');" | railway connect Postgres
+echo "UPDATE gmail_tokens SET refresh_token = '&lt;NEW_TOKEN&gt;', updated_at = NOW() WHERE email_address IN ('max@ai.market', 'ally@ai.market');" | railway connect Postgres
 ```
 Then redeploy to renew the watch:
 ```bash
@@ -124,8 +124,10 @@ railway redeploy --yes
 
 - **S222:** Built. Verified S223 (Pub/Sub subscription confirmed).
 - **S341:** Pipeline down for days. Root cause: GCP OAuth refresh token expired (app in Testing mode). Fixed by re-running setup_gmail_auth.py and pushing token to Railway DB. Runbook updated to document Gmail filter, OAuth expiry, and manual token refresh procedure.
+- **S361:** Topic renamed from `gmail-push` to `gmail-crm-drop`. GMAIL_TOPIC_NAME set in Railway. Watch activated S360.
 
 ## Built
 
 S222 — commit `f85c77e`. Verified S223 (Pub/Sub subscription confirmed).
 Updated S341 — documented Gmail filter, OAuth token expiry, and recovery procedure.
+Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
