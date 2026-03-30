@@ -40,7 +40,8 @@ The backend stores Gmail refresh tokens in the `gmail_tokens` table (Railway Pos
 **If tokens need refreshing** (only happens if consent screen is NOT Internal):
 ```bash
 cd ~/Projects/ai-market/ai-market-backend
-doppler run -p ai-market -c prd -- python3 scripts/setup_gmail_auth.py
+# Secrets now sourced from Infisical / Railway env vars
+python3 scripts/setup_gmail_auth.py  # Uses GOOGLE_OAUTH_CREDENTIALS_JSON from Railway env
 ```
 Then push the new token to Railway DB (setup script can't reach `postgres.railway.internal` from Titan-1):
 ```bash

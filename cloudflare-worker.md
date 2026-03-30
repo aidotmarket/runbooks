@@ -39,13 +39,13 @@ Proxies vectorAIz installer scripts from GitHub. Serves stable, RC, and marketpl
 - Cloudflare account ID: `d5346d3e0f8f344c5f4915aaca689adf`
 - Worker name: `vectoraiz-installer`
 - Secret binding: `GITHUB_TOKEN` for authenticated GitHub API calls (5000 req/hr)
-- API token: `CLOUDFLARE_API_TOKEN` in Doppler (ai-market/prd)
+- API token: `CLOUDFLARE_API_TOKEN` in Infisical (ai-market/prd) / Railway env
 - Last deployed: 2026-03-20
 
 ## Deploy via API
 
 ```bash
-CF_TOKEN=$(doppler secrets get CLOUDFLARE_API_TOKEN -p ai-market --config prd --plain)
+CF_TOKEN=$(infisical secrets get CLOUDFLARE_API_TOKEN --env=prod --plain 2>/dev/null || railway variables get CLOUDFLARE_API_TOKEN)
 ACCT_ID="d5346d3e0f8f344c5f4915aaca689adf"
 
 # Build multipart body (ES modules format — part name must match main_module)
