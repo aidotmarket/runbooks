@@ -30,7 +30,7 @@ Email arrives at drop@ai.market (cc or direct)
     3. Checks if drop@ai.market is in To/CC addresses
     4. Routes to EmailIngestService for CRM processing
     5. CRM upsert: creates contact if new, matches if existing
-    6. Logs interaction (type: email) against the contact
+    6. Logs interaction (type: email) against ALL contacts (primary + CC'd)
     7. LLM summarizes the email content
     8. Stores summary in interaction record
 ```
@@ -42,7 +42,9 @@ Email arrives at drop@ai.market (cc or direct)
 | `app/api/v1/endpoints/gmail_webhook.py` | Webhook endpoint |
 | `app/services/gmail_watch_service.py` | Gmail watch setup, renewal, and notification processing |
 | `app/services/gmail_service.py` | Gmail API client (auth, fetch, send) |
-| `app/services/email_ingest_service.py` | CRM contact upsert + interaction logging |
+| `app/services/email_ingest_service.py` | CRM contact upsert + interaction logging (all contacts incl. CC) |
+| `app/services/crm_service.py` | Interaction logging + `last_interaction_at` update |
+| `app/services/draft_service.py` | Email draft CRUD (uses `reviewed_at`, `sent_at`, `reviewer_notes`) |
 | `app/api/webhooks.py` | Webhook routing |
 | `app/core/config.py` | `GMAIL_TOPIC_NAME`, `GCP_PROJECT_ID` |
 
@@ -119,6 +121,9 @@ railway redeploy --yes
 | Webhook returning 500 | Railway deploy issue | Check Railway logs for ai-market-backend |
 | "GMAIL_TOPIC_NAME not configured" | Railway env var missing | Check Railway service variables |
 | New emails not detected | historyId gap | Stop and re-create watch (redeploy) |
+| CC'd contacts missing interactions | Bug in `email_ingest_service.py` — only primary contact logged | Fixed in S364 (`aee7796`). If regresses, check `process_email()` step 4 CC fan-out loop |
+| `last_interaction_at` always null | `crm_service.py` not updating entity after interaction insert | Fixed in S364 (`aee7796`). Check `CRMInteractionService.log_interaction()` |
+| `column "reviewed_at" does not exist` | `email_drafts` table missing columns | Run pending migration or: `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ` (also `sent_at`, `reviewer_notes`) |
 
 ## History of breakage
 
@@ -130,4 +135,5 @@ railway redeploy --yes
 
 S222 — commit `f85c77e`. Verified S223 (Pub/Sub subscription confirmed).
 Updated S341 — documented Gmail filter, OAuth token expiry, and recovery procedure.
+Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) `last_interaction_at` updates on CRM entities, (3) Oren@electrified.net added manually, (4) `email_drafts` missing columns migration added. Commits: `aee7796` (bugs 1-2), migration TBD (bug 4).
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
