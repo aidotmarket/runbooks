@@ -72,12 +72,14 @@ All under `app/services/`:
 
 ## API layer
 
+> **CRITICAL:** `crm_agent_request.py` provides `/api/v1/crm/agent-request` which is the backend for the Koskadeux MCP `crm_request` tool (`tools/crm.py`). Deleting this endpoint breaks ALL MCP CRM operations. It was accidentally deleted in S364 consolidation and immediately restored (`7c51e21`).
+
 | File | Routes | Purpose |
 |------|--------|---------|
 | `api/v1/endpoints/crm.py` (1788 lines) | `/api/v1/crm/*` | Main CRM CRUD, tasks, drafts, briefing, import, admin ops |
 | `api/v1/endpoints/crm_pipeline.py` (247 lines) | `/api/v1/crm/pipeline/*` | Pipeline stages and movement |
 | `api/v1/endpoints/crm_referrals.py` (112 lines) | `/api/v1/crm/referrals/*` | Referral management |
-| `api/v1/endpoints/crm_agent_request.py` (344 lines) | `/api/v1/crm/agent-request` | **Deprecated** NL agent endpoint |
+| `api/v1/endpoints/crm_agent_request.py` (344 lines) | `/api/v1/crm/agent-request` | NL agent endpoint — **DO NOT DELETE: MCP `crm_request` tool depends on this endpoint** |
 | `api/v1/endpoints/briefing.py` | `/api/v1/briefing/*` | Briefing view with HMAC auth |
 | `api/routers/email_drafts.py` | `/api/v1/drafts/*` | Standalone draft CRUD |
 
@@ -102,9 +104,9 @@ All under `app/services/`:
 2. **6 briefing files** — should consolidate to 2-3 under `domains/crm/briefing/`
 3. **Two draft models** — `email_drafts` (standalone) and `crm_email_drafts` (CRM-tied). Should be one.
 4. **Task lifecycle** — `completed_at`, `cancelled_at`, `snoozed_until`, `closed_reason` columns added S364 (`75277a4`). Snooze/cancel methods + MCP tools added. Still missing: `in_progress`, `waiting` states.
-5. **`crm_context_service.py`** references `CRMBriefing` model that doesn't exist — likely stale/broken.
-6. **`completed_at`** written in API endpoints but column doesn't exist on `CRMTask` model.
-7. **`api/v1/endpoints/crm.py`** is 1788 lines — too large, should split by resource.
+5. **`crm_context_service.py`** — DELETED S364 (`705a97e`). Was stale/broken.
+6. **`completed_at`** — FIXED S364. Column added (`75277a4`), ghost writes commented out (`2a903fd`).
+7. **`api/v1/endpoints/crm.py`** is 1788 lines — too large, should split by resource. (Carry-forward to S365.)
 
 ### Recommended consolidation (target state)
 ```
@@ -185,4 +187,4 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 
 - S222 — Gmail drop pipeline built
 - S341 — Pipeline recovery, OAuth token expiry documented
-- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`, task lifecycle `75277a4`), auto follow-up, full architecture audit by MP, this runbook created
+- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`, task lifecycle `75277a4`), auto follow-up, full architecture audit by MP, consolidation `705a97e` (deleted 3 dead files, merged briefing_generator, retired deprecated router then restored — see below), this runbook created
