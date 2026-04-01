@@ -90,6 +90,21 @@ Then redeploy to renew the watch:
 railway redeploy --yes
 ```
 
+## Auto-follow-up on new contacts
+
+When the email drop pipeline creates a **new** contact (not an upsert of existing), a CRM task is automatically created:
+
+- **Type:** `follow_up`
+- **Due date:** 7 days from contact creation
+- **Description:** "Follow up with {name} — new contact, check if outreach needed"
+- **Surfaces in:** Morning CRM Briefing (pending tasks section)
+- **Non-blocking:** If task creation fails, the contact is still created
+
+This applies to ALL contact creation paths: email drop pipeline, CRM steward manual adds, and API creates — they all go through `CRMEntityService.create_person()`.
+
+**Code:** `app/services/crm_service.py` → `_create_new_contact_follow_up()`  
+**Shipped:** S364 — commit `ce36fb8`
+
 ## How to verify
 
 1. **Check Pub/Sub subscription exists:**
@@ -135,5 +150,5 @@ railway redeploy --yes
 
 S222 — commit `f85c77e`. Verified S223 (Pub/Sub subscription confirmed).
 Updated S341 — documented Gmail filter, OAuth token expiry, and recovery procedure.
-Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) `last_interaction_at` updates on CRM entities, (3) Oren@electrified.net added manually, (4) `email_drafts` missing columns migration added. Commits: `aee7796` (bugs 1-2), migration TBD (bug 4).
+Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) `last_interaction_at` updates on CRM entities, (3) Oren@electrified.net added manually, (4) `email_drafts` missing columns migration added. Commits: `aee7796` (bugs 1-2), `2f0b9b1` (bug 4 migration), `ce36fb8` (auto-follow-up).
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
