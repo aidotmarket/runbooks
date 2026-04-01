@@ -169,7 +169,7 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| Tasks showing absurd overdue days | LLM created task with past date | Validate `due_date` in schemas + steward skills (S364 fix) |
+| Tasks showing absurd overdue days | LLM created task with past date | Fixed S364 (`2a903fd`): 24h-past guard in schemas, steward skills, and admin API |
 | Contact not in CRM after email | Email pipeline didn't auto-create | Check Railway logs for `EmailIngestService` errors |
 | Briefing not arriving | Gmail OAuth expired or scheduler down | See `morning-briefing.md` runbook |
 | CC contacts missing interactions | Regression in `process_email()` step 4 | Verify CC fan-out loop in `email_ingest_service.py` |
@@ -180,4 +180,4 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 
 - S222 — Gmail drop pipeline built
 - S341 — Pipeline recovery, OAuth token expiry documented
-- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation), auto follow-up, full architecture audit by MP, this runbook created
+- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`), auto follow-up, full architecture audit by MP, this runbook created
