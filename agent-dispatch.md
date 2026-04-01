@@ -10,7 +10,7 @@ Routes tasks to the Council of Models (AG, MP, XAI) and Claude Code (CC) for bui
 |-------|-------|----------|------------------|
 | AG | Gemini 3.1 Pro Preview | `council_request(agent=ag)` | **DEFAULTS TO ACTION** — treats every task as a build order. Always add "READ-ONLY — DO NOT modify any files" for non-build tasks. |
 | MP | GPT-5.4 | `council_request(agent=mp)` | Analysis and review. Fully automated via Codex CLI. **Mandatory on ALL reviews.** |
-| XAI | Grok 4.1 | `council_request(agent=xai)` | Architecture review, challenging assumptions. **Excluded from code audits** (fabricates line numbers/patterns). |
+| XAI | Grok 4.1 | `council_request(agent=xai)` | Architecture review, challenging assumptions. **Excluded from code audits** (fabricates line numbers). |
 | CC | Claude Opus 4.6 | `council_request(agent=cc)` | Full filesystem builds, multi-file refactors. Always runs in background. |
 
 ## AG dispatch path (current as of S293)
@@ -24,7 +24,7 @@ council_request(agent=ag, task=..., cwd=...)
   → Returns result_text + token metrics
 ```
 
-**Important:** AG runs through `ag_server.py` on port 8766 (LaunchAgent: `com.koskadeux.ag_server`), which uses the **paid Gemini API key** from .env. This bypasses the old free-tier CLI that had a 250 requests/day quota. The free-tier `antigravity_cli_bridge.py` is dead code — do not use it.
+**Important:** AG runs through `ag_server.py` on port 8766 (LaunchAgent: `com.koskadeux.ag_server`), which uses the **paid Vertex AI API key** from Infisical. This bypasses the old free-tier CLI that had a 250 requests/day quota. The free-tier `antigravity_cli_bridge.py` is dead code — do not use it.
 
 ### AG safety rules
 
@@ -121,7 +121,7 @@ council_request(agent=cc, task=..., cwd=..., bq_code=...)
 
 ---
 
-*Last updated: S293 (2026-03-19)*
+*Last updated: S363 (2026-04-01)*
 
 ## AG Vertex AI Auth (CRITICAL — do not revert)
 
@@ -132,14 +132,21 @@ AG uses **Vertex AI** via `VERTEX_API_KEY`, NOT the AI Studio `GEMINI_API_KEY`. 
 2. `GOOGLE_GENAI_USE_GCA=true` → Vertex AI with gcloud ADC
 3. `GEMINI_API_KEY` → AI Studio (has daily quota limits — avoid)
 
-**Where keys live:**
-- `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` (sourced by launch script from .env)
-- `launch_ag_server.sh` sources `.env` for `GEMINI_API_KEY`
+**Where keys live (Infisical-first, as of S363):**
+- `VERTEX_API_KEY` in **Infisical** (prod env) — primary source, pulled by `launch_ag_server.sh` at startup
+- `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` — fallback only (sourced before Infisical overrides)
+- `GEMINI_API_KEY` in **Infisical** (prod env) — AI Studio key, only used if VERTEX_API_KEY is missing (avoid)
+- `launch_ag_server.sh` lives at `~/koskadeux-mcp/scripts/launch_ag_server.sh`
+
+**Key sourcing order in `launch_ag_server.sh`:**
+1. Sources `~/koskadeux-mcp/.env` for non-secret config
+2. Fetches `VERTEX_API_KEY` from Infisical → overrides `.env` value if found
+3. Falls back to `GEMINI_API_KEY` from Infisical only if not in `.env`
 
 **If AG hits 429 RESOURCE_EXHAUSTED:**
-1. Check `~/koskadeux-mcp/.env` has `VERTEX_API_KEY=AQ.Ab8...`
-2. Check `launch_ag_server.sh` sources `.env`
+1. Verify Infisical has `VERTEX_API_KEY`: `infisical secrets get VERTEX_API_KEY --plain --env prod --domain https://secrets.ai.market --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c`
+2. Verify `.env` fallback: `grep VERTEX_API_KEY ~/koskadeux-mcp/.env`
 3. Restart: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist && sleep 2 && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ag_server.plist`
 4. Verify: `curl http://localhost:8766/health`
 
-**History:** Fixed S87, S155, S156, S305. Keep reverting because launch script previously only pulled from Doppler (now fixed).
+**History:** Fixed S87, S155, S156, S305. S363: migrated key sourcing from .env-only to Infisical-first.
