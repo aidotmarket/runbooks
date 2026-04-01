@@ -101,7 +101,7 @@ All under `app/services/`:
 1. **Two architectures running in parallel** — V1 `crm_entities` vs V2 `domains/crm/party`. Same concepts exist in too many places.
 2. **6 briefing files** — should consolidate to 2-3 under `domains/crm/briefing/`
 3. **Two draft models** — `email_drafts` (standalone) and `crm_email_drafts` (CRM-tied). Should be one.
-4. **No task lifecycle** — missing states like `snoozed`, `in_progress`, `waiting`. Missing `completed_at`, `snoozed_until` timestamps on `CRMTask` model.
+4. **Task lifecycle** — `completed_at`, `cancelled_at`, `snoozed_until`, `closed_reason` columns added S364 (`75277a4`). Snooze/cancel methods + MCP tools added. Still missing: `in_progress`, `waiting` states.
 5. **`crm_context_service.py`** references `CRMBriefing` model that doesn't exist — likely stale/broken.
 6. **`completed_at`** written in API endpoints but column doesn't exist on `CRMTask` model.
 7. **`api/v1/endpoints/crm.py`** is 1788 lines — too large, should split by resource.
@@ -153,7 +153,12 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 - `create_task()` — dedup check, create with hash
 - `get_pending_tasks()` — returns `status IN (pending, approved)`
 - `get_overdue_tasks()` — returns pending tasks where `due_date < now`
-- **Missing:** no snooze, no auto-close, no state machine
+- **Lifecycle methods (S364):**
+- `complete_task(task_id, reason)` → sets `completed_at` + `closed_reason`
+- `cancel_task(task_id, reason)` → sets `cancelled_at` + `closed_reason`
+- `snooze_task(task_id, until)` → sets `snoozed_until` (hidden from briefing)
+- `get_pending_tasks()` and `get_overdue_tasks()` exclude snoozed tasks
+- MCP tools: `snooze_task`, `cancel_task` available via Koskadeux
 
 ## Configuration
 
@@ -180,4 +185,4 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 
 - S222 — Gmail drop pipeline built
 - S341 — Pipeline recovery, OAuth token expiry documented
-- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`), auto follow-up, full architecture audit by MP, this runbook created
+- S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`, task lifecycle `75277a4`), auto follow-up, full architecture audit by MP, this runbook created
