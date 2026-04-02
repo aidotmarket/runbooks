@@ -137,6 +137,8 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 | "GMAIL_TOPIC_NAME not configured" | Railway env var missing | Check Railway service variables |
 | New emails not detected | historyId gap | Stop and re-create watch (redeploy) |
 | CC'd contacts missing interactions | Bug in `email_ingest_service.py` — only primary contact logged | Fixed in S364 (`aee7796`). If regresses, check `process_email()` step 4 CC fan-out loop |
+| Emails silently dropped, no errors in logs | `db.begin()` inside active transaction kills ingest | Fixed in S370 (`ef36f82`). Use `begin_nested()` instead. Check `email_ingest_service.py` transaction handling |
+| Gmail labelAdded events ignored | Webhook only handled messageAdded historyType | Fixed in S370 (`8bf4b87`). Gmail filter applies label → triggers labelAdded, not messageAdded. Both must be handled |
 | `last_interaction_at` always null | `crm_service.py` not updating entity after interaction insert | Fixed in S364 (`aee7796`). Check `CRMInteractionService.log_interaction()` |
 | `column "reviewed_at" does not exist` | `email_drafts` table missing columns | Run pending migration or: `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ` (also `sent_at`, `reviewer_notes`) |
 
@@ -152,3 +154,4 @@ S222 — commit `f85c77e`. Verified S223 (Pub/Sub subscription confirmed).
 Updated S341 — documented Gmail filter, OAuth token expiry, and recovery procedure.
 Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) `last_interaction_at` updates on CRM entities, (3) Oren@electrified.net added manually, (4) `email_drafts` missing columns migration added. Commits: `aee7796` (bugs 1-2), `2f0b9b1` (bug 4 migration), `ce36fb8` (auto-follow-up).
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
+Updated S370 — Fixed 2 bugs: (1) `db.begin()` inside active transaction silently killed all CRM ingest (`ef36f82`, `begin_nested()` fix), (2) Gmail `labelAdded` events not handled (`8bf4b87`). Verified E2E: email → contact created + interaction logged.
