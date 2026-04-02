@@ -27,12 +27,13 @@ Email arrives at drop@ai.market (cc or direct)
   → Backend webhook handler:
     1. Decodes Pub/Sub message (base64 historyId)
     2. Fetches new messages via Gmail API (historyTypes=messageAdded)
-    3. Checks if drop@ai.market is in To/CC addresses
-    4. Routes to EmailIngestService for CRM processing
-    5. CRM upsert: creates contact if new, matches if existing
-    6. Logs interaction (type: email) against ALL contacts (primary + CC'd)
-    7. LLM summarizes the email content
-    8. Stores summary in interaction record
+    3. Skips messages with DRAFT label (Apple Mail IMAP auto-saves)
+    4. Checks if drop@ai.market is in To/CC addresses
+    5. Routes to EmailIngestService for CRM processing
+    6. CRM upsert: creates contact if new, matches if existing
+    7. Logs interaction (type: email) against ALL contacts (primary + CC'd)
+    8. LLM summarizes the email content
+    9. Stores summary in interaction record
 ```
 
 ## Key files
@@ -83,7 +84,7 @@ python3 scripts/setup_gmail_auth.py  # secrets loaded from Railway env vars
 ```
 This opens a browser for Google consent. The script saves the new refresh token, but it connects to `postgres.railway.internal` which isn't reachable from Titan-1. Push the token to Railway DB manually:
 ```bash
-echo "UPDATE gmail_tokens SET refresh_token = '&lt;NEW_TOKEN&gt;', updated_at = NOW() WHERE email_address IN ('max@ai.market', 'ally@ai.market');" | railway connect Postgres
+echo "UPDATE gmail_tokens SET refresh_token = '<NEW_TOKEN>', updated_at = NOW() WHERE email_address IN ('max@ai.market', 'ally@ai.market');" | railway connect Postgres
 ```
 Then redeploy to renew the watch:
 ```bash
@@ -139,6 +140,7 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 | CC'd contacts missing interactions | Bug in `email_ingest_service.py` — only primary contact logged | Fixed in S364 (`aee7796`). If regresses, check `process_email()` step 4 CC fan-out loop |
 | Emails silently dropped, no errors in logs | `db.begin()` inside active transaction kills ingest | Fixed in S370 (`ef36f82`). Use `begin_nested()` instead. Check `email_ingest_service.py` transaction handling |
 | Gmail labelAdded events ignored | Webhook only handled messageAdded historyType | Fixed in S370 (`8bf4b87`). Gmail filter applies label → triggers labelAdded, not messageAdded. Both must be handled |
+| Duplicate PROCESSED drafts in Gmail | Apple Mail IMAP auto-saves trigger messageAdded events for drafts | Fixed in S372 (`eb26181`). `_process_single_message` and `_reprocess_for_crm` now skip messages with DRAFT label |
 | `last_interaction_at` always null | `crm_service.py` not updating entity after interaction insert | Fixed in S364 (`aee7796`). Check `CRMInteractionService.log_interaction()` |
 | `column "reviewed_at" does not exist` | `email_drafts` table missing columns | Run pending migration or: `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ` (also `sent_at`, `reviewer_notes`) |
 
@@ -147,6 +149,7 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 - **S222:** Built. Verified S223 (Pub/Sub subscription confirmed).
 - **S341:** Pipeline down for days. Root cause: GCP OAuth refresh token expired (app in Testing mode). Fixed by re-running setup_gmail_auth.py and pushing token to Railway DB. Runbook updated to document Gmail filter, OAuth expiry, and manual token refresh procedure.
 - **S361:** Topic renamed from `gmail-push` to `gmail-crm-drop`. GMAIL_TOPIC_NAME set in Railway. Watch activated S360.
+- **S372:** Apple Mail IMAP draft auto-saves creating duplicate PROCESSED drafts. Root cause: `_process_single_message` processed all messageAdded events including drafts. Fix: DRAFT label check added to skip draft messages in both `_process_single_message` and `_reprocess_for_crm`.
 
 ## Built
 
@@ -155,3 +158,4 @@ Updated S341 — documented Gmail filter, OAuth token expiry, and recovery proce
 Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) `last_interaction_at` updates on CRM entities, (3) Oren@electrified.net added manually, (4) `email_drafts` missing columns migration added. Commits: `aee7796` (bugs 1-2), `2f0b9b1` (bug 4 migration), `ce36fb8` (auto-follow-up).
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
 Updated S370 — Fixed 2 bugs: (1) `db.begin()` inside active transaction silently killed all CRM ingest (`ef36f82`, `begin_nested()` fix), (2) Gmail `labelAdded` events not handled (`8bf4b87`). Verified E2E: email → contact created + interaction logged.
+Updated S372 — Fixed DRAFT duplication bug: Apple Mail IMAP auto-saves triggered messageAdded events, handler processed drafts as real emails. DRAFT label check added (`eb26181`).
