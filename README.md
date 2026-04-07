@@ -19,6 +19,20 @@ Operational runbooks for how Max interacts with the ai.market system. One file p
 | 11 | [Cloudflare Worker](cloudflare-worker.md) | `cloudflare-worker.md` | Operational |
 | 12 | [Morning Briefing](morning-briefing.md) | `morning-briefing.md` | Fixed S226 |
 | 13 | [MCP Gateway](mcp-gateway.md) | `mcp-gateway.md` | New S226 |
+| 14 | [ai-market Backend](ai-market-backend.md) | `ai-market-backend.md` | Operational |
+| 15 | [ai-market Frontend](ai-market-frontend.md) | `ai-market-frontend.md` | Operational |
+| 16 | [aimarket MCP Server](aimarket-mcp-server.md) | `aimarket-mcp-server.md` | Operational |
+| 17 | [allAI Agents](allai-agents.md) | `allai-agents.md` | Operational |
+| 18 | [Council & Gate Process](council-gate-process.md) | `council-gate-process.md` | Operational |
+| 19 | [CRM Architecture](crm-architecture.md) | `crm-architecture.md` | Operational |
+| 20 | [Infisical Secrets](infisical-secrets.md) | `infisical-secrets.md` | Operational |
+| 21 | [Ops Dashboard](ops-ai-market.md) | `ops-ai-market.md` | Operational |
+| 22 | [RTK Token Optimization](rtk-token-optimization.md) | `rtk-token-optimization.md` | Operational |
+| 23 | [SEO Infrastructure](seo-infrastructure.md) | `seo-infrastructure.md` | Operational |
+| 24 | [SEO Seller Validation](seo-seller-validation.md) | `seo-seller-validation.md` | Operational |
+| 25 | [Vulcan Configuration](vulcan-configuration.md) | `vulcan-configuration.md` | Operational |
+| 26 | [Meet Records Pipeline](meet-records-pipeline.md) | `meet-records-pipeline.md` | Operational |
+| 27 | [AIM Node](aim-node.md) | `aim-node.md` | New S401 — pre-build |
 
 ## How to use
 
