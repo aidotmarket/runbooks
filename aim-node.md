@@ -1,8 +1,10 @@
-# AIM Node — Universal Network Client
+# AIM Node — The Runtime
 
-## What it is
+The universal network client for ai.market. Same codebase, two modes: **provider** (wraps a model/pipeline endpoint, serves it to buyers) and **consumer** (searches marketplace, sends requests via local HTTP proxy). Peer-to-peer — all model/pipeline traffic flows directly between buyer and seller nodes. ai.market never sees or touches payloads.
 
-Desktop/server application that connects sellers and buyers to the ai.market network. Same codebase, two modes: **provider** (wraps a model/pipeline endpoint and serves it to buyers) and **consumer** (searches marketplace, connects to sellers, sends requests through a local HTTP proxy).
+**IS NOT** a cloud service or model host. Runs on the participant's own infrastructure. Outbound connections only — works behind any firewall.
+
+**Data plane:** Non-custodial. Encrypted relay forwards opaque frames (ChaCha20-Poly1305, per-session ephemeral keys). ai.market handles control plane and metering metadata only — never data plane content.
 
 **Repo:** [aidotmarket/aim-node](https://github.com/aidotmarket/aim-node) (private)
 **Local path:** `/Users/max/Projects/ai-market/aim-node`
@@ -45,6 +47,14 @@ aim-node/
 └── main.py            # Entrypoint, service orchestration
 ```
 
+## Integration points
+
+| Integrates with | How | Purpose |
+|-----------------|-----|---------|
+| ai.market backend | HTTPS API + WebSocket Trust Channel | Session negotiation, metering submission, marketplace discovery, billing |
+| ai.market relay | WebSocket | Forwards encrypted frames between buyer and seller nodes |
+| vectorAIz | Shared aim-core library | Crypto, trust channel, device provisioning — extracted with config injection |
+
 ## Configuration (aim-node.toml)
 
 ```toml
@@ -83,6 +93,10 @@ port = 8400   # local proxy port
 7. Forwards requests to seller's HTTP endpoint via adapter
 8. Reports seller-side metering events (cumulative, signed)
 
+### Adapter (Phase 1: HTTP/JSON only)
+
+Wraps exactly one protocol: HTTP endpoints that accept and return JSON. Receives decrypted REQUEST frame, extracts JSON payload, applies optional JSONPath transforms, forwards as POST to seller endpoint, wraps response back into RESPONSE frame. Error codes: 1006 (adapter error), 1007 (timeout).
+
 ### Health checking
 
 Every 60s, hits the health check URL. After 3 consecutive failures: reports NODE_HEALTH_DEGRADED to market, rejects new sessions, existing sessions continue. Resumes on recovery.
@@ -100,21 +114,21 @@ Every 60s, hits the health check URL. After 3 consecutive failures: reports NODE
 
 ### Local proxy behavior
 
-Request body forwarded as-is to seller. Response body forwarded as-is back. Response headers include `X-AIM-Trace-Id`, `X-AIM-Latency-Ms`. Error codes: 502 (adapter error), 504 (timeout), 503 (session closed/expired).
+Request body forwarded as-is to seller. Response body forwarded as-is back. Response headers include `X-AIM-Trace-Id`, `X-AIM-Latency-Ms`. Error codes: 502 (adapter error), 504 (timeout), 503 (session closed/expired). Binds to `127.0.0.1` only — not externally accessible.
 
 ## Security model
 
 ### Encryption
 
-All peer data flows encrypted with ChaCha20-Poly1305 AEAD. Per-session ephemeral X25519 keys provide forward secrecy. The relay sees only opaque ciphertext.
+All peer data flows encrypted with ChaCha20-Poly1305 AEAD. Per-session ephemeral X25519 keys provide forward secrecy. The relay sees only opaque ciphertext — it cannot decrypt, inject, replay, or impersonate.
 
 ### Key exchange (per session)
 
-1. Market issues session tokens with peer Ed25519 public keys
+1. Market issues session tokens containing peer Ed25519 public keys
 2. Both peers generate ephemeral X25519 keypairs
 3. HANDSHAKE_INIT / HANDSHAKE_ACCEPT exchange ephemeral pubkeys + Ed25519 signatures
 4. Shared secret via X25519 DH → HKDF-SHA256 → encryption_key, mac_key, iv_prefix
-5. Ephemeral keys discarded after session
+5. Ephemeral keys discarded after session — forward secrecy guaranteed
 
 ### Peer authentication
 
@@ -149,6 +163,10 @@ Send HEARTBEAT every 30s of inactivity. HEARTBEAT_ACK expected within 5s. 3 miss
 
 Concurrency window: buyer tracks in-flight count against seller's `max_concurrent_requests` (default 10). Blocks new requests when full.
 
+### Error codes
+
+1000=generic, 1001=invalid frame, 1002=unsupported version, 1003=auth failed, 1004=session expired, 1005=rate limited, 1006=adapter error, 1007=timeout, 1008=payload too large, 1009=cancelled, 1010=session closing.
+
 ## Session lifecycle
 
 ```
@@ -157,13 +175,23 @@ Buyer calls POST /aim/sessions/connect
   → Market sends SESSION_NEGOTIATE to seller via Trust Channel
   → Seller validates capacity, sends SESSION_ACCEPT
   → Market issues session tokens to both peers
-  → Relay connection established (encrypted via key exchange above)
+  → Relay connection established (encrypted via key exchange)
   → REQUEST/RESPONSE loop
   → Both sides report metering events (cumulative, signed)
   → Ceiling enforcement: 90% warning, 100% auto-close
   → SESSION_CLOSE → final metering (is_final=true)
   → Reconciliation → settlement → payout (server-side)
 ```
+
+### Edge cases
+
+| Scenario | Behavior |
+|----------|----------|
+| Buyer disconnects | Seller detects via 90s heartbeat timeout, session open for 5min reconnection, then auto-closed |
+| Seller endpoint crashes | ERROR frames, buyer sees 502, metering continues |
+| Relay crashes | Both lose WebSocket, 1 retry, fail → closed after 5min |
+| Ceiling hit mid-request | Session closed, in-flight completes best-effort, no new requests |
+| Insufficient reservation | Rejected at negotiation (pre-connection) |
 
 ## Shared code with VZ (aim-core)
 
@@ -219,3 +247,4 @@ Git clone + `pip install -e .` for development. PyPI package (`pip install aim-n
 - **Reservations:** ReservationService (`app/services/reservation_service.py`)
 - **Gate 2 spec:** `specs/BQ-AIM-NODE-APP-GATE2.md` in ai-market-backend
 - **VZ (data seller app):** [vz-release-process.md](vz-release-process.md)
+- **CORE.md product description:** `docs/core/CORE.md` → "AIM Node — The Runtime"
