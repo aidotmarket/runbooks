@@ -105,3 +105,74 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 ---
 
 *Created: S363 (2026-04-01)*
+
+## Alembic + asyncpg Gotchas (Railway)
+
+Railway runs Alembic via asyncpg (async PostgreSQL driver). This introduces constraints that don't exist with psycopg2 (sync):
+
+### 1. No multi-statement prepared statements
+asyncpg rejects `op.execute()` calls containing multiple SQL statements separated by semicolons.
+
+**Fails:**
+```python
+op.execute("CREATE TABLE ...; INSERT INTO ...; UPDATE ...;")
+```
+
+**Works:**
+```python
+op.execute("CREATE TABLE ...")
+op.execute("INSERT INTO ...")
+op.execute("UPDATE ...")
+```
+
+### 2. Temp tables with ON COMMIT DROP are destroyed between op.execute() calls
+asyncpg auto-commits between separate `op.execute()` calls even under Alembic's transactional DDL. This means `CREATE TEMP TABLE ... ON COMMIT DROP` tables disappear before the next statement can use them.
+
+**Fails:**
+```python
+op.execute("CREATE TEMP TABLE tmp ... ON COMMIT DROP AS SELECT ...")
+op.execute("INSERT INTO target SELECT ... FROM tmp")  # tmp is gone
+```
+
+**Works — PL/pgSQL DO block (recommended for multi-step data operations):**
+```python
+op.execute("""
+    DO $$
+    DECLARE rec RECORD; new_id UUID;
+    BEGIN
+        FOR rec IN SELECT ... FROM source WHERE ...
+        LOOP
+            INSERT INTO parent (...) VALUES (...) RETURNING id INTO new_id;
+            INSERT INTO child (parent_id, ...) VALUES (new_id, ...);
+        END LOOP;
+    END $$
+""")
+```
+
+**Works — CTE (for single-statement operations):**
+```python
+op.execute("""
+    WITH source AS (SELECT ... FROM ...)
+    INSERT INTO target SELECT ... FROM source
+    ON CONFLICT DO NOTHING
+""")
+```
+
+### 3. Migration already applied = won't re-run
+If a migration runs "successfully" but has no effect (e.g., temp table was empty due to the ON COMMIT DROP issue), Alembic stamps it as applied. You must create a **new revision** to fix it — you can't just edit the existing one.
+
+### 4. Unique constraint conflicts on backfills
+Always check for pre-existing data from other creation paths (admin endpoints, CRM backfills, manual inserts). Use `ON CONFLICT DO NOTHING` or `NOT EXISTS` subqueries. For partial unique indexes (like `ux_crm_people_email_active`), prefer `NOT EXISTS` over `ON CONFLICT ON CONSTRAINT`.
+
+### Summary: Safe migration pattern for asyncpg
+```python
+def upgrade() -> None:
+    # Each op.execute() = one statement
+    # Use PL/pgSQL DO blocks for correlated multi-table inserts
+    # Use CTEs for single-statement derivations
+    # Always ON CONFLICT / NOT EXISTS for idempotency
+    # Never use temp tables across op.execute() boundaries
+    # Never put multiple statements in one op.execute()
+```
+
+*Discovered in S427. See also: alembic/versions/20260410_002_backfill_parties_v2.py for a working example.*
