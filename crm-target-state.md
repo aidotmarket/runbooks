@@ -2,7 +2,7 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: DRAFT R2 — S447. Addressing MP Gate 1 findings F1-F6. BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: DRAFT R3 — S447. R3: Fixed pipeline test coverage claims per MP R2 review. BQ-CRM-RUNBOOK-STANDARD.
 
 ---
 
@@ -94,13 +94,13 @@ Each capability is described with:
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Pipeline stages (new_lead → closed) | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa, A |
-| Move contact through pipeline | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa |
-| Bulk pipeline moves | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa |
-| Pipeline history/audit | Working | — | No | Covered (`test_pipeline_endpoints`) | A |
-| Stage duration analytics | Working | — | No | Partial (`test_crm_fts:469`) | Sa |
-| Conversion rate analytics | Working | — | No | Partial | Sa |
-| Pipeline overview/search | Working | — | No | Covered | Sa |
+| Pipeline stages (new_lead → closed) | Working | — | No | Gap — no dedicated CRM pipeline test file | Sa, A |
+| Move contact through pipeline | Working | — | No | Gap — no dedicated CRM pipeline test file | Sa |
+| Bulk pipeline moves | Working | — | No | Gap — no dedicated CRM pipeline test file | Sa |
+| Pipeline history/audit | Working | — | No | Gap — no dedicated CRM pipeline test file | A |
+| Stage duration analytics | Working | — | No | Gap | Sa |
+| Conversion rate analytics | Working | — | No | Gap | Sa |
+| Pipeline overview/search | Working | — | No | Gap | Sa |
 
 ### 2.6 Referrals & Commissions
 
@@ -286,8 +286,8 @@ Every row in the Capabilities Matrix (Section 2) must have at least one automate
 
 ### Current Coverage
 - **439+ CRM-related tests** across the repo (including pipeline, referral, steward, service, MCP, soft-delete, FTS, briefing)
-- **Well covered**: Core CRUD, steward skills, V2 identity/trust/revenue, referral basics + commission, auth guardrails, briefing skill, pipeline endpoints, soft-delete constraints, org operations, entity network, cancel task
-- **Gaps**: Outreach generation/context, research service, briefing delivery/data assembly, draft service, admin/import/dedup, outbound Gmail, voice memo, V2 operations against real DB with non-null entity_id, steward→V2 integration, agent-level integration tests
+- **Well covered**: Core CRUD, steward skills, V2 identity/trust/revenue, referral basics + commission, auth guardrails, briefing skill, soft-delete constraints, org operations, entity network, cancel task
+- **Gaps**: CRM pipeline service/endpoints (no dedicated test file), outreach generation/context, research service, briefing delivery/data assembly, draft service, admin/import/dedup, outbound Gmail, voice memo, V2 operations against real DB with non-null entity_id, steward→V2 integration, agent-level integration tests
 - **Quarantined**: `test_crm_auth.py`, `test_crm_steward_retrofit.py` (skill-count drift), `test_gmail_drafts.py` (skipped)
 
 ### Test Tiers
@@ -386,7 +386,7 @@ domains/crm/
 | `test_crm_fts.py` | Full-text search + pipeline | ~25+ |
 | `test_crm_referral.py` | Referral basics | ~15+ |
 | `test_crm_referral_commission.py` | Commission-on-close | ~10+ |
-| `test_pipeline_endpoints.py` | Pipeline API endpoints | ~20+ |
+| _(no dedicated CRM pipeline test file)_ | Pipeline API endpoints | **Gap** |
 | `test_crm_audit_phase3_build_c.py` | Audit/phase3 | ~15+ |
 | `test_crm_auth.py` | Auth guardrails | Quarantined |
 | `test_crm_steward_retrofit.py` | Skill-count regression | Quarantined |
