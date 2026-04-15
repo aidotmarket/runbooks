@@ -2,7 +2,7 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: DRAFT — S447. Pending Council review and Gate 1 approval under BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: DRAFT R2 — S447. Addressing MP Gate 1 findings F1-F6. BQ-CRM-RUNBOOK-STANDARD.
 
 ---
 
@@ -50,32 +50,32 @@ Each capability is described with:
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
 | Create/upsert person | Working | — | Yes (`upsert_contact`) | Covered | Sa |
-| Search/list persons | Working | — | Yes (`find_contact`) | Covered | Sa, Su |
+| Search/list persons | Working | — | Yes (`find_contact`, `search_contacts`) | Covered | Sa, Su |
 | Update person fields | Partial | SERVICE-LAYER | Partial (service-bus) | Covered | Sa |
-| Soft-delete person | Partial | DATA-INTEGRITY | Partial (service-bus) | Covered | — |
+| Soft-delete person | Partial | DATA-INTEGRITY | Partial (service-bus) | Covered (`test_crm_soft_delete_and_constraints`) | — |
 | Create organization | Working | — | Yes (`create_organization`) | Covered | Sa, A |
-| Search/list organizations | Working | — | No | Gap | Sa |
-| Update/delete organization | Partial | SERVICE-LAYER | No | Gap | Sa |
+| Search/list organizations | Working | — | No | Covered (`test_crm_soft_delete_and_constraints:75`) | Sa |
+| Update/delete organization | Partial | SERVICE-LAYER | No | Covered (`test_crm_service_gate1:425`) | Sa |
 | Merge duplicate contacts | Not built | — | No | — | — |
 
 ### 2.2 Relationships & Entity Network
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Create relationship | Working | DATA-INTEGRITY | Yes (create only) | Covered | Sa |
-| List/query relationships | Working | DATA-INTEGRITY | No (service-bus) | Gap | Sa, Su |
-| Relationship types (referral, colleague, reports_to) | Working | — | No | Gap | Sa |
-| Entity network graph | Not built | — | No | — | Sa |
+| Create relationship | Working | DATA-INTEGRITY | Yes (`create_relationship`) | Covered | Sa |
+| List/query relationships | Working | DATA-INTEGRITY | Yes (`get_entity_context` includes relationships) | Covered (`test_crm_service_gate1:514`) | Sa, Su |
+| Relationship types (referral, colleague, reports_to) | Working | — | Yes (via `create_relationship`) | Covered | Sa |
+| Entity network graph | Working | — | Yes (`get_entity_context`) | Covered (`test_crm_soft_delete_and_constraints:127`) | Sa |
 
 ### 2.3 Interactions & Communication Log
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Log interaction (email, call, note, social, whatsapp) | Working | — | Yes (`add_note`) | Covered | Su, Sa |
+| Log interaction (email, call, note, social, whatsapp) | Working | — | Yes (`add_note`, `log_note`) | Covered | Su, Sa |
 | Interaction dedup (description_hash, 24h window) | Working | — | No | Covered | — |
-| List/search interactions | Working | — | No (service-bus) | Covered | Su |
-| Email ingest (drop@ai.market → CRM) | Partial | — | No | Gap | Su, Sa |
-| Voice memo ingest | Partial (TODO) | — | No | — | — |
+| List/search interactions | Working | — | Via `get_entity_context` | Covered | Su |
+| Email ingest (drop@ai.market → CRM) | Partial | — | No | Partial (gmail drop tests) | Su, Sa |
+| Voice memo ingest | Partial | — | No | Gap | — |
 
 ### 2.4 Task Lifecycle
 
@@ -84,22 +84,23 @@ Each capability is described with:
 | Create task (with dedup) | Working | — | Yes (`create_task`) | Covered | Su, Sa |
 | Complete task | Working | — | Yes (`complete_task`) | Covered | — |
 | Snooze task | Working | — | Yes (`snooze_task`) | Covered | — |
-| Cancel task | Working | — | Partial (service-bus) | Gap | — |
-| Move task forward | Working | — | Yes (`move_task_forward`) | Covered | — |
+| Cancel task | Working | — | No | Covered (`test_crm_service_gate1:713`) | — |
+| Move contact forward | Working | — | Yes (`move_contact_forward`) | Covered | — |
 | Get pending/overdue tasks | Working | BRIEFING-FIX | Yes (`get_daily_briefing`) | Covered | Su |
 | Task states: in_progress, waiting | Not built | — | No | — | Su |
-| Task-linked email drafts (CRMEmailDraft) | Working | — | No | Gap | Sa |
+| Task-linked email drafts (CRMEmailDraft) | Working | — | Yes (`draft_email`) | Gap | Sa |
 
 ### 2.5 Pipeline & Sales Lifecycle
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Pipeline stages (new_lead → closed) | Working | — | Partial (`get_pipeline_status`) | Gap | Sa, A |
-| Move contact through pipeline | Partial | — | No | Gap | Sa |
-| Bulk pipeline moves | Partial | — | No | Gap | Sa |
-| Pipeline history/audit | Partial | — | No | Gap | A |
-| Stage duration analytics | Partial | — | No | Gap | Sa |
-| Conversion metrics | Not built | — | No | — | Sa |
+| Pipeline stages (new_lead → closed) | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa, A |
+| Move contact through pipeline | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa |
+| Bulk pipeline moves | Working | — | No | Covered (`test_pipeline_endpoints`) | Sa |
+| Pipeline history/audit | Working | — | No | Covered (`test_pipeline_endpoints`) | A |
+| Stage duration analytics | Working | — | No | Partial (`test_crm_fts:469`) | Sa |
+| Conversion rate analytics | Working | — | No | Partial | Sa |
+| Pipeline overview/search | Working | — | No | Covered | Sa |
 
 ### 2.6 Referrals & Commissions
 
@@ -107,7 +108,7 @@ Each capability is described with:
 |---|---|---|---|---|---|
 | Create referral | Working | DATA-INTEGRITY | No | Partial | A, Sa |
 | Referral status tracking | Working | — | No | Partial | A |
-| Commission-on-close | Partial | — | No | Gap | A |
+| Commission-on-close | Working | — | No | Covered (`test_crm_referral_commission:65`) | A |
 | Commission plans/rules/overrides (V2) | Working | — | No | Covered | A |
 | Commission accruals (V2) | Working | — | No | Covered | A |
 
@@ -139,7 +140,18 @@ Each capability is described with:
 | Service layer enforcement | Not built | SERVICE-LAYER | N/A | Gap | All |
 | Audit trail | Partial (pipeline only) | — | No | Gap | A, Su |
 
-### 2.10 V2 Domain Layer (Emerging)
+### 2.10 Admin, Import & Data Operations
+
+| Feature | Status | BQ | Agent | Tests | Integration |
+|---|---|---|---|---|---|
+| Contact/org import | Working | — | No | Gap | — |
+| Seed pipeline stages | Working | — | No | Gap | — |
+| Duplicate cleanup/dedup | Working | — | No | Gap | — |
+| Outbound Gmail send | Working | — | No | Gap | Sa |
+| Gmail validation/status | Working | — | No | Gap | — |
+| Voice memo ingest endpoint | Partial | — | No | Gap | — |
+
+### 2.11 V2 Domain Layer (Emerging)
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
@@ -148,34 +160,47 @@ Each capability is described with:
 | Trust scoring + infractions | Partial | — | No | Covered | Su |
 | Opportunities | Working | — | No | Covered | Sa, A |
 | TX event dispatcher | Working | — | No | Covered | All |
-| V2 operations wrappers | **Broken** | — | No | Gap | — |
+| V2 operations wrappers | **Broken** | — | No | Partial (`test_crm_v2_operations:89`) | — |
 
 ---
 
 ## 3. CRM Steward — Agent Capability Map
 
-### Current Skills (23 decorated, 11 exposed as wrappers)
+### Current Skills (16 in manifest, 11 public)
 
-**Fully accessible via agent**:
-- `find_contact`, `upsert_contact`, `create_organization`
-- `add_note`, `create_task`, `complete_task`, `snooze_task`, `move_task_forward`
-- `get_daily_briefing`, `get_pipeline_status`
-- NL compatibility endpoint (`/crm/agent-request`)
+**Published public skills** (accessible via MCP/API/Telegram):
+- `find_contact` — search contacts by name/email/query
+- `upsert_contact` — create or update contact (matches by email then name)
+- `add_note` — log interaction/note against entity
+- `create_task` — create follow-up task with dedup
+- `create_organization` — create/upsert organization by name
+- `create_relationship` — link two CRM entities
+- `complete_task` — mark task completed
+- `snooze_task` — postpone task to future date
+- `move_contact_forward` — push open tasks forward N days + reset last-contact
+- `get_daily_briefing` — user-scoped daily CRM briefing
+- `get_entity_context` — full entity context (interactions, relationships, tasks)
 
-**Decorated but NOT exposed as agent wrappers** (12+ skills):
+**Additional internal skills** (in manifest but not public):
+- `add_prospect` — multi-step contact creation flow
+- `draft_email` — email drafting via approval pipeline
+- `log_note` — add note to existing contact
+- `search_contacts` — search by name/company/email
+- `general_chat` — general CRM-aware conversation
+
+**Decorated service-bus skills NOT exposed** (in `crm_steward_skills.py`):
 - `update_contact`, `update_person`, `delete_entity`
-- Relationship management skills
-- Draft management skills
-- Research and enrichment skills
-- Pipeline move skills
-- Interaction search/listing skills
+- Pipeline move/query skills
+- Referral management skills
+- Research/enrichment skills
+- Admin/import skills
 
 ### Target State: Full Agent Coverage
 
-After BQ-CRM-COMPOSITE-SKILLS and this runbook's gap analysis, the steward MUST be able to:
+After BQ-CRM-AGENT-COVERAGE, the steward MUST be able to:
 
 1. **Contact ops**: Create, read, update, soft-delete persons and organizations. Search by any field. Merge duplicates.
-2. **Relationship ops**: Create, read, delete relationships. Query entity network.
+2. **Relationship ops**: Create, read, delete relationships. Query entity network. (Partially done via `create_relationship` + `get_entity_context`)
 3. **Interaction ops**: Log any type. Search/filter interactions. Trigger email ingest manually.
 4. **Task ops**: Full lifecycle — create, complete, cancel, snooze, reassign. Query pending/overdue/snoozed.
 5. **Pipeline ops**: Move contacts through stages. Bulk moves. Query stage analytics.
@@ -185,7 +210,7 @@ After BQ-CRM-COMPOSITE-SKILLS and this runbook's gap analysis, the steward MUST 
 9. **Admin ops**: Import contacts. Seed pipeline stages. Run data integrity checks.
 
 ### Skill Gap Closure Plan
-Each gap maps to either BQ-CRM-COMPOSITE-SKILLS (multi-step) or a new BQ. The test suite must include agent-level integration tests: steward skill → service → database → verified outcome.
+Each gap maps to BQ-CRM-AGENT-COVERAGE (expanded from COMPOSITE-SKILLS). Depends on SERVICE-LAYER landing first (single write path). Test suite must include agent-level integration tests: steward skill → service → database → verified outcome.
 
 ---
 
@@ -203,10 +228,10 @@ Each gap maps to either BQ-CRM-COMPOSITE-SKILLS (multi-step) or a new BQ. The te
 
 | Event/Endpoint | Exists | Stable API | Priority |
 |---|---|---|---|
-| Commission accrual created/settled | Yes (V2 TX) | No | P1 |
-| Referral closed with commission | Yes (service) | No | P1 |
-| Pipeline stage changed | Yes (service) | No | P2 |
-| Party ↔ Stripe mapping | Yes (party_identity) | No | P1 |
+| Commission accrual created/settled | Yes (V2 TX) | No — service-internal only | P1 |
+| Referral closed with commission | Yes (service) | No — service-internal only | P1 |
+| Pipeline stage changed | Yes (service) | No — no event hook | P2 |
+| Party ↔ Stripe mapping | Yes (party_identity) | No — service helper only (`core/service.py:25`) | P1 |
 | Revenue summary by period | No | No | P2 |
 
 ### 4.2 Support Interface
@@ -222,11 +247,12 @@ Each gap maps to either BQ-CRM-COMPOSITE-SKILLS (multi-step) or a new BQ. The te
 
 | Event/Endpoint | Exists | Stable API | Priority |
 |---|---|---|---|
-| Contact lookup (email, name, party_id) | Yes | Yes | — |
-| Interaction history | Yes | Yes | — |
+| Contact lookup (email, name) | Yes | Yes (REST) | — |
+| Contact lookup by party_id | Yes | No — service helper only | P1 |
+| Interaction history | Yes | Yes (REST) | — |
 | Trust score snapshot | Yes (V2) | No | P1 |
 | Infraction log | Yes (V2) | No | P1 |
-| Create support task | Yes | Yes | — |
+| Create support task | Yes | Yes (REST) | — |
 | Dispute resolution workflow | No | No | P2 |
 
 ### 4.3 Sales Interface
@@ -243,12 +269,13 @@ Each gap maps to either BQ-CRM-COMPOSITE-SKILLS (multi-step) or a new BQ. The te
 
 | Event/Endpoint | Exists | Stable API | Priority |
 |---|---|---|---|
-| Contact/org CRUD | Yes | Yes | — |
-| Pipeline CRUD + analytics | Yes | Partial | P1 |
+| Contact/org create/list/search/get | Yes | Yes (REST) | — |
+| Contact/org update/delete | Yes | No — admin-internal only (`crm.py:744`) | P1 |
+| Pipeline CRUD + analytics | Yes | Yes (REST, full suite) | — |
 | Outreach generation | Broken | No | P1 |
 | Research enrichment | Broken | No | P2 |
-| Referral CRUD | Yes | Yes | — |
-| Relationship graph query | Yes | No | P2 |
+| Referral CRUD | Yes | Yes (REST) | — |
+| Relationship graph query | Yes | Yes (via entity context) | — |
 
 ---
 
@@ -258,9 +285,10 @@ Each gap maps to either BQ-CRM-COMPOSITE-SKILLS (multi-step) or a new BQ. The te
 Every row in the Capabilities Matrix (Section 2) must have at least one automated test that validates the feature works end-to-end. The test name must reference the capability ID (e.g., `test_2_1_create_person`, `test_2_5_pipeline_move`).
 
 ### Current Coverage
-- **439 CRM-related tests** across the repo
-- **Well covered**: Core CRUD, steward skills, V2 identity/trust/revenue, referral basics, auth guardrails, briefing skill
-- **Gaps**: Pipeline service/endpoints, outreach generation/context, research service, briefing delivery/data assembly, draft service, referral endpoints, V2 operations against real DB, steward→V2 integration
+- **439+ CRM-related tests** across the repo (including pipeline, referral, steward, service, MCP, soft-delete, FTS, briefing)
+- **Well covered**: Core CRUD, steward skills, V2 identity/trust/revenue, referral basics + commission, auth guardrails, briefing skill, pipeline endpoints, soft-delete constraints, org operations, entity network, cancel task
+- **Gaps**: Outreach generation/context, research service, briefing delivery/data assembly, draft service, admin/import/dedup, outbound Gmail, voice memo, V2 operations against real DB with non-null entity_id, steward→V2 integration, agent-level integration tests
+- **Quarantined**: `test_crm_auth.py`, `test_crm_steward_retrofit.py` (skill-count drift), `test_gmail_drafts.py` (skipped)
 
 ### Test Tiers
 1. **Unit tests**: Each service method, each model validation rule
@@ -270,18 +298,18 @@ Every row in the Capabilities Matrix (Section 2) must have at least one automate
 5. **Regression tests**: Every bug fixed by DATA-INTEGRITY, BRIEFING-FIX, SERVICE-LAYER, AUTH-RBAC
 
 ### Gap Closure Plan
-A new BQ or extension of CRM-TESTING will generate tests for every "Gap" cell in Section 2. Target: 100% feature coverage per this runbook.
+BQ-CRM-TESTING-V2 (reopen of CRM-TESTING) generates tests for every "Gap" cell in Section 2. Starts immediately; closes only after SERVICE-LAYER and broken-service fixes land. Target: 80% coverage floor with explicit per-feature acceptance.
 
 ---
 
 ## 6. Known Broken/Partial Items Requiring Immediate Fix
 
-1. **Outreach generation broken**: `outreach_generation_service.py` maps to `CRMTaskType.FOLLOW_UP_EMAIL` which doesn't exist as an enum
-2. **V2 operations not production-safe**: `operations/service.py` doesn't set `entity_id` despite non-null constraint
-3. **Research backfill broken**: Writes `last_researched_at` to `CRMPerson` but field is on `CRMOrganization`
-4. **Steward skill fragmentation**: 23 decorated skills, 24 listed, only 11 wrappers exposed
-5. **Briefing split-brain**: Gmail-based sender vs Postmark delivery running in parallel
-6. **Pipeline under-tested**: No dedicated test file for pipeline service or endpoints
+1. **Outreach generation broken**: `outreach_generation_service.py:37` maps to `CRMTaskType.FOLLOW_UP_EMAIL` which doesn't exist as an enum → **BQ-CRM-FIX-OUTREACH**
+2. **V2 operations not production-safe**: `domains/crm/operations/service.py:33` doesn't set `entity_id` despite non-null constraint on `CRMInteraction.entity_id` and `CRMTask.entity_id` → **BQ-CRM-FIX-V2-OPS**
+3. **Research backfill broken**: `crm_research_service.py:645` writes `last_researched_at` to `CRMPerson` but field is on `CRMOrganization` → **BQ-CRM-FIX-RESEARCH**
+4. **Steward skill fragmentation**: 16 skills in manifest, 11 public, but 23+ decorated in service-bus — many not exposed → **BQ-CRM-AGENT-COVERAGE**
+5. **Briefing split-brain**: Gmail-based sender (`crm_briefing_service_gmail.py`) vs Postmark delivery (`briefing_delivery.py:185`) running in parallel → **BQ-CRM-BRIEFING-FIX slice 1**
+6. **SERVICE-LAYER Gate 1 defers endpoint bypasses**: Some API endpoints bypass service layer; not true single-write-path until Gate 2 lands (`BQ-CRM-SERVICE-LAYER-GATE1.md:61`)
 
 ---
 
@@ -300,13 +328,17 @@ domains/crm/
   integration/  — Accounting, Support, Sales contracts and event hooks
 ```
 
-### Phase Plan
-1. **Current BQs land** → fixes data integrity, auth, briefing, service layer
-2. **This runbook** → establishes the standard
-3. **Test gap closure** → validates every feature per runbook
-4. **Agent skill expansion** → steward covers all features
-5. **Integration contracts** → stable API for Accounting/Support/Sales
-6. **V1→V2 migration** → party_id becomes sole identifier (future BQ)
+### Phase Plan (MP-validated, S447)
+1. **Fix this runbook** (R2 → Gate 1 approval)
+2. **3 micro-BQs for broken services** (parallel): FIX-OUTREACH, FIX-V2-OPS, FIX-RESEARCH
+3. **Continue DATA-INTEGRITY R5, AUTH-RBAC G2, SERVICE-LAYER G2** (immediate)
+4. **Reopen CRM-TESTING** as gap-closure track (immediate start, close after service-layer + broken fixes land)
+5. **BRIEFING-FIX slice 1**: split-brain resolution (immediate)
+6. **AGENT-COVERAGE** (after SERVICE-LAYER): expand steward to all 9 capability domains
+7. **BRIEFING-FIX slice 2**: query alignment (after/with SERVICE-LAYER)
+8. **INTEGRATION-CONTRACTS** (P1): stable API for Accounting/Support/Sales
+9. **ENTERPRISE-FEATURES** re-scoped (P2): custom fields, workflows, lead scoring
+10. **V1→V2 migration** → party_id becomes sole identifier (future BQ)
 
 ---
 
@@ -334,9 +366,28 @@ domains/crm/
 
 | File | Routes | Domain |
 |---|---|---|
-| `crm.py` (1788 lines) | `/api/v1/crm/*` | Core CRUD, tasks, drafts, briefing, import, admin |
-| `crm_pipeline.py` (247 lines) | `/api/v1/crm/pipeline/*` | Pipeline stages and movement |
+| `crm.py` (1788 lines) | `/api/v1/crm/*` | Core CRUD, tasks, drafts, briefing, import, admin, Gmail, voice memo, dedup |
+| `crm_pipeline.py` (247 lines) | `/api/v1/crm/pipeline/*` | Pipeline stages, moves, bulk moves, history, analytics |
 | `crm_referrals.py` (112 lines) | `/api/v1/crm/referrals/*` | Referral management |
 | `crm_agent_request.py` (344 lines) | `/api/v1/crm/agent-request` | NL agent endpoint — **DO NOT DELETE** |
 | `briefing.py` | `/api/v1/briefing/*` | Briefing view with HMAC auth |
 | `email_drafts.py` | `/api/v1/drafts/*` | Standalone draft CRUD |
+
+## Appendix C: Test File Map
+
+| File | Domain | Tests |
+|---|---|---|
+| `test_crm_service_gate1.py` | Core service (create, update, cancel, relationships) | ~50+ |
+| `test_crm_skills_gate1.py` | Steward skills | ~40+ |
+| `test_crm_soft_delete_and_constraints.py` | Soft-delete, org list, network | ~30+ |
+| `test_crm_steward_skills.py` | Steward skill coverage | ~30+ |
+| `test_crm_steward_e2e.py` | End-to-end steward flows | ~20+ |
+| `test_crm_mcp_gate1.py` | MCP tool surface | ~20+ |
+| `test_crm_fts.py` | Full-text search + pipeline | ~25+ |
+| `test_crm_referral.py` | Referral basics | ~15+ |
+| `test_crm_referral_commission.py` | Commission-on-close | ~10+ |
+| `test_pipeline_endpoints.py` | Pipeline API endpoints | ~20+ |
+| `test_crm_audit_phase3_build_c.py` | Audit/phase3 | ~15+ |
+| `test_crm_auth.py` | Auth guardrails | Quarantined |
+| `test_crm_steward_retrofit.py` | Skill-count regression | Quarantined |
+| `test_gmail_drafts.py` | Gmail draft flow | Skipped |
