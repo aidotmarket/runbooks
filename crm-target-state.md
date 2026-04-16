@@ -2,7 +2,7 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: DRAFT R3 — S447. R3: Fixed pipeline test coverage claims per MP R2 review. BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: R4 — S458. R4 refresh: marked completed BQs as DONE (DATA-INTEGRITY, AUTH-RBAC, SERVICE-LAYER, BRIEFING-FIX, PATCH-PARITY folded, AGENT-DISPATCH-FIX, AGENT-LLM-TOOL-USE, ALLAI-SKILL-REGISTRATION). Added §2.12 Customer Support / allAI first-responder. Updated §4.2 Support contract to allAI-first design. Updated §7 phase plan. BQ-CRM-RUNBOOK-STANDARD.
 
 ---
 
@@ -51,19 +51,19 @@ Each capability is described with:
 |---|---|---|---|---|---|
 | Create/upsert person | Working | — | Yes (`upsert_contact`) | Covered | Sa |
 | Search/list persons | Working | — | Yes (`find_contact`, `search_contacts`) | Covered | Sa, Su |
-| Update person fields | Partial | SERVICE-LAYER | Partial (service-bus) | Covered | Sa |
-| Soft-delete person | Partial | DATA-INTEGRITY | Partial (service-bus) | Covered (`test_crm_soft_delete_and_constraints`) | — |
+| Update person fields | Working | DONE (SERVICE-LAYER) | Yes (`update_contact` via service-bus) | Covered | Sa |
+| Soft-delete person | Working | DONE (DATA-INTEGRITY) | Yes (`delete_entity` via service-bus) | Covered (`test_crm_soft_delete_and_constraints`) | — |
 | Create organization | Working | — | Yes (`create_organization`) | Covered | Sa, A |
 | Search/list organizations | Working | — | No | Covered (`test_crm_soft_delete_and_constraints:75`) | Sa |
-| Update/delete organization | Partial | SERVICE-LAYER | No | Covered (`test_crm_service_gate1:425`) | Sa |
+| Update/delete organization | Working | DONE (SERVICE-LAYER) | Partial (service-bus skills registered, agent coverage tracked in AGENT-COVERAGE) | Covered (`test_crm_service_gate1:425`) | Sa |
 | Merge duplicate contacts | Not built | — | No | — | — |
 
 ### 2.2 Relationships & Entity Network
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Create relationship | Working | DATA-INTEGRITY | Yes (`create_relationship`) | Covered | Sa |
-| List/query relationships | Working | DATA-INTEGRITY | Yes (`get_entity_context` includes relationships) | Covered (`test_crm_service_gate1:514`) | Sa, Su |
+| Create relationship | Working | DONE (DATA-INTEGRITY) | Yes (`create_relationship`) | Covered | Sa |
+| List/query relationships | Working | DONE (DATA-INTEGRITY) | Yes (`get_entity_context` includes relationships) | Covered (`test_crm_service_gate1:514`) | Sa, Su |
 | Relationship types (referral, colleague, reports_to) | Working | — | Yes (via `create_relationship`) | Covered | Sa |
 | Entity network graph | Working | — | Yes (`get_entity_context`) | Covered (`test_crm_soft_delete_and_constraints:127`) | Sa |
 
@@ -86,7 +86,7 @@ Each capability is described with:
 | Snooze task | Working | — | Yes (`snooze_task`) | Covered | — |
 | Cancel task | Working | — | No | Covered (`test_crm_service_gate1:713`) | — |
 | Move contact forward | Working | — | Yes (`move_contact_forward`) | Covered | — |
-| Get pending/overdue tasks | Working | BRIEFING-FIX | Yes (`get_daily_briefing`) | Covered | Su |
+| Get pending/overdue tasks | Working | DONE (BRIEFING-FIX) | Yes (`get_daily_briefing`) | Covered | Su |
 | Task states: in_progress, waiting | Not built | — | No | — | Su |
 | Task-linked email drafts (CRMEmailDraft) | Working | — | Yes (`draft_email`) | Gap | Sa |
 
@@ -106,7 +106,7 @@ Each capability is described with:
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Create referral | Working | DATA-INTEGRITY | No | Partial | A, Sa |
+| Create referral | Working | DONE (DATA-INTEGRITY) | No (tracked in AGENT-COVERAGE) | Partial | A, Sa |
 | Referral status tracking | Working | — | No | Partial | A |
 | Commission-on-close | Working | — | No | Covered (`test_crm_referral_commission:65`) | A |
 | Commission plans/rules/overrides (V2) | Working | — | No | Covered | A |
@@ -125,8 +125,8 @@ Each capability is described with:
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Daily briefing data assembly | Working | BRIEFING-FIX | Yes (`get_daily_briefing`) | Partial | — |
-| Gmail HTML morning briefing | Partial | BRIEFING-FIX | No | Gap | — |
+| Daily briefing data assembly | Working | DONE (BRIEFING-FIX) | Yes (`get_daily_briefing`) | Partial | — |
+| Gmail HTML morning briefing | Working | DONE (BRIEFING-FIX) | No | Gap | — |
 | Telegram briefing delivery | Working | — | No | Gap | — |
 | Person-centric task cards | Working | — | No | Gap | — |
 | Claude deep links | Working | — | No | Gap | — |
@@ -135,9 +135,9 @@ Each capability is described with:
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Soft-delete (deleted_at) filtering | Partial | DATA-INTEGRITY | N/A | Partial | — |
-| Auth/RBAC for CRM endpoints | Not built | AUTH-RBAC | N/A | Gap | All |
-| Service layer enforcement | Not built | SERVICE-LAYER | N/A | Gap | All |
+| Soft-delete (deleted_at) filtering | Working | DONE (DATA-INTEGRITY) | N/A | Partial | — |
+| Auth/RBAC for CRM endpoints | Working | DONE (AUTH-RBAC) | N/A | Covered | All |
+| Service layer enforcement | Working | DONE (SERVICE-LAYER) | N/A | Covered | All |
 | Audit trail | Partial (pipeline only) | — | No | Gap | A, Su |
 
 ### 2.10 Admin, Import & Data Operations
@@ -161,6 +161,26 @@ Each capability is described with:
 | Opportunities | Working | — | No | Covered | Sa, A |
 | TX event dispatcher | Working | — | No | Covered | All |
 | V2 operations wrappers | **Broken** | — | No | Partial (`test_crm_v2_operations:89`) | — |
+
+### 2.12 Customer Support / allAI First-Responder (NEW S458)
+
+Per Max's directive: *AI handles all customer interactions unless human risk management is needed.* The allAI first-responder model treats CRM-backed support as a default-AI flow with explicit escalation paths.
+
+| Feature | Status | BQ | Agent | Tests | Integration |
+|---|---|---|---|---|---|
+| Natural-language CRM request dispatch (`crm_request`) | Working | DONE (AGENT-DISPATCH-FIX, AGENT-LLM-TOOL-USE, ALLAI-SKILL-REGISTRATION) | Yes — full multi-turn tool use verified in prod S458 | Covered (`test_crm_agent_dispatch_malformed.py`, `test_crm_agent_end_to_end_tool_use.py`, `test_base_agent_skill_registration.py`) | Su |
+| Dispatch layer honest-envelope contract | Working | DONE (AGENT-DISPATCH-FIX) | — | Covered | All |
+| Tool-use protocol prompt + tool_choice injection | Working | DONE (AGENT-LLM-TOOL-USE) | — | Covered | All |
+| Skill registration lazy-fill at read boundary | Working | DONE (ALLAI-SKILL-REGISTRATION) | — | Covered | All |
+| allAI-first support intake and triage | Planned | SUPPORT-WORKFLOWS (Gate 0) | Planned | Gap | Su |
+| Dispute resolution workflow | Planned | SUPPORT-WORKFLOWS (from ENTERPRISE-FEATURES carve-out) | No | Gap | Su |
+| SLA tracking on support tasks | Planned | SUPPORT-WORKFLOWS | No | Gap | Su |
+| Ticket ↔ CRM linkage | Planned | SUPPORT-WORKFLOWS | No | Gap | Su |
+| Human escalation signal | Planned | SUPPORT-WORKFLOWS | Planned | Gap | Su |
+
+**Design principle**: Every support interaction starts with allAI. Escalation to Max happens only when (a) risk/compliance signal requires human judgment, (b) AI confidence below threshold, or (c) the counterparty explicitly requests human contact. See §4.2 for the integration contract.
+
+**Verification evidence (S458)**: Live read trace `754792b8-efd8-4270-8415-96d916e40fa2` (find_contact), live write trace `dffad565-0cf8-4014-910d-6ed2b1fb7f3a` (create_task via 2-turn tool use, task UUID `d0b11969-28dc-4bf8-aec3-e11340e6ef56`). See Event Ledger entry `885de070-6fa5-4142-a4db-77d6bee11d22`.
 
 ---
 
@@ -234,26 +254,36 @@ Each gap maps to BQ-CRM-AGENT-COVERAGE (expanded from COMPOSITE-SKILLS). Depends
 | Party ↔ Stripe mapping | Yes (party_identity) | No — service helper only (`core/service.py:25`) | P1 |
 | Revenue summary by period | No | No | P2 |
 
-### 4.2 Support Interface
+### 4.2 Support Interface (allAI-first design, S458 R4)
+
+**Design principle** (per §2.12): Every support interaction is handled by allAI first. Human escalation only when risk/compliance requires judgment, AI confidence is below threshold, or the counterparty explicitly requests human contact.
 
 **What Support needs from CRM**:
-- Contact/org lookup by any identifier
-- Interaction history for a contact
-- Trust score and infraction history
+- Natural-language task dispatch via `crm_request` (verified S458) — the primary entry point
+- Contact/org lookup by any identifier (for lookups AI needs to perform)
+- Interaction history for a contact (for AI context assembly)
+- Trust score and infraction history (for risk-weighting AI decisions)
 - Task creation for support follow-ups
-- Dispute → infraction pipeline
+- Dispute → infraction pipeline (with HITL approval)
+- Human escalation signal + audit trail (when AI escalates, we record why)
 
-**Contract**: REST endpoints + agent skills for automated support workflows.
+**Contract**: Agent-first — `crm_request` is the default support surface. REST endpoints remain available for internal/admin and as the underlying service layer the agent calls.
 
-| Event/Endpoint | Exists | Stable API | Priority |
-|---|---|---|---|
-| Contact lookup (email, name) | Yes | Yes (REST) | — |
-| Contact lookup by party_id | Yes | No — service helper only | P1 |
-| Interaction history | Yes | Yes (REST) | — |
-| Trust score snapshot | Yes (V2) | No | P1 |
-| Infraction log | Yes (V2) | No | P1 |
-| Create support task | Yes | Yes (REST) | — |
-| Dispute resolution workflow | No | No | P2 |
+| Event/Endpoint | Exists | Stable API | Priority | Notes |
+|---|---|---|---|---|
+| `crm_request` natural-language dispatch | Yes (S458) | Yes (MCP + REST) | — | Primary support surface; handles ~90% of support flows |
+| Contact lookup (email, name) | Yes | Yes (REST) | — | Agent skill `find_contact` |
+| Contact lookup by party_id | Yes | No — service helper only | P1 | Target: expose via REST and agent skill |
+| Interaction history | Yes | Yes (REST) | — | Agent skill `get_entity_context` |
+| Trust score snapshot | Yes (V2) | No | P1 | Target: expose via REST + agent skill `get_trust_score` |
+| Infraction log | Yes (V2) | No | P1 | Target: expose via REST + agent skill `list_infractions` |
+| Create support task | Yes | Yes (REST) | — | Agent skill `create_task` |
+| Dispute resolution workflow | No | No | P1 | BQ-CRM-SUPPORT-WORKFLOWS (promoted P2→P1 per S458 direction) |
+| SLA tracking on support tasks | No | No | P1 | BQ-CRM-SUPPORT-WORKFLOWS |
+| Ticket ↔ CRM linkage | No | No | P1 | BQ-CRM-SUPPORT-WORKFLOWS |
+| Human escalation signal | No | No | P1 | BQ-CRM-SUPPORT-WORKFLOWS — emit `agent_escalation_requested` event with reason + confidence + trace_id |
+
+**Agent-first acceptance criteria**: For every row above where `Stable API = Yes`, the CRM steward must be able to invoke it via `crm_request`. For rows marked P1, BQ-CRM-SUPPORT-WORKFLOWS must either ship the REST+agent skill or declare a carved-out follow-on BQ.
 
 ### 4.3 Sales Interface
 
@@ -307,7 +337,7 @@ BQ-CRM-TESTING-V2 (reopen of CRM-TESTING) generates tests for every "Gap" cell i
 1. **Outreach generation broken**: `outreach_generation_service.py:37` maps to `CRMTaskType.FOLLOW_UP_EMAIL` which doesn't exist as an enum → **BQ-CRM-FIX-OUTREACH**
 2. **V2 operations not production-safe**: `domains/crm/operations/service.py:33` doesn't set `entity_id` despite non-null constraint on `CRMInteraction.entity_id` and `CRMTask.entity_id` → **BQ-CRM-FIX-V2-OPS**
 3. **Research backfill broken**: `crm_research_service.py:645` writes `last_researched_at` to `CRMPerson` but field is on `CRMOrganization` → **BQ-CRM-FIX-RESEARCH**
-4. **Steward skill fragmentation**: 16 skills in manifest, 11 public, but 23+ decorated in service-bus — many not exposed → **BQ-CRM-AGENT-COVERAGE**
+4. **Steward skill fragmentation**: 16 skills in manifest, 11 public, but 23+ decorated in service-bus — many not exposed → **BQ-CRM-AGENT-COVERAGE** (formerly BQ-CRM-COMPOSITE-SKILLS, absorbed BQ-CRM-PATCH-PARITY per S456 audit)
 5. **Briefing split-brain**: Gmail-based sender (`crm_briefing_service_gmail.py`) vs Postmark delivery (`briefing_delivery.py:185`) running in parallel → **BQ-CRM-BRIEFING-FIX slice 1**
 6. **SERVICE-LAYER Gate 1 defers endpoint bypasses**: Some API endpoints bypass service layer; not true single-write-path until Gate 2 lands (`BQ-CRM-SERVICE-LAYER-GATE1.md:61`)
 
@@ -328,17 +358,37 @@ domains/crm/
   integration/  — Accounting, Support, Sales contracts and event hooks
 ```
 
-### Phase Plan (MP-validated, S447)
-1. **Fix this runbook** (R2 → Gate 1 approval)
-2. **3 micro-BQs for broken services** (parallel): FIX-OUTREACH, FIX-V2-OPS, FIX-RESEARCH
-3. **Continue DATA-INTEGRITY R5, AUTH-RBAC G2, SERVICE-LAYER G2** (immediate)
-4. **Reopen CRM-TESTING** as gap-closure track (immediate start, close after service-layer + broken fixes land)
-5. **BRIEFING-FIX slice 1**: split-brain resolution (immediate)
-6. **AGENT-COVERAGE** (after SERVICE-LAYER): expand steward to all 9 capability domains
-7. **BRIEFING-FIX slice 2**: query alignment (after/with SERVICE-LAYER)
-8. **INTEGRATION-CONTRACTS** (P1): stable API for Accounting/Support/Sales
-9. **ENTERPRISE-FEATURES** re-scoped (P2): custom fields, workflows, lead scoring
-10. **V1→V2 migration** → party_id becomes sole identifier (future BQ)
+### Phase Plan (R4 refresh — S458)
+
+**Phase 0 — Unblock the Agent (COMPLETE S457–S458)**:
+- ✅ BQ-CRM-AGENT-DISPATCH-FIX (S457, commit f743704) — honest envelope
+- ✅ BQ-CRM-AGENT-LLM-TOOL-USE (S458, commits 382dbc2 + 94c23b8 + db6c386) — tool-use protocol prompt + tool_choice injection
+- ✅ BQ-ALLAI-SKILL-REGISTRATION (S458, commit 0479940) — lazy-fill at read boundary
+- Net result: `crm_request` fully functional end-to-end; memory edit #15 lifted
+
+**Phase 1 — Core CRM hygiene (COMPLETE through R4)**:
+- ✅ DATA-INTEGRITY (multiple slices)
+- ✅ AUTH-RBAC
+- ✅ SERVICE-LAYER
+- ✅ BRIEFING-FIX (both slices)
+- ✅ This runbook R4 refresh
+
+**Phase 2 — Fix broken services (in progress)**:
+1. **3 micro-BQs for broken services** (parallel): BQ-CRM-FIX-OUTREACH, BQ-CRM-FIX-V2-OPS, BQ-CRM-FIX-RESEARCH
+
+**Phase 3 — Make CRM cross-functionally usable (next)**:
+1. **BQ-CRM-INTEGRATION-CONTRACTS** (P0) — stable v2 API surface for Accounting/Support/Sales
+2. **BQ-CRM-COMPOSITE-SKILLS** aka AGENT-COVERAGE (P1) — expand steward to all 9 capability domains (now unblocked by Phase 0)
+3. **BQ-CRM-SUPPORT-WORKFLOWS** (P1, PROMOTED from P2 — S458) — allAI-first-responder design per §2.12 and §4.2
+4. **BQ-CRM-TESTING** (P0, reopened) — gap closure, starts after #1–3
+
+**Phase 4 — Polish (future)**:
+1. **BQ-CRM-ENTERPRISE-FEATURES** (P2, scope reduced after SUPPORT-WORKFLOWS carve-out) — custom fields, workflows, lead scoring
+2. **V1→V2 migration** → party_id becomes sole identifier
+
+**Cross-cutting (any phase)**:
+- BQ-ALEMBIC-BASELINE-REWRITE (P2, not on CRM critical path)
+- BQ-ALEMBIC-FILENAME-CONVENTION (P2)
 
 ---
 
