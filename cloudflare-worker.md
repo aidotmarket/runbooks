@@ -99,3 +99,58 @@ curl -sI https://get.vectoraiz.com/market | grep x-vectoraiz
 | Worker errors | Cloudflare dashboard → Workers → Logs |
 | Channel not set after install | Check VZ `.env` file has `VECTORAIZ_CHANNEL=marketplace` |
 | Deploy fails "Unexpected token export" | Use multipart upload, not plain `Content-Type: application/javascript` |
+
+---
+
+# DMS Worker — allai-dead-man-switch
+
+Separate Worker from the installer Worker above. Monitors the allAI Brain heartbeat and alerts via Telegram on consecutive failures.
+
+- **Name**: `allai-dead-man-switch`
+- **Source**: `ai-market-backend/workers/dead-man-switch.js`
+- **Cron**: `*/5 * * * *` (wrangler.toml header comment says 2 min — stale comment, actual is 5 min)
+- **KV**: `DMS_KV` (id `d82ea459cc3e4025a41393b8b8190ce9`)
+- **Alerts**: after 2 consecutive failures; suppressed to once per 24h for `never_seen` state
+
+## Worker secrets — IMPORTANT: Infisical mirror discipline
+
+The DMS Worker holds Cloudflare secrets that MIRROR values stored in Infisical. Cloudflare Worker secrets are write-only after set, so drift between the two is invisible until the Worker starts returning auth errors.
+
+| Worker secret       | Source of truth                                            | What it does |
+|---------------------|------------------------------------------------------------|--------------|
+| `HEARTBEAT_URL`     | Static — `https://api.ai.market/api/v1/internal/heartbeat/brain` | The endpoint the Worker polls |
+| `INTERNAL_API_KEY`  | Infisical `ai-market-backend` prod → `INTERNAL_API_KEY`    | `X-Internal-API-Key` header sent to backend |
+| `TELEGRAM_BOT_TOKEN`| Infisical (or local `.env`) → `TELEGRAM_BOT_TOKEN`         | Alert delivery |
+| `TELEGRAM_CHAT_ID`  | Infisical (or local `.env`) → `TELEGRAM_CHAT_ID`           | Alert delivery target |
+
+**Rotation rule**: any time you rotate a value in Infisical that the DMS Worker mirrors, you MUST also push it to the Worker in the same operation. There is no automatic sync. Forgetting this causes the DMS to spam Telegram alerts every 10 min with HTTP 401.
+
+## Sync command (INTERNAL_API_KEY example)
+
+```bash
+cd /Users/max/Projects/ai-market/ai-market-backend/workers
+KEY=$(infisical secrets get INTERNAL_API_KEY \
+  --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c \
+  --env prod --domain https://secrets.ai.market --plain)
+echo -n "$KEY" | npx wrangler secret put INTERNAL_API_KEY
+```
+
+Repeat for any other rotated value. Verify with:
+
+```bash
+curl -sI https://api.ai.market/api/v1/internal/heartbeat/brain \
+  -H "X-Internal-API-Key: $KEY" | head -1   # expect HTTP/2 200
+```
+
+## When the DMS breaks
+
+| Symptom | Diagnosis | Fix |
+|---------|-----------|-----|
+| Telegram spam: "allAI Brain DMS Alert ... HTTP 401" every 10 min | `INTERNAL_API_KEY` in Worker ≠ Infisical value | Re-sync with the command above |
+| Telegram spam: "HTTP 503" or connection errors | Backend down or Railway deploy in progress | Check `railway status`; usually self-clears on deploy finish |
+| "last_seen=never" suppression alert | allAI Brain has never registered | Separate issue — investigate allAI Brain itself |
+| No alerts when Brain IS actually down | Worker cron stopped firing | Check Cloudflare dashboard → Workers → Cron triggers |
+
+## Future automation (TODO — tracked as SysAdmin skill, not yet built)
+
+Long-term: SysAdmin agent should detect Infisical rotation events and auto-push to all mirror Workers. Until then, rotation is a manual two-step: Infisical first, then `wrangler secret put`. Any Worker that holds an Infisical mirror should be listed in this runbook so the operator knows where to propagate.
