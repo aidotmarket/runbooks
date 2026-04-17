@@ -142,6 +142,49 @@ curl -sI https://api.ai.market/api/v1/internal/heartbeat/brain \
   -H "X-Internal-API-Key: $KEY" | head -1   # expect HTTP/2 200
 ```
 
+### If `wrangler secret put` reports Success but doesn't take effect
+
+Observed S461: `wrangler secret put` returned "Success" but the Worker continued using the old secret value (no new version created, DMS kept 401-ing). Root cause not fully understood — possibly a wrangler/CF sync bug on OAuth tokens.
+
+**Workaround**: use the Cloudflare REST API directly and then force a redeploy.
+
+```bash
+CF_TOKEN=$(infisical secrets get CLOUDFLARE_API_TOKEN \
+  --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c \
+  --env prod --domain https://secrets.ai.market --plain)
+ACCT_ID="d5346d3e0f8f344c5f4915aaca689adf"
+
+# Set the secret via API
+curl -s -X PUT \
+  -H "Authorization: Bearer $CF_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"INTERNAL_API_KEY\",\"text\":\"$KEY\",\"type\":\"secret_text\"}" \
+  "https://api.cloudflare.com/client/v4/accounts/$ACCT_ID/workers/scripts/allai-dead-man-switch/secrets"
+
+# Force a fresh deployment so secret binding rebinds
+cd /Users/max/Projects/ai-market/ai-market-backend/workers
+npx wrangler deploy
+```
+
+Verify deployed via:
+
+```bash
+npx wrangler versions list --name allai-dead-man-switch | head -5
+# Top version should be newly created, not from weeks ago
+```
+
+The KV keys `dms:failure_count`, `dms:last_alert_ts`, `dms:agent_state` can be inspected to confirm the Worker is now running healthy:
+
+```bash
+for k in "dms:failure_count" "dms:last_alert_ts" "dms:agent_state"; do
+  echo "--- $k ---"
+  npx wrangler kv key get "$k" --remote \
+    --namespace-id d82ea459cc3e4025a41393b8b8190ce9
+done
+# Healthy: failure_count=0, agent_state=was_alive
+```
+
+
 ## When the DMS breaks
 
 | Symptom | Diagnosis | Fix |
