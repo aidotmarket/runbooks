@@ -2,7 +2,9 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: R4 — S458. R4 refresh: marked completed BQs as DONE (DATA-INTEGRITY, AUTH-RBAC, SERVICE-LAYER, BRIEFING-FIX, PATCH-PARITY folded, AGENT-DISPATCH-FIX, AGENT-LLM-TOOL-USE, ALLAI-SKILL-REGISTRATION). Added §2.12 Customer Support / allAI first-responder. Updated §4.2 Support contract to allAI-first design. Updated §7 phase plan. BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: R5 — 2026-04-18. R5 refresh: marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
+
+> Tier status is tracked in Living State entity `config:crm-operational-plan`. This runbook is the stable target-state; Living State is the dynamic status tracker.
 
 ---
 
@@ -110,7 +112,8 @@ Each capability is described with:
 | Referral status tracking | Working | — | No | Partial | A |
 | Commission-on-close | Working | — | No | Covered (`test_crm_referral_commission:65`) | A |
 | Commission plans/rules/overrides (V2) | Working | — | No | Covered | A |
-| Commission accruals (V2) | Working | — | No | Covered | A |
+| Commission accruals (V2) | Working | DONE (INTEGRATION-CONTRACTS) | No | Covered | A |
+| Formal referral attribution / commission source tracking | Planned | BQ-CRM-REFERRAL-TRACKING (T4 horizon) | No | Gap | A, Sa |
 
 ### 2.7 Outreach & Research
 
@@ -155,7 +158,7 @@ Each capability is described with:
 
 | Feature | Status | BQ | Agent | Tests | Integration |
 |---|---|---|---|---|---|
-| Party identity + external IDs | Working | — | No | Covered | All |
+| Party identity + external IDs | Working | DONE (INTEGRATION-CONTRACTS) | No | Covered | All |
 | Party role bindings | Working | — | No | Covered | All |
 | Trust scoring + infractions | Partial | — | No | Covered | Su |
 | Opportunities | Working | — | No | Covered | Sa, A |
@@ -172,11 +175,12 @@ Per Max's directive: *AI handles all customer interactions unless human risk man
 | Dispatch layer honest-envelope contract | Working | DONE (AGENT-DISPATCH-FIX) | — | Covered | All |
 | Tool-use protocol prompt + tool_choice injection | Working | DONE (AGENT-LLM-TOOL-USE) | — | Covered | All |
 | Skill registration lazy-fill at read boundary | Working | DONE (ALLAI-SKILL-REGISTRATION) | — | Covered | All |
-| allAI-first support intake and triage | Planned | SUPPORT-WORKFLOWS (Gate 0) | Planned | Gap | Su |
-| Dispute resolution workflow | Planned | SUPPORT-WORKFLOWS (from ENTERPRISE-FEATURES carve-out) | No | Gap | Su |
-| SLA tracking on support tasks | Planned | SUPPORT-WORKFLOWS | No | Gap | Su |
-| Ticket ↔ CRM linkage | Planned | SUPPORT-WORKFLOWS | No | Gap | Su |
-| Human escalation signal | Planned | SUPPORT-WORKFLOWS | Planned | Gap | Su |
+| allAI-first support intake and triage | Planned | SUPPORT-WORKFLOWS (Gate 1 R1 draft) | Planned | Gap | Su |
+| Dispute resolution workflow | Planned | SUPPORT-WORKFLOWS (Gate 1 R1 draft; from ENTERPRISE-FEATURES carve-out) | No | Gap | Su |
+| SLA tracking on support tasks | Planned | SUPPORT-WORKFLOWS (Gate 1 R1 draft) | No | Gap | Su |
+| Ticket ↔ CRM linkage | Planned | SUPPORT-WORKFLOWS (Gate 1 R1 draft) | No | Gap | Su |
+| Human escalation signal | Planned | SUPPORT-WORKFLOWS (Gate 1 R1 draft) | Planned | Gap | Su |
+| Meet notes ingestion to CRM (Google Drive → Meet Gemini Notes) | Planned | BQ-MEET-RECORDS-CRM (T4 horizon) | No | Gap | Su |
 
 **Design principle**: Every support interaction starts with allAI. Escalation to Max happens only when (a) risk/compliance signal requires human judgment, (b) AI confidence below threshold, or (c) the counterparty explicitly requests human contact. See §4.2 for the integration contract.
 
@@ -244,15 +248,25 @@ Each gap maps to BQ-CRM-AGENT-COVERAGE (expanded from COMPOSITE-SKILLS). Depends
 - Pipeline stage-change events (for revenue recognition timing)
 - Party identity resolution (`party_id` ↔ Stripe customer/connect account)
 
-**Contract**: Event-driven via TX dispatcher + REST endpoints for queries.
+**Current state (R5 / shipped in `ai-market-backend@main` as of `1d27532`)**:
+- Read-only contract surface is live at `app/api/v1/endpoints/accounting_crm.py` under `/api/v1/accounting/crm`, protected by `require_accounting_scope("accounting:read")`.
+- Shipped endpoints: `GET /commission-accruals/{transaction_id}`, `GET /commission-accruals`, `GET /referrals/{referral_id}`, `GET /referrals`, `GET /party-stripe-mappings/{party_id}`, `GET /party-stripe-mappings/by-customer/{stripe_customer_id}`, and `GET /party-stripe-mappings/by-connect-account/{stripe_connect_account_id}`.
+- Shipped schemas live in `app/schemas/accounting_crm.py`: `CommissionAccrualRead` / `CommissionAccrualList`, `ReferralCommissionRead` / `ReferralCommissionList`, and `PartyStripeMappingRead`.
+- Seller-side Stripe Connect is now canonically read from `party_identity(provider='stripe_connect')`. Legacy `users.stripe_account_id` and `seller_profiles.stripe_connect_id` remain dual-written by existing writers, but new code must not add fresh reads from those columns; readers go through `app/services/crm/stripe_connect_identity_reader.py`.
+- M7 inter-chunk gate validated the consolidation on real sandbox Stripe Connect onboarding in S468: DB evidence on `acct_1TNbCtRoppdDnnXZ` showed `party_identity` byte-exact with `users.stripe_account_id`, with idempotency confirmed.
+- Canonical implementation spec: `specs/BQ-CRM-INTEGRATION-CONTRACTS-GATE2.md` at backend commit `8c298dc`.
+- Explicitly out of scope: `billing_entities` and other merchant-of-record semantics remain separate; do not treat them as present in this CRM contract.
+
+**Contract**: Shipped read-only REST endpoints for CRM/accounting queries now exist. Event-driven TX wiring still exists where noted below, but canonical transaction → CRM dispatch is not yet the external contract surface.
 
 | Event/Endpoint | Exists | Stable API | Priority |
 |---|---|---|---|
-| Commission accrual created/settled | Yes (V2 TX) | No — service-internal only | P1 |
-| Referral closed with commission | Yes (service) | No — service-internal only | P1 |
+| Commission accrual created/settled | Yes (V2 TX + shipped read endpoints) | Yes — `/api/v1/accounting/crm/commission-accruals*` | P1 |
+| Referral closed with commission | Yes (service + shipped read endpoints) | Yes — `/api/v1/accounting/crm/referrals*` | P1 |
 | Pipeline stage changed | Yes (service) | No — no event hook | P2 |
-| Party ↔ Stripe mapping | Yes (party_identity) | No — service helper only (`core/service.py:25`) | P1 |
+| Party ↔ Stripe mapping | Yes (`party_identity`) | Yes — `/api/v1/accounting/crm/party-stripe-mappings*` | P1 |
 | Revenue summary by period | No | No | P2 |
+| Formal referral attribution / payout workflow | Planned | No | T4 horizon — `BQ-CRM-REFERRAL-TRACKING` |
 
 ### 4.2 Support Interface (allAI-first design, S458 R4)
 
@@ -358,7 +372,7 @@ domains/crm/
   integration/  — Accounting, Support, Sales contracts and event hooks
 ```
 
-### Phase Plan (R4 refresh — S458)
+### Phase Plan (R5 refresh — S469)
 
 **Phase 0 — Unblock the Agent (COMPLETE S457–S458)**:
 - ✅ BQ-CRM-AGENT-DISPATCH-FIX (S457, commit f743704) — honest envelope
@@ -373,18 +387,23 @@ domains/crm/
 - ✅ BRIEFING-FIX (both slices)
 - ✅ This runbook R4 refresh
 
-**Phase 2 — Fix broken services (in progress)**:
+**Phase 2 — Stable integration contract (COMPLETE S469)**:
+1. ✅ **BQ-CRM-INTEGRATION-CONTRACTS** — Gate 4 closed in S469 after backend landing through commit `1d27532`
+2. Net result: Accounting-facing CRM read contracts are live under `/api/v1/accounting/crm/*`; seller-side Stripe Connect reads consolidate on `party_identity(provider='stripe_connect')`
+
+**Phase 3 — Fix broken services (still in progress)**:
 1. **3 micro-BQs for broken services** (parallel): BQ-CRM-FIX-OUTREACH, BQ-CRM-FIX-V2-OPS, BQ-CRM-FIX-RESEARCH
 
-**Phase 3 — Make CRM cross-functionally usable (next)**:
-1. **BQ-CRM-INTEGRATION-CONTRACTS** (P0) — stable v2 API surface for Accounting/Support/Sales
-2. **BQ-CRM-COMPOSITE-SKILLS** aka AGENT-COVERAGE (P1) — expand steward to all 9 capability domains (now unblocked by Phase 0)
-3. **BQ-CRM-SUPPORT-WORKFLOWS** (P1, PROMOTED from P2 — S458) — allAI-first-responder design per §2.12 and §4.2
-4. **BQ-CRM-TESTING** (P0, reopened) — gap closure, starts after #1–3
+**Phase 4 — Tier 2 parallel lane (next per `config:crm-operational-plan`)**:
+1. **BQ-CRM-AGENT-COVERAGE** (`bq-crm-composite-skills`) — Gate 1 R1 draft landed in S469 at backend commit `189b68b`; pending Vulcan + AG review
+2. **BQ-CRM-SALES-SURFACE** — Gate 1 R1 draft landed in S469 at backend commit `5a9f92b`; pending Vulcan + AG review
+3. **BQ-CRM-SUPPORT-WORKFLOWS** — Gate 1 R1 draft landed in S469 at backend commit `2db3211f`; pending Vulcan + AG review
+4. These three BQs are the Tier 2 P1 parallel lane. This runbook names them only; scope stays in their Gate 1 R1 specs until review closes.
 
-**Phase 4 — Polish (future)**:
-1. **BQ-CRM-ENTERPRISE-FEATURES** (P2, scope reduced after SUPPORT-WORKFLOWS carve-out) — custom fields, workflows, lead scoring
-2. **V1→V2 migration** → party_id becomes sole identifier
+**Phase 5 — Testing and polish (future)**:
+1. **BQ-CRM-TESTING** (P0, reopened) — begins after Tier 2 completes
+2. **BQ-CRM-ENTERPRISE-FEATURES** (P2, scope reduced after SUPPORT-WORKFLOWS carve-out) — custom fields, workflows, lead scoring
+3. **V1→V2 migration** → party_id becomes sole identifier
 
 **Cross-cutting (any phase)**:
 - BQ-ALEMBIC-BASELINE-REWRITE (P2, not on CRM critical path)
