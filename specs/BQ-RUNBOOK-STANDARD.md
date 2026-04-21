@@ -1,11 +1,11 @@
 # BQ-RUNBOOK-STANDARD — System-Wide Runbook Standard
 
-**Status:** Gate 1 R6 (design, addressing MP R5 CONDITIONAL MEDIUM — retry protocol completion + XAI taxonomy)
+**Status:** Gate 1 R7 (design, addressing MP R6 CONDITIONAL MEDIUM — attempt-registry shape fix + 3 LOW)
 **Priority:** P0
 **Repo:** aidotmarket/runbooks
 **Parent of:** per-system runbook BQs (CRM, Celery, AIM Node, Koskadeux, Infisical, Railway, etc.)
-**Authored:** S486 R6 (Vulcan)
-**Addresses:** MP R5 task 6dac4625 (CONDITIONAL MEDIUM — 1 STILL_OPEN + 2 MEDIUM + 3 LOW; trajectory: 4 of 5 R4 items CLOSED)
+**Authored:** S486 R7 (Vulcan)
+**Addresses:** MP R6 task 67ba5619 (CONDITIONAL MEDIUM — 1 STILL_OPEN on attempt-registry shape + 3 LOW; MP sign-off: 'remaining issues are nits or Gate 2 hardening items after this fix')
 
 ---
 
@@ -26,7 +26,9 @@ A runbook is legible when a stateless agent, given only this runbook and no prio
 
 **R5 scope (retained).** G4 reviewer independence via XAI challenger, attempt-scoped Living State keys, §K.1 checks #19/#20, AG operational dependency.
 
-**R6 scope.** This revision addresses MP R5 findings. Core changes: (a) retry protocol Case C added for scorer/harness defect (invalidate `harness-result` only; preserve answer-key, runbook, XAI verdict; new `g4_attempt_id` for re-score); (b) `SUSPECT_OVERFITTING` routing made explicit — fails attempt, forces new `g4_attempt_id` with fresh eval set (MP + AG re-author); runbook unchanged; (c) XAI verdict bands now have decision rules + exemplars to reduce borderline inconsistency; (d) `g4_attempt_id` issuance moved to Koskadeux (neutral party) via Living State event, not Vulcan; (e) stall escalation explicit — if G4 stalls >72 hours, Max is paged via Living State event `state:bq-runbook-standard:g4:stall-escalation`.
+**R6 scope (retained).** Retry Cases C + D, XAI verdict taxonomy with decision rules, Koskadeux-issued attempt_id, 72h stall escalation, failure routing table.
+
+**R7 scope.** This revision addresses MP R6 findings. Core changes: (a) attempt-registry key shape corrected — per-attempt registry entries + per-frozen-commit attempt-manifest (fixes the R6 single-slot-per-frozen-SHA bug that was incompatible with per-retry new attempt_ids); (b) multi-predicate failure precedence rule added (Case A precedence for spec defects; Max adjudicates otherwise); (c) attempt-registry status-transition model made explicit (active / stalled / aborted / superseded / passed / failed with transition triggers); (d) Case D → Case A routing path named (if runbook-content review reveals standard defect, route to Case A).
 
 ---
 
@@ -372,7 +374,23 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 
 1. **Standard freeze.** When this BQ reaches Gate 1 APPROVED, the spec commit SHA is pinned as `frozen_commit_sha`. No edits to the spec during G4 testing; any change reopens Gate 1.
 
-2. **G4 attempt identification.** Each G4 run has a unique `g4_attempt_id` (UUID v4) issued by **Koskadeux**, not Vulcan. At attempt start, Vulcan emits a Living State event `event_type=g4-attempt-opened` with `entity_key=build:bq-runbook-standard`, `payload={frozen_commit_sha, opened_by: 'vulcan'}`. Koskadeux responds by writing a Living State entity at `state:bq-runbook-standard:g4:aim-node:attempt-registry:{frozen_commit_sha}` with `{g4_attempt_id, opened_at, opened_by, status: 'active'}` — this is Vulcan's authoritative source for the attempt id. Keeping issuance with Koskadeux (the session + state owner) rather than Vulcan provides neutral provenance: the attempt id is a property of the system of record, not the author. All Living State entities in G4 are then namespaced under `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:<artifact>`.
+2. **G4 attempt identification.** Each G4 run has a unique `g4_attempt_id` (UUID v4) issued by **Koskadeux**, not Vulcan. Attempt state lives in two Living State entities — a per-attempt registry and a per-frozen-commit manifest — so that multiple retries under one `frozen_commit_sha` are cleanly representable without overwriting prior attempt state.
+
+   **At attempt start:**
+
+   a. Vulcan emits a Living State event `event_type=g4-attempt-opened` with `entity_key=build:bq-runbook-standard`, `payload={frozen_commit_sha, opened_by: 'vulcan', retry_case: <A|B|C|D|null>, prior_attempt_id: <id|null>}`. (On first attempt for a `frozen_commit_sha`, `retry_case` and `prior_attempt_id` are `null`.)
+
+   b. Koskadeux responds by:
+   - **Writing a per-attempt registry entity** at `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:attempt-registry` with `{g4_attempt_id, frozen_commit_sha, prior_attempt_id, retry_case, opened_at, opened_by, status: 'active'}`. Create-only (`expected_version=0`); collision on this key is architecturally impossible because Koskadeux just generated the UUID.
+   - **Patching the per-frozen-commit manifest** at `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:attempt-manifest` to append `g4_attempt_id` to its `attempt_ids` list. Manifest is updated via `patch` with optimistic locking (`expected_version` must match); concurrent opens under the same `frozen_commit_sha` serialize naturally — second opener's patch fails, Koskadeux retries with fresh read of manifest.
+
+   c. Vulcan reads the registry to get the `g4_attempt_id` for all subsequent writes.
+
+   **Why two entities, not one.** The per-attempt registry holds the authoritative state for a single attempt (created once, mutated only via defined status transitions per step 9). The manifest holds the ordered list of attempt_ids under a `frozen_commit_sha` so auditors and retries can traverse the attempt chain without scanning the full keyspace. Separating them lets the registry be create-only with defined mutations while the manifest grows monotonically under optimistic locking.
+
+   **Why Koskadeux issues.** The attempt id is a property of the system of record, not the author. Neutral issuance via Koskadeux (the session + state owner) gives clean provenance and prevents Vulcan from concurrently self-issuing under race conditions.
+
+   **Artifact namespace.** All other Living State entities in G4 are namespaced under `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:<artifact>` where `<artifact>` ∈ `{answer-key, harness-result, reconciliation-transcript, xai-correspondence-verdict, stall-log, attempt-registry}`.
 
 3. **Vulcan authors AIM Node runbook** using only the frozen standard as input. Vulcan may reference per-system code and incident evidence for AIM Node, but may NOT reference the Infisical runbook content or the Infisical scenario set. Draft committed to `aidotmarket/runbooks/aim-node.md`.
 
@@ -409,6 +427,11 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
    - AG score < 0.80 → typically Case B (runbook revision); Case C only if AG also reports a scorer/harness defect in the scoring session
    - Any leg stalled > 72 hours → stall-escalation event (step 9); Max routes.
 
+   **Multi-predicate failure precedence.** If two or more failure predicates fire in the same attempt:
+   - **Case A wins** if any failure indicates a spec defect. Spec defects supersede runbook, eval-set, or scorer issues because they invalidate the frame in which the other artifacts were produced.
+   - **Case C is compatible with any other case.** A scorer defect can coexist with a runbook or eval-set problem; in that event the non-C case runs first (producing a new attempt with correct artifacts), and only then does Case C re-score if needed. This is because Case C alone reuses existing answer-key + runbook + XAI verdict, which other cases change.
+   - **Otherwise Max adjudicates.** Ambiguous multi-predicate failures (e.g., MP `CONDITIONAL` + XAI `SUSPECT_OVERFITTING` with no clear Case A) are adjudicated by Max via Living State event `g4-multi-predicate-adjudication` with payload listing each fired predicate and its rationale.
+
 8. **Retry protocol.** G4 retries fall into four mechanically representable cases. Each case requires Koskadeux to issue a new `g4_attempt_id` via step 2 (the `g4-attempt-opened` event carries a `retry_case` field and `prior_attempt_id` to link attempts).
 
    - **Case A — spec revision required.** If G4 failure reveals a design flaw in the standard itself, Gate 1 reopens. On Gate 1 re-approval, a new `frozen_commit_sha` applies; a new `g4_attempt_id` is issued. All prior G4 artifacts are preserved under the old namespace for audit. Fresh everything: runbook may need revision for the new standard; new MP + AG eval set; new XAI verdict; new harness result.
@@ -429,6 +452,7 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
      - New `g4_attempt_id` with `retry_case=D`; MP + AG author a FRESH eval set in new isolated sessions (no access to prior answer-key or prior XAI rationale)
      - New XAI correspondence pass on `(new-answer-key, unchanged-runbook)`
      - If XAI returns `SUSPECT_OVERFITTING` twice in a row on the same runbook, escalates to Max (Living State event `g4-repeated-overfitting`); Max may authorize a runbook-content review to check for spec-induced authoring patterns that force correspondence.
+     - **Routing from the runbook-content review:** if the review reveals a runbook-authoring defect, the next attempt is Case B (runbook revision). If the review reveals a standard defect that is forcing correspondence (the standard's structure is compelling scenarios to look like the runbook), the next attempt routes to Case A (spec revision; Gate 1 reopens; new `frozen_commit_sha`).
      - AG scores against new answer-key.
 
    **Cross-case invariants:**
@@ -440,6 +464,19 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 9. **AG operational dependency.** G4 step 6 requires AG to score. If AG is unavailable or fails to complete scoring within 48 hours of harness dispatch, the attempt stalls. A stall record is logged to `…:stall-log` with `{stall_reason, stalled_at, last_known_state}`. There is NO automatic fallback to MP for scoring — preserving the reviewer-independence split is more important than attempt velocity.
 
    **Explicit escalation deadline.** If the stall persists beyond 72 hours from `stalled_at`, Koskadeux emits a Living State event `event_type=g4-stall-escalation` with payload `{g4_attempt_id, stall_reason, stalled_for_hours, last_known_state}`. This event is the spec's page-Max signal. Max then decides: resume (if the blocker cleared), abort the attempt (Case A/B/C/D retry as appropriate), or reissue (exceptional cases; must be justified in the event reply payload). The escalation record persists at `…:stall-escalation` until the attempt resolves.
+
+   **Attempt-registry status transitions.** The per-attempt registry entity (step 2) has a `status` field with defined states and transitions. Koskadeux patches `status` on every transition; Vulcan never writes to `status` directly.
+
+   | From | To | Trigger |
+   |---|---|---|
+   | `active` | `stalled` | AG scoring unresponsive for 48 hours (Koskadeux detects, patches status, begins 72h escalation timer) |
+   | `stalled` | `active` | Max `resume` action (stall blocker cleared); Koskadeux patches status, clears `stalled_at` |
+   | `stalled` | `aborted` | Max `abort` action (attempt dead-ended without resolving); Koskadeux patches status, logs abort reason |
+   | `active` | `superseded` | A new attempt with `prior_attempt_id = this_attempt_id` is opened (any retry Case); Koskadeux patches status when the new `attempt-manifest` write lands |
+   | `active` | `passed` | All three pass-criteria legs met (MP APPROVE, XAI non-SUSPECT, AG ≥ 0.80); Koskadeux patches status on harness-result write |
+   | `active` | `failed` | Any pass-criteria leg failed and Max elects not to retry; Koskadeux patches status on Max's `failed` action event |
+
+   A registry entry's `status` is the authoritative answer to "what is this attempt's current state." Auditors consult the manifest to list attempts, then the per-attempt registries to see state.
 
 10. **Why this is falsifiable.** Vulcan cannot overfit scenarios (never sees the eval set). Vulcan cannot import Infisical patterns directly (explicit constraint). MP cannot bias scoring toward its own authored scenarios (AG scores independently). AG cannot bias scenarios toward its scoring preferences (MP co-authors and reconciles). MP + AG cannot align during reconciliation to produce a hand-tailored set (XAI red-teams the answer-key-vs-runbook correspondence). Retry attempts cannot reuse the same eval set (attempt-scoped namespace + create-only writes). If the standard is good, a frontier-quality agent can author a conformant runbook against it on first submission; if not, G4 reveals that before the standard ships.
 
@@ -571,3 +608,12 @@ MP R2 raised several asks that are appropriate at Gate 2 (implementation) rather
 | NEW LOW: `g4_attempt_id` authority should be neutral | Koskadeux issues via `g4-attempt-opened` event → attempt-registry entity; Vulcan consumes | §7 G4 step 2 |
 | NEW LOW: Stall escalation deadline should be in spec | 72h escalation rule explicit; Koskadeux emits `g4-stall-escalation` event | §7 G4 step 9 |
 | NEW LOW: Three-leg pass criteria increase failure probability | Acknowledged tradeoff (stronger falsifiability); failure-routing table added to step 7 to speed recovery path selection | §7 G4 step 7 |
+
+## Appendix E: R6 → R7 Change Log
+
+| R6 STILL_OPEN / NEW LOW | R7 fix | Location |
+|---|---|---|
+| **BLOCKING**: `attempt-registry:{frozen_commit_sha}` is single-slot; incompatible with per-retry new attempt_ids and concurrent opens | Per-attempt registry entries at `…:{g4_attempt_id}:attempt-registry` (create-only) + per-frozen-commit manifest at `…:attempt-manifest` (append-only via optimistic lock). Separation lets registry be create-only while manifest serializes concurrent opens. | §7 G4 step 2 |
+| NEW LOW: Multi-predicate failure precedence not defined | Case A precedence for spec defects; Case C compatible with any other case (runs after non-C resolution); otherwise Max adjudicates via `g4-multi-predicate-adjudication` event | §7 G4 step 7 |
+| NEW LOW: Attempt-registry state transitions implicit | Explicit state machine in §7 G4 step 9: active/stalled/aborted/superseded/passed/failed with transitions-and-triggers table | §7 G4 step 9 |
+| NEW LOW: Case D → Case A routing implied, not explicit | Runbook-content review outcomes routed explicitly: runbook defect → Case B; standard defect → Case A | §7 G4 step 8 Case D |
