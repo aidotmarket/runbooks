@@ -1,6 +1,6 @@
 # BQ-RUNBOOK-STANDARD — Gate 2 Chunk 1 (Infrastructure)
 
-**Status:** Gate 2 R1 (Vulcan authoring — S487)
+**Status:** Gate 2 R2 (Vulcan revision — S487) — addresses MP R1 REQUEST_CHANGES HIGH (task 3846ba8e): all 3 HIGH findings closed, all 4 MEDIUM findings closed. See Appendix C for R1 → R2 change log.
 **Parent:** `specs/BQ-RUNBOOK-STANDARD.md` (Gate 1 APPROVED at commit `365c198`, 670 lines)
 **Priority:** P0
 **Repo:** `aidotmarket/runbooks`
@@ -42,6 +42,7 @@ Ship the enforcement infrastructure that makes the Gate 1 standard compulsory an
 - Any runbook content. This chunk MUST land and pass its own tests against fixture runbooks (`tests/fixtures/`) — no real runbook is required to exist before this chunk merges.
 - G4 protocol implementation (lives in Koskadeux MCP + Living State per Gate 1 §7; not in this repo).
 - Auto-remediation (lint is reporting, not fixing; scaffolds are separate from lint).
+- Parent-spec (Gate 1) amendments. Chunk 1 implements Gate 1 as-ratified; any behavior that would require amending Gate 1 is deferred and filed as a follow-on BQ rather than smuggled into Chunk 1.
 
 **Deferred to Gate 2 Chunk 2:**
 - Infisical runbook (initial reference, §9 step 4)
@@ -51,6 +52,7 @@ Ship the enforcement infrastructure that makes the Gate 1 standard compulsory an
 - CRM retrofit (`BQ-CRM-RUNBOOK-STANDARD`, Gate 1 APPROVED at commit `1dbb822b`, needs re-scope to retrofit)
 - Celery retrofit (child BQ TBD)
 - Remaining systems (child BQs per §9 step 8)
+- `BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI` (filed R2; see §6.3 upstream dependency)
 
 ---
 
@@ -126,7 +128,7 @@ aidotmarket/runbooks/
 │   ├── test_harness_scorer.py
 │   └── test_integration.py         # end-to-end lint + harness on a conformant fixture
 ├── specs/                          # (existing)
-│   └── BQ-RUNBOOK-STANDARD.md
+│   ├── BQ-RUNBOOK-STANDARD.md
 │   └── BQ-RUNBOOK-STANDARD-GATE-2-CHUNK-1.md  # this document
 └── <existing legacy runbooks>       # ai-market-backend.md, crm-target-state.md, etc.
 ```
@@ -165,6 +167,9 @@ Options:
                                            (::error::, ::warning::) for PR annotations.
                                     Default: text.
   --fix-hints {on,off}              Include fix hints in findings. Default: on.
+  --update-lifecycle                Write §J `first_staleness_detected_at` transitions
+                                    to the target runbook (see §4.6). Only used by the
+                                    nightly harness workflow; PR-mode never sets this.
   --schemas-dir PATH                Override schemas/ directory. Default: ./schemas/
                                     (discovered relative to repo root).
   --readme PATH                     Override README.md path for mode derivation.
@@ -180,6 +185,8 @@ Options:
 - `3` — internal error (parser crash, schema validation library failure)
 
 **Rationale for the exit-code split:** CI treats `0` as green, `1` as red, `2`–`3` as infrastructure failure (alert on-call, not PR author). The PR-blocking contract is exit `0` or `1`.
+
+**Rationale for `--update-lifecycle`:** Gate 1 §4 §J has the linter maintain the grace-clock timestamp. Implementing that in PR-mode would require write access to the protected branch; instead, the write is deferred to the nightly harness workflow (§6.7) which runs on main with `runbook-harness` GitHub actor credentials. PR-mode lint reports stale-clock findings without writing. See §4.6.
 
 ### 4.2 Markdown parsing strategy
 
@@ -262,7 +269,7 @@ linter_version: 1.0.0
 }
 ```
 
-**Rationale for the fixed `lifecycle_ref: §J`:** Gate 1 §4 §A declares §J is authoritative; this schema enforces that the header cannot claim a different authority source. Any divergence is §K.1 check #3 FAIL.
+**Rationale for the fixed `lifecycle_ref: §J`:** Gate 1 §4 §A declares §J is authoritative (for refresh tracking); this schema enforces that the header cannot claim a different authority source. Any header whose `lifecycle_ref` ≠ `§J` is a §K.1 check #3 FAIL (see §4.4.10 for the actual authority overlap).
 
 #### 4.4.2 §B Capability Matrix — markdown table, exact columns
 
@@ -282,7 +289,7 @@ linter_version: 1.0.0
 - `Test Coverage` cell: backticked test path or `—`. No severity check on `—` values in Chunk 1 (may be elevated in a future chunk).
 - `Last Verified` cell: ISO date `YYYY-MM-DD` or empty or `—`. Empty/em-dash triggers check #7 WARN (UNVERIFIED overlay) and contributes to STALE per §J.
 
-**UNVERIFIED overlay rendering:** The linter does not modify the runbook. The overlay is an in-memory annotation used for staleness calculation (check #15) and for `--format text` human output (`SHIPPED (UNVERIFIED)`).
+**UNVERIFIED overlay rendering:** The overlay is an in-memory annotation used for staleness calculation (check #15) and for `--format text` human output (`SHIPPED (UNVERIFIED)`). The linter does not modify the runbook content on §B cells in any mode; §B is author-maintained.
 
 #### 4.4.3 §C Architecture & Interactions — markdown table
 
@@ -443,17 +450,24 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 
 #### 4.4.8 §H Evolve — change-class predicate tree as structured subsections
 
-**Grammar:** §H has sub-heading structure, not a single form block. Required subsections:
+**Grammar:** §H has sub-heading structure, not a single form block. Required subsections with frozen markers (H.5 uses sub-subheadings — definition lists are NOT accepted):
+
 - `### §H.1 Invariants` — bulleted list
 - `### §H.2 BREAKING predicates` — bulleted list
 - `### §H.3 REVIEW predicates` — bulleted list
 - `### §H.4 SAFE predicates` — bulleted list
-- `### §H.5 Boundary definitions` — definition list or sub-subheadings for `module`, `public contract`, `runtime dependency`, `config default`
+- `### §H.5 Boundary definitions` — EXACTLY four sub-subheadings in this order, each followed by prose:
+  - `#### module` (prose paragraph)
+  - `#### public contract` (prose paragraph)
+  - `#### runtime dependency` (prose paragraph)
+  - `#### config default` (prose paragraph)
+
+  Pattern match: `^####\s+(module|public contract|runtime dependency|config default)\s*$`. Exactly these casings. Missing, reordered, or mis-cased headings are §K.1 check #2 FAIL for §H.
 - `### §H.6 Adjudication` — prose
 
-**Check:** the six subsections must be present and in order. The linter does not validate the prose content of the predicates themselves at Chunk 1 (deferred to human review and the harness scenarios that classify changes).
+**Check:** the six subsections (§H.1–§H.6) must be present and in order, and §H.5 must contain exactly the four sub-subheadings above in the prescribed order and casing. The linter does NOT validate the prose content of the predicates themselves at Chunk 1 (deferred to human review and the harness scenarios that classify changes).
 
-**Rationale for prose-not-code predicates:** The predicates are cross-cutting business rules that humans adjudicate. The harness (§I Evolve scenarios) exercises them; the linter enforces structural presence only.
+**Rationale for prose-not-code predicates:** The predicates are cross-cutting business rules that humans adjudicate. The harness (§I Evolve scenarios) exercises them; the linter enforces structural presence only. §H at Chunk 1 is explicitly a **structural-only** contract: the linter verifies the six subsections + four boundary sub-subheadings exist with the frozen markers, and nothing more.
 
 #### 4.4.9 §I Acceptance Criteria — fenced YAML block
 
@@ -495,6 +509,8 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 - Sum of all weights = 1.0 ± 0.001
 - Default: equal weight (`1.0 / N`) per scenario; when default, the linter computes and allows any weight within `1/N ± 1e-6`
 - If weights are unequal (any weight differs from `1/N` by > `1e-6`), an `### §I.1 Weight Justification` subsection MUST be present with one bulleted entry per scenario whose weight differs from default, each entry starting with the scenario `id`
+
+**Source of truth for scenario weight (R2 clarification):** §I in the runbook is authoritative for every scenario's `id` and `weight`. The per-file scenario YAMLs in `harness/scenarios/<s>/` also carry a `weight` field (advisory mirror); any mismatch between §I and the per-file YAML is a harness-time FAIL. See §6.1.
 
 #### 4.4.10 §J Lifecycle — fenced YAML block
 
@@ -539,9 +555,11 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 }
 ```
 
-**Cross-reference checks:**
-- Check #3: §A `system_name` + `owner_agent` + `escalation_contact` must match §J (authoritative). Divergence is FAIL naming §J as source of truth.
-- Check #4: §A `linter_version` must match §K.0 `linter_version`.
+**Cross-reference checks (R2 — corrected scope per MP R1 H1):**
+
+- **Check #3:** §A `owner_agent` must match §J `owner_agent`. `owner_agent` is the only field that appears in both §A and §J (Gate 1 §A fields: `system_name`, `purpose_sentence`, `owner_agent`, `escalation_contact`, `lifecycle_ref`, `authoritative_scope`, `linter_version`; Gate 1 §J fields: `last_refresh_*`, `owner_agent`, `refresh_triggers`, `scheduled_cadence`, `last_harness_*`, `first_staleness_detected_at`). Other §A fields (`system_name`, `escalation_contact`, `authoritative_scope`) live only in §A and are not §J-cross-checked; they are validated by §A's own schema only. Divergence on `owner_agent` is FAIL naming §J as source of truth (per Gate 1 §A "Header is a summary display; §J is authoritative").
+
+- **Check #4:** §A `linter_version` must match §K.0 `linter_version` (where §K.0 is authoritative per Gate 1 §4 §K.0). §K.0 `linter_version` is the value in the §K conformance block's `linter_version` field; §A mirrors it for display. Divergence is FAIL naming §K.0 as source of truth.
 
 #### 4.4.11 §K Conformance — fenced YAML block
 
@@ -555,16 +573,52 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 
 **§K.0 note:** the `linter_version` field in this block is authoritative (§K.0 of Gate 1 spec). §A is a display mirror; any divergence is check #4 FAIL naming §K.0 as source of truth.
 
+**JSON Schema** (`schemas/section_k_conformance.schema.json`) — NEW in R2 per MP R1 M2:
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["linter_version", "last_lint_run", "last_lint_result",
+               "trace_matrix_path", "word_count_delta"],
+  "additionalProperties": false,
+  "properties": {
+    "linter_version":    {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+    "last_lint_run":     {"type": "string",
+                          "pattern": "^S\\d+\\s+/\\s+\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"},
+    "last_lint_result":  {"enum": ["PASS", "WARN", "FAIL"]},
+    "retrofit":          {"type": "boolean", "default": false},
+    "trace_matrix_path": {"oneOf": [{"type": "null"},
+                                    {"type": "string", "pattern": "^[a-zA-Z0-9_./-]+\\.md$"}]},
+    "word_count_delta":  {"oneOf": [{"type": "null"},
+                                    {"type": "object",
+                                     "required": ["before","after","pct"],
+                                     "properties": {"before":{"type":"integer"},
+                                                    "after":{"type":"integer"},
+                                                    "pct":{"type":"number"}}}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"retrofit": {"const": true}}},
+      "then": {"properties": {"trace_matrix_path": {"type": "string"},
+                              "word_count_delta":  {"type": "object"}}}
+    }
+  ]
+}
+```
+
 **Retrofit fields:**
-- `trace_matrix_path` and `word_count_delta` required non-null if the runbook is a retrofit. Retrofit status is declared by presence of a `retrofit: true` key at the top of the §K block (optional default `false`). If `retrofit: true` and either trace_matrix_path or word_count_delta is null, check #18 FAIL.
+- `trace_matrix_path` and `word_count_delta` required non-null if the runbook is a retrofit. Retrofit status is declared by presence of a `retrofit: true` key at the top of the §K block (optional default `false`). If `retrofit: true` and either `trace_matrix_path` or `word_count_delta` is null, check #18 FAIL (enforced by the JSON Schema `allOf` conditional above).
 
 ### 4.5 Cross-reference validation
 
-Implemented by `lint/checks.py` checks #3, #4, #8, #9, #10. All follow the same pattern: extract source field, extract target collection, assert source ∈ target collection (or some field-equality predicate), emit FAIL with specific message if violated. Unit tests exist one-per-check in `tests/test_checks.py`.
+Implemented by `lint/checks.py` checks #3, #4, #8, #9, #10. All follow the same pattern: extract source field, extract target collection, assert source ∈ target collection (or some field-equality predicate), emit FAIL with specific message if violated. Unit tests exist one-per-check in `tests/test_checks.py`. The exact source/target field pairs per check are defined in §4.4.10 (for #3, #4) and §4.4.7 (for #9, #10); #8 resolves `§F-XX.Repair Ref` into `§G-XX.id`.
 
 ### 4.6 STALE predicate evaluation + grace workflow
 
-Implemented in `lint/staleness.py:evaluate_staleness(sections, now, git_head)`. Returns `(is_stale: bool, triggered_predicates: list[str], new_first_detected_at: str | None)`.
+**R2 — aligned with Gate 1 §4 §J per MP R1 H2.** Gate 1 mandates the linter maintain `first_staleness_detected_at`. Chunk 1 implements this via a dual-path design that respects GitHub PR write-access boundaries: PR-mode lint is read-only (reports findings); the nightly harness workflow runs with write access and persists the grace-clock transitions.
+
+Implemented in `lint/staleness.py:evaluate_staleness(sections, now, git_head)`. Returns `(is_stale: bool, triggered_predicates: list[str], new_first_detected_at: str | None, recommended_action: str)`.
 
 **Pseudocode** (faithful to Gate 1 §4 §J):
 
@@ -594,20 +648,31 @@ def evaluate_staleness(sections, now, git_head):
     prev_first = j["first_staleness_detected_at"]
     if is_stale and prev_first is None:
         new_first = now.isoformat()
+        recommended_action = "SET"
     elif not is_stale and prev_first is not None:
-        new_first = None  # clear grace clock only when all predicates fall
+        new_first = None   # clear grace clock only when all predicates fall
+        recommended_action = "CLEAR"
     else:
         new_first = prev_first
+        recommended_action = "NONE"
 
-    return is_stale, predicates_triggered, new_first
+    return is_stale, predicates_triggered, new_first, recommended_action
 ```
 
 **Emission behavior** (check #15):
 - `is_stale == True` AND `now - first_staleness_detected_at <= 30 days`: emit WARN
 - `is_stale == True` AND `now - first_staleness_detected_at > 30 days`: emit FAIL
-- `is_stale == False`: no finding; if the runbook's on-disk §J has a non-null `first_staleness_detected_at`, emit INFO ("grace clock would be cleared on next refresh commit")
+- `is_stale == False`: no finding
 
-**Linter-does-not-write policy:** The linter does NOT modify the runbook to clear the grace clock. Clearing happens when the runbook author commits an updated §J (`last_refresh_*` fields refreshed) AND the re-evaluation predicates are all false. Check #15 is evaluated against the committed §J; the linter reports the state, the author controls the state.
+**Write behavior — dual-path per Gate 1 §4 §J:**
+
+1. **PR-mode (`runbook-lint` invoked without `--update-lifecycle`):** read-only. The linter computes `recommended_action` and emits a WARN finding with message `§J.first_staleness_detected_at requires SET to <ISO>` or `§J.first_staleness_detected_at requires CLEAR to null`. No file modification. PR authors are not required to fix this to merge; the nightly workflow will persist the transition on its next run.
+
+2. **Nightly-workflow mode (`runbook-lint --update-lifecycle` invoked by `runbook-harness.yml`, §6.7):** the linter writes `first_staleness_detected_at` to the runbook's §J block per `recommended_action`, then commits the change with the nightly harness results. Write is targeted at the single field — all other §J fields remain untouched. The write uses a markdown-aware editor (preserves surrounding YAML keys, ordering, comments).
+
+**Rationale for dual-path:** Gate 1 §4 §J describes the linter as the writer of `first_staleness_detected_at`. CI linters running on PRs typically cannot push to protected branches. The nightly harness workflow has write access (it commits `harness/results/` per §6.7) and is the natural place to persist the grace-clock transition. PR-mode lint emitting a WARN ensures authors see the state; the nightly workflow makes the write authoritative. Together they implement Gate 1's contract without requiring a parent-spec amendment.
+
+**Field scope:** the linter only writes `first_staleness_detected_at`. All other §J fields (`last_refresh_*`, `refresh_triggers`, `scheduled_cadence`, `last_harness_*`) are author-maintained; the linter's write is a narrow exception for the grace-clock mechanism.
 
 ### 4.7 CLI output formats
 
@@ -654,31 +719,26 @@ Summary: 1 runbook PASS, 1 runbook FAIL (2 errors, 4 warnings total)
 
 GitHub Actions renders these as inline PR annotations on the offending lines.
 
-### 4.8 Version compatibility matrix
+### 4.8 Linter version handling (R2 — descoped per MP R1 M1)
+
+**R2 change:** R1 introduced a "standard version" concept that would require amending the Gate 1 parent spec. Per MP R1 M1, Chunk 1 implements Gate 1 as-ratified and does NOT add a `standard_version` concept. Instead, compatibility tracking uses `linter_version` alone, exactly as Gate 1 §4 §K.0 prescribes.
 
 `runbook_tools/version.py`:
 
 ```python
 LINTER_VERSION = "1.0.0"
-# (major, minor): supported_standard_versions
-COMPATIBILITY_MATRIX = {
-    (1, 0): ["1.0"],
-    # future: (1, 1): ["1.0", "1.1"],
-    #         (2, 0): ["2.0"],
-}
 ```
 
-**Standard version** is declared at the top of the Gate 1 spec (new field added at Chunk 1 merge):
+**Behavior:**
+- Each runbook declares `linter_version` in §A Header (mirror) and §K Conformance block (authoritative per Gate 1 §4 §K.0).
+- On lint, the tool compares the runbook's §K.0 `linter_version` to the installed `LINTER_VERSION`:
+  - Major + minor match (ignoring patch): no finding.
+  - Major + minor differ: check #16 WARN `runbook validated against linter version <runbook-version> but currently running <installed-version>`.
+- Patch-version differences never emit a finding (patches are non-breaking bugfixes).
 
-```markdown
-## Standard version: 1.0
-```
+**No compatibility matrix at Chunk 1.** If/when the Gate 1 standard is formally amended (Gate 1 parent-spec revision), a follow-on chunk will introduce a compatibility matrix if the amendment introduces backwards-incompatible agent-form grammars. Until then, `linter_version` alone is sufficient because the standard is at a single version.
 
-**Behavior when runbook's §A `linter_version` does not match `LINTER_VERSION`:**
-- If runbook's major+minor is listed in `COMPATIBILITY_MATRIX[(LINTER_VERSION major, minor)]`: no finding.
-- If not listed: check #16 WARN `runbook validated against unsupported standard version`.
-
-**Behavior on a major version bump:** A new `COMPATIBILITY_MATRIX` entry is added; old runbooks continue to emit only WARN until they re-validate. No auto-migration. Migration paths are documented in a future Gate 2 amendment.
+**No `standard_version` field added to the Gate 1 spec.** Gate 1 remains unmodified by Chunk 1.
 
 ### 4.9 CI integration — `runbook-lint.yml`
 
@@ -706,9 +766,11 @@ jobs:
         run: runbook-lint --mode probationary --format github || true
 ```
 
+**Note on PR-mode vs nightly:** this PR workflow runs `runbook-lint` WITHOUT `--update-lifecycle`. §J grace-clock writes are persisted by the nightly harness workflow (§6.7), not by PR lint. See §4.6.
+
 **Mode derivation:** the `--mode` flag selects which runbooks to lint based on README §7 status:
 - `strict`: paths with status `CONFORMANT` (exit code propagates; FAIL blocks PR)
-- `probationary`: paths with status `GATE_1_IN_PROGRESS` or `GATE_2_IN_PROGRESS` (exit code suppressed; findings surface as PR comments)
+- `probationary`: paths with status `GATE_1_IN_PROGRESS` or `GATE_2_IN_PROGRESS` (exit code suppressed; findings surface as GitHub Actions annotations)
 - `legacy`: paths with status `LEGACY_NOT_UNDER_STANDARD` (skipped)
 
 **PR-blocking contract:** the `strict` step's exit code is authoritative. The `probationary` step never blocks.
@@ -731,35 +793,32 @@ Writes `<system-name>.md` at repo root. Refuses to overwrite existing files.
 
 ### 5.2 Placeholder token format
 
-All placeholders are of form `<<TOKEN:kind>>` where `kind` ∈ {`required`, `optional`, `example`}. The linter recognizes placeholders:
+All placeholders are of form `<<TOKEN:kind>>` where `kind` ∈ {`required`, `optional`, `example`}. The linter recognizes placeholders and routes them to the appropriate check based on which section the placeholder appears in:
 
-- `kind=required` (unfilled) → check #19 FAIL (§A required-fields check) with message "placeholder not filled: <<TOKEN>>"
-- `kind=example` → WARN ("example text; replace before conformance")
-- `kind=optional` → no finding
+### 5.3 WARN vs FAIL derivation rules (R2 — corrected per MP R1 M2)
 
-Example placeholder in the template:
+A scaffold generated by `runbook-new` contains placeholders in various positions. The linter's behavior on unfilled placeholders is routed to the correct §K.1 check based on placeholder location:
 
-```yaml
----
-system_name: <<SYSTEM_NAME:required>>
-purpose_sentence: <<PURPOSE:required>>
-owner_agent: <<OWNER:required>>
-escalation_contact: <<ESCALATION:required>>
-lifecycle_ref: §J
-authoritative_scope: <<AUTHORITATIVE_SCOPE:required>>
-linter_version: 1.0.0
----
-```
+| Placeholder location | `kind=required` (unfilled) | `kind=example` | `kind=optional` |
+|---|---|---|---|
+| §A required fields (`system_name`, `purpose_sentence`, `owner_agent`, `escalation_contact`, `authoritative_scope`) | **check #19 FAIL** "placeholder not filled: `<<TOKEN>>`" | WARN "example text; replace before conformance" | no finding |
+| §J required fields (`last_refresh_*`, `owner_agent`, `refresh_triggers`, `last_harness_*`, `first_staleness_detected_at`) | **check #14 FAIL** | WARN | no finding |
+| §K required fields (`linter_version`, `last_lint_run`, `last_lint_result`, `trace_matrix_path`, `word_count_delta`) | **check #17 FAIL** | WARN | no finding |
+| §B example row cells — Status cell | **check #5 FAIL** "Status cell must be SHIPPED/PARTIAL/PLANNED/DEPRECATED/BROKEN (got placeholder)" | WARN | no finding |
+| §B example row cells — Backing Code cell | **check #6 FAIL** "Backing Code cell must be backticked path or em-dash (got placeholder)" | WARN | no finding |
+| §C/§D/§E/§G example rows or YAML | **FAIL via respective form schema** (patterns on `^[EFGI]-\d{2,}$` IDs, enum types, etc. — unfilled placeholders fail their form's JSON Schema validation) | WARN | no finding |
+| §H.1–§H.6 subsection bullets | no specific per-check mapping (structural-only at §H) | WARN | no finding |
+| §I example scenario | **check #11 FAIL** (scenario distribution) if scaffold contains fewer than 10 fully filled scenarios | WARN | no finding |
 
-### 5.3 WARN vs FAIL derivation rules
+**R2 correction (per MP R1 M2):** R1 incorrectly claimed scaffold placeholders trigger check #20. Check #20 validates §B **column header row byte-for-byte**, not row content. Placeholders in §B example row cells trigger checks #5 (Status) or #6 (Backing Code) depending on which cell. The routing table above is authoritative.
 
-- A scaffold generated by `runbook-new` passes check #1 (sections present), #2 (agent forms present), #14 (§J fields populated with placeholders that parse as strings), #17 (§K fields populated).
-- It FAILs check #19 and #20 where placeholders exist in required positions (by design, until the author fills them).
-- A fully filled-in runbook with no placeholders passes all checks.
+**Scaffold-to-pass lifecycle:** a fresh `runbook-new` output is expected to FAIL because required placeholders are unfilled (and Gate 1 §I requires ≥10 scenarios which a scaffold does not provide). The author fills in placeholders and adds scenarios until the lint passes. This is the intended workflow — `runbook-new` is the starting point, `runbook-lint` is the completion gate.
+
+**Expected-pass checks for a fresh scaffold:** #1 (sections present), #2 (agent forms present structurally), #20 (§B column headers byte-for-byte). All other checks FAIL or WARN until the author fills content.
 
 ### 5.4 Template structure
 
-`templates/runbook.template.md` contains the full §A–§K structure with `<<…:required>>` placeholders in every required field and `<<…:example>>` in every optional-with-example field. The §B/§C/§D tables are single-row examples with `<<…:example>>` values. §E/§G/§I YAML blocks contain one example entry each. §H.1–§H.6 sub-headings are present with placeholder bullets. §J and §K blocks have all required keys with placeholders.
+`templates/runbook.template.md` contains the full §A–§K structure with `<<…:required>>` placeholders in every required field and `<<…:example>>` in every optional-with-example field. The §B/§C/§D tables are single-row examples with `<<…:example>>` values. §E/§G/§I YAML blocks contain one example entry each. §H.1–§H.6 sub-headings are present with placeholder bullets; §H.5 contains the four frozen sub-subheadings (`#### module`, `#### public contract`, `#### runtime dependency`, `#### config default`) per §4.4.8. §J and §K blocks have all required keys with placeholders.
 
 ---
 
@@ -796,11 +855,27 @@ notes: |
   Both CLI and library invocations are acceptable first actions.
 ```
 
-**JSON Schema** (`schemas/scenario.schema.json`) matches 4.4.9 `§I` structure plus two harness-only fields:
+**JSON Schema** (`schemas/scenario.schema.json`) matches §4.4.9 §I structure plus two harness-only fields:
 - `runbook` — path (relative to repo root) of the target runbook
 - `notes` — optional commentary, not fed to MP
 
-Section §I in the runbook is the authoritative scenario *set* (IDs + weights). The per-file YAMLs in `harness/scenarios/<s>/` are the authoritative scenario *content* (prose + expected_answers). The harness cross-validates: every §I `id` must have a matching YAML file and vice versa. Missing file or missing §I entry is a harness-time FAIL (surfaces via the nightly workflow, not `runbook-lint`).
+**Source-of-truth for scenario metadata (R2 — per MP R1 M3):**
+
+Section §I in the target runbook is the AUTHORITATIVE scenario set:
+- `id`, `type`, `refs`, `weight` come from §I
+- `scenario` prose and `expected_answers` come from the per-file YAML
+
+The harness cross-validates on every run:
+
+1. Every §I `id` MUST have a matching `harness/scenarios/<system>/<id>.yaml` file. Missing file → harness-time FAIL, result file records `"result": "CONFIGURATION_ERROR"` with diff.
+
+2. Every per-file YAML's `id` MUST appear in §I. Orphan YAML → harness-time FAIL.
+
+3. Every per-file YAML's `weight` MUST equal §I's weight for that `id` (strict float equality, tolerance `1e-9`). Mismatch → harness-time FAIL naming §I as source of truth. Per-file `weight` is advisory (mirror for human readability); §I wins.
+
+4. Every per-file YAML's `type` and `refs` MUST equal §I's. Mismatch → harness-time FAIL.
+
+**Rationale for §I-authoritative:** §I's weights participate in the §I.1 justification mechanism and the sum=1.0 constraint (check #12 / #13). Allowing per-file YAML to override §I would silently defeat that discipline. Strict-match enforcement prevents drift.
 
 ### 6.2 Expected-answer key format
 
@@ -818,7 +893,7 @@ argument_values:                            # optional; when present, values mat
 **2. `human_action`**
 ```yaml
 kind: human_action
-verb: <canonical action verb>                 # see 6.4.3 canonical verb list
+verb: <canonical action verb>                 # see §6.4.3 canonical verb list
 object: <noun>
 target: <target subsystem or resource>
 ```
@@ -829,22 +904,54 @@ kind: classification
 verdict: SAFE | REVIEW | BREAKING              # for §H Evolve scenarios
 ```
 
-### 6.3 MP dispatch invocation
+### 6.3 MP dispatch invocation (R2 — aligned with real Koskadeux interface per MP R1 H3)
 
 Implemented in `harness/runner.py:dispatch_for_scenario(scenario, runbook_path)`.
 
-Uses Koskadeux MCP `council_request(agent=mp, mode=review, …)` with:
-- `allowed_tools = ["Read", "Grep", "Glob", "LS"]`
-- Tool scope restricted to the runbook path (via system prompt + tool-use instructions; MP honors this by convention — enforcement is a best-effort constraint since MP can technically access other files, but the prompt explicitly instructs not to)
-- Timeout: 180s per scenario
-- Single attempt per scenario per run (retries handled at the nightly-workflow level, not per scenario)
+**Invocation shape:**
+
+```python
+result = council_request(
+    agent="mp",
+    task=build_scenario_prompt(scenario, runbook_path),
+    allowed_tools=["Read", "Grep", "Glob", "LS"],
+)
+```
+
+Uses Koskadeux MCP `council_request(agent=mp, task=<prompt>, allowed_tools=[...])`. No `mode` parameter — R1 used `mode=review` which is not part of the primary MP dispatch contract documented in `agent-dispatch.md`. The prompt itself carries the review semantics (see preamble below).
+
+**Timeout:** 180s per scenario, enforced at the harness runner level via a wall-clock guard around the `council_request` call. The harness does not rely on a Koskadeux-side timeout parameter; if the call exceeds 180s, the harness records `"result": "SCENARIO_TIMEOUT"` for that scenario and continues to the next.
+
+**Tool restriction — known limitation (R2 — per MP R1 H3):**
+
+The `allowed_tools` parameter IS enforced on the **Responses API fallback** dispatch path (`tools/agents.py` Responses API branch).
+
+The `allowed_tools` parameter is currently **ignored on the Codex CLI primary path**, which is the default MP dispatch path. On Codex CLI, MP has access to its full tool set.
+
+The harness therefore relies on the system prompt (below) as the primary restriction mechanism. This is **prompt-based restriction, not infrastructure-enforced restriction.** MP honors the instruction by convention but could in principle access other files.
+
+**Mitigation for Chunk 1:**
+1. The system prompt is explicit about the tool restriction (see preamble below).
+2. Responses recorded in `harness/results/` include MP's full tool-use trace (recorded by Koskadeux). Post-hoc analysis flags any off-path tool call; off-path calls invalidate that scenario's score (scored as 0.0 with `reason: "off_path_tool_use"`).
+3. The harness runner inspects the response's tool-use trace before scoring; if MP accessed files outside the target runbook path, the scenario is scored 0.0 and an infrastructure-level warning is logged.
+
+**Upstream dependency — `BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI` (filed R2, Priority P2):**
+
+A follow-on infrastructure BQ extends the Codex CLI dispatch path to honor `allowed_tools`, closing this gap. Filed in Living State as a planned child BQ. Not a blocker for Chunk 1 Gate 2 approval because:
+
+- The prompt-based restriction + post-hoc detection is sufficient for the nightly legibility measurement use case (the harness is measuring what MP would do in practice, not exercising security boundaries).
+- The harness result file preserves the full tool-use trace, making off-path uses auditable after the fact.
+- Upgrading to infrastructure-enforced restriction later does not change the harness's scoring interface; only the mitigation layer tightens.
 
 **System prompt preamble** (fixed, version-controlled in `runbook_tools/harness/prompts.py`):
 
 ```
-You are evaluating a runbook for stateless-agent legibility. You have access only to
-Read, Grep, Glob, and LS tools restricted to the file <runbook_path>. You have no prior
-context about this system. Given the scenario below, produce your first action.
+You are evaluating a runbook for stateless-agent legibility. For this evaluation you
+must use ONLY the Read, Grep, Glob, and LS tools, and you must restrict file access
+to the single file <runbook_path>. Do not open or search other files. You have no
+prior context about this system beyond what is in the runbook.
+
+Given the scenario below, produce your first action.
 
 Your first action is either:
   (a) a tool call — specify the tool name and argument key-value pairs
@@ -863,33 +970,63 @@ No prose. No markdown fences. One JSON object.
 
 **Rationale for enforced JSON output:** the scorer needs a reliably parseable response. Prose responses would require another agent to normalize, expanding failure surface. JSON constraints are within MP's capability.
 
-### 6.4 Scoring algorithm
+### 6.4 Scoring algorithm (R2 — best-score semantics per MP R1 M3)
 
 Implemented in `harness/scorer.py:score_response(response, scenario)`. Returns `(score: float, matched_answer_index: int | None, reason: str)`.
 
-#### 6.4.1 Tool-call matching
+**Top-level algorithm: best-score across all expected answers.**
 
-For each `expected_answers[i]` of `kind: tool_call`:
+The scorer iterates ALL `expected_answers` in the scenario, computes a per-answer score for each, and takes the MAX. This eliminates ordering sensitivity — an acceptable answer listed later cannot be shadowed by a partial match earlier in the list.
+
+```python
+def score_response(response, scenario):
+    # Pre-check: tool-use trace must be within target runbook only
+    if has_off_path_tool_use(response):
+        return (0.0, None, "off_path_tool_use")
+
+    best_score = 0.0
+    best_index = None
+    best_reason = "no_match"
+    for i, expected in enumerate(scenario.expected_answers):
+        score, reason = _score_against_one(response, expected)
+        if score > best_score:
+            best_score = score
+            best_index = i
+            best_reason = reason
+        if best_score >= 1.0:
+            break  # cannot improve
+    return (best_score, best_index, best_reason)
+```
+
+`_score_against_one(response, expected)` is the per-answer scorer below.
+
+#### 6.4.1 Tool-call matching (per-answer scorer)
+
+For a single `expected` of `kind: tool_call`:
 1. Normalize tool name: `lower(strip(tool))`. Compare to response's normalized tool.
-2. If tool names match: compare `set(argument_keys)` to `set(response.arguments.keys())`. Must be equal.
-3. If `argument_values` present for any key `k`: apply value-matching rubric to `response.arguments[k]`:
-   - If expected is a plain string: exact match after `strip`.
-   - If expected is `/regex/`: regex match.
-   - If expected is `{any_of: [v1, v2, …]}`: one of the values matches.
-4. Score:
-   - All above pass → **1.0**
-   - Tool name + argument key-set match; value-matching partially fails (N of M values wrong) → **0.5** (partial credit, mirrors Gate 1 §I rubric)
-   - Tool name matches but argument key-set differs → **0.5**
-   - Tool name does not match → continue to next expected answer
+2. If tool names DO NOT match: return `(0.0, "tool_mismatch")`.
+3. If tool names match: compare `set(argument_keys)` to `set(response.arguments.keys())`.
+   - If key-sets are NOT equal: return `(0.5, "arg_keyset_mismatch")`.
+   - If key-sets are equal: proceed to value matching.
+4. Value matching: if `argument_values` is present for any key `k`, apply the rubric to `response.arguments[k]`:
+   - Plain string: exact match after `strip`.
+   - `/regex/` (delimited by slashes): regex match on the string.
+   - `{any_of: [v1, v2, …]}`: one of the listed values matches.
+5. If `argument_values` absent or all values match: return `(1.0, "exact_match")`.
+6. If at least one value fails: return `(0.5, "partial_value_match")`.
 
-If no expected answer matches: **0.0**.
+**Partial-credit semantics:** the per-answer scorer returns values from `{0.0, 0.5, 1.0}`. No other scores at this level. The top-level `score_response` takes the max across all expected answers — so the scenario-level score is also in `{0.0, 0.5, 1.0}` (never a finer gradation).
 
-#### 6.4.2 Human-action matching
+#### 6.4.2 Human-action matching (per-answer scorer)
 
-Normalize verb via the canonical-verb list (§6.4.3). Normalize object by stripping articles (`the`, `a`, `an`) and lowercasing. Normalize target similarly.
-- Verb + object + target all match → 1.0
-- Verb + object match, target differs → 0.5
-- Verb matches, object differs → 0.0
+For a single `expected` of `kind: human_action`:
+1. Normalize verb via canonical-verb list (§6.4.3).
+2. Normalize object by stripping articles (`the`, `a`, `an`) and lowercasing.
+3. Normalize target similarly.
+4. If verb, object, AND target all match: return `(1.0, "exact_match")`.
+5. If verb + object match but target differs: return `(0.5, "target_mismatch")`.
+6. If verb matches but object differs: return `(0.0, "object_mismatch")`.
+7. If verb does not match: return `(0.0, "verb_mismatch")`.
 
 #### 6.4.3 Canonical verb list
 
@@ -909,13 +1046,17 @@ CANONICAL_VERBS = {
 
 Verb matching canonicalizes synonyms to the key. Unknown verbs match only themselves (case-insensitive).
 
-#### 6.4.4 Classification matching
+#### 6.4.4 Classification matching (per-answer scorer)
 
-Exact case-sensitive match on verdict. No partial credit for §H (SAFE/REVIEW/BREAKING is trinary, not a spectrum).
+For a single `expected` of `kind: classification`:
+- Exact case-sensitive match on verdict (`SAFE`, `REVIEW`, `BREAKING`): return `(1.0, "exact_match")`.
+- Otherwise: return `(0.0, "verdict_mismatch")`.
 
-### 6.5 Partial-credit detection
+No partial credit for §H (SAFE/REVIEW/BREAKING is trinary, not a spectrum).
 
-Already embedded in §6.4. The scorer returns a float in `{0.0, 0.5, 1.0}`. Scenario scores multiply by `weight`; pass threshold is sum ≥ 0.80.
+### 6.5 Partial-credit aggregation
+
+Already embedded in §6.4. Per-scenario score is in `{0.0, 0.5, 1.0}` (via max across expected answers). The scenario's weighted score is `scenario_score * §I.weight`. Pass threshold for the full runbook is sum of weighted scores ≥ 0.80 (Gate 1 §I threshold).
 
 ### 6.6 Result output format
 
@@ -926,7 +1067,6 @@ Already embedded in §6.4. The scorer returns a float in `{0.0, 0.5, 1.0}`. Scen
   "session_id": "S487",
   "runbook": "infisical-secrets.md",
   "linter_version": "1.0.0",
-  "standard_version": "1.0",
   "run_started_at": "2026-04-22T02:00:00Z",
   "run_finished_at": "2026-04-22T02:03:14Z",
   "scenarios": [
@@ -935,7 +1075,7 @@ Already embedded in §6.4. The scorer returns a float in `{0.0, 0.5, 1.0}`. Scen
                   "arguments": {"project-id": "…", "env": "prod", "path": "api/keys/stripe"}},
      "score": 1.0,
      "matched_answer_index": 0,
-     "reason": "exact_tool_and_value_match"},
+     "reason": "exact_match"},
     …
   ],
   "aggregate_score": 0.92,
@@ -943,6 +1083,8 @@ Already embedded in §6.4. The scorer returns a float in `{0.0, 0.5, 1.0}`. Scen
   "result": "PASS"
 }
 ```
+
+**Possible `result` values:** `PASS`, `FAIL`, `CONFIGURATION_ERROR` (§I/YAML drift per §6.1), `INFRASTRUCTURE_FAILURE` (MCP unreachable, all scenarios timed out, etc.), `SCENARIO_TIMEOUT` (on a per-scenario basis — aggregate-level result still computed from scenarios that completed).
 
 ### 6.7 Nightly CI — `runbook-harness.yml`
 
@@ -956,24 +1098,30 @@ on:
 jobs:
   harness:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed for --update-lifecycle writes and results commit
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: pip install -e .
+      - name: Update §J grace-clock (persists stale predicates from Gate 1 §J)
+        run: runbook-lint --mode strict --update-lifecycle
       - name: Run harness against all conformant runbooks
         env:
           KOSKADEUX_MCP_URL:   ${{ secrets.KOSKADEUX_MCP_URL }}
           KOSKADEUX_MCP_TOKEN: ${{ secrets.KOSKADEUX_MCP_TOKEN }}
         run: runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
-      - name: Commit results
+      - name: Commit updates
         run: |
           git config user.name "runbook-harness"
           git config user.email "noreply@ai.market"
-          git add harness/results/
+          git add .
           git commit -m "harness: nightly $(date -u +%Y-%m-%d)" || exit 0
           git push
 ```
+
+**Note the added `runbook-lint --update-lifecycle` step:** this is where Gate 1 §4 §J's grace-clock writes are persisted (see §4.6 dual-path). It runs before the harness so the harness sees up-to-date §J timestamps.
 
 **Result retention:** results are committed to the repo (git history is the archive). `harness/results/<s>/` grows indefinitely; retention trimming is deferred to a follow-on chunk. 30 days of nightly runs = 30 small JSON files per system = negligible size. Trim policy TBD after 6 months of data.
 
@@ -989,8 +1137,7 @@ jobs:
 # ai.market Runbooks
 
 This repository is the source of truth for every system-level runbook in ai.market.
-Every runbook conforms to the standard defined in `specs/BQ-RUNBOOK-STANDARD.md`
-(standard version 1.0).
+Every runbook conforms to the standard defined in `specs/BQ-RUNBOOK-STANDARD.md`.
 
 ## Adoption status
 
@@ -1079,11 +1226,11 @@ Gate 3 code audit will verify the following are implemented and passing:
 
 **Linter checks** (one pytest per check):
 - `tests/test_checks.py::test_check_01_sections_present_and_ordered` — conformant fixture passes; missing-§G fixture FAILs; out-of-order fixture FAILs
-- `test_check_02_agent_forms_present` — conformant passes; missing-§B-table FAILs
-- `test_check_03_a_j_consistency` — divergent header/lifecycle FAILs
-- `test_check_04_a_k0_consistency` — linter_version mismatch FAILs
-- `test_check_05_status_values` — `WORKING` (non-canonical) FAILs
-- `test_check_06_backing_code` — SHIPPED row with `—` backing FAILs
+- `test_check_02_agent_forms_present` — conformant passes; missing-§B-table FAILs; missing-§H.5-sub-subheading FAILs
+- `test_check_03_a_j_owner_agent_consistency` — divergent §A.owner_agent vs §J.owner_agent FAILs; all other §A fields are NOT cross-checked (validated by §A's own schema only) per §4.4.10
+- `test_check_04_a_k0_linter_version_consistency` — §A.linter_version ≠ §K.0.linter_version FAILs
+- `test_check_05_status_values` — `WORKING` (non-canonical) FAILs; placeholder `<<STATUS:example>>` in §B Status cell FAILs with "Status cell must be SHIPPED/PARTIAL/PLANNED/DEPRECATED/BROKEN"
+- `test_check_06_backing_code` — SHIPPED row with `—` backing FAILs; placeholder `<<BACKING:example>>` FAILs
 - `test_check_07_last_verified_warn` — empty Last Verified emits WARN (not FAIL)
 - `test_check_08_repair_ref_resolves` — dangling §G-02 FAILs
 - `test_check_09_symptom_ref_resolves` — §G entry with unknown F-ref FAILs
@@ -1091,32 +1238,39 @@ Gate 3 code audit will verify the following are implemented and passing:
 - `test_check_11_scenario_distribution` — 9 scenarios FAILs; 10 scenarios with no ambiguous FAILs
 - `test_check_12_weights_sum` — weights summing 0.99 FAILs
 - `test_check_13_unequal_weights_justified` — unequal weights without §I.1 FAILs
-- `test_check_14_lifecycle_fields` — missing `last_harness_date` FAILs
-- `test_check_15_staleness_grace_workflow` — covers transition `false → true` (WARN emitted, first_staleness_detected_at logged); 30-day threshold (FAIL emitted); grace clear on all-predicates-false (INFO emitted)
-- `test_check_16_linter_version_compat` — future-standard WARN
-- `test_check_17_conformance_fields` — missing `last_lint_run` FAILs
-- `test_check_18_retrofit_fields` — retrofit=true with null trace_matrix FAILs
+- `test_check_14_lifecycle_fields` — missing `last_harness_date` FAILs; placeholders in §J required fields FAIL
+- `test_check_15_staleness_grace_workflow` — covers transition `false → true` (WARN emitted with SET recommendation); 30-day threshold (FAIL emitted); grace clear on all-predicates-false (WARN emitted with CLEAR recommendation); with `--update-lifecycle`, linter writes the transition back to the file
+- `test_check_15_dual_path` — in PR mode (no `--update-lifecycle`), findings emitted but file unchanged; in nightly mode (`--update-lifecycle`), `first_staleness_detected_at` written to §J block
+- `test_check_16_linter_version_compat` — major+minor mismatch WARN; patch-only difference no finding
+- `test_check_17_conformance_fields` — missing `last_lint_run` FAILs; placeholders FAIL
+- `test_check_18_retrofit_fields` — retrofit=true with null trace_matrix FAILs (enforced by `section_k_conformance.schema.json` `allOf` conditional)
 - `test_check_19_header_required_fields` — missing `escalation_contact` FAILs; unfilled `<<…:required>>` placeholder FAILs
-- `test_check_20_b_exact_columns` — mis-ordered or renamed column FAILs
+- `test_check_20_b_exact_columns` — mis-ordered or renamed column FAILs; placeholder-in-column-header (impossible since scaffold hardcodes columns) is out of scope; placeholders in row content do NOT trigger #20 (they trigger #5 or #6 per §5.3 routing table)
 
 **Staleness workflow integration tests** (`test_staleness.py`):
 - All three STALE predicates fire independently and in combination
 - Grace clock: starts null, sets on first stale, preserves across lints while stale, clears only when all predicates fall
 - 30-day threshold produces WARN → FAIL transition
+- `evaluate_staleness` returns `recommended_action ∈ {"SET", "CLEAR", "NONE"}` per §4.6 pseudocode
+- With `--update-lifecycle`: runbook's on-disk §J is modified per `recommended_action`
+- Without `--update-lifecycle`: runbook on-disk unchanged; finding emitted with recommendation in message
 
 **Scaffold tests** (`test_scaffold.py`):
-- `runbook-new foo` produces a file that passes checks #1, #2, #14, #17 and FAILs checks #19, #20 (because of `<<…:required>>` placeholders in §A required fields and §B example row)
-- Filling all required placeholders manually produces a PASS
+- `runbook-new foo` produces a file that passes checks #1, #2, #20 and FAILs #5/#6 (§B placeholders), #11 (<10 scenarios), #14 (§J placeholders), #17 (§K placeholders), #19 (§A placeholders)
+- Filling all required placeholders AND adding ≥10 scenarios produces a PASS
 - `runbook-new` on an existing path errors out
 
 **Harness tests** (`test_harness_loader.py`, `test_harness_scorer.py`):
 - Scenario YAML with missing required field FAILs validation
-- Response with matching tool + matching argument keys + matching values → score 1.0
-- Response with matching tool + matching argument keys + 1 wrong value out of 3 → score 0.5
-- Response with matching tool + extra argument key → score 0.5
-- Response with non-matching tool → score 0.0 (tries remaining expected answers)
+- §I–YAML mismatch (orphan YAML, missing YAML, weight mismatch, type mismatch, refs mismatch) produces `CONFIGURATION_ERROR` at harness runtime
+- Response with matching tool + matching argument keys + matching values → score 1.0 (exact_match)
+- Response with matching tool + matching argument keys + 1 wrong value out of 3 → score 0.5 (partial_value_match)
+- Response with matching tool + extra argument key → score 0.5 (arg_keyset_mismatch)
+- Response with non-matching tool → score 0.0 (tool_mismatch); scorer tries remaining expected answers
 - Response with `kind=classification` + verdict mismatch → score 0.0
 - Human-action: "restart the gateway" matches expected (`reboot`, `gateway`, `gateway`) via canonical-verb normalization
+- **Best-score semantics (R2):** response matching expected[0] at 0.5 AND expected[1] at 1.0 returns `(1.0, 1, "exact_match")` (NOT 0.5 from first-match)
+- **Off-path detection (R2):** response with tool_use_trace containing file access outside target runbook returns `(0.0, None, "off_path_tool_use")`
 
 **Integration test** (`test_integration.py`):
 - A conformant fixture runbook with all §A–§K lints PASS and a 10-scenario harness set scores ≥ 0.80 against a stubbed MP responder that emits the expected first answer for each scenario.
@@ -1130,19 +1284,23 @@ Gate 3 code audit will verify the following are implemented and passing:
 ## 10. Gate boundaries (Gate 2 vs Gate 3 for this chunk)
 
 **Gate 2 (this spec) delivers design:**
-- Exact CLI argument shapes for `runbook-lint`, `runbook-new`, `runbook-harness`
-- Exact grammar per agent form (markdown-table columns, YAML-block key sets, JSON Schema)
-- Exact check algorithm per §K.1 item (20 checks)
-- Exact scoring algorithm for the harness (partial-credit rules, canonical verbs, matching order)
+- Exact CLI argument shapes for `runbook-lint`, `runbook-new`, `runbook-harness` (including `--update-lifecycle` semantics per §4.6)
+- Exact grammar per agent form (markdown-table columns, YAML-block key sets, JSON Schema) — all 11 forms §A–§K have a schema; §H adds frozen sub-subheading markers
+- Exact check algorithm per §K.1 item (20 checks) with placeholder-routing table §5.3
+- Exact scoring algorithm for the harness (best-score across expected answers, partial-credit rules, canonical verbs, off-path detection)
+- Exact §I↔per-file YAML cross-validation rules with §I as authoritative
 - Exact repository layout
-- Exact CI workflow structure
+- Exact CI workflow structure (PR lint + nightly harness + nightly grace-clock writes)
 - Exact test-suite acceptance criteria per check/test
 - Exact dependency list (pyproject.toml)
+- Identified upstream dependency (`BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI`) and Chunk 1 mitigation
 
 **Gate 3 (code audit, post-build) delivers:**
 - Linter and scaffold executables installed and invocable locally
 - All 20 checks implemented with associated pytest suite passing
-- All 5 harness test scenarios (loader, scorer, tool-match, human-action, classification) passing
+- All 11 agent-form schemas present in `schemas/` and validated against fixture runbooks
+- Dual-path staleness (§4.6) implemented: PR-mode read-only + nightly-mode write
+- All harness test scenarios (loader cross-validation, scorer best-match, tool-match, human-action, classification, off-path detection) passing
 - Integration test end-to-end green on a fixture runbook
 - Both GitHub Actions workflows pass on the PR introducing this chunk
 - Coverage ≥ 90% on `runbook_tools/`
@@ -1151,6 +1309,7 @@ Gate 3 code audit will verify the following are implemented and passing:
 **Gate 4 (production verification) delivers:**
 - First PR to `aidotmarket/runbooks` after Chunk 1 merge is blocked by a seeded conformance failure in a probationary fixture; fix lands, CI passes. Evidence: PR number + failure screenshot + fix commit.
 - First harness nightly run produces a result file committed to `harness/results/` by the `runbook-harness` GitHub actor. Evidence: commit link.
+- First nightly `--update-lifecycle` run writes `first_staleness_detected_at` to a seeded-stale fixture §J. Evidence: commit diff.
 
 ---
 
@@ -1165,17 +1324,16 @@ Chunk 2 does NOT re-open Gate 1 of the parent BQ. It is a follow-on Gate 2 spec 
 
 ---
 
-## 12. Open questions for reviewers (R1 only)
+## 12. Open questions for reviewers (R2 status)
 
-1. **Markdown parser choice.** Is `mistune>=3.0` acceptable? Alternative: `marko`, `markdown-it-py`. Preferred for table+YAML-frontmatter support, pure-Python, AST access. MP/AG review should flag if a specific parser is known to mis-handle GFM tables.
+R2 closed the following R1 open questions:
+- ~~#5 Standard version declaration~~ — CLOSED. R2 drops the `standard_version` concept and uses `linter_version` only, per Gate 1 §4 §K.0 as-ratified. No parent-spec amendment.
 
-2. **Canonical verb list scope.** §6.4.3 has 9 entries. Is this sufficient coverage for likely §E Operate scenarios? Over-specified verbs risk false positives; under-specified ones risk false negatives. Propose: keep the list as-is for Chunk 1; expand via Chunk 2 experience.
-
-3. **Harness committing results to the repo.** §6.7 commits nightly results to `harness/results/`. Alternative: post to S3/R2 with a summary commit, or a GitHub artifact. Git-in-repo is simplest and traceable; retention trimming deferred. MP/AG review: is this acceptable Chunk 1 scope or should results go to object storage from the start?
-
-4. **Probationary mode PR comments vs annotations.** §4.9 uses `continue-on-error: true` pattern for probationary lint. Does the default GitHub annotations surface properly for a non-blocking job? Alternative: explicit PR comment via GitHub API. Defer implementation detail to Gate 3 but flag now if the shape is wrong.
-
-5. **Standard version declaration.** §4.8 introduces a "standard version" as a new field to be added at the top of the Gate 1 spec. This is a minor amendment to the Gate 1 APPROVED spec. Acceptable? Or should standard versioning be deferred to a future Gate 1 amendment?
+Remaining open questions (non-blocking discussions for R3+):
+1. **Markdown parser choice.** Is `mistune>=3.0` acceptable? Alternative: `marko`, `markdown-it-py`. MP R1 confirmed mistune is acceptable; retained as R2 for AG cross-vote input.
+2. **Canonical verb list scope.** §6.4.3 has 9 entries. R1 proposed keeping as-is and expanding via Chunk 2 experience. Non-blocking.
+3. **Harness committing results to the repo.** §6.7 commits nightly results to `harness/results/`. Alternative: object storage. R1 proposed git-in-repo for Chunk 1; retention trimming deferred. Non-blocking.
+4. **Probationary mode annotation surface.** §4.9 uses `|| true` pattern for probationary lint. GitHub Actions annotations surface even on failed jobs by default, so this should work; implementation detail deferred to Gate 3.
 
 ---
 
@@ -1193,10 +1351,23 @@ Chunk 2 does NOT re-open Gate 1 of the parent BQ. It is a follow-on Gate 2 spec 
 |---|---|
 | §4.4 Agent-form grammars | Gate 1 §4 §A–§K (prescribed forms) |
 | §4.3, §4.5 Linter checks | Gate 1 §4 §K.1 (checks #1–#20) |
-| §4.6 Staleness | Gate 1 §4 §J (STALE predicates, grace workflow) |
-| §4.8 Version compatibility | Gate 1 §4 §K.0 (authoritative linter_version) |
+| §4.6 Staleness (dual-path write) | Gate 1 §4 §J (STALE predicates, grace workflow) |
+| §4.8 Linter version handling | Gate 1 §4 §K.0 (authoritative linter_version) |
 | §5 Template validator | Gate 1 §4 §K.3 |
 | §6 Harness | Gate 1 §4 §K.2 + §4 §I (scoring rubric, equal-weight default) |
 | §7 Runbook index | Gate 1 §2 (scope), §9 (deliverable order) |
 | §10 Gate boundaries | Gate 1 §12 (Gate 1 vs Gate 2) |
 | §11 Chunk 2 preview | Gate 1 §9 steps 4–5 |
+
+## Appendix C: R1 → R2 change log (addresses MP R1 REQUEST_CHANGES HIGH, task 3846ba8e)
+
+| R1 finding (severity) | R2 fix | R2 section(s) |
+|---|---|---|
+| **H1:** Check #3 over-specified §A↔§J cross-check (claimed `system_name` + `escalation_contact` + `owner_agent`, but §J only has `owner_agent`) | Narrowed check #3 to `owner_agent`-only; explicit callout that `system_name`, `escalation_contact`, `authoritative_scope` live only in §A and are NOT §J-cross-checked (validated by §A schema only) | §4.4.10 Cross-reference checks |
+| **H2:** §4.6 rewrote Gate 1's staleness workflow ("linter does NOT modify the runbook") | Dual-path implementation: PR-mode read-only + nightly `--update-lifecycle` writes. Faithful to Gate 1 §J "linter sets first_staleness_detected_at"; respects GitHub PR write-access boundaries. No parent-spec amendment required. | §4.1 (flag), §4.6, §4.9 (PR), §6.7 (nightly), §9 (`test_check_15_dual_path`) |
+| **H3:** §6.3 used `council_request(mode=review, allowed_tools=...)` — `mode` not in real interface; `allowed_tools` ignored on Codex CLI primary path | Rewrote against real interface (`council_request(agent=mp, task=..., allowed_tools=[...])` without `mode`); documented `allowed_tools` enforcement asymmetry (Responses API yes, Codex CLI no); prompt-based restriction + post-hoc off-path detection as Chunk 1 mitigation; filed upstream dependency BQ `BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI` | §6.3, §6.4 off_path_tool_use detection, §2 deferred child BQ list |
+| **M1:** §4.8 introduced a `standard_version` field that would amend Gate 1 | Dropped `standard_version` concept. Use `linter_version` alone per Gate 1 §4 §K.0 as-ratified. No parent-spec amendment. Compatibility matrix deferred to first Gate 1 amendment. | §4.8 (renamed "Linter version handling"), §2 (no parent-spec amendments), §12 question 5 CLOSED |
+| **M2:** §K lacked formal JSON Schema; scaffold placeholders claimed to trigger check #20 but #20 is §B column headers | Added `section_k_conformance.schema.json` with full type contract including retrofit `allOf` conditional; corrected placeholder→check routing table in §5.3 (§B placeholders trigger #5/#6, §A→#19, §J→#14, §K→#17, example rows→form schemas) | §4.4.11, §5.3 routing table, §9 updated tests |
+| **M3a:** §6.1 weight authority ambiguous (§I vs per-file YAML) | §I authoritative; per-file YAML is advisory mirror; mismatch is harness-time `CONFIGURATION_ERROR`; 4 strict-match checks (id existence both directions, weight, type, refs) | §6.1, §4.4.9 R2 clarification |
+| **M3b:** §6.4 first-match semantics ordering-dependent | Rewrote to best-score across all expected answers (iterate all, take max); per-answer scorer returns `(score, reason)` without early exit; test added for "0.5 at [0], 1.0 at [1] returns 1.0" | §6.4 top-level algorithm; §9 new test |
+| **M4:** §H.5 grammar allowed "definition list or sub-subheadings" | Frozen to exactly four sub-subheadings in prescribed order + casing (`#### module`, `#### public contract`, `#### runtime dependency`, `#### config default`); definition lists rejected | §4.4.8 |
