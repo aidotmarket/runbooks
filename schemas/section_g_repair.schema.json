@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.7",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "symptom_ref",
+      "component_ref",
+      "root_cause",
+      "repair_entry_point",
+      "change_pattern",
+      "rollback_procedure",
+      "integrity_check"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^G-\\d{2,}$"
+      },
+      "symptom_ref": {
+        "type": "string",
+        "pattern": "^F-\\d{2,}$"
+      },
+      "component_ref": {
+        "type": "string"
+      },
+      "root_cause": {
+        "type": "string"
+      },
+      "repair_entry_point": {
+        "type": "string"
+      },
+      "change_pattern": {
+        "type": "string"
+      },
+      "rollback_procedure": {
+        "type": "string"
+      },
+      "integrity_check": {
+        "type": "string"
+      }
+    }
+  }
+}

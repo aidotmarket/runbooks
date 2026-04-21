@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.1",
+  "type": "object",
+  "required": [
+    "system_name",
+    "purpose_sentence",
+    "owner_agent",
+    "escalation_contact",
+    "lifecycle_ref",
+    "authoritative_scope",
+    "linter_version"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "system_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    },
+    "purpose_sentence": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 300,
+      "pattern": "\\.$"
+    },
+    "owner_agent": {
+      "type": "string",
+      "enum": [
+        "vulcan",
+        "mp",
+        "ag",
+        "xai",
+        "cc",
+        "sysadmin",
+        "crm_steward",
+        "matchmaker",
+        "marketing",
+        "ralph",
+        "listing_enricher",
+        "allai_brain",
+        "agent_log",
+        "max"
+      ]
+    },
+    "escalation_contact": {
+      "type": "string"
+    },
+    "lifecycle_ref": {
+      "const": "§J"
+    },
+    "authoritative_scope": {
+      "type": "string",
+      "minLength": 20
+    },
+    "linter_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    }
+  }
+}

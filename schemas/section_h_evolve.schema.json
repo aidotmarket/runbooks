@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.8 as a structural-only schema",
+  "type": "object",
+  "required": [
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "h1": {
+      "type": "string"
+    },
+    "h2": {
+      "type": "string"
+    },
+    "h3": {
+      "type": "string"
+    },
+    "h4": {
+      "type": "string"
+    },
+    "h5": {
+      "type": "object",
+      "required": [
+        "module",
+        "public_contract",
+        "runtime_dependency",
+        "config_default"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string"
+        },
+        "public_contract": {
+          "type": "string"
+        },
+        "runtime_dependency": {
+          "type": "string"
+        },
+        "config_default": {
+          "type": "string"
+        }
+      }
+    },
+    "h6": {
+      "type": "string"
+    }
+  }
+}

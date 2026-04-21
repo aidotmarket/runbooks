@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.9",
+  "type": "object",
+  "required": [
+    "scenario_set"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "scenario_set": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "refs",
+          "scenario",
+          "expected_answers",
+          "weight"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^I-\\d{2,}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "operate",
+              "isolate",
+              "repair",
+              "evolve",
+              "ambiguous"
+            ]
+          },
+          "refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "scenario": {
+            "type": "string",
+            "minLength": 10
+          },
+          "expected_answers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "tool_call",
+                    "human_action",
+                    "classification"
+                  ]
+                },
+                "tool": {
+                  "type": "string"
+                },
+                "argument_keys": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "argument_values": {
+                  "type": "object"
+                },
+                "verb": {
+                  "type": "string"
+                },
+                "object": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          }
+        }
+      }
+    }
+  }
+}

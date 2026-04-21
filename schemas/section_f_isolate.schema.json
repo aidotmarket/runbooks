@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.6",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "ID",
+      "Symptom",
+      "Probable_Causes",
+      "Verification_Procedure",
+      "Repair_Ref",
+      "Confidence"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "ID": {
+        "type": "string",
+        "pattern": "^F-\\d{2,}$"
+      },
+      "Symptom": {
+        "type": "string",
+        "minLength": 1
+      },
+      "Probable_Causes": {
+        "type": "string"
+      },
+      "Verification_Procedure": {
+        "type": "string"
+      },
+      "Repair_Ref": {
+        "type": "string"
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": [
+          "CONFIRMED",
+          "HYPOTHESIZED",
+          "DEPRECATED"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.11",
+  "type": "object",
+  "required": [
+    "linter_version",
+    "last_lint_run",
+    "last_lint_result",
+    "trace_matrix_path",
+    "word_count_delta"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "linter_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "last_lint_run": {
+      "type": "string",
+      "pattern": "^S\\d+\\s+/\\s+\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "last_lint_result": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL"
+      ]
+    },
+    "retrofit": {
+      "type": "boolean",
+      "default": false
+    },
+    "trace_matrix_path": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_./-]+\\.md$"
+        }
+      ]
+    },
+    "word_count_delta": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "before",
+            "after",
+            "pct"
+          ],
+          "properties": {
+            "before": {
+              "type": "integer"
+            },
+            "after": {
+              "type": "integer"
+            },
+            "pct": {
+              "type": "number"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "retrofit": {
+            "const": true
+          }
+        },
+        "required": [
+          "retrofit"
+        ]
+      },
+      "then": {
+        "properties": {
+          "trace_matrix_path": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_./-]+\\.md$"
+          },
+          "word_count_delta": {
+            "type": "object",
+            "required": [
+              "before",
+              "after",
+              "pct"
+            ],
+            "properties": {
+              "before": {
+                "type": "integer"
+              },
+              "after": {
+                "type": "integer"
+              },
+              "pct": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

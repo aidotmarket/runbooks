@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.5",
+  "type": "array",
+  "minItems": 3,
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "trigger",
+      "pre_conditions",
+      "tool_or_endpoint",
+      "argument_sourcing",
+      "idempotency",
+      "expected_success",
+      "expected_failures",
+      "next_step_success",
+      "next_step_failure"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "pattern": "^E-\\d{2,}$"
+      },
+      "trigger": {
+        "type": "string",
+        "minLength": 10
+      },
+      "pre_conditions": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "tool_or_endpoint": {
+        "type": "string"
+      },
+      "argument_sourcing": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "idempotency": {
+        "enum": [
+          "IDEMPOTENT",
+          "NOT_IDEMPOTENT",
+          "IDEMPOTENT_WITH_KEY"
+        ]
+      },
+      "idempotency_key": {
+        "type": "string"
+      },
+      "expected_success": {
+        "type": "object",
+        "required": [
+          "shape",
+          "verification"
+        ],
+        "properties": {
+          "shape": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          }
+        }
+      },
+      "expected_failures": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "signature",
+            "cause"
+          ],
+          "properties": {
+            "signature": {
+              "type": "string"
+            },
+            "cause": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "next_step_success": {
+        "type": "string"
+      },
+      "next_step_failure": {
+        "type": "string"
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "idempotency": {
+              "const": "IDEMPOTENT_WITH_KEY"
+            }
+          },
+          "required": [
+            "idempotency"
+          ]
+        },
+        "then": {
+          "required": [
+            "idempotency_key"
+          ]
+        }
+      }
+    ]
+  }
+}

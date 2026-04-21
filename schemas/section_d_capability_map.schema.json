@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.4",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "Agent",
+      "Operation",
+      "Skill_Tool",
+      "Auth_Scope",
+      "Coverage_Status"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "Agent": {
+        "type": "string",
+        "minLength": 1
+      },
+      "Operation": {
+        "type": "string",
+        "minLength": 1
+      },
+      "Skill_Tool": {
+        "type": "string"
+      },
+      "Auth_Scope": {
+        "type": "string"
+      },
+      "Coverage_Status": {
+        "type": "string",
+        "enum": [
+          "COMPLETE",
+          "PARTIAL",
+          "GAP",
+          "PLANNED"
+        ]
+      }
+    }
+  }
+}

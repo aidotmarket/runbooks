@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.2. Represents the post-parse row structure; the byte-for-byte header check is a linter check, not schema.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "Feature_Capability",
+      "Status",
+      "Backing_Code",
+      "Test_Coverage",
+      "Last_Verified"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "Feature_Capability": {
+        "type": "string",
+        "minLength": 1
+      },
+      "Status": {
+        "type": "string",
+        "enum": [
+          "SHIPPED",
+          "PARTIAL",
+          "PLANNED",
+          "DEPRECATED",
+          "BROKEN"
+        ]
+      },
+      "Backing_Code": {
+        "type": "string"
+      },
+      "Test_Coverage": {
+        "type": "string"
+      },
+      "Last_Verified": {
+        "type": "string"
+      }
+    }
+  }
+}

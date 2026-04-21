@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Implements spec §4.4.3",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "Component",
+      "Component_Entry_Point",
+      "State_Stores",
+      "Integrates_With",
+      "Notes"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "Component": {
+        "type": "string",
+        "minLength": 1
+      },
+      "Component_Entry_Point": {
+        "type": "string"
+      },
+      "State_Stores": {
+        "type": "string"
+      },
+      "Integrates_With": {
+        "type": "string"
+      },
+      "Notes": {
+        "type": "string"
+      }
+    }
+  }
+}

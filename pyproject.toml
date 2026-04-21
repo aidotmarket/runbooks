@@ -1,0 +1,26 @@
+[project]
+name = "runbook-tools"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "mistune>=3.0,<4",
+    "pyyaml>=6.0,<7",
+    "jsonschema>=4.20,<5",
+    "click>=8.1,<9",
+    "python-dateutil>=2.8,<3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.2"]
+
+[project.scripts]
+runbook-lint     = "runbook_tools.cli:lint_cmd"
+runbook-new      = "runbook_tools.cli:new_cmd"
+runbook-harness  = "runbook_tools.cli:harness_cmd"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["runbook_tools*"]
