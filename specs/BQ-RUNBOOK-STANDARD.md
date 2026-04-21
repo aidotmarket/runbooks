@@ -1,11 +1,11 @@
 # BQ-RUNBOOK-STANDARD — System-Wide Runbook Standard
 
-**Status:** Gate 1 R7 (design, addressing MP R6 CONDITIONAL MEDIUM — attempt-registry shape fix + 3 LOW)
+**Status:** Gate 1 R8 (design, addressing AG cross-vote CONDITIONAL — §E agent autonomy + §9 retrofit + 2 elevated nits)
 **Priority:** P0
 **Repo:** aidotmarket/runbooks
 **Parent of:** per-system runbook BQs (CRM, Celery, AIM Node, Koskadeux, Infisical, Railway, etc.)
-**Authored:** S486 R7 (Vulcan)
-**Addresses:** MP R6 task 67ba5619 (CONDITIONAL MEDIUM — 1 STILL_OPEN on attempt-registry shape + 3 LOW; MP sign-off: 'remaining issues are nits or Gate 2 hardening items after this fix')
+**Authored:** S486 R8 (Vulcan)
+**Addresses:** MP R7 task fe003f94 (APPROVE_WITH_NITS LOW — all structural items closed) + AG cross-vote task dfe3090b (CONDITIONAL — 3 REQUEST_CHANGES, 1 CONCERN, 3 CONCUR incl G4 falsifiability 'genuine and robust')
 
 ---
 
@@ -28,7 +28,9 @@ A runbook is legible when a stateless agent, given only this runbook and no prio
 
 **R6 scope (retained).** Retry Cases C + D, XAI verdict taxonomy with decision rules, Koskadeux-issued attempt_id, 72h stall escalation, failure routing table.
 
-**R7 scope.** This revision addresses MP R6 findings. Core changes: (a) attempt-registry key shape corrected — per-attempt registry entries + per-frozen-commit attempt-manifest (fixes the R6 single-slot-per-frozen-SHA bug that was incompatible with per-retry new attempt_ids); (b) multi-predicate failure precedence rule added (Case A precedence for spec defects; Max adjudicates otherwise); (c) attempt-registry status-transition model made explicit (active / stalled / aborted / superseded / passed / failed with transition triggers); (d) Case D → Case A routing path named (if runbook-content review reveals standard defect, route to Case A).
+**R7 scope (retained).** Attempt-registry shape split (per-attempt + manifest), multi-predicate precedence, state-transition table, Case D → Case A routing.
+
+**R8 scope.** This revision addresses AG cross-vote findings (which passed MP R7 APPROVE_WITH_NITS LOW). Core changes: (a) §E scenario form extended with `pre_conditions`, `idempotency`, `argument_sourcing` fields to close the agent-autonomy gap AG identified; (b) §9 retrofit plan strengthened — new "harness coverage proof" requirement mapping legacy procedural content to new scenarios (coverage matrix, MP orphan review for unmapped procedural content); (c) §J state machine adds `stalled → superseded` transition (elevated from MP R7 Gate 2 nit to Gate 1 per AG); (d) §7 G4 Case D runbook-content reviewer actor + logged artifact shape named (elevated per AG); (e) step 2(c) attempt-id discovery handshake de-circularized (MP R7 nit); (f) terminal-state language explicit (MP R7 nit).
 
 ---
 
@@ -139,13 +141,18 @@ Prose narrative may accompany the table for human consumers. Diagrams optional (
 Each scenario:
 - `id` (e.g., `E-01`)
 - `trigger` (customer/upstream request)
+- `pre_conditions` (list of states/assumptions that must hold before execution; e.g., `user_authenticated`, `target_entity_exists`, `payment_method_on_file`). An agent checks these before invoking the tool.
 - `tool_or_endpoint` (exact name and argument shape)
+- `argument_sourcing` (for each non-literal argument, where the agent gets the value — e.g., `user_id: read from §C state-store user_sessions`; `target_email: prompt human operator`; `entity_version: read from §D endpoint /api/entities/{id}`). Literal/constant arguments do not require sourcing.
+- `idempotency` (one of: `IDEMPOTENT` / `NOT_IDEMPOTENT` / `IDEMPOTENT_WITH_KEY`). If `IDEMPOTENT_WITH_KEY`, include `idempotency_key` field describing the dedupe mechanism (e.g., `hash(user_id+action+target)`, `uuid_v4`, `request_id_from_trigger`).
 - `expected_success` (return shape, side effects, verification path)
 - `expected_failures` (list of signatures; same failure in §F only if cause diagnosis differs)
 - `next_step_success`
 - `next_step_failure`
 
 §E covers **expected paths**: common operational scenarios and their anticipated failure branches. Deviations outside any §E branch are handled in §F. Covers both human-initiated (support ticket, ops request) and agent-initiated (allAI triage, scheduled job, cross-system call) flows.
+
+**Why `pre_conditions`, `argument_sourcing`, `idempotency` are required.** Agent-initiated flows need to check pre-conditions before acting (no human intuition to fall back on), need to know where to fetch argument values (stateless agents cannot assume values are in-context), and need to know whether a retry after a timeout is safe (critical for agent error-recovery paths). Human-initiated flows benefit from the same fields but could survive without them; the contract is written for the stricter agent consumer.
 
 ### §F. Isolate — Diagnosing Deviations
 **Agent form:** symptom index table with fixed columns
@@ -384,7 +391,7 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
    - **Writing a per-attempt registry entity** at `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:attempt-registry` with `{g4_attempt_id, frozen_commit_sha, prior_attempt_id, retry_case, opened_at, opened_by, status: 'active'}`. Create-only (`expected_version=0`); collision on this key is architecturally impossible because Koskadeux just generated the UUID.
    - **Patching the per-frozen-commit manifest** at `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:attempt-manifest` to append `g4_attempt_id` to its `attempt_ids` list. Manifest is updated via `patch` with optimistic locking (`expected_version` must match); concurrent opens under the same `frozen_commit_sha` serialize naturally — second opener's patch fails, Koskadeux retries with fresh read of manifest.
 
-   c. Vulcan reads the registry to get the `g4_attempt_id` for all subsequent writes.
+   c. Vulcan reads the per-frozen-commit manifest at `…:{frozen_commit_sha}:attempt-manifest` to obtain the newest `g4_attempt_id` (the last entry in the `attempt_ids` list). Vulcan then reads the per-attempt registry at `…:{frozen_commit_sha}:{g4_attempt_id}:attempt-registry` for authoritative attempt state. This manifest-first read path removes the circular dependency that would otherwise arise from trying to read an attempt-scoped key without first knowing the attempt id.
 
    **Why two entities, not one.** The per-attempt registry holds the authoritative state for a single attempt (created once, mutated only via defined status transitions per step 9). The manifest holds the ordered list of attempt_ids under a `frozen_commit_sha` so auditors and retries can traverse the attempt chain without scanning the full keyspace. Separating them lets the registry be create-only with defined mutations while the manifest grows monotonically under optimistic locking.
 
@@ -452,7 +459,8 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
      - New `g4_attempt_id` with `retry_case=D`; MP + AG author a FRESH eval set in new isolated sessions (no access to prior answer-key or prior XAI rationale)
      - New XAI correspondence pass on `(new-answer-key, unchanged-runbook)`
      - If XAI returns `SUSPECT_OVERFITTING` twice in a row on the same runbook, escalates to Max (Living State event `g4-repeated-overfitting`); Max may authorize a runbook-content review to check for spec-induced authoring patterns that force correspondence.
-     - **Routing from the runbook-content review:** if the review reveals a runbook-authoring defect, the next attempt is Case B (runbook revision). If the review reveals a standard defect that is forcing correspondence (the standard's structure is compelling scenarios to look like the runbook), the next attempt routes to Case A (spec revision; Gate 1 reopens; new `frozen_commit_sha`).
+     - **Runbook-content reviewer appointment.** Max appoints a reviewer agent. The reviewer MUST be an agent independent of the prior failing eval-set authoring and scoring sessions. Eligible: MP (if MP did not co-author the overfitting eval set — i.e., this is the first `SUSPECT_OVERFITTING` in the current retry chain and MP did not author) OR XAI (per its architecture/sign-off role). Ineligible: Vulcan (conflict of interest as standard + runbook author), AG (conflict of interest as scorer and prior eval-set co-author).
+     - **Review artifact.** Reviewer writes to Living State at `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:runbook-content-review` with create-only semantics, fields `{reviewer_agent, reviewer_session, reviewed_attempt_id, reviewed_at, outcome, rationale}`. `outcome` is one of: `runbook_defect` (authoring problem in AIM Node runbook) → routes to Case B; `standard_defect` (the standard itself forces correspondence patterns) → routes to Case A (reopens Gate 1, new `frozen_commit_sha`); `no_defect` (review finds neither; eval-set was drafted poorly both times) → routes to a third Case D attempt with new MP + AG pair or Max manually authors eval-set.
      - AG scores against new answer-key.
 
    **Cross-case invariants:**
@@ -472,9 +480,12 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
    | `active` | `stalled` | AG scoring unresponsive for 48 hours (Koskadeux detects, patches status, begins 72h escalation timer) |
    | `stalled` | `active` | Max `resume` action (stall blocker cleared); Koskadeux patches status, clears `stalled_at` |
    | `stalled` | `aborted` | Max `abort` action (attempt dead-ended without resolving); Koskadeux patches status, logs abort reason |
+   | `stalled` | `superseded` | A new attempt with `prior_attempt_id = this_stalled_attempt_id` is opened without Max first issuing `abort` — i.e., Max elects to start a fresh attempt in parallel with or replacing the stalled one. Koskadeux patches the stalled attempt's status when the new `attempt-manifest` write lands. |
    | `active` | `superseded` | A new attempt with `prior_attempt_id = this_attempt_id` is opened (any retry Case); Koskadeux patches status when the new `attempt-manifest` write lands |
    | `active` | `passed` | All three pass-criteria legs met (MP APPROVE, XAI non-SUSPECT, AG ≥ 0.80); Koskadeux patches status on harness-result write |
    | `active` | `failed` | Any pass-criteria leg failed and Max elects not to retry; Koskadeux patches status on Max's `failed` action event |
+
+   **Terminal states.** `passed`, `failed`, `aborted`, and `superseded` are terminal. No outgoing transitions are defined from any terminal state; any attempt to transition out of a terminal state is a linter-level FAIL (spec-internal contradiction). The only ways an attempt's `status` can change from a terminal value is: (a) never (audit-preserved); (b) a new attempt is opened with `prior_attempt_id = this_attempt_id`, which does NOT re-animate the terminal attempt — it creates a new attempt entry with its own `status: 'active'`.
 
    A registry entry's `status` is the authoritative answer to "what is this attempt's current state." Auditors consult the manifest to list attempts, then the per-attempt registries to see state.
 
@@ -515,7 +526,8 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 - **Trace matrix** — table with columns `Legacy Section | New §A–§K | Notes`. Every legacy section maps to a new section OR is explicitly marked `REMOVED` with rationale.
 - **Word-count delta** — before/after word count per section. Warn threshold ±15%; explicit justification required if exceeded.
 - **MP orphan review** — content in legacy not represented in retrofit is preserved or explicitly removed with rationale; silent drops are FAIL.
-- **Harness score** — must match or exceed legacy harness score (if one existed). For CRM/Celery, harness must pass at ≥ 0.80.
+- **Harness coverage proof** — every legacy section with procedural content (operate / isolate / repair instructions, decision trees, step-by-step procedures) must be represented by at least one harness scenario in the new runbook's §I scenario set. The retrofit PR includes a `procedural-coverage-matrix` with columns `Legacy Procedural Section | Scenario ID(s) in new runbook`. MP reviews this matrix for unmapped procedural content. Unmapped procedural content is a FAIL — either add a scenario covering it, restructure to preserve the content, or explicitly justify why the procedural content is obsolete with the new design.
+- **Harness score** — must match or exceed legacy harness score (if one existed). For CRM/Celery, harness must pass at ≥ 0.80 AND procedural-coverage-matrix must be complete.
 
 ---
 
@@ -617,3 +629,16 @@ MP R2 raised several asks that are appropriate at Gate 2 (implementation) rather
 | NEW LOW: Multi-predicate failure precedence not defined | Case A precedence for spec defects; Case C compatible with any other case (runs after non-C resolution); otherwise Max adjudicates via `g4-multi-predicate-adjudication` event | §7 G4 step 7 |
 | NEW LOW: Attempt-registry state transitions implicit | Explicit state machine in §7 G4 step 9: active/stalled/aborted/superseded/passed/failed with transitions-and-triggers table | §7 G4 step 9 |
 | NEW LOW: Case D → Case A routing implied, not explicit | Runbook-content review outcomes routed explicitly: runbook defect → Case B; standard defect → Case A | §7 G4 step 8 Case D |
+
+## Appendix F: R7 → R8 Change Log (AG cross-vote response)
+
+R7 received MP APPROVE_WITH_NITS LOW. AG cross-vote (task dfe3090b) returned CONDITIONAL with 3 REQUEST_CHANGES items; R8 addresses all three plus elevates 2 MP R7 nits to Gate 1 per AG's recommendation.
+
+| AG CONCERN / MP R7 NIT | R8 fix | Location |
+|---|---|---|
+| §E scenario form incomplete for agent autonomy | Added `pre_conditions`, `argument_sourcing`, `idempotency` (+ optional `idempotency_key`) per scenario | §4 §E |
+| §9 retrofit manual-check risk of content loss | Added `harness coverage proof` requirement: every legacy procedural section must map to ≥1 scenario in new harness; `procedural-coverage-matrix` artifact required; MP orphan review extended | §9 Retrofit preservation contract |
+| `stalled → superseded` transition missing (AG elevated from MP R7 nit) | Added row to state machine; Max can open a replacement attempt on a stalled attempt without first issuing `abort` | §4 §J state transitions |
+| Case D reviewer actor + artifact (AG elevated from MP R7 nit) | Reviewer appointment rules (must be independent; MP or XAI eligible; Vulcan and AG ineligible); artifact `…:runbook-content-review` with create-only semantics and full field set; 3-way `outcome` routing (`runbook_defect`/`standard_defect`/`no_defect`) | §7 G4 step 8 Case D |
+| Step 2(c) attempt-id discovery circular (MP R7 nit) | Vulcan reads manifest first (gets latest attempt_id), then reads per-attempt registry | §7 G4 step 2(c) |
+| Terminal-state explicit language (MP R7 nit) | Added "Terminal states" paragraph stating passed/failed/aborted/superseded are terminal; no outgoing transitions; retry creates new attempt rather than re-animating | §4 §J state transitions |
