@@ -1,11 +1,11 @@
 # BQ-RUNBOOK-STANDARD — System-Wide Runbook Standard
 
-**Status:** Gate 1 R4 (design, addressing MP R3 CONDITIONAL MEDIUM)
+**Status:** Gate 1 R5 (design, addressing MP R4 CONDITIONAL MEDIUM)
 **Priority:** P0
 **Repo:** aidotmarket/runbooks
 **Parent of:** per-system runbook BQs (CRM, Celery, AIM Node, Koskadeux, Infisical, Railway, etc.)
-**Authored:** S486 R4 (Vulcan)
-**Addresses:** MP R3 task 7e1c13a0 (CONDITIONAL MEDIUM — 2 STILL_OPEN at design level + 1 ambiguity + 1 nit)
+**Authored:** S486 R5 (Vulcan)
+**Addresses:** MP R4 task 5af0b397 (CONDITIONAL MEDIUM — 2 STILL_OPEN + 2 new MEDIUM + 1 new LOW)
 
 ---
 
@@ -22,7 +22,9 @@ A runbook is legible when a stateless agent, given only this runbook and no prio
 
 **R3 scope (retained).** Unified §3/§4 agent-form taxonomy, §I equal-weight default, §H boundary definitions, §J timestamps + grace workflow, G4 hidden-scenario protocol, §C/§G entry-point distinction, §12 Gate Boundaries.
 
-**R4 scope.** This revision addresses MP R3 findings. Core changes: (a) §J grace-clear semantics tightened — `first_staleness_detected_at` clears only when ALL stale predicates are false, not on metadata refresh alone; (b) G4 reviewer independence — separate sessions for scenario authoring vs review, expected-answer key logged to Living State before review, AG scores (not MP); (c) §K.1 gains a complete severity classification table mapping every linter check to WARN or FAIL at design level; (d) `linter_version` drift closed — §K.0 is authoritative, §A is display mirror, A↔K consistency added to linter's internal-contradiction checks.
+**R4 scope (retained).** §J grace-clear tightened, G4 reviewer-independence partial split, §K.1 severity classification, `linter_version` drift closed.
+
+**R5 scope.** This revision addresses MP R4 findings. Core changes: (a) G4 reviewer independence strengthened — XAI added as third-party correspondence challenger (verifies hidden scenario set is not hand-tailored to the submitted runbook); reconciliation transcript logged; (b) Living State keys for G4 artifacts now attempt-scoped with `frozen_commit_sha` + `g4_attempt_id` to eliminate retry collisions; create-only semantics made explicit; (c) G4 retry protocol defined mechanically — new `g4_attempt_id` on each retry, old artifacts preserved for audit; (d) §K.1 gains checks #19 (§A required-field population) and #20 (§B required table-form); (e) AG operational dependency documented with 48-hour stall rule and explicit no-MP-fallback (preserves independence).
 
 ---
 
@@ -247,7 +249,7 @@ Authoritative refresh tracking. §A Header is a display summary; §J is the sour
 - `scheduled_cadence` — e.g., `90 days` (optional; must be set if not event-driven)
 - `last_harness_pass_rate` — most recent §I harness score
 - `last_harness_date` — ISO timestamp of last harness run
-- `first_staleness_detected_at` — ISO timestamp; initialized `null`; set by linter when STALE transitions `true`; cleared by linter on refresh
+- `first_staleness_detected_at` — ISO timestamp; initialized `null`; set by linter when STALE transitions `true`; cleared by linter ONLY when all stale predicates re-evaluate to `false` (see non-compliance workflow below)
 
 **Staleness detection (STALE true if ANY of):**
 - `last_refresh_commit != current HEAD of system's primary repo` AND `now - last_refresh_date > 60 days`
@@ -302,6 +304,8 @@ The linter's complete validation set with design-level severity classification:
 | 16 | §K.0 `linter_version` on this runbook matches `runbook-lint --version`  | WARN (until runbook re-validates) |
 | 17 | §K required fields populated (`last_lint_run`, `last_lint_result`, etc.) | FAIL |
 | 18 | Retrofit runbook has `trace_matrix_path` + `word_count_delta` populated | FAIL (if runbook is marked as retrofit in §K) |
+| 19 | §A required fields populated (`system_name`, `purpose_sentence`, `owner_agent`, `escalation_contact`, `lifecycle_ref`, `authoritative_scope`, `linter_version`) | FAIL |
+| 20 | §B renders as a markdown table with the exact required column set (`Feature/Capability`, `Status`, `Backing Code`, `Test Coverage`, `Last Verified`) in the prescribed order | FAIL |
 
 FAIL is PR-blocking. WARN is informational (logged, surfaced in CI output, does not block). The STALE/grace workflow (check #15) is the only check that has a time-based WARN→FAIL escalation; all other checks resolve to WARN or FAIL immediately on each linter run.
 
@@ -362,26 +366,43 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 - Infisical runbook passes `runbook-lint` and passes harness at ≥ 0.80 weighted first-action accuracy on a ≥10-scenario set with required distribution per §4 §I
 - `runbook-lint` passes on itself (the linter's own code comments documenting each check)
 
-**G4 — Gate 4 (production / falsifiability) AC.** The standard is ratified only if a second runbook authored against the *frozen* standard passes an *externally-authored hidden* evaluation set, under reviewer-independence constraints:
+**G4 — Gate 4 (production / falsifiability) AC.** The standard is ratified only if a second runbook authored against the *frozen* standard passes an *externally-authored hidden* evaluation set, under reviewer-independence constraints spanning three agents:
 
-1. **Standard freeze.** When this BQ reaches Gate 1 APPROVED, the spec commit SHA is pinned. No edits to the spec during G4 testing; any change reopens Gate 1.
+1. **Standard freeze.** When this BQ reaches Gate 1 APPROVED, the spec commit SHA is pinned as `frozen_commit_sha`. No edits to the spec during G4 testing; any change reopens Gate 1.
 
-2. **Vulcan authors AIM Node runbook** using only the frozen standard as input. Vulcan may reference per-system code and incident evidence for AIM Node, but may NOT reference the Infisical runbook content or the Infisical scenario set.
+2. **G4 attempt identification.** Each G4 run has a unique `g4_attempt_id` (UUID generated by Vulcan at attempt start). Combined with `frozen_commit_sha`, this identifies every G4 artifact uniquely and prevents retry collisions. All Living State entities in G4 are namespaced under `state:bq-runbook-standard:g4:aim-node:{frozen_commit_sha}:{g4_attempt_id}:<artifact>`.
 
-3. **Hidden evaluation set — authoring with independence guardrails:**
-   - MP and AG each author a draft ≥10-scenario evaluation set **independently** (no shared working session; no access to each other's drafts during authoring) from AIM Node code + incident evidence.
-   - MP and AG then reconcile their drafts into a single evaluation set in a joint session. Disputes on scenario inclusion, expected-answer keys, or weights escalate to Max.
-   - The **final expected-answer key** (scenario id → set of acceptable first actions → weight) is logged to Living State at key `state:bq-runbook-standard:g4:aim-node:answer-key` with fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha}`. Once logged, the key is immutable; edits require a new G4 attempt.
+3. **Vulcan authors AIM Node runbook** using only the frozen standard as input. Vulcan may reference per-system code and incident evidence for AIM Node, but may NOT reference the Infisical runbook content or the Infisical scenario set. Draft committed to `aidotmarket/runbooks/aim-node.md`.
+
+4. **Hidden evaluation set — three-party authoring:**
+   - **MP and AG each author a draft ≥10-scenario evaluation set independently** (no shared working session; no access to each other's drafts during authoring) from AIM Node code + incident evidence.
+   - **MP + AG reconcile** their drafts into a single evaluation set in a joint session. Disputes on scenario inclusion, expected-answer keys, or weights escalate to Max. The session transcript (participant messages + per-scenario vote log) is recorded.
+   - **Reconciliation transcript logged** to `…:reconciliation-transcript` with create-only semantics (`expected_version=0` on first write; subsequent writes FAIL).
+   - **Final expected-answer key** (scenario id → acceptable first actions set → weight) logged to `…:answer-key` with fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha, g4_attempt_id}`, create-only semantics. Once logged, immutable; edits require a new `g4_attempt_id`.
    - Vulcan does not see the evaluation set or the answer key before or during AIM Node authoring.
 
-4. **Review and scoring — reviewer-independence split:**
-   - **MP provides first-pass design review** on the AIM Node runbook (verdict: `APPROVE` / `APPROVE_WITH_NITS` / `CONDITIONAL` / `REQUEST_CHANGES`). This review runs in a session separate from MP's scenario-authoring session.
-   - **AG runs the harness and scores** against the logged expected-answer key. MP does NOT score. This separates the evaluator from the reviewer, removing the bias where the same agent influences both the eval content and a pass leg.
-   - The harness score is written to `state:bq-runbook-standard:g4:aim-node:harness-result` with `{scorer_agent, scored_session, per_scenario_scores, weighted_total}`.
+5. **XAI correspondence challenger pass (new in R5).** Before harness scoring runs, **XAI independently reviews** the pair `(answer-key, AIM Node runbook)` for *correspondence bias* — specifically: does the scenario set appear hand-tailored to the runbook's content or structure in a way that would undeservingly inflate pass rate? XAI's verdict is one of: `CLEAN` (no bias observed), `MINOR_OVERLAP` (some overlap, not blocking), `SUSPECT_OVERFITTING` (blocking; eval set must be re-drafted by MP + AG). XAI's verdict logged to `…:xai-correspondence-verdict` with `{verdict, rationale, session}`. This pass is the third-party independence check MP R4 called for; XAI's documented role is architecture/sign-off, which this correspondence check fits. XAI does not author scenarios or score; it only red-teams the scenario-runbook pairing for author bias.
 
-5. **Pass criteria.** G4 passes if and only if: MP first-pass verdict is `APPROVE` or `APPROVE_WITH_NITS` AND AG-scored weighted total is ≥ 0.80. Failure on either leg fails G4 and forces either a spec revision (reopening Gate 1) or a re-authored AIM Node runbook (remaining at Gate 4).
+6. **Review and scoring — split roles:**
+   - **MP first-pass design review** on AIM Node runbook (verdict: `APPROVE` / `APPROVE_WITH_NITS` / `CONDITIONAL` / `REQUEST_CHANGES`). Runs in a session separate from MP's scenario-authoring session.
+   - **AG runs the harness and scores** against the logged expected-answer key. MP does NOT score.
+   - Harness score logged to `…:harness-result` with `{scorer_agent, scored_session, per_scenario_scores, weighted_total}`.
 
-6. **Why this is falsifiable.** Vulcan cannot overfit scenarios (never sees the eval set). Vulcan cannot import Infisical patterns directly (explicit constraint). MP cannot bias scoring toward its own authored scenarios (AG scores independently). AG cannot bias scenarios toward its scoring preferences (MP co-authors and reconciles). If the standard is good, a frontier-quality agent can author a conformant runbook against it on first submission; if not, G4 reveals that before the standard ships.
+7. **Pass criteria.** G4 passes if and only if ALL THREE legs pass:
+   - MP first-pass design-review verdict is `APPROVE` or `APPROVE_WITH_NITS`
+   - XAI correspondence verdict is `CLEAN` or `MINOR_OVERLAP` (not `SUSPECT_OVERFITTING`)
+   - AG-scored weighted total on the harness is ≥ 0.80
+
+   Failure on any leg fails G4.
+
+8. **Retry protocol.** G4 retries fall into two cases, both mechanically representable:
+   - **Case A — spec revision required.** If a G4 failure reveals a design flaw in the standard itself, Gate 1 reopens. On Gate 1 re-approval, a new `frozen_commit_sha` applies; a new `g4_attempt_id` is issued; all prior G4 artifacts are preserved under the old namespace.
+   - **Case B — runbook revision required (spec unchanged).** Vulcan re-authors the AIM Node runbook. A new `g4_attempt_id` is issued. MP + AG author a NEW hidden evaluation set (prior set is in Living State but quarantined; new authoring session, no access to prior set). XAI re-runs the correspondence pass. New artifacts at the new attempt-scoped namespace; old artifacts preserved.
+   - No silent overwrites. Any attempt to write to an already-populated attempt-scoped key FAILS (create-only semantics enforced at Living State level via `expected_version=0` on put).
+
+9. **AG operational dependency.** G4 step 6 requires AG to score. If AG is unavailable or fails to complete scoring within 48 hours of harness dispatch, the attempt stalls. A stall record is logged to `…:stall-log` with `{stall_reason, stalled_at, last_known_state}`. There is NO automatic fallback to MP for scoring — preserving the reviewer-independence split is more important than attempt velocity. Per-incident recovery is documented outside the spec (escalation to Max).
+
+10. **Why this is falsifiable.** Vulcan cannot overfit scenarios (never sees the eval set). Vulcan cannot import Infisical patterns directly (explicit constraint). MP cannot bias scoring toward its own authored scenarios (AG scores independently). AG cannot bias scenarios toward its scoring preferences (MP co-authors and reconciles). MP + AG cannot align during reconciliation to produce a hand-tailored set (XAI red-teams the answer-key-vs-runbook correspondence). Retry attempts cannot reuse the same eval set (attempt-scoped namespace + create-only writes). If the standard is good, a frontier-quality agent can author a conformant runbook against it on first submission; if not, G4 reveals that before the standard ships.
 
 ---
 
@@ -490,3 +511,13 @@ MP R2 raised several asks that are appropriate at Gate 2 (implementation) rather
 | G4 reviewer independence (same MP authors scenarios AND reviews) | Independent MP + AG scenario drafts → joint reconciliation → immutable logged answer key. MP reviews, AG scores. | §7 G4 steps 3–6 |
 | Fail-severity model incomplete (§J lists 3, §K.1 implies more) | §K.1 complete severity classification table (18 checks × WARN/FAIL) | §4 §K.1 |
 | `linter_version` drift (§A + §K duplicated, no consistency check) | §K.0 authoritative; §A is display mirror; A↔K drift is §K.1 FAIL check #4 | §4 §A, §4 §K.1 |
+
+## Appendix C: R4 → R5 Change Log
+
+| R4 STILL_OPEN / NEW RISK | R5 fix | Location |
+|---|---|---|
+| G4 reviewer independence still partial (MP co-authors eval set + supplies review leg) | XAI added as third-party correspondence challenger (`CLEAN` / `MINOR_OVERLAP` / `SUSPECT_OVERFITTING`); reconciliation transcript logged | §7 G4 steps 4–7 |
+| NEW MEDIUM: Static Living State keys collide on retry | Attempt-scoped namespace `…:{frozen_commit_sha}:{g4_attempt_id}:…`; create-only semantics via `expected_version=0` | §7 G4 step 2, all artifact references |
+| NEW MEDIUM: Retry protocol underspecified | Case A (spec revision → reopen Gate 1, new `frozen_commit_sha`) + Case B (runbook revision only → new `g4_attempt_id`, new eval set) explicit | §7 G4 step 8 |
+| §K.1 completeness: §A required fields + §B table form checks missing | §K.1 checks #19 and #20 added | §4 §K.1 |
+| NEW LOW: AG operational dependency undocumented | 48-hour stall rule; no auto-fallback to MP (preserves independence); escalation to Max | §7 G4 step 9 |
