@@ -20,7 +20,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
 |---|---|---|---|---|
 | Secret read via CLI | SHIPPED | `infisical/cli.py:read_secret` | `tests/test_infisical_cli.py::test_read_secret` | 2026-04-20 |
 | Secret sync audit | PARTIAL | `infisical/audit.py:sync_audit` | `tests/test_infisical_audit.py::test_sync_audit` | 2026-04-19 |
-| Automated secret rotation UI | PLANNED | — | — | 2026-04-18 |
+| Automated secret rotation UI | PLANNED | — | — | — |
 
 ## §C. Architecture & Interactions
 
@@ -275,7 +275,7 @@ scenario_set:
         label: BREAKING
     weight: 0.08333333333333333
   - id: I-12
-    type: ambiguous
+    type: evolve
     refs: [E-03, F-02, G-02, §H]
     scenario: A deploy-time drift alert might indicate either transient infra issues or a real sync bug and needs careful classification.
     expected_answers:

@@ -6,6 +6,7 @@ escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: Secret values, access policies, rotation schedule, and deployment environment sync for ai.market systems.
 linter_version: 1.0.0
+retrofit: true
 ---
 
 # Infisical Secrets
@@ -307,6 +308,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
+retrofit: true
 last_lint_run: S487 / 2026-04-21T17:35:00Z
 last_lint_result: PASS
 trace_matrix_path: null

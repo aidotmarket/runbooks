@@ -299,7 +299,7 @@ refresh_triggers:
   - incident
 scheduled_cadence: 90d
 last_harness_pass_rate: 1.0
-last_harness_date: 2026-04-20T02:00:00Z
+last_harness_date: 2026-01-01T02:00:00Z
 first_staleness_detected_at: null
 ```
 

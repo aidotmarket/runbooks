@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 
 Severity = Literal["FAIL", "WARN", "INFO"]
@@ -26,8 +26,9 @@ class CheckContext:
     frontmatter: dict | None
     git_head: str | None = None
     now: datetime | None = None
+    update_lifecycle: bool = False
+    form_cache: dict[str, Any] = field(default_factory=dict)
 
 
 def retag_findings(findings: list[Finding], *, check: int) -> list[Finding]:
     return [replace(finding, check=check) for finding in findings]
-

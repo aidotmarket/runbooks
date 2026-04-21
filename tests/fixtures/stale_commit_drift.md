@@ -290,8 +290,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S487
-last_refresh_commit: ea70326
-last_refresh_date: 2026-04-21T17:30:00Z
+last_refresh_commit: 1234567
+last_refresh_date: 2026-01-01T17:30:00Z
 owner_agent: sysadmin
 refresh_triggers:
   - bq_completion

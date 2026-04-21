@@ -284,6 +284,11 @@ def extract_g_entries(section: Section) -> list[dict[str, Any]]:
     return block if isinstance(block, list) else []
 
 
+def extract_i_payload(section: Section) -> dict[str, Any] | None:
+    block = extract_fenced_yaml_block(section, "acceptance")
+    return block if isinstance(block, dict) else None
+
+
 def extract_j_payload(section: Section) -> dict[str, Any] | None:
     block = extract_fenced_yaml_block(section, "lifecycle")
     return block if isinstance(block, dict) else None
