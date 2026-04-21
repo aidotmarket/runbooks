@@ -1,6 +1,6 @@
 # BQ-RUNBOOK-STANDARD — Gate 2 Chunk 1 (Infrastructure)
 
-**Status:** Gate 2 R2 (Vulcan revision — S487) — addresses MP R1 REQUEST_CHANGES HIGH (task 3846ba8e): all 3 HIGH findings closed, all 4 MEDIUM findings closed. See Appendix C for R1 → R2 change log.
+**Status:** Gate 2 R3 (Vulcan revision — S487) — addresses MP R2 REQUEST_CHANGES MEDIUM (task 429a8ae8): 1 remaining R1 finding (M2 §K schema conditional) closed + 1 new R2 finding (§4.6 CLEAR emission contradiction) closed. R2 trajectory from R1: REQUEST_CHANGES HIGH → REQUEST_CHANGES MEDIUM (6/7 findings closed). See Appendix C for R1→R2→R3 change log.
 **Parent:** `specs/BQ-RUNBOOK-STANDARD.md` (Gate 1 APPROVED at commit `365c198`, 670 lines)
 **Priority:** P0
 **Repo:** `aidotmarket/runbooks`
@@ -381,7 +381,8 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
     },
     "allOf": [
       {
-        "if": {"properties": {"idempotency": {"const": "IDEMPOTENT_WITH_KEY"}}},
+        "if": {"properties": {"idempotency": {"const": "IDEMPOTENT_WITH_KEY"}},
+               "required": ["idempotency"]},
         "then": {"required": ["idempotency_key"]}
       }
     ]
@@ -392,6 +393,8 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 **Rationale for YAML (not markdown table):** §E scenarios have nested structure (`expected_failures` is a list of objects; `argument_sourcing` is a dict). Markdown tables can't carry this; prose makes linting unreliable. YAML in a fenced block is unambiguous and parseable.
 
 **Rationale for `minItems: 3`:** Matches Gate 1 §4 §I "at least 3 §E Operate scenarios."
+
+**R3 note on conditional correctness:** the `if.required: ["idempotency"]` constraint in the `allOf` ensures the `then` clause (forcing `idempotency_key`) only fires when `idempotency` is explicitly present. Without `required`, a JSON instance that omits `idempotency` would satisfy the `if` vacuously and force `idempotency_key` incorrectly. This same correction pattern is applied to §K in §4.4.11 (per MP R2 finding #1).
 
 #### 4.4.6 §F Isolate — markdown table
 
@@ -573,7 +576,7 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
 
 **§K.0 note:** the `linter_version` field in this block is authoritative (§K.0 of Gate 1 spec). §A is a display mirror; any divergence is check #4 FAIL naming §K.0 as source of truth.
 
-**JSON Schema** (`schemas/section_k_conformance.schema.json`) — NEW in R2 per MP R1 M2:
+**JSON Schema** (`schemas/section_k_conformance.schema.json`) — R3 corrects the retrofit conditional per MP R2 finding #1:
 
 ```json
 {
@@ -599,16 +602,33 @@ Prose narrative MAY appear above or below the table. Diagrams optional.
   },
   "allOf": [
     {
-      "if": {"properties": {"retrofit": {"const": true}}},
-      "then": {"properties": {"trace_matrix_path": {"type": "string"},
-                              "word_count_delta":  {"type": "object"}}}
+      "if": {
+        "properties": {"retrofit": {"const": true}},
+        "required": ["retrofit"]
+      },
+      "then": {
+        "properties": {
+          "trace_matrix_path": {"type": "string",
+                                "pattern": "^[a-zA-Z0-9_./-]+\\.md$"},
+          "word_count_delta":  {"type": "object",
+                                "required": ["before","after","pct"],
+                                "properties": {"before":{"type":"integer"},
+                                               "after":{"type":"integer"},
+                                               "pct":{"type":"number"}}}
+        }
+      }
     }
   ]
 }
 ```
 
-**Retrofit fields:**
-- `trace_matrix_path` and `word_count_delta` required non-null if the runbook is a retrofit. Retrofit status is declared by presence of a `retrofit: true` key at the top of the §K block (optional default `false`). If `retrofit: true` and either `trace_matrix_path` or `word_count_delta` is null, check #18 FAIL (enforced by the JSON Schema `allOf` conditional above).
+**R3 correction of R2 schema bug (MP R2 finding #1):** R2's `if` clause was `{"properties":{"retrofit":{"const":true}}}` without `required: ["retrofit"]`. Under JSON Schema semantics, `properties` does not require the key to be present — an instance with `retrofit` absent vacuously satisfies the `if`, forcing the `then` and thus requiring `trace_matrix_path` and `word_count_delta` to be non-null even for non-retrofits. R3 adds `required: ["retrofit"]` inside `if` so the conditional only fires when `retrofit` is explicitly present AND equal to `true`. Three tested cases per §9:
+- `retrofit` absent (default `false`) with both fields null → PASS
+- `retrofit: false` with both fields null → PASS
+- `retrofit: true` with either field null → FAIL
+
+**Retrofit fields (user-facing rule, unchanged from R2):**
+- `trace_matrix_path` and `word_count_delta` required non-null if the runbook is a retrofit. Retrofit status is declared by presence of `retrofit: true` at the top of the §K block (optional key; default `false`).
 
 ### 4.5 Cross-reference validation
 
@@ -616,7 +636,7 @@ Implemented by `lint/checks.py` checks #3, #4, #8, #9, #10. All follow the same 
 
 ### 4.6 STALE predicate evaluation + grace workflow
 
-**R2 — aligned with Gate 1 §4 §J per MP R1 H2.** Gate 1 mandates the linter maintain `first_staleness_detected_at`. Chunk 1 implements this via a dual-path design that respects GitHub PR write-access boundaries: PR-mode lint is read-only (reports findings); the nightly harness workflow runs with write access and persists the grace-clock transitions.
+**R2 — aligned with Gate 1 §4 §J per MP R1 H2. R3 — emission rules consolidated into a single authoritative table per MP R2 finding #2.** Gate 1 mandates the linter maintain `first_staleness_detected_at`. Chunk 1 implements this via a dual-path design that respects GitHub PR write-access boundaries: PR-mode lint is read-only (reports findings); the nightly harness workflow runs with write access and persists the grace-clock transitions.
 
 Implemented in `lint/staleness.py:evaluate_staleness(sections, now, git_head)`. Returns `(is_stale: bool, triggered_predicates: list[str], new_first_detected_at: str | None, recommended_action: str)`.
 
@@ -659,16 +679,25 @@ def evaluate_staleness(sections, now, git_head):
     return is_stale, predicates_triggered, new_first, recommended_action
 ```
 
-**Emission behavior** (check #15):
-- `is_stale == True` AND `now - first_staleness_detected_at <= 30 days`: emit WARN
-- `is_stale == True` AND `now - first_staleness_detected_at > 30 days`: emit FAIL
-- `is_stale == False`: no finding
+**Emission behavior (check #15) — authoritative table (R3):**
+
+The finding emitted per lint invocation is determined by the joint state `(is_stale, prev_first, recommended_action)`. The table below is the single authoritative definition of check #15's emission rules; any prose elsewhere yields to this table.
+
+| `is_stale` | `prev_first` | `recommended_action` | PR-mode finding (no `--update-lifecycle`) | Nightly-mode behavior (`--update-lifecycle`) |
+|---|---|---|---|---|
+| True  | null                       | `SET`   | WARN `§J.first_staleness_detected_at must be set to <now ISO>` | Write `first_staleness_detected_at = <now ISO>` to §J block; downgrade the finding to INFO |
+| True  | non-null, now − prev ≤ 30d | `NONE`  | WARN `§J stale (<predicates triggered>), grace clock at <days>/30 days` | No write (field preserved); finding unchanged |
+| True  | non-null, now − prev > 30d | `NONE`  | FAIL `§J stale (<predicates triggered>), grace period exceeded (<days> > 30)` | No write (field preserved); finding unchanged |
+| False | null                       | `NONE`  | no finding | No write; no finding |
+| False | non-null                   | `CLEAR` | WARN `§J.first_staleness_detected_at requires clear to null (all stale predicates fell)` | Write `first_staleness_detected_at = null` to §J block; downgrade the finding to INFO |
+
+**Rationale for the CLEAR row (MP R2 finding #2):** R2 prose said "`is_stale == False`: no finding" unconditionally, which contradicted the CLEAR-path WARN that PR-mode surfaces so authors know the nightly will update §J. R3 resolves the contradiction by carving out the `is_stale=False + prev_first=non-null` case explicitly: this is the "un-stale but stale-clock still set" state and it DOES surface a WARN in PR-mode. The underlying linter algorithm is unchanged from R2; only the emission rules are tightened.
 
 **Write behavior — dual-path per Gate 1 §4 §J:**
 
-1. **PR-mode (`runbook-lint` invoked without `--update-lifecycle`):** read-only. The linter computes `recommended_action` and emits a WARN finding with message `§J.first_staleness_detected_at requires SET to <ISO>` or `§J.first_staleness_detected_at requires CLEAR to null`. No file modification. PR authors are not required to fix this to merge; the nightly workflow will persist the transition on its next run.
+1. **PR-mode (`runbook-lint` invoked without `--update-lifecycle`):** read-only. The linter computes the finding per the table above and emits it; no file modification. PR authors are not required to fix stale-clock findings to merge; the nightly workflow will persist the transition on its next run.
 
-2. **Nightly-workflow mode (`runbook-lint --update-lifecycle` invoked by `runbook-harness.yml`, §6.7):** the linter writes `first_staleness_detected_at` to the runbook's §J block per `recommended_action`, then commits the change with the nightly harness results. Write is targeted at the single field — all other §J fields remain untouched. The write uses a markdown-aware editor (preserves surrounding YAML keys, ordering, comments).
+2. **Nightly-workflow mode (`runbook-lint --update-lifecycle` invoked by `runbook-harness.yml`, §6.7):** for rows where `recommended_action` ∈ {`SET`, `CLEAR`}, the linter writes `first_staleness_detected_at` to the runbook's §J block per the computed value, then commits the change with the nightly harness results. Write is targeted at the single field — all other §J fields remain untouched. The write uses a markdown-aware editor (preserves surrounding YAML keys, ordering, comments).
 
 **Rationale for dual-path:** Gate 1 §4 §J describes the linter as the writer of `first_staleness_detected_at`. CI linters running on PRs typically cannot push to protected branches. The nightly harness workflow has write access (it commits `harness/results/` per §6.7) and is the natural place to persist the grace-clock transition. PR-mode lint emitting a WARN ensures authors see the state; the nightly workflow makes the write authoritative. Together they implement Gate 1's contract without requiring a parent-spec amendment.
 
@@ -867,7 +896,7 @@ Section §I in the target runbook is the AUTHORITATIVE scenario set:
 
 The harness cross-validates on every run:
 
-1. Every §I `id` MUST have a matching `harness/scenarios/<system>/<id>.yaml` file. Missing file → harness-time FAIL, result file records `"result": "CONFIGURATION_ERROR"` with diff.
+1. Every §I `id` MUST have a matching `harness/scenarios/<s>/<id>.yaml` file. Missing file → harness-time FAIL, result file records `"result": "CONFIGURATION_ERROR"` with diff.
 
 2. Every per-file YAML's `id` MUST appear in §I. Orphan YAML → harness-time FAIL.
 
@@ -1239,11 +1268,20 @@ Gate 3 code audit will verify the following are implemented and passing:
 - `test_check_12_weights_sum` — weights summing 0.99 FAILs
 - `test_check_13_unequal_weights_justified` — unequal weights without §I.1 FAILs
 - `test_check_14_lifecycle_fields` — missing `last_harness_date` FAILs; placeholders in §J required fields FAIL
-- `test_check_15_staleness_grace_workflow` — covers transition `false → true` (WARN emitted with SET recommendation); 30-day threshold (FAIL emitted); grace clear on all-predicates-false (WARN emitted with CLEAR recommendation); with `--update-lifecycle`, linter writes the transition back to the file
+- `test_check_15_staleness_emission_table` — covers every row of the §4.6 emission table:
+  (row 1) `is_stale=True, prev_first=null, SET` → PR-mode WARN with SET message; nightly writes `first_staleness_detected_at = <ISO>` + INFO
+  (row 2) `is_stale=True, prev_first=non-null, age ≤ 30d, NONE` → PR-mode WARN with grace-clock days; nightly unchanged
+  (row 3) `is_stale=True, prev_first=non-null, age > 30d, NONE` → PR-mode FAIL with grace-exceeded; nightly unchanged
+  (row 4) `is_stale=False, prev_first=null, NONE` → no finding in either mode
+  (row 5) `is_stale=False, prev_first=non-null, CLEAR` → PR-mode WARN with clear message; nightly writes `null` + INFO
 - `test_check_15_dual_path` — in PR mode (no `--update-lifecycle`), findings emitted but file unchanged; in nightly mode (`--update-lifecycle`), `first_staleness_detected_at` written to §J block
 - `test_check_16_linter_version_compat` — major+minor mismatch WARN; patch-only difference no finding
 - `test_check_17_conformance_fields` — missing `last_lint_run` FAILs; placeholders FAIL
-- `test_check_18_retrofit_fields` — retrofit=true with null trace_matrix FAILs (enforced by `section_k_conformance.schema.json` `allOf` conditional)
+- `test_check_18_retrofit_fields` — three-way behavior per §K schema's retrofit conditional (MP R2 finding #1 correction):
+  (a) `retrofit: true` with null `trace_matrix_path` OR null `word_count_delta` → FAIL
+  (b) `retrofit: false` (explicit) with null `trace_matrix_path` AND null `word_count_delta` → PASS (conditional not triggered because `retrofit ≠ true`)
+  (c) `retrofit` field absent (default false) with null `trace_matrix_path` AND null `word_count_delta` → PASS (conditional not triggered because `retrofit` is absent from the instance, and `if.required: ["retrofit"]` makes absence fail the `if`)
+  Enforced by `section_k_conformance.schema.json` `allOf` with `if.required: ["retrofit"]` + `if.properties.retrofit: {const: true}`.
 - `test_check_19_header_required_fields` — missing `escalation_contact` FAILs; unfilled `<<…:required>>` placeholder FAILs
 - `test_check_20_b_exact_columns` — mis-ordered or renamed column FAILs; placeholder-in-column-header (impossible since scaffold hardcodes columns) is out of scope; placeholders in row content do NOT trigger #20 (they trigger #5 or #6 per §5.3 routing table)
 
@@ -1254,6 +1292,7 @@ Gate 3 code audit will verify the following are implemented and passing:
 - `evaluate_staleness` returns `recommended_action ∈ {"SET", "CLEAR", "NONE"}` per §4.6 pseudocode
 - With `--update-lifecycle`: runbook's on-disk §J is modified per `recommended_action`
 - Without `--update-lifecycle`: runbook on-disk unchanged; finding emitted with recommendation in message
+- **CLEAR row (R3 per MP R2 finding #2):** `is_stale=False, prev_first=non-null` produces PR-mode WARN with clear message (NOT "no finding" as R2 prose mistakenly said)
 
 **Scaffold tests** (`test_scaffold.py`):
 - `runbook-new foo` produces a file that passes checks #1, #2, #20 and FAILs #5/#6 (§B placeholders), #11 (<10 scenarios), #14 (§J placeholders), #17 (§K placeholders), #19 (§A placeholders)
@@ -1285,8 +1324,8 @@ Gate 3 code audit will verify the following are implemented and passing:
 
 **Gate 2 (this spec) delivers design:**
 - Exact CLI argument shapes for `runbook-lint`, `runbook-new`, `runbook-harness` (including `--update-lifecycle` semantics per §4.6)
-- Exact grammar per agent form (markdown-table columns, YAML-block key sets, JSON Schema) — all 11 forms §A–§K have a schema; §H adds frozen sub-subheading markers
-- Exact check algorithm per §K.1 item (20 checks) with placeholder-routing table §5.3
+- Exact grammar per agent form (markdown-table columns, YAML-block key sets, JSON Schema) — all 11 forms §A–§K have a schema; §H adds frozen sub-subheading markers; §K's retrofit conditional uses `if.required` to gate on presence (R3)
+- Exact check algorithm per §K.1 item (20 checks) with placeholder-routing table §5.3 and emission table §4.6
 - Exact scoring algorithm for the harness (best-score across expected answers, partial-credit rules, canonical verbs, off-path detection)
 - Exact §I↔per-file YAML cross-validation rules with §I as authoritative
 - Exact repository layout
@@ -1299,7 +1338,7 @@ Gate 3 code audit will verify the following are implemented and passing:
 - Linter and scaffold executables installed and invocable locally
 - All 20 checks implemented with associated pytest suite passing
 - All 11 agent-form schemas present in `schemas/` and validated against fixture runbooks
-- Dual-path staleness (§4.6) implemented: PR-mode read-only + nightly-mode write
+- Dual-path staleness (§4.6) implemented: PR-mode read-only + nightly-mode write; every row of the emission table tested
 - All harness test scenarios (loader cross-validation, scorer best-match, tool-match, human-action, classification, off-path detection) passing
 - Integration test end-to-end green on a fixture runbook
 - Both GitHub Actions workflows pass on the PR introducing this chunk
@@ -1324,16 +1363,18 @@ Chunk 2 does NOT re-open Gate 1 of the parent BQ. It is a follow-on Gate 2 spec 
 
 ---
 
-## 12. Open questions for reviewers (R2 status)
+## 12. Open questions for reviewers (R3 status)
 
-R2 closed the following R1 open questions:
-- ~~#5 Standard version declaration~~ — CLOSED. R2 drops the `standard_version` concept and uses `linter_version` only, per Gate 1 §4 §K.0 as-ratified. No parent-spec amendment.
+R2 + R3 closed the following R1/R2 findings:
+- ~~R1 #5 Standard version declaration~~ — CLOSED R2. Chunk 1 uses `linter_version` only, per Gate 1 §4 §K.0 as-ratified. No parent-spec amendment.
+- ~~R2 #1 §K retrofit conditional~~ — CLOSED R3. `if.required: ["retrofit"]` added per §4.4.11.
+- ~~R2 #2 §4.6 CLEAR emission contradiction~~ — CLOSED R3. Emission-rules table in §4.6 is the single authoritative definition; CLEAR row carved out explicitly.
 
-Remaining open questions (non-blocking discussions for R3+):
-1. **Markdown parser choice.** Is `mistune>=3.0` acceptable? Alternative: `marko`, `markdown-it-py`. MP R1 confirmed mistune is acceptable; retained as R2 for AG cross-vote input.
+Remaining open questions (non-blocking discussions for R4+):
+1. **Markdown parser choice.** Is `mistune>=3.0` acceptable? MP R1 confirmed yes; retained for AG cross-vote input.
 2. **Canonical verb list scope.** §6.4.3 has 9 entries. R1 proposed keeping as-is and expanding via Chunk 2 experience. Non-blocking.
 3. **Harness committing results to the repo.** §6.7 commits nightly results to `harness/results/`. Alternative: object storage. R1 proposed git-in-repo for Chunk 1; retention trimming deferred. Non-blocking.
-4. **Probationary mode annotation surface.** §4.9 uses `|| true` pattern for probationary lint. GitHub Actions annotations surface even on failed jobs by default, so this should work; implementation detail deferred to Gate 3.
+4. **Probationary mode annotation surface.** §4.9 uses `|| true` pattern for probationary lint. Implementation detail deferred to Gate 3.
 
 ---
 
@@ -1359,15 +1400,24 @@ Remaining open questions (non-blocking discussions for R3+):
 | §10 Gate boundaries | Gate 1 §12 (Gate 1 vs Gate 2) |
 | §11 Chunk 2 preview | Gate 1 §9 steps 4–5 |
 
-## Appendix C: R1 → R2 change log (addresses MP R1 REQUEST_CHANGES HIGH, task 3846ba8e)
+## Appendix C: R1 → R2 → R3 change log
 
-| R1 finding (severity) | R2 fix | R2 section(s) |
+### R1 → R2 (MP R1 REQUEST_CHANGES HIGH, task 3846ba8e)
+
+| R1 finding (severity) | R2 fix | R2 section(s) | MP R2 verdict |
+|---|---|---|---|
+| **H1:** Check #3 over-specified §A↔§J cross-check | Narrowed to `owner_agent`-only; explicit callout | §4.4.10 Cross-reference checks | **CLOSED** |
+| **H2:** §4.6 rewrote Gate 1's staleness workflow | Dual-path implementation: PR-mode read-only + nightly `--update-lifecycle` writes | §4.1, §4.6, §4.9, §6.7, §9 (`test_check_15_dual_path`) | **CLOSED** |
+| **H3:** §6.3 used wrong Koskadeux interface shape | Rewrote against real interface; documented Codex CLI limitation; filed upstream BQ | §6.3, §6.4 off_path_tool_use, §2 deferred child BQ list | **CLOSED** |
+| **M1:** §4.8 introduced a `standard_version` field | Dropped `standard_version` concept; use `linter_version` alone per Gate 1 §4 §K.0 | §4.8, §2, §12 Q5 CLOSED | **CLOSED** |
+| **M2:** §K lacked JSON Schema; scaffold→check #20 mismatch | Added `section_k_conformance.schema.json`; corrected placeholder→check routing table | §4.4.11, §5.3, §9 | **STILL_OPEN** (see R2→R3 below) |
+| **M3a:** §6.1 weight authority ambiguous | §I authoritative; strict-match cross-check | §6.1, §4.4.9 | **CLOSED** |
+| **M3b:** §6.4 first-match semantics ordering-dependent | Rewrote to best-score across all expected answers | §6.4, §9 | **CLOSED** |
+| **M4:** §H.5 grammar allowed "definition list or sub-subheadings" | Frozen to exactly four sub-subheadings with prescribed markers and casing | §4.4.8 | **CLOSED** |
+
+### R2 → R3 (MP R2 REQUEST_CHANGES MEDIUM, task 429a8ae8)
+
+| R2 finding (severity) | R3 fix | R3 section(s) |
 |---|---|---|
-| **H1:** Check #3 over-specified §A↔§J cross-check (claimed `system_name` + `escalation_contact` + `owner_agent`, but §J only has `owner_agent`) | Narrowed check #3 to `owner_agent`-only; explicit callout that `system_name`, `escalation_contact`, `authoritative_scope` live only in §A and are NOT §J-cross-checked (validated by §A schema only) | §4.4.10 Cross-reference checks |
-| **H2:** §4.6 rewrote Gate 1's staleness workflow ("linter does NOT modify the runbook") | Dual-path implementation: PR-mode read-only + nightly `--update-lifecycle` writes. Faithful to Gate 1 §J "linter sets first_staleness_detected_at"; respects GitHub PR write-access boundaries. No parent-spec amendment required. | §4.1 (flag), §4.6, §4.9 (PR), §6.7 (nightly), §9 (`test_check_15_dual_path`) |
-| **H3:** §6.3 used `council_request(mode=review, allowed_tools=...)` — `mode` not in real interface; `allowed_tools` ignored on Codex CLI primary path | Rewrote against real interface (`council_request(agent=mp, task=..., allowed_tools=[...])` without `mode`); documented `allowed_tools` enforcement asymmetry (Responses API yes, Codex CLI no); prompt-based restriction + post-hoc off-path detection as Chunk 1 mitigation; filed upstream dependency BQ `BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI` | §6.3, §6.4 off_path_tool_use detection, §2 deferred child BQ list |
-| **M1:** §4.8 introduced a `standard_version` field that would amend Gate 1 | Dropped `standard_version` concept. Use `linter_version` alone per Gate 1 §4 §K.0 as-ratified. No parent-spec amendment. Compatibility matrix deferred to first Gate 1 amendment. | §4.8 (renamed "Linter version handling"), §2 (no parent-spec amendments), §12 question 5 CLOSED |
-| **M2:** §K lacked formal JSON Schema; scaffold placeholders claimed to trigger check #20 but #20 is §B column headers | Added `section_k_conformance.schema.json` with full type contract including retrofit `allOf` conditional; corrected placeholder→check routing table in §5.3 (§B placeholders trigger #5/#6, §A→#19, §J→#14, §K→#17, example rows→form schemas) | §4.4.11, §5.3 routing table, §9 updated tests |
-| **M3a:** §6.1 weight authority ambiguous (§I vs per-file YAML) | §I authoritative; per-file YAML is advisory mirror; mismatch is harness-time `CONFIGURATION_ERROR`; 4 strict-match checks (id existence both directions, weight, type, refs) | §6.1, §4.4.9 R2 clarification |
-| **M3b:** §6.4 first-match semantics ordering-dependent | Rewrote to best-score across all expected answers (iterate all, take max); per-answer scorer returns `(score, reason)` without early exit; test added for "0.5 at [0], 1.0 at [1] returns 1.0" | §6.4 top-level algorithm; §9 new test |
-| **M4:** §H.5 grammar allowed "definition list or sub-subheadings" | Frozen to exactly four sub-subheadings in prescribed order + casing (`#### module`, `#### public contract`, `#### runtime dependency`, `#### config default`); definition lists rejected | §4.4.8 |
+| **M2 (still open from R1):** `section_k_conformance.schema.json` retrofit conditional `if` missing `required: ["retrofit"]` — instances with `retrofit` absent vacuously satisfied `if` and incorrectly forced `trace_matrix_path` and `word_count_delta` to be non-null for non-retrofits | Added `required: ["retrofit"]` inside `if` so the conditional only fires when `retrofit` is explicitly present and `true`. Added explicit test cases for three states: `retrofit` absent (PASS), `retrofit: false` (PASS), `retrofit: true` with nulls (FAIL). Applied the same correction pattern to `§E operate`'s `idempotency_key` conditional for consistency. | §4.4.11 schema, §4.4.5 §E schema, §9 `test_check_18_retrofit_fields` three-way |
+| **NEW in R2:** §4.6 emission rules contradictory on CLEAR path — prose said "`is_stale == False`: no finding" but PR-mode WARN for `recommended_action = CLEAR` was also required | Consolidated emission rules into a single authoritative table at §4.6 covering all 5 joint-state rows. CLEAR row is explicit: `is_stale=False + prev_first=non-null` → PR-mode WARN "requires clear to null"; nightly `--update-lifecycle` writes `null` + downgrades to INFO. Prior R2 "no finding" prose removed. §9 test list expanded to cover every row of the table. | §4.6 emission table, §9 `test_check_15_staleness_emission_table` |
