@@ -1,11 +1,11 @@
 # BQ-RUNBOOK-STANDARD — System-Wide Runbook Standard
 
-**Status:** Gate 1 R3 (design, addressing MP R2 REQUEST_CHANGES HIGH + gate-scope clarification)
+**Status:** Gate 1 R4 (design, addressing MP R3 CONDITIONAL MEDIUM)
 **Priority:** P0
 **Repo:** aidotmarket/runbooks
 **Parent of:** per-system runbook BQs (CRM, Celery, AIM Node, Koskadeux, Infisical, Railway, etc.)
-**Authored:** S486 R3 (Vulcan)
-**Addresses:** MP R2 task 67a1a915 (REQUEST_CHANGES HIGH — 4 FAIL + 1 partial CONCERN + 5 new risks)
+**Authored:** S486 R4 (Vulcan)
+**Addresses:** MP R3 task 7e1c13a0 (CONDITIONAL MEDIUM — 2 STILL_OPEN at design level + 1 ambiguity + 1 nit)
 
 ---
 
@@ -20,7 +20,9 @@ Define the system-wide standard every runbook in the ai.market ecosystem must me
 
 A runbook is legible when a stateless agent, given only this runbook and no prior context, can produce a correct first action on any defined operational scenario.
 
-**R3 scope.** This revision addresses MP R2 findings. Core changes: (a) unify the §3/§4 agent-form taxonomy into a single linter-checkable contract (each section has one required schema); (b) scenario scoring weights default to equal, unequal weights require written justification; (c) §H predicate definitions gain concrete boundaries for `module`, `public contract`, `runtime dependency`, `config default`; (d) §J adds `last_refresh_date` + `first_staleness_detected_at` timestamps and defines the WARN→FAIL grace workflow; (e) G4 falsifiability rewritten so Vulcan cannot see the evaluation scenario set; (f) §C/§G entry-point overlap resolved via component-entry vs repair-touchpoint distinction; (g) new §12 Gate Boundaries delineates Gate 1 (design) vs Gate 2 (implementation schemas).
+**R3 scope (retained).** Unified §3/§4 agent-form taxonomy, §I equal-weight default, §H boundary definitions, §J timestamps + grace workflow, G4 hidden-scenario protocol, §C/§G entry-point distinction, §12 Gate Boundaries.
+
+**R4 scope.** This revision addresses MP R3 findings. Core changes: (a) §J grace-clear semantics tightened — `first_staleness_detected_at` clears only when ALL stale predicates are false, not on metadata refresh alone; (b) G4 reviewer independence — separate sessions for scenario authoring vs review, expected-answer key logged to Living State before review, AG scores (not MP); (c) §K.1 gains a complete severity classification table mapping every linter check to WARN or FAIL at design level; (d) `linter_version` drift closed — §K.0 is authoritative, §A is display mirror, A↔K consistency added to linter's internal-contradiction checks.
 
 ---
 
@@ -80,7 +82,7 @@ Every runbook under this standard contains §A through §K, in order. Sections c
 - `owner_agent` + `escalation_contact`
 - `lifecycle_ref` (anchor to §J, which is authoritative for refresh tracking)
 - `authoritative_scope` (what this runbook IS the source of truth for)
-- `linter_version` (matches §K.0)
+- `linter_version` (display mirror of §K.0; §K.0 is authoritative; linter flags A↔K drift as FAIL per §K.1 check #4)
 
 Header is a summary display; §J is authoritative. When they diverge, §J wins and the linter flags Header drift.
 
@@ -254,8 +256,10 @@ Authoritative refresh tracking. §A Header is a display summary; §J is the sour
 
 **Non-compliance workflow:**
 1. On STALE transition `false → true`: linter sets `first_staleness_detected_at = now` and emits `WARN` (not PR-blocking).
-2. If `now - first_staleness_detected_at > 30 days`: linter emits `FAIL` (PR-blocking).
-3. On refresh (author updates `last_refresh_*` fields to current values): linter clears `first_staleness_detected_at = null` and resumes normal state.
+2. If `now - first_staleness_detected_at > 30 days` AND any stale predicate is still true: linter emits `FAIL` (PR-blocking).
+3. On metadata refresh (author updates `last_refresh_*` fields OR re-runs the harness OR re-verifies a §B cell): linter **re-evaluates all stale predicates**. `first_staleness_detected_at` is cleared to `null` ONLY if every stale predicate is false. If any predicate remains true (e.g., `last_harness_date` still > 90d, or a §B cell still `UNVERIFIED`), `first_staleness_detected_at` is preserved and the grace clock continues — the runbook is not considered re-freshed for grace-workflow purposes until the underlying staleness is cured.
+
+**Rationale:** without this rule, a metadata-only refresh could wipe the grace clock while the runbook remained substantively stale, defeating the non-compliance mechanism.
 
 Other linter `FAIL` triggers (always PR-blocking, no grace period):
 - Any §A–§K section missing
@@ -274,15 +278,32 @@ Other linter `FAIL` triggers (always PR-blocking, no grace period):
 
 **§K.0 — Linter version compatibility.** Each runbook declares the linter version it was validated against. The linter reads its own version from `runbook-lint --version` and compares against §K.0; mismatch is a `WARN` (not blocking) until the runbook re-validates.
 
-**§K.1 — `runbook-lint`** (CI job in `aidotmarket/runbooks` repo):
-- Verifies all §A–§K sections present and in order
-- Verifies every §C–§K section contains the section's required agent form in a parseable structure (schema per §4)
-- Verifies §B status cells use only canonical values and cite backing code
-- Verifies §J metadata fields populated; computes STALE status; manages `first_staleness_detected_at` transitions
-- Verifies Header (§A) fields match §J authoritative values
-- Verifies §F ↔ §G bidirectional cross-references are consistent (every §F Repair Ref resolves to a real §G id; every §G symptom_ref resolves to a real §F id)
-- Verifies §I weights sum to 1.0 (±0.001) and unequal weights have §I.1 justification
-- PR-blocking on FAIL; emits WARN for linter-version drift
+**§K.1 — `runbook-lint`** (CI job in `aidotmarket/runbooks` repo).
+
+The linter's complete validation set with design-level severity classification:
+
+| # | Check | Severity |
+|---|---|---|
+| 1 | Every §A–§K section present and in prescribed order | FAIL |
+| 2 | Every §C–§K section contains its required agent form (§4 schema) | FAIL |
+| 3 | §A fields match §J authoritative values (Header drift) | FAIL |
+| 4 | §A `linter_version` matches §K.0 `linter_version` (A↔K consistency) | FAIL |
+| 5 | §B status cells use only canonical values (`SHIPPED`/`PARTIAL`/`PLANNED`/`DEPRECATED`/`BROKEN`) | FAIL |
+| 6 | Every §B row cites backing code (`file:function` or module) | FAIL |
+| 7 | §B cell with `Last Verified` empty or > 90 days gets `UNVERIFIED` annotation overlay | WARN (informational; contributes to STALE per §J) |
+| 8 | §F Repair Ref resolves to a real §G `id` | FAIL |
+| 9 | §G `symptom_ref` resolves to a real §F `id` | FAIL |
+| 10 | §G `component_ref` resolves to a real §C Component | FAIL |
+| 11 | §I scenario count ≥ 10 with required distribution (§4 §I) | FAIL |
+| 12 | §I weights sum to 1.0 (±0.001) | FAIL |
+| 13 | §I unequal weights have §I.1 justification with one sentence per weighted scenario | FAIL |
+| 14 | §J required fields populated | FAIL |
+| 15 | §J STALE predicate evaluation and `first_staleness_detected_at` transition management | see §J grace workflow (WARN → FAIL after 30 days) |
+| 16 | §K.0 `linter_version` on this runbook matches `runbook-lint --version`  | WARN (until runbook re-validates) |
+| 17 | §K required fields populated (`last_lint_run`, `last_lint_result`, etc.) | FAIL |
+| 18 | Retrofit runbook has `trace_matrix_path` + `word_count_delta` populated | FAIL (if runbook is marked as retrofit in §K) |
+
+FAIL is PR-blocking. WARN is informational (logged, surfaced in CI output, does not block). The STALE/grace workflow (check #15) is the only check that has a time-based WARN→FAIL escalation; all other checks resolve to WARN or FAIL immediately on each linter run.
 
 **§K.2 — Stateless-agent harness** (`aidotmarket/runbooks/harness/`):
 - Reads scenario YAML from `harness/scenarios/<system>.yaml`
@@ -341,13 +362,26 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 - Infisical runbook passes `runbook-lint` and passes harness at ≥ 0.80 weighted first-action accuracy on a ≥10-scenario set with required distribution per §4 §I
 - `runbook-lint` passes on itself (the linter's own code comments documenting each check)
 
-**G4 — Gate 4 (production / falsifiability) AC.** The standard is ratified only if a second runbook authored against the *frozen* standard passes an *externally-authored hidden* evaluation set:
+**G4 — Gate 4 (production / falsifiability) AC.** The standard is ratified only if a second runbook authored against the *frozen* standard passes an *externally-authored hidden* evaluation set, under reviewer-independence constraints:
 
 1. **Standard freeze.** When this BQ reaches Gate 1 APPROVED, the spec commit SHA is pinned. No edits to the spec during G4 testing; any change reopens Gate 1.
+
 2. **Vulcan authors AIM Node runbook** using only the frozen standard as input. Vulcan may reference per-system code and incident evidence for AIM Node, but may NOT reference the Infisical runbook content or the Infisical scenario set.
-3. **Hidden evaluation set.** After Vulcan submits the AIM Node draft, **MP + AG jointly author** a ≥10-scenario evaluation set (distribution per §4 §I) from AIM Node code + incident evidence. Vulcan does not see the evaluation set until after first-pass MP R1 verdict.
-4. **Pass criteria.** First-pass MP R1 verdict is `APPROVE` or `APPROVE_WITH_NITS` AND the runbook scores ≥ 0.80 weighted on the hidden evaluation set. Failure on either leg fails G4.
-5. **Why this is falsifiable.** Vulcan cannot overfit scenarios (never sees the eval set). Vulcan cannot import Infisical patterns directly (explicit constraint). If the standard is good, a frontier-quality agent can author a conformant runbook once; if not, we learn that here rather than after shipping the standard.
+
+3. **Hidden evaluation set — authoring with independence guardrails:**
+   - MP and AG each author a draft ≥10-scenario evaluation set **independently** (no shared working session; no access to each other's drafts during authoring) from AIM Node code + incident evidence.
+   - MP and AG then reconcile their drafts into a single evaluation set in a joint session. Disputes on scenario inclusion, expected-answer keys, or weights escalate to Max.
+   - The **final expected-answer key** (scenario id → set of acceptable first actions → weight) is logged to Living State at key `state:bq-runbook-standard:g4:aim-node:answer-key` with fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha}`. Once logged, the key is immutable; edits require a new G4 attempt.
+   - Vulcan does not see the evaluation set or the answer key before or during AIM Node authoring.
+
+4. **Review and scoring — reviewer-independence split:**
+   - **MP provides first-pass design review** on the AIM Node runbook (verdict: `APPROVE` / `APPROVE_WITH_NITS` / `CONDITIONAL` / `REQUEST_CHANGES`). This review runs in a session separate from MP's scenario-authoring session.
+   - **AG runs the harness and scores** against the logged expected-answer key. MP does NOT score. This separates the evaluator from the reviewer, removing the bias where the same agent influences both the eval content and a pass leg.
+   - The harness score is written to `state:bq-runbook-standard:g4:aim-node:harness-result` with `{scorer_agent, scored_session, per_scenario_scores, weighted_total}`.
+
+5. **Pass criteria.** G4 passes if and only if: MP first-pass verdict is `APPROVE` or `APPROVE_WITH_NITS` AND AG-scored weighted total is ≥ 0.80. Failure on either leg fails G4 and forces either a spec revision (reopening Gate 1) or a re-authored AIM Node runbook (remaining at Gate 4).
+
+6. **Why this is falsifiable.** Vulcan cannot overfit scenarios (never sees the eval set). Vulcan cannot import Infisical patterns directly (explicit constraint). MP cannot bias scoring toward its own authored scenarios (AG scores independently). AG cannot bias scenarios toward its scoring preferences (MP co-authors and reconciles). If the standard is good, a frontier-quality agent can author a conformant runbook against it on first submission; if not, G4 reveals that before the standard ships.
 
 ---
 
@@ -447,3 +481,12 @@ MP R2 raised several asks that are appropriate at Gate 2 (implementation) rather
 | NEW HIGH §J grace ambiguous | `first_staleness_detected_at` + explicit WARN→FAIL workflow | §4 §J |
 | NEW MEDIUM §C/§G overlap | Component-entry vs repair-entry distinction | §4 §C, §4 §G |
 | G4 gaming CONFIRMED | Standard-freeze + hidden eval set authored by MP + AG | §7 G4 |
+
+## Appendix B: R3 → R4 Change Log
+
+| R3 STILL_OPEN / NEW FINDING | R4 fix | Location |
+|---|---|---|
+| §J grace-clear loophole (metadata refresh wipes 30-day clock while stale for other reasons) | Clear `first_staleness_detected_at` only when ALL stale predicates are false; re-evaluate on every refresh | §4 §J non-compliance workflow |
+| G4 reviewer independence (same MP authors scenarios AND reviews) | Independent MP + AG scenario drafts → joint reconciliation → immutable logged answer key. MP reviews, AG scores. | §7 G4 steps 3–6 |
+| Fail-severity model incomplete (§J lists 3, §K.1 implies more) | §K.1 complete severity classification table (18 checks × WARN/FAIL) | §4 §K.1 |
+| `linter_version` drift (§A + §K duplicated, no consistency check) | §K.0 authoritative; §A is display mirror; A↔K drift is §K.1 FAIL check #4 | §4 §A, §4 §K.1 |
