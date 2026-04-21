@@ -1,0 +1,11 @@
+id: I-10
+runbook: infisical-secrets.md
+type: evolve
+refs: ["§H"]
+scenario: |
+  A proposal adds a new sync target and needs classification against the evolve predicates.
+expected_answers:
+  - kind: classification
+    label: REVIEW
+weight: 0.08333333333333333
+

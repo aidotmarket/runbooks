@@ -1,0 +1,12 @@
+id: I-05
+runbook: infisical-secrets.md
+type: isolate
+refs: [F-01]
+scenario: |
+  The response shows secret not found and the operator must verify whether the path is wrong.
+expected_answers:
+  - kind: tool_call
+    tool: infisical secrets list
+    argument_keys: [project-id, env, path]
+weight: 0.08333333333333333
+

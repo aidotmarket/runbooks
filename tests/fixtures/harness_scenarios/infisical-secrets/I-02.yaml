@@ -1,0 +1,12 @@
+id: I-02
+runbook: infisical-secrets.md
+type: operate
+refs: [E-02]
+scenario: |
+  Release prep needs confirmation that a staging secret exists before rollout.
+expected_answers:
+  - kind: tool_call
+    tool: infisical secrets get
+    argument_keys: [project-id, env, path]
+weight: 0.08333333333333333
+

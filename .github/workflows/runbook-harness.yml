@@ -1,0 +1,31 @@
+name: runbook-harness
+on:
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -e .
+      - name: Update §J grace-clock (persists stale predicates from Gate 1 §J)
+        run: runbook-lint --mode strict --update-lifecycle
+      - name: Run harness against all conformant runbooks
+        env:
+          KOSKADEUX_MCP_URL: ${{ secrets.KOSKADEUX_MCP_URL }}
+          KOSKADEUX_MCP_TOKEN: ${{ secrets.KOSKADEUX_MCP_TOKEN }}
+        run: runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
+      - name: Commit updates
+        run: |
+          git config user.name "runbook-harness"
+          git config user.email "noreply@ai.market"
+          git add .
+          git commit -m "harness: nightly $(date -u +%Y-%m-%d)" || exit 0
+          git push
+

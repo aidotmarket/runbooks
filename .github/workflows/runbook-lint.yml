@@ -1,0 +1,18 @@
+name: runbook-lint
+on:
+  pull_request:
+    paths: ['*.md', 'runbook_tools/**', 'schemas/**']
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install
+        run: pip install -e .
+      - name: Lint conformant runbooks (strict)
+        run: runbook-lint --mode strict --format github
+      - name: Lint in-progress runbooks (probationary)
+        run: runbook-lint --mode probationary --format github || true
+

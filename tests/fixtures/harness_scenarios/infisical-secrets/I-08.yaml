@@ -1,0 +1,13 @@
+id: I-08
+runbook: infisical-secrets.md
+type: repair
+refs: [G-01]
+scenario: |
+  A fix is needed for repeated wrong-environment retrieval failures in the CLI.
+expected_answers:
+  - kind: human_action
+    verb: patch
+    object: argument normalization
+    target: infisical/cli.py:resolve_secret_target
+weight: 0.08333333333333333
+

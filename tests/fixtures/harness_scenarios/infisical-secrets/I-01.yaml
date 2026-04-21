@@ -1,0 +1,12 @@
+id: I-01
+runbook: infisical-secrets.md
+type: operate
+refs: [E-01]
+scenario: |
+  Support needs the first action for a missing production frontend secret.
+expected_answers:
+  - kind: tool_call
+    tool: infisical secrets get
+    argument_keys: [project-id, env, path]
+weight: 0.08333333333333333
+

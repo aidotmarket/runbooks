@@ -357,6 +357,8 @@ def check_14_lifecycle_fields(sections: list[Section], ctx: CheckContext) -> lis
 def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext) -> list[Finding]:
     if ctx.now is None or ctx.git_head is None:
         return []
+    if _section_map(sections).get("J") is None:
+        return []
 
     result = evaluate_staleness(sections, ctx.now, ctx.git_head)
     triggered = ", ".join(result.triggered_predicates)
@@ -631,6 +633,10 @@ def _required_field_findings(
     check: int,
     label: str,
 ) -> list[Finding]:
+    nullable_fields = {
+        "§J": {"first_staleness_detected_at"},
+        "§K": {"trace_matrix_path", "word_count_delta"},
+    }
     findings: list[Finding] = []
     for field in required_fields:
         if field not in payload:
@@ -653,7 +659,7 @@ def _required_field_findings(
                     line=section.line_start,
                 )
             )
-        elif _is_missing(value):
+        elif _is_missing(value) and field not in nullable_fields.get(label, set()):
             findings.append(
                 Finding(
                     severity="FAIL",

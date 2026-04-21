@@ -1,0 +1,12 @@
+id: I-03
+runbook: infisical-secrets.md
+type: operate
+refs: [E-03]
+scenario: |
+  Deployment automation needs the first step to refresh the production sync audit.
+expected_answers:
+  - kind: tool_call
+    tool: infisical audit sync
+    argument_keys: [project-id, env]
+weight: 0.08333333333333333
+

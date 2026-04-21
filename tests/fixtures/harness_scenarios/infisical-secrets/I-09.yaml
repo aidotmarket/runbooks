@@ -1,0 +1,13 @@
+id: I-09
+runbook: infisical-secrets.md
+type: repair
+refs: [G-02]
+scenario: |
+  The worker must be corrected so stale cache entries stop causing sync drift.
+expected_answers:
+  - kind: human_action
+    verb: patch
+    object: cache invalidation
+    target: infisical/sync.py:run_sync
+weight: 0.08333333333333333
+

@@ -1,0 +1,11 @@
+id: I-11
+runbook: infisical-secrets.md
+type: evolve
+refs: ["§H"]
+scenario: |
+  A proposal changes default environment selection when the caller omits env.
+expected_answers:
+  - kind: classification
+    label: BREAKING
+weight: 0.08333333333333333
+

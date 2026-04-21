@@ -1,0 +1,12 @@
+id: I-04
+runbook: infisical-secrets.md
+type: operate
+refs: [E-01]
+scenario: |
+  An operator asks how to validate the path before returning a requested secret.
+expected_answers:
+  - kind: tool_call
+    tool: infisical secrets list
+    argument_keys: [project-id, env, path]
+weight: 0.08333333333333333
+

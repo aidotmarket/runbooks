@@ -1,0 +1,13 @@
+id: I-07
+runbook: infisical-secrets.md
+type: isolate
+refs: [F-01]
+scenario: |
+  A responder must distinguish between an environment mistake and a missing secret.
+expected_answers:
+  - kind: human_action
+    verb: compare
+    object: environment selection
+    target: prod versus staging request context
+weight: 0.08333333333333333
+

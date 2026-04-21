@@ -1,0 +1,12 @@
+id: I-06
+runbook: infisical-secrets.md
+type: isolate
+refs: [F-02]
+scenario: |
+  The sync audit reports drift and the next action must identify whether the cache is stale.
+expected_answers:
+  - kind: tool_call
+    tool: infisical audit sync
+    argument_keys: [project-id, env]
+weight: 0.08333333333333333
+
