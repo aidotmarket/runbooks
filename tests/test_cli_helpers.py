@@ -82,7 +82,7 @@ def test_lint_missing_schemas_dir_returns_usage_error(tmp_path: Path) -> None:
 
     result = runner.invoke(lint_cmd, [str(fixture), "--schemas-dir", str(tmp_path / "missing-schemas")])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2
 
 
 def test_lint_missing_readme_returns_usage_error(tmp_path: Path) -> None:
@@ -90,7 +90,7 @@ def test_lint_missing_readme_returns_usage_error(tmp_path: Path) -> None:
 
     result = runner.invoke(lint_cmd, ["--readme", str(tmp_path / "README.md")])
 
-    assert result.exit_code == 1
+    assert result.exit_code == 2
 
 
 def test_lint_internal_error_returns_exit_3(monkeypatch, tmp_path: Path) -> None:

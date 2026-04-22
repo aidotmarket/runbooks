@@ -56,7 +56,7 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
         resolved_schemas_dir = Path(schemas_dir) if schemas_dir else repo_root / "schemas"
         resolved_readme = Path(readme) if readme else repo_root / "README.md"
         if not resolved_schemas_dir.exists():
-            raise click.ClickException(f"schemas directory not found: {resolved_schemas_dir}")
+            raise click.UsageError(f"schemas directory not found: {resolved_schemas_dir}")
 
         target_paths = _resolve_lint_targets(paths, mode, resolved_readme)
         findings_by_path: dict[Path, list[Finding]] = {}
@@ -234,7 +234,7 @@ def _runbooks_for_mode(readme_path: Path, mode: str) -> list[Path]:
 
 def _parse_readme_status_rows(readme_path: Path) -> list[dict[str, Any]]:
     if not readme_path.exists():
-        raise click.ClickException(f"README not found: {readme_path}")
+        raise click.UsageError(f"README not found: {readme_path}")
 
     rows: list[dict[str, Any]] = []
     for line in readme_path.read_text().splitlines():
