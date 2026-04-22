@@ -1,27 +1,38 @@
-# BQ-AUTONOMOUS-OPERATIONS — Gate 1 (R1)
+# BQ-AUTONOMOUS-OPERATIONS — Gate 1 (R2)
 
 **Parent BQ:** `build:bq-autonomous-operations`
 **Gate:** 1
-**Revision:** R1 (S489)
+**Revision:** R2 (S489) — addresses MP R1 `5c85b3f3` REQUEST_CHANGES (4H+5M+1L)
 **Author:** Vulcan
 **Repo:** aidotmarket/runbooks
 **Spec path:** specs/BQ-AUTONOMOUS-OPERATIONS.md
-**Discovery entity:** `project:bq-autonomous-operations-discovery-findings` v3
-**Scope decisions source:** `build:bq-autonomous-operations` v2 `body.scope_decisions_locked_s489`
+**Discovery entity:** `project:bq-autonomous-operations-discovery-findings` v3+
+**Scope decisions source:** `build:bq-autonomous-operations` v3 `body.scope_decisions_locked_s489`
+**R1 commit:** `88b3d20`
 
 ## 0. Executive Summary
 
-Autonomous Operations builds the infrastructure that lets Market agents run recurring operational work (runbook compliance sweeps, backup verification, council-stall detection, secret rotation freshness, etc.) without Max prompting. Triggers are time-based (cron) AND state-predicated (e.g. "fire if last `backup-verify` event > 48h old"). Every autonomous run emits an event. allAI classifies results and either resolves-to-silent-success, queues for session-open digest, or escalates P0+ via Telegram.
+Autonomous Operations builds the infrastructure that lets Market agents run recurring operational work (runbook compliance sweeps, backup verification, council-stall detection, secret rotation freshness, etc.) without Max prompting. Triggers are time-based (cron) AND state-predicated. Every autonomous run emits an event. allAI classifies results and either resolves-to-silent-success, queues for session-open digest, or escalates P0+ via Telegram.
 
 V1 ships three parallel chunks:
 
-1. **Backend** — schedule registry as first-class Living State entity kind + sole-API scheduler executor (APScheduler wrapped as internal substrate in v1; zero surviving direct APScheduler or `@cron` decorator use in backend code post-v1) + allAI stewardship role formalization + attention queue entity kind + missed-escalation audit meta-cron.
-2. **Frontend** — greenfield `ops.ai.market` surface with proper host routing, auth gate distinct from buyer/seller dashboard gating, Next.js pages for agent/schedule/run management.
-3. **Content** — consolidated runbook-of-runbooks meta-runbook authored against the Runbook Standard (§A–§K-conformant; eats its own dogfood; doubles as a proof-point that the standard works on operational content).
+1. **Backend** — schedule registry as first-class Living State entity kind + sole-API scheduler executor (APScheduler wrapped as internal substrate in v1; zero surviving direct APScheduler or `@cron` decorator use in backend code post-v1) + allAI stewardship role on `AllAIBrainAgent` with bounded queue and degradation policy + attention queue entity kind + missed-escalation audit with independent severity derivation.
+2. **Frontend** — extend existing `aidotmarket/ops-ai-market` Vite+React+TanStack app by adding SCHEDULES, RUNS, ATTENTION, RECOMMENDATIONS panels alongside existing OPS/MONITOR/BUILD QUEUE/AGENTS/RUNBOOKS/MARKETING/FINANCE tabs. No host-routing, auth, or tech-stack changes.
+3. **Content** — consolidated runbook-of-runbooks meta-runbook authored against the Runbook Standard with a reviewer-authored challenge scenario subset preventing self-validation tautology.
 
 First concrete cron: weekly runbook stewardship sweep running `runbook-lint` across every runbook + §J staleness evaluation, writing a report entity consumed by the attention queue.
 
-This spec establishes the design. Gate 2 produces implementation specs per chunk. Gate 3 is the build.
+**R2 changes (see Appendix E for full table):**
+- §9 rewritten: missed-escalation audit now derives severity INDEPENDENTLY of allAI's queue classification (H1).
+- §4.2 schedule schema extended: `concurrency_policy`, `max_instances`, `misfire_grace_time_seconds`, `coalesce` (H2).
+- §5.5 migration table CLOSED: Celery Beat audit complete (2 jobs migrate); backup-verify duplication resolved by staggered timing (H3).
+- §10 rewritten: extend `aidotmarket/ops-ai-market`, NOT greenfield in `ai-market-frontend` (H4).
+- §5.3, §5.4 expanded: idempotency model with `run_id` generation authority + `attempt_number` + duplicate-completion semantics (M1).
+- §5.1 strengthened: CI lint paired with startup-assertion against a maintained `migration-manifest.yaml` (M2).
+- §5.6 rewritten: `dispatch_mode=gh_actions_external` — classified as external schedules, outside the sole-API invariant (M3).
+- §6.1 expanded: minimal v1 comparator surface (10 comparators) (M4).
+- §7 expanded: bounded queue + rate isolation + degradation policy + split criterion (M5).
+- §13.4 expanded: reviewer-authored challenge scenario subset ≥5 (L1).
 
 ---
 
@@ -37,147 +48,175 @@ This spec establishes the design. Gate 2 produces implementation specs per chunk
 
 ## 2. Scope
 
-### 2.1 In-scope v1 (cross-referenced to `build:bq-autonomous-operations` v2)
+### 2.1 In-scope v1
 
 Backend:
 - Schedule registry as first-class Living State entity kind (`schedule:*`).
 - Scheduler service: evaluates registry every minute, fires due schedules, dispatches via `council_request` or direct callable.
 - Pure-replace executor contract — APScheduler wrapped as internal substrate in v1; zero direct APScheduler or `@cron` decorator usage in backend code after migration.
-- Time-based triggers (cron) AND state-predicated triggers (predicate language in §7).
-- allAI stewardship role formalized on `AllAIBrainAgent` — receives all autonomous-run reports, classifies severity, escalates, writes attention-queue items.
+- Startup-assertion against `migration-manifest.yaml` proving every recurring job maps to a registry schedule OR has an explicit disposition tag.
+- Time-based triggers (cron) AND state-predicated triggers (predicate language in §6).
+- allAI stewardship role on `AllAIBrainAgent` with bounded queue, rate isolation, degradation policy, split criterion.
 - Attention-queue Living State entity kind (`queue:attention`) consumed at `kd_session_open`.
-- Missed-escalation audit meta-cron (detects P0-looking items sitting unescalated > N hours; self-escalates).
-- GH-Actions-delegated execution mode for CI-shaped jobs (registry declares, CI executes, registry reads results via webhook).
+- Missed-escalation audit meta-cron with INDEPENDENT severity derivation from run events (not from queue contents).
+- `gh_actions_external` dispatch mode for GH Actions workflows (external schedules tracked but not sole-API-governed).
 
-Frontend (`ops.ai.market` greenfield):
-- Host routing for `ops.ai.market` in `next.config.ts` + `middleware.ts`.
-- Auth gate distinct from buyer/seller dashboard gating (email allowlist or explicit ops-role RBAC).
-- Agent inventory page (list registered agents, health, last run, last heartbeat).
-- Schedule management page (list, toggle on/off, edit cron or predicate, view last-run status + next-run estimate).
-- Run history page per schedule (last N runs, duration, outcome, link to event ledger or result artifact).
-- Manual-trigger affordance (fire a schedule now, bypass cadence).
-- allAI frequency-recommendation surface (notification badge, review + accept/reject flow for proposed schedule changes).
+Frontend (extending `aidotmarket/ops-ai-market`):
+- Four new panels added to existing `Panel` union: `schedules`, `runs`, `attention`, `recommendations`.
+- New TopNav tabs with URL routing at `/schedules`, `/runs`, `/attention`, `/recommendations`.
+- New `src/components/{schedules,runs,attention,recommendations}/` component subdirs.
+- New `src/lib/scheduleRegistryApi.ts` API client module following existing `apiFetch<T>` pattern.
+- New TypeScript types for `Schedule`, `Run`, `AttentionItem`, `FrequencyRecommendation`.
+- Reuse existing auth (Google OAuth via `useOpsAuth`), API key injection (`X-Internal-API-Key` from localStorage config), React Query, Recharts, shadcn/ui.
 
 Content:
-- Runbook-of-runbooks meta-runbook consolidating `agent-dispatch.md` + `session-lifecycle.md` + `council-gate-process.md` + `council-hall-deliberation.md` + `vulcan-configuration.md` into a single §A–§K-conformant runbook authored against the frozen Runbook Standard at commit `365c198`.
+- Runbook-of-runbooks meta-runbook consolidating `agent-dispatch.md` + `session-lifecycle.md` + `council-gate-process.md` + `council-hall-deliberation.md` + `vulcan-configuration.md` into a single §A–§K-conformant runbook with ≥ 10 Vulcan-authored §I scenarios + ≥ 5 reviewer-authored challenge scenarios (Gate 3 acceptance).
 
 First concrete cron:
-- `schedule:weekly-runbook-stewardship-sweep` — runs `runbook-lint` across `/Users/max/Projects/runbooks/*.md` + §J staleness evaluation; writes `project:runbook-stewardship-report-YYYY-WW` entity; classifies via allAI; queues findings ≥ WARN for session digest, escalates FAIL to Telegram.
+- `schedule:weekly-runbook-stewardship-sweep` — runs `runbook-lint` across `/Users/max/Projects/runbooks/*.md` + §J staleness evaluation; writes `project:runbook-stewardship-report-YYYY-WW` entity; classifies via allAI.
 
 ### 2.2 Out-of-scope v1
 
-- Agent-initiated schedule changes without Max approval. Every adjustment goes through the ops console; allAI can *recommend*, only Max approves.
-- Multi-agent deliberative autonomy (agents negotiating work among themselves). Future BQ.
-- Predictive/ML-driven frequency recommendations beyond simple operational signals (see §12). Future BQ.
+- Agent-initiated schedule changes without Max approval.
+- Multi-agent deliberative autonomy.
+- Predictive/ML-driven frequency recommendations beyond simple operational signals.
 - Replacing human-in-the-loop for any P0+ decision.
-- Native executor replacement for APScheduler — v1 keeps APScheduler as internal substrate. Swap-out is a later BQ.
-- Migration of non-backend scheduled work (e.g. Railway-side services, cron-like services outside backend process). Out of v1.
+- Native executor replacement for APScheduler (v1 keeps it as internal substrate; swap-out is later BQ).
+- Migration of non-backend scheduled work (e.g. Railway-side services external to backend process).
+- Compound state-predicate logic (AND/OR); deferred to follow-on BQ.
+- Registry-authoritative regeneration of GH Actions workflow files (deferred; R2 keeps .yml files as source of truth for external schedules — see §5.6).
 
 ---
 
 ## 3. Consumer Model
 
-Autonomous Operations infrastructure has three consumer classes. Gate 1 names them explicitly so Gate 2 and 3 acceptance criteria can bind.
+**C1 — Schedule authors (agents + Max).** Registry API is stable and versioned, entity schema enforced, validation errors precise, editing never loses run history.
 
-**C1 — Schedule authors (agents + Max).** The party who adds a `schedule:*` entity or edits one. Max authors via ops console. Agents (e.g. allAI in frequency-recommendation mode) author via state_request after Max approval. Consumer contract: the registry API is stable and versioned, entity schema is enforced, validation errors are precise, editing a schedule never loses run history.
+**C2 — Scheduled agents (executors).** At fire time, receive well-formed dispatch envelope (schedule id, trigger, predicate result if any, budget caps, allowed_tools, run_id, attempt_number). On completion, emit structured result event with run_id. Idempotent duplicate-completion handling (§5.4).
 
-**C2 — Scheduled agents (executors).** The agent that runs when a schedule fires. Consumer contract: at fire time, the agent receives a well-formed dispatch envelope including the schedule id, the trigger that fired, any predicate-evaluation result, budget caps, and allowed_tools. On completion, the agent emits a structured result event that the registry consumes for `last_run_status`.
-
-**C3 — Stewardship + escalation consumers (allAI + Max).** The parties who observe outcomes. allAI subscribes to all autonomous-run events, classifies, and either silently resolves, queues, or escalates. Max consumes the attention queue at session open and the Telegram stream continuously. Consumer contract: every run emits an event that allAI can classify; severity ladder is well-defined; missed-escalation audit proves P0 items don't sit silently.
+**C3 — Stewardship + escalation consumers (allAI + Max).** Every run emits an event allAI can classify. Severity ladder well-defined. Missed-escalation audit (§9) proves P0/P1 items don't sit silently — its derivation of "should-have-escalated" is INDEPENDENT of the classifier it's auditing.
 
 ---
 
-## 4. Schedule Registry Design (answers Q5)
+## 4. Schedule Registry Design
 
 ### 4.1 Entity kind
 
-New Living State entity kind: `schedule`. Key convention: `schedule:<dashed-name>`, e.g. `schedule:weekly-runbook-stewardship-sweep`.
+Key convention: `schedule:<dashed-name>`, e.g. `schedule:weekly-runbook-stewardship-sweep`.
 
-### 4.2 Required fields
+### 4.2 Required fields (R2 — added H2 execution semantics fields)
 
 | Field | Type | Required | Purpose |
 |---|---|---|---|
-| `id` | string | yes | Derived from key; stable across versions |
-| `name` | string | yes | Human-readable display name |
-| `description` | string | yes | What this schedule does, in 1–3 sentences |
+| `id` | string | yes | Derived from key |
+| `name` | string | yes | Display name |
+| `description` | string | yes | 1–3 sentences describing purpose |
 | `trigger_type` | enum | yes | `cron` \| `state_predicate` \| `manual_only` |
-| `cron_expression` | string | conditional | Required when `trigger_type=cron`; 5-field cron |
-| `timezone` | string | conditional | IANA tz; required when `trigger_type=cron`; default `UTC` |
-| `predicate` | object | conditional | Required when `trigger_type=state_predicate`; shape per §7 |
-| `evaluation_cadence_seconds` | integer | conditional | Required when `trigger_type=state_predicate`; min 60 |
-| `agent` | string | yes | Target agent: `mp`, `ag`, `xai`, `cc`, `sysadmin`, `allai-brain`, `crm-steward`, etc. |
-| `dispatch_mode` | enum | yes | `council_request` \| `direct_callable` \| `gh_actions_webhook` |
-| `task_prompt` | string | conditional | Required for `council_request` mode |
-| `callable_path` | string | conditional | Required for `direct_callable` mode; Python dotted path |
-| `gh_workflow_path` | string | conditional | Required for `gh_actions_webhook` mode; `.github/workflows/X.yml` |
-| `council_mode` | enum | conditional | Required for `council_request` mode: `review` \| `build` |
-| `allowed_tools` | array | optional | Tool restriction for MP dispatches |
+| `cron_expression` | string | conditional | 5-field cron when `trigger_type=cron` |
+| `timezone` | string | conditional | IANA tz; default `UTC` |
+| `predicate` | object | conditional | Shape per §6; required when `trigger_type=state_predicate` |
+| `evaluation_cadence_seconds` | integer | conditional | Min 60; required when `trigger_type=state_predicate` |
+| `agent` | string | yes | `mp`, `ag`, `xai`, `cc`, `sysadmin`, `allai-brain`, `crm-steward`, etc. |
+| `dispatch_mode` | enum | yes | `council_request` \| `direct_callable` \| `gh_actions_external` |
+| `task_prompt` | string | conditional | For `council_request` |
+| `callable_path` | string | conditional | Python dotted path for `direct_callable` |
+| `gh_workflow_path` | string | conditional | `.github/workflows/X.yml` for `gh_actions_external` |
+| `council_mode` | enum | conditional | `review` \| `build` for `council_request` |
+| `allowed_tools` | array | optional | MP tool restriction |
 | `timeout_seconds` | integer | yes | Hard wall-clock cap; default 600 |
 | `budget_usd` | number | conditional | Required for LLM-invoking dispatches; default 1.0 |
 | `escalation_target` | enum | yes | `telegram_p0_p1` \| `attention_queue` \| `silent_success_only` |
-| `priority` | integer | yes | 0–3, matching existing `_PRIORITY_MAP`; determines escalation-pipeline routing |
-| `enabled` | boolean | yes | Disabled schedules don't fire; default `true` |
-| `paused_until` | datetime | optional | Soft pause; if set and in future, schedule does not fire |
-| `last_run_at` | datetime | auto | Updated by executor on fire |
+| `priority` | integer | yes | 0–3 matching `_PRIORITY_MAP` |
+| `enabled` | boolean | yes | Default `true` |
+| `paused_until` | datetime | optional | Soft pause |
+| **`concurrency_policy`** | **enum** | **yes** | `serial_queue` \| `skip_if_running` \| `allow_parallel`; **default `skip_if_running`** |
+| **`max_instances`** | **integer** | **yes** | **Max concurrent instances when policy is `allow_parallel`; default 1** |
+| **`misfire_grace_time_seconds`** | **integer** | **yes** | **If schedule missed by > this, drop rather than catch up; default 3600** |
+| **`coalesce`** | **boolean** | **yes** | **If multiple fires were missed, run once; default `true`** |
+| **`run_id_authority`** | **enum** | **yes** | **`executor` (default) \| `external_webhook` (for `gh_actions_external` mode)** |
+| `last_run_at` | datetime | auto | |
 | `last_run_status` | enum | auto | `success` \| `failure` \| `timeout` \| `agent_error` \| `dispatch_error` |
-| `last_run_task_id` | string | auto | Council task_id or dispatch id for traceability |
-| `last_run_result_entity_key` | string | auto | Living State key of result artifact (if applicable) |
-| `next_run_at` | datetime | auto | Computed from cron or predicate evaluation window |
-| `run_count_total` | integer | auto | Monotonic count |
-| `run_count_failure` | integer | auto | Monotonic failure count for frequency-recommendation signal |
-| `owner` | string | yes | Responsible human for this schedule; default `max` |
-| `created_session` | string | yes | Session in which this schedule was created |
-| `last_edited_by` | string | auto | Last editor (agent or user id) |
+| `last_run_task_id` | string | auto | |
+| `last_run_run_id` | string | auto | |
+| `last_run_result_entity_key` | string | auto | |
+| `next_run_at` | datetime | auto | |
+| `run_count_total` | integer | auto | Monotonic |
+| `run_count_failure` | integer | auto | Monotonic; frequency-signal input |
+| `owner` | string | yes | Default `max` |
+| `created_session` | string | yes | |
+| `last_edited_by` | string | auto | |
 
 ### 4.3 Schedule lifecycle states
 
-- `enabled=true` — normal operation; fires on trigger match
-- `enabled=false` — disabled by Max; registry retains entity + history; does NOT fire
-- `paused_until=<future>` — soft pause (e.g. during incident response); auto-resumes at `paused_until`
-- `deleted` — entity removed from Living State; retain run history in event ledger; not recoverable via UI (requires direct Living State operation)
+- `enabled=true` — normal operation
+- `enabled=false` — disabled by Max; retains entity + history; does NOT fire
+- `paused_until=<future>` — soft pause (e.g. during incident response); auto-resumes
+- `deleted` — entity removed from Living State; retain run history in event ledger
 
-State transitions are enforced by registry CRUD validators; v1 ships a JSON Schema at `backend/app/services/schedule_registry/schemas/schedule.schema.json`.
+### 4.4 Execution semantics defaults (R2 — answers H2)
 
-### 4.4 History retention
+| Field | Default | Rationale |
+|---|---|---|
+| `concurrency_policy` | `skip_if_running` | Safest for long-running ops; avoids pile-up |
+| `max_instances` | `1` | Implies `concurrency_policy=skip_if_running` behavior |
+| `misfire_grace_time_seconds` | `3600` | If backend was down > 1h, don't replay stale fires |
+| `coalesce` | `true` | Multiple misses collapse to single run |
+| `run_id_authority` | `executor` | Backend is authoritative; external mode overrides |
 
-- Last 100 runs per schedule kept in `schedule:<id>.body.run_history` (bounded array, truncated oldest-first).
-- Older runs are event-ledger-only — no duplication of data.
-- `run_count_total` + `run_count_failure` are monotonic counters preserved across truncation for frequency-recommendation signal quality (see §12).
+Registry schema validator enforces: if `concurrency_policy=allow_parallel` then `max_instances > 1`. If `trigger_type=manual_only` then `concurrency_policy` field is informational only (manual fires ignore it).
+
+### 4.5 History retention
+
+Last 100 runs per schedule kept in `schedule:<id>.body.run_history` (bounded array). Older runs are event-ledger-only. `run_count_total` + `run_count_failure` are monotonic across truncation.
 
 ---
 
 ## 5. Scheduler Executor Design (D3 — pure replace)
 
-### 5.1 Sole-API invariant
+### 5.1 Sole-API invariant (R2 — strengthened per M2)
 
-The registry IS the scheduling API for anything running inside the ai-market-backend process. After v1 migration completes, the following MUST be true:
+The registry IS the scheduling API for anything running inside the ai-market-backend process. After v1 migration completes:
 
-- Zero `import apscheduler` statements in backend code outside of the registry's internal substrate module.
-- Zero `@cron(...)` or equivalent decorator usage in backend code.
-- Zero direct APScheduler `add_job(...)` calls outside the registry's internal substrate.
-- Every recurring in-process job has a corresponding `schedule:*` Living State entity.
+**Static enforcement (CI lint):**
+- Zero `import apscheduler` statements outside the substrate module.
+- Zero `@cron(...)` or equivalent decorator usage.
+- Zero direct APScheduler `add_job(...)` calls outside the substrate.
 
-Enforcement: a lint check in backend CI at Gate 3; blocks any PR that introduces direct APScheduler usage outside the substrate module.
+**Dynamic enforcement (startup assertion):**
+- On backend boot, the scheduler executor reads `backend/config/migration-manifest.yaml`.
+- The manifest lists every recurring job in the codebase with one of four dispositions:
+  - `migrated_to: schedule:<id>` — points to a registry entity
+  - `keep_ephemeral: <rationale>` — per-instance lifecycle (e.g. `BaseAgent` heartbeat)
+  - `retired: <commit_sha>` — removed; commit recorded
+  - `external_to_backend: <location>` — outside backend process (e.g. Railway services)
+- Executor walks `app/` for `while True: ... asyncio.sleep(N)` patterns where N ≥ 60, inspects Celery `app.conf.beat_schedule` keys, and cross-checks each detected recurring job against the manifest.
+- Startup fails with fatal error if any detected recurring job is NOT in the manifest. New recurring work cannot be merged without updating the manifest.
+
+**Rationale:** CI lint catches the easy cases (imports, decorators). Startup assertion catches the hard cases (bare `while True` loops, Celery beat entries, ad-hoc timers). The manifest is the explicit audit record; additions to it require review.
 
 ### 5.2 Internal substrate (APScheduler in v1)
 
-The registry's executor module (`app/services/schedule_registry/executor.py`) owns the single APScheduler instance for the backend process. On startup, the executor:
+The registry's executor module (`app/services/schedule_registry/executor.py`) owns the single APScheduler instance for the backend process. On startup:
 
-1. Reads all `schedule:*` entities from Living State.
-2. For each `enabled=true` schedule where `trigger_type=cron`, registers an APScheduler job.
-3. For each `enabled=true` schedule where `trigger_type=state_predicate`, registers an APScheduler interval job at the `evaluation_cadence_seconds` that evaluates the predicate and fires the schedule on match.
-4. Subscribes to Living State change events for `schedule:*` entities; on edit/add/delete, updates the APScheduler registration.
+1. Runs the `§5.1` startup assertion; fails boot if manifest incomplete.
+2. Reads all `schedule:*` entities from Living State.
+3. For each `enabled=true` schedule where `trigger_type=cron`, registers an APScheduler job with the schedule's `concurrency_policy`, `max_instances`, `misfire_grace_time_seconds`, `coalesce` fields translated to APScheduler job kwargs.
+4. For each `enabled=true` state-predicate schedule, registers an APScheduler interval job at `evaluation_cadence_seconds` that evaluates the predicate and fires the schedule on match.
+5. For each `gh_actions_external` schedule, does NOT register APScheduler (the schedule is external); only subscribes to `schedule.run.complete` webhooks.
+6. Subscribes to Living State change events for `schedule:*`; on edit/add/delete, updates APScheduler registration.
 
-APScheduler handles misfire policy, concurrent-run limits, clock skew, DST. These are the hard reliability problems v1 deliberately does NOT re-solve; they're inherited from APScheduler. Swap-out to a native executor is a later BQ once the registry contract is proven in production.
+APScheduler handles misfire policy, concurrent-run limits, clock skew, DST — translated from the schedule's execution-semantics fields.
 
-### 5.3 Dispatch envelope
+### 5.3 Dispatch envelope + idempotency model (R2 — expanded per M1)
 
-When a schedule fires, the executor assembles a dispatch envelope:
+When a schedule fires, the executor assembles and emits:
 
 ```json
 {
   "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
   "schedule_name": "Weekly Runbook Stewardship Sweep",
+  "run_id": "run-<uuidv4>",
+  "attempt_number": 1,
   "fired_at": "2026-04-22T07:00:00Z",
   "trigger": {
     "type": "cron",
@@ -190,22 +229,31 @@ When a schedule fires, the executor assembles a dispatch envelope:
   "timeout_seconds": 900,
   "budget_usd": null,
   "escalation_target": "attention_queue",
-  "priority": 2,
-  "run_id": "run-<uuid>"
+  "priority": 2
 }
 ```
 
-For `trigger_type=state_predicate`, the envelope also includes `trigger.predicate_evaluation_result` (truth value + triggering fact).
+**`run_id` generation authority:**
+- For `dispatch_mode` in (`council_request`, `direct_callable`): issued by the executor at fire time (UUIDv4). `run_id_authority=executor`.
+- For `dispatch_mode=gh_actions_external`: issued by the GH Actions workflow on run start, sent to backend via webhook. `run_id_authority=external_webhook`.
 
-### 5.4 Result event contract
+**`attempt_number`:**
+- Starts at 1 for fresh runs.
+- Incremented on executor-initiated retry (e.g. after `dispatch_error` within a single-firing window).
+- Manual retries via ops console issue a NEW `run_id` with `attempt_number=1`; retry is user-explicit action.
 
-On completion (success, failure, timeout), the executing agent emits a `schedule.run.complete` event:
+**Same run_id across retries:** when the same `run_id` retries (executor-initiated), `attempt_number` increments. Run history retains all attempts in the event ledger.
+
+### 5.4 Result event contract + duplicate-completion handling (R2 — expanded per M1)
+
+On completion, the executing agent emits:
 
 ```json
 {
   "event_type": "schedule.run.complete",
   "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
-  "run_id": "run-<uuid>",
+  "run_id": "run-<uuidv4>",
+  "attempt_number": 1,
   "started_at": "2026-04-22T07:00:00Z",
   "completed_at": "2026-04-22T07:04:12Z",
   "status": "success",
@@ -216,60 +264,77 @@ On completion (success, failure, timeout), the executing agent emits a `schedule
 }
 ```
 
-Executor consumes the event, updates `last_run_*` fields on the schedule entity. allAI also subscribes (see §8).
+**Idempotent result-consume semantics:**
+- Executor treats `(run_id, attempt_number)` as primary key for result events.
+- Duplicate `schedule.run.complete` events with the same `(run_id, attempt_number)` are IDEMPOTENT: overwrite same fields in `schedule:*` entity (with `expected_version` check), do NOT re-increment `run_count_total` or `run_count_failure`.
+- For `gh_actions_external`: the webhook endpoint `/api/v1/schedules/<id>/run-result` checks event ledger for prior matching `(run_id, attempt_number)` event before writing; duplicates return 200 with `idempotent=true` in response body.
+- Late-arriving duplicates (e.g. after webhook retry): same idempotency rule applies; no clobbering of newer state.
 
-### 5.5 Migration plan for existing APScheduler + Celery jobs
+**Outcomes not completing:** if `completed_at - fired_at > timeout_seconds + 60s`, executor emits a synthesized `schedule.run.complete` with `status=timeout` and `severity=p2`; if the real result event arrives later, it is dropped as duplicate (but logged).
 
-Existing backend scheduled work identified in discovery (see Appendix B):
+### 5.5 Migration plan — CLOSED inventory (R2 — answers H3)
 
-| Current Location | Migration Target |
-|---|---|
-| `app/core/scheduler.py:830-849` SysAdmin 5min health | `schedule:backend-sysadmin-health-check-5m` (cron `*/5 * * * *`) |
-| `app/core/scheduler.py:830-849` Daily 03:00 UTC backup verify | `schedule:backend-backup-verify-daily` (cron `0 3 * * *`) |
-| `IncidentSweeper` 300s loop | `schedule:backend-incident-sweeper-5m` (cron `*/5 * * * *`) |
-| `BaseAgent` heartbeat (90s TTL) | Keep in `BaseAgent`; NOT migrated — heartbeat is per-instance lifecycle, not a schedule |
-| `CRMStewardAgent` daily maintenance timer | `schedule:crm-steward-daily-maintenance` (cron `0 <DAILY_MAINTENANCE_HOUR_UTC> * * *`) |
-| SysAdmin proactive monitors | `schedule:backend-sysadmin-monitor-<name>` per monitor |
-| Telegram remediation per-proposal timeouts | Keep ephemeral; not migrated — these are short-lived per-request timers, not schedules |
-| Celery Beat (`app/tasks/scheduled.py`) | Audit during Gate 2 Chunk A; migrate if actively used; retire if dead code |
+| Current Location | Cadence | Disposition |
+|---|---|---|
+| `app/core/scheduler.py:830-849` SysAdmin health | 5min | **Migrate** → `schedule:backend-sysadmin-health-check-5m` |
+| `app/core/scheduler.py:830-849` Backup verify | Daily 03:00 UTC | **Migrate** → `schedule:backend-backup-verify-daily` at **03:30 UTC** (staggered after GH backup) |
+| `app/core/celery_app.py:107` `celery-worker-heartbeat` | Default beat cadence | **Migrate** → `schedule:backend-celery-worker-heartbeat` |
+| `app/core/celery_app.py:166` `gmail-polling` | Per beat schedule | **Migrate** → `schedule:backend-gmail-polling` |
+| `IncidentSweeper` 300s loop | 300s | **Migrate** → `schedule:backend-incident-sweeper-5m` |
+| `BaseAgent` heartbeat (90s TTL) | 90s | **Keep ephemeral** — per-instance lifecycle, manifest tag `keep_ephemeral: per-instance-heartbeat` |
+| `CRMStewardAgent` daily maintenance | Daily at `DAILY_MAINTENANCE_HOUR_UTC` | **Migrate** → `schedule:crm-steward-daily-maintenance` |
+| `SysAdminAgent` proactive monitors (N monitors) | Various | **Migrate** per-monitor → `schedule:backend-sysadmin-monitor-<name>` |
+| Telegram remediation per-proposal timeouts | Short-lived | **Keep ephemeral** — ephemeral per-request timers, manifest tag `keep_ephemeral: per-request-timeout` |
+| GH `smoke-test.yml` (6h) | `0 */6 * * *` | **External** → `schedule:gh-smoke-test` (dispatch_mode=gh_actions_external) |
+| GH `backup.yml` (03:00 UTC) | `0 3 * * *` | **External** → `schedule:gh-backup-daily` |
+| GH `backup-verify.yml` (06:00 UTC) | `0 6 * * *` | **External** → `schedule:gh-backup-verify-ci-daily` (separate from backend 03:30 verify; different verifier) |
+| GH `health-check.yml` (07:00 UTC) | `0 7 * * *` | **External** → `schedule:gh-health-check-daily` |
+| GH `quarantine-weekly.yml` (Mon 08:00 UTC) | `0 8 * * 1` | **External** → `schedule:gh-quarantine-weekly` |
+| GH `runbook-harness.yml` (07:00 UTC) | `0 7 * * *` | **External** → `schedule:gh-runbook-harness-daily` |
 
-Migration rule: a job is "migrated" when (a) a `schedule:*` entity exists, (b) the old APScheduler registration is removed, (c) the schedule fires on the same cadence as the old job, (d) result events flow to allAI, (e) the backend-CI lint check passes confirming no direct APScheduler use remains outside the substrate.
+**Backup-verify duplication resolution (H3 sub-issue):**
+- GH `backup.yml` runs the actual backup job at 03:00 UTC (external environment, appropriate for heavy pg_dump work).
+- Backend APScheduler backup verification migrates to `schedule:backend-backup-verify-daily` at **03:30 UTC** (staggered 30 min after GH backup completes). The backend verify reads from DB and checks freshness — a different, complementary check.
+- GH `backup-verify.yml` at 06:00 UTC does a CI-environment verify — third check, different codepath. Name changed to `schedule:gh-backup-verify-ci-daily` to disambiguate.
+- Net: three distinct checks, three distinct schedules, no duplication.
 
-### 5.6 GH-Actions-delegated execution mode
+**Celery Beat (H3 disposition closed):**
+- Two live jobs in `app/core/celery_app.py:105-170`: `celery-worker-heartbeat` (line 107) + `gmail-polling` (line 166).
+- Both migrate to registry schedules with `dispatch_mode=direct_callable` or equivalent.
+- Post-migration: `app/core/celery_app.py` `app.conf.beat_schedule` dict is EMPTY (retained as empty for forward-compat); Celery Beat process in deploy config can be removed from Dockerfile/Procfile in a separate cleanup PR (not blocking v1).
+- Manifest entry: `app/core/celery_app.py:105-170` beat_schedule dict has `migrated_to` pointers for each key.
 
-For CI-shaped jobs that genuinely belong in GitHub Actions (smoke tests, deploy validations), the registry declares the schedule but CI runs it. Mechanism:
+**Manifest file:** `backend/config/migration-manifest.yaml` is created in Chunk A and must list every recurring job with its disposition. Startup assertion reads this file.
 
-1. Schedule entity has `dispatch_mode=gh_actions_webhook` and `gh_workflow_path=.github/workflows/<name>.yml`.
-2. Registry does NOT fire the job; GH Actions fires on its own cron (preserved in the workflow file).
-3. Workflow emits a webhook to `/api/v1/schedules/<id>/run-result` on completion.
-4. Registry receives the webhook, writes `last_run_*` fields, emits `schedule.run.complete` event.
-5. allAI subscribes normally; escalation flows are identical to in-process jobs.
+### 5.6 gh_actions_external dispatch mode (R2 — rewritten per M3)
 
-Authority on the cron expression: source of truth remains the `schedule:*` entity. On any edit of the cron in the registry, ops console shows a warning that the workflow file must be updated to match; Gate 3 may add a reconciliation check.
+**Design call:** GH Actions workflows are classified as **external schedules** — outside the sole-API invariant of backend code. The registry tracks them for unified reporting/dashboarding but the workflow `.yml` file's `schedule:` block remains the source of truth for the actual cron trigger.
 
-Migration recommendations from discovery (Appendix B):
-- `ai-market-backend/backup.yml` → `schedule:gh-backup-daily` (gh_actions_webhook)
-- `ai-market-backend/backup-verify.yml` → `schedule:gh-backup-verify-daily` (gh_actions_webhook)
-- `ai-market-backend/health-check.yml` → `schedule:gh-health-check-daily` (gh_actions_webhook)
-- `ai-market-backend/quarantine-weekly.yml` → `schedule:gh-quarantine-weekly` (gh_actions_webhook)
-- `runbooks/runbook-harness.yml` → `schedule:gh-runbook-harness-daily` (gh_actions_webhook)
-- `ai-market-backend/smoke-test.yml` → NOT migrated (coexist); stays CI-native (6h high-frequency; not operationally interesting to allAI)
+Mechanism:
+1. Schedule entity has `dispatch_mode=gh_actions_external`, `gh_workflow_path=.github/workflows/<n>.yml`, `run_id_authority=external_webhook`.
+2. Registry does NOT fire the job. GH Actions fires on its own cron (from the `.yml` file).
+3. Workflow emits webhook to `POST /api/v1/schedules/<id>/run-start` at run start with `{run_id, attempt_number, started_at}` (issuing the run_id).
+4. Workflow emits webhook to `POST /api/v1/schedules/<id>/run-result` on completion with the §5.4 result event shape.
+5. Registry receives webhooks, writes `last_run_*` fields, emits `schedule.run.complete` for allAI consumption.
+6. ops.ai.market UI renders these schedules with a "GitHub Actions" badge; the cron-edit UI is DISABLED for them with tooltip "External schedule — edit the .yml file."
+
+**Authority separation:**
+- Internal schedules (backend in-process): registry is authoritative. Edit cron in registry → APScheduler re-registers.
+- External schedules (GH Actions): `.yml` file is authoritative for the trigger. Registry is authoritative for the DISPATCH SEMANTICS (escalation_target, priority, etc.) but NOT for the fire time. Drift between .yml cron and registry cron is a reporting warning only.
+
+**Why not make registry authoritative for external schedules too?** Would require GH-Actions-manifests-to-be-regenerated-from-registry, a build-time-codegen loop that adds complexity without v1 value. Deferred to follow-on BQ `bq-gh-actions-registry-authoritative`.
 
 ---
 
-## 6. State-Predicate Triggers (answers Q5 predicate shape)
+## 6. State-Predicate Triggers
 
-### 6.1 Predicate language
+### 6.1 Predicate language (R2 — expanded comparator surface per M4)
 
-State predicates are expressed as JSON objects interpreted by the scheduler's predicate engine. Two forms in v1:
+Predicates are JSON objects. Two forms in v1:
 
 **Form A — event-age predicate.**
 ```json
-{
-  "kind": "event_age_exceeds",
-  "event_type": "backup.verify.complete",
-  "threshold_seconds": 172800
-}
+{"kind": "event_age_exceeds", "event_type": "backup.verify.complete", "threshold_seconds": 172800}
 ```
 Fires if no event matching `event_type` has been ledgered in the last `threshold_seconds`.
 
@@ -283,55 +348,93 @@ Fires if no event matching `event_type` has been ledgered in the last `threshold
   "value": 86400
 }
 ```
-Fires if the entity field evaluates the comparator against the value to `true`.
 
-V1 supports these two forms only. Form C (compound logic: AND/OR of predicates) is deferred to a follow-on BQ; v1 schedules needing compound logic should be split into multiple schedules or use a `direct_callable` that evaluates complex logic internally.
+**Minimal v1 comparator surface for Form B (R2 — M4 closure):**
+
+| Comparator | Value type | Semantic |
+|---|---|---|
+| `equals` | any | `field == value` |
+| `not_equals` | any | `field != value` |
+| `exists` | none | `field is present and non-null` |
+| `missing` | none | `field is absent or null` |
+| `older_than_seconds` | integer | `now - parse(field) > value` (field must be datetime) |
+| `newer_than_seconds` | integer | `now - parse(field) < value` |
+| `in_set` | array | `field in value` |
+| `not_in_set` | array | `field not in value` |
+| `count_exceeds` | integer | `len(field) > value` (field must be array) |
+| `count_below` | integer | `len(field) < value` |
+
+No arithmetic, no regex, no string operations in v1. Predicates needing those use `dispatch_mode=direct_callable` with a Python function that computes freely.
+
+**Compound logic (AND/OR) deferred.** Schedules needing compound logic split into multiple schedules OR use `direct_callable` for complex evaluation.
 
 ### 6.2 Evaluation cadence
 
-Predicates are evaluated on the schedule's `evaluation_cadence_seconds` (min 60s). Evaluation is cheap (single Living State or event-ledger query); 60s resolution is adequate for all v1 use cases. Predicate evaluation itself emits `schedule.predicate.evaluated` events at DEBUG severity for auditability.
+Predicates evaluated on schedule's `evaluation_cadence_seconds` (min 60). Evaluation emits `schedule.predicate.evaluated` events at DEBUG severity.
 
 ### 6.3 Debouncing
 
-To prevent storm-firing when a predicate stays true across multiple evaluation windows, the registry tracks `last_predicate_true_fire_at`. If the predicate was true at the last evaluation AND the schedule already fired within the last `max(evaluation_cadence_seconds * 2, 300s)`, it does not fire again until the predicate returns false at least once.
+Registry tracks `last_predicate_true_fire_at` per schedule. If predicate was true at last evaluation AND schedule fired within the last `max(evaluation_cadence_seconds * 2, 300s)`, it does NOT fire again until the predicate returns false at least once (reset).
 
 ---
 
-## 7. allAI Stewardship Role (answers Q4)
+## 7. allAI Stewardship Role (R2 — operational per M5)
 
 ### 7.1 Role placement
 
-Stewardship lands on `AllAIBrainAgent` at `app/allai/agents/allai_brain.py`. Rationale: the brain is already the Tier 0 wildcard subscriber, already does incident triage + escalation + remediation proposals. Adding "autonomous-run reports" as another event class it subscribes to is coherent with the existing role shape and avoids creating a new agent with overlapping responsibilities.
+Stewardship lands on `AllAIBrainAgent` at `app/allai/agents/allai_brain.py`. Rationale: brain is already Tier 0 wildcard subscriber + incident triage + escalation + remediation proposals. Adding "autonomous-run reports" is coherent with the existing role.
 
-Council is invited to challenge this during R1 review. If MP or AG recommend a dedicated `AllAIStewardAgent` (distinct from the brain), R2 will revisit.
+**Council invited to challenge.** MP or AG may recommend `AllAIStewardAgent` (dedicated) during review.
 
 ### 7.2 Subscription
 
-`AllAIBrainAgent.startup()` adds `schedule.run.complete` and `schedule.run.failed` to its subscription list. On receipt:
+`AllAIBrainAgent.startup()` adds `schedule.run.complete`, `schedule.run.failed`, `schedule.run.timeout` to its subscription list.
 
-1. Classify severity using existing `_PRIORITY_MAP` + schedule metadata (priority field, escalation_target).
-2. Route:
-   - `silent_success_only` → log to agent-log and drop.
-   - `attention_queue` → enqueue `queue:attention` item (see §8).
-   - `telegram_p0_p1` + severity P0/P1 → immediate Telegram via existing escalation pipeline.
-   - `telegram_p0_p1` + severity P2+ → attention queue fallback (respecting existing P2+ batch semantics if the unwired flusher gap G1 is closed in parallel).
+### 7.3 Bounded queue + rate isolation (R2 — M5)
 
-### 7.3 Gap remediation dependencies
+Incoming stewardship events hit a bounded in-memory priority queue per brain instance:
+- **Max size:** 100 items.
+- **Overflow policy:** items exceeding the bound are written to a Redis spillover queue `allai:stewardship:spillover`; brain instance drains spillover as slots free up.
+- **Prioritization:** queue sorted by event `severity` (P0 first), then `fired_at` (oldest first within severity).
 
-The backend discovery (Appendix C) identified 10 gaps in allAI. The following are **prerequisite to BQ-AUTONOMOUS-OPERATIONS Gate 3 build**:
+Classification runs in a **dedicated thread pool** (max 2 workers) isolated from incident triage's thread pool. Prevents a stewardship event storm from delaying incident triage classification.
 
-- G1 (P2+ escalation flusher unwired) — MUST be closed before autonomous-ops launches; otherwise P2 attention-queue-bound items queue indefinitely in Redis. A follow-on BQ `bq-allai-escalation-flusher-wiring` should be filed during Gate 2 authoring.
-- G10 (core ops path does not persist to Living State) — this BQ's registry + event flow is precisely that integration; G10 closure is a DELIVERABLE of this BQ, not a prerequisite.
+### 7.4 Routing after classification
 
-Gaps G2–G9 are independent of autonomous-ops v1 and do not block. They may become follow-on BQs at Max's discretion.
+- `silent_success_only` → log to agent-log and drop.
+- `attention_queue` → enqueue `queue:attention` item (§8).
+- `telegram_p0_p1` + severity P0/P1 → immediate Telegram via escalation pipeline.
+- `telegram_p0_p1` + severity P2+ → attention queue fallback (respecting existing P2+ batch semantics once G1 flusher-wiring gap is closed).
+
+### 7.5 Degradation policy (R2 — M5)
+
+Brain monitors its own classification latency. If p95 latency > 5s sustained for 5+ minutes:
+- Emit `allai_brain.stewardship_degraded` event at severity P1.
+- Switch to **safe-default mode**: all classifications default to `route_to_attention_queue` regardless of escalation_target. No Telegram sends from stewardship during degraded mode. Attention queue accumulates; Max sees them at next session open.
+- Exit degradation when p95 latency < 2s for 10 consecutive minutes.
+
+### 7.6 Split criterion (R2 — M5)
+
+Steward-agent-split criterion (triggers filing of follow-on BQ `bq-allai-steward-agent-split`):
+- Sustained classification load > 1000 events/day for 7+ days, OR
+- Degradation mode fires 3+ times/week, OR
+- p95 latency > 10s sustained for 15+ minutes twice in any 48h window.
+
+Under any of these, Max is notified via attention queue (P1) and a pre-scoped BQ for AllAIStewardAgent is automatically filed (with Max's confirmation) to split stewardship from the brain.
+
+### 7.7 Gap remediation dependencies
+
+- **G1 (P2+ escalation flusher unwired)** — MUST be closed before autonomous-ops launches; follow-on BQ `bq-allai-escalation-flusher-wiring` filed during Gate 2 Chunk A authoring.
+- **G10 (core ops path doesn't write Living State)** — **DELIVERABLE** of this BQ; registry + run events close G10 by construction.
+- G2–G9: non-blocking; separate BQs at Max's discretion.
 
 ---
 
-## 8. Attention Queue Entity Kind (answers Q6)
+## 8. Attention Queue Entity Kind
 
 ### 8.1 Entity kind
 
-New kind: `queue:attention`. Single entity with key `queue:attention` — not per-item keys; items live in `body.items` as a bounded array.
+Single entity `queue:attention`. Items live in `body.items` as a bounded array.
 
 ### 8.2 Item shape
 
@@ -343,6 +446,8 @@ New kind: `queue:attention`. Single entity with key `queue:attention` — not pe
   "source_run_id": "run-<uuid>",
   "source_event_ledger_id": "<event_id>",
   "severity": "warn",
+  "classified_by": "allai-brain",
+  "classification_confidence": 0.87,
   "title": "3 runbooks stale (> 30 days since last verified)",
   "body_markdown": "- celery-infrastructure-deployment.md last verified 2026-03-10...",
   "actions_suggested": [
@@ -360,144 +465,221 @@ New kind: `queue:attention`. Single entity with key `queue:attention` — not pe
 
 | Severity | Meaning | Default routing |
 |---|---|---|
-| `debug` | Diagnostic trace; not queued | Agent log only |
-| `info` | Successful run; observed, not queued | Agent log only |
-| `warn` | Non-urgent drift; handle at next session | Attention queue, no Telegram |
-| `p2` | Degraded operation; batch to Telegram digest | Attention queue + P2 batch (requires G1 flusher) |
-| `p1` | Urgent; immediate Telegram | Immediate Telegram + attention queue |
-| `p0` | Critical; immediate Telegram + persistent until acknowledged | Immediate Telegram + attention queue + re-ping if unacked > 1h |
+| `debug` | Diagnostic | Agent log only (not queued) |
+| `info` | Successful run | Agent log only (not queued) |
+| `warn` | Non-urgent drift | Attention queue; no Telegram |
+| `p2` | Degraded operation | Attention queue + P2 batch (requires G1) |
+| `p1` | Urgent | Immediate Telegram + attention queue |
+| `p0` | Critical | Immediate Telegram + attention queue + re-ping if unacked > 1h |
 
 ### 8.4 Session-open consumption
 
-On `kd_session_open`, the session-open bundle SHOULD include the attention queue (all `resolved=false` items sorted by severity desc, created_at desc). Items are NOT auto-resolved by session open; Max acknowledges explicitly via ops console or by running the suggested action. Ack is a state_request patch setting `resolved=true`.
+On `kd_session_open`, session-open bundle SHOULD include `queue:attention` items with `resolved=false` sorted by severity desc, created_at desc. Items are NOT auto-resolved by session open. Max acknowledges via ops console or by running the suggested action. Ack = `state_request patch` setting `resolved=true`.
 
-Retention: resolved items > 90 days old are purged in a nightly `schedule:attention-queue-purge-resolved` cron (not user-visible; self-stewardship).
+Retention: resolved items > 90 days are purged nightly by `schedule:attention-queue-purge-resolved`.
 
 ---
 
-## 9. Missed-Escalation Audit
+## 9. Missed-Escalation Audit (R2 — INDEPENDENT derivation per H1)
 
 ### 9.1 Motivation
 
-allAI classification is the single point of escalation decision. If the classifier drops a P0 item (miscategorized as info, or routed to attention queue when it should have gone to Telegram), Max doesn't learn until he next opens a session — or never. This breaks the trust contract that P0 is escalated.
+allAI classification is the single point of escalation decision. If the classifier drops or downgrades a P0/P1 item, Max doesn't learn until next session or never. The audit must catch this — and critically, **must not rely on allAI's classification output to do so**.
 
-### 9.2 Audit mechanism
+### 9.2 Audit mechanism — independent severity derivation
 
-A meta-cron `schedule:missed-escalation-audit-hourly` runs every hour:
+Meta-cron `schedule:missed-escalation-audit-hourly` runs every hour with `agent=sysadmin`, `dispatch_mode=direct_callable`:
 
-1. Scan `queue:attention` for items where (`severity` in [`p0`, `p1`]) AND (`resolved=false`) AND (`created_at` > 2h ago).
-2. For each match, scan Telegram send-history (event ledger `telegram.send`) for a send event referencing the item's `source_event_ledger_id` within the original item creation window.
-3. Items with no matching Telegram send event are flagged: emit `autonomous_ops.missed_escalation_detected` event at severity P1 AND immediately enqueue to `queue:attention` as a P1 item with source_schedule_id pointing to the audit itself.
-4. Self-escalation: the audit emits a Telegram message directly (bypassing the classifier it's auditing).
+**Step 1 — Derive candidate "should-have-escalated" set from RAW events, not queue contents:**
 
-### 9.3 Acceptance
+The audit reads the event ledger for the last 2h and applies the following **independent rules** (not dependent on allAI's classification):
 
-The audit is NON-NEGOTIABLE for v1 (per original BQ design principle). Gate 3 build must include an end-to-end test where a deliberately-misclassified P0 item is caught by the audit within 2h and escalated to Telegram.
+- **R1 — escalation-target P0/P1 failure:** any `schedule.run.complete` with `status=failure` AND `escalation_target=telegram_p0_p1` AND `priority in {0,1}` → candidate P0/P1.
+- **R2 — persistent state-predicate failure:** any `schedule.run.failed` where the same schedule's previous `schedule.run.failed` was within the last 24h AND the schedule's `escalation_target=telegram_p0_p1` → candidate P1 (pattern of failure).
+- **R3 — dispatch error:** any `schedule.dispatch.error` event → candidate P1 (unconditional).
+- **R4 — missed schedule fire:** any schedule where `now - last_run_at > (expected_interval * 2)` AND `enabled=true` → candidate P1 (schedule didn't fire when expected).
+- **R5 — timeout on P0/P1-priority schedule:** any `schedule.run.timeout` with `priority in {0,1}` → candidate P0.
+- **R6 — predicate-true-but-no-fire:** any schedule where `schedule.predicate.evaluated` returned `true` but no `schedule.run.complete` followed within `timeout_seconds + 60s` → candidate P1.
+
+These rules are implemented in `app/services/schedule_registry/missed_escalation_audit.py` as deterministic Python code. **They do not call allAI.** They do not read `queue:attention`. Severity derivation is independent.
+
+**Step 2 — Verify Telegram delivery for each candidate:**
+
+For each candidate, scan `telegram.send` events in the last 2.5h for a send event referencing the candidate's `source_event_ledger_id` or `run_id`. Match found → candidate verified, move on. No match → candidate is a MISSED ESCALATION.
+
+**Step 3 — Self-escalate missed items:**
+
+For each missed candidate:
+1. Emit `autonomous_ops.missed_escalation_detected` event at severity P1.
+2. Send Telegram message DIRECTLY (bypass allAI classifier — use `TelegramRelay.send_message()` directly with a pre-formatted alert template).
+3. Write P1 attention queue item with `source_schedule_id=schedule:missed-escalation-audit-hourly` (clear paper trail: the audit caught this).
+
+**Step 4 — Audit self-heartbeat:**
+
+The audit emits `schedule.audit.heartbeat` at end of each run. A SEPARATE watchdog schedule `schedule:missed-escalation-audit-watchdog` runs every 3h with a state predicate `(event_age_exceeds, event_type=schedule.audit.heartbeat, threshold_seconds=10800)`. If the audit itself hasn't heartbeat'd in 3h, the watchdog fires a P0 Telegram directly — "the thing that's supposed to catch missed escalations has itself gone silent."
+
+### 9.3 Why this is non-gameable
+
+- Audit rules operate on raw events and schedule entity state, not on allAI's classification output.
+- If allAI downgrades a P0 to info, the failure/timeout/dispatch_error event still exists in the ledger with `priority=0` on the schedule — the audit catches it.
+- If allAI drops the write to `queue:attention` entirely, the audit doesn't care — it doesn't read the queue.
+- If the audit itself fails silently, the watchdog catches it.
+- If the watchdog fails silently — that's a single failure away from undetectable, but both the audit and watchdog must fail simultaneously AND the backend's own existing healthcheck must also miss it. This is acceptable risk for v1; a fourth-layer check is future work.
+
+### 9.4 Acceptance
+
+Gate 3 build must include end-to-end tests where:
+1. A deliberately-misclassified-as-info P0 run is caught by the audit's R1 rule within 2h.
+2. A dispatch error is caught by R3 within 2h.
+3. The audit itself is killed; the watchdog fires Telegram within 3h.
 
 ---
 
-## 10. ops.ai.market Frontend (D1)
+## 10. ops.ai.market Frontend — EXTENDING `aidotmarket/ops-ai-market` (R2 — D1 per H4 investigation)
 
-### 10.1 Host routing
+### 10.1 Topology correction
 
-`next.config.ts`:
-- Add `ops.ai.market` as a recognized host.
-- Rewrite rule: requests to `ops.ai.market/*` serve pages from the `/ops/*` route namespace in the Next.js app.
-- Preserve existing `www.ai.market` canonicalization; `ops.ai.market` is NOT canonicalized to `www.`.
+**R1 erroneously proposed** building a greenfield ops frontend inside `aidotmarket/ai-market-frontend` with Next.js host routing. Discovery supplement (runbook `ops-ai-market.md` + local clone at `/Users/max/Projects/ops-ai-market`) established:
 
-`middleware.ts`:
-- Gate all `/ops/*` routes behind ops-role auth (see §10.2).
-- Unauthenticated requests redirect to `/login?returnTo=/ops/<path>`.
+- `ops.ai.market` IS a deployed Vite + React + TypeScript static site on Railway.
+- Repo: `aidotmarket/ops-ai-market`. Tech stack: Vite 5, React 18, TanStack React Query 5.83, React Router DOM 6.30, shadcn/ui, Tailwind, Recharts, ReactFlow.
+- Existing panels: OPS, MONITOR, BUILD QUEUE, AGENTS, RUNBOOKS, MARKETING, FINANCE (see `src/pages/Index.tsx` `Panel` string-literal union).
+- Auth: Google OAuth via `src/hooks/useOpsAuth.ts`.
+- API client: `src/lib/api.ts` with `apiFetch<T>(endpoint, options)` using `X-Internal-API-Key` header from localStorage config (`insaits_api_config`).
 
-### 10.2 Auth gate
+**R2 direction:** **EXTEND** this app. No host routing changes. No Next.js migration. No new repo.
 
-Current buyer/seller dashboard gating (`app/dashboard/layout.tsx` client-side role check + email-based "Blog Admin") is NOT reused. New ops RBAC:
+### 10.2 New panels added to existing `Panel` union
 
-- Backend adds `ops_role` field to the `user` model (values: `none` | `read` | `admin`; default `none`).
-- Max gets `admin` via manual DB migration (Gate 3 seed data).
-- `/ops/*` routes require `ops_role` in (`read`, `admin`). Write operations (schedule edit, manual trigger) require `admin`.
-- New API endpoint `GET /api/v1/auth/ops-context` returns `{ ops_role, permitted_actions }`; frontend caches and uses for client-side UI gating (though server-side middleware is authoritative).
+Before (R1 incorrectly assumed greenfield):
+```
+Panel = "ops" | "monitor" | "build-queue" | "agents" | "runbooks" | "marketing" | "finance"
+```
 
-### 10.3 Pages
+After (R2 — extends):
+```
+Panel = "ops" | "monitor" | "build-queue" | "agents" | "runbooks" | "marketing" | "finance"
+       | "schedules" | "runs" | "attention" | "recommendations"
+```
 
-- `/ops` — landing dashboard (agent count, schedule count, attention-queue unresolved count, last 10 runs across all schedules).
-- `/ops/agents` — agent inventory (name, health, last heartbeat, registered schedules count).
-- `/ops/agents/[key]` — per-agent detail (manifest, health history, run history, schedules).
-- `/ops/schedules` — all schedules (filterable by agent, enabled, trigger_type).
-- `/ops/schedules/[id]` — schedule detail (full entity, run history, edit form, manual-trigger button).
-- `/ops/schedules/new` — create schedule form.
-- `/ops/runs` — run history across all schedules (filterable).
-- `/ops/runs/[id]` — run detail (envelope, result event, agent-log excerpt link).
-- `/ops/attention` — attention queue (unresolved items, ack/resolve affordance).
-- `/ops/recommendations` — allAI frequency recommendations (see §12).
+New panels:
+- **SCHEDULES** (`/schedules`) — list all schedules with filter by agent / enabled / trigger_type; row → detail.
+- **SCHEDULES detail** (`/schedules/:id`) — full entity view, run history table, edit form (respecting gh_actions_external read-only tooltip), manual-trigger button, toggle enabled.
+- **RUNS** (`/runs`) — run history across all schedules, filterable; row → detail.
+- **RUNS detail** (`/runs/:runId`) — full envelope, result event, agent-log excerpt link.
+- **ATTENTION** (`/attention`) — attention queue items, unresolved first, severity ladder colored, resolve affordance with optional note.
+- **RECOMMENDATIONS** (`/recommendations`) — allAI frequency recommendations: current cadence vs recommended cadence, rationale, signals summary, accept / reject buttons.
 
-### 10.4 TypeScript types
+### 10.3 File additions
 
-New file `types/ops.ts`:
-- `Agent` — { key, name, status, last_heartbeat_at, schedule_count }
-- `Schedule` — full mirror of the registry entity body (§4.2)
-- `Run` — { schedule_id, run_id, started_at, completed_at, status, summary, severity }
-- `AttentionItem` — mirror of §8.2 shape
-- `FrequencyRecommendation` — { schedule_id, current_cadence, recommended_cadence, rationale, signals, proposed_at, status }
+```
+src/components/schedules/
+  SchedulesPanel.tsx             # list view
+  ScheduleDetail.tsx             # detail view
+  ScheduleEditForm.tsx           # create + edit
+  ScheduleList.tsx               # table component
+  ScheduleRow.tsx
+  ScheduleBadges.tsx             # gh_actions_external badge etc.
+src/components/runs/
+  RunsPanel.tsx
+  RunDetail.tsx
+  RunStatusBadge.tsx
+src/components/attention/
+  AttentionPanel.tsx
+  AttentionItem.tsx              # card with severity, actions
+src/components/recommendations/
+  RecommendationsPanel.tsx
+  RecommendationCard.tsx
+src/lib/scheduleRegistryApi.ts   # API module, apiFetch<T> pattern
+src/types/scheduleRegistry.ts    # Schedule, Run, AttentionItem, FrequencyRecommendation
+```
 
-### 10.5 API wrappers
+### 10.4 API client module (`src/lib/scheduleRegistryApi.ts`)
 
-New file `api/ops.ts`:
-- `listAgents()`, `getAgent(key)`
-- `listSchedules(filters)`, `getSchedule(id)`, `createSchedule(body)`, `updateSchedule(id, patch)`, `deleteSchedule(id)`, `toggleSchedule(id, enabled)`, `triggerSchedule(id)`
-- `listRuns(filters)`, `getRun(runId)`
-- `listAttentionItems(filters)`, `resolveAttentionItem(itemId, note)`
-- `listFrequencyRecommendations()`, `acceptRecommendation(recId)`, `rejectRecommendation(recId, reason)`
+Follows existing `apiFetch<T>(endpoint, options)` pattern, reuses `X-Internal-API-Key` header injection. New functions:
+
+```typescript
+listSchedules(filters?: ScheduleFilters): Promise<Schedule[]>
+getSchedule(id: string): Promise<Schedule>
+createSchedule(body: ScheduleCreateBody): Promise<Schedule>
+updateSchedule(id: string, patch: SchedulePatchBody): Promise<Schedule>
+deleteSchedule(id: string): Promise<void>
+toggleSchedule(id: string, enabled: boolean): Promise<Schedule>
+triggerSchedule(id: string): Promise<{ run_id: string }>
+listRuns(filters?: RunFilters): Promise<Run[]>
+getRun(runId: string): Promise<Run>
+listAttentionItems(filters?: AttentionFilters): Promise<AttentionItem[]>
+resolveAttentionItem(itemId: string, note?: string): Promise<AttentionItem>
+listFrequencyRecommendations(): Promise<FrequencyRecommendation[]>
+acceptRecommendation(recId: string): Promise<FrequencyRecommendation>
+rejectRecommendation(recId: string, reason: string): Promise<FrequencyRecommendation>
+```
+
+### 10.5 Backend API contract
+
+Backend ships the following routes at `/api/v1/ops/*`:
+
+- `GET/POST/PATCH/DELETE /api/v1/ops/schedules[/:id]`
+- `POST /api/v1/ops/schedules/:id/trigger`
+- `GET /api/v1/ops/runs[/:runId]`
+- `GET/PATCH /api/v1/ops/attention[/:itemId]`
+- `GET/POST /api/v1/ops/recommendations[/:recId]`
+- `POST /api/v1/schedules/:id/run-start` (webhook for `gh_actions_external`)
+- `POST /api/v1/schedules/:id/run-result` (webhook for `gh_actions_external`)
+
+All backend routes require the same `X-Internal-API-Key` gate as existing `/api/v1/ops/*` routes already used by OpsPanel (no new auth model needed).
 
 ### 10.6 State management
 
-Use React Query explicitly for the ops surface — it's already provided at `components/Providers.tsx` but underused in the existing dashboard. Every API wrapper gets a corresponding query key and mutation hook. Optimistic updates for toggle + manual trigger; invalidation on create/update/delete.
+React Query with hooks per resource:
+- `useSchedules()`, `useSchedule(id)`, `useCreateSchedule()`, etc.
+- Query keys: `['schedules', ...filters]`, `['schedule', id]`, `['runs', ...filters]`, `['attention', ...filters]`, `['recommendations']`.
+- Optimistic updates for toggle + manual trigger.
+- Invalidation on create/update/delete.
+- Refetch cadence: schedules list 30s; attention list 10s (attention queue is time-sensitive); runs list 60s.
+
+### 10.7 Auth + routing
+
+- No changes to `useOpsAuth.ts` — existing Google OAuth flow is reused.
+- No changes to `next.config.ts` or middleware (those don't exist in this repo; it's Vite, not Next.js).
+- No changes to `nginx.conf` (static serving, already set up).
+- DNS and Railway deployment untouched.
 
 ---
 
-## 11. Frequency-Recommendation Surface (answers Q9)
+## 11. Frequency-Recommendation Surface
 
 ### 11.1 Signal sources
 
 allAI computes recommendations using four signals:
 
-1. **Run duration trend** — moving average of run duration over last 10 runs. If duration is monotonically increasing or volatile, flag for review.
-2. **Failure rate** — `run_count_failure / run_count_total` over last 20 runs. If > 20%, recommend investigating (not necessarily frequency change).
-3. **State-drift observed** — for schedules whose result artifact is a periodic comparison (e.g. runbook staleness), compare deltas across runs. If drift is negligible between runs at current cadence, recommend reducing cadence. If drift is large, recommend increasing.
-4. **Session-prompted interventions** — scan session logs (Vulcan history) for Max-prompted operational work that matches an existing schedule's domain. If Max is frequently doing X manually AND schedule X exists, it may be firing too infrequently.
+1. **Run duration trend** — moving average over last 10 runs.
+2. **Failure rate** — `run_count_failure / run_count_total` over last 20 runs.
+3. **State-drift observed** — for periodic-comparison schedules, delta between run results at current cadence.
+4. **Session-prompted interventions** — scan session logs for Max-prompted operational work that matches an existing schedule's domain.
 
 ### 11.2 Recommendation generation
 
-A daily `schedule:allai-frequency-recommendations-daily` cron runs at 02:00 UTC, evaluates signals across all schedules, writes recommendations to Living State as `recommendation:*` entities, and emits an `allai.recommendation.new` event per new recommendation.
+Daily `schedule:allai-frequency-recommendations-daily` cron at 02:00 UTC evaluates signals across all schedules, writes `recommendation:*` entities, emits `allai.recommendation.new` events.
 
 ### 11.3 Max approval flow
 
-Frontend `/ops/recommendations` page lists pending recommendations. Max reviews each with current-vs-recommended cadence + rationale + signal summary; clicks Accept or Reject.
+Frontend RECOMMENDATIONS panel lists pending recommendations. Accept → backend issues `PATCH /api/v1/ops/schedules/<id>`; recommendation `status=accepted`. Reject with reason → `status=rejected`; reason stored.
 
-- Accept → API issues a `PATCH /api/v1/schedules/<id>` with the new cadence; recommendation entity marked `status=accepted`.
-- Reject with reason → recommendation entity marked `status=rejected`; reason stored; used as training signal (informally) for future recommendation tuning.
-
-Recommendations older than 30 days with `status=pending` are auto-purged in a weekly cleanup cron.
+Recommendations older than 30 days with `status=pending` are auto-purged weekly.
 
 ---
 
-## 12. Runbook Usage Enforcement (answers Q7)
+## 12. Runbook Usage Enforcement
 
-### 12.1 Decision: both (policy + audit), staged
+### 12.1 Decision: audit-first, policy-later (staged)
 
-Policy-layer (strict): support-dispatched agents must cite a runbook section in their response. Enforced at dispatch-time by adding a required `runbook_citations` field to the support agent response envelope. Requires instrumenting each support-dispatched agent (CRM Steward, SysAdmin, etc.).
+- **Policy-layer (strict):** support-dispatched agents must cite a runbook section; deferred to follow-on BQ after audit data informs instrumentation priority.
+- **Audit-layer (lax):** allAI periodically reviews agent responses from past 24h, scores runbook-citation rate. Scores below threshold emit WARN attention item.
 
-Audit-layer (lax): allAI periodically reviews agent responses sampled from the past 24h and scores runbook-citation rate. Missing citations below threshold emit a warning to the attention queue.
+### 12.2 V1 ships audit-layer only
 
-### 12.2 Staging
-
-V1 ships audit-layer only. Policy-layer requires instrumenting multiple agents (substantial surgery) and risks breaking existing dispatches. Audit-layer is additive and observational — it surfaces the gap without changing behaviour.
-
-Follow-on BQ `bq-runbook-policy-enforcement` picks up the policy layer after audit-layer data shows which agents are worst offenders and what the citation-rate distribution looks like.
-
-### 12.3 Audit cron
-
-`schedule:allai-runbook-citation-audit-daily` — samples 20 support-dispatched runs from the last 24h; for each, allAI reads the runbook relevant to the request and scores whether the agent's response aligns with the runbook + cites it. Scores below 0.5 emit a WARN attention item referencing the run.
+Additive + observational; doesn't break existing dispatches. Audit cron: `schedule:allai-runbook-citation-audit-daily`.
 
 ---
 
@@ -505,36 +687,36 @@ Follow-on BQ `bq-runbook-policy-enforcement` picks up the policy layer after aud
 
 ### 13.1 Consolidation scope
 
-Source documents (all in `/Users/max/Projects/runbooks`, pre-standard):
-- `agent-dispatch.md` (8,423 bytes) — how agents are dispatched, council conventions
-- `session-lifecycle.md` — `kd_session_*` mechanics
-- `council-gate-process.md` (5,006 bytes) — how code gets reviewed/approved/shipped through the BQ system
-- `council-hall-deliberation.md` (7,151 bytes) — multi-agent deliberation process
-- `vulcan-configuration.md` — Vulcan context hydration + memory architecture
+Source documents (pre-standard): `agent-dispatch.md`, `session-lifecycle.md`, `council-gate-process.md`, `council-hall-deliberation.md`, `vulcan-configuration.md`.
 
 ### 13.2 Consolidation form
 
-Single new runbook at `/Users/max/Projects/runbooks/operating-guide.md` authored §A–§K-conformant to the Runbook Standard at commit `365c198`. Structure:
-
-- §A (System + scope) — "Operating Guide: how work flows through the Market's autonomous systems."
-- §B (Capabilities Matrix) — what the operating system does (session management, agent dispatch, council reviews, gate flow, Living State, scheduling).
-- §C (Architecture) — components: Koskadeux MCP gateway, Living State, council agents, Vulcan, allAI, schedule registry.
-- §D (Agent Capability Map) — which agent does what.
-- §E (Operate) — normal operational flow scenarios.
-- §F (Isolate) — diagnosing deviations.
-- §G (Repair) — resolving common breakages.
-- §H (Evolve) — change-class taxonomy for Market infrastructure itself.
-- §I (Acceptance Criteria) — stateless-agent harness scenarios ≥10.
-- §J (Lifecycle) — staleness rules, refresh cadence.
-- §K (Migration) — this is a from-scratch authoring (not a retrofit); §K.retrofit=false.
+Single new runbook at `/Users/max/Projects/runbooks/operating-guide.md` authored §A–§K-conformant to Runbook Standard at commit `365c198`.
 
 ### 13.3 Relationship to source documents
 
-Source documents are NOT deleted in v1 (reduce blast radius). operating-guide.md is canonical; source documents get a header note "SUPERSEDED — see operating-guide.md" pointing to the new file. A follow-on cleanup BQ can delete source files once operating-guide.md has been stable for 30+ days.
+Source documents NOT deleted in v1. operating-guide.md is canonical; source documents get a header note "SUPERSEDED — see operating-guide.md."
 
-### 13.4 Stateless-agent harness self-validation
+### 13.4 Stateless-agent harness self-validation (R2 — L1 closure)
 
-Per Runbook Standard §I, operating-guide.md must include ≥ 10 Vulcan-authored self-assertion scenarios + pass `runbook-harness --runbook operating-guide.md --mode conformant` at ≥ 80% weighted score. This is Gate 3 acceptance for this chunk.
+Validation must NOT be tautological (Vulcan-authored scenarios validating Vulcan-authored content). Two-part validation:
+
+**Part A — Vulcan self-assertion set (≥ 10 scenarios).**
+- Authored by Vulcan in the same session as the operating-guide.md body.
+- Must pass `runbook-harness --runbook operating-guide.md --mode conformant` at ≥ 80% weighted score.
+- Committed inline in §I of operating-guide.md.
+
+**Part B — Reviewer-authored challenge set (≥ 5 scenarios).**
+- Authored by MP (or AG if MP unavailable) in a SEPARATE session, AFTER Part A is committed.
+- Reviewer reads the 5 source documents independently and derives challenge scenarios from facts mentioned in source but that may have been lost/drifted during consolidation.
+- Committed inline in §I of operating-guide.md under clearly labeled "Reviewer-authored challenge scenarios."
+- Must pass `runbook-harness --runbook operating-guide.md --mode conformant --external-scenario-set reviewer-challenge/` at ≥ 80% weighted score.
+
+**Combined acceptance:**
+- Both Part A AND Part B must pass at ≥ 80% independently.
+- If Part B fails while Part A passes, the finding implies the meta-runbook drifted from source documents during consolidation — Vulcan must amend operating-guide.md to cover the failing scenarios' facts.
+
+This breaks the tautology: the reviewer's scenarios test whether the consolidated meta-runbook accurately represents its sources, not just whether the consolidator's own scenarios agree with the consolidator's own content.
 
 ---
 
@@ -544,96 +726,96 @@ Per Runbook Standard §I, operating-guide.md must include ≥ 10 Vulcan-authored
 - Trigger: cron `0 7 * * 1` (Mondays 07:00 UTC)
 - Agent: `sysadmin`
 - Dispatch: `direct_callable` → `app.agents.sysadmin.runbook_stewardship.run_sweep`
+- Concurrency: `skip_if_running`, max_instances 1
 - Actions:
   1. `runbook-lint` across every `.md` in `/Users/max/Projects/runbooks` root (excluding `specs/`, `tests/`, `templates/`, `harness/`, `runbook_tools/`).
   2. For each runbook, evaluate §J staleness predicate.
-  3. Aggregate results into `project:runbook-stewardship-report-YYYY-WW` entity.
-  4. Emit `schedule.run.complete` event with summary.
-- Severity derivation:
-  - Any runbook FAILS lint → result severity P1.
-  - Any runbook has §J staleness violation above grace period → severity P2.
-  - Any runbook has §J staleness warning within grace period → severity WARN.
-  - All OK → severity info.
-- Result entity retention: last 12 weekly reports retained; older entities purged by `schedule:stewardship-report-purge-quarterly`.
+  3. Aggregate to `project:runbook-stewardship-report-YYYY-WW`.
+  4. Emit `schedule.run.complete`.
+- Severity: FAIL → P1; staleness beyond grace → P2; staleness within grace → WARN; all OK → info.
+- Retention: last 12 weekly reports; older purged by `schedule:stewardship-report-purge-quarterly`.
 
 ---
 
 ## 15. Acceptance Criteria (Gate 1 closure)
 
-Gate 1 is APPROVED when MP primary review + AG cross-vote both concur with verdict ≥ APPROVE_WITH_NITS on R_N of this spec. Specifically the design must establish:
+Gate 1 APPROVED when MP + AG both concur ≥ APPROVE_WITH_NITS on R_N:
 
-1. **AC1 — Schedule entity schema complete and JSON-Schema-expressible.** §4.2 fields are necessary and sufficient; no ambiguity about which fields are required when.
-2. **AC2 — Pure-replace executor contract clear.** §5.1 sole-API invariant + §5.2 substrate model + §5.5 migration plan form a coherent whole.
-3. **AC3 — State-predicate language sufficient for v1 use cases.** §6 Form A + Form B cover the identified v1 cron needs; compound logic deferral is explicit.
-4. **AC4 — allAI stewardship role placement defensible.** §7.1 rationale for placing stewardship on `AllAIBrainAgent` addresses why NOT a new agent; council is explicitly invited to challenge.
-5. **AC5 — Attention queue + severity ladder + session-open integration sound.** §8 specifies entity shape, routing rules, resolution mechanism, retention.
-6. **AC6 — Missed-escalation audit is non-gameable.** §9 audit cannot be silently suppressed by the same classifier it's auditing; self-escalation bypasses the classifier.
-7. **AC7 — ops.ai.market scope includes host routing, auth gate distinct from buyer/seller, page inventory, data shapes, API wrappers.** §10 complete enough that Gate 2 can spec without re-deliberation.
-8. **AC8 — Frequency-recommendation signals + approval flow specified.** §11 signals are computable from existing data (event ledger, run_count_*, session logs); Max approval is required for every change.
-9. **AC9 — Runbook-enforcement policy vs audit decision made with staging rationale.** §12 audit-first-then-policy is justified.
-10. **AC10 — Runbook-of-runbooks consolidation scope identifies source docs, form, and §I harness validation.** §13 concrete enough to start Gate 2 authoring.
-11. **AC11 — Gate 2 chunking proposal is viable.** Three chunks (backend, frontend, content) can be specified and built somewhat in parallel, with clear inter-chunk contract boundaries.
-12. **AC12 — Gap remediation dependencies explicit.** §7.3 names G1 as prerequisite (flusher wiring) and G10 as deliverable; others non-blocking.
-13. **AC13 — Backward-compat with existing scheduled infrastructure specified.** §5.5 migration table + §5.6 GH-Actions delegation cover every cron found in discovery.
-14. **AC14 — Open questions R2 should resolve are named** (see §17).
+1. **AC1 — Schedule schema complete + execution-semantics fields included** (H2 closure).
+2. **AC2 — Pure-replace contract + startup-assertion-against-manifest enforcement clear** (M2 closure).
+3. **AC3 — State-predicate comparator surface specified** (M4 closure).
+4. **AC4 — allAI stewardship placement with operational queue/rate-isolation/degradation/split criterion** (M5 closure).
+5. **AC5 — Attention queue + severity ladder + session-open integration sound.**
+6. **AC6 — Missed-escalation audit derives severity INDEPENDENTLY of allAI classification** (H1 closure).
+7. **AC7 — ops.ai.market extension scope on existing Vite/React repo** (H4 closure).
+8. **AC8 — Frequency-recommendation signals + Max approval flow specified.**
+9. **AC9 — Runbook-enforcement audit-first-then-policy decision staged.**
+10. **AC10 — Runbook-of-runbooks consolidation with reviewer-authored challenge set breaking tautology** (L1 closure).
+11. **AC11 — Gate 2 chunking (3 chunks) viable with clean inter-chunk contracts.**
+12. **AC12 — Gap remediation dependencies explicit (G1 prerequisite, G10 deliverable).**
+13. **AC13 — Migration inventory CLOSED (all jobs have dispositions, no deferred Celery audit, backup-verify duplication resolved)** (H3 closure).
+14. **AC14 — Idempotency model + `run_id` authority + `attempt_number` + duplicate-completion semantics specified** (M1 closure).
+15. **AC15 — `gh_actions_external` mode coherent as external-schedule classification** (M3 closure).
+16. **AC16 — R2 open questions are narrow and R3-answerable.**
 
 ---
 
 ## 16. Gate 2 Chunking Proposal
 
-Three chunks, specified somewhat in parallel with clear contract boundaries.
-
 **Chunk A — Backend schedule registry + executor + allAI stewardship + attention queue + missed-escalation audit.**
 - Scope: §4, §5, §6, §7, §8, §9 of this spec.
-- Dependencies: the filed follow-on BQ `bq-allai-escalation-flusher-wiring` (G1 closure) — ideally reaches Gate 3 APPROVED before Chunk A Gate 3 starts.
-- Output: `app/services/schedule_registry/` package + `app/agents/sysadmin/runbook_stewardship.py` + allAI brain updates + new API routes under `/api/v1/ops/*` + Alembic migration for `user.ops_role` field.
-- Gate 2 sub-chunks likely: A1 (registry data model + CRUD), A2 (executor + substrate), A3 (state-predicate engine + dispatch envelopes), A4 (allAI subscription + attention queue + missed-escalation audit).
+- Dependencies: follow-on BQ `bq-allai-escalation-flusher-wiring` (G1) Gate 3 APPROVED before Chunk A Gate 3.
+- Output: `app/services/schedule_registry/` package + `backend/config/migration-manifest.yaml` + new `/api/v1/ops/*` routes + Alembic migration for `user.ops_role` field (existing?) or confirm existing auth covers.
+- Sub-chunks: A1 registry data model + CRUD, A2 executor + substrate + startup-assertion, A3 predicate engine + dispatch envelopes, A4 allAI subscription + bounded queue + degradation, A5 attention queue + missed-escalation audit + watchdog.
 
-**Chunk B — ops.ai.market greenfield frontend.**
-- Scope: §10 + §11.3 of this spec.
-- Dependencies: Chunk A Gate 3 API routes must be stable before Chunk B Gate 3 integration tests.
-- Output: `next.config.ts` host routing updates + `middleware.ts` updates + `app/ops/*` page tree + `types/ops.ts` + `api/ops.ts` + component library.
-- Gate 2 sub-chunks likely: B1 (host routing + auth gate), B2 (agents + schedules pages), B3 (runs + attention + recommendations pages).
+**Chunk B — ops.ai.market panel extensions.**
+- Scope: §10 of this spec.
+- Dependencies: Chunk A Gate 3 API routes stable before Chunk B Gate 3 integration tests.
+- Output: new panels + components + api client + types in `aidotmarket/ops-ai-market` repo.
+- Sub-chunks: B1 schedules + runs panels, B2 attention + recommendations panels.
 
-**Chunk C — Runbook-of-runbooks consolidated meta-runbook.**
+**Chunk C — Runbook-of-runbooks meta-runbook.**
 - Scope: §13 of this spec.
-- Dependencies: none (independent; can start immediately after Gate 2 Chunk C spec approval).
-- Output: `operating-guide.md` authored §A–§K-conformant + harness self-validation passing + supersession notes on source documents.
-- Single-chunk, no sub-chunks.
+- Dependencies: Independent from A+B at authoring time. Reviewer-authored challenge scenarios (Part B of §13.4) require MP session AFTER Part A commits.
+- Output: `operating-guide.md` + supersession notes on source documents.
+- Single chunk, no sub-chunks.
 
 ---
 
-## 17. Open Questions for R2
+## 17. Open Questions for R3
 
-- **Q1 (R2).** Should compound state-predicate logic (AND/OR of predicates) be in v1 or deferred? Current spec defers; if any identified v1 cron actually needs compound logic (not yet identified), R2 should revisit.
-- **Q2 (R2).** Schedule-entity-level concurrent-run policy — should the registry enforce "only one run of schedule X at a time" or delegate to APScheduler defaults? Spec silent.
-- **Q3 (R2).** Per-schedule budget caps vs per-dispatch budget caps. For high-frequency schedules with LLM dispatches, how does monthly budget aggregate? Spec silent.
-- **Q4 (R2).** Attention queue pagination + filtering semantics at the API level. §8 describes entity shape but not read-API.
-- **Q5 (R2).** ops.ai.market auth gate: single-tenant (only Max) vs multi-admin (future ops team). Current spec assumes Max-as-admin; field allows for `ops_role=read`; is that sufficient?
-- **Q6 (R2).** Is `AllAIStewardAgent` (dedicated) preferable to role-extension on `AllAIBrainAgent`? Council invited to challenge.
-- **Q7 (R2).** `gh_actions_webhook` dispatch mode's authority question: when the registry and workflow file disagree on cron, what happens? Current spec warns on edit but doesn't enforce. Gate 3 may add a reconciliation check.
-- **Q8 (R2).** Should the runbook-of-runbooks be a G4 falsifiability test candidate (like D5 AIM Node)? Would require frozen-standard isolation discipline. Current spec does not treat it as G4.
-- **Q9 (R2).** Telegram callback format inconsistency (allAI G3 gap) — does THIS BQ's Telegram interactions use the legacy format, the canonical underscore format, or await G3's broader fix? Spec silent.
-- **Q10 (R2).** Migration ordering: does the Celery Beat audit (§5.5) produce a finding before or during Chunk A? Timing matters for migration-table completeness.
-- **Q11 (R2).** Runbook-stewardship sweep frequency: weekly is proposed; weekly may be too infrequent during active runbook rollout. R2 or Chunk A Gate 2 may tune.
+- **Q1 (R3).** Does `ops-ai-market` already have an `ops_role` or admin-access concept, or does Chunk A Gate 2 need to introduce auth field changes? Per R2 §10.7, no auth changes — confirm with Chunk A Gate 2 spec author that existing `X-Internal-API-Key` gate is sufficient.
+- **Q2 (R3).** Are any of the existing `ops-ai-market` tabs (OPS, MONITOR, BUILD QUEUE, AGENTS) natural homes for SCHEDULES/RUNS/ATTENTION/RECOMMENDATIONS as sub-tabs, or is four sibling panels the right choice? Current R2 proposal: four sibling panels (keeps separation clean).
+- **Q3 (R3).** `migration-manifest.yaml` location — `backend/config/` or `/mnt/manifests/`? Repo-local is simpler; the manifest is code-reviewable.
+- **Q4 (R3).** Backup-verify three-way check (GH backup 03:00 + backend verify 03:30 + GH ci-verify 06:00) — is the third check redundant or does it provide distinct signal? R3 may consolidate.
+- **Q5 (R3).** `run_id_authority=external_webhook` must still enforce idempotency per §5.4. If GH workflow retries its webhook call 3 times with same run_id, backend must dedupe. Is the deduplication window unbounded or time-bounded?
+- **Q6 (R3).** Telegram direct-send from audit (§9.2 step 3) uses `TelegramRelay.send_message()` — does the audit share a rate-limit bucket with the main Telegram escalation path, and could audit bursts starve legitimate P0 sends?
+- **Q7 (R3).** Operating-guide.md challenge-scenario reviewer — MP or AG? MP has better structural rigor; AG has better consumer-first framing. R2 proposes MP with AG fallback. R3 may let council decide.
+- **Q8 (R3).** Missed-escalation audit R4 rule ("missed schedule fire") needs `expected_interval` per schedule. For cron schedules derived from cron expression. For state-predicate schedules — no predictable interval. R4 applies only to cron schedules?
+- **Q9 (R3).** Compound predicate logic: how often will v1 schedules genuinely need AND/OR? If > 20% of filed schedules want compound, R3 may elevate this to v1 scope; if < 5%, defer is fine.
+- **Q10 (R3).** Backend `/api/v1/ops/*` prefix collides with existing OpsPanel routes on `/api/v1/ops/*`? Need Chunk A Gate 2 to confirm namespace is clear or choose sub-namespace like `/api/v1/ops/schedules/*`.
 
 ---
 
 ## 18. Review Targets
 
-**MP R1 (primary, read-only).** Structural rigor:
-- Schedule entity field list complete? Any field that will obviously be missed at Gate 2?
-- Pure-replace executor semantics coherent? Internal-substrate/external-API split clean?
-- State-predicate language sufficient for v1 cron types not listed in §14?
-- Missed-escalation audit non-gameable? Self-escalation path truly bypasses the classifier?
-- Gate 2 chunking boundaries clean? No hidden cross-chunk coupling?
-- Does §7.3 correctly identify G1 as prerequisite (vs trying to close it in-scope)?
+**MP R2 (primary, read-only).** Verify R1 findings closed:
+- H1 (audit independence) — §9 now derives candidates from raw events via 6 independent rules, bypassing queue.
+- H2 (execution semantics) — §4.2 adds `concurrency_policy`, `max_instances`, `misfire_grace_time_seconds`, `coalesce`; §4.4 defaults.
+- H3 (migration completeness) — §5.5 table is closed; Celery Beat dispositions explicit; backup-verify staggered resolution.
+- H4 (frontend topology) — §10 rewritten for `ops-ai-market` extension; no Next.js assumptions remain.
+- M1 (idempotency) — §5.3/§5.4 specify `run_id_authority`, `attempt_number`, duplicate-completion semantics.
+- M2 (enforcement) — §5.1 adds startup-assertion against `migration-manifest.yaml`.
+- M3 (gh_actions coherence) — §5.6 classifies as external; sole-API invariant applies to backend-in-process only.
+- M4 (comparator surface) — §6.1 enumerates 10 comparators.
+- M5 (stewardship operational) — §7 adds bounded queue + rate isolation + degradation + split criterion.
+- L1 (self-validation tautology) — §13.4 adds reviewer-authored challenge subset ≥ 5.
 
-**AG cross-vote (consumer-first).** After MP approves:
-- Do the three consumer classes (§3) actually get served by v1 deliverables?
-- Is allAI-as-stewardship-hub coherent with the system Max operates, or should stewardship split out?
-- Does the ops.ai.market surface give Max the controls he actually needs?
-- Frequency-recommendation approval flow: too noisy, too sparse, or right-sized?
+**AG cross-vote (after MP approves).** Consumer-first:
+- Three consumer classes (§3) served by v1 deliverables?
+- allAI stewardship coherent with existing brain role?
+- ops.ai.market extension gives Max the right controls?
+- Frequency-recommendation approval flow right-sized?
 
 ---
 
@@ -647,7 +829,7 @@ Three chunks, specified somewhat in parallel with clear contract boundaries.
   "body": {
     "id": "weekly-runbook-stewardship-sweep",
     "name": "Weekly Runbook Stewardship Sweep",
-    "description": "Runs runbook-lint against every .md in the runbooks repo root, evaluates §J staleness for each, aggregates to a weekly report entity, classifies via allAI.",
+    "description": "Runs runbook-lint against every .md in runbooks repo root + §J staleness eval, aggregates to weekly report entity, classifies via allAI.",
     "trigger_type": "cron",
     "cron_expression": "0 7 * * 1",
     "timezone": "UTC",
@@ -659,53 +841,77 @@ Three chunks, specified somewhat in parallel with clear contract boundaries.
     "escalation_target": "attention_queue",
     "priority": 2,
     "enabled": true,
+    "concurrency_policy": "skip_if_running",
+    "max_instances": 1,
+    "misfire_grace_time_seconds": 3600,
+    "coalesce": true,
+    "run_id_authority": "executor",
     "owner": "max",
     "created_session": "S490"
   }
 }
 ```
 
-## Appendix B — Existing Scheduled Infrastructure (from discovery)
+---
 
-Source: `project:bq-autonomous-operations-discovery-findings` v3.
+## Appendix B — Closed Migration Inventory
 
-**APScheduler + in-allAI loops in ai-market-backend (pulled from MP backend audit, task 96a48267):**
+See §5.5 for full table. Manifest file location: `backend/config/migration-manifest.yaml`.
 
-| Location | Cadence | Migration disposition |
-|---|---|---|
-| `app/core/scheduler.py:830-849` SysAdmin health | 5min | Migrate → registry |
-| `app/core/scheduler.py:830-849` backup verify | Daily 03:00 UTC | Migrate → registry (overlaps with GH Actions `backup-verify.yml`; audit for duplication) |
-| `IncidentSweeper` loop | 300s | Migrate → registry |
-| `BaseAgent` heartbeat | 90s TTL | KEEP — per-instance lifecycle |
-| `CRMStewardAgent` daily maintenance | Daily | Migrate → registry |
-| `SysAdminAgent` proactive monitors | Various | Per-monitor migration → registry |
-| Telegram remediation per-proposal timeouts | Short-lived | KEEP — ephemeral |
-| Celery Beat (`app/tasks/scheduled.py`) | Various | Audit during Chunk A; migrate-or-retire |
-
-**GH Actions crons (pulled from AG Stream A, task 9e602fe3):**
-
-| Workflow | Cron | Disposition |
-|---|---|---|
-| `ai-market-backend/smoke-test.yml` | `0 */6 * * *` | COEXIST (not migrated) |
-| `ai-market-backend/quarantine-weekly.yml` | `0 8 * * 1` | Migrate → `gh_actions_webhook` mode |
-| `ai-market-backend/backup-verify.yml` | `0 6 * * *` | Migrate → `gh_actions_webhook` mode |
-| `ai-market-backend/backup.yml` | `0 3 * * *` | Migrate → `gh_actions_webhook` mode |
-| `ai-market-backend/health-check.yml` | `0 7 * * *` | Migrate → `gh_actions_webhook` mode |
-| `runbooks/runbook-harness.yml` | `0 7 * * *` | Migrate → `gh_actions_webhook` mode |
+---
 
 ## Appendix C — allAI Backend Gap Remediation Plan
 
-Source: `project:bq-autonomous-operations-discovery-findings` v3 mp_backend_allai_audit gaps_identified (G1–G10).
-
 | Gap | Disposition |
 |---|---|
-| G1 P2+ flusher unwired | PREREQUISITE — file follow-on BQ `bq-allai-escalation-flusher-wiring` during Chunk A Gate 2 |
-| G2 Remediation callbacks unwired | Non-blocking; separate BQ `bq-allai-telegram-remediation-wiring` at Max's discretion |
-| G3 Telegram callback format inconsistency | Non-blocking; R2 Q9 to decide whether v1 uses legacy or canonical |
-| G4 reply_markup dropped | Non-blocking; bundled with G3 fix if Max files that BQ |
-| G5 Inbox model not unified | Non-blocking architectural cleanup; future BQ |
-| G6 No cross-signal classifier | Non-blocking; rules-first deterministic classifier (routing_policy.py) is sufficient for v1 |
-| G7 Remediation proposals Redis-only | Non-blocking; separate BQ at Max's discretion |
-| G8 Delegate route unimplemented | Non-blocking; Phase 2 of allAI evolution |
-| G9 Agent REST surface dynamic | Non-blocking; documentation issue primarily |
-| **G10 Core ops path does not write to Living State** | **DELIVERABLE of this BQ — the schedule registry + run events close this gap by definition** |
+| G1 P2+ flusher unwired | PREREQUISITE — follow-on BQ `bq-allai-escalation-flusher-wiring` |
+| G2 Remediation callbacks unwired | Non-blocking |
+| G3 Telegram callback format inconsistency | Non-blocking |
+| G4 reply_markup dropped | Non-blocking |
+| G5 Inbox model not unified | Non-blocking |
+| G6 No cross-signal classifier | Non-blocking (rules-first sufficient for v1) |
+| G7 Remediation proposals Redis-only | Non-blocking |
+| G8 Delegate route unimplemented | Non-blocking |
+| G9 Agent REST surface dynamic | Non-blocking |
+| **G10 Core ops path doesn't write Living State** | **DELIVERABLE of this BQ** |
+
+---
+
+## Appendix D — Ops Frontend Stack Reference (R2 — new)
+
+Existing `aidotmarket/ops-ai-market` stack (authoritative as of R2 authoring):
+- **Build:** Vite 5.4
+- **Framework:** React 18.3
+- **Language:** TypeScript
+- **Routing:** react-router-dom 6.30
+- **State:** @tanstack/react-query 5.83
+- **UI:** shadcn/ui + Tailwind CSS 3.4
+- **Charts:** Recharts 2.15
+- **Graphs:** ReactFlow
+- **Markdown:** react-markdown 10
+- **Forms:** react-hook-form 7.61
+- **Auth:** Google OAuth (`src/hooks/useOpsAuth.ts`)
+- **API:** `src/lib/api.ts` `apiFetch<T>(endpoint, options)` with `X-Internal-API-Key` from localStorage `insaits_api_config`
+- **Routing model:** panel name in URL path `/panel`; `Panel` string-literal union in `src/pages/Index.tsx`
+- **Deploy:** Railway static site (nginx via Dockerfile); DNS `ops.ai.market` → Railway service
+
+---
+
+## Appendix E — R1 → R2 Change Log
+
+MP R1 task `5c85b3f3` returned REQUEST_CHANGES (4H+5M+1L). R2 closes all 10:
+
+| Finding | Severity | R2 fix location |
+|---|---|---|
+| Missed-escalation audit gameable (relied on queue) | HIGH #1 | §9 rewritten with independent severity derivation rules R1–R6 + watchdog + self-escalation |
+| Schedule schema omits execution semantics | HIGH #2 | §4.2 adds `concurrency_policy`, `max_instances`, `misfire_grace_time_seconds`, `coalesce`, `run_id_authority`; §4.4 defaults table |
+| Migration table not closed (Celery + backup-verify dup) | HIGH #3 | §5.5 closed: Celery Beat 2-job migration specified; backup-verify 3-way stagger (GH backup 03:00 / backend verify 03:30 / GH ci-verify 06:00) |
+| Frontend topology assumed Next.js greenfield | HIGH #4 | §10 rewritten for `ops-ai-market` extension; Appendix D added documenting existing stack |
+| Idempotency model missing | MEDIUM #1 | §5.3 adds `run_id_authority` + `attempt_number`; §5.4 adds duplicate-completion semantics |
+| Lint can't prove registry-completeness | MEDIUM #2 | §5.1 adds startup-assertion against `migration-manifest.yaml` |
+| gh_actions_webhook not coherent as sole-API | MEDIUM #3 | §5.6 rewritten; mode renamed `gh_actions_external`; classified as external-schedule; sole-API invariant applies to backend-in-process only |
+| Comparator surface underspecified | MEDIUM #4 | §6.1 adds 10-comparator table |
+| Stewardship rationale conceptual not operational | MEDIUM #5 | §7.3–§7.6 adds bounded queue + rate isolation + degradation + split criterion |
+| Self-validation tautological | LOW #1 | §13.4 adds reviewer-authored challenge subset ≥ 5 + dual-set acceptance criterion |
+
+R1 → R2 net diff expected: ~+300 / -100 lines (R1 711 → R2 ~900).
