@@ -816,6 +816,7 @@ Behavior:
 - if current key fails and `PROD_AGENT_WEBHOOK_HMAC_SECRET_PREVIOUS` is configured, backend retries verification once against the previous key to support rotation overlap
 - signature mismatch after both checks returns HTTP `401` and logs `webhook.auth.reject` with `schedule_id` when present, `run_id`, `attempt_number`, and available `correlation_*` fields
 - successful verification logs `webhook.auth.accept` with `validated_secret=current|previous` for rotation auditability
+- client-side rotation is expected to be coordinated via a simultaneous configuration update to both this backend service and the production dispatch microservice (sender); the `PROD_AGENT_WEBHOOK_HMAC_SECRET_PREVIOUS` key is a safeguard for brief deployment overlaps, not a long-term fallback — the microservice should switch to the new secret atomically with the backend deploy
 - backend resolves `schedule_id`, updates `last_run_*` fields, emits/writes the sole completion event to the event ledger, and records correlation metadata required for audit
 - this webhook is in scope for Chunk A; the outbound Railway microservice itself is not
 - Gate 3 must prove the wire contract with: a schema/auth test asserting `X-Dispatch-Signature: sha256=<hexdigest>` on raw-body payloads; a missing-header test returning `400`; an invalid-signature test returning `401` plus `webhook.auth.reject`; and a rotation-window test showing `webhook.auth.accept` with `validated_secret=previous`
