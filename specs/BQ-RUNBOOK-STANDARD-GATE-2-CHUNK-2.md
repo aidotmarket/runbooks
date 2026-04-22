@@ -4,9 +4,9 @@
 **Chunk:** Gate 2 Chunk 2 — Gate 1 §9 Deliverables D4 + D5
 **Chunk 1 contract:** `specs/BQ-RUNBOOK-STANDARD-GATE-2-CHUNK-1.md` @ commit `ea70326`
 **Gate 1 frozen standard:** `specs/BQ-RUNBOOK-STANDARD.md` @ commit `365c198`
-**Revision:** R2 (addresses MP R1 task `4f2740a0` REQUEST_CHANGES: 2H+4M+2L)
+**Revision:** R3 (addresses MP R2 task `8fa9c9b0` REQUEST_CHANGES: 1H+1M+1L; R1 task `4f2740a0` addressed in R2)
 **Author:** Vulcan
-**Authored sessions:** R1 S489 (7c41edf), R2 S489
+**Authored sessions:** R1 S489 (7c41edf), R2 S489 (b8ae9ab), R3 S489
 
 ---
 
@@ -201,7 +201,7 @@ The central G4 integrity requirement for the runbook-author side (restating Gate
 2. **Git history inspection of D4 content** — `git show <sha>:infisical.md`, `git log -p infisical.md`, `git blame infisical.md`, `git diff` touching `infisical.md` hunks.
 3. **PR / code-review diff views** — GitHub PR web UI, `gh pr diff`, diff attachments, email notifications that include D4 hunks.
 4. **Copied or quoted excerpts in other artifacts** — D4 text pasted into another file in this repo or any other repo, into session scratchpads, or into prompts to other agents.
-5. **Agent dispatch tasks that reference, summarize, or include D4 content** — a task prompt to MP/AG/XAI that contains D4 excerpts or instructs the agent to read / summarize D4.
+5. **Agent dispatch tasks that reference, summarize, paraphrase, or include D4 content** — a task prompt to MP/AG/XAI that requests, contains, paraphrases, summarizes, or quotes D4 / Infisical-runbook content, whether or not the filename `infisical.md` is named literally. The MP audit classifier operates on the full dispatch prompt text, not just filename tokens. Broader rule: if the operative effect of the dispatch is that D4 content reaches the D5 authoring context (directly or via the agent's response flowing back to Vulcan), it is TAINTED. Redacted / incomplete / unavailable logs on this surface are also TAINTED by default (fail-safe).
 6. **Living State reads of D4-derived artifacts** — entities whose body fields contain D4 text or summaries, including any post-authoring-session transcripts that quoted D4.
 7. **Web fetches of D4 content** — D4 published to a URL (not expected but enumerated for completeness).
 
@@ -228,7 +228,7 @@ D5 has TWO scenario sets that serve distinct purposes:
 | **Self-assertion §I set** | Vulcan | inside `aim-node.md` §I + mirrored `harness/scenarios/aim-node/*.yaml` | normal (default) | runbook template completeness + Vulcan's own claim of coverage | lint PASS + self-assertion harness ≥ 0.80 |
 | **G4 hidden eval set** | MP + AG (reconciled) | Living State `state:bq-runbook-standard:g4:aim-node:365c198:{g4_attempt_id}:answer-key`, with scenario YAMLs materialized to a temp directory for harness input | external-scenario mode (`--external-scenario-set`) | externally-authored correctness check for G4 | AG-scored weighted total ≥ 0.80 |
 
-**Hidden-set artifact shape (for `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D4):** MP+AG's reconciled eval set is stored in the `answer-key` Living State entity as a `scenarios` array whose shape matches `schemas/scenario.schema.json` — i.e., full scenarios with `id`, `type`, `refs`, `scenario` prose, `expected_answers`, and `weight`. The AG scoring session materializes these to YAML files in a temp directory, invokes `runbook-harness --runbook aim-node.md --external-scenario-set <temp_dir> --mode conformant --session <g4-scoring-session>`, and captures the weighted-total result.
+**Hidden-set artifact shape (for `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D4):** MP+AG's reconciled eval set is stored in the `answer-key` Living State entity as a `scenarios` array. Each scenario object is a full `schemas/scenario.schema.json`-conformant object — including the required `runbook: aim-node.md` field (per the Chunk 1 scenario schema; not optional), plus `id`, `type`, `refs`, `scenario` prose, `expected_answers`, and `weight`. Attempt-scoped metadata (`authored_session`, `mp_session`, `ag_session`, `reconciled_at`, `frozen_commit_sha`, `g4_attempt_id`) lives OUTSIDE the `scenarios` array at the top level of the `answer-key` entity body. The AG scoring session materializes the `scenarios` array to YAML files in a temp directory (preserving the `runbook` field and all other required schema fields), invokes `runbook-harness --runbook aim-node.md --external-scenario-set <temp_dir> --mode conformant --session <g4-scoring-session>`, and captures the weighted-total result.
 
 The §I self-assertion set does NOT need to align with the hidden G4 set — these are independent evidence streams testing different questions (self-assertion: "does Vulcan's claim of coverage hold?"; G4: "does the runbook actually serve an externally-authored set of questions?").
 
@@ -240,7 +240,7 @@ Chunk 2 Gate 3 Acceptance Criteria for D5 (ten ACs):
 2. **Isolation invariant held.** Post-hoc MP audit of D5 authoring session returns verdict `CLEAN` against the seven forbidden D4-equivalent surfaces in §5.3. The audit includes: D5 authoring session ID, fresh-session confirmation (session number > the D4 authoring session number, no shared context carryover), per-tool-call classification, and the verdict.
 3. **Runbook passes lint.** `runbook-lint aim-node.md` exits 0.
 4. **Self-assertion harness ≥ 0.80.** `runbook-harness --runbook aim-node.md --mode conformant --session <self-assert-session>` weighted total ≥ 0.80 on the §I self-assertion set. (Requires `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D1 landed.)
-5. **G4 hidden eval-set authored + reconciled + logged.** MP and AG each authored a ≥ 10-scenario draft independently (separate sessions, no shared access). Reconciliation transcript logged at `…:reconciliation-transcript` (create-only, `expected_version=0`). Final reconciled answer-key logged at `…:answer-key` (create-only) with fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha, g4_attempt_id, scenarios: [<full scenario objects>]}`.
+5. **G4 hidden eval-set authored + reconciled + logged.** MP and AG each authored a ≥ 10-scenario draft independently (separate sessions, no shared access). **Reconciled answer-key `scenarios` array MUST remain ≥ 10 scenarios** — deduplication during reconciliation cannot collapse the set below this floor. If MP+AG reconciliation would produce < 10 scenarios (e.g., because most draft scenarios overlapped), the reconciliation session MUST commission additional scenarios (jointly authored in the reconciliation session) to restore the ≥ 10 floor. Reconciliation transcript logged at `…:reconciliation-transcript` (create-only, `expected_version=0`). Final reconciled answer-key logged at `…:answer-key` (create-only) with top-level fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha, g4_attempt_id, scenarios: [<full schemas/scenario.schema.json-conformant objects, each including runbook: aim-node.md>]}`. Reconciled set must also satisfy the full §I type distribution (≥ 3 operate, ≥ 3 isolate, ≥ 2 repair, ≥ 2 evolve, ≥ 1 ambiguous) and weight-sum (= 1.0 ± 0.001) constraints per `schemas/scenario.schema.json`.
 6. **XAI correspondence verdict.** XAI dispatched with the `(answer-key, aim-node.md)` pair; verdict ∈ `{CLEAN, MINOR_OVERLAP}` (not `SUSPECT_OVERFITTING`). Verdict logged at `…:xai-correspondence-verdict`.
 7. **MP first-pass design review.** Verdict ∈ `{APPROVE, APPROVE_WITH_NITS}`. Runs in a session separate from MP's G4 eval-set-authoring session (reviewer-independence constraint per Gate 1 §7 G4 step 6).
 8. **AG harness score ≥ 0.80.** AG runs the external-mode harness (`BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D2-D4) against the G4 answer-key. Weighted total ≥ 0.80. Score logged at `…:harness-result`.
@@ -393,13 +393,13 @@ R1 open questions triaged per MP R1 R2-ask summary, then updated based on R2 wor
 9. **Deletion of `infisical-secrets.md` — inbound references.** **CLOSED R2.** Pre-PR grep (R2): zero hits outside this repo's own specs/tests/fixtures. Safe to delete. Converted to explicit pre-PR checklist item for G3-B1: re-run grep immediately before the G3-B1 PR lands to confirm still-zero hits.
 10. **Deletion of pre-standard `aim-node.md` content — inbound references.** **CLOSED R2.** Pre-PR grep (R2): zero `aim-node.md#<anchor>` fragment references; one plain-link reference in `aim-node-release-process.md` that does not depend on section IDs. Converted to pre-PR checklist item for G3-B2.
 
-**New R2-authored open questions (for MP R2 review):**
+**R2-authored open questions — all CLOSED in R3 per MP R2 answers:**
 
-R2-1. **External-scenario-set artifact shape.** §5.4 proposes that MP+AG's reconciled eval set is materialized to YAML files matching `schemas/scenario.schema.json`. Confirm with MP R2 that this shape is sufficient for external-mode consumption, or whether the `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D2/D4 work should extend the schema.
+R2-1. **CLOSED R3.** External-scenario-set artifact shape is sufficient without extending `schemas/scenario.schema.json`. Hidden-set scenario objects MUST include the required `runbook: aim-node.md` field (per the Chunk 1 scenario schema) in addition to `id`, `type`, `refs`, `scenario` prose, `expected_answers`, and `weight`. Attempt-scoped metadata stays at top level of the `answer-key` entity body, outside the `scenarios` array. See §5.4.
 
-R2-2. **Post-hoc MP audit granularity.** §5.3 AC 8 requires per-tool-call classification against seven forbidden surfaces. Is the session tool-call log actually rich enough for MP to classify each call — in particular, shell commands with arguments, agent-dispatch task prompts, and Living State reads are all present, but does MP have a defensible signal for classifying an agent-dispatch as "referencing D4 content" without reading the full dispatch task text itself? R2-authored proposal: MP reads the full task prompt text, classifies each on explicit mention of `infisical.md` / `Infisical runbook` / Infisical-content excerpts / rephrasings. MP R2 to confirm or tighten.
+R2-2. **CLOSED R3.** Per-tool-call audit granularity is defensible. Classifier MUST catch paraphrases, summaries, and quotes of D4 content — not just literal mentions of the filename. Redacted / incomplete / unavailable log surfaces default to TAINTED (fail-safe, not CLEAN). See §5.3 surface 5.
 
-R2-3. **Self-assertion vs hidden-set scenario count floor.** §4.4 (D4) and §5.4 (D5) both require ≥ 10 scenarios in §I. Is the hidden G4 set also required to be ≥ 10 per Gate 1 §7 G4 step 4 "each author a draft ≥ 10-scenario evaluation set independently," and does the RECONCILED set after merge therefore have no prescribed minimum? R2 reading: per-author ≥ 10 drafts; reconciled set min = 10 (can be less than sum of drafts after dedup). MP R2 to confirm.
+R2-3. **CLOSED R3.** Reconciled hidden eval-set MUST be ≥ 10 scenarios as a normative AC — not just "Gate 1 per-draft minimum confirmed." If MP+AG reconciliation would collapse below 10 via dedup, reconciliation MUST commission additional jointly-authored scenarios to restore the floor. See §5.5 AC 5.
 
 ---
 
@@ -415,20 +415,21 @@ R2-3. **Self-assertion vs hidden-set scenario count floor.** §4.4 (D4) and §5.
 
 ## 12. Review Targets
 
-**MP R2 (primary review, read-only).** Verify R1 findings closed:
+**MP R3 (primary review, read-only).** Verify R2 findings closed:
 
-- HIGH #1 (§K from-scratch shape): §4.1 + §5.1 now use `retrofit: false` / omit, with `trace_matrix_path: null` + `word_count_delta: null` per `schemas/section_k_conformance.schema.json`.
-- HIGH #2 (harness contract mismatch): §4.5 AC 2 + §5.5 AC 4, 8, 14 now use correct CLI flags (`--runbook`, `--mode`, `--session`) per `runbook_tools/cli.py:122`. D5 external-mode harness cited as a prerequisite-BQ deliverable (`bq-runbook-harness-production-wiring`) rather than an assumed capability.
-- MEDIUM #1 (§5.2 timeout recovery): §5.2 step 4 copies Gate 1 §7 G4 step 2(c) verbatim and adds a 3-consecutive-timeout escalation event.
-- MEDIUM #2 (isolation scope): §5.3 defines seven forbidden D4-equivalent surfaces + fresh-session requirement; AC 8 re-scoped to CLEAN-vs-TAINTED across all seven surfaces.
-- MEDIUM #3 (Koskadeux-side prerequisite): §6.3 cites filed `bq-koskadeux-g4-protocol` key; open question closed.
-- MEDIUM #4 (preflight command syntax): §7 uses `runbook-new <system-name>` + `--dry-run`; overwrite attempts removed.
-- LOW #1 (AC count): §8 reconciled to 16 (D4=6, D5=10); §4.5 AC 4 from R1 ("all 11 agent forms") merged into AC 1 (lint check covers it).
-- LOW #2 (Q9/Q10 narrowable): §10 closes with explicit pre-PR grep outcomes and converts to pre-PR checklist items.
+- R2 HIGH #1 (`bq-runbook-harness-production-wiring` D1 dispatch contract mismatch): Living State entity `build:bq-runbook-harness-production-wiring` patched to v2 with D1 scope matching Chunk 1 §6.3 exact contract: `council_request(agent='mp', task=..., allowed_tools=['Read','Grep','Glob','LS'])` with NO `mode` parameter, 180s harness-side wall-clock timeout, prompt-based tool-restriction on Codex CLI primary path (per BQ-COUNCIL-ALLOWED-TOOLS-CODEX-CLI P2 follow-on). Verify the v2 entity body reflects the real contract.
+- R2 MEDIUM #1 (reconciled hidden-set floor): §5.5 AC 5 now requires reconciled `scenarios` array ≥ 10 as a normative AC; reconciliation MUST commission additional jointly-authored scenarios if dedup collapses below the floor. Verify.
+- R2 LOW #1 (Appendix D diff-stat stale): Appendix D now reflects actual `+201/-152` for R1→R2 diff and adds a fresh R2→R3 diff-stat entry.
 
-Plus three new R2-authored open questions (R2-1 through R2-3) listed in §10.
+Plus R2-1 / R2-2 / R2-3 answers applied (§5.4, §5.3 surface 5, §5.5 AC 5 respectively; §10 open questions closed R3).
 
-**AG cross-vote (after MP R2+ passes).** Consumer-first framing. Does the contract actually produce runbooks readable by stateless agents (Gate 1 §3 consumer model)? Is the external-mode split (§5.4) coherent — do Vulcan's self-assertion §I and MP+AG's hidden set both test the agent-consumable property from complementary angles? Is the fresh-session + seven-surface-audit isolation discipline (§5.3) operationally enforceable in a reasonable Vulcan session?
+**R3 is expected to land at APPROVE or APPROVE_WITH_NITS.** The R3 diff is narrow and targeted; no new design is introduced.
+
+**AG cross-vote (after MP R3 APPROVE).** Consumer-first framing. Does the contract actually produce runbooks readable by stateless agents (Gate 1 §3 consumer model)? Is the external-mode split (§5.4) coherent — do Vulcan's self-assertion §I and MP+AG's hidden set both test the agent-consumable property from complementary angles? Is the fresh-session + seven-surface-audit isolation discipline (§5.3) operationally enforceable in a reasonable Vulcan session?
+
+**R1/R2 findings (historical reference, all closed before R3):**
+- R1 HIGH #1 §K.retrofit, R1 HIGH #2 harness contract, R1 MEDIUMs #1-#4, R1 LOWs #1-#2 all closed in R2 (see Appendix D R1→R2 change log).
+- R2 findings carried forward to R3 above.
 
 ---
 
@@ -467,7 +468,7 @@ Plus three new R2-authored open questions (R2-1 through R2-3) listed in §10.
 
 ## Appendix D: R1 → R2 change log
 
-MP R1 task `4f2740a0` returned REQUEST_CHANGES with 2 HIGH + 4 MEDIUM + 2 LOW findings. R2 closes all 8 with the following changes:
+MP R1 task `4f2740a0` returned REQUEST_CHANGES with 2 HIGH + 4 MEDIUM + 2 LOW findings. R2 closed all 8:
 
 | Finding | Severity | R2 fix location |
 |---|---|---|
@@ -480,5 +481,20 @@ MP R1 task `4f2740a0` returned REQUEST_CHANGES with 2 HIGH + 4 MEDIUM + 2 LOW fi
 | §8 AC count inconsistent (16 vs 17) | LOW #1 | §8: reconciled to 16 by merging §A-§K forms lint AC into AC 1 |
 | Q9/Q10 narrowable with grep | LOW #2 | §3 + §10 Q9/Q10: pre-PR grep outcomes captured; converted to pre-PR checklist items for G3-B1/B2 |
 
-R2 net diff shape: +~170 lines (587 lines R2 vs 435 lines R1) across §4.1, §5.1, §5.2, §5.3, §5.4, §5.5, §6.3, §6.4 (new), §7, §8, §10, Appendix D (new); no removals apart from the invalid-CLI preflight examples.
+R1 → R2 diff stat (corrected per MP R2 LOW #1): **+201 / -152** across §4.1, §5.1, §5.2, §5.3, §5.4, §5.5, §6.3, §6.4 (new), §7, §8, §10, Appendix D (new). Line count change: R1 = 435 lines → R2 = 484 lines (net +49 because removals include invalid preflight examples and stale R1 open-question triage text).
+
+## Appendix E: R2 → R3 change log
+
+MP R2 task `8fa9c9b0` returned REQUEST_CHANGES with 1 HIGH + 1 MEDIUM + 1 LOW, plus answers to R2-1 / R2-2 / R2-3. R3 closes all 3 findings + applies all 3 R2-question answers:
+
+| Finding / ask | Severity | R3 fix location |
+|---|---|---|
+| `bq-runbook-harness-production-wiring` D1 dispatch contract mismatch | HIGH #1 | Living State entity v2 patch (out of spec, cited in §6.3 + §12); D1 now `council_request(agent='mp', task=..., allowed_tools=['Read','Grep','Glob','LS'])` no `mode` param, 180s harness-side timeout |
+| Reconciled hidden-set floor missing | MEDIUM #1 | §5.5 AC 5: normative ≥ 10 reconciled-set floor + commissioning rule if dedup collapses below |
+| Appendix D diff-stat stale | LOW #1 | Appendix D updated to `+201/-152` with accurate line-count delta |
+| R2-1 external-set artifact shape | R2 question | §5.4 hidden-set shape paragraph: cites `schemas/scenario.schema.json` explicitly; requires `runbook: aim-node.md` field |
+| R2-2 audit granularity surface 5 | R2 question | §5.3 surface 5: classifier catches paraphrase/summary/quote; incomplete-log TAINTED (fail-safe) |
+| R2-3 reconciled-set floor | R2 question | §5.5 AC 5 (same location as MEDIUM #1) — one change closes both |
+
+R2 → R3 diff stat: small targeted edits in §5.3, §5.4, §5.5, §10, §12, Appendix D, Appendix E (new), header revision line. No structural changes; no new sections beyond Appendix E.
 
