@@ -1,4 +1,4 @@
-# BQ-RUNBOOK-STANDARD — Gate 2 Chunk 2 (R2)
+# BQ-RUNBOOK-STANDARD — Gate 2 Chunk 2 (R3)
 
 **Parent BQ:** `build:bq-runbook-standard`
 **Chunk:** Gate 2 Chunk 2 — Gate 1 §9 Deliverables D4 + D5
