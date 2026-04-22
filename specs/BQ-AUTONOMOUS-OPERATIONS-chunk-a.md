@@ -1,8 +1,8 @@
-# BQ-AUTONOMOUS-OPERATIONS — Gate 2 Chunk A (R2)
+# BQ-AUTONOMOUS-OPERATIONS — Gate 2 Chunk A (R3)
 **Parent BQ:** `build:bq-autonomous-operations`
 **Parent spec:** `specs/BQ-AUTONOMOUS-OPERATIONS.md` at commit `43d16df`
 **Chunk:** A
-**Revision:** R2
+**Revision:** R3
 **Author:** Codex
 **Repo:** aidotmarket/runbooks
 **Spec path:** `specs/BQ-AUTONOMOUS-OPERATIONS-chunk-a.md`
@@ -684,13 +684,15 @@ Behavior:
 Required file:
 - `backend/app/services/schedule_registry/schemas/dispatch-envelope.schema.json`
 
+This schema is the dispatch-time half of the parent contract. It must preserve the `§5.3` dispatch envelope boundary and must not absorb runtime/result facts that belong to parent `§5.4` `schedule.run.complete` events.
+
 Base required fields:
 - `schedule_id`
 - `run_id`
 - `attempt_number`
+- `schedule_version`
 - `dispatch_mode`
 - `dispatched_at`
-- `started_at`
 - `trigger`
 - `agent`
 - `timeout_seconds`
@@ -737,6 +739,16 @@ Conditional payload fields:
   "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
   "run_id": "01968caa-f82a-7e91-b5b1-0d84f4a6476b",
   "attempt_number": 1,
+  "schedule_version": 12,
+  "dispatch_mode": "prod_agent",
+  "dispatched_at": "2026-04-22T07:00:00Z",
+  "trigger": {
+    "type": "cron",
+    "cron_expression": "0 7 * * 1",
+    "timezone": "UTC",
+    "expected_fire_at": "2026-04-22T07:00:00Z"
+  },
+  "agent": "sysadmin",
   "run_environment": "prod",
   "agent_kind": "sysadmin",
   "task_prompt": "Execute the approved production stewardship task.",
@@ -749,6 +761,8 @@ Conditional payload fields:
   "correlation_expected_fire_at": "2026-04-22T07:00:00Z"
 }
 ```
+
+Request envelopes MUST exclude all post-dispatch/runtime fields, including `started_at`, `completed_at`, `status`, `summary`, and any result-only entity references. Those fields appear only on the completion/result path defined in `§7.6-§7.7`, preserving the parent `§5.3` dispatch-side / `§5.4` result-side split.
 
 Chunk A does not implement the production dispatch microservice itself. It defines the request envelope shape this backend must emit and the completion event shape it must ingest, and defers microservice implementation to `build:bq-production-agent-dispatch-microservice`.
 
@@ -776,14 +790,19 @@ Required completion event shape for `prod_agent` dispatches:
 - event type remains `schedule.run.complete`
 - writer may be the production dispatch microservice or a backend webhook handler acting on its authenticated callback
 - payload must include `schedule_id`, `run_id`, `attempt_number`, `started_at`, `completed_at`, `status`, `summary`, and all `correlation_*` fields required by the trigger type
+- `status` remains the parent `§5.4` discriminator and is limited to `success | failure | timeout | agent_error | dispatch_error`
+- `started_at` is first introduced here on the result path; it MUST NOT be present in the `§7.5` outbound request envelope
+- this section inherits the parent `§5.4` sole-completion-event rule: no `prod_agent`-specific success/failure event taxonomy is allowed
 
 ### 7.7 Production dispatch webhook contract
 Endpoint:
 - `POST /api/v1/ops/schedules/prod-agent/run-result`
 
 Auth model:
-- shared secret sourced from Infisical for project `ai-market`
-- backend validates the shared secret on every request before any state mutation
+- transport is HMAC-SHA256 over the raw request body, delivered as `X-Dispatch-Signature: sha256=<hexdigest>`
+- backend reads `PROD_AGENT_WEBHOOK_HMAC_SECRET` from Infisical-backed environment at startup; canonical source of truth is Infisical project `ai-market`, environment `prod`, secret path `/backend/autonomous-operations/prod-agent-dispatch`, secret name `PROD_AGENT_WEBHOOK_HMAC_SECRET`
+- backend also reads optional `PROD_AGENT_WEBHOOK_HMAC_SECRET_PREVIOUS` from the same Infisical path to support overlap-window rotation
+- backend validates the signature before any state mutation or event write
 
 Idempotency:
 - deduplicate strictly on `(run_id, attempt_number)`
@@ -792,8 +811,14 @@ Idempotency:
 
 Behavior:
 - request body must conform to the `schedule.run.complete` contract
+- missing `X-Dispatch-Signature` header returns HTTP `400`
+- backend computes HMAC-SHA256 of the raw request body with `PROD_AGENT_WEBHOOK_HMAC_SECRET`, compares in constant time, and accepts on current-key match
+- if current key fails and `PROD_AGENT_WEBHOOK_HMAC_SECRET_PREVIOUS` is configured, backend retries verification once against the previous key to support rotation overlap
+- signature mismatch after both checks returns HTTP `401` and logs `webhook.auth.reject` with `schedule_id` when present, `run_id`, `attempt_number`, and available `correlation_*` fields
+- successful verification logs `webhook.auth.accept` with `validated_secret=current|previous` for rotation auditability
 - backend resolves `schedule_id`, updates `last_run_*` fields, emits/writes the sole completion event to the event ledger, and records correlation metadata required for audit
 - this webhook is in scope for Chunk A; the outbound Railway microservice itself is not
+- Gate 3 must prove the wire contract with: a schema/auth test asserting `X-Dispatch-Signature: sha256=<hexdigest>` on raw-body payloads; a missing-header test returning `400`; an invalid-signature test returning `401` plus `webhook.auth.reject`; and a rotation-window test showing `webhook.auth.accept` with `validated_secret=previous`
 
 ### 7.8 GH external webhook contract
 `POST /api/v1/schedules/{schedule_id}/run-start`
@@ -1061,7 +1086,7 @@ Watchdog contract:
 | `A3-AC2` | every evaluation emits `schedule.predicate.evaluated` with cost and match metadata | event-ledger integration test per cadence run |
 | `A3-AC3` | `(run_id, attempt_number)` idempotency prevents double-counting and handles late duplicates | replay duplicate and mismatched payloads through result handlers |
 | `A3-AC4` | `prod_agent` envelopes contain the required request contract and never accept `run_environment=dev` | schema and router validation tests on outbound production-dispatch payloads |
-| `A3-AC5` | prod-agent completion webhook authenticates, deduplicates, and writes the sole completion event | webhook integration test covers shared-secret validation and duplicate callback replay |
+| `A3-AC5` | prod-agent completion webhook authenticates, deduplicates, and writes the sole completion event | webhook integration tests cover raw-body `X-Dispatch-Signature` HMAC validation, missing-header `400`, invalid-signature `401` with `webhook.auth.reject`, duplicate callback replay, and previous-secret rotation acceptance |
 | `A3-AC6` | envelopes/results contain required UUIDv7 and correlation fields by trigger type | schema contract tests on cron, predicate, manual, prod-agent, and external-webhook paths |
 
 ### 10.4 A4 — allAI subscription
@@ -1121,6 +1146,7 @@ Artifacts:
 - output proving duplicate completion is idempotent
 - logs showing UUIDv7 `run_id` and correlation fields for cron, predicate-triggered, and prod-agent runs
 - test output proving `run_environment=prod` rejects `dispatch_mode=council_request`
+- test/log output proving `X-Dispatch-Signature: sha256=<hexdigest>` raw-body verification, `webhook.auth.reject` on invalid signatures, `400` on missing signature header, and `webhook.auth.accept validated_secret=previous` during rotation overlap
 
 ### 11.4 A4 evidence mapping
 Tests:
@@ -1220,3 +1246,9 @@ Primary implementation risks:
 | allAI host placement not explicit | `§8.1`, `§11.4` |
 | UUID version inconsistency vs parent amendment | `§3.2` |
 | Migration env-var retirement table missing | `§6.6.1` |
+
+## Appendix H — R2 to R3 Closure Map
+| R2 finding | R3 closure section |
+|---|---|
+| N1 request-side envelope cleaned, worked example aligned, parent dispatch/result split re-asserted | `§7.5`, `§7.6` |
+| N2 webhook HMAC-SHA256 contract, rotation support, verifier behavior, and Gate 3 evidence defined | `§7.7`, `§10.3`, `§11.3` |
