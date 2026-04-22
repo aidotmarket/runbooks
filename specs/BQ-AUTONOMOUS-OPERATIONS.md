@@ -216,7 +216,7 @@ When a schedule fires, the executor assembles and emits:
 {
   "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
   "schedule_name": "Weekly Runbook Stewardship Sweep",
-  "run_id": "run-<uuidv4>",
+  "run_id": "run-<uuidv7>",
   "attempt_number": 1,
   "fired_at": "2026-04-22T07:00:00Z",
   "trigger": {
@@ -235,7 +235,7 @@ When a schedule fires, the executor assembles and emits:
 ```
 
 **`run_id` generation authority:**
-- For `dispatch_mode` in (`council_request`, `direct_callable`): issued by the executor at fire time (UUIDv4). `run_id_authority=executor`.
+- For `dispatch_mode` in (`council_request`, `direct_callable`): issued by the executor at fire time (UUIDv7). `run_id_authority=executor`.
 - For `dispatch_mode=gh_actions_external`: issued by the GH Actions workflow on run start, sent to backend via webhook. `run_id_authority=external_webhook`.
 
 **`attempt_number`:**
@@ -263,7 +263,7 @@ On completion, the executing agent emits:
 {
   "event_type": "schedule.run.complete",
   "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
-  "run_id": "run-<uuidv4>",
+  "run_id": "run-<uuidv7>",
   "attempt_number": 1,
   "started_at": "2026-04-22T07:00:00Z",
   "completed_at": "2026-04-22T07:04:12Z",
@@ -950,3 +950,22 @@ MP R2 task `4b56cce5` returned REQUEST_CHANGES (1H+1M+1L). R3 closes all 3 while
 | §13.4 challenge-scenario source-of-truth split | LOW #1 | §13.4 Part B + Combined Acceptance rewritten: inline §I with author-attribution partitioning is the single source of truth; no external `reviewer-challenge/` directory; harness loader adds author-attribution-based partition scoring |
 
 R2 → R3 net diff: ~+60 / -30 lines, all in §5.4, §7.2, §9.2, §13.4, §17 Q8, header + new Appendix F. Narrow, targeted, no structural changes.
+
+---
+
+## Appendix G — Post-Approval Amendments (S490)
+
+This appendix records amendments applied to the APPROVED Gate 1 spec (commit `08d0b0d`) after approval. These are clarifying amendments that do not reopen Gate 1 review.
+
+### G.1 UUID version for run_id (UUIDv4 → UUIDv7)
+
+Original Gate 1 \§5.3 specified internal `run_id` generation as UUIDv4. Amendment changes this to UUIDv7 per RFC 9562. Rationale: UUIDv7's 48-bit millisecond timestamp prefix gives natural time-sortability on the `(run_id, attempt_number)` primary key, B-tree index locality on insert, and temporal correlation for the R1-R6 audit rules without a separate timestamp column. UUIDv4's random distribution forces redundant ordering overhead and causes index fragmentation at scale. Lines changed: 219, 238, 266. See `build:bq-autonomous-operations` `body.scope_decisions_locked_s490.D6_run_id_uuid_version`.
+
+### G.2 Titan-1 dev-only constraint (system-wide)
+
+Binding decision `decision:titan-1-dev-only-production-constraint` added in S490 establishes that Titan-1 (Max's dev Mac) must not be in the production critical path. This spec's references to `council_request` as a production dispatch mode are superseded: for `run_environment=prod` schedules, dispatch uses a new `prod_agent` mode implemented by `build:bq-production-agent-dispatch-microservice` (Railway-hosted, model-API-direct, P0 prerequisite for this BQ's Gate 3). `council_request` remains valid ONLY for `run_environment=dev` schedules. Chunk A R2+ carries the concrete contract; this appendix is the parent-spec pointer.
+
+### G.3 Backup migration delegated to bq-titan-1-production-extraction
+
+The backup-verify 3-way stagger cadence in \§5.5 stands. Migration of the underlying backup substrate off Titan-1 (current: `/var/tmp/koskadeux/backups` on Titan-1 disk) is delegated to `build:bq-titan-1-production-extraction` (P0) as a Gate 3 prerequisite of this BQ. Recommended destination: Backblaze B2 (S3-compatible, ~$6/TB/month, Object Lock for ransomware protection). Finalization in that BQ's Gate 1.
+
