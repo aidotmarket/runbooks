@@ -1,8 +1,8 @@
-# BQ-AUTONOMOUS-OPERATIONS — Gate 2 Chunk A (R1)
+# BQ-AUTONOMOUS-OPERATIONS — Gate 2 Chunk A (R2)
 **Parent BQ:** `build:bq-autonomous-operations`
-**Parent spec:** `specs/BQ-AUTONOMOUS-OPERATIONS.md` at commit `08d0b0d`
+**Parent spec:** `specs/BQ-AUTONOMOUS-OPERATIONS.md` at commit `43d16df`
 **Chunk:** A
-**Revision:** R1
+**Revision:** R2
 **Author:** Codex
 **Repo:** aidotmarket/runbooks
 **Spec path:** `specs/BQ-AUTONOMOUS-OPERATIONS-chunk-a.md`
@@ -10,7 +10,7 @@
 **Deferred:** Chunk B frontend in `ops.ai.market`; Chunk C meta-runbook
 
 ## 0. Executive Summary
-This document is the backend implementation spec for Gate 2 Chunk A. It does not reopen Gate 1 decisions. It converts the approved backend design into a build contract covering: schedule registry entity model and CRUD, private APScheduler substrate and migration assertion, predicate engine and dispatch envelopes, allAI stewardship subscription and degraded mode, and the attention queue plus independent missed-escalation audit. Living State remains the source of truth for schedule definitions and queue state; APScheduler remains private; `schedule.run.complete` remains the only completion event; GH Actions schedules remain external; and the audit continues to bypass allAI output and `queue:attention`.
+This document is the backend implementation spec for Gate 2 Chunk A. It does not reopen Gate 1 decisions. It converts the approved backend design into a build contract covering: schedule registry entity model and CRUD, private APScheduler substrate and migration assertion, predicate engine and dispatch envelopes, production dispatch contract handoff to a Railway-hosted microservice, allAI stewardship subscription and degraded mode, and the attention queue plus independent missed-escalation audit. Living State remains the source of truth for schedule definitions and queue state; APScheduler remains private; `schedule.run.complete` remains the only completion event; GH Actions schedules remain external; production schedule dispatch stays off Titan-1; and the audit continues to bypass allAI output and `queue:attention`.
 
 Chunk A sequence:
 1. `A1` Registry data model + CRUD
@@ -47,15 +47,23 @@ Chunk A chooses a **dedicated REST API** instead of extending `state_request`. T
 - Living State is the single source of truth for schedule definitions and attention-queue state.
 - APScheduler is internal only; no direct imports or decorators may remain outside the executor adapter.
 - `schedule.run.complete` is the only completion event type; `status` carries outcome.
+- production schedules must run on Railway-hosted executor infrastructure and must not dispatch through Titan-1.
 - GH Actions schedules are `dispatch_mode=gh_actions_external`, outside the sole-API invariant.
 - Missed-escalation severity is derived from raw events and schedule state, not queue contents or allAI output.
 - Chunk A Gate 3 may not start until `bq-allai-escalation-flusher-wiring` is Gate 3 approved.
 
 ## 2. Dependencies and Build Order
-### 2.1 Hard prerequisite
-**Prerequisite BQ:** `bq-allai-escalation-flusher-wiring`
+### 2.1 Hard prerequisites
+**Prerequisite BQs:**
+- `bq-allai-escalation-flusher-wiring`
+- `build:bq-production-agent-dispatch-microservice` — P0 prerequisite for this BQ's Gate 3 whenever `run_environment=prod` schedules use `dispatch_mode=prod_agent`
+- `build:bq-titan-1-production-extraction` — P0 prerequisite for this BQ's Gate 3 for the backup substrate migration referenced in `§6.6.2`
 
 Gate 1 identified the P2+ flusher path as unwired. Chunk A implementation may be authored and even partially landed before that BQ merges, but Chunk A Gate 3 verification must not begin until it is approved. A4 and A5 both depend on the flusher no longer being a noop.
+
+This Chunk A spec defines, but does not implement, the production dispatch microservice interface. `build:bq-production-agent-dispatch-microservice` owns the Railway-hosted service implementation and must be Gate 3 approved before Chunk A Gate 3 verifies any production `prod_agent` schedule.
+
+This Chunk A spec also does not migrate the production backup substrate off Titan-1. `build:bq-titan-1-production-extraction` owns that migration and must be Gate 3 approved before Chunk A Gate 3 can claim the backup-verify production path is fully compliant.
 
 Required post-prerequisite call sites:
 - `backend/app/allai/escalation_pipeline.py:217-221`
@@ -109,6 +117,8 @@ Chunk A uses dedicated routes:
 Justification: generic `state_request` is too weak for schedule-specific semantic validation, manual trigger, webhook idempotency, and run-oriented audit contracts. Dedicated routes keep Living State authoritative while making schedule behavior explicit and testable.
 
 ### 3.2 `run_id` format
+Run-ID UUID version: `UUIDv7` per parent `§5.3` as amended in `08d0b0d→43d16df` Appendix G.1.
+
 Chunk A chooses **UUIDv7** over ULID. It preserves time ordering, fits standard UUID tooling, and avoids custom identifier semantics. Contract: `run_id` is lowercase UUIDv7 string; `attempt_number` starts at `1`; `(run_id, attempt_number)` is the idempotency key.
 
 ### 3.3 Entity conventions
@@ -211,13 +221,15 @@ Trigger definition:
 - `evaluation_cadence_seconds` when `trigger_type=state_predicate`
 
 Dispatch definition:
+- `run_environment`
 - `agent`
 - `dispatch_mode`
-- `task_prompt` when `dispatch_mode=council_request`
+- `task_prompt` when `dispatch_mode in {council_request, prod_agent}`
 - `callable_path` when `dispatch_mode=direct_callable`
 - `gh_workflow_path` when `dispatch_mode=gh_actions_external`
 - `council_mode` when `dispatch_mode=council_request`
-- `allowed_tools`
+- `agent_kind` when `dispatch_mode=prod_agent`
+- `allowed_tools` when `dispatch_mode in {council_request, prod_agent}`
 - `timeout_seconds`
 - `budget_usd`
 - `escalation_target`
@@ -247,6 +259,7 @@ Auto-managed:
 | Field | Default |
 |---|---|
 | `timezone` | `UTC` |
+| `run_environment` | `dev` for locally authored schedules; production seeds must set `prod` explicitly |
 | `timeout_seconds` | `600` |
 | `budget_usd` | `1.0` for LLM-backed dispatches |
 | `enabled` | `true` |
@@ -261,7 +274,8 @@ Auto-managed:
 | Field | Allowed values / bounds |
 |---|---|
 | `trigger_type` | `cron`, `state_predicate`, `manual_only` |
-| `dispatch_mode` | `council_request`, `direct_callable`, `gh_actions_external` |
+| `run_environment` | `prod`, `dev` |
+| `dispatch_mode` | `direct_callable`, `prod_agent`, `gh_actions_external`, `council_request` |
 | `escalation_target` | `telegram_p0_p1`, `attention_queue`, `silent_success_only` |
 | `concurrency_policy` | `serial_queue`, `skip_if_running`, `allow_parallel` |
 | `run_id_authority` | `executor`, `external_webhook` |
@@ -276,14 +290,20 @@ Auto-managed:
 - `cron_expression` absent when `trigger_type!=cron`
 - `predicate` present only when `trigger_type=state_predicate`
 - `evaluation_cadence_seconds` required when `trigger_type=state_predicate`
+- every schedule must declare `run_environment in {prod, dev}`
 - `task_prompt` and `council_mode` required for `dispatch_mode=council_request`
+- `task_prompt`, `agent_kind`, `allowed_tools`, `budget_usd`, and `timeout_seconds` required for `dispatch_mode=prod_agent`
 - `callable_path` required for `dispatch_mode=direct_callable`
 - `gh_workflow_path` required for `dispatch_mode=gh_actions_external`
 - `dispatch_mode=gh_actions_external` requires `run_id_authority=external_webhook`
-- `allowed_tools` may be non-empty only for `council_request`
+- `allowed_tools` may be non-empty only for `council_request` or `prod_agent`
 - `budget_usd` required for LLM-backed schedules and may be null for pure callables
 - `concurrency_policy=allow_parallel` requires `max_instances > 1`
 - `trigger_type=manual_only` forbids `cron_expression`, `predicate`, and `evaluation_cadence_seconds`
+- `run_environment=prod AND dispatch_mode=council_request` is a schema rejection; router refuses to register or patch such a schedule
+- `dispatch_mode=prod_agent` is valid only for `run_environment=prod`
+- `dispatch_mode=council_request` is valid only for `run_environment=dev`
+- any schedule registered into the production executor must assert Railway hosting fingerprint at startup
 - create callers may not set auto-managed fields except seed/migration tooling
 
 ### 5.7 CRUD contracts
@@ -335,7 +355,7 @@ Requirements:
 Mutable fields:
 - `name`, `description`, `summary`
 - `cron_expression`, `timezone`, `predicate`, `evaluation_cadence_seconds`
-- `agent`, `task_prompt`, `callable_path`, `gh_workflow_path`, `council_mode`, `allowed_tools`
+- `agent`, `task_prompt`, `callable_path`, `gh_workflow_path`, `council_mode`, `agent_kind`, `allowed_tools`
 - `timeout_seconds`, `budget_usd`, `escalation_target`, `priority`
 - `enabled`, `paused_until`
 - `concurrency_policy`, `max_instances`, `misfire_grace_time_seconds`, `coalesce`
@@ -343,11 +363,12 @@ Mutable fields:
 
 Immutable after create except seed/migration tooling:
 - `id`
+- `run_environment`
 - `dispatch_mode`
 - `run_id_authority`
 - `created_session`
 
-`dispatch_mode` is intentionally immutable: moving between internal, council, and external ownership is a migration, not a casual edit.
+`dispatch_mode` and `run_environment` are intentionally immutable: moving between internal, production-agent, council, and external ownership is a migration, not a casual edit.
 
 #### 5.7.4 Delete
 `DELETE /api/v1/ops/schedules/{schedule_id}`
@@ -420,6 +441,14 @@ Executor components:
 
 The one-minute sweep is required even if CRUD paths also push immediate updates. It is the safety net for missed notifications, restarts, and partial failures.
 
+### 6.2a Production hosting contract
+Production internal schedules and the APScheduler executor run only on Railway, specifically in the production Railway backend service that owns `ai-market-backend` recurring work. Titan-1 may run dev/test schedulers only, and those schedules must carry `run_environment=dev`.
+
+Enforcement:
+- production startup refuses to boot the executor unless the process exposes the expected Railway-hosted startup fingerprint
+- any schedule with `run_environment=prod` must be seeded, reconciled, and executed only from the Railway-hosted production service
+- Titan-1 may seed or exercise `run_environment=dev` schedules locally, but may not host live production APScheduler registration or production dispatch
+
 ### 6.3 Required manifest
 File:
 - `backend/config/migration-manifest.yaml`
@@ -471,6 +500,7 @@ Duties:
 - remove disabled/deleted jobs
 - recompute `next_run_at`
 - warn if internal registry schedules are not registered
+- reject any `run_environment=prod` internal schedule observed on a non-Railway host
 - ignore `gh_actions_external` for internal registration while still maintaining metadata
 
 ### 6.6 Migration inventory and exact file actions
@@ -495,6 +525,14 @@ Recommended dispatch mode:
 - both use `dispatch_mode=direct_callable`
 - callables point at the existing task wrappers, not at Celery Beat
 
+Migration transition table:
+
+| Scheduler | Source file to delete | Seed registry entry key | Env vars/feature flags to retire | Rollout order |
+|---|---|---|---|---|
+| `celery-worker-heartbeat` | `backend/app/core/celery_app.py` | `schedule:backend-celery-worker-heartbeat` | `(audit: grep backend for *_INTERVAL_*, *_CRON_*, *_SCHEDULE_*)` | `1st` |
+| `gmail-polling` | `backend/app/core/celery_app.py` | `schedule:backend-gmail-polling` | `GMAIL_POLL_INTERVAL_SECONDS`, `(audit: grep backend for *_INTERVAL_*, *_CRON_*, *_SCHEDULE_*)` | `2nd` |
+| `backup-verify (backend portion)` | `backend/app/core/scheduler.py` | `schedule:backend-backup-verify-daily` | `BACKUP_VERIFY_* if any`, `(audit: grep backend for *_INTERVAL_*, *_CRON_*, *_SCHEDULE_*)` | `3rd (after bq-titan-1-production-extraction completes)` |
+
 #### 6.6.2 Additional internal migrations from parent inventory
 Required seed entries:
 - `schedule:backend-sysadmin-health-check-5m`
@@ -512,6 +550,9 @@ Required backend code changes:
 Explicit manifest `keep_ephemeral` items:
 - `BaseAgent` heartbeat 90-second TTL
 - Telegram remediation per-proposal timeouts
+
+Backup substrate cross-reference:
+Chunk A does NOT migrate the backup substrate itself. The backup-verify cadence remains as specified here, but the underlying `/var/tmp/koskadeux/backups` mechanics currently tied to Titan-1 disk are migrated by `build:bq-titan-1-production-extraction`, which is a P0 Gate 3 prerequisite for this BQ. Recommended destination, pending finalization in that BQ, is Backblaze B2.
 
 #### 6.6.3 GH Actions tracked schedules
 Required seed entries:
@@ -539,17 +580,29 @@ External schedules:
 - `dispatch_mode=gh_actions_external` -> never internally scheduled
 - still loaded so run-start / run-result webhooks can resolve against known schedules
 
-### 6.8 Failure handling
+### 6.8 Dispatch Host Matrix
+| dispatch_mode | allowed_run_environment | execution_host | Titan-1 permitted? |
+|---|---|---|---|
+| `direct_callable` | `prod`, `dev` | In-process on the executor's host | Only if executor runs on Titan-1 (`dev` only) |
+| `prod_agent` | `prod` | Railway (`bq-production-agent-dispatch-microservice`) | NEVER |
+| `gh_actions_external` | `prod`, `dev` | GitHub-hosted runners | NEVER (GitHub cloud only) |
+| `council_request` | `dev` only | Titan-1 CLIs via Koskadeux MCP gateway | Yes (`dev` only) |
+
+Production schedules (`run_environment=prod`) must never dispatch through Titan-1; registry write-validation enforces this.
+
+### 6.9 Failure handling
 Fatal bootstrap failures:
 - manifest assertion failure
 - invalid schema or seed data
 - APScheduler bootstrap failure
 - inability to load registry definitions
+- missing or invalid Railway production-host fingerprint for a production executor
 
 Per-schedule runtime failures:
 - one schedule registration fails while others continue
 - one webhook update conflicts but succeeds on retry
 - one predicate evaluation errors
+- one prod-agent completion webhook retries idempotently on duplicate `(run_id, attempt_number)`
 
 Per-schedule runtime failures surface as events/logs and do not kill the whole scheduler unless the adapter itself becomes unusable.
 
@@ -631,22 +684,32 @@ Behavior:
 Required file:
 - `backend/app/services/schedule_registry/schemas/dispatch-envelope.schema.json`
 
-Required fields:
+Base required fields:
 - `schedule_id`
-- `schedule_name`
 - `run_id`
 - `attempt_number`
+- `dispatch_mode`
 - `dispatched_at`
 - `started_at`
 - `trigger`
 - `agent`
-- `dispatch_mode`
 - `timeout_seconds`
+- `correlation_run_id`
+- `correlation_schedule_id`
+
+`prod_agent` required fields:
+- `run_environment`
+- `agent_kind`
+- `task_prompt`
+- `allowed_tools`
+- `cost_cap_usd`
+- `correlation_dispatched_at`
+
+Shared fields:
+- `schedule_name`
 - `budget_usd`
 - `escalation_target`
 - `priority`
-- `correlation_run_id`
-- `correlation_schedule_id`
 
 Conditional correlation fields:
 - `correlation_expected_fire_at`
@@ -666,6 +729,28 @@ Conditional payload fields:
 - `timezone` when relevant
 - `predicate_kind` when relevant
 - `expected_fire_at` when relevant
+
+`dispatch_mode=prod_agent` request envelope:
+
+```json
+{
+  "schedule_id": "schedule:weekly-runbook-stewardship-sweep",
+  "run_id": "01968caa-f82a-7e91-b5b1-0d84f4a6476b",
+  "attempt_number": 1,
+  "run_environment": "prod",
+  "agent_kind": "sysadmin",
+  "task_prompt": "Execute the approved production stewardship task.",
+  "allowed_tools": ["state_patch", "ledger_append"],
+  "cost_cap_usd": 1.0,
+  "timeout_seconds": 900,
+  "correlation_run_id": "01968caa-f82a-7e91-b5b1-0d84f4a6476b",
+  "correlation_schedule_id": "schedule:weekly-runbook-stewardship-sweep",
+  "correlation_dispatched_at": "2026-04-22T07:00:00Z",
+  "correlation_expected_fire_at": "2026-04-22T07:00:00Z"
+}
+```
+
+Chunk A does not implement the production dispatch microservice itself. It defines the request envelope shape this backend must emit and the completion event shape it must ingest, and defers microservice implementation to `build:bq-production-agent-dispatch-microservice`.
 
 ### 7.6 Completion event schema and idempotency
 Required file:
@@ -687,7 +772,30 @@ Counter rules:
 - increment `run_count_failure` only on first-seen attempt whose status is `failure`, `timeout`, `agent_error`, or `dispatch_error`
 - higher-attempt retries do not increment `run_count_total`
 
-### 7.7 GH external webhook contract
+Required completion event shape for `prod_agent` dispatches:
+- event type remains `schedule.run.complete`
+- writer may be the production dispatch microservice or a backend webhook handler acting on its authenticated callback
+- payload must include `schedule_id`, `run_id`, `attempt_number`, `started_at`, `completed_at`, `status`, `summary`, and all `correlation_*` fields required by the trigger type
+
+### 7.7 Production dispatch webhook contract
+Endpoint:
+- `POST /api/v1/ops/schedules/prod-agent/run-result`
+
+Auth model:
+- shared secret sourced from Infisical for project `ai-market`
+- backend validates the shared secret on every request before any state mutation
+
+Idempotency:
+- deduplicate strictly on `(run_id, attempt_number)`
+- duplicate callbacks return success with `idempotent=true`
+- mismatched duplicate payloads are logged and do not overwrite first-writer data
+
+Behavior:
+- request body must conform to the `schedule.run.complete` contract
+- backend resolves `schedule_id`, updates `last_run_*` fields, emits/writes the sole completion event to the event ledger, and records correlation metadata required for audit
+- this webhook is in scope for Chunk A; the outbound Railway microservice itself is not
+
+### 7.8 GH external webhook contract
 `POST /api/v1/schedules/{schedule_id}/run-start`
 
 Required fields:
@@ -708,7 +816,7 @@ Behavior:
 - result ingest updates `last_run_*` fields, emits/stores `schedule.run.complete`, and deduplicates by `(run_id, attempt_number)`
 - missing prior run-start should warn but not block result ingestion; implicit creation is allowed for robustness
 
-### 7.8 Observability
+### 7.9 Observability
 Minimum logs/metrics:
 - log every dispatch with `schedule_id`, `run_id`, `attempt_number`, `trigger.type`
 - counters: dispatch attempts, dispatch failures, predicate evaluations, predicate matches, overlap skips, webhook duplicates
@@ -717,6 +825,12 @@ Minimum logs/metrics:
 ## 8. A4 — allAI Subscription
 ### 8.1 Subscription contract
 `AllAIBrainAgent.startup()` subscribes only to `schedule.run.complete`. It must not subscribe to non-existent `schedule.run.failed`, `schedule.run.timeout`, or similar lifecycle events. Stewardship filtering happens on `status`, schedule metadata, and result content.
+
+Host contract:
+- `AllAIBrainAgent` runs on Railway inside the `ai-market-backend` service
+- its bounded queue, two-worker thread pool, and Redis spillover coordination all run in the Railway backend process
+- Redis is the existing production Redis
+- Titan-1 is prohibited from carrying live stewardship classification, queue processing, escalation dispatch, or attention-queue write traffic
 
 Classification inputs:
 - completion event payload
@@ -926,8 +1040,8 @@ Watchdog contract:
 ### 10.1 A1 — Registry data model + CRUD
 | AC ID | Criterion | Falsifiable test shape |
 |---|---|---|
-| `A1-AC1` | valid cron create persists canonical `schedule:*` entity with exact defaults | API/integration test posts minimal valid cron schedule and asserts stored fields/defaults/version |
-| `A1-AC2` | invalid field combinations are rejected deterministically | validation matrix covers bad cron, missing cadence, bad dispatch-field combinations, bad `allow_parallel` config |
+| `A1-AC1` | valid cron create persists canonical `schedule:*` entity with exact defaults including `run_environment` | API/integration test posts minimal valid cron schedule and asserts stored fields/defaults/version |
+| `A1-AC2` | invalid field combinations are rejected deterministically | validation matrix covers bad cron, missing cadence, `prod+council_request`, `dev+prod_agent`, bad dispatch-field combinations, and bad `allow_parallel` config |
 | `A1-AC3` | patch/delete use optimistic locking | stale `expected_version` test asserts `409 schedule_version_conflict` |
 | `A1-AC4` | manual trigger issues new UUIDv7 `run_id` without mutating immutable fields | trigger-twice API test compares IDs and entity invariants |
 
@@ -936,8 +1050,9 @@ Watchdog contract:
 |---|---|---|
 | `A2-AC1` | APScheduler imports exist only in adapter | grep/lint test fails if `apscheduler` import appears elsewhere |
 | `A2-AC2` | startup fails on unmatched recurring-work site | integration test injects unmatched loop/beat key and asserts fatal bootstrap error naming file/line |
-| `A2-AC3` | migrated internal schedules seed/register, GH external schedules seed but do not register internally | bootstrap test inspects seed set and live registration set |
-| `A2-AC4` | reconciler repairs registration drift within 1 minute | test removes registration and asserts reconciler restores it |
+| `A2-AC3` | production executor boots only on Railway and asserts the expected startup fingerprint | production-bootstrap test injects missing/non-Railway fingerprint and asserts fatal refusal |
+| `A2-AC4` | migrated internal schedules seed/register, GH external schedules seed but do not register internally | bootstrap test inspects seed set and live registration set |
+| `A2-AC5` | reconciler repairs registration drift within 1 minute | test removes registration and asserts reconciler restores it |
 
 ### 10.3 A3 — Predicate engine + dispatch envelopes
 | AC ID | Criterion | Falsifiable test shape |
@@ -945,12 +1060,14 @@ Watchdog contract:
 | `A3-AC1` | all ten comparators behave correctly and fail safely on type mismatch | unit matrix across valid/invalid fixtures |
 | `A3-AC2` | every evaluation emits `schedule.predicate.evaluated` with cost and match metadata | event-ledger integration test per cadence run |
 | `A3-AC3` | `(run_id, attempt_number)` idempotency prevents double-counting and handles late duplicates | replay duplicate and mismatched payloads through result handlers |
-| `A3-AC4` | envelopes/results contain required UUIDv7 and correlation fields by trigger type | schema contract tests on cron, predicate, manual, and external-webhook paths |
+| `A3-AC4` | `prod_agent` envelopes contain the required request contract and never accept `run_environment=dev` | schema and router validation tests on outbound production-dispatch payloads |
+| `A3-AC5` | prod-agent completion webhook authenticates, deduplicates, and writes the sole completion event | webhook integration test covers shared-secret validation and duplicate callback replay |
+| `A3-AC6` | envelopes/results contain required UUIDv7 and correlation fields by trigger type | schema contract tests on cron, predicate, manual, prod-agent, and external-webhook paths |
 
 ### 10.4 A4 — allAI subscription
 | AC ID | Criterion | Falsifiable test shape |
 |---|---|---|
-| `A4-AC1` | `AllAIBrainAgent` subscribes only to `schedule.run.complete` | startup/subscription registry test |
+| `A4-AC1` | `AllAIBrainAgent` subscribes only to `schedule.run.complete` and runs only on Railway in production | startup/subscription registry test plus production-host assertion |
 | `A4-AC2` | queue overflow spills to Redis and drains back without losing correlation metadata | stress test with >100 events |
 | `A4-AC3` | degraded mode activates when rolling p95 exceeds 5s and switches to safe-default routing | latency simulation with route assertions |
 | `A4-AC4` | split threshold emits carve trigger | 7-day ingress simulation with artifact assertion |
@@ -980,6 +1097,7 @@ Artifacts:
 Tests:
 - import-boundary grep/lint
 - startup manifest assertion tests
+- Railway production-host fingerprint assertion tests
 - seed + registration integration tests
 - reconciler drift-repair test
 
@@ -987,6 +1105,7 @@ Artifacts:
 - committed `backend/config/migration-manifest.yaml`
 - commit deleting live Celery Beat keys from `backend/app/core/celery_app.py`
 - bootstrap logs proving manifest assertion success
+- bootstrap logs proving the Railway-hosted startup fingerprint was asserted for production executor startup
 - logs/tests proving GH external schedules are tracked but not internally scheduled
 
 ### 11.3 A3 evidence mapping
@@ -995,11 +1114,13 @@ Tests:
 - predicate evaluation event tests
 - envelope/result schema tests
 - duplicate-result idempotency tests
+- prod-agent webhook auth/idempotency tests
 
 Artifacts:
 - committed `dispatch-envelope.schema.json` and `run-result.schema.json`
 - output proving duplicate completion is idempotent
-- logs showing UUIDv7 `run_id` and correlation fields for cron and predicate-triggered runs
+- logs showing UUIDv7 `run_id` and correlation fields for cron, predicate-triggered, and prod-agent runs
+- test output proving `run_environment=prod` rejects `dispatch_mode=council_request`
 
 ### 11.4 A4 evidence mapping
 Tests:
@@ -1010,6 +1131,7 @@ Tests:
 
 Artifacts:
 - code diff in `AllAIBrainAgent`
+- production assertion logs showing Railway as the allAI host
 - logs/metrics for degraded-mode transitions
 - output showing spillover preserved `correlation_*` fields
 - artifact/event proving split-BQ filing signal
@@ -1087,3 +1209,14 @@ Primary implementation risks:
 - For GH external schedules, should a missing `run-start` be treated as error or warning when `run-result` arrives first? Current proposal: warning only; permit implicit creation for robustness.
 - Should protected/core seed schedules be undeletable at the API layer, or deletable only behind a stricter internal admin flag? Current proposal: internal admin flag only, to preserve an emergency escape hatch without DB surgery.
 - Do any current Telegram wrappers strip unknown body fields and thereby threaten the required `correlation_*` contract? Reviewers should challenge this explicitly because A5 depends on those fields surviving intact.
+
+## Appendix G — R1 to R2 Closure Map
+| R1 finding | R2 closure section |
+|---|---|
+| Titan-1 production executor host ambiguity | `§6.2a Production hosting contract`, `§11.2` |
+| Production dispatch path still used `council_request` | `§5.5`, `§5.6`, `§6.8`, `§7.5`, `§7.7`, `§11.3` |
+| Backup topology still implied Titan-1 substrate ownership | `§2.1`, `§6.6.2` |
+| Dispatch host matrix missing | `§6.8 Dispatch Host Matrix` |
+| allAI host placement not explicit | `§8.1`, `§11.4` |
+| UUID version inconsistency vs parent amendment | `§3.2` |
+| Migration env-var retirement table missing | `§6.6.1` |
