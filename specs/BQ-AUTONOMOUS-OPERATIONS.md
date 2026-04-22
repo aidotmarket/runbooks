@@ -2,13 +2,14 @@
 
 **Parent BQ:** `build:bq-autonomous-operations`
 **Gate:** 1
-**Revision:** R2 (S489) — addresses MP R1 `5c85b3f3` REQUEST_CHANGES (4H+5M+1L)
+**Revision:** R3 (S489) — addresses MP R2 `4b56cce5` REQUEST_CHANGES (1H+1M+1L); R1 findings closed in R2
 **Author:** Vulcan
 **Repo:** aidotmarket/runbooks
 **Spec path:** specs/BQ-AUTONOMOUS-OPERATIONS.md
 **Discovery entity:** `project:bq-autonomous-operations-discovery-findings` v3+
 **Scope decisions source:** `build:bq-autonomous-operations` v3 `body.scope_decisions_locked_s489`
 **R1 commit:** `88b3d20`
+**R2 commit:** `5de988c`
 
 ## 0. Executive Summary
 
@@ -244,7 +245,17 @@ When a schedule fires, the executor assembles and emits:
 
 **Same run_id across retries:** when the same `run_id` retries (executor-initiated), `attempt_number` increments. Run history retains all attempts in the event ledger.
 
-### 5.4 Result event contract + duplicate-completion handling (R2 — expanded per M1)
+### 5.4 Result event contract + duplicate-completion handling (R3 — H1 sole-completion-event contract)
+
+**Single completion event contract (R3 — H1 closure).** The registry defines EXACTLY ONE completion event type: `schedule.run.complete`. The `status` field discriminates outcome:
+
+- `status: success` — agent completed successfully
+- `status: failure` — agent raised an exception or returned a failure result
+- `status: timeout` — wall-clock cap exceeded; either synthesized by executor (§5.4 below) or emitted by an agent that self-detected timeout
+- `status: agent_error` — agent framework error (infrastructure-side, not agent-logic-side)
+- `status: dispatch_error` — dispatch itself failed before agent started
+
+No separate `schedule.run.failed` or `schedule.run.timeout` event types exist. All consumers (allAI stewardship subscription §7.2, missed-escalation audit §9.2) MUST filter on `status` field of `schedule.run.complete` events. This is a hard invariant; Gate 3 tests include "no non-`schedule.run.complete` events are emitted for run lifecycle."
 
 On completion, the executing agent emits:
 
@@ -386,9 +397,9 @@ Stewardship lands on `AllAIBrainAgent` at `app/allai/agents/allai_brain.py`. Rat
 
 **Council invited to challenge.** MP or AG may recommend `AllAIStewardAgent` (dedicated) during review.
 
-### 7.2 Subscription
+### 7.2 Subscription (R3 — H1 aligned to sole-completion-event contract)
 
-`AllAIBrainAgent.startup()` adds `schedule.run.complete`, `schedule.run.failed`, `schedule.run.timeout` to its subscription list.
+`AllAIBrainAgent.startup()` adds ONLY `schedule.run.complete` to its subscription list. The brain filters by `status` field internally: `status in {failure, timeout, agent_error, dispatch_error}` routes to classification; `status=success` with `escalation_target=silent_success_only` logs-and-drops; `status=success` otherwise still passes through classification in case the schedule's success conditions have semantic content (e.g., staleness WARN). Consistent with §5.4 sole-completion-event contract.
 
 ### 7.3 Bounded queue + rate isolation (R2 — M5)
 
@@ -490,22 +501,30 @@ allAI classification is the single point of escalation decision. If the classifi
 
 Meta-cron `schedule:missed-escalation-audit-hourly` runs every hour with `agent=sysadmin`, `dispatch_mode=direct_callable`:
 
-**Step 1 — Derive candidate "should-have-escalated" set from RAW events, not queue contents:**
+**Step 1 — Derive candidate "should-have-escalated" set from RAW events, not queue contents (R3 — H1 aligned to sole-completion-event contract; M1 correlation keys specified):**
 
-The audit reads the event ledger for the last 2h and applies the following **independent rules** (not dependent on allAI's classification):
+The audit reads the event ledger for the last 2h and applies the following **independent rules** (not dependent on allAI's classification). All rules filter on `schedule.run.complete` events with `status` discriminator per §5.4, NOT separate failed/timeout event types:
 
-- **R1 — escalation-target P0/P1 failure:** any `schedule.run.complete` with `status=failure` AND `escalation_target=telegram_p0_p1` AND `priority in {0,1}` → candidate P0/P1.
-- **R2 — persistent state-predicate failure:** any `schedule.run.failed` where the same schedule's previous `schedule.run.failed` was within the last 24h AND the schedule's `escalation_target=telegram_p0_p1` → candidate P1 (pattern of failure).
-- **R3 — dispatch error:** any `schedule.dispatch.error` event → candidate P1 (unconditional).
-- **R4 — missed schedule fire:** any schedule where `now - last_run_at > (expected_interval * 2)` AND `enabled=true` → candidate P1 (schedule didn't fire when expected).
-- **R5 — timeout on P0/P1-priority schedule:** any `schedule.run.timeout` with `priority in {0,1}` → candidate P0.
-- **R6 — predicate-true-but-no-fire:** any schedule where `schedule.predicate.evaluated` returned `true` but no `schedule.run.complete` followed within `timeout_seconds + 60s` → candidate P1.
+- **R1 — escalation-target P0/P1 failure:** any `schedule.run.complete` with `status=failure` AND `escalation_target=telegram_p0_p1` AND `priority in {0,1}` → candidate P0/P1. **Correlation key:** `run_id`.
+- **R2 — persistent failure pattern:** any `schedule.run.complete` with `status in {failure, timeout, agent_error}` where the same schedule's previous `schedule.run.complete` with failing status was within the last 24h AND the schedule's `escalation_target=telegram_p0_p1` → candidate P1 (pattern of failure). **Correlation key:** `run_id` (of the current event).
+- **R3 — dispatch error:** any `schedule.run.complete` with `status=dispatch_error` → candidate P1 (unconditional). **Correlation key:** `run_id`.
+- **R4 — missed schedule fire (CRON SCHEDULES ONLY):** any cron schedule (`trigger_type=cron`) where `now - last_run_at > (cron_expected_interval_seconds * 2)` AND `enabled=true` AND `paused_until` is null or past → candidate P1. `cron_expected_interval_seconds` is derived from the cron expression (e.g. `0 7 * * *` → 86400s; `*/5 * * * *` → 300s). For cron expressions with irregular intervals (e.g. `0 0 * * 1` weekly vs `0 0 1 * *` monthly), the MAX gap between consecutive fire times in a year is used. State-predicate schedules and `manual_only` schedules are EXCLUDED from R4 (no predictable interval). **Correlation key:** `schedule_id + expected_fire_at` (synthesized — there is no prior run_id because the run didn't happen).
+- **R5 — timeout on P0/P1-priority schedule:** any `schedule.run.complete` with `status=timeout` AND `priority in {0,1}` → candidate P0. **Correlation key:** `run_id`.
+- **R6 — predicate-true-but-no-fire:** any schedule where `schedule.predicate.evaluated` returned `true` but no `schedule.run.complete` followed within `timeout_seconds + 60s` → candidate P1. **Correlation key:** `schedule_id + predicate_evaluated_at` (the predicate-evaluation event's `event_ledger_id`).
 
 These rules are implemented in `app/services/schedule_registry/missed_escalation_audit.py` as deterministic Python code. **They do not call allAI.** They do not read `queue:attention`. Severity derivation is independent.
 
-**Step 2 — Verify Telegram delivery for each candidate:**
+**Step 2 — Verify Telegram delivery for each candidate (R3 — M1 per-rule correlation):**
 
-For each candidate, scan `telegram.send` events in the last 2.5h for a send event referencing the candidate's `source_event_ledger_id` or `run_id`. Match found → candidate verified, move on. No match → candidate is a MISSED ESCALATION.
+For each candidate, scan `telegram.send` events in the last 2.5h using the candidate's rule-specific correlation key:
+
+- **R1, R2, R3, R5:** `telegram.send.body.correlation_run_id == candidate.run_id` → match.
+- **R4:** `telegram.send.body.correlation_schedule_id == candidate.schedule_id` AND `telegram.send.body.correlation_expected_fire_at == candidate.expected_fire_at` → match.
+- **R6:** `telegram.send.body.correlation_schedule_id == candidate.schedule_id` AND `telegram.send.body.correlation_predicate_evaluated_at == candidate.predicate_evaluated_at` → match.
+
+Match found → candidate verified, move on. No match → candidate is a MISSED ESCALATION.
+
+**Gate 3 contract:** backend Telegram-send code paths that escalate schedule events MUST populate `correlation_run_id` / `correlation_schedule_id` / `correlation_expected_fire_at` / `correlation_predicate_evaluated_at` fields in the send body. Missing correlation fields fail a Chunk A unit test.
 
 **Step 3 — Self-escalate missed items:**
 
@@ -706,15 +725,17 @@ Validation must NOT be tautological (Vulcan-authored scenarios validating Vulcan
 - Must pass `runbook-harness --runbook operating-guide.md --mode conformant` at ≥ 80% weighted score.
 - Committed inline in §I of operating-guide.md.
 
-**Part B — Reviewer-authored challenge set (≥ 5 scenarios).**
+**Part B — Reviewer-authored challenge set (≥ 5 scenarios) (R3 — L1 single source of truth).**
 - Authored by MP (or AG if MP unavailable) in a SEPARATE session, AFTER Part A is committed.
 - Reviewer reads the 5 source documents independently and derives challenge scenarios from facts mentioned in source but that may have been lost/drifted during consolidation.
-- Committed inline in §I of operating-guide.md under clearly labeled "Reviewer-authored challenge scenarios."
-- Must pass `runbook-harness --runbook operating-guide.md --mode conformant --external-scenario-set reviewer-challenge/` at ≥ 80% weighted score.
+- Committed INLINE in §I of operating-guide.md under a clearly labeled "Reviewer-authored challenge scenarios" subsection with author attribution per scenario (`authored_by: mp-<session>` or `authored_by: ag-<session>`). This is the **single source of truth**; no external `reviewer-challenge/` directory.
+- Harness contract: the normal `runbook-harness --runbook operating-guide.md --mode conformant` invocation loads the ENTIRE §I set (Part A + Part B combined) and scores them together. No `--external-scenario-set` flag needed; no separate external directory.
 
-**Combined acceptance:**
-- Both Part A AND Part B must pass at ≥ 80% independently.
+**Combined acceptance (R3 — L1):**
+- Part A scenarios (authored_by: vulcan-<session>) must pass at ≥ 80% weighted score in isolation (filter §I to Part A only for this measurement).
+- Part B scenarios (authored_by: mp-<session> OR ag-<session>) must pass at ≥ 80% weighted score in isolation (filter §I to Part B only for this measurement).
 - If Part B fails while Part A passes, the finding implies the meta-runbook drifted from source documents during consolidation — Vulcan must amend operating-guide.md to cover the failing scenarios' facts.
+- The partition-by-author-attribution is implemented as a loader feature in `runbook_tools/harness/loader.py` (Chunk 1 of BQ-RUNBOOK-STANDARD follow-on, tracked by `bq-runbook-harness-production-wiring` or filed separately if that BQ's scope doesn't cover attribution-based scoring).
 
 This breaks the tautology: the reviewer's scenarios test whether the consolidated meta-runbook accurately represents its sources, not just whether the consolidator's own scenarios agree with the consolidator's own content.
 
@@ -791,7 +812,7 @@ Gate 1 APPROVED when MP + AG both concur ≥ APPROVE_WITH_NITS on R_N:
 - **Q5 (R3).** `run_id_authority=external_webhook` must still enforce idempotency per §5.4. If GH workflow retries its webhook call 3 times with same run_id, backend must dedupe. Is the deduplication window unbounded or time-bounded?
 - **Q6 (R3).** Telegram direct-send from audit (§9.2 step 3) uses `TelegramRelay.send_message()` — does the audit share a rate-limit bucket with the main Telegram escalation path, and could audit bursts starve legitimate P0 sends?
 - **Q7 (R3).** Operating-guide.md challenge-scenario reviewer — MP or AG? MP has better structural rigor; AG has better consumer-first framing. R2 proposes MP with AG fallback. R3 may let council decide.
-- **Q8 (R3).** Missed-escalation audit R4 rule ("missed schedule fire") needs `expected_interval` per schedule. For cron schedules derived from cron expression. For state-predicate schedules — no predictable interval. R4 applies only to cron schedules?
+- **Q8 (CLOSED R3).** Missed-escalation audit R4 rule ("missed schedule fire") is scoped to cron schedules only per R3 §9.2 Step 1 R4. State-predicate schedules and manual-only schedules are excluded (no predictable interval). `cron_expected_interval_seconds` is derived from the cron expression.
 - **Q9 (R3).** Compound predicate logic: how often will v1 schedules genuinely need AND/OR? If > 20% of filed schedules want compound, R3 may elevate this to v1 scope; if < 5%, defer is fine.
 - **Q10 (R3).** Backend `/api/v1/ops/*` prefix collides with existing OpsPanel routes on `/api/v1/ops/*`? Need Chunk A Gate 2 to confirm namespace is clear or choose sub-namespace like `/api/v1/ops/schedules/*`.
 
@@ -915,3 +936,17 @@ MP R1 task `5c85b3f3` returned REQUEST_CHANGES (4H+5M+1L). R2 closes all 10:
 | Self-validation tautological | LOW #1 | §13.4 adds reviewer-authored challenge subset ≥ 5 + dual-set acceptance criterion |
 
 R1 → R2 net diff expected: ~+300 / -100 lines (R1 711 → R2 ~900).
+
+---
+
+## Appendix F — R2 → R3 Change Log
+
+MP R2 task `4b56cce5` returned REQUEST_CHANGES (1H+1M+1L). R3 closes all 3 while all 10 R1 findings remain closed:
+
+| Finding | Severity | R3 fix location |
+|---|---|---|
+| Event taxonomy inconsistency (`schedule.run.complete` vs `schedule.run.failed/timeout`) | HIGH #1 | §5.4 adds sole-completion-event contract paragraph; §7.2 subscription narrowed to only `schedule.run.complete` with `status` field filtering; §9.2 Step 1 rules R1/R2/R3/R5 rewritten to filter on `schedule.run.complete` with status discriminator; Gate 3 test requirement added for "no non-`schedule.run.complete` events emitted for run lifecycle" |
+| R4/R6 audit rule under-specification (`expected_interval` undefined for non-cron; correlation key missing) | MEDIUM #1 | §9.2 Step 1 R4 explicitly scoped to cron schedules only; `cron_expected_interval_seconds` derivation specified; §9.2 Step 2 per-rule correlation keys enumerated (R1/R2/R3/R5 use `run_id`; R4 uses `schedule_id + expected_fire_at`; R6 uses `schedule_id + predicate_evaluated_at`); Gate 3 test for `correlation_*` fields in Telegram-send body |
+| §13.4 challenge-scenario source-of-truth split | LOW #1 | §13.4 Part B + Combined Acceptance rewritten: inline §I with author-attribution partitioning is the single source of truth; no external `reviewer-challenge/` directory; harness loader adds author-attribution-based partition scoring |
+
+R2 → R3 net diff: ~+60 / -30 lines, all in §5.4, §7.2, §9.2, §13.4, §17 Q8, header + new Appendix F. Narrow, targeted, no structural changes.
