@@ -1,12 +1,12 @@
-# BQ-RUNBOOK-STANDARD — Gate 2 Chunk 2 (R1)
+# BQ-RUNBOOK-STANDARD — Gate 2 Chunk 2 (R2)
 
 **Parent BQ:** `build:bq-runbook-standard`
 **Chunk:** Gate 2 Chunk 2 — Gate 1 §9 Deliverables D4 + D5
 **Chunk 1 contract:** `specs/BQ-RUNBOOK-STANDARD-GATE-2-CHUNK-1.md` @ commit `ea70326`
 **Gate 1 frozen standard:** `specs/BQ-RUNBOOK-STANDARD.md` @ commit `365c198`
-**Revision:** R1
+**Revision:** R2 (addresses MP R1 task `4f2740a0` REQUEST_CHANGES: 2H+4M+2L)
 **Author:** Vulcan
-**Authored session:** S489
+**Authored sessions:** R1 S489 (7c41edf), R2 S489
 
 ---
 
@@ -14,12 +14,12 @@
 
 This chunk specifies how the first two first-party runbooks under the system-wide Runbook Standard are authored and verified:
 
-- **D4 — Infisical runbook** (Gate 1 §9 step 4). The initial reference implementation. Authored by Vulcan from scratch using only the frozen standard plus Infisical system evidence. Validated by the Chunk 1 tooling and the Vulcan-authored §I scenario set.
-- **D5 — AIM Node runbook** (Gate 1 §9 step 5). The G4 falsifiability test. Authored by Vulcan against the frozen standard with no access to the D4 runbook content. Evaluated against an externally-authored hidden scenario set produced under the Gate 1 §7 G4 protocol (MP + AG authoring, MP + AG reconciliation, XAI correspondence challenger, AG scoring).
+- **D4 — Infisical runbook** (Gate 1 §9 step 4). The initial reference implementation. Authored by Vulcan from scratch using only the frozen standard plus Infisical system evidence. Validated by the Chunk 1 tooling and a Vulcan-authored §I scenario set.
+- **D5 — AIM Node runbook** (Gate 1 §9 step 5). The G4 falsifiability test. Authored by Vulcan against the frozen standard with no access to D4 content. Evaluated against an externally-authored hidden scenario set produced under the Gate 1 §7 G4 protocol (MP + AG authoring, MP + AG reconciliation, XAI correspondence challenger, AG scoring).
 
 Chunk 2 is a design-level Gate 2 specification. It does not contain the runbook content itself — runbook authoring is the Chunk 2 Gate 3 build. What this spec contains is the authoring contract, the isolation mechanism, the G4 integration shape on the runbook side, the verification contract Gate 3 will check, and the sequencing between D4 and D5.
 
-Chunk 2 does NOT re-open Gate 1 of the parent BQ. The frozen standard is unchanged. Chunk 2 also does not modify Chunk 1 tooling; if Chunk 2 authoring exposes a Chunk 1 gap, the defect is filed as a follow-on BQ rather than smuggled into Chunk 2.
+Chunk 2 does NOT re-open Gate 1 of the parent BQ. The frozen standard is unchanged. Chunk 2 also does not modify Chunk 1 tooling directly; instead, R2 files two explicit prerequisite BQs (§6.3) that close intentional Chunk 1 scope boundaries necessary for this chunk to be mechanically satisfiable.
 
 ---
 
@@ -29,15 +29,17 @@ Chunk 2 does NOT re-open Gate 1 of the parent BQ. The frozen standard is unchang
 - Authoring contract for `infisical.md` (new filename) per D4
 - Authoring contract for `aim-node.md` (existing filename, content replaced) per D5
 - Sequencing between D4 and D5 authoring
-- Isolation mechanism enforcing "no D4 read during D5 authoring"
-- G4 attempt lifecycle integration on the runbook-author (Vulcan) side
+- Isolation mechanism for D5 with explicit forbidden-surface enumeration and fresh-session requirement
+- G4 attempt lifecycle integration on the runbook-author (Vulcan) side including timeout recovery
 - Verification contract that Chunk 2 Gate 3 will check per deliverable
-- Pre-Gate-3 preflight (both runbooks pass Chunk 1 linter on draft before MP / G4 dispatch)
+- Pre-Gate-3 preflight (both runbooks generate cleanly via `runbook-new` before MP / G4 dispatch)
 - Handling of existing pre-standard files (`infisical-secrets.md`, `aim-node.md`)
+- Explicit prerequisite-BQ dependencies for Koskadeux-side G4 machinery and harness production wiring
 
 **Out of scope for Gate 2 Chunk 2:**
-- Koskadeux-side G4 machinery (`g4_attempt_id` issuance, attempt-registry / attempt-manifest entity writes, stall escalation timers). Gate 1 §7 assigns this to Koskadeux; it is a prerequisite dependency, not this chunk's build target. Filed as `BQ-KOSKADEUX-G4-PROTOCOL` (see §10 open questions if not already filed).
-- XAI correspondence-check instructions (those live in Koskadeux as XAI dispatch prompts, not in this spec).
+- Koskadeux-side G4 machinery — spec authoring, implementation, and testing (P0 prerequisite filed as `build:bq-koskadeux-g4-protocol`, see §6.3)
+- Harness production wiring (MP dispatch + external-scenario-set mode) — spec authoring and implementation (P0 prerequisite filed as `build:bq-runbook-harness-production-wiring`, see §6.3)
+- XAI correspondence-check dispatch prompts (live in Koskadeux as part of `BQ-KOSKADEUX-G4-PROTOCOL` scope).
 - CRM retrofit content (Gate 1 §9 step 6 — Chunk 3 or child BQ).
 - Celery retrofit content (Gate 1 §9 step 7 — Chunk 4 or child BQ).
 - Any change to Chunk 1 tooling design or to the Gate 1 frozen standard.
@@ -46,8 +48,8 @@ Chunk 2 does NOT re-open Gate 1 of the parent BQ. The frozen standard is unchang
 **Deferred to Chunk 2 Gate 3 (build):**
 - Actual authoring of `infisical.md` (D4 runbook content)
 - Actual authoring of `aim-node.md` (D5 runbook content)
-- Actual §I scenario sets per runbook (Vulcan-authored for D4, Vulcan-authored-for-self-assertion + externally-authored-for-G4 for D5)
-- Evidence of runbook-lint PASS on both runbooks
+- Actual §I scenario sets per runbook (Vulcan-authored for D4; Vulcan-authored self-assertion set for D5 plus externally-authored hidden G4 set via the harness external-scenario-set mode)
+- Evidence of `runbook-lint` PASS on both runbooks
 - Evidence of Vulcan-authored harness score ≥ 0.80 on the D4 runbook's §I set
 - Evidence of the full G4 attempt lifecycle completing with terminal status `passed` on the D5 runbook
 
@@ -59,12 +61,12 @@ Chunk 2 adds runbook content to an existing tooling scaffold. It does not reloca
 
 ```
 aidotmarket/runbooks/
-├── README.md                             # Chunk 1, index (updated in Chunk 2 to mark Infisical + AIM Node as Adopted)
-├── runbook_tools/                        # Chunk 1 (unchanged)
-├── harness/                              # Chunk 1 scaffold (unchanged)
+├── README.md                             # Chunk 1 index (updated in Chunk 2 to mark Infisical + AIM Node as Adopted)
+├── runbook_tools/                        # Chunk 1 + prerequisite harness wiring BQ
+├── harness/                              # Chunk 1 scaffold (extended by prerequisite harness wiring BQ)
 ├── schemas/                              # Chunk 1 (unchanged)
 ├── templates/                            # Chunk 1 (unchanged)
-├── tests/                                # Chunk 1 (unchanged)
+├── tests/                                # Chunk 1 (extended by prerequisite BQs)
 ├── infisical.md                          # Chunk 2 D4 — NEW file, replaces infisical-secrets.md
 ├── aim-node.md                           # Chunk 2 D5 — CONTENT REPLACED
 ├── specs/
@@ -76,9 +78,9 @@ aidotmarket/runbooks/
 
 **Handling of existing pre-standard files:**
 
-- `infisical-secrets.md` (3570 bytes, authored S357, pre-standard). **Deleted** in the Chunk 2 Gate 3 build PR that lands `infisical.md`. Rationale: the old file predates the standard and is replaced end-to-end by the new conformant runbook. Git history preserves it. No archive copy needed because it is not a retrofit of a legacy whose structure is being preserved — it is pre-standard scrap.
-- `aim-node.md` (12115 bytes, authored S392-ish, pre-standard). **Content replaced wholesale** in the Chunk 2 Gate 3 build PR that lands the new version. The filename stays (already correct). The old content is in git history.
-- All other pre-standard `.md` files at the repo root remain untouched in Chunk 2. They are Gate 1 §9 steps 6-8 work (CRM, Celery, remaining systems) or documentation not yet in the standard's adoption scope.
+- `infisical-secrets.md` (3570 bytes, authored S357, pre-standard). **Deleted** in the Chunk 2 Gate 3 B1 PR that lands `infisical.md`. Rationale: the old file predates the standard and is replaced end-to-end by the new conformant runbook. Git history preserves it. No archive copy needed because it is not a retrofit of a legacy whose structure is being preserved — it is pre-standard scrap. Pre-PR grep verification (performed in R2): zero inbound references outside this repo's own spec/test fixtures, so deletion is safe.
+- `aim-node.md` (12115 bytes, pre-standard). **Content replaced wholesale** in the Chunk 2 Gate 3 B2 PR that lands the new version. The filename stays (already correct). The old content is in git history. Pre-PR grep (R2): zero `aim-node.md#<anchor>` fragment references; one plain-link reference in `aim-node-release-process.md` (line 83) that must be sanity-checked but does not depend on specific section IDs.
+- All other pre-standard `.md` files at the repo root remain untouched in Chunk 2.
 
 **README.md index update (Chunk 2):**
 
@@ -90,10 +92,10 @@ Gate 3 Chunk 2 updates the "Adoption status" section of `README.md` to move Infi
 
 ### 4.1 Classification
 
-- **Runbook type:** from-scratch authoring (not retrofit)
-- **§K.retrofit field:** `null` (no `trace_matrix`, no `word_count_delta`, no `mp_orphan_review`, no `procedural_coverage_matrix`)
+- **Runbook type:** from-scratch authoring (not retrofit).
+- **§K representation of "from-scratch":** `retrofit: false` (or omit the `retrofit` key; default is `false` per `schemas/section_k_conformance.schema.json`). `trace_matrix_path: null`. `word_count_delta: null`. The two nullable fields ARE null; `retrofit` is a boolean, not nullable. (R1 inverted this.)
 - **Authoring agent:** Vulcan
-- **Scope:** all of Infisical as deployed at `https://secrets.ai.market` per the current system state, including machine identities, environments, secret rotation, Railway integration, and SMTP configuration
+- **Scope:** all of Infisical as deployed at `https://secrets.ai.market` per the current system state, including machine identities, environments, secret rotation, Railway integration, and SMTP configuration.
 
 ### 4.2 System evidence Vulcan MAY use during authoring
 
@@ -128,25 +130,24 @@ The runbook MUST cover, at minimum, these real capabilities and incident types (
 
 Per Gate 1 §4 §I and Gate 1 §7 G3:
 
-- **Minimum count:** ≥ 10 scenarios
-- **Distribution:** per Gate 1 §4 §I diversity rules (operate / isolate / repair / success / failure across the enumerated capabilities)
-- **Authoring:** Vulcan
-- **Weighting:** equal-weight default unless explicit per-scenario justification is written into the §I YAML block per Gate 1 §4 §I
-- **Target weighted score:** ≥ 0.80 on the Chunk 1 harness when AG dispatches the stateless-agent harness run against this runbook
+- **Minimum count:** ≥ 10 scenarios.
+- **Type distribution** (per Chunk 1 §4.4.9 check #11): ≥ 3 `operate`, ≥ 3 `isolate`, ≥ 2 `repair`, ≥ 2 `evolve`, ≥ 1 `ambiguous`.
+- **Weighting:** equal-weight default (`1/N`) unless an `### §I.1 Weight Justification` subsection explains each non-default weight per Chunk 1 check #12/#13.
+- **§I↔per-file YAML mirror:** required per Chunk 1 loader. For D4 (normal harness path), the runbook author (Vulcan) creates both §I and `harness/scenarios/infisical/*.yaml` and ensures they mirror exactly.
+- **Target weighted score:** ≥ 0.80 on the Chunk 1 harness after `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` lands (the wiring unblocks actual MP dispatch for scoring).
 
-The §I scenarios are Vulcan-authored and land in the runbook itself. They are NOT the G4-style hidden eval — D4 is the reference implementation on the normal path.
+The §I scenarios are Vulcan-authored for D4. D4 does NOT use external-scenario mode — it is the normal-path reference implementation.
 
 ### 4.5 Gate 3 verification contract for D4
 
-Chunk 2 Gate 3 Acceptance Criteria for D4:
+Chunk 2 Gate 3 Acceptance Criteria for D4 (six ACs):
 
-1. `runbook-lint infisical.md` exits 0 (all 20 checks PASS); linter_version and all §A/§J metadata fields populated per §K.0 and §J.
-2. `runbook-harness --runbook infisical.md --answer-key infisical.md --section I` produces a weighted total ≥ 0.80.
-3. §I scenario count ≥ 10 with distribution matching Gate 1 §4 §I rules.
-4. All 11 agent forms (§A–§K) present and validating against their Chunk 1 schemas.
-5. `infisical-secrets.md` deleted in the same PR (single transaction).
-6. `README.md` Adoption Status table updated: Infisical row moves to `Adopted`.
-7. MP first-pass design review on the authored runbook: verdict `APPROVE` or `APPROVE_WITH_NITS`.
+1. `runbook-lint infisical.md` exits 0. All 20 checks PASS; all 11 agent-form schemas (§A–§K) validate; `linter_version` and §J / §K metadata populated.
+2. `runbook-harness --runbook infisical.md --mode conformant --session <g3-b1-session>` produces a weighted total ≥ 0.80 on the §I scenario set. (Command shape per `runbook_tools/cli.py:122` — actual CLI flags. Requires `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D1 landed.)
+3. §I scenario count ≥ 10 with type distribution per §4.4 (covered by lint check #11 but called out separately because it is the central G3 AC per Gate 1 §7 G3).
+4. MP first-pass design review on the authored runbook: verdict ∈ `{APPROVE, APPROVE_WITH_NITS}`.
+5. `infisical-secrets.md` deleted in the same PR.
+6. `README.md` Adoption Status table updated: Infisical row moves to `Adopted` with the run metadata per Gate 1 §6.
 
 ### 4.6 D4 out of scope
 
@@ -160,11 +161,11 @@ Chunk 2 Gate 3 Acceptance Criteria for D4:
 
 ### 5.1 Classification
 
-- **Runbook type:** from-scratch authoring (not retrofit)
-- **§K.retrofit field:** `null`
-- **Authoring agent:** Vulcan, in G4 frozen-standard mode
-- **Scope:** AIM Node peer-to-peer data plane, provider + consumer modes, wire protocol, session lifecycle, security model, adapter contracts (Phase 1 HTTP/JSON only), and documented edge cases per the aim-node.md pre-standard content's scope as of `365c198` freeze.
-- **G4 frozen_commit_sha:** `365c198` (from `build:bq-runbook-standard` entity, `gate1.approved_commit`)
+- **Runbook type:** from-scratch authoring (not retrofit).
+- **§K representation of "from-scratch":** `retrofit: false` (or omit). `trace_matrix_path: null`. `word_count_delta: null`. Same correction as §4.1.
+- **Authoring agent:** Vulcan, in G4 frozen-standard mode.
+- **Scope:** AIM Node peer-to-peer data plane, provider + consumer modes, wire protocol, session lifecycle, security model, adapter contracts (Phase 1 HTTP/JSON only), and documented edge cases per the AIM Node system as it exists at `365c198` freeze.
+- **G4 frozen_commit_sha:** `365c198` (from `build:bq-runbook-standard` entity, `gate1.approved_commit`).
 
 ### 5.2 G4 attempt lifecycle (runbook-author side)
 
@@ -182,60 +183,77 @@ Per Gate 1 §7 G4 steps 2 and 3, before Vulcan writes a single line of `aim-node
    }
    ```
 3. **Vulcan polls** the per-frozen-commit manifest at `state:bq-runbook-standard:g4:aim-node:365c198:attempt-manifest` for an entry whose `request_nonce` matches step 1. Poll is exponential-backoff from 100ms, capped at 10 seconds total. On match, Vulcan reads `g4_attempt_id` out of the matched manifest entry.
-4. **Vulcan reads per-attempt registry** at `state:bq-runbook-standard:g4:aim-node:365c198:{g4_attempt_id}:attempt-registry` to confirm authoritative state.
-5. **Vulcan begins authoring** only after registry read confirms `status: 'active'`.
+4. **Timeout recovery (verbatim from Gate 1 §7 G4 step 2(c)):** if `request_nonce` is not found after 10 seconds, Vulcan treats the open as failed and re-emits the `g4-attempt-opened` event with a **fresh `request_nonce`**. Nonce reuse across retry opens is forbidden; the retry event generates a new UUID v4 and repeats step 3. Successive timeouts without manifest advance after 3 consecutive re-emits escalate to Max via Living State event `g4-attempt-open-stalled` with payload `{frozen_commit_sha, nonces_attempted: [...], total_wait_seconds}`.
+5. **Vulcan reads per-attempt registry** at `state:bq-runbook-standard:g4:aim-node:365c198:{g4_attempt_id}:attempt-registry` to confirm authoritative state.
+6. **Vulcan begins authoring** only after registry read confirms `status: 'active'`.
 
-Retry cases (Case A/B/C/D per Gate 1 §7 step 8) each reopen via a new `g4-attempt-opened` event with appropriate `retry_case` and `prior_attempt_id`. Each retry gets a new `g4_attempt_id`; prior artifacts preserved under old namespaces.
+Retry cases (Case A/B/C/D per Gate 1 §7 step 8) each reopen via a new `g4-attempt-opened` event with appropriate `retry_case` and `prior_attempt_id`. Each retry gets a new `g4_attempt_id` and a new `request_nonce`; prior artifacts preserved under old namespaces.
 
-### 5.3 Authoring isolation — "no D4 read during D5 authoring"
+### 5.3 Authoring isolation — forbidden D4-equivalent surfaces and fresh-session requirement
 
-The central G4 integrity requirement for the runbook-author side: Vulcan MUST NOT read or otherwise reference the D4 Infisical runbook content during D5 AIM Node authoring.
+The central G4 integrity requirement for the runbook-author side (restating Gate 1 §7 G4 step 3 intent): **Vulcan MUST NOT consume any D4 Infisical runbook content as input during D5 authoring, through any surface.**
 
-**R1-proposed enforcement stack** (layered; R2 will refine based on MP feedback on which layers are necessary):
+"D4 content" is defined as the text of `infisical.md` at any commit on or after Chunk 2 G3-B1 lands, or any derivative of that text (summaries, quoted excerpts, diffs, rephrasings).
 
-1. **Session-plan declaration.** The Vulcan session that authors D5 declares in its `kd_session_plan` objectives that it is authoring against G4 frozen standard `365c198` with attempt `{g4_attempt_id}` and will not read `infisical.md`. This is the promise.
+**Forbidden D4-equivalent surfaces** (enumerated — any consumption is a Gate 3 AC 8 FAIL):
 
-2. **Operational discipline.** Vulcan does not invoke any tool call that reads `infisical.md` (shell `cat`, `view`, `grep` against it, `web_fetch` of a URL containing its content, or indirect read via agent dispatch that surfaces it). Vulcan also does not dispatch any agent task that instructs the agent to summarize or reference `infisical.md`.
+1. **Direct file read** — `cat infisical.md`, `view` / `read_file` on it, `grep` / `awk` / `sed` that returns matching content.
+2. **Git history inspection of D4 content** — `git show <sha>:infisical.md`, `git log -p infisical.md`, `git blame infisical.md`, `git diff` touching `infisical.md` hunks.
+3. **PR / code-review diff views** — GitHub PR web UI, `gh pr diff`, diff attachments, email notifications that include D4 hunks.
+4. **Copied or quoted excerpts in other artifacts** — D4 text pasted into another file in this repo or any other repo, into session scratchpads, or into prompts to other agents.
+5. **Agent dispatch tasks that reference, summarize, or include D4 content** — a task prompt to MP/AG/XAI that contains D4 excerpts or instructs the agent to read / summarize D4.
+6. **Living State reads of D4-derived artifacts** — entities whose body fields contain D4 text or summaries, including any post-authoring-session transcripts that quoted D4.
+7. **Web fetches of D4 content** — D4 published to a URL (not expected but enumerated for completeness).
 
-3. **Post-hoc session-transcript audit.** After D5 authoring session closes, a non-Vulcan auditor (proposed: MP via a read-only audit task) reviews the session's tool-call log for any read of `infisical.md`. A single confirmed read fails the G4 attempt (Case A if the read was required to author, Case B if it was incidental and the runbook can be re-authored cleanly).
+**Fresh-session requirement.** The Vulcan session that authors D5 MUST be a new `kd_session_open` (new session number) with no context carryover from the D4 authoring session. Session context is presumed to include D4 content during and shortly after D4 authoring, so a fresh session is the minimum-viable boundary. This is R2's primary tightening over R1 (MP R1 MEDIUM #2).
 
-4. **(R2 CANDIDATE, not commitment for R1)** A Koskadeux-side denied-paths wrapper for Vulcan's shell and view tools during the D5 authoring session, driven by a session-plan flag `g4_authoring_session=true`. Would physically block reads of `infisical.md`. Touches Koskadeux surface and is proposed as a follow-on `BQ-KOSKADEUX-G4-AUTHORING-ISOLATION`. Not a Chunk 2 blocker; the three layers above are sufficient for R1.
+**R1 three-layer stack (retained, now with tightened scope):**
 
-### 5.4 D5 harness / scenario model (dual-purpose)
+1. **Session-plan declaration.** The D5 authoring session declares in its `kd_session_plan` objectives that (a) it authors against G4 frozen standard `365c198` with attempt `{g4_attempt_id}`, (b) it will not consume any D4-equivalent surface per this §5.3 enumeration, and (c) it is a fresh session with no D4 authoring context.
 
-The D5 AIM Node runbook has TWO scenario sets that both run against the harness, for distinct purposes:
+2. **Operational discipline.** Vulcan refrains from invoking tool calls that touch any of the seven forbidden surfaces. Session plan serves as the self-commitment; discipline is measured in the session transcript.
 
-| Set | Authors | Location | Purpose | Gate 3 AC |
-|---|---|---|---|---|
-| **Self-assertion §I set** | Vulcan | inside `aim-node.md` §I fenced YAML block | runbook template completeness + Vulcan's own claim of coverage | runbook-lint validates count ≥ 10 and distribution; harness runs it; score tracked but not the G4 AC |
-| **G4 hidden eval set** | MP + AG (reconciled) | Living State `state:bq-runbook-standard:g4:aim-node:365c198:{g4_attempt_id}:answer-key` | externally-authored correctness check for G4 | AG-scored weighted total ≥ 0.80 per Gate 1 §7 G4 step 7 |
+3. **Post-hoc session-transcript audit (MP).** After D5 authoring session closes, MP is dispatched in a dedicated read-only audit task to review Vulcan's session tool-call log against the seven-surface enumeration. Audit output: a verdict `{CLEAN, TAINTED}` with per-call classification. A single TAINTED call fails the G4 attempt — Case A if the read was required to produce the runbook, Case B if incidental and the runbook can be cleanly re-authored.
 
-The two sets are independent. Vulcan does not see the G4 hidden set. MP + AG do not need to match the self-assertion set. The G4 pass criterion in Gate 1 §7 G4 step 7 is measured against the hidden set, not the self-assertion set.
+**Layer 4 (future defense in depth, not required for Gate 2).** A Koskadeux-side denied-paths wrapper on Vulcan's shell/view/read tools during sessions flagged `g4_authoring_session=true` would physically block direct file reads and git-history reads of `infisical.md`. Filed as a follow-on `BQ-KOSKADEUX-G4-AUTHORING-ISOLATION` (see §10 Q3). It would NOT fully close surfaces 3-6, which are outside Koskadeux's direct enforcement surface; those remain on the post-hoc audit. Layer 4 is a hardening, not a substitute for layers 1-3.
 
-**R2 open question:** Is there any harness-run configuration gap between "runbook-lint §I set" (Chunk 1 default) and "G4 hidden set" (runtime-supplied answer-key)? Chunk 1 §6.2 defines the expected-answer key format and §6.3 defines MP dispatch. Confirm the harness runner accepts a `--answer-key` override path for G4 or needs a follow-on BQ.
+### 5.4 D5 harness / scenario model (dual set via external-scenario mode)
+
+Per Gate 1 §7 G4 step 4, MP and AG each independently author a ≥10-scenario evaluation set; reconciliation produces a single hidden answer-key; AG scores the runbook against that hidden set. The Chunk 1 harness treats the runbook's own §I as authoritative and enforces an §I↔per-file YAML mirror (loader.py lines ~55-95) — this is incompatible with a hidden externally-authored eval set. The systemic resolution is a Chunk 1 follow-on BQ: `build:bq-runbook-harness-production-wiring` (§6.3) adds `--external-scenario-set <path>` mode that bypasses the §I mirror and treats the external set as authoritative.
+
+D5 has TWO scenario sets that serve distinct purposes:
+
+| Set | Authors | Location | Harness mode | Purpose | Gate 3 AC |
+|---|---|---|---|---|---|
+| **Self-assertion §I set** | Vulcan | inside `aim-node.md` §I + mirrored `harness/scenarios/aim-node/*.yaml` | normal (default) | runbook template completeness + Vulcan's own claim of coverage | lint PASS + self-assertion harness ≥ 0.80 |
+| **G4 hidden eval set** | MP + AG (reconciled) | Living State `state:bq-runbook-standard:g4:aim-node:365c198:{g4_attempt_id}:answer-key`, with scenario YAMLs materialized to a temp directory for harness input | external-scenario mode (`--external-scenario-set`) | externally-authored correctness check for G4 | AG-scored weighted total ≥ 0.80 |
+
+**Hidden-set artifact shape (for `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D4):** MP+AG's reconciled eval set is stored in the `answer-key` Living State entity as a `scenarios` array whose shape matches `schemas/scenario.schema.json` — i.e., full scenarios with `id`, `type`, `refs`, `scenario` prose, `expected_answers`, and `weight`. The AG scoring session materializes these to YAML files in a temp directory, invokes `runbook-harness --runbook aim-node.md --external-scenario-set <temp_dir> --mode conformant --session <g4-scoring-session>`, and captures the weighted-total result.
+
+The §I self-assertion set does NOT need to align with the hidden G4 set — these are independent evidence streams testing different questions (self-assertion: "does Vulcan's claim of coverage hold?"; G4: "does the runbook actually serve an externally-authored set of questions?").
 
 ### 5.5 Gate 3 verification contract for D5
 
-Chunk 2 Gate 3 Acceptance Criteria for D5:
+Chunk 2 Gate 3 Acceptance Criteria for D5 (ten ACs):
 
-1. **Attempt opened.** `g4-attempt-opened` event logged; attempt-registry status `active` at authoring start.
-2. **Isolation invariant held.** Post-hoc audit of Vulcan's D5 authoring session shows zero reads of `infisical.md`. Auditor: MP via a dedicated read-only audit task.
+1. **Attempt opened.** `g4-attempt-opened` event logged; attempt-registry reads `status: active` before Vulcan begins authoring.
+2. **Isolation invariant held.** Post-hoc MP audit of D5 authoring session returns verdict `CLEAN` against the seven forbidden D4-equivalent surfaces in §5.3. The audit includes: D5 authoring session ID, fresh-session confirmation (session number > the D4 authoring session number, no shared context carryover), per-tool-call classification, and the verdict.
 3. **Runbook passes lint.** `runbook-lint aim-node.md` exits 0.
-4. **Self-assertion harness ≥ 0.80.** Standard harness run against §I self-assertion set produces weighted total ≥ 0.80.
-5. **G4 hidden eval-set authoring complete.** MP + AG each authored a ≥ 10-scenario draft independently; reconciled into a single set; reconciliation transcript logged to `…:reconciliation-transcript` (create-only); final answer-key logged to `…:answer-key` (create-only).
-6. **XAI correspondence verdict.** XAI dispatched with the `(answer-key, aim-node.md)` pair; verdict ∈ `{CLEAN, MINOR_OVERLAP}` (not `SUSPECT_OVERFITTING`). Verdict logged to `…:xai-correspondence-verdict`.
+4. **Self-assertion harness ≥ 0.80.** `runbook-harness --runbook aim-node.md --mode conformant --session <self-assert-session>` weighted total ≥ 0.80 on the §I self-assertion set. (Requires `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D1 landed.)
+5. **G4 hidden eval-set authored + reconciled + logged.** MP and AG each authored a ≥ 10-scenario draft independently (separate sessions, no shared access). Reconciliation transcript logged at `…:reconciliation-transcript` (create-only, `expected_version=0`). Final reconciled answer-key logged at `…:answer-key` (create-only) with fields `{authored_session, mp_session, ag_session, reconciled_at, frozen_commit_sha, g4_attempt_id, scenarios: [<full scenario objects>]}`.
+6. **XAI correspondence verdict.** XAI dispatched with the `(answer-key, aim-node.md)` pair; verdict ∈ `{CLEAN, MINOR_OVERLAP}` (not `SUSPECT_OVERFITTING`). Verdict logged at `…:xai-correspondence-verdict`.
 7. **MP first-pass design review.** Verdict ∈ `{APPROVE, APPROVE_WITH_NITS}`. Runs in a session separate from MP's G4 eval-set-authoring session (reviewer-independence constraint per Gate 1 §7 G4 step 6).
-8. **AG harness score ≥ 0.80.** AG scores the runbook against the G4 answer-key. Weighted total ≥ 0.80. Score logged to `…:harness-result`.
-9. **Attempt-registry status transitions to `passed`.** Koskadeux patches status on harness-result write per Gate 1 §7 G4 step 9 state machine.
+8. **AG harness score ≥ 0.80.** AG runs the external-mode harness (`BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D2-D4) against the G4 answer-key. Weighted total ≥ 0.80. Score logged at `…:harness-result`.
+9. **Attempt-registry terminal status `passed`.** Koskadeux (`BQ-KOSKADEUX-G4-PROTOCOL`) patches status on harness-result write per Gate 1 §7 G4 step 9 state machine.
 10. **README.md updated.** AIM Node row moves to `Adopted`.
 
-If any of criteria 2-8 fail, the attempt fails under the relevant retry Case per Gate 1 §7 G4 step 8. Chunk 2 Gate 3 does not pass until an attempt reaches `passed`.
+If any of criteria 2-8 fail, the attempt fails under the relevant retry Case per Gate 1 §7 G4 step 8. Chunk 2 Gate 3 B2 does not pass until an attempt reaches terminal status `passed`.
 
 ### 5.6 D5 review-role separation
 
 Per Gate 1 §7 G4 step 6:
-- **MP authors** part of the hidden eval set (with AG) AND does the first-pass design review. These MUST be two different MP dispatch sessions.
-- **AG authors** part of the hidden eval set (with MP) AND runs the harness scorer. These MUST be two different AG dispatch sessions.
+- **MP authors** part of the hidden eval set (with AG) AND does the first-pass design review. These MUST be two different MP dispatch sessions with different session IDs recorded in the logged artifacts (`answer-key.mp_session` vs the design-review task session).
+- **AG authors** part of the hidden eval set (with MP) AND runs the external-mode harness scorer. These MUST be two different AG dispatch sessions.
 - **XAI** runs correspondence challenger only; does not score.
 - **Vulcan** does not see the hidden eval set before or during authoring.
 
@@ -243,9 +261,9 @@ Each role's dispatch is a separate task in Koskadeux's task-id registry with ses
 
 ### 5.7 D5 out of scope
 
-- Koskadeux-side implementation of attempt issuance, entity writes, status-transition patches, and stall-escalation timers. Prerequisite dependency.
-- XAI prompt engineering for correspondence-bias detection. Koskadeux-side.
-- AG harness-scorer runtime infrastructure. Chunk 1 tooling handles the scoring algorithm; dispatch orchestration is Koskadeux.
+- Koskadeux-side implementation of attempt issuance, entity writes, status-transition patches, and stall-escalation timers — owned by `BQ-KOSKADEUX-G4-PROTOCOL`.
+- Harness production wiring and external-scenario-set mode — owned by `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING`.
+- XAI prompt engineering for correspondence-bias detection — owned by `BQ-KOSKADEUX-G4-PROTOCOL`.
 
 ---
 
@@ -253,76 +271,85 @@ Each role's dispatch is a separate task in Koskadeux's task-id registry with ses
 
 ### 6.1 D4 before D5
 
-D4 authoring completes (runbook lands, runbook-lint PASS, self-authored harness ≥ 0.80, MP design review APPROVE) BEFORE any D5 `g4-attempt-opened` event is emitted.
+D4 authoring completes (runbook lands, `runbook-lint` PASS, self-authored harness ≥ 0.80, MP design review APPROVE) BEFORE any D5 `g4-attempt-opened` event is emitted.
 
 Rationale:
-- D4 proves the standard + Chunk 1 tooling work end-to-end on the normal path before the G4 falsifiability test. If D4 cannot be authored cleanly, the standard has a non-falsifiability defect (Case A-analog at the Chunk 2 level) that must be resolved before the G4 test runs.
+- D4 proves the standard + Chunk 1 tooling work end-to-end on the normal path before the G4 falsifiability test. If D4 cannot be authored cleanly, the standard has a non-falsifiability defect that must be resolved before the G4 test runs.
 - D5's "no D4 read" constraint is easier to enforce once D4 is frozen at a known commit SHA than when it is an in-flight draft.
 - Gate 1 §9 lists D4 before D5.
+- Fresh-session requirement in §5.3 is only meaningful after D4 authoring is complete and contextually closed.
 
-### 6.2 D4 and D5 in a single Chunk 2 Gate 3 build vs two sub-builds
-
-**R1 proposal:** Two sub-builds within Chunk 2 Gate 3.
+### 6.2 Two sub-builds within Chunk 2 Gate 3
 
 - **Chunk 2 Gate 3 Build 1 (G3-B1):** D4 Infisical. Lands `infisical.md`, deletes `infisical-secrets.md`, updates README index, lint PASS, harness ≥ 0.80, MP design-review APPROVE. Single PR.
-- **Chunk 2 Gate 3 Build 2 (G3-B2):** D5 AIM Node. Full G4 attempt. Lands replacement `aim-node.md` content, updates README index, full G4 attempt lifecycle terminates `passed`. Single PR (plus the Living State attempt-scoped entity writes, which are out-of-repo).
+- **Chunk 2 Gate 3 Build 2 (G3-B2):** D5 AIM Node. Full G4 attempt. Lands replacement `aim-node.md` content in a PR; the G4 attempt lifecycle (eval-set authoring, scoring, attempt status transitions) is out-of-repo (Living State) and sequences around the PR.
 
-G3-B1 and G3-B2 are sequenced (B1 before B2 per §6.1). Each has its own MP review round and its own commit on main. The parent BQ stays in `gate3_in_progress` until G3-B2 terminates `passed`.
+The split is maintained because the G4 attempt lifecycle is stateful across multiple dispatches over hours-to-days and does not fit a single PR commit; and because D4 authoring review cycle and D5 G4 review cycle have different agent participation and verdict shapes.
 
-**Alternative considered:** single atomic PR containing both runbooks. Rejected because:
-- G4 attempt lifecycle is stateful across multiple dispatches over hours-to-days; cannot cleanly pack into a single PR commit.
-- D4 authoring review cycle and D5 G4 review cycle have different agent participation and verdict shapes; merging them into one review obscures failure attribution.
+### 6.3 Prerequisite dependencies (P0)
 
-### 6.3 Dependency on Koskadeux-side G4 machinery
+Chunk 2 Gate 3 cannot complete without the following two prerequisite BQs landed at Gate 3 APPROVED:
 
-Gate 1 §7 G4 assigns the following to Koskadeux:
-- `g4_attempt_id` issuance
-- Per-attempt registry entity create-only writes
-- Per-frozen-commit manifest patch with optimistic locking
-- Attempt-registry `status` transitions (`active` → `stalled` → `superseded` / `aborted` / `passed` / `failed`)
-- 48h stall detection + 72h escalation event emission
+1. **`build:bq-koskadeux-g4-protocol`** (P0, filed S489). Implements Gate 1 §7 G4 attempt issuance, per-attempt registry + per-frozen-commit manifest writes with optimistic locking, attempt-registry state machine transitions, stall detection + 72h escalation, correspondence + multi-predicate adjudication event emitters. Blocks Chunk 2 G3-B2 (D5). Does not block G3-B1.
 
-Chunk 2 cannot complete Gate 3 without this machinery existing. R1 proposes filing (or confirming filed) a P0 dependency BQ: `BQ-KOSKADEUX-G4-PROTOCOL`. Chunk 2 Gate 3 G3-B2 dispatch is blocked on that BQ reaching `gate3_approved`.
+2. **`build:bq-runbook-harness-production-wiring`** (P0, filed S489). Closes the intentional Chunk 1 scaffold-only scope boundary: (D1) wires `council_request_fn` to real Koskadeux MP dispatch so the harness can actually score, and (D2-D4) adds `--external-scenario-set` mode for G4 hidden-eval-set runs. Blocks BOTH G3-B1 (D1 required for D4 scoring) and G3-B2 (D2-D4 required for D5 external-mode scoring).
 
-**Open question for R2:** is this dependency already in the Living State entity graph, or does R1 need to file it?
+**Dependency graph:**
+
+```
+bq-runbook-harness-production-wiring (P0, new)
+    └─ D1 wire MP dispatch ────────┐
+    └─ D2-D4 external-mode ────┐    │
+                                │    ▼
+                                │   G3-B1 (D4 Infisical)
+                                │    ▲
+                                │    │ before
+                                ▼    │
+                                G3-B2 (D5 AIM Node)
+                                ▲
+                                │
+bq-koskadeux-g4-protocol (P0, new) ─┘
+```
+
+### 6.4 Standing of R1 residuals
+
+R1 proposed deferring the Koskadeux-side G4 machinery filing as an open question. R2 closes that question by filing the BQ and naming its Living State key here. R1's "option B" for the harness incompatibility (reuse runbook §I for hidden set) is rejected — it breaks Gate 1 §7 G4 step 4's reviewer-independence constraint by forcing Vulcan to author scenario prompts that MP+AG would then "independently" populate. The external-scenario-mode BQ is the correct systemic fix.
 
 ---
 
-## 7. Pre-Gate-3 preflight (Chunk 2 Gate 2 acceptance scope)
+## 7. Pre-Gate-3 preflight (Chunk 2 Gate 3 pre-dispatch check)
 
-Chunk 2 Gate 2 (this spec) does NOT author the runbooks. It authors the contract. Gate 2 AC is MP APPROVE + AG cross-vote APPROVE on this spec document.
+Chunk 2 Gate 2 (this spec) does NOT author the runbooks. Gate 2 AC is MP APPROVE + AG cross-vote APPROVE on this spec document.
 
-However, to reduce Gate 3 rework cost, R1 proposes a **pre-Gate-3 preflight** at Gate 2 approval:
+**Preflight** is a Gate 3 pre-dispatch check (not a Gate 2 AC). Before Chunk 2 G3-B1 or G3-B2 is dispatched, Vulcan runs:
 
-1. Vulcan runs `runbook-new infisical.md` (Chunk 1 template scaffold) and confirms the placeholder template lands WITH zero `FAIL` lint placeholders, only `WARN` placeholders requiring Gate 3 content. Purpose: confirm the Chunk 1 template validator covers D4's shape.
-2. Vulcan runs `runbook-new aim-node.md` (overwrite permission required since file exists) and confirms same. Purpose: confirm the template covers D5's shape.
+- `runbook-new infisical` (system-name argument per `runbook_tools/cli.py:98`; NOT a filename) in a clean working directory to confirm the template scaffold lands with only `WARN`-level placeholders. Purpose: confirm Chunk 1 template validator shape covers D4 before the build dispatches.
+- `runbook-new aim-node --dry-run` in the repo root. Dry-run emits the scaffold to stdout without writing (since `aim-node.md` already exists and `runbook-new` refuses to overwrite). Purpose: confirm Chunk 1 template validator shape covers D5 before the build dispatches.
 
 If either preflight uncovers a Chunk 1 template gap (a section where the placeholder shape does not match the Gate 1 form grammar), a defect is filed as a follow-on BQ against Chunk 1 rather than fixed in Chunk 2. This protects the Chunk 1 freeze.
-
-**R2 open question:** should the preflight be a Gate 2 AC (blocks Gate 2 APPROVE until it passes) or a Gate 3 pre-dispatch check (blocks G3-B1 dispatch)? R1 proposes the latter — Gate 2 AC is design approval; preflight is build-readiness.
 
 ---
 
 ## 8. Test suite — Gate 3 acceptance criteria summary
 
-Consolidation of §4.5 + §5.5 for reviewer convenience:
+Consolidation of §4.5 (6 ACs) + §5.5 (10 ACs) = **16 ACs total**.
 
 | # | AC | Deliverable | Source of truth |
 |---|---|---|---|
-| 1 | `runbook-lint infisical.md` exits 0 | D4 | CI workflow + local invocation |
-| 2 | Harness weighted total ≥ 0.80 on §I | D4 | Chunk 1 harness runner |
-| 3 | §I scenario count ≥ 10, distribution per §I rules | D4 | runbook-lint |
+| 1 | `runbook-lint infisical.md` exits 0 (all 20 checks PASS; 11 forms validate) | D4 | CI workflow + local invocation |
+| 2 | `runbook-harness --runbook infisical.md --mode conformant` weighted total ≥ 0.80 | D4 | Chunk 1 harness (wired via `bq-runbook-harness-production-wiring` D1) |
+| 3 | §I count ≥ 10 with type distribution per §4.4 | D4 | runbook-lint check #11 |
 | 4 | MP design review APPROVE / APPROVE_WITH_NITS | D4 | MP dispatch task |
 | 5 | `infisical-secrets.md` deleted in same PR | D4 | git diff |
 | 6 | README Adoption table updated | D4 | git diff |
-| 7 | `g4-attempt-opened` event logged | D5 | Living State event ledger |
-| 8 | Zero `infisical.md` reads in D5 authoring session | D5 | MP audit of session transcript |
+| 7 | `g4-attempt-opened` event logged; registry reads `status: active` | D5 | Living State event ledger + attempt-registry |
+| 8 | Post-hoc MP audit verdict `CLEAN` against seven forbidden D4 surfaces | D5 | MP audit dispatch task |
 | 9 | `runbook-lint aim-node.md` exits 0 | D5 | CI workflow + local invocation |
-| 10 | Self-assertion harness ≥ 0.80 | D5 | Chunk 1 harness runner |
-| 11 | G4 eval-set authored + reconciled + logged | D5 | MP + AG dispatches; Living State artifacts |
+| 10 | Self-assertion harness ≥ 0.80 on §I (normal mode) | D5 | Chunk 1 harness (wired) |
+| 11 | G4 hidden eval-set authored (MP + AG indep) + reconciled + logged | D5 | MP + AG dispatches; Living State artifacts |
 | 12 | XAI correspondence verdict ∈ {CLEAN, MINOR_OVERLAP} | D5 | XAI dispatch task |
-| 13 | MP first-pass design review APPROVE / APPROVE_WITH_NITS | D5 | MP dispatch task (separate session from eval-authoring) |
-| 14 | AG-scored G4 harness ≥ 0.80 | D5 | AG dispatch task |
+| 13 | MP first-pass design review APPROVE / APPROVE_WITH_NITS (separate session from eval-authoring) | D5 | MP dispatch task |
+| 14 | AG external-mode harness score ≥ 0.80 against G4 answer-key | D5 | AG dispatch task (external-mode harness run) |
 | 15 | Attempt-registry terminal status `passed` | D5 | Living State attempt-registry read |
 | 16 | README Adoption table updated | D5 | git diff |
 
@@ -331,18 +358,18 @@ Consolidation of §4.5 + §5.5 for reviewer convenience:
 ## 9. Gate boundaries (Gate 2 vs Gate 3 for this chunk)
 
 **Gate 2 (this spec) delivers design:**
-- Authoring contract for D4 (from-scratch, Vulcan-authored, ≥ 10 §I scenarios)
-- Authoring contract for D5 (G4 frozen-standard, Vulcan-authored, hidden eval set)
-- Isolation mechanism for "no D4 read during D5 authoring" with a three-layer enforcement stack + a proposed R2 fourth layer
-- G4 attempt lifecycle integration on the Vulcan (author) side (event + manifest poll + registry read)
+- Authoring contract for D4 (from-scratch, Vulcan-authored ≥ 10 §I scenarios, `§K.retrofit=false`)
+- Authoring contract for D5 (G4 frozen-standard, Vulcan-authored runbook + MP+AG-authored hidden eval set in external-mode)
+- Isolation mechanism for D5: seven-surface forbidden-content enumeration + fresh-session requirement + three-layer enforcement stack (session-plan declaration + operational discipline + post-hoc MP audit) + layer-4 defense-in-depth flagged as follow-on
+- G4 attempt lifecycle integration on the Vulcan side (event + manifest poll + timeout recovery + registry read)
 - Verification contract enumerating 16 Gate 3 ACs
-- Sequencing: D4 then D5; two sub-builds (G3-B1, G3-B2); parent BQ stays in gate3_in_progress through both
-- Pre-Gate-3 preflight proposal (template shape check) against Chunk 1 scaffold
-- Dependency on `BQ-KOSKADEUX-G4-PROTOCOL` for Koskadeux-side G4 machinery
+- Sequencing: D4 before D5; two sub-builds (G3-B1, G3-B2); parent BQ stays in gate3_in_progress through both
+- Pre-Gate-3 preflight with correct CLI syntax (`runbook-new <system-name>` + `--dry-run`)
+- Explicit prerequisite-BQ filings: `bq-koskadeux-g4-protocol` (P0) and `bq-runbook-harness-production-wiring` (P0)
 
-**Gate 3 (build, post-approval) delivers:**
-- G3-B1: `infisical.md` authored, `infisical-secrets.md` deleted, README updated, all 6 D4 ACs met
-- G3-B2: `aim-node.md` authored under G4 attempt, all 10 D5 ACs met, attempt status `passed`
+**Gate 3 (build, post-approval, post-prerequisite-completion) delivers:**
+- G3-B1: `infisical.md` authored, `infisical-secrets.md` deleted, README updated, all 6 D4 ACs met. Blocks on `bq-runbook-harness-production-wiring` D1 (wired MP dispatch).
+- G3-B2: `aim-node.md` authored under G4 attempt, all 10 D5 ACs met, attempt status `passed`. Blocks on both prerequisite BQs reaching Gate 3 APPROVED.
 
 **Gate 4 (production verification, post-build):**
 - First post-adoption lint-cycle on both runbooks comes back clean in nightly CI.
@@ -351,52 +378,57 @@ Consolidation of §4.5 + §5.5 for reviewer convenience:
 
 ---
 
-## 10. Open questions for reviewers (R1 status)
+## 10. Open questions for reviewers (R2 status)
 
-1. **Infisical filename rename** (`infisical-secrets.md` → `infisical.md`). Rationale: Gate 1 §6 convention uses short system names. Counter-argument: retains continuity with other existing `*-secrets.md` patterns. R2 decision needed; easy to reverse.
+R1 open questions triaged per MP R1 R2-ask summary, then updated based on R2 work:
 
-2. **`BQ-KOSKADEUX-G4-PROTOCOL` filing status.** Gate 1 §7 G4 assigns attempt-id issuance + entity writes + state transitions to Koskadeux. Has a P0 BQ already been filed for the Koskadeux-side implementation, or does R1 need to file it? Chunk 2 Gate 3 G3-B2 blocks on it.
+1. **Infisical filename rename** (`infisical-secrets.md` → `infisical.md`). **CLOSED R2.** Adopted: new filename is `infisical.md` per Gate 1 §6 short-name convention. Pre-PR grep (R2) shows zero inbound references outside this repo's specs/tests, so deletion + rename is safe. Reversible if R3 AG cross-vote prefers retention.
+2. **`BQ-KOSKADEUX-G4-PROTOCOL` filing status.** **CLOSED R2.** Filed as `build:bq-koskadeux-g4-protocol` v1 (S489) per §6.3. P0, Gate 0. Spec-authoring yet to start.
+3. **Isolation layer 4 — Koskadeux denied-paths wrapper.** **CLOSED R2 (as NOT Gate-2 blocking).** §5.3's three-layer stack is tightened (seven forbidden surfaces + fresh-session + MP audit against them) — that is the Gate-2-required isolation discipline. Layer 4 filed as follow-on `BQ-KOSKADEUX-G4-AUTHORING-ISOLATION` (to file before G3-B2 authoring, not before Gate 2 APPROVE).
+4. **Harness `--answer-key` / external-scenario override for D5 G4 run.** **CLOSED R2.** Resolved by `build:bq-runbook-harness-production-wiring` §6.3. The external-mode CLI flag is part of that BQ's D2 deliverable.
+5. **Atomic vs split PR for Chunk 2 G3.** **CLOSED R2 as split.** G3-B1 then G3-B2 per §6.2; rationale holds unchanged from R1.
+6. **Preflight as Gate 2 AC vs Gate 3 pre-dispatch check.** **CLOSED R2 as Gate 3 pre-dispatch check.** Gate 2 is spec design; preflight is build-readiness. §7 re-written with correct CLI syntax.
+7. **§I self-assertion vs hidden-set overlap for D5.** **CLOSED R2.** Fully resolved by the external-scenario-mode design in §5.4 + the `bq-runbook-harness-production-wiring` BQ. Self-assertion runs normal mode (§I authoritative, mirror-checked); G4 runs external mode (hidden set authoritative, §I bypassed). Sets are independent evidence streams.
+8. **Retry case reopening authority (Case A — spec revision).** **R3-deferrable.** For Case A, Gate 1 reopens and a new `frozen_commit_sha` is pinned on re-approval. Max authorizes the Gate 1 reopen; Koskadeux issues the new `g4_attempt_id` under the new SHA per Gate 1 §7 G4 step 8 Case A. No further Chunk 2 design required.
+9. **Deletion of `infisical-secrets.md` — inbound references.** **CLOSED R2.** Pre-PR grep (R2): zero hits outside this repo's own specs/tests/fixtures. Safe to delete. Converted to explicit pre-PR checklist item for G3-B1: re-run grep immediately before the G3-B1 PR lands to confirm still-zero hits.
+10. **Deletion of pre-standard `aim-node.md` content — inbound references.** **CLOSED R2.** Pre-PR grep (R2): zero `aim-node.md#<anchor>` fragment references; one plain-link reference in `aim-node-release-process.md` that does not depend on section IDs. Converted to pre-PR checklist item for G3-B2.
 
-3. **Isolation layer 4 — Koskadeux denied-paths wrapper.** §5.3 layer 4 (physical block on `infisical.md` reads during D5 authoring) is proposed as a follow-on BQ rather than a Chunk 2 blocker. R2 needs to confirm that the three-layer discipline (session-plan declaration + operational discipline + post-hoc audit) is sufficient without physical enforcement for G4 integrity.
+**New R2-authored open questions (for MP R2 review):**
 
-4. **Harness `--answer-key` override for D5 G4 run.** §5.4 R2 open question: confirm that the Chunk 1 harness runner (`runbook_tools/harness/`) already accepts a runtime-supplied answer-key path distinct from the runbook's own §I, OR file a Chunk 1 follow-on BQ for the capability.
+R2-1. **External-scenario-set artifact shape.** §5.4 proposes that MP+AG's reconciled eval set is materialized to YAML files matching `schemas/scenario.schema.json`. Confirm with MP R2 that this shape is sufficient for external-mode consumption, or whether the `BQ-RUNBOOK-HARNESS-PRODUCTION-WIRING` D2/D4 work should extend the schema.
 
-5. **Atomic vs split PR for Chunk 2 G3.** §6.2 proposes two sub-builds (G3-B1, G3-B2). Alternative: single atomic PR covering both runbooks. R1 proposes split; R2 confirms.
+R2-2. **Post-hoc MP audit granularity.** §5.3 AC 8 requires per-tool-call classification against seven forbidden surfaces. Is the session tool-call log actually rich enough for MP to classify each call — in particular, shell commands with arguments, agent-dispatch task prompts, and Living State reads are all present, but does MP have a defensible signal for classifying an agent-dispatch as "referencing D4 content" without reading the full dispatch task text itself? R2-authored proposal: MP reads the full task prompt text, classifies each on explicit mention of `infisical.md` / `Infisical runbook` / Infisical-content excerpts / rephrasings. MP R2 to confirm or tighten.
 
-6. **Preflight as Gate 2 AC vs Gate 3 pre-dispatch check.** §7 R2 open question.
-
-7. **§I self-assertion vs hidden-set overlap for D5.** §5.4 notes the two sets are independent. R2: confirm there is no Gate 3 AC interaction (e.g., "self-assertion set must not have scenarios the hidden set also covers, to avoid double-counting"). R1 proposal: no such rule; sets are independent evidence streams.
-
-8. **Retry case reopening authority.** Gate 1 §7 G4 step 8 says Koskadeux issues every `g4_attempt_id`. For Case A (spec revision), does Max need to explicitly authorize the retry, or does Vulcan self-open a new attempt under the new frozen_commit_sha? R2 clarification.
-
-9. **Deletion of `infisical-secrets.md`.** §3 proposes deletion in the same PR as `infisical.md` landing. R2: confirm there are no inbound references elsewhere in the runbooks repo or in backend/frontend/aim-node code that would break. Pre-PR grep required.
-
-10. **Deletion of pre-standard `aim-node.md` content.** §3 proposes wholesale content replacement. R2: confirm no inbound anchor links to specific section IDs in the old file exist elsewhere (e.g., in specs referencing `aim-node.md#security-model`). Pre-PR grep required.
+R2-3. **Self-assertion vs hidden-set scenario count floor.** §4.4 (D4) and §5.4 (D5) both require ≥ 10 scenarios in §I. Is the hidden G4 set also required to be ≥ 10 per Gate 1 §7 G4 step 4 "each author a draft ≥ 10-scenario evaluation set independently," and does the RECONCILED set after merge therefore have no prescribed minimum? R2 reading: per-author ≥ 10 drafts; reconciled set min = 10 (can be less than sum of drafts after dedup). MP R2 to confirm.
 
 ---
 
 ## 11. Non-goals
 
 - This chunk does not specify the actual runbook content — Gate 3 builds do that.
-- This chunk does not modify Chunk 1 tooling. Any perceived Chunk 1 gap uncovered during Chunk 2 is filed as a follow-on BQ.
+- This chunk does not modify Chunk 1 tooling directly; it files two prerequisite BQs that close intentional Chunk 1 scope boundaries.
 - This chunk does not re-open the Gate 1 frozen standard.
 - This chunk does not specify CRM or Celery retrofits (Gate 1 §9 steps 6-7).
-- This chunk does not specify Koskadeux-side G4 machinery; that is a separate P0 dependency BQ.
+- This chunk does not specify Koskadeux-side G4 machinery internals; `bq-koskadeux-g4-protocol` owns that.
 
 ---
 
 ## 12. Review Targets
 
-**MP R1 (primary review, read-only).** Verify:
-- Classification correctness: D4 and D5 both from-scratch, not retrofit; `§K.retrofit=null` is coherent with Gate 1 §4 §K as ratified.
-- Isolation enforcement adequacy: are the three R1-proposed layers (plan declaration + operational discipline + post-hoc audit) sufficient for G4 integrity, or is the R2 Koskadeux-side denied-paths wrapper a Gate-2-blocking requirement?
-- G4 attempt lifecycle integration: §5.2 matches Gate 1 §7 G4 step 2 protocol (request_nonce, manifest poll, registry read).
-- Dual-scenario-set model for D5: is §5.4 coherent? Does it conflict with any Chunk 1 harness invariant?
-- Sequencing: D4 before D5 for the stated reasons; split PR rationale stands.
-- Verification contract: 16 ACs enumerated in §8 cover the Gate 1 §9 step-4 and step-5 acceptance criteria.
-- Open questions (§10): which are R2-blocking, which can be closed in R1 by Vulcan, and which defer to R3+.
+**MP R2 (primary review, read-only).** Verify R1 findings closed:
 
-**AG cross-vote (after MP R1+ passes).** Consumer-first framing. Does the contract actually produce runbooks readable by stateless agents (Gate 1 §3 consumer model)? Are the self-assertion and G4 hidden eval-set models going to produce runbook content that is agent-consumable in both cases? Is the G4 protocol as specified on the Vulcan side executable (i.e., can a reasonable Vulcan session actually follow the §5.2 attempt-open sequence without ambiguity)?
+- HIGH #1 (§K from-scratch shape): §4.1 + §5.1 now use `retrofit: false` / omit, with `trace_matrix_path: null` + `word_count_delta: null` per `schemas/section_k_conformance.schema.json`.
+- HIGH #2 (harness contract mismatch): §4.5 AC 2 + §5.5 AC 4, 8, 14 now use correct CLI flags (`--runbook`, `--mode`, `--session`) per `runbook_tools/cli.py:122`. D5 external-mode harness cited as a prerequisite-BQ deliverable (`bq-runbook-harness-production-wiring`) rather than an assumed capability.
+- MEDIUM #1 (§5.2 timeout recovery): §5.2 step 4 copies Gate 1 §7 G4 step 2(c) verbatim and adds a 3-consecutive-timeout escalation event.
+- MEDIUM #2 (isolation scope): §5.3 defines seven forbidden D4-equivalent surfaces + fresh-session requirement; AC 8 re-scoped to CLEAN-vs-TAINTED across all seven surfaces.
+- MEDIUM #3 (Koskadeux-side prerequisite): §6.3 cites filed `bq-koskadeux-g4-protocol` key; open question closed.
+- MEDIUM #4 (preflight command syntax): §7 uses `runbook-new <system-name>` + `--dry-run`; overwrite attempts removed.
+- LOW #1 (AC count): §8 reconciled to 16 (D4=6, D5=10); §4.5 AC 4 from R1 ("all 11 agent forms") merged into AC 1 (lint check covers it).
+- LOW #2 (Q9/Q10 narrowable): §10 closes with explicit pre-PR grep outcomes and converts to pre-PR checklist items.
+
+Plus three new R2-authored open questions (R2-1 through R2-3) listed in §10.
+
+**AG cross-vote (after MP R2+ passes).** Consumer-first framing. Does the contract actually produce runbooks readable by stateless agents (Gate 1 §3 consumer model)? Is the external-mode split (§5.4) coherent — do Vulcan's self-assertion §I and MP+AG's hidden set both test the agent-consumable property from complementary angles? Is the fresh-session + seven-surface-audit isolation discipline (§5.3) operationally enforceable in a reasonable Vulcan session?
 
 ---
 
@@ -411,17 +443,17 @@ Consolidation of §4.5 + §5.5 for reviewer convenience:
 
 | Chunk 2 Section | Gate 1 Spec Dependency |
 |---|---|
-| §4 D4 classification | Gate 1 §4 §K.retrofit (null case), §9 step 4 |
+| §4 D4 classification | Gate 1 §4 §K (retrofit boolean), §9 step 4 |
 | §4.3 D4 coverage | Gate 1 §4 §B (Capability Matrix required-form) |
 | §4.4 D4 §I set | Gate 1 §4 §I (scenario rules, weighting, adjudication), §7 G3 (≥ 10 scenarios) |
 | §4.5 D4 Gate 3 AC | Gate 1 §7 G3 (Infisical AC) |
 | §5 D5 classification | Gate 1 §9 step 5 (G4 falsifiability), §7 G4 |
-| §5.2 D5 attempt lifecycle | Gate 1 §7 G4 step 2 (request_nonce + manifest poll + registry read) |
+| §5.2 D5 attempt lifecycle | Gate 1 §7 G4 step 2 (request_nonce + manifest poll + registry read + timeout recovery) |
 | §5.3 D5 isolation | Gate 1 §7 G4 step 3 ("only the frozen standard as input") |
 | §5.4 D5 dual scenario sets | Gate 1 §7 G4 step 4 (hidden eval set authoring) + §4 §I (runbook §I set) |
 | §5.5 D5 Gate 3 AC | Gate 1 §7 G4 step 7 (pass criteria) |
 | §5.6 D5 role separation | Gate 1 §7 G4 step 6 (review role split) |
-| §6.3 Koskadeux dependency | Gate 1 §7 G4 step 2 (Koskadeux issuance), step 9 (state machine) |
+| §6.3 prerequisite BQs | Gate 1 §7 G4 step 2 (Koskadeux issuance), step 9 (state machine); Chunk 1 §6 (harness dispatch + loader mirror) |
 
 ## Appendix C: Dependencies on Chunk 1 spec sections
 
@@ -429,7 +461,24 @@ Consolidation of §4.5 + §5.5 for reviewer convenience:
 |---|---|
 | §3 repo layout | Chunk 1 §3 (post-Gate-2 Chunk 1 layout as baseline) |
 | §4.5 / §5.5 lint ACs | Chunk 1 §4 (runbook-lint CLI + checks 1-20) |
-| §4.5 / §5.5 harness ACs | Chunk 1 §6 (harness runner + scorer) |
-| §5.4 `--answer-key` override | Chunk 1 §6.2 (answer-key format) + §6.3 (MP dispatch) |
-| §7 preflight | Chunk 1 §5 (template validator) |
+| §4.5 / §5.5 harness ACs | Chunk 1 §6 (harness runner + scorer) + `bq-runbook-harness-production-wiring` (wiring + external mode) |
+| §5.4 external scenario mode | `bq-runbook-harness-production-wiring` D2-D4 |
+| §7 preflight | Chunk 1 §5 (template validator) + `runbook_tools/cli.py:98` (CLI syntax) |
+
+## Appendix D: R1 → R2 change log
+
+MP R1 task `4f2740a0` returned REQUEST_CHANGES with 2 HIGH + 4 MEDIUM + 2 LOW findings. R2 closes all 8 with the following changes:
+
+| Finding | Severity | R2 fix location |
+|---|---|---|
+| §K.retrofit=null schema-invalid | HIGH #1 | §4.1, §5.1: retrofit=false/omit; nullable fields are trace_matrix_path + word_count_delta |
+| Harness contract incompatible with 705f8b8 | HIGH #2 | §4.5 AC 2, §5.5 AC 4+8+14: correct CLI; §6.3: filed `bq-runbook-harness-production-wiring` as P0 prerequisite |
+| §5.2 timeout recovery omitted | MEDIUM #1 | §5.2 step 4: verbatim Gate 1 text + 3-consecutive-timeout escalation |
+| Isolation scope too narrow | MEDIUM #2 | §5.3: seven forbidden D4-equivalent surfaces + fresh-session requirement + AC 8 rescoped |
+| Koskadeux-side prerequisite absent | MEDIUM #3 | §6.3: filed `bq-koskadeux-g4-protocol` as P0 prerequisite, key cited |
+| §7 preflight commands invalid | MEDIUM #4 | §7: `runbook-new <system-name>` + `--dry-run`; no overwrite attempts |
+| §8 AC count inconsistent (16 vs 17) | LOW #1 | §8: reconciled to 16 by merging §A-§K forms lint AC into AC 1 |
+| Q9/Q10 narrowable with grep | LOW #2 | §3 + §10 Q9/Q10: pre-PR grep outcomes captured; converted to pre-PR checklist items for G3-B1/B2 |
+
+R2 net diff shape: +~170 lines (587 lines R2 vs 435 lines R1) across §4.1, §5.1, §5.2, §5.3, §5.4, §5.5, §6.3, §6.4 (new), §7, §8, §10, Appendix D (new); no removals apart from the invalid-CLI preflight examples.
 
