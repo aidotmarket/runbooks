@@ -96,6 +96,27 @@ def test_validate_h_missing_h5_subsubheading() -> None:
     assert any(f.severity == "FAIL" and "§H.5" in f.message for f in findings)
 
 
+def test_validate_h_schema_failure_missing_h6() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text()
+    start = markdown.index("### §H.6 Adjudication")
+    end = markdown.index("## §I. Acceptance Criteria")
+    markdown = markdown[:start] + markdown[end:]
+    section_h = next(section for section in extract_sections(markdown) if section.letter == "H")
+
+    findings = validate_h(section_h, SCHEMAS_DIR)
+
+    assert any(f.severity == "FAIL" and "'h6' is a required property" in f.message for f in findings)
+
+
+def test_validate_h_schema_success_conformant_payload() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text()
+    section_h = next(section for section in extract_sections(markdown) if section.letter == "H")
+
+    findings = validate_h(section_h, SCHEMAS_DIR)
+
+    assert not any("'h" in f.message and "required property" in f.message for f in findings)
+
+
 def test_validate_k_retrofit_absent() -> None:
     markdown = (FIXTURES_DIR / "conformant.md").read_text()
     section_k = next(section for section in extract_sections(markdown) if section.letter == "K")

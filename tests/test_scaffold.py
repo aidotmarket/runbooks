@@ -13,6 +13,13 @@ def test_generate_scaffold_preserves_placeholders() -> None:
     assert "<<PURPOSE_SENTENCE:required>>" in scaffold
 
 
+def test_generate_scaffold_substitutes_owner_agent() -> None:
+    scaffold = generate_scaffold("infisical-secrets", "vulcan")
+
+    assert "<<OWNER_AGENT:required>>" not in scaffold
+    assert "owner_agent: vulcan" in scaffold
+
+
 def test_validate_system_name_accepts_valid() -> None:
     assert validate_system_name("infisical-secrets")
     assert validate_system_name("aim-node")
@@ -23,4 +30,3 @@ def test_validate_system_name_rejects_invalid() -> None:
     assert not validate_system_name("BAD")
     assert not validate_system_name("bad_underscore")
     assert not validate_system_name("a")
-

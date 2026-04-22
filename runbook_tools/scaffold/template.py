@@ -14,11 +14,10 @@ def generate_scaffold(system_name: str, owner_agent: str = "max") -> str:
     """Produce a new-runbook scaffold from the repository template."""
     text = TEMPLATE_PATH.read_text()
     text = text.replace("<<SYSTEM_NAME:required>>", system_name)
-    text = text.replace("<<OWNER:required>>", owner_agent)
+    text = text.replace("<<OWNER_AGENT:required>>", owner_agent)
     text = text.replace("<<LINTER_VERSION:required>>", LINTER_VERSION)
     return text
 
 
 def validate_system_name(name: str) -> bool:
     return bool(SYSTEM_NAME_PATTERN.match(name))
-

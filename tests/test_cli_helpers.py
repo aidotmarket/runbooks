@@ -75,6 +75,36 @@ def test_lint_json_output(tmp_path: Path) -> None:
     assert result.output.strip().startswith("[")
 
 
+def test_lint_missing_schemas_dir_returns_usage_error(tmp_path: Path) -> None:
+    runner = CliRunner()
+    fixture = tmp_path / "bad.md"
+    fixture.write_text("## §A. Header\n")
+
+    result = runner.invoke(lint_cmd, [str(fixture), "--schemas-dir", str(tmp_path / "missing-schemas")])
+
+    assert result.exit_code == 1
+
+
+def test_lint_missing_readme_returns_usage_error(tmp_path: Path) -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(lint_cmd, ["--readme", str(tmp_path / "README.md")])
+
+    assert result.exit_code == 1
+
+
+def test_lint_internal_error_returns_exit_3(monkeypatch, tmp_path: Path) -> None:
+    runner = CliRunner()
+    fixture = tmp_path / "bad.md"
+    fixture.write_text("## §A. Header\n")
+    monkeypatch.setattr("runbook_tools.cli.extract_sections", lambda markdown: (_ for _ in ()).throw(RuntimeError("boom")))
+
+    result = runner.invoke(lint_cmd, [str(fixture), "--schemas-dir", str(Path.cwd() / "schemas")])
+
+    assert result.exit_code == 3
+    assert "internal error: boom" in result.output
+
+
 def test_harness_cmd_configuration_error(tmp_path: Path) -> None:
     runner = CliRunner()
     runbook = tmp_path / "demo.md"

@@ -191,7 +191,6 @@ def validate_g(section: Section, schemas_dir: Path) -> list[Finding]:
 
 
 def validate_h(section: Section, schemas_dir: Path) -> list[Finding]:
-    del schemas_dir
     findings: list[Finding] = []
     h3_headings = [
         _flatten_text(token)
@@ -234,6 +233,15 @@ def validate_h(section: Section, schemas_dir: Path) -> list[Finding]:
                 line=section.line_start,
             )
         )
+
+    findings.extend(
+        _validate_schema_payload(
+            payload=_extract_h_payload(section),
+            schema_path=schemas_dir / "section_h_evolve.schema.json",
+            line=section.line_start,
+            empty_message="§H evolve payload is empty",
+        )
+    )
     return findings
 
 
@@ -440,6 +448,77 @@ def _find_table_node(tokens: list) -> dict[str, Any] | None:
             if found is not None:
                 return found
     return None
+
+
+def _extract_h_payload(section: Section) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    current_key: str | None = None
+    current_h5_key: str | None = None
+    for token in section.ast_subtree:
+        if token.get("type") != "heading":
+            continue
+
+        level = token.get("attrs", {}).get("level")
+        text = _flatten_text(token)
+        if level == 3:
+            current_h5_key = None
+            current_key = {
+                "§H.1 Invariants": "h1",
+                "§H.2 BREAKING predicates": "h2",
+                "§H.3 REVIEW predicates": "h3",
+                "§H.4 SAFE predicates": "h4",
+                "§H.5 Boundary definitions": "h5",
+                "§H.6 Adjudication": "h6",
+            }.get(text)
+            continue
+        if current_key != "h5" or level != 4:
+            continue
+        current_h5_key = {
+            "module": "module",
+            "public contract": "public_contract",
+            "runtime dependency": "runtime_dependency",
+            "config default": "config_default",
+        }.get(text)
+        if current_h5_key is not None:
+            payload.setdefault("h5", {})[current_h5_key] = _extract_h_heading_body(section, text)
+
+    for heading, key in (
+        ("§H.1 Invariants", "h1"),
+        ("§H.2 BREAKING predicates", "h2"),
+        ("§H.3 REVIEW predicates", "h3"),
+        ("§H.4 SAFE predicates", "h4"),
+        ("§H.6 Adjudication", "h6"),
+    ):
+        body = _extract_h_heading_body(section, heading)
+        if body is not None:
+            payload[key] = body
+
+    return payload
+
+
+def _extract_h_heading_body(section: Section, heading_text: str) -> str | None:
+    lines = section.raw_markdown.splitlines()
+    start_index: int | None = None
+    heading_level: int | None = None
+    for index, line in enumerate(lines):
+        if not line.startswith("#"):
+            continue
+        stripped = line.lstrip("#").strip()
+        if stripped == heading_text:
+            start_index = index + 1
+            heading_level = len(line) - len(line.lstrip("#"))
+            break
+    if start_index is None or heading_level is None:
+        return None
+
+    collected: list[str] = []
+    for line in lines[start_index:]:
+        if line.startswith("#"):
+            next_level = len(line) - len(line.lstrip("#"))
+            if next_level <= heading_level:
+                break
+        collected.append(line)
+    return "\n".join(collected).strip()
 
 
 def _flatten_text(token: dict[str, Any]) -> str:

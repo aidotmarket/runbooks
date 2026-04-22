@@ -20,7 +20,7 @@ from runbook_tools.lint.forms import (
     validate_form,
     validate_k,
 )
-from runbook_tools.lint.staleness import evaluate_staleness, write_lifecycle_update
+from runbook_tools.lint.staleness import _normalize_iso_value, evaluate_staleness, write_lifecycle_update
 from runbook_tools.parser.sections import Section
 from runbook_tools.version import LINTER_VERSION
 
@@ -359,21 +359,27 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
         return []
     if _section_map(sections).get("J") is None:
         return []
+    payload = _get_j_payload(sections, ctx)
+    if payload is None:
+        return []
 
-    result = evaluate_staleness(sections, ctx.now, ctx.git_head)
-    triggered = ", ".join(result.triggered_predicates)
+    is_stale, triggered_predicates, new_first_detected_at, recommended_action = evaluate_staleness(
+        sections, ctx.now, ctx.git_head
+    )
+    triggered = ", ".join(triggered_predicates)
     findings: list[Finding] = []
+    prev_first = _normalize_iso_value(payload.get("first_staleness_detected_at"))
 
-    if result.is_stale and result.prev_first is None and result.recommended_action == "SET":
+    if is_stale and prev_first is None and recommended_action == "SET":
         findings.append(
             Finding(
                 severity="WARN",
                 check=15,
-                message=f"§J.first_staleness_detected_at must be set to {result.new_first_detected_at}",
+                message=f"§J.first_staleness_detected_at must be set to {new_first_detected_at}",
             )
         )
-    elif result.is_stale and result.prev_first is not None and result.recommended_action == "NONE":
-        days = _grace_days(ctx.now, result.prev_first)
+    elif is_stale and prev_first is not None and recommended_action == "NONE":
+        days = _grace_days(ctx.now, prev_first)
         if days <= 30:
             findings.append(
                 Finding(
@@ -390,7 +396,7 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
                     message=f"§J stale ({triggered}), grace period exceeded ({days} > 30)",
                 )
             )
-    elif (not result.is_stale) and result.prev_first is not None and result.recommended_action == "CLEAR":
+    elif (not is_stale) and prev_first is not None and recommended_action == "CLEAR":
         findings.append(
             Finding(
                 severity="WARN",
@@ -399,8 +405,8 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
             )
         )
 
-    if findings and ctx.update_lifecycle and ctx.readme_path is not None and result.recommended_action in {"SET", "CLEAR"}:
-        write_lifecycle_update(ctx.readme_path, result.new_first_detected_at)
+    if findings and ctx.update_lifecycle and ctx.readme_path is not None and recommended_action in {"SET", "CLEAR"}:
+        write_lifecycle_update(ctx.readme_path, new_first_detected_at)
         findings = [
             Finding(
                 severity="INFO",

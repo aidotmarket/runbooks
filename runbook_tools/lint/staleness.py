@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
@@ -12,14 +11,7 @@ from runbook_tools.lint import CheckContext
 from runbook_tools.lint.forms import extract_b_rows, extract_j_payload
 from runbook_tools.parser.sections import Section
 
-
-@dataclass(slots=True)
-class StalenessResult:
-    is_stale: bool
-    triggered_predicates: list[str]
-    new_first_detected_at: str | None
-    recommended_action: str
-    prev_first: str | None
+StalenessResult = tuple[bool, list[str], str | None, str]
 
 
 def evaluate_staleness(sections: list[Section], now: datetime, git_head: str) -> StalenessResult:
@@ -50,12 +42,12 @@ def evaluate_staleness(sections: list[Section], now: datetime, git_head: str) ->
     is_stale = bool(predicates)
     prev_first = _normalize_iso_value(j.get("first_staleness_detected_at"))
     if is_stale and prev_first is None:
-        return StalenessResult(True, predicates, now_utc.isoformat(), "SET", prev_first)
+        return True, predicates, now_utc.isoformat(), "SET"
     if (not is_stale) and prev_first is not None:
-        return StalenessResult(False, predicates, None, "CLEAR", prev_first)
+        return False, predicates, None, "CLEAR"
     if is_stale and prev_first is not None:
-        return StalenessResult(True, predicates, prev_first, "NONE", prev_first)
-    return StalenessResult(False, predicates, prev_first, "NONE", prev_first)
+        return True, predicates, prev_first, "NONE"
+    return False, predicates, prev_first, "NONE"
 
 
 def compute_unverified_b_rows(sections: list[Section]) -> list[int]:
