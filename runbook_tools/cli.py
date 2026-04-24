@@ -4,6 +4,7 @@ from collections import Counter
 from contextlib import ExitStack
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -17,6 +18,7 @@ from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
     ScenarioLoadConfig,
+    ScenarioSetConstraintError,
     load_scenarios,
 )
 from runbook_tools.harness.runner import Response, run_dispatch_for_scenario
@@ -202,7 +204,16 @@ def _run_harness_loop(
         )
         try:
             scenarios = load_scenarios(config)
+        except ScenarioSetConstraintError as exc:
+            # External-mode constraint violations are usage errors per spec §4.3.
+            if external_mode:
+                raise click.UsageError(str(exc))
+            click.echo(str(exc), err=True)
+            overall_exit = 1
+            continue
         except ConfigurationError as exc:
+            if external_mode:
+                raise click.UsageError(str(exc))
             click.echo(str(exc), err=True)
             overall_exit = 1
             continue
@@ -292,10 +303,46 @@ def _resolve_external_source(
 
 
 def _default_state_reader(entity_key: str) -> dict[str, Any]:
-    raise click.UsageError(
-        "--external-scenarios-from-state is only supported when a state reader is configured; "
-        "pass scenarios via --external-scenario-set or inject a reader in tests"
-    )
+    url = os.environ.get("KOSKADEUX_MCP_URL")
+    token = os.environ.get("KOSKADEUX_MCP_TOKEN")
+    if not url:
+        raise click.UsageError(
+            "--external-scenarios-from-state requires KOSKADEUX_MCP_URL "
+            "(or an injected state_reader in tests)"
+        )
+
+    import urllib.request
+
+    body = json.dumps(
+        {
+            "tool": "state_request",
+            "arguments": {"op": "read", "key": entity_key},
+        }
+    ).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:  # noqa: BLE001
+        raise click.UsageError(
+            f"state_request for {entity_key} failed: {type(exc).__name__}: {exc}"
+        )
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.UsageError(
+            f"state_request returned non-JSON for {entity_key}: {exc}"
+        )
+    if not isinstance(parsed, dict):
+        raise click.UsageError(
+            f"state_request returned non-object payload for {entity_key}"
+        )
+    return parsed
 
 
 def _materialize_state_scenarios(

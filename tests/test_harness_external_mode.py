@@ -347,11 +347,73 @@ def test_materialize_state_scenarios_rejects_unsafe_id() -> None:
             )
 
 
-def test_default_state_reader_raises_helpful_usage_error() -> None:
+def test_default_state_reader_raises_when_mcp_url_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from click import UsageError
     from runbook_tools.cli import _default_state_reader
 
-    with pytest.raises(UsageError, match="state reader"):
+    monkeypatch.delenv("KOSKADEUX_MCP_URL", raising=False)
+    with pytest.raises(UsageError, match="KOSKADEUX_MCP_URL"):
+        _default_state_reader("state:anything")
+
+
+def test_default_state_reader_calls_mcp_gateway(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from runbook_tools.cli import _default_state_reader
+
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_TOKEN", "state-token")
+
+    captured: dict[str, Any] = {}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"body": {"scenarios": [{"id": "I-01"}]}}
+            ).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        captured["url"] = req.full_url
+        captured["body"] = json.loads(req.data.decode("utf-8"))
+        captured["auth"] = req.headers.get("Authorization")
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    entity = _default_state_reader("state:answer-key")
+
+    assert captured["url"] == "https://example.invalid/mcp"
+    assert captured["auth"] == "Bearer state-token"
+    assert captured["body"]["tool"] == "state_request"
+    assert captured["body"]["arguments"]["op"] == "read"
+    assert captured["body"]["arguments"]["key"] == "state:answer-key"
+    assert entity == {"body": {"scenarios": [{"id": "I-01"}]}}
+
+
+@pytest.mark.integration
+def test_default_state_reader_surfaces_transport_failure_as_usage_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click import UsageError
+    from runbook_tools.cli import _default_state_reader
+
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.delenv("KOSKADEUX_MCP_TOKEN", raising=False)
+
+    def boom(req: Any) -> Any:
+        raise OSError("gateway unreachable")
+
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+
+    with pytest.raises(UsageError, match="gateway unreachable"):
         _default_state_reader("state:anything")
 
 
@@ -444,3 +506,69 @@ def test_external_scenario_duplicate_id_rejected(tmp_path: Path) -> None:
                 external_set_path=external_dir,
             )
         )
+
+
+def test_external_mode_invalid_set_exits_2(tmp_path: Path) -> None:
+    """Spec §4.3: external-mode constraint violations surface as exit 2 (usage error)."""
+    external_dir = tmp_path / "ext"
+    fixtures = _copy_fixture_scenarios(external_dir)
+    for extra in fixtures[:5]:
+        extra.unlink()
+
+    runner = CliRunner()
+    result = runner.invoke(
+        harness_cmd,
+        [
+            "--runbook",
+            str(CONFORMANT_RUNBOOK),
+            "--external-scenario-set",
+            str(external_dir),
+        ],
+    )
+
+    assert result.exit_code == 2, result.output
+    assert "expected >= 10" in result.output
+
+
+def _copy_fixtures_under(tmp_path: Path) -> Path:
+    scenario_root = tmp_path / "infisical-secrets"
+    scenario_root.mkdir(parents=True)
+    for source in sorted((SCENARIOS_DIR / "infisical-secrets").glob("*.yaml")):
+        (scenario_root / source.name).write_text(source.read_text())
+    return scenario_root
+
+
+def test_normal_mode_type_mismatch_fails(tmp_path: Path) -> None:
+    """Spec §5.3/AC7: normal mode still rejects YAML type ≠ §I type."""
+    scenario_root = _copy_fixtures_under(tmp_path)
+    target = scenario_root / "I-01.yaml"
+    loaded = yaml.safe_load(target.read_text())
+    loaded["type"] = "isolate"
+    target.write_text(yaml.safe_dump(loaded))
+
+    with pytest.raises(ConfigurationError, match="type:I-01"):
+        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
+
+
+def test_normal_mode_refs_mismatch_fails(tmp_path: Path) -> None:
+    """Spec §5.3/AC7: normal mode still rejects YAML refs ≠ §I refs."""
+    scenario_root = _copy_fixtures_under(tmp_path)
+    target = scenario_root / "I-01.yaml"
+    loaded = yaml.safe_load(target.read_text())
+    loaded["refs"] = ["E-99"]
+    target.write_text(yaml.safe_dump(loaded))
+
+    with pytest.raises(ConfigurationError, match="refs:I-01"):
+        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
+
+
+def test_normal_mode_runbook_name_mismatch_fails(tmp_path: Path) -> None:
+    """Spec §5.3/AC7: normal mode still rejects YAML.runbook ≠ runbook being validated."""
+    scenario_root = _copy_fixtures_under(tmp_path)
+    target = scenario_root / "I-01.yaml"
+    loaded = yaml.safe_load(target.read_text())
+    loaded["runbook"] = "other-system.md"
+    target.write_text(yaml.safe_dump(loaded))
+
+    with pytest.raises(ConfigurationError, match="runbook:I-01"):
+        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)

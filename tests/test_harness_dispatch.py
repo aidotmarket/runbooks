@@ -74,6 +74,24 @@ def test_dispatch_timeout_returns_status_timeout() -> None:
     assert "0.05" in (result.error or "")
 
 
+def test_dispatch_timeout_returns_within_wall_clock_bound() -> None:
+    # Regression: the pre-fix ThreadPoolExecutor context manager waited for the
+    # worker on __exit__, so a stuck request would block the caller well past
+    # timeout_s. Guard that the dispatch adapter returns within a tight slack.
+    def stuck_request(**kwargs: Any) -> Any:
+        time.sleep(5.0)
+        return "{}"
+
+    dispatch_fn = make_council_request_fn(timeout_s=0.1, council_request=stuck_request)
+
+    start = time.monotonic()
+    result = dispatch_fn("prompt", _metadata())
+    elapsed = time.monotonic() - start
+
+    assert result.status == "timeout"
+    assert elapsed < 1.0, f"dispatch blocked past timeout: {elapsed:.3f}s"
+
+
 def test_dispatch_detects_write_capable_tool_usage_as_off_path() -> None:
     raw = {
         "response": json.dumps({"kind": "tool_call", "tool": "Read"}),

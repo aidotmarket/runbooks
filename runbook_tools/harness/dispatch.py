@@ -97,7 +97,8 @@ def _call_with_timeout(
     prompt: str,
     timeout_s: float,
 ) -> Any:
-    with ThreadPoolExecutor(max_workers=1) as executor:
+    executor = ThreadPoolExecutor(max_workers=1)
+    try:
         future = executor.submit(
             request,
             agent="mp",
@@ -105,6 +106,12 @@ def _call_with_timeout(
             allowed_tools=list(ALLOWED_TOOLS),
         )
         return future.result(timeout=timeout_s)
+    finally:
+        # wait=False avoids the default __exit__ behavior that blocks until the
+        # worker finishes — a stuck request would otherwise pin the caller past
+        # timeout_s. cancel_futures drops queued work, and the leaked worker
+        # thread dies with the process.
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 def _default_council_request(*, agent: str, task: str, allowed_tools: list[str]) -> Any:
