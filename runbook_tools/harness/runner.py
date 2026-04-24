@@ -6,8 +6,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from runbook_tools.harness.dispatch import DispatchResult
 from runbook_tools.harness.loader import Scenario
-from runbook_tools.harness.prompts import SYSTEM_PROMPT
+from runbook_tools.harness.prompts import SYSTEM_PROMPT, build_harness_prompt
 
 
 @dataclass(slots=True)
@@ -56,6 +57,67 @@ def dispatch_for_scenario(scenario: Scenario, runbook_path: Path, council_reques
         label=parsed.get("label"),
         raw_response=raw,
         tool_use_trace=tool_use_trace,
+    )
+
+
+def run_dispatch_for_scenario(
+    scenario: Scenario,
+    runbook_path: Path,
+    dispatch_fn,
+) -> Response:
+    prompt = build_harness_prompt(scenario, runbook_path)
+    metadata = {
+        "scenario_id": scenario.id,
+        "runbook_path": str(runbook_path.resolve()),
+        "allowed_tools": ["Read", "Grep", "Glob", "LS"],
+    }
+    result = dispatch_fn(prompt, metadata)
+    return _dispatch_result_to_response(result)
+
+
+def _dispatch_result_to_response(result: DispatchResult) -> Response:
+    trace = result.tool_use_trace or None
+    if result.status == "timeout":
+        return Response(
+            kind="SCENARIO_TIMEOUT",
+            error=result.error or "scenario exceeded timeout",
+            raw_response=result.raw_response,
+            tool_use_trace=trace,
+        )
+    if result.status == "off_path_violation":
+        return Response(
+            kind="OFF_PATH_VIOLATION",
+            error=result.error or "off-path tool use detected",
+            raw_response=result.raw_response,
+            tool_use_trace=trace,
+        )
+    if result.status == "malformed":
+        return Response(
+            kind="INVALID_RESPONSE",
+            error=result.error or "response did not match the harness output schema",
+            raw_response=result.raw_response,
+            tool_use_trace=trace,
+        )
+    if result.status == "dispatch_failure":
+        return Response(
+            kind="INFRASTRUCTURE_FAILURE",
+            error=result.error or "council_request dispatch failure",
+            raw_response=result.raw_response,
+            tool_use_trace=trace,
+        )
+
+    parsed = result.response or {}
+    return Response(
+        kind=str(parsed.get("kind", "INVALID_RESPONSE")),
+        tool=parsed.get("tool"),
+        arguments=dict(parsed.get("arguments", {}) or {}),
+        verb=parsed.get("verb"),
+        object=parsed.get("object"),
+        target=parsed.get("target"),
+        verdict=parsed.get("verdict"),
+        label=parsed.get("label"),
+        raw_response=result.raw_response,
+        tool_use_trace=trace,
     )
 
 

@@ -88,6 +88,46 @@ def test_has_off_path_tool_use_false_when_same_runbook() -> None:
     assert has_off_path_tool_use(response, runbook) is False
 
 
+def test_has_off_path_tool_use_true_when_list_paths_diverge() -> None:
+    runbook = Path("tests/fixtures/conformant.md").resolve()
+    response = Response(
+        kind="tool_call",
+        tool_use_trace=[
+            {"tool": "Read", "arguments": {"paths": [str(runbook), "/etc/passwd"]}},
+        ],
+    )
+
+    assert has_off_path_tool_use(response, runbook) is True
+
+
+def test_dispatch_for_scenario_legacy_parses_output_text_attribute() -> None:
+    class Obj:
+        output_text = json.dumps({"kind": "classification", "verdict": "SAFE"})
+
+    response = dispatch_for_scenario(
+        _scenario(),
+        Path("tests/fixtures/conformant.md"),
+        lambda **kwargs: Obj(),
+    )
+
+    assert response.kind == "classification"
+    assert response.verdict == "SAFE"
+
+
+def test_dispatch_for_scenario_legacy_parses_text_attribute() -> None:
+    class Obj:
+        text = json.dumps({"kind": "tool_call", "tool": "Read", "arguments": {"path": "x"}})
+
+    response = dispatch_for_scenario(
+        _scenario(),
+        Path("tests/fixtures/conformant.md"),
+        lambda **kwargs: Obj(),
+    )
+
+    assert response.kind == "tool_call"
+    assert response.tool == "Read"
+
+
 def test_write_result_creates_file(tmp_path: Path) -> None:
     output = write_result(
         {

@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
 import subprocess
-from typing import Any
+import tempfile
+from typing import Any, Callable
 
 import click
+import yaml
 
-from runbook_tools.harness.loader import ConfigurationError, load_scenarios_for_runbook
-from runbook_tools.harness.runner import Response, dispatch_for_scenario
+from runbook_tools.harness.dispatch import make_council_request_fn
+from runbook_tools.harness.loader import (
+    ConfigurationError,
+    ScenarioLoadConfig,
+    load_scenarios,
+)
+from runbook_tools.harness.runner import Response, run_dispatch_for_scenario
 from runbook_tools.harness.scorer import score_response
 from runbook_tools.harness.writer import write_result
 from runbook_tools.lint import CheckContext, Finding
@@ -123,19 +131,77 @@ def new_cmd(system_name, owner, dry_run):
 @click.option("--mode", type=click.Choice(["conformant", "probationary"]), default="conformant")
 @click.option("--session", default=None)
 @click.option("--runbook", default=None, type=click.Path(exists=False))
-def harness_cmd(mode, session, runbook):
+@click.option(
+    "--external-scenario-set",
+    "external_scenario_set",
+    default=None,
+    type=click.Path(exists=False),
+    help="Use scenarios from an external YAML file or directory instead of §I.",
+)
+@click.option(
+    "--external-scenarios-from-state",
+    "external_scenarios_from_state",
+    default=None,
+    help="Materialize scenarios from a Living State entity's body.scenarios and use as external set.",
+)
+def harness_cmd(mode, session, runbook, external_scenario_set, external_scenarios_from_state):
+    if external_scenario_set and external_scenarios_from_state:
+        click.echo(
+            "--external-scenario-set and --external-scenarios-from-state are mutually exclusive",
+            err=True,
+        )
+        raise SystemExit(2)
+
     repo_root = Path.cwd()
     session_id = session or f"LOCAL-{datetime.now(timezone.utc):%Y%m%d%H%M%S}"
     run_started_at = datetime.now(timezone.utc)
     runbook_paths = [Path(runbook)] if runbook else _resolve_harness_targets(mode, repo_root / "README.md")
 
-    def council_request_stub(*args, **kwargs):
-        raise NotImplementedError("council_request_fn not wired — Chunk 1 harness is scaffold-only")
+    dispatch_fn = make_council_request_fn()
+    external_mode = external_scenario_set is not None or external_scenarios_from_state is not None
 
+    try:
+        with ExitStack() as stack:
+            external_path = _resolve_external_source(
+                external_scenario_set,
+                external_scenarios_from_state,
+                stack,
+            )
+            exit_code = _run_harness_loop(
+                runbook_paths=runbook_paths,
+                repo_root=repo_root,
+                session_id=session_id,
+                run_started_at=run_started_at,
+                dispatch_fn=dispatch_fn,
+                external_path=external_path,
+                external_mode=external_mode,
+            )
+    except click.UsageError as exc:
+        click.echo(str(exc), err=True)
+        raise SystemExit(2)
+
+    raise SystemExit(exit_code)
+
+
+def _run_harness_loop(
+    *,
+    runbook_paths: list[Path],
+    repo_root: Path,
+    session_id: str,
+    run_started_at: datetime,
+    dispatch_fn: Callable[[str, dict[str, Any]], Any],
+    external_path: Path | None,
+    external_mode: bool,
+) -> int:
     overall_exit = 0
     for runbook_path in runbook_paths:
+        config = ScenarioLoadConfig(
+            runbook_path=runbook_path,
+            scenarios_dir=_default_scenarios_dir(repo_root),
+            external_set_path=external_path,
+        )
         try:
-            scenarios = load_scenarios_for_runbook(runbook_path, _default_scenarios_dir(repo_root))
+            scenarios = load_scenarios(config)
         except ConfigurationError as exc:
             click.echo(str(exc), err=True)
             overall_exit = 1
@@ -144,16 +210,15 @@ def harness_cmd(mode, session, runbook):
         scenario_results: list[dict[str, Any]] = []
         aggregate_score = 0.0
         result = "PASS"
+        infra_failure = False
         for scenario in scenarios:
-            try:
-                response = dispatch_for_scenario(scenario, runbook_path, council_request_stub)
+            response = run_dispatch_for_scenario(scenario, runbook_path, dispatch_fn)
+            if response.kind == "INFRASTRUCTURE_FAILURE":
+                click.echo(response.error or "council_request dispatch failure", err=True)
+                score, matched_index, reason = 0.0, None, "dispatch_failure"
+                infra_failure = True
+            else:
                 score, matched_index, reason = score_response(response, scenario)
-            except NotImplementedError as exc:
-                click.echo(str(exc), err=True)
-                response = Response(kind="INFRASTRUCTURE_FAILURE", error=str(exc))
-                score, matched_index, reason = 0.0, None, "council_request_fn_not_wired"
-                result = "INFRASTRUCTURE_FAILURE"
-                overall_exit = 1
             aggregate_score += score * scenario.weight
             scenario_results.append(
                 {
@@ -166,7 +231,10 @@ def harness_cmd(mode, session, runbook):
                 }
             )
 
-        if result == "PASS":
+        if infra_failure:
+            result = "INFRASTRUCTURE_FAILURE"
+            overall_exit = 1
+        else:
             result = "PASS" if aggregate_score >= 0.80 else "FAIL"
             if result != "PASS":
                 overall_exit = 1
@@ -182,12 +250,93 @@ def harness_cmd(mode, session, runbook):
                 "aggregate_score": aggregate_score,
                 "pass_threshold": 0.80,
                 "result": result,
+                "external_mode": external_mode,
             },
             repo_root / "harness" / "results",
         )
         click.echo(str(written))
 
-    raise SystemExit(overall_exit)
+    return overall_exit
+
+
+def _resolve_external_source(
+    external_scenario_set: str | None,
+    external_scenarios_from_state: str | None,
+    stack: ExitStack,
+    state_reader: Callable[[str], dict[str, Any]] | None = None,
+) -> Path | None:
+    if external_scenario_set:
+        candidate = Path(external_scenario_set)
+        if not candidate.exists():
+            raise click.UsageError(
+                f"--external-scenario-set path does not exist: {candidate}"
+            )
+        if candidate.is_file() and candidate.suffix.lower() not in {".yaml", ".yml"}:
+            raise click.UsageError(
+                f"--external-scenario-set must be a YAML file or directory: {candidate}"
+            )
+        if not candidate.is_file() and not candidate.is_dir():
+            raise click.UsageError(
+                f"--external-scenario-set must be a YAML file or directory: {candidate}"
+            )
+        return candidate
+
+    if external_scenarios_from_state:
+        reader = state_reader or _default_state_reader
+        entity = reader(external_scenarios_from_state)
+        return _materialize_state_scenarios(
+            external_scenarios_from_state, entity, stack
+        )
+
+    return None
+
+
+def _default_state_reader(entity_key: str) -> dict[str, Any]:
+    raise click.UsageError(
+        "--external-scenarios-from-state is only supported when a state reader is configured; "
+        "pass scenarios via --external-scenario-set or inject a reader in tests"
+    )
+
+
+def _materialize_state_scenarios(
+    entity_key: str,
+    entity: dict[str, Any],
+    stack: ExitStack,
+) -> Path:
+    body = entity.get("body") if isinstance(entity, dict) else None
+    scenarios = None
+    if isinstance(body, dict):
+        scenarios = body.get("scenarios")
+    if scenarios is None:
+        raise click.UsageError(
+            f"state entity {entity_key} body.scenarios is required for --external-scenarios-from-state"
+        )
+    if not isinstance(scenarios, list):
+        raise click.UsageError(
+            f"state entity {entity_key} body.scenarios must be a list"
+        )
+
+    tempdir = stack.enter_context(tempfile.TemporaryDirectory(prefix="runbook-harness-external-"))
+    tempdir_path = Path(tempdir)
+    seen_ids: set[str] = set()
+    for scenario in scenarios:
+        if not isinstance(scenario, dict):
+            raise click.UsageError(
+                f"state entity {entity_key} scenario entries must be objects"
+            )
+        scenario_id = str(scenario.get("id", "")).strip()
+        if not scenario_id or not re.match(r"^[A-Za-z0-9_\-]+$", scenario_id):
+            raise click.UsageError(
+                f"state entity {entity_key} scenario has unsafe or missing id: {scenario_id!r}"
+            )
+        if scenario_id in seen_ids:
+            raise click.UsageError(
+                f"state entity {entity_key} has duplicate scenario id: {scenario_id}"
+            )
+        seen_ids.add(scenario_id)
+        target = tempdir_path / f"{scenario_id}.yaml"
+        target.write_text(yaml.safe_dump(scenario, sort_keys=False))
+    return tempdir_path
 
 
 def _resolve_lint_targets(paths: tuple[str, ...], mode: str | None, readme_path: Path) -> list[Path]:

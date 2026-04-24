@@ -39,7 +39,9 @@ def test_new_cmd_creates_file(tmp_path: Path) -> None:
     assert "infisical-secrets" in result.output
 
 
-def test_harness_cmd_reports_stub_message() -> None:
+def test_harness_cmd_reports_dispatch_failure_when_unconfigured(monkeypatch) -> None:
+    monkeypatch.delenv("KOSKADEUX_MCP_URL", raising=False)
+    monkeypatch.delenv("KOSKADEUX_MCP_TOKEN", raising=False)
     runner = CliRunner()
 
     result = runner.invoke(
@@ -48,5 +50,24 @@ def test_harness_cmd_reports_stub_message() -> None:
     )
 
     assert result.exit_code != 0
-    assert "council_request_fn not wired" in result.output
+    assert "KOSKADEUX_MCP_URL is not set" in result.output
+
+
+def test_harness_cmd_rejects_both_external_flags() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        harness_cmd,
+        [
+            "--runbook",
+            str(FIXTURES_DIR / "conformant.md"),
+            "--external-scenario-set",
+            "/tmp/not-used",
+            "--external-scenarios-from-state",
+            "state:missing",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "mutually exclusive" in result.output
 
