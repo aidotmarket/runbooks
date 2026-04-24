@@ -2,7 +2,7 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: R6 — 2026-04-24. R6 refresh (S500): integrated S499 emergency-data findings into a coherent known-bug surface. Changes: (a) Phase 3.5 added to §7 to track BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK; (b) §6 expanded with the user-scoping wipeout, steward dispatch gaps D10/D11/D12, and OPUS_CRM audit issues 1–7; (c) §2.3 and §2.10 mark voice memo ingest as Removed (S499 decision, C02); (d) §3 skill count corrected from 16→28 decorated skills in `crm_steward_skills.py` with public/internal re-audit pending under D07; (e) Appendix B retires `crm_agent_request.py` and redirects the natural-language agent surface to MCP `crm_remote.py`; (f) §7 Phase 4 BQ statuses refreshed (AGENT-COVERAGE → REDIRECT STUB to COMPOSITE-SKILLS per S474; SALES-SURFACE B2 shipped S481 `8315c11`). Prior R5 (S469, 2026-04-18): marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: R6 — 2026-04-24. R6 refresh (S500): integrated S499 emergency-data findings into a coherent known-bug surface. Changes: (a) Phase 3.5 added to §7 to track BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK; (b) §6 expanded with the user-scoping wipeout, steward dispatch gaps D10/D11/D12, and OPUS_CRM audit issues 1–7; (c) §2.3 and §2.10 mark voice memo ingest as Removed (S499 decision, C02); (d) §3 skill count corrected from 16→28 decorated skills in `crm_steward_skills.py` with public/internal re-audit pending under D07; (e) Appendix B retires `crm_agent_request.py` and redirects the natural-language agent surface to MCP `crm_remote.py`; (f) §7 Phase 4 BQ statuses refreshed (AGENT-COVERAGE → REDIRECT STUB to COMPOSITE-SKILLS per S474; SALES-SURFACE B2 shipped S481 `8315c11`). **S500 amendment (2026-04-24)**: C02 voice memo removal narrowed to CRM surface only; Telegram voice ingest (`voice_transcription_service.py`, `telegram_relay.py:185`, `webhooks.py:1816`) preserved per CC Gate 1 Q3 finding (validated by MP R1 task `80089f05`) — see BQ body.c02_narrowing_s500. Prior R5 (S469, 2026-04-18): marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
 
 > Tier status is tracked in Living State entity `config:crm-operational-plan`. This runbook is the stable target-state; Living State is the dynamic status tracker.
 
@@ -77,7 +77,7 @@ Each capability is described with:
 | Interaction dedup (description_hash, 24h window) | Working | — | No | Covered | — |
 | List/search interactions | Working | — | Via `get_entity_context` | Covered | Su |
 | Email ingest (drop@ai.market → CRM) | Partial | — | No | Partial (gmail drop tests) | Su, Sa |
-| Voice memo ingest | **Removed (S499 decision)** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
+| Voice memo ingest | **Removed — CRM surface only (S499/S500); Telegram voice ingest preserved** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
 
 ### 2.4 Task Lifecycle
 
@@ -152,7 +152,7 @@ Each capability is described with:
 | Duplicate cleanup/dedup | Working | — | No | Gap | — |
 | Outbound Gmail send | Working | — | No | Gap | Sa |
 | Gmail validation/status | Working | — | No | Gap | — |
-| Voice memo ingest endpoint | **Removed (S499 decision)** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
+| Voice memo ingest endpoint | **Removed — CRM surface only (S499/S500); Telegram voice ingest preserved** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
 
 ### 2.11 V2 Domain Layer (Emerging)
 
