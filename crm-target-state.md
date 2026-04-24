@@ -2,7 +2,7 @@
 
 > **Purpose**: This document is the authoritative specification for the ai.market CRM system. Every feature described here must (a) work as specified, (b) have automated test coverage, (c) be accessible to the CRM steward agent, and (d) expose integration interfaces for Accounting, Support, and Sales systems. If the system diverges from this document, the system is wrong.
 
-> **Status**: R5 — 2026-04-18. R5 refresh: marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
+> **Status**: R6 — 2026-04-24. R6 refresh (S500): integrated S499 emergency-data findings into a coherent known-bug surface. Changes: (a) Phase 3.5 added to §7 to track BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK; (b) §6 expanded with the user-scoping wipeout, steward dispatch gaps D10/D11/D12, and OPUS_CRM audit issues 1–7; (c) §2.3 and §2.10 mark voice memo ingest as Removed (S499 decision, C02); (d) §3 skill count corrected from 16→28 decorated skills in `crm_steward_skills.py` with public/internal re-audit pending under D07; (e) Appendix B retires `crm_agent_request.py` and redirects the natural-language agent surface to MCP `crm_remote.py`; (f) §7 Phase 4 BQ statuses refreshed (AGENT-COVERAGE → REDIRECT STUB to COMPOSITE-SKILLS per S474; SALES-SURFACE B2 shipped S481 `8315c11`). Prior R5 (S469, 2026-04-18): marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
 
 > Tier status is tracked in Living State entity `config:crm-operational-plan`. This runbook is the stable target-state; Living State is the dynamic status tracker.
 
@@ -77,7 +77,7 @@ Each capability is described with:
 | Interaction dedup (description_hash, 24h window) | Working | — | No | Covered | — |
 | List/search interactions | Working | — | Via `get_entity_context` | Covered | Su |
 | Email ingest (drop@ai.market → CRM) | Partial | — | No | Partial (gmail drop tests) | Su, Sa |
-| Voice memo ingest | Partial | — | No | Gap | — |
+| Voice memo ingest | **Removed (S499 decision)** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
 
 ### 2.4 Task Lifecycle
 
@@ -152,7 +152,7 @@ Each capability is described with:
 | Duplicate cleanup/dedup | Working | — | No | Gap | — |
 | Outbound Gmail send | Working | — | No | Gap | Sa |
 | Gmail validation/status | Working | — | No | Gap | — |
-| Voice memo ingest endpoint | Partial | — | No | Gap | — |
+| Voice memo ingest endpoint | **Removed (S499 decision)** | BQ-CRM-USER-SCOPING C02 | No | N/A | — |
 
 ### 2.11 V2 Domain Layer (Emerging)
 
@@ -190,7 +190,7 @@ Per Max's directive: *AI handles all customer interactions unless human risk man
 
 ## 3. CRM Steward — Agent Capability Map
 
-### Current Skills (16 in manifest, 11 public)
+### Current Skills (28 `@skill`-decorated in `crm_steward_skills.py`; public/internal classification pending re-audit under BQ-CRM-USER-SCOPING D07)
 
 **Published public skills** (accessible via MCP/API/Telegram):
 - `find_contact` — search contacts by name/email/query
@@ -354,6 +354,10 @@ BQ-CRM-TESTING-V2 (reopen of CRM-TESTING) generates tests for every "Gap" cell i
 4. **Steward skill fragmentation**: 16 skills in manifest, 11 public, but 23+ decorated in service-bus — many not exposed → **BQ-CRM-AGENT-COVERAGE** (formerly BQ-CRM-COMPOSITE-SKILLS, absorbed BQ-CRM-PATCH-PARITY per S456 audit)
 5. **Briefing split-brain**: Gmail-based sender (`crm_briefing_service_gmail.py`) vs Postmark delivery (`briefing_delivery.py:185`) running in parallel → **BQ-CRM-BRIEFING-FIX slice 1**
 6. **SERVICE-LAYER Gate 1 defers endpoint bypasses**: Some API endpoints bypass service layer; not true single-write-path until Gate 2 lands (`BQ-CRM-SERVICE-LAYER-GATE1.md:61`)
+7. **User-scoping data wipeout** (FIXED S499 Track 1 data restoration; SYSTEMIC FIX PENDING): user-scoped briefing queries returned empty because `created_by_user_id` was null on 550+ rows — 369 `crm_people`, 26 `crm_organizations`, 54 `crm_tasks` (including 7 placeholder UUIDs rewritten), 101 `crm_interactions`. Track 1 restored all rows on production via atomic SQL on 2026-04-24. Track 2 (D01–D12) wires an Alembic migration to replace the SQL (idempotent, reversible, self-healing on backup-restored DBs), adds CI lint on scoping columns, adds defensive service fallbacks on empty-scoped-query + zero-owned, adds regression tests, adds `crm_briefing_contact_count` metric + alarm, closes steward ownership-scoping TODOs at `crm_steward_skills.py:533,668`, and audits other scoping columns since Jan. Track 3 (C01–C07) cleans up the empty `crm-mcp-server` dir, removes `CRMVoiceMemoService` entirely, audits `crm_pipeline_stages` empty-despite-seed, audits `briefing_data_service.py` + `/api/v1/briefing` for vestigial-vs-active, adds a placeholder-UUID regression test, confirms deprecated endpoints removed. Tracked in **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK**.
+8. **Steward natural-language dispatch + command layer incomplete** (blocks Max's goal of using CRM via Claude + MP Mac clients for full read/write): `_dispatch_by_intent` in `app/allai/agents/crm_steward.py` does not invoke `CRMAIService` for free-text intent routing (OPUS_CRM Issue 4 / D10); `_cmd_task`, `_cmd_drafts`, `_cmd_draft`, `_cmd_reject` are stubs without real service calls (Issue 5 / D11); `_handle_draft_email_step` + `_handle_confirm_draft_step` are not implemented (Issue 6 / D12).
+9. **Alembic migration ordering for `allai_event_ledger.dedupe_key`**: `alembic/versions/20260424_001_add_allai_event_ledger_dedupe_key.py` has `down_revision = s155_crm_sales_surface_outbox`, but the table is created on a different branch — `tests/test_crm_support_api.py` setup errors with "relation allai_event_ledger does not exist" (OPUS_CRM Issue 1 / D08).
+10. **Test-brittle hardcoded date** in `tests/test_crm_agent_request_endpoint.py` fails on any day after the hardcoded `2026-04-22T09:00:00Z` (OPUS_CRM Issue 2 / D09).
 
 ---
 
@@ -394,11 +398,14 @@ domains/crm/
 **Phase 3 — Fix broken services (still in progress)**:
 1. **3 micro-BQs for broken services** (parallel): BQ-CRM-FIX-OUTREACH, BQ-CRM-FIX-V2-OPS, BQ-CRM-FIX-RESEARCH
 
+**Phase 3.5 — CRM user-scoping systemic fix (ACTIVE S500)**:
+1. **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK** (P0). Gate 0 planned. Track 1 (emergency data restoration) complete S499 — 550 rows backfilled via atomic SQL on Railway Postgres (data-only, not in repo by design). Track 2 (D01–D12 systemic: Alembic migration replacing the SQL, CI lint, service fallback, regression tests, alarm, steward dispatch/command layer, ownership-scoping audit across `crm_interactions`/`crm_playbooks`/`crm_learned_preferences`/`crm_audit_log`, Alembic/test-brittleness fixes) + Track 3 (C01–C07 cleanup: empty MCP dir, voice memo removal, pipeline seed audit, briefing dashboard audit, placeholder-UUID regression, deprecated endpoints confirmation) pending. Blocks full unlock of Max's goal to use CRM via Claude + MP Mac clients.
+
 **Phase 4 — Tier 2 parallel lane (next per `config:crm-operational-plan`)**:
-1. **BQ-CRM-AGENT-COVERAGE** (`bq-crm-composite-skills`) — Gate 1 R1 draft landed in S469 at backend commit `189b68b`; pending Vulcan + AG review
-2. **BQ-CRM-SALES-SURFACE** — Gate 1 R1 draft landed in S469 at backend commit `5a9f92b`; pending Vulcan + AG review
-3. **BQ-CRM-SUPPORT-WORKFLOWS** — Gate 1 R1 draft landed in S469 at backend commit `2db3211f`; pending Vulcan + AG review
-4. These three BQs are the Tier 2 P1 parallel lane. This runbook names them only; scope stays in their Gate 1 R1 specs until review closes.
+1. **BQ-CRM-AGENT-COVERAGE** — REDIRECT STUB → **BQ-CRM-COMPOSITE-SKILLS** (canonical per S474 consolidation). Composite skills Chunk A + Chunk B2 COMPLETE (4 composite steward skills + 2 MCP write tools + alias canonicalization); Chunk C decided NOT_APPLICABLE; Chunk D PII hardening carved to separate **BQ-CRM-COMPOSITE-SKILLS-PII-HARDENING** (P2).
+2. **BQ-CRM-SALES-SURFACE** — Gate 2 Chunk B2 FULLY COMPLETE at backend commit `8315c11` (S481). Public v2 PATCH/DELETE surface for persons + organizations shipped with regression coverage.
+3. **BQ-CRM-SUPPORT-WORKFLOWS** — status tracked in Living State; details live on the entity until review closes.
+4. These BQs remain part of the Tier 2 lane. Scope stays in each BQ's Gate 1/2 specs until review closes.
 
 **Phase 5 — Testing and polish (future)**:
 1. **BQ-CRM-TESTING** (P0, reopened) — begins after Tier 2 completes
@@ -438,7 +445,7 @@ domains/crm/
 | `crm.py` (1788 lines) | `/api/v1/crm/*` | Core CRUD, tasks, drafts, briefing, import, admin, Gmail, voice memo, dedup |
 | `crm_pipeline.py` (247 lines) | `/api/v1/crm/pipeline/*` | Pipeline stages, moves, bulk moves, history, analytics |
 | `crm_referrals.py` (112 lines) | `/api/v1/crm/referrals/*` | Referral management |
-| `crm_agent_request.py` (344 lines) | `/api/v1/crm/agent-request` | NL agent endpoint — **DO NOT DELETE** |
+| `crm_remote.py` (~23 kB, `app/mcp/crm_remote.py`) | MCP server mounted at `/mcp/crm` | **Primary natural-language agent surface** — `crm_request` tool family for Claude.ai Connectors + Koskadeux. Replaces retired `crm_agent_request.py` (historical reference `7c51e21`). |
 | `briefing.py` | `/api/v1/briefing/*` | Briefing view with HMAC auth |
 | `email_drafts.py` | `/api/v1/drafts/*` | Standalone draft CRUD |
 

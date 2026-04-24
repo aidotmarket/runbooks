@@ -53,7 +53,7 @@ All under `app/services/`:
 |------|---------|--------|
 | `crm_service.py` (794 lines) | Core CRUD: entity, person, org, interaction, task services | **Active — primary** |
 | `crm_steward_skills.py` (1711 lines) | AI agent skill functions: find_contact, add_note, create_task, etc. | **Active** |
-| `crm_briefing_service.py` (590 lines) | Person-centric task briefing with Claude deep links | **Active** |
+| `crm_briefing_service.py` | Person-centric task briefing with Claude deep links | **RETIRED (not present in repo as of S500) — see `crm_briefing_service_gmail.py`** |
 | `crm_briefing_service_gmail.py` (519 lines) | Gmail-delivered HTML briefing (renders the morning email) | **Active — main briefing renderer** |
 | `briefing_data_service.py` (410 lines) | Async data assembly: CRM + BQ + allAI + platform health | **Active** |
 | `briefing_generator.py` (180 lines) | Markdown rendering for Telegram/text briefings | **Active** |
@@ -72,16 +72,19 @@ All under `app/services/`:
 
 ## API layer
 
-> **CRITICAL:** `crm_agent_request.py` provides `/api/v1/crm/agent-request` which is the backend for the Koskadeux MCP `crm_request` tool (`tools/crm.py`). Deleting this endpoint breaks ALL MCP CRM operations. It was accidentally deleted in S364 consolidation and immediately restored (`7c51e21`).
+> **HISTORICAL NOTE (updated S500):** `crm_agent_request.py` was retired. The natural-language agent surface is now the MCP `crm_request` tool routed through `app/mcp/crm_remote.py` mounted at `/mcp/crm`. The S364 "DO NOT DELETE" warning from the previous HTTP endpoint now applies to `app/mcp/crm_remote.py` — deleting it breaks ALL natural-language CRM operations from Claude.ai + Koskadeux. Historical commit reference for the prior endpoint: `7c51e21`.
 
 | File | Routes | Purpose |
 |------|--------|---------|
 | `api/v1/endpoints/crm.py` (1788 lines) | `/api/v1/crm/*` | Main CRM CRUD, tasks, drafts, briefing, import, admin ops |
 | `api/v1/endpoints/crm_pipeline.py` (247 lines) | `/api/v1/crm/pipeline/*` | Pipeline stages and movement |
 | `api/v1/endpoints/crm_referrals.py` (112 lines) | `/api/v1/crm/referrals/*` | Referral management |
-| `api/v1/endpoints/crm_agent_request.py` (344 lines) | `/api/v1/crm/agent-request` | NL agent endpoint — **DO NOT DELETE: MCP `crm_request` tool depends on this endpoint** |
+| `api/v1/endpoints/crm_support.py` | `/api/v1/crm/support/*` | Support workflow endpoints (scope tracked under BQ-CRM-SUPPORT-WORKFLOWS) |
+| `api/v1/endpoints/crm_admin.py` | `/api/v1/crm/admin/*` | Admin-internal operations |
+| `api/v1/endpoints/accounting_crm.py` | `/api/v1/accounting/crm/*` | Read-only contracts for accounting (`require_accounting_scope`). Shipped S469. |
 | `api/v1/endpoints/briefing.py` | `/api/v1/briefing/*` | Briefing view with HMAC auth |
 | `api/routers/email_drafts.py` | `/api/v1/drafts/*` | Standalone draft CRUD |
+| `app/mcp/crm_remote.py` (mounted `/mcp/crm`) | MCP protocol | **Primary NL agent surface** — `crm_request` tool family. Replaces retired `crm_agent_request.py`. |
 
 ## Agent layer
 
@@ -89,9 +92,9 @@ All under `app/services/`:
 |------|------|
 | `allai/agents/crm_steward.py` | CRM steward agent: processes events, manages Telegram interactions, exposes skills |
 | `allai/agents/sysadmin/briefing_monitor.py` | Monitors briefing delivery health |
-| `mcp/crm_remote.py` | MCP tool surface: `list_tasks`, `complete_task`, used by Koskadeux |
+| `mcp/crm_remote.py` | **Primary natural-language CRM surface**. Remote MCP server (~23 kB) mounted at `/mcp/crm`. Exposes `crm_request` tool family for Claude.ai Connectors + Koskadeux. Replaces retired `crm_agent_request.py`. |
 
-## Known issues (S364 audit)
+## Known issues (S500 audit — supersedes S364)
 
 ### Bugs fixed S364
 - CC contacts not getting interactions logged → fixed `aee7796`
@@ -107,6 +110,18 @@ All under `app/services/`:
 5. **`crm_context_service.py`** — DELETED S364 (`705a97e`). Was stale/broken.
 6. **`completed_at`** — FIXED S364. Column added (`75277a4`), ghost writes commented out (`2a903fd`).
 7. **`api/v1/endpoints/crm.py`** is 1788 lines — too large, should split by resource. (Carry-forward to S365.)
+
+### S500 findings (new)
+
+1. **User-scoping data wipeout** (S499): `created_by_user_id` was null on 550+ rows across `crm_people` (369), `crm_organizations` (26), `crm_tasks` (54), `crm_interactions` (101). Track 1 restored data atomically on 2026-04-24; Track 2 systemic fix (migration + CI lint + service fallback + regression tests + metric + alarm) pending under **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK**.
+2. **Steward NL dispatch + command layer incomplete** (blocks Max's goal of using CRM via Claude + MP Mac clients for full read/write): `_dispatch_by_intent` not wired to `CRMAIService` (D10); `_cmd_task` / `_cmd_drafts` / `_cmd_draft` / `_cmd_reject` stubbed (D11); `_handle_draft_email_step` + `_handle_confirm_draft_step` unimplemented (D12).
+3. **Alembic chain bug**: `20260424_001_add_allai_event_ledger_dedupe_key.py` attached to wrong branch; breaks `test_crm_support_api.py` setup (OPUS_CRM Issue 1; D08).
+4. **Voice memo surface being removed**: `voice_transcription_service.py` + `CRMVoiceMemoService` class + endpoint + models + schemas + tests + frontend references scheduled for full removal under BQ-CRM-USER-SCOPING C02 (Max decision S499).
+5. **`crm_agent_request.py` retired**: NL agent surface moved to MCP `crm_remote.py`. Historical "DO NOT DELETE" warning redirected to the MCP path.
+6. **Briefing split-brain may persist**: `crm_briefing_service_gmail.py` is the scheduled renderer at 07:00 UTC (`scheduler.py:214` + `:805`). `briefing_data_service.py` audit (C04) will confirm whether it is vestigial or an active dashboard data source.
+7. **Empty pipeline stages despite seed** (C03): audit of `crm_pipeline_stages` + `crm_contact_pipeline` pending — tables appear empty despite `20260130_018` seed migration.
+8. **Empty MCP server directory** at `/Users/max/koskadeux-mcp/crm-mcp-server` (C01): remove directory, update `INFRASTRUCTURE.md:136`.
+9. **Test-brittle hardcoded date** in `tests/test_crm_agent_request_endpoint.py` (OPUS_CRM Issue 2; D09).
 
 ### Recommended consolidation (target state)
 ```
@@ -188,3 +203,8 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 - S222 — Gmail drop pipeline built
 - S341 — Pipeline recovery, OAuth token expiry documented
 - S364 — 4 bug fixes (CC interactions, last_interaction_at, email_drafts columns, due_date validation `2a903fd`, task lifecycle `75277a4`), auto follow-up, full architecture audit by MP, consolidation `705a97e` (deleted 3 dead files, merged briefing_generator, retired deprecated router then restored — see below), this runbook created
+- S458 — allAI-first CRM agent surface shipped: honest-envelope dispatch (`f743704`), tool-use protocol prompt + tool_choice injection (`382dbc2` / `94c23b8` / `db6c386`), skill registration lazy-fill (`0479940`). `crm_request` MCP tool verified end-to-end in production (live traces in `crm-target-state.md` §2.12).
+- S469 — R5 runbook refresh + **BQ-CRM-INTEGRATION-CONTRACTS** Gate 4 close (`1d27532`); `/api/v1/accounting/crm/*` read contracts shipped; seller-side Stripe Connect identity consolidated on `party_identity(provider='stripe_connect')`.
+- S481 — **BQ-CRM-SALES-SURFACE** Chunk B2 complete (`8315c11`): public v2 PATCH/DELETE for persons + organizations.
+- S499 — Track 1 emergency data restoration (550 rows backfilled across 4 tables); OPUS_CRM code audit (7 issues) committed as `OPUS_CRM_FIX_SCHEDULE.md` at `65f61d3`; **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK** filed P0; voice-memo removal decision (C02); `crm_agent_request.py` retirement confirmed.
+- S500 — R6 runbook refresh: S499 findings integrated; stale file references corrected; steward dispatch/command layer gaps documented (D10/D11/D12); skill count corrected to 28 decorated. Updated: `crm-target-state.md`, `crm-architecture.md`, `crm-pipeline.md` (full rewrite).
