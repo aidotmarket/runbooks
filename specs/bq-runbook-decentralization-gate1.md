@@ -744,6 +744,12 @@ Output:
 2. The decision records waiver count delta, bypass cases, repeated nonconformance, recommendations, and Council ratification status.
 3. If drift requires action, Council files a follow-up BQ such as `BQ-RUNBOOK-DRIFT-REMEDIATION-YYYY-QN`.
 
+Dead-man'''s switch (AG-N1 R3 nit):
+
+1. The runbook-index meta-repo CI runs a scheduled job (cron or GitHub Actions schedule) on day Q+5 of each quarter (i.e. April 5, July 5, October 5, January 5) that asserts the existence of `decision:runbook-quarterly-audit-PRIOR-QN` in Living State.
+2. If the prior-quarter audit decision entity is missing, the scheduled job fails CI loudly and emits a warning to the runbooks meta-repo issue tracker tagged `audit-overdue`. This makes silent-skip detectable instead of relying on someone noticing absence.
+3. Vulcan SHOULD also dispatch the audit on Q+1 of each quarter as primary trigger, with the dead-man'''s switch as backstop.
+
 ## §7 Cross-Repo Index Design
 
 ### §7.1 Recommendation Summary
