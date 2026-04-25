@@ -5,13 +5,16 @@
 | Field | Value |
 |---|---|
 | BQ code | `BQ-RUNBOOK-DECENTRALIZATION` |
-| Status | Gate 1 R1 design spec |
+| Status | Gate 1 R2 design spec |
 | Target repo | `aidotmarket/runbooks` |
 | Local repo | `/Users/max/Projects/runbooks` |
-| Repo HEAD at authoring | `5937a52424a2f0cd9f5ef186b3a0052792acf887` |
+| R1 baseline commit | `ebf589c826e39fa86a47dc20f998b58076f861e8` |
+| R1 baseline line count | 1,096 |
+| R2 parent commit | `ebf589c826e39fa86a47dc20f998b58076f861e8` |
+| R2 authoring date | 2026-04-25 |
+| R2 final line count | 1,197 |
 | Branch | `main` |
-| Authored date | 2026-04-25 |
-| Authoring session | S505 |
+| Authoring session | S505 R2 |
 | Decision input | `decision:runbook-architecture-decentralization` v1 |
 | Living State input | `build:bq-runbook-decentralization` v3 |
 | MP audit input | [/tmp/runbook-audit-mp-2026-04-25.md](/tmp/runbook-audit-mp-2026-04-25.md:1) |
@@ -76,6 +79,23 @@ The runbook standard remains unchanged. Its required template begins with YAML f
 
 `BQ-RUNBOOK-IMPACT-GATE` owns the detailed implementation of per-service PR-time enforcement: path manifests, diff matching, waiver syntax, and CI fail behavior. This BQ depends on that sibling work but does not design its internals. This BQ must, however, define the interfaces that impact-gate consumes: per-service runbook locations, index schema, conformance metadata, and CODEOWNERS expectations.
 
+### §1.4 R2 Mandate Resolution Table
+
+| Mandate | R2 resolution | Spec citation |
+|---|---|---|
+| M1 | Refresh workflow concurrency, idempotence, rebase/retry, and all-repo scan rules. | §7.1 lines 717-724; §7.5 lines 820-840 |
+| M2 | Chunk 1 bootstrap allows fixture-only tests plus `docs_status: NO_MANIFEST` rows, or one seeded service manifest before real-row assertions. | §5.1.6 lines 271-281; §7.2 lines 728-777 |
+| M3 | Chunk 4 migration order is topological, with Koskadeux and release ownership decisions before deletes. | §5.4.5 lines 491-504 |
+| M4 | §11 inventory now declares non-exhaustive Gate 1 status, requires fresh scans per migration PR, and adds per-source evidence rows including the missing backend/Koskadeux references. | §11 lines 1057-1185 |
+| M5 | Shared GitHub Action is versioned from the runbooks meta-repo; service repos pin tags or SHAs and follow an upgrade procedure. | §7.7 lines 852-863; §10.4 lines 1028-1032 |
+| M6 | GitHub API discovery auth, permissions, private-repo semantics, ETag caching, and fail-closed behavior are specified. | §5.1.5 lines 264-268; §5.1.6 lines 271-281; §7.2 lines 728-777 |
+| M7 | Multi-repo conformance lint is an acceptance criterion and feeds index aggregation with fail-closed repo status. | §5.5.6 lines 573-581; §6.5 lines 651-662 |
+| M8 | vectoraiz decision row names the canonical GitHub repo, local path, `/docs` owner, and mapping from `aidotmarket/vectoraiz`. | §10.1 lines 996-1007 |
+| M9 | `runbook-index.json` is canonical; README and `INDEX.md` are generated from it with hash checks. | §4.4 lines 190-198; §5.5.6 line 581; §7.4 lines 809-817 |
+| M10 | `rtk-token-optimization.md` and `vulcan-configuration.md` are classified as central candidates in Chunk 2/4 catalog. | §4.5 lines 200-211; §5.2.2 lines 304-315; §5.4.2 lines 457-475; §10.2 lines 1009-1020 |
+| M11 | §11 explicitly states the Gate 1 inventory is non-exhaustive and mandates fresh scans before each migration PR. | §11 lines 1057-1059 |
+| M12 | Waiver-drift mitigation adds a quarterly Council audit of waiver count, nonconformant runbooks, and lint bypasses. | §6.11 lines 711-713; §8.6 lines 917-919 |
+
 ## §2 Goals
 
 The measurable outcomes are the AC1-AC9 set from `build:bq-runbook-decentralization` plus three index-specific outcomes added by this Gate 1 spec.
@@ -128,7 +148,7 @@ aidotmarket/runbooks (meta-repo)
   gcp-auth.md          central cross-cutting SSOT, until renamed/retrofitted
   infisical-secrets.md central cross-cutting SSOT, until renamed/retrofitted
   gmail-oauth-watch.md central cross-cutting SSOT, new target
-  koskadeux-operations.md central cross-cutting SSOT, if Council confirms
+  koskadeux-operations.md central cross-cutting SSOT under the §10.2 decision
   ops/                 dated evidence only
 
 service repo
@@ -169,11 +189,13 @@ Every root operational markdown file in the current runbooks repo gets one of fo
 
 ### §4.4 Generated Index
 
-The generated index reads service repo manifests and runbook frontmatter, then writes:
+The canonical generated artifact is `runbook-index.json`. The refresh command reads service repo manifests and runbook frontmatter, writes `runbook-index.json` first, then derives the human outputs from that JSON. README and `INDEX.md` are therefore generated views, not separate sources of truth.
 
-1. A concise dashboard table in `README.md`.
-2. A full `INDEX.md` with one row per indexed runbook, stale-reference warnings, conformance status, and source repo path.
-3. A machine-readable `runbook-index.json` artifact for Vulcan lookup and future dashboards.
+Outputs:
+
+1. `runbook-index.json`: canonical machine-readable artifact for Vulcan lookup and future dashboards.
+2. `README.md`: concise dashboard table generated from the canonical JSON.
+3. `INDEX.md`: full detail generated from the canonical JSON, with one row per indexed runbook, stale-reference warnings, conformance status, and source repo path.
 
 ### §4.5 Central Retained Topics
 
@@ -184,7 +206,9 @@ This Gate 1 recommends retaining these central cross-cutting topics:
 | GCP auth | `gcp-auth.md` or `gcp-auth.md` retrofit target | Shared OAuth/GCP setup is not owned by one service. |
 | Infisical | `infisical.md` eventual target, replacing `infisical-secrets.md` per existing standard chunk intent | Secret lifecycle and emergency recovery span service repos. |
 | Gmail OAuth/watch | `gmail-oauth-watch.md` | Gmail watch and OAuth token handling are shared infrastructure; service runbooks reference it. |
-| Koskadeux operations | `koskadeux-operations.md` if Council confirms | Council/dispatch/session operation is cross-agent infrastructure; however, code-local subprocedures may still live in `koskadeux-mcp/docs`. |
+| Koskadeux operations | `koskadeux-operations.md` under the §10.2 decision | Council/dispatch/session operation is cross-agent infrastructure; however, code-local subprocedures may still live in `koskadeux-mcp/docs` if Gate 2 records a narrower owner. |
+| RTK token optimization | `rtk-token-optimization.md` or central policy appendix | Token-optimization policy affects dispatch/runtime behavior across agents and should not be copied into one service unless code ownership proves otherwise. |
+| Vulcan configuration | `vulcan-configuration.md` or central policy appendix | Vulcan lookup/context policy is cross-cutting unless Council decides it belongs inside Koskadeux model-configuration docs. |
 
 ### §4.6 CRM Scope Adjustment
 
@@ -240,9 +264,9 @@ Risk is medium. Bad index generation can hide runbooks and worsen fragmentation.
 ### §5.1.5 Dependencies
 
 1. Current linter and harness package in `runbook_tools`.
-2. GitHub token or local clone access for service repos.
+2. GitHub token or local clone access for service repos. `GITHUB_TOKEN` is sufficient only for the runbooks repo itself; private cross-repo discovery requires a fine-grained PAT or GitHub App installation with `contents: read` on every configured private repo.
 3. `BQ-RUNBOOK-IMPACT-GATE` for later PR-time enforcement, not for Chunk 1 index generation.
-4. Service repo list confirmed or corrected by Council, especially vectoraiz path.
+4. Service repo list from §10.1, including the vectoraiz canonical path.
 
 ### §5.1.6 Test/Verification Strategy
 
@@ -252,7 +276,9 @@ Risk is medium. Bad index generation can hide runbooks and worsen fragmentation.
 4. Unit test evidence exclusion: `ops/*.md` is not treated as operational runbook.
 5. Integration test scans at least three local service repos and produces rows.
 6. `runbook-index refresh --check` fails if generated files are stale.
-7. `git diff --check` passes.
+7. Bootstrap rule: before one real service manifest exists, integration tests may use fixtures and configured repo rows with `docs_status: NO_MANIFEST`; once a service repo is manually seeded, recommended first seed is `ai-market-backend/docs/runbook-manifest.yml`, real-row discovery assertions become mandatory for that repo.
+8. Discovery failure tests cover 403, 404, and rate-limit responses; each emits `discovery_status: ERROR` and a nonzero `--check` result instead of silently omitting the repo.
+9. `git diff --check` passes.
 
 ### §5.1.7 Migration Safety
 
@@ -284,7 +310,9 @@ It also updates README policy text explaining what belongs in the runbooks meta-
 | [gcp-auth.md](/Users/max/Projects/runbooks/gcp-auth.md:1) | central | Retain as cross-cutting SSOT until retrofit. |
 | [infisical-secrets.md](/Users/max/Projects/runbooks/infisical-secrets.md:1) | central, future `infisical.md` | Retain central and track rename/retrofit. |
 | [gmail-drop-pipeline.md](/Users/max/Projects/runbooks/gmail-drop-pipeline.md:1) | split: backend CRM references plus central `gmail-oauth-watch.md` | Decide shared content boundary. |
-| [agent-dispatch.md](/Users/max/Projects/runbooks/agent-dispatch.md:1) and Council files | central `koskadeux-operations.md` or `koskadeux-mcp/docs` | Council decision required. |
+| [agent-dispatch.md](/Users/max/Projects/runbooks/agent-dispatch.md:1) and Council files | central `koskadeux-operations.md` or `koskadeux-mcp/docs` | Apply §10.2 central-candidate decision and record any Gate 2 override explicitly. |
+| [rtk-token-optimization.md](/Users/max/Projects/runbooks/rtk-token-optimization.md:1) | central policy candidate | Classify as central unless reference scan proves it is only Koskadeux-local procedure. |
+| [vulcan-configuration.md](/Users/max/Projects/runbooks/vulcan-configuration.md:1) | central policy candidate | Classify as central unless Council folds it into Koskadeux model-configuration docs. |
 
 ### §5.2.3 LOC Delta Estimate
 
@@ -304,7 +332,7 @@ Risk is medium. Misclassifying a cross-cutting topic as service-specific can cre
 
 1. MP redundancy map at [/tmp/runbook-audit-mp-2026-04-25.md:73](/tmp/runbook-audit-mp-2026-04-25.md:73).
 2. AG decentralization rationale at [/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:36](/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:36).
-3. Max/Council confirmation of central keep-list.
+3. §10.2 central keep-list decision.
 
 ### §5.2.6 Test/Verification Strategy
 
@@ -464,9 +492,16 @@ Risk is high for Koskadeux and medium for frontend/AIM/vectoraiz. Koskadeux docs
 
 1. Chunk 1 and Chunk 2 complete.
 2. Chunk 3 validates the delete safety pattern.
-3. Council resolves whether `koskadeux-operations` is central or service-local.
-4. Council resolves vectoraiz canonical repo path.
+3. §10.2 central keep-list decision is applied or explicitly narrowed in Gate 2.
+4. §10.1 vectoraiz canonical repo path is used.
 5. Frontend `/docs` directory is created.
+6. Dependency graph is documented before any Chunk 4 delete, with edges for central-vs-service ownership, release ownership, and live-reference blockers.
+
+Topological order:
+
+1. Decide Koskadeux central-vs-service split before deleting `agent-dispatch.md`, Council docs, `session-lifecycle.md`, `mcp-gateway.md`, `rtk-token-optimization.md`, or `vulcan-configuration.md`.
+2. Decide AIM/vectoraiz release ownership before deleting `aim-node-release-process.md`, `aim-data-release-process.md`, `vz-release-process.md`, `docker-testing.md`, `cloudflare-worker.md`, or `dual-brand-vectoraiz-aim-channel.md`.
+3. Frontend migration may proceed independently only if the preflight reference scan proves zero live cross-references from other clusters to `ai-market-frontend.md`.
 
 ### §5.4.6 Test/Verification Strategy
 
@@ -539,9 +574,11 @@ Risk is medium. Most dangerous migration work already happened in Chunks 3 and 4
 
 1. `runbook-index refresh --check` passes on clean `main`.
 2. `rg` for old central runbook paths returns only approved historical references.
-3. `runbook-lint` can run against service repo paths from the runbooks repo CLI.
-4. `runbook-harness` can run against service repo paths from the runbooks repo CLI.
-5. README and INDEX generated block hashes match `runbook-index.json`.
+3. `runbook-lint --repos runbook-index.repos.yml` iterates every configured manifest, emits per-repo lint output, and writes a rollup consumed by index refresh.
+4. Multi-repo lint fails closed: any required repo with discovery failure, manifest parse failure, or lint invocation failure is represented in the rollup and blocks `--check`.
+5. `runbook-lint` can run against service repo paths from the runbooks repo CLI.
+6. `runbook-harness` can run against service repo paths from the runbooks repo CLI.
+7. README and INDEX generated block hashes match `runbook-index.json`.
 
 ### §5.5.7 Migration Safety
 
@@ -591,7 +628,7 @@ Evidence requirements:
 3. Koskadeux `/docs` has conformant runbook coverage or a Council-approved central exception.
 4. AIM Node `/docs` has conformant runbook coverage.
 5. vectoraiz canonical repo path is corrected; its `/docs` has conformant runbook coverage.
-6. Missing `/Users/max/Projects/ai-market/vectoraiz` is not silently ignored; Council must confirm replacement path or create the requested path.
+6. Missing `/Users/max/Projects/ai-market/vectoraiz` is not silently ignored; §10.1 maps vectoraiz to `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`.
 
 ### §6.4 AC4 - Cross-Repo Index Auto-Generates
 
@@ -620,6 +657,9 @@ Evidence requirements:
 3. CLI path resolution does not assume current working directory is `/Users/max/Projects/runbooks`.
 4. Tests cover absolute paths and repo-relative paths.
 5. Shared GitHub Action consumes runbooks meta-repo tooling without duplicating scripts.
+6. `runbook-lint --repos runbook-index.repos.yml` runs against all configured service manifests and central retained runbooks.
+7. Per-repo lint output includes repo id, manifest path, file count, pass/fail count, error details, and discovery status.
+8. Aggregated lint output feeds `runbook-index.json`; any required repo with missing output is `discovery_status: ERROR` and blocks generated-output checks.
 
 ### §6.6 AC6 - Inbound Links Updated
 
@@ -668,6 +708,10 @@ Evidence requirements:
 | Chunk 4 | AC1, AC3, AC5, AC6, AC8 | 2 | 6 | 13 |
 | Chunk 5 | AC1, AC2, AC4, AC6, AC7, AC8 | 5 | 3 | 14 |
 
+### §6.11 Waiver Drift Audit
+
+`BQ-RUNBOOK-STANDARD` must add a quarterly Council audit of waiver usage. The audit reviews waiver count, runbooks remaining outside conformance, and agents bypassing lint or harness checks. If drift is observed, the audit outcome must recommend re-tightening the waiver policy, impact-gate matching, or CI enforcement.
+
 ## §7 Cross-Repo Index Design
 
 ### §7.1 Recommendation Summary
@@ -678,7 +722,8 @@ Use both static configuration and GitHub API discovery:
 2. GitHub API discovery reads `/docs` contents and latest commits for configured repos.
 3. A scheduled GitHub Action refreshes daily.
 4. Service repo PR merges trigger `repository_dispatch` back to runbooks repo where available.
-5. Output goes to both README dashboard and dedicated `INDEX.md`, plus `runbook-index.json`.
+5. `runbook-index.json` is the canonical output. README dashboard and `INDEX.md` are generated views with hashes checked against the JSON.
+6. Every refresh scans every configured repo; partial refresh is forbidden because it creates stale mixed snapshots and partial-update races.
 
 ### §7.2 Discovery Mechanism
 
@@ -717,7 +762,7 @@ repos:
     docs_globs:
       - docs/*.md
     required: true
-    open_question: "Confirm replacement for missing /Users/max/Projects/ai-market/vectoraiz."
+    path_decision: "Canonical local path replaces missing /Users/max/Projects/ai-market/vectoraiz per §10.1."
 ```
 
 Discovery order:
@@ -727,6 +772,9 @@ Discovery order:
 3. If both fail for a required repo, emit an error row and nonzero exit in `--check`.
 4. If repo exists but `/docs` is absent, emit `docs_status: MISSING` and fail AC3 until fixed.
 5. Parse only files with `runbook: true` in frontmatter or files listed in `docs/runbook-manifest.yml` as `type: runbook`.
+6. For GitHub API discovery, use conditional requests with ETag caching when a prior ETag exists.
+7. Auth semantics: `GITHUB_TOKEN` only covers the current repository unless repository settings grant broader access; private service repos require a fine-grained PAT or GitHub App installation with `contents: read` for each configured repo.
+8. A 403, 404, or rate-limit response for a required repo is fail-closed: the repo remains in `runbook-index.json` with `discovery_status: ERROR`, `docs_status: DISCOVERY_FAILED`, and a diagnostic reason.
 
 ### §7.3 Index Schema
 
@@ -760,11 +808,12 @@ inbound_reference_status: clean|warnings|unknown
 
 ### §7.4 Output Target
 
-Use both:
+Use `runbook-index.json` as canonical:
 
-1. `README.md` table for stable human entry point.
-2. `INDEX.md` for full detail.
-3. `runbook-index.json` for agents and future dashboard endpoint.
+1. `runbook-index.json` is written first and is the only lookup artifact agents should consume.
+2. `README.md` table is generated from `runbook-index.json` for the stable human entry point.
+3. `INDEX.md` is generated from `runbook-index.json` for full detail.
+4. `runbook-index refresh --check` verifies README and INDEX generated-block hashes match the canonical JSON.
 
 Do not build a dashboard endpoint in this BQ. The JSON artifact is the future dashboard contract.
 
@@ -775,11 +824,20 @@ Required triggers:
 1. Daily cron on runbooks repo, recommended 06:10 UTC.
 2. Manual `workflow_dispatch`.
 3. `repository_dispatch` event from each service repo after PR merge when docs or manifest changes.
+4. Workflow-level concurrency:
+
+```yaml
+concurrency:
+  group: runbook-index-refresh
+  cancel-in-progress: false
+```
 
 Fallback:
 
 1. If service repos cannot emit repository_dispatch immediately, daily cron is sufficient for initial migration.
 2. Generated output must show `last_refreshed` so stale index state is visible.
+3. Refresh is idempotent: running it twice without source changes produces no diff.
+4. Before committing generated output, the workflow pulls/rebases on `origin/main`; non-fast-forward push failures trigger a bounded retry that reruns the full all-repo scan before the next commit attempt.
 
 ### §7.6 Conformance Status Reporting
 
@@ -796,14 +854,14 @@ Conformance source precedence:
 The runbooks meta-repo publishes a reusable action:
 
 ```yaml
-uses: aidotmarket/runbooks/.github/actions/runbook-ci@main
+uses: aidotmarket/runbooks/.github/actions/runbook-ci@vX.Y.Z
 with:
   runbook_globs: "docs/*.md docs/runbooks/*.md"
   manifest_path: "docs/runbook-manifest.yml"
   mode: "lint-and-harness"
 ```
 
-Service repos consume the action. They do not duplicate linter or harness scripts. This keeps CI behavior consistent and lets the meta-repo remain the tooling owner.
+Service repos consume the action pinned to a versioned tag such as `@v1.2.0` or to a full commit SHA. They do not pin `@main` in protected workflows and do not duplicate linter or harness scripts. Upgrade procedure: runbooks meta-repo publishes a release tag, service repos update the pinned ref in a docs/CI PR, CI runs lint and harness against the service manifest, and the generated index records the action version that produced conformance metadata.
 
 ## §8 Migration Sequencing
 
@@ -844,7 +902,7 @@ Before remaining migrations:
 
 1. Create frontend `/docs`.
 2. Resolve vectoraiz canonical repo path.
-3. Decide central vs service-local Koskadeux operations.
+3. Apply §10.2 Koskadeux operations target or record an explicit Gate 2 override.
 4. Audit Koskadeux specs that hardcode `aidotmarket/runbooks/model-configuration.md`.
 5. Confirm aim-node standard G4 constraints do not forbid reading migrated AIM Node content during standard falsifiability flows.
 
@@ -855,6 +913,10 @@ Before remaining migrations:
 3. Chunk 3 rollback restores deleted central files from the prior commit and removes index replacement rows.
 4. Chunk 4 rollback restores deleted central files for the affected service only.
 5. Chunk 5 rollback restores any mistakenly deleted central files and reruns index refresh.
+
+### §8.6 Waiver Abuse Mitigation
+
+After decentralization lands, Council reviews waiver usage quarterly under `BQ-RUNBOOK-STANDARD`. The review checks whether waivers are increasing, whether the same runbooks stay nonconformant across quarters, and whether agents bypass lint/harness in service PRs. The expected output is either "no drift observed" or concrete re-tightening recommendations for waiver syntax, expiry, ownership approval, or CI blocking behavior.
 
 ## §9 Test Plan
 
@@ -927,47 +989,51 @@ Pass criteria:
 3. README summary shows three service repos with non-error status.
 4. One row can be `NON_CONFORMANT` during migration, but status must be explicit.
 
-## §10 Open Questions for Council
+## §10 Council Decisions
 
-### §10.1 Q1 - Which Service Repos Host `/docs`?
+R2 closes the Gate 1 open questions as explicit Council-decision rows. Gate 2 may revise a row only by recording a new Council decision with replacement rationale; it must not treat any row below as unresolved.
 
-Recommendation: use these hosts:
+### §10.1 Service Repos Hosting `/docs`
+
+Decision: use these hosts:
 
 1. `/Users/max/Projects/ai-market/ai-market-backend`
 2. `/Users/max/Projects/ai-market/ai-market-frontend`
 3. `/Users/max/koskadeux-mcp`
 4. `/Users/max/Projects/ai-market/aim-node`
-5. `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`, pending Council confirmation
+5. `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`
 6. `/Users/max/Projects/runbooks` as meta-repo only
 
-Rationale: all except the requested vectoraiz path were verified locally. The requested `/Users/max/Projects/ai-market/vectoraiz` path is absent; `/Users/max/Projects/vectoraiz/vectoraiz-monorepo` exists and has `/docs`.
+Rationale: all except the originally requested vectoraiz path were verified locally. Council adopts `aidotmarket/vectoraiz` as the canonical GitHub repo, maps it to `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`, and assigns `/docs` ownership to the vectoraiz service owner plus release owner. The absent `/Users/max/Projects/ai-market/vectoraiz` path is not part of this BQ.
 
-### §10.2 Q2 - Cross-Cutting Keep-Central List
+### §10.2 Cross-Cutting Keep-Central List
 
-Recommendation: confirm central retention for:
+Decision: retain these central candidates unless Gate 2 records a narrower owner:
 
 1. `gcp-auth`
 2. `infisical`
 3. `gmail-oauth-watch`
-4. `koskadeux-operations`, with one caveat
+4. `koskadeux-operations`
+5. `rtk-token-optimization`
+6. `vulcan-configuration`
 
-Caveat: if Council decides Koskadeux operations are code-local rather than cross-cutting, the target should be `koskadeux-mcp/docs/koskadeux-operations.md`, and runbooks repo should only index it. Do not maintain both as independent copies.
+If Koskadeux operations or Vulcan configuration become code-local, the target is `koskadeux-mcp/docs/...`, and runbooks repo only indexes it. Do not maintain central and service copies as independent SSOTs.
 
-### §10.3 Q3 - Index Format
+### §10.3 Index Format
 
-Recommendation: both README table and dedicated `INDEX.md`, plus `runbook-index.json`.
+Decision: `runbook-index.json` is canonical; README table and dedicated `INDEX.md` are generated from it.
 
 Rationale: README is the stable human entry point; `INDEX.md` can hold more detail without bloating README; JSON serves agents and future dashboards. A live dashboard endpoint is deferred.
 
-### §10.4 Q4 - Lint and Harness CI Integration
+### §10.4 Lint and Harness CI Integration
 
-Recommendation: shared GitHub Action published from runbooks meta-repo and consumed in each service repo.
+Decision: shared GitHub Action published from runbooks meta-repo and consumed in each service repo, pinned to versioned tag or full SHA.
 
 Rationale: duplicated config would diverge immediately across five repos. The meta-repo owns linter/harness release behavior; service repos own manifests, runbook content, and CODEOWNERS.
 
-### §10.5 Q5 - CODEOWNERS Implications
+### §10.5 CODEOWNERS Implications
 
-Recommendation: every service repo that receives runbooks must add CODEOWNERS entries for the moved docs.
+Decision: every service repo that receives runbooks must add CODEOWNERS entries for the moved docs.
 
 Required process:
 
@@ -976,19 +1042,21 @@ Required process:
 3. Waivers from `BQ-RUNBOOK-IMPACT-GATE` require owner approval.
 4. Central cross-cutting docs retain CODEOWNERS in runbooks meta-repo.
 
-### §10.6 Q6 - Bus Factor and Discoverability
+### §10.6 Bus Factor and Discoverability
 
-Recommendation: mitigate fragmentation with a stable generated index path and agent lookup artifact:
+Decision: mitigate fragmentation with a stable generated index path and agent lookup artifact:
 
 1. `aidotmarket/runbooks/README.md` is the stable entry.
 2. `aidotmarket/runbooks/INDEX.md` is the full human index.
-3. `aidotmarket/runbooks/runbook-index.json` is the agent lookup artifact.
+3. `aidotmarket/runbooks/runbook-index.json` is the canonical agent lookup artifact.
 4. Daily refresh and service merge dispatch prevent stale index state.
 5. Deleted central files are not replaced with long-lived duplicate tombstones; the generated index carries replacements.
 
 Rationale: decentralized docs without an index would reproduce AG's fragmentation risk at [/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:64](/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:64). The index is therefore a prerequisite, not a polish item.
 
 ## §11 Inbound-Reference Inventory
+
+This inventory is non-exhaustive at Gate 1 by design. Migration chunks in Gate 2 and Gate 3 MUST run a fresh, complete `grep -rn '/Users/max/Projects/runbooks/'` and `rg 'aidotmarket/runbooks'` scan at migration time. Automated scan is a non-negotiable precondition for each migration PR.
 
 ### §11.1 Search Scope and Patterns
 
@@ -1022,7 +1090,38 @@ Generated chats, logs, `node_modules`, `.git`, build outputs, and minified files
 | `aidotmarket/runbooks/aim-node.md` | [specs/BQ-RUNBOOK-STANDARD.md](/Users/max/Projects/runbooks/specs/BQ-RUNBOOK-STANDARD.md:404) | AIM Node G4 target | Chunk 4 must reconcile with BQ-RUNBOOK-STANDARD frozen isolation requirements before moving. |
 | `aidotmarket/runbooks/README.md` index | [specs/BQ-RUNBOOK-STANDARD.md](/Users/max/Projects/runbooks/specs/BQ-RUNBOOK-STANDARD.md:526) | central index | Chunk 1 preserves this as generated meta index. |
 
-### §11.3 Active References in Backend Repo
+### §11.3 Source-File Deletion Inventory
+
+For each migrated or deleted source file, the migration PR must run `C1(FILE)`: `rg -n 'FILE|aidotmarket/runbooks/FILE|/Users/max/Projects/runbooks/FILE' /Users/max/Projects/runbooks /Users/max/Projects/ai-market/ai-market-backend /Users/max/Projects/ai-market/ai-market-frontend /Users/max/koskadeux-mcp /Users/max/Projects/ai-market/aim-node /Users/max/Projects/vectoraiz --glob '!**/.git/**' --glob '!**/node_modules/**'`. Deletion is allowed only when `C1(FILE)` has zero live hits outside the source file, generated index, migration manifest, and explicitly classified historical specs.
+
+| Source file | Target/classification | Gate 1 evidence and live/historical classification |
+|---|---|---|
+| `ai-market-backend.md` | backend `/docs/backend-platform.md`; `service-move` | `C1(ai-market-backend.md)` currently finds historical standard specs and this design; migration requires zero live service refs. |
+| `morning-briefing.md` | backend `/docs/crm-system.md`; `service-merge` | Current live intra-runbooks reference in `crm-architecture.md`; update before deleting. |
+| `email-drafting.md` | backend `/docs/crm-system.md` or `/docs/email-system.md`; `service-merge` | `C1(email-drafting.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
+| `seo-infrastructure.md` | backend `/docs/seo-discovery.md`; `service-merge` | `C1(seo-infrastructure.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
+| `seo-seller-validation.md` | backend or frontend SEO docs; `service-merge` | `C1(seo-seller-validation.md)` must prove zero live refs after ownership decision. |
+| `aimarket-mcp-server.md` | backend `/docs/marketplace-mcp-public.md`; `service-move` | `C1(aimarket-mcp-server.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
+| `allai-agents.md` | backend platform/CRM docs; `service-merge` | `C1(allai-agents.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
+| `marketing-tab.md` | backend or frontend marketing docs; `service-merge` | `C1(marketing-tab.md)` must prove zero live refs after ownership decision. |
+| `ops-ai-market.md` | backend docs or central policy; `service-merge` or `central-cross-cutting` | `C1(ops-ai-market.md)` currently finds `BQ-AUTONOMOUS-OPERATIONS`; classify that spec as live or historical before deletion. |
+| `meet-records-pipeline.md` | backend `/docs/meet-records-pipeline.md`; `service-move` | Live hit found at `/Users/max/Projects/ai-market/ai-market-backend/specs/BQ-MEET-RECORDS-CRM.md:181`; update or mark historical. |
+| `agent-dispatch.md` | central `koskadeux-operations.md` or `koskadeux-mcp/docs`; `service-merge`/central | Live Koskadeux model-configuration refs found; update before deleting or retaining under new central target. |
+| `council-gate-process.md` | Koskadeux operations target; `service-merge` | `C1(council-gate-process.md)` must prove zero live refs outside historical specs. |
+| `council-hall-deliberation.md` | Koskadeux operations target; `service-merge` | `C1(council-hall-deliberation.md)` must prove zero live refs outside historical specs. |
+| `session-lifecycle.md` | Koskadeux operations target; `service-merge` | Current live intra-runbooks reference from `mcp-gateway.md` must be updated with target path. |
+| `mcp-gateway.md` | `koskadeux-mcp/docs/koskadeux-mcp-internal.md` or central; `service-move`/central | Current live intra-runbooks reference from `session-lifecycle.md` must be updated with target path. |
+| `rtk-token-optimization.md` | central policy candidate; `central-cross-cutting` | `C1(rtk-token-optimization.md)` must prove no service-local owner before retaining central or moving. |
+| `vulcan-configuration.md` | central policy candidate; `central-cross-cutting` | Live self-ref and Koskadeux refs found; update if renamed or moved. |
+| `aim-node.md` | aim-node `/docs/aim-node-system.md`; `service-move` | Historical G4/standard specs contain many hits; classify frozen standard refs before deletion. |
+| `aim-node-release-process.md` | aim-node release docs; `service-merge` | Current intra-runbooks release cross-links must be updated to new release docs. |
+| `aim-data-release-process.md` | aim-node or vectoraiz release docs; `service-merge` | Current intra-runbooks release cross-links must be updated after ownership decision. |
+| `vz-release-process.md` | vectoraiz `/docs/releasing.md`; `service-move` | Current release cross-links from AIM files must be updated. |
+| `docker-testing.md` | aim-node or vectoraiz release docs; `service-merge` | Current release cross-links must be updated after ownership decision. |
+| `cloudflare-worker.md` | backend/aim-node/vectoraiz split or central; `service-merge` | Current release cross-links from AIM files must be updated. |
+| `dual-brand-vectoraiz-aim-channel.md` | vectoraiz `/docs/dual-brand-channel.md`; `service-move` | `C1(dual-brand-vectoraiz-aim-channel.md)` must prove zero live refs after vectoraiz mapping. |
+
+### §11.4 Active References in Backend Repo
 
 | Reference | Location | Target | Migration handling |
 |---|---|---|---|
@@ -1035,19 +1134,21 @@ Generated chats, logs, `node_modules`, `.git`, build outputs, and minified files
 | `docs/runbooks/sysadmin_railway_env_recovery.md` | `/Users/max/Projects/ai-market/ai-market-backend/specs/BQ-SYSADMIN-INFRA-ACCESS-GATE2.md:62` | backend-local docs/runbooks | Not a central runbooks reference; index policy must decide whether to include `docs/runbooks/*.md`. |
 | `../runbooks/backup-restore-drill.md` | `/Users/max/Projects/ai-market/ai-market-backend/docs/recovery/DR-PLAN.md:258` | backend-local docs/runbooks | Not central; include in backend manifest if operational. |
 | `koskadeux-mcp/runbooks/activation-verification.md` | `/Users/max/Projects/ai-market/ai-market-backend/docs/core/PROTOCOLS.md:183` and related lines | koskadeux runbook path | Chunk 4 update if activation verification moves under `/docs`. |
+| `aidotmarket/runbooks` | `/Users/max/Projects/ai-market/ai-market-backend/docs/core/CORE.md:183` | central repo as operational procedure source | Chunk 1/5 update to generated README/INDEX as meta entry, not flat service-runbook SSOT. |
+| `meet-records-pipeline.md` | `/Users/max/Projects/ai-market/ai-market-backend/specs/BQ-MEET-RECORDS-CRM.md:181` | central meet-records draft | Chunk 3 update to backend `/docs/meet-records-pipeline.md` or mark spec historical. |
 | `recovery_runbook: docs/runbooks/sysadmin_railway_env_recovery.md` | `/Users/max/Projects/ai-market/ai-market-backend/app/agents/sysadmin/skills/railway_ops.py:292` | backend-local runbook | Not central; include in backend manifest or update if normalized. |
 
-### §11.4 Active References in Koskadeux Repo
+### §11.5 Active References in Koskadeux Repo
 
 | Reference | Location | Target | Migration handling |
 |---|---|---|---|
-| `aidotmarket/runbooks/model-configuration.md` | `/Users/max/koskadeux-mcp/specs/BQ-MODEL-CONFIGURATION-RUNBOOK-gate1.md:13` and many Gate 2 chunk specs | model configuration runbook | Chunk 4 must decide central vs `koskadeux-mcp/docs/model-configuration.md`; update active specs/prompts accordingly. |
+| `aidotmarket/runbooks/model-configuration.md` | `/Users/max/koskadeux-mcp/specs/BQ-MODEL-CONFIGURATION-RUNBOOK-gate1.md:13` and many Gate 2 chunk specs | model configuration runbook | Many live refs exist across Gate 1/Gate 2 chunk specs; Chunk 4 must decide central vs `koskadeux-mcp/docs/model-configuration.md` and update active specs/prompts accordingly. |
 | `aidotmarket/runbooks/agent-dispatch.md` | `/Users/max/koskadeux-mcp/specs/BQ-MODEL-CONFIGURATION-RUNBOOK-gate1.md:66` | agent dispatch | Chunk 4 update to `koskadeux-operations` target. |
 | `aidotmarket/runbooks/vulcan-configuration.md` | `/Users/max/koskadeux-mcp/specs/BQ-MODEL-CONFIGURATION-RUNBOOK-gate1.md:75` | Vulcan configuration | Chunk 4 update based on central/service decision. |
 | `koskadeux-mcp/runbooks/activation-verification.md` | `/Users/max/koskadeux-mcp/specs/BQ-DEPLOY-ACTIVATION-VERIFICATION/GATE2.md:27` | activation verification | Chunk 4 update if `/docs` becomes canonical. |
 | `/Users/max/Projects/runbooks/specs/BQ-RUNBOOK-STANDARD.md` | `/Users/max/koskadeux-mcp/specs/BQ-KOSKADEUX-G4-PROTOCOL-GATE1.md:416` through `:429` | frozen parent standard citations | Do not update unless those specs are reopened; these cite frozen standard lines. |
 
-### §11.5 Frontend, AIM Node, vectoraiz
+### §11.6 Frontend, AIM Node, vectoraiz
 
 No active references to `/Users/max/Projects/runbooks/` or `aidotmarket/runbooks/*.md` were found in:
 
@@ -1057,7 +1158,7 @@ No active references to `/Users/max/Projects/runbooks/` or `aidotmarket/runbooks
 
 This is a Gate 1 search result, not a permanent guarantee. Each migration chunk must rerun the scan from the target repo before deleting source files.
 
-### §11.6 Living State and Prompt References
+### §11.7 Living State and Prompt References
 
 Known Living State references from `build:bq-runbook-decentralization`:
 
@@ -1071,7 +1172,7 @@ Migration requirement:
 2. Chunk 4 updates Living State references for Koskadeux/AIM/vectoraiz runbook targets.
 3. Chunk 5 updates any global resource registry or lookup prompt to point to `INDEX.md` or `runbook-index.json`.
 
-### §11.7 Reference Update Policy
+### §11.8 Reference Update Policy
 
 Every reference row gets one of these statuses during migration:
 
@@ -1079,7 +1180,7 @@ Every reference row gets one of these statuses during migration:
 2. `historical`: left unchanged because it cites a frozen historical spec or commit.
 3. `central-retained`: left unchanged because target remains central.
 4. `normalized`: changed from service-local `docs/runbooks` to service `/docs` target.
-5. `blocked`: requires Council path decision.
+5. `blocked`: requires a recorded replacement path or owner decision before deletion.
 
 Deletion of a central source file is blocked while any live reference row is `blocked`.
 
