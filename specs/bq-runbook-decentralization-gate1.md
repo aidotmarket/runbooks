@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | BQ code | `BQ-RUNBOOK-DECENTRALIZATION` |
-| Status | Gate 1 R2 design spec |
+| Status | Gate 1 R3 design spec |
 | Target repo | `aidotmarket/runbooks` |
 | Local repo | `/Users/max/Projects/runbooks` |
 | R1 baseline commit | `ebf589c826e39fa86a47dc20f998b58076f861e8` |
@@ -13,8 +13,11 @@
 | R2 parent commit | `ebf589c826e39fa86a47dc20f998b58076f861e8` |
 | R2 authoring date | 2026-04-25 |
 | R2 final line count | 1,197 |
+| R3 parent commit | `b43dc51` |
+| R3 authoring date | 2026-04-25 |
+| R3 final line count | 1,243 |
 | Branch | `main` |
-| Authoring session | S505 R2 |
+| Authoring session | S505 R3 |
 | Decision input | `decision:runbook-architecture-decentralization` v1 |
 | Living State input | `build:bq-runbook-decentralization` v3 |
 | MP audit input | [/tmp/runbook-audit-mp-2026-04-25.md](/tmp/runbook-audit-mp-2026-04-25.md:1) |
@@ -42,7 +45,7 @@
 | koskadeux-mcp | `/Users/max/koskadeux-mcp` | `c6a334b` | yes, 10 root markdown files | Also has `runbooks/` references in specs; target is `/docs` for this BQ unless Council explicitly exempts one path. |
 | aim-node | `/Users/max/Projects/ai-market/aim-node` | `4427706` | yes, 1 root markdown file | Existing `docs/DEVELOPMENT.md`; runbooks must be added. |
 | vectoraiz | `/Users/max/Projects/ai-market/vectoraiz` | not present | no | Requested path does not exist locally. Existing candidate is `/Users/max/Projects/vectoraiz/vectoraiz-monorepo` at `dcfd13b` with `/docs`. |
-| runbooks meta-repo | `/Users/max/Projects/runbooks` | `5937a52` | n/a | Remains standard, linter, harness, generated index, central cross-cutting runbooks, and dated evidence. |
+| runbooks meta-repo | `/Users/max/Projects/runbooks` | `b43dc51` | n/a | Remains standard, linter, harness, generated index, central cross-cutting runbooks, and dated evidence. |
 
 ### §0.3 Gate 1 Output
 
@@ -95,6 +98,14 @@ The runbook standard remains unchanged. Its required template begins with YAML f
 | M10 | `rtk-token-optimization.md` and `vulcan-configuration.md` are classified as central candidates in Chunk 2/4 catalog. | §4.5 lines 200-211; §5.2.2 lines 304-315; §5.4.2 lines 457-475; §10.2 lines 1009-1020 |
 | M11 | §11 explicitly states the Gate 1 inventory is non-exhaustive and mandates fresh scans before each migration PR. | §11 lines 1057-1059 |
 | M12 | Waiver-drift mitigation adds a quarterly Council audit of waiver count, nonconformant runbooks, and lint bypasses. | §6.11 lines 711-713; §8.6 lines 917-919 |
+
+### §1.5 R3 Mandate Resolution Table
+
+| Mandate | R3 resolution | Spec citation |
+|---|---|---|
+| R3-M1 | Chunk 4 now names an ordered migration sequence by repo, with dependency rationale for backend template reuse, Koskadeux Council/dispatch ownership, AIM/vectoraiz release split, and frontend cross-reference blockers. | §5.4.5 lines 511-517 |
+| R3-M2 | §11.3 now includes explicit deletion-inventory rows for the seven named missing source files, including current scan commands, hit counts across backend/Koskadeux/runbooks, live-vs-historical classification, and target or retirement decision. | §11.3 lines 1139-1146; §11.3 line 1168 |
+| R3-M3 | Quarterly waiver audit now names Vulcan, MP, AG, and Council responsibilities; defines CI/index/grep inputs; records drift indicators and indexer schema follow-up; and specifies Living State plus follow-up-BQ outputs. | §6.11 lines 728-745; §8.6 lines 951-958 |
 
 ## §2 Goals
 
@@ -497,11 +508,13 @@ Risk is high for Koskadeux and medium for frontend/AIM/vectoraiz. Koskadeux docs
 5. Frontend `/docs` directory is created.
 6. Dependency graph is documented before any Chunk 4 delete, with edges for central-vs-service ownership, release ownership, and live-reference blockers.
 
-Topological order:
+Concrete migration order:
 
-1. Decide Koskadeux central-vs-service split before deleting `agent-dispatch.md`, Council docs, `session-lifecycle.md`, `mcp-gateway.md`, `rtk-token-optimization.md`, or `vulcan-configuration.md`.
-2. Decide AIM/vectoraiz release ownership before deleting `aim-node-release-process.md`, `aim-data-release-process.md`, `vz-release-process.md`, `docker-testing.md`, `cloudflare-worker.md`, or `dual-brand-vectoraiz-aim-channel.md`.
-3. Frontend migration may proceed independently only if the preflight reference scan proves zero live cross-references from other clusters to `ai-market-frontend.md`.
+1. `ai-market-backend` stays first via Chunk 3, before Chunk 4, because it proves the trace-matrix, reference-scan, generated-index, CODEOWNERS, and delete-safety pattern for the largest service-owned cluster. It also clears active CRM/Celery references such as `/Users/max/Projects/runbooks/crm-architecture.md`, `/Users/max/Projects/runbooks/crm-pipeline.md`, `/Users/max/Projects/runbooks/crm-target-state.md`, and backend-local `docs/runbooks/celery-infrastructure-deployment.md` references before remaining service deletes copy the pattern.
+2. `koskadeux-mcp` is the first Chunk 4 repo because it has the highest cross-reference surface and owns the Council/dispatch/Vulcan ambiguity. Decide the central-vs-service split before deleting `agent-dispatch.md`, Council docs, `session-lifecycle.md`, `mcp-gateway.md`, `rtk-token-optimization.md`, or `vulcan-configuration.md`; live Koskadeux specs already cite `aidotmarket/runbooks/agent-dispatch.md`, `aidotmarket/runbooks/vulcan-configuration.md`, and `aidotmarket/runbooks/model-configuration.md`.
+3. `aim-node` follows Koskadeux after the AIM/vectoraiz release ownership split is documented. Its migration must preserve the Standard G4 isolation constraints around `aidotmarket/runbooks/aim-node.md` and decide whether `aim-node-release-process.md` plus `aim-data-release-process.md` are AIM-owned or shared release docs.
+4. `vectoraiz` follows `aim-node` because its local canonical path is unresolved and its release docs depend on the same split: `vz-release-process.md`, `docker-testing.md`, `cloudflare-worker.md`, and `dual-brand-vectoraiz-aim-channel.md` cannot be deleted until the vectoraiz repo path and release owner are confirmed. If the AIM/vectoraiz release split makes vectoraiz the sole release owner, vectoraiz may absorb the release docs immediately after the `aim-node` ownership note lands.
+5. `ai-market-frontend` runs last by default because current scans show many live references to `ai-market-frontend` as a repo/service name in backend and Koskadeux specs, docs, tests, and tooling. It may move in parallel with `vectoraiz` only if the preflight scan proves zero live cross-references to the source file `ai-market-frontend.md` itself and classifies the remaining repo-name hits as non-blocking service inventory references.
 
 ### §5.4.6 Test/Verification Strategy
 
@@ -710,7 +723,26 @@ Evidence requirements:
 
 ### §6.11 Waiver Drift Audit
 
-`BQ-RUNBOOK-STANDARD` must add a quarterly Council audit of waiver usage. The audit reviews waiver count, runbooks remaining outside conformance, and agents bypassing lint or harness checks. If drift is observed, the audit outcome must recommend re-tightening the waiver policy, impact-gate matching, or CI enforcement.
+`BQ-RUNBOOK-STANDARD` must add a quarterly Council audit of waiver usage.
+
+Ownership:
+
+1. Vulcan initiates the audit at quarter close and opens the read-only `council_request` dispatch.
+2. MP and AG execute the audit as read-only reviewers. MP owns conformance/index evidence; AG owns process, bypass, and operational-risk evidence.
+3. Council ratifies the findings and decides whether follow-up BQ work is required.
+
+Inputs:
+
+1. Waiver count comes from CI logs, `runbook-index.json` rows with `waiver: true`, and PR titles or descriptions containing `[waiver]`.
+2. Bypass evidence comes from searches across the runbooks meta-repo and configured service repos for runbook files that are outside the conformance gate, lint job, harness job, or manifest.
+3. Drift indicators include quarter-over-quarter waiver count deltas, repeated waivers on the same runbook, nonconformant runbooks that persist across quarters, and service PRs that modify operational docs without runbook CI evidence.
+4. Chunk 1 should add or schedule an indexer enhancement if `runbook-index.json` cannot yet record waiver state, waiver owner, waiver expiry, and last-audit quarter.
+
+Output:
+
+1. Each cycle writes a Living State decision entity named `decision:runbook-quarterly-audit-YYYY-QN`.
+2. The decision records waiver count delta, bypass cases, repeated nonconformance, recommendations, and Council ratification status.
+3. If drift requires action, Council files a follow-up BQ such as `BQ-RUNBOOK-DRIFT-REMEDIATION-YYYY-QN`.
 
 ## §7 Cross-Repo Index Design
 
@@ -916,7 +948,14 @@ Before remaining migrations:
 
 ### §8.6 Waiver Abuse Mitigation
 
-After decentralization lands, Council reviews waiver usage quarterly under `BQ-RUNBOOK-STANDARD`. The review checks whether waivers are increasing, whether the same runbooks stay nonconformant across quarters, and whether agents bypass lint/harness in service PRs. The expected output is either "no drift observed" or concrete re-tightening recommendations for waiver syntax, expiry, ownership approval, or CI blocking behavior.
+After decentralization lands, Council reviews waiver usage quarterly under `BQ-RUNBOOK-STANDARD`. Vulcan opens the audit dispatch; MP and AG execute read-only checks against CI logs, `runbook-index.json`, PR metadata, runbooks meta-repo contents, and configured service repos; Council ratifies the result.
+
+The expected output is a `decision:runbook-quarterly-audit-YYYY-QN` Living State entity with:
+
+1. Current waiver count and quarter-over-quarter delta.
+2. Runbooks still outside conformance and whether each has an owner, expiry, and impact-gate waiver.
+3. Bypass cases where operational runbook files exist outside manifest, lint, harness, or PR-time impact-gate coverage.
+4. Recommendation: no drift observed, re-tighten waiver syntax/expiry/ownership, add or strengthen tests, or file `BQ-RUNBOOK-DRIFT-REMEDIATION-YYYY-QN`.
 
 ## §9 Test Plan
 
@@ -1097,8 +1136,14 @@ For each migrated or deleted source file, the migration PR must run `C1(FILE)`: 
 | Source file | Target/classification | Gate 1 evidence and live/historical classification |
 |---|---|---|
 | `ai-market-backend.md` | backend `/docs/backend-platform.md`; `service-move` | `C1(ai-market-backend.md)` currently finds historical standard specs and this design; migration requires zero live service refs. |
+| `crm-architecture.md` | backend `/docs/crm-system.md`; `service-merge` | R3 scan command: `rg -n 'crm-architecture' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 2, Koskadeux 0, runbooks 11. Live refs: backend `bq-crm-user-scoping-backfill-and-fallback-gate1.md` anchors and runbooks `crm-pipeline.md`; historical/self refs: this design and CRM S500 changelog. Update live refs to backend `/docs/crm-system.md` before deleting. |
+| `crm-pipeline.md` | backend `/docs/crm-system.md`; `service-merge` | R3 scan command: `rg -n 'crm-pipeline' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 1, Koskadeux 0, runbooks 6. Live refs: backend `bq-crm-user-scoping-backfill-and-fallback-gate1.md:999`; historical/self refs: CRM S500 changelog and this design. Update active backend spec or mark frozen before deletion. |
+| `crm-target-state.md` | backend `/docs/crm-system.md`; `service-merge` | R3 scan command: `rg -n 'crm-target-state' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 8, Koskadeux 0, runbooks 19. Live refs: backend CRM coverage, integration-contracts, and user-scoping specs; runbooks `crm-pipeline.md` and `crm-architecture.md`. Historical refs: standard retrofit specs and this design. Chunk 3 must redirect live refs to `/docs/crm-system.md` and classify frozen specs. |
 | `morning-briefing.md` | backend `/docs/crm-system.md`; `service-merge` | Current live intra-runbooks reference in `crm-architecture.md`; update before deleting. |
+| `gmail-drop-pipeline.md` | central `gmail-oauth-watch.md` plus backend CRM refs; `service-merge`/central split | R3 scan command: `rg -n 'gmail-drop-pipeline' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 0, Koskadeux 0, runbooks 4. Live refs: `crm-architecture.md:140` references the flow. Historical/self refs: this design. Split OAuth/watch content into central `gmail-oauth-watch.md`, move service behavior into backend `/docs/crm-system.md`, then update the CRM architecture reference. |
 | `email-drafting.md` | backend `/docs/crm-system.md` or `/docs/email-system.md`; `service-merge` | `C1(email-drafting.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
+| `celery-infrastructure-deployment.md` | backend `/docs/celery-infrastructure.md`; `service-move` | R3 scan command: `rg -n 'celery-infrastructure-deployment' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 5, Koskadeux 0, runbooks 4. Live refs: backend `BQ-CELERY-INFRASTRUCTURE-DEPLOYMENT-GATE2.md` points at `docs/runbooks/celery-infrastructure-deployment.md`; runbooks `BQ-AUTONOMOUS-OPERATIONS.md` cites verification status. Historical refs: standard retrofit note and this design. Normalize active backend refs to `/docs/celery-infrastructure.md` or explicitly support `docs/runbooks/` before deletion. |
+| `bq-124-retro-verification.md` | `ops/` evidence or backend Celery appendix; `retire-or-evidence` | R3 scan command: `rg -n 'bq-124-retro-verification' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 0, Koskadeux 0, runbooks 5. Live refs: none outside this design. Historical/design refs: this design records retirement. Decision: retire as standing runbook and preserve only dated evidence if useful. |
 | `seo-infrastructure.md` | backend `/docs/seo-discovery.md`; `service-merge` | `C1(seo-infrastructure.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
 | `seo-seller-validation.md` | backend or frontend SEO docs; `service-merge` | `C1(seo-seller-validation.md)` must prove zero live refs after ownership decision. |
 | `aimarket-mcp-server.md` | backend `/docs/marketplace-mcp-public.md`; `service-move` | `C1(aimarket-mcp-server.md)` must prove zero live refs; no known service hit in Gate 1 scan. |
@@ -1120,6 +1165,7 @@ For each migrated or deleted source file, the migration PR must run `C1(FILE)`: 
 | `docker-testing.md` | aim-node or vectoraiz release docs; `service-merge` | Current release cross-links must be updated after ownership decision. |
 | `cloudflare-worker.md` | backend/aim-node/vectoraiz split or central; `service-merge` | Current release cross-links from AIM files must be updated. |
 | `dual-brand-vectoraiz-aim-channel.md` | vectoraiz `/docs/dual-brand-channel.md`; `service-move` | `C1(dual-brand-vectoraiz-aim-channel.md)` must prove zero live refs after vectoraiz mapping. |
+| `ai-market-frontend.md` | frontend `/docs/frontend-marketplace.md`; `service-move` | R3 scan command: `rg -n 'ai-market-frontend' /Users/max/Projects/ai-market/ai-market-backend /Users/max/koskadeux-mcp /Users/max/Projects/runbooks --glob '!**/.git/**' --glob '!**/node_modules/**'`. Counts: backend 28, Koskadeux 19, runbooks 17. Live refs are mostly repo/service-name references in backend docs, tests, monitors, config, and Koskadeux specs/runbooks/tooling, not direct source-file links; direct source refs are runbooks `ai-market-frontend.md` self/header and this design. Chunk 4 preflight must rerun `C1(ai-market-frontend.md)` and update any direct source-file refs before deletion; repo-name inventory refs are non-blocking if they do not point to the deleted central file. |
 
 ### §11.4 Active References in Backend Repo
 
