@@ -6,11 +6,12 @@ How code gets reviewed, approved, and shipped through the Build Queue system.
 
 | Agent | Engine | Role | Dispatch |
 |-------|--------|------|----------|
-| **MP** | OpenAI Codex CLI | Primary builder + mandatory reviewer | `council_request agent=mp` or `dispatch_mp_build` |
-| **AG** | Gemini CLI | Secondary builder + reviewer | `council_request agent=ag` |
-| **XAI** | Grok CLI | Challenger reviewer (excluded from code audits — fabricates line numbers) | `council_request agent=xai` |
-| **CC** | Claude Code | Builder only (no `gh` in PATH, can't do VZ releases) | `council_request agent=cc` |
-| **Vulcan** | Claude (this agent) | Session orchestrator, dispatches all work, manages state | Direct in session |
+| **MP** | OpenAI Codex CLI (gpt-5.5) | Primary builder + mandatory reviewer | `council_request agent=mp` or `dispatch_mp_build` |
+| **AG** | Gemini CLI (gemini-3.1-pro-preview, Vertex AI) | Secondary builder + reviewer | `council_request agent=ag` |
+| **XAI** | Grok CLI (grok-4-1-fast-reasoning, TENTATIVE) | Challenger reviewer (excluded from code audits — fabricates line numbers) | `council_request agent=xai` |
+| **DeepSeek** | DeepSeek API direct (deepseek-v4-pro, frontier-only S516) | **READ-ONLY voter during 14-day eval window (active 2026-04-27 → ~2026-05-11). Full Council parity in flight under BQ-COUNCIL-DEEPSEEK-SERVER-PARITY (Gate 1 APPROVED S516).** | `council_request agent=deepseek` |
+| **CC** | Claude Code (claude-opus-4-7) | Builder only (no `gh` in PATH, can't do VZ releases) | `council_request agent=cc` |
+| **Vulcan** | Claude Opus 4.7 (this agent) | Session orchestrator, dispatches all work, manages state | Direct in session |
 
 ### Key Rules
 
@@ -20,6 +21,8 @@ How code gets reviewed, approved, and shipped through the Build Queue system.
 - **AG and MP run on separate mutexes** — can run in parallel
 - **MP serializes via fcntl** — only one MP task at a time
 - Always use `state_get("infra:council-comms")` for current agent config
+- **Frontier-only model policy (S516):** Each Council agent runs exactly one configured model — the current provider frontier. Source of truth: `infra:council-comms.model_policy.agent_frontier_models`. No fast/cheap variants in production dispatch; no silent downgrades. See `agent-dispatch.md` for dispatch path detail and `BQ-MODEL-REGISTRY-CENTRALIZATION` (P1) for systemic enforcement
+- **DeepSeek read-only during eval window:** DeepSeek is `read_only=true` enforced at three layers (router, DeepSeek client, XAI client) via `eval_active.is_deepseek_eval_active()`. Do NOT attempt to bypass during eval window
 
 ## Build Queue (BQ) System
 

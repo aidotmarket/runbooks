@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Council Hall is the structured process for getting independent, unbiased assessments from multiple Council agents (MP, AG, XAI) on a topic, then facilitating cross-pollination and consensus. It replaces ad-hoc multi-dispatch patterns where Vulcan pre-assigns roles (e.g., "challenger" vs "designer") which biases outputs.
+Council Hall is the structured process for getting independent, unbiased assessments from multiple Council agents (MP, AG, XAI, and DeepSeek when out of read-only eval window) on a topic, then facilitating cross-pollination and consensus. It replaces ad-hoc multi-dispatch patterns where Vulcan pre-assigns roles (e.g., "challenger" vs "designer") which biases outputs.
 
 ## Core Principles
 
@@ -10,7 +10,7 @@ Council Hall is the structured process for getting independent, unbiased assessm
 2. **Independent first.** All agents submit before any agent sees another's response. This prevents anchoring bias.
 3. **Cross-pollination second.** After all independent assessments are collected, each agent receives the full set and responds to specific points of agreement or disagreement.
 4. **Structured verdicts.** Each response includes structured fields (verdict, confidence, key claims, objections) alongside free-text analysis. This makes consensus computable rather than relying on prompt parsing.
-5. **All agents included.** MP, AG, and XAI all participate unless explicitly excluded. No agent is "default excluded" from strategy discussions.
+5. **All agents included.** MP, AG, XAI, and DeepSeek all participate unless explicitly excluded. No agent is "default excluded" from strategy discussions. **DeepSeek caveat (S516):** during the active evaluation window (`infra:council-comms.deepseek.evaluation.active=true`), DeepSeek is `read_only=true` and dispatched via direct API (not yet via `deepseek_server.py` — that ships under `BQ-COUNCIL-DEEPSEEK-SERVER-PARITY` Gate 2). Frontier model is `deepseek-v4-pro` only; `deepseek-v4-flash` is BANNED for Council use per Max S516 directive.
 
 ## Phases
 
@@ -41,6 +41,7 @@ Notes on agent dispatch:
 - **MP**: `council_request agent=mp allowed_tools=[]` (read-only)
 - **AG**: `council_request agent=ag cwd=<relevant_repo>` with "READ-ONLY" in prompt
 - **XAI**: `council_request agent=xai` — embed full context in prompt (no reliable file access)
+- **DeepSeek** (when participating): `council_request agent=deepseek mode=review` — direct API today, `read_only=true` enforced during eval window. Open-ended question authoring will fail strict review schema; use `mode=open_response` after `BQ-COUNCIL-DISPATCH-WRAPPER-RELAXED-MODE` Gate 2 ships, OR file separate BQ for direct-API bypass with rationale (S514 pattern)
 
 ### Phase 2: Collection & Synthesis
 
