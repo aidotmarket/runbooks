@@ -206,7 +206,7 @@ AG uses **Vertex AI** via `VERTEX_API_KEY`, NOT the AI Studio `GEMINI_API_KEY`. 
 **Where keys live (Infisical-first, as of S363):**
 - `VERTEX_API_KEY` in **Infisical** (prod env) — primary source, pulled by `launch_ag_server.sh` at startup
 - `VERTEX_API_KEY` in `~/koskadeux-mcp/.env` — fallback only (sourced before Infisical overrides)
-- `GEMINI_API_KEY` in **Infisical** (prod env) — AI Studio key. **REVOCATION IN FLIGHT under BQ-AG-DISPATCH-DEFENSE-IN-DEPTH (S516).** AG R1 cross-review HIGH finding: code-side L2 (strip key fetch from launch script) doesn't survive stale-branch checkout because the Infisical secret remains live; the only structural defense is environment-level revocation (delete from Infisical + revoke at GCP Console). Until Max executes the GCP-side revocation, this key remains a regression vector — see BQ for current status.
+- `GEMINI_API_KEY` in **Infisical** (prod env) — AI Studio key. The key is intentionally left in Infisical per Max S516 classification (regression hazard, not security breach, not active production blocker). AG R1 cross-review of BQ-AG-DISPATCH-DEFENSE-IN-DEPTH flagged this as a HIGH (only environment-level revocation fully defends against stale-branch checkout); Max chose to drop the GCP revocation and accept the residual hazard given AG runs cleanly on `VERTEX_API_KEY`. The original code-only L2 (strip the key fetch from `launch_ag_server.sh`) is still in scope for that BQ's Gate 2 build; AC8-equivalent (defense survives stale-branch checkout) is downgraded to best-effort.
 - `launch_ag_server.sh` lives at `~/koskadeux-mcp/scripts/launch_ag_server.sh`
 
 **Key sourcing order in `launch_ag_server.sh`:**
