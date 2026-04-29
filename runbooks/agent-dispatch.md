@@ -7,7 +7,7 @@ lifecycle_ref: §J
 authoritative_scope: |
   Stable dispatch mechanics + symptom/repair patterns. Live config (current model frontiers, dispatch participants, environment paths) is canonically tracked in infra:council-comms Living State entity.
 
-  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` per parent council.md §A. Same-file references retain bare IDs.
+  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` per parent runbooks/council.md §A. Same-file references retain bare IDs.
 linter_version: 1.0.0
 ---
 
@@ -362,20 +362,20 @@ scenario_set:
 
 ## §J. Lifecycle
 
-C2 placeholder: C5c populates the final AC11 lifecycle fields after scenario authoring and harness execution.
+Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
 
 ```yaml lifecycle
 last_refresh_session: S529
-last_refresh_commit: 41e49ee
+last_refresh_commit: 8929cbf
 last_refresh_date: 2026-04-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
-  - bq_completion
-  - dispatch_surface_change
-  - infra_council_comms_drift
-  - scheduled_cadence
+  - council_request dispatch contract or allowed_tools handling changes
+  - agent backend auth/env wiring changes
+  - active, retired, or reactivation state changes for Council agents
+  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
@@ -384,12 +384,12 @@ Initial conformance status is `provisional` per Gate 1 §10 until C5c finalizes 
 
 ## §K. Conformance
 
-C2 placeholder: C5c populates final AC12 conformance fields after C5a.2 scenario authoring and C5b harness execution. This chunk intentionally leaves §I as a placeholder, so scenario-set lint failures are expected.
+Final AC12 conformance fields for Gate 2 Chunk C5c.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S529 / 2026-04-29T00:00:00Z
-last_lint_result: FAIL
+last_lint_run: S530 / 2026-04-29T21:30:45Z
+last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
 ```

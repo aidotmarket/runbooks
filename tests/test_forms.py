@@ -7,6 +7,7 @@ from runbook_tools.lint.forms import (
     validate_b,
     validate_e,
     validate_h,
+    validate_j,
     validate_k,
 )
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
@@ -122,6 +123,19 @@ def test_validate_k_retrofit_absent() -> None:
     section_k = next(section for section in extract_sections(markdown) if section.letter == "K")
 
     findings = validate_k(section_k, SCHEMAS_DIR)
+
+    assert findings == []
+
+
+def test_validate_j_accepts_pending_harness_tooling() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text().replace(
+        "last_harness_pass_rate: 1.0\n",
+        "last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)\n",
+        1,
+    )
+    section_j = next(section for section in extract_sections(markdown) if section.letter == "J")
+
+    findings = validate_j(section_j, SCHEMAS_DIR)
 
     assert findings == []
 

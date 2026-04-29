@@ -41,9 +41,16 @@
       "pattern": "^\\d+[dwmy]$"
     },
     "last_harness_pass_rate": {
-      "type": "number",
-      "minimum": 0.0,
-      "maximum": 1.0
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        {
+          "const": "PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)"
+        }
+      ]
     },
     "last_harness_date": {
       "type": "string",

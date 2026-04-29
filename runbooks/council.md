@@ -7,7 +7,7 @@ lifecycle_ref: §J
 authoritative_scope: |
   Stable architecture, mechanics, and reasoning of the Council operating system. Live config (current model frontiers, retired-agent state, dispatch participants, known quirks) is canonically tracked in infra:council-comms Living State entity.
 
-  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` (e.g., `agent-dispatch:F-01` for symptom F-01 in agent-dispatch.md). Same-file references retain bare `<id>` form. (AC8.)
+  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` (e.g., `agent-dispatch:F-01` for symptom F-01 in `runbooks/agent-dispatch.md`). Same-file references retain bare `<id>` form. (AC8.)
 linter_version: 1.0.0
 ---
 
@@ -52,9 +52,9 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 | DeepSeek | full voter (review-only, $1/dispatch cap) | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | fallback builder | Claude Code / Opus | full repo write, 600s timeout | COMPLETE |
 | Vulcan | orchestrator (Vulcan-direct authoring + state management) | Anthropic API | gateway, Living State, all repos | COMPLETE |
-| XAI | DEPRECATED retired S528; architecture-only niche superseded | Grok CLI | retired | PARTIAL — retired; cold-storage details move to `agent-dispatch.md` appendix in C2 |
+| XAI | DEPRECATED retired S528; architecture-only niche superseded | Grok CLI | retired | PARTIAL — retired; cold-storage details move to `runbooks/agent-dispatch.md` appendix in C2 |
 
-MP owns primary review because the Codex CLI path is automated and has shown deeper wiring-gap detection per S526 Chunk 3B. AG remains valuable as a Gemini 3.1 Pro frontier cross-vote, but S499 line-number fabrication risk means code-audit line claims must be verified before use. DeepSeek is a full voter because S528 graduation produced 94 dispatches with `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. XAI is retired because line-number fabrication exclusion has applied since S342 and DeepSeek superseded the architecture-only niche; see the retired-agents appendix planned for `agent-dispatch.md`.
+MP owns primary review because the Codex CLI path is automated and has shown deeper wiring-gap detection per S526 Chunk 3B. AG remains valuable as a Gemini 3.1 Pro frontier cross-vote, but S499 line-number fabrication risk means code-audit line claims must be verified before use. DeepSeek is a full voter because S528 graduation produced 94 dispatches with `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. XAI is retired because line-number fabrication exclusion has applied since S342 and DeepSeek superseded the architecture-only niche; see the retired-agents appendix planned for `runbooks/agent-dispatch.md`.
 
 ## §E. Operate
 
@@ -338,20 +338,20 @@ scenario_set:
 
 ## §J. Lifecycle
 
-C1 provisional lifecycle metadata is present only to keep owner and refresh intent explicit. C5c populates the final AC11 fields from the integration commit and harness reports.
+Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
 
 ```yaml lifecycle
 last_refresh_session: S529
-last_refresh_commit: 841f915
+last_refresh_commit: 8929cbf
 last_refresh_date: 2026-04-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
-  - bq_completion
-  - gate_approval
-  - infra_council_comms_drift
-  - scheduled_cadence
+  - council_request interface or roster semantics change
+  - active or retired Council member capability/status changes
+  - cross-runbook reference convention changes
+  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
@@ -360,12 +360,12 @@ Initial conformance status for the Council runbook family is `provisional` per G
 
 ## §K. Conformance
 
-C1 placeholder: C5c populates the final AC12 conformance fields after C5a.1 scenario authoring and C5b harness execution. This chunk intentionally leaves §I incomplete, so lint failure on §I scenario count/distribution is expected.
+Final AC12 conformance fields for Gate 2 Chunk C5c.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S529 / 2026-04-29T00:00:00Z
-last_lint_result: FAIL
+last_lint_run: S530 / 2026-04-29T21:30:45Z
+last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
 ```

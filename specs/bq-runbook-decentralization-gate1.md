@@ -321,7 +321,7 @@ It also updates README policy text explaining what belongs in the runbooks meta-
 | [gcp-auth.md](/Users/max/Projects/runbooks/gcp-auth.md:1) | central | Retain as cross-cutting SSOT until retrofit. |
 | [infisical-secrets.md](/Users/max/Projects/runbooks/infisical-secrets.md:1) | central, future `infisical.md` | Retain central and track rename/retrofit. |
 | [gmail-drop-pipeline.md](/Users/max/Projects/runbooks/gmail-drop-pipeline.md:1) | split: backend CRM references plus central `gmail-oauth-watch.md` | Decide shared content boundary. |
-| [agent-dispatch.md](/Users/max/Projects/runbooks/agent-dispatch.md:1) and Council files | central `koskadeux-operations.md` or `koskadeux-mcp/docs` | Apply §10.2 central-candidate decision and record any Gate 2 override explicitly. |
+| [runbooks/agent-dispatch.md](/Users/max/Projects/ai-market/runbooks/runbooks/agent-dispatch.md:1) and Council files | central `koskadeux-operations.md` or `koskadeux-mcp/docs` | Apply §10.2 central-candidate decision and record any Gate 2 override explicitly. |
 | [rtk-token-optimization.md](/Users/max/Projects/runbooks/rtk-token-optimization.md:1) | central policy candidate | Classify as central unless reference scan proves it is only Koskadeux-local procedure. |
 | [vulcan-configuration.md](/Users/max/Projects/runbooks/vulcan-configuration.md:1) | central policy candidate | Classify as central unless Council folds it into Koskadeux model-configuration docs. |
 
@@ -470,9 +470,9 @@ Chunk 4 migrates the remaining service-owned runbooks after backend migration pa
 | Current location | Planned location | Action |
 |---|---|---|
 | [ai-market-frontend.md](/Users/max/Projects/runbooks/ai-market-frontend.md:1) | frontend `/docs/frontend-marketplace.md` | Create frontend `/docs`, move/retrofit. |
-| [agent-dispatch.md](/Users/max/Projects/runbooks/agent-dispatch.md:1) | central `koskadeux-operations.md` or `koskadeux-mcp/docs/koskadeux-operations.md` | Council decision; do not duplicate. |
-| [council-gate-process.md](/Users/max/Projects/runbooks/council-gate-process.md:1) | same as Koskadeux operations target | Merge. |
-| [council-hall-deliberation.md](/Users/max/Projects/runbooks/council-hall-deliberation.md:1) | same as Koskadeux operations target | Merge. |
+| [runbooks/agent-dispatch.md](/Users/max/Projects/ai-market/runbooks/runbooks/agent-dispatch.md:1) | central `koskadeux-operations.md` or `koskadeux-mcp/docs/koskadeux-operations.md` | Council decision; do not duplicate. |
+| [runbooks/council-gate-process.md](/Users/max/Projects/ai-market/runbooks/runbooks/council-gate-process.md:1) | same as Koskadeux operations target | Merge. |
+| [runbooks/council-hall-deliberation.md](/Users/max/Projects/ai-market/runbooks/runbooks/council-hall-deliberation.md:1) | same as Koskadeux operations target | Merge. |
 | [session-lifecycle.md](/Users/max/Projects/runbooks/session-lifecycle.md:1) | same as Koskadeux operations target | Merge. |
 | [mcp-gateway.md](/Users/max/Projects/runbooks/mcp-gateway.md:1) | `koskadeux-mcp/docs/koskadeux-mcp-internal.md` or central | Decide by code ownership and cross-cutting scope. |
 | [rtk-token-optimization.md](/Users/max/Projects/runbooks/rtk-token-optimization.md:1) | central policy appendix or `koskadeux-mcp/docs` | Decide whether it is procedure or policy. |
