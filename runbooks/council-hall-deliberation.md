@@ -237,7 +237,183 @@ When two agents classify a Hall change differently, use the more restrictive cla
 
 ## §I. Scenario Set
 
-C4 placeholder: the deliberation scenario set is populated in C5a.4. That chunk must add at least 5 scenarios scoped to Council Hall deliberation with at least 2 operate scenarios, 1 isolate scenario, 1 repair scenario, and 1 evolve or ambiguous-symptom scenario.
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01, §D, council:I-12]
+    scenario: |
+      id: E-01. trigger: A BQ architecture choice has conflicting ordinary review advice and needs unbiased Hall deliberation. pre_conditions: neutral decision question, evidence refs, branch, BQ entity, and infra:council-comms Hall participant defaults are available; no participant has seen peer answers. tool_or_endpoint: council_hall(action=start, topic=<topic>, prompt=<neutral_prompt>, agents=[mp, ag, deepseek]). argument_sourcing: topic from the blocking decision; neutral_prompt from shared evidence and decision dimensions; agents from Hall defaults. idempotency: IDEMPOTENT_WITH_KEY on topic + prompt_digest + sorted(evidence_refs). expected_success: deliberation_id with phase=independent and empty mp/ag/deepseek response slots. expected_failures: duplicate_deliberation, participant_config_missing, or biased prompt. next_step_success: dispatch the identical neutral prompt to each participant. next_step_failure: repair participant or prompt state before any answer is collected.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, topic, prompt, agents]
+        argument_values:
+          action: start
+          agents: [mp, ag, deepseek]
+    weight: 0.06666666666666667
+  - id: I-02
+    type: operate
+    refs: [E-02, §D]
+    scenario: |
+      id: E-02. trigger: MP returns the first independent assessment for an active Hall. pre_conditions: deliberation_id exists, phase=independent, MP was dispatched with the frozen neutral prompt, and the answer includes verdict, confidence, claims, objections, and caveats. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=mp, phase=independent, response=<structured_answer>). argument_sourcing: deliberation_id from Hall start; agent from response owner; key_claims, objections, verdict, confidence, and caveats from the raw answer. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase. expected_success: MP slot is populated without advancing to cross-poll and without exposing the answer to AG or DeepSeek. expected_failures: duplicate response, missing required fields, or answer references another participant. next_step_success: continue collecting AG and DeepSeek independent responses. next_step_failure: isolate parser or phase issues before synthesis.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, deliberation_id, agent, phase, response]
+        argument_values:
+          action: record_response
+          agent: mp
+          phase: independent
+    weight: 0.06666666666666667
+  - id: I-03
+    type: operate
+    refs: [E-03, F-03, G-03]
+    scenario: |
+      id: E-03. trigger: MP, AG, and DeepSeek have all recorded independent assessments and material disagreement remains. pre_conditions: quorum is met, independent responses are recorded exactly once, synthesis has identified disagreement questions, and no cross-poll bundle exists yet. tool_or_endpoint: council_hall(action=get_cross_poll_bundle, deliberation_id=<id>, phase=cross_poll). argument_sourcing: deliberation_id from Hall session; phase from current state; disagreement_set from synthesis notes; included assessments from response slots. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + cross_poll_bundle_version. expected_success: bundle contains original prompt, all three independent assessments, and targeted instructions for cross-poll response. expected_failures: premature_cross_poll, missing eligible response, or biased synthesis. next_step_success: dispatch the bundle to participants for Phase 3. next_step_failure: apply G-03 and regenerate the bundle only after phase state is repaired.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, deliberation_id, phase]
+        argument_values:
+          action: get_cross_poll_bundle
+          phase: cross_poll
+    weight: 0.06666666666666667
+  - id: I-04
+    type: operate
+    refs: [E-03, G-04, G-06]
+    scenario: |
+      id: E-04. trigger: Cross-poll responses have been recorded and Vulcan needs a final synthesis for the decision record. pre_conditions: independent and cross-poll response sets are available, synthesis notes preserve claim-level attribution, and unresolved evidence gaps are named. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>). argument_sourcing: consensus candidates from cross-poll answers; dissent from remaining objections; evidence gaps from raw responses; escalation owner from policy boundary. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + final_response_set_hash. expected_success: summary classifies consensus, majority-plus-dissent, or no-consensus and names the next action. expected_failures: synthesis misrepresents a claim, hides dissent, or treats a policy choice as agent-resolvable. next_step_success: attach the final decision or escalation record to the BQ. next_step_failure: repair with G-04 or G-06 before closing the Hall.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, deliberation_id]
+        argument_values:
+          action: summarize
+    weight: 0.06666666666666667
+  - id: I-05
+    type: isolate
+    refs: [F-04, G-04, council:I-12]
+    scenario: |
+      id: F-04. trigger: Final Hall positions are split 2-1, with MP and DeepSeek accepting the architecture while AG rejects it on maintainability risk. pre_conditions: all independent and cross-poll responses are recorded, each verdict has confidence and objections, and Vulcan synthesis shows a real value judgment rather than missing evidence. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>). argument_sourcing: majority view from MP/DeepSeek; dissent from AG; unresolved predicates from synthesis; owner from escalation policy. idempotency: READ_ONLY_DIAGNOSTIC until a final decision owner acts. expected_success: classify as agent-disagreement deadlock or majority-plus-dissent, preserve AG dissent, and escalate to Max if the value judgment blocks the BQ. expected_failures: calling it full concurrence, dropping dissent, or rerunning agents indefinitely. next_step_success: use G-04 to record majority, dissent, evidence gap, and decision owner. next_step_failure: keep the Hall open with no promotion.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: 2-1 Hall verdict divergence
+        target: F-04 then G-04
+    weight: 0.06666666666666667
+  - id: I-06
+    type: isolate
+    refs: [F-02, G-02]
+    scenario: |
+      id: F-02. trigger: AG returns an independent answer after Vulcan has already begun synthesis from MP and DeepSeek. pre_conditions: AG dispatch task, synthesis timestamp, response timestamp, and current Hall phase are available. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=ag, phase=independent, response=<late_answer>). argument_sourcing: agent and response from AG task; phase from Hall state; timestamps from dispatch and synthesis records. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase + dispatch_task_id. expected_success: classify as late_arriver phase desync and record whether the late answer is included, excluded, or triggers synthesis restart. expected_failures: silently overwriting synthesis or pretending the response arrived on time. next_step_success: apply G-02 and preserve both original synthesis and late-arriver handling. next_step_failure: escalate only if inclusion materially changes the decision and no owner is defined.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: late-arriver phase desync
+        target: F-02 then G-02
+    weight: 0.06666666666666667
+  - id: I-07
+    type: isolate
+    refs: [F-01, G-01, agent-dispatch:F-01]
+    scenario: |
+      id: F-01. trigger: A Hall remains stuck in phase=independent because DeepSeek has no recorded response while MP and AG have answered. pre_conditions: participant list, response slots, dispatch task ids, timeout policy, and backend health are available. tool_or_endpoint: council_hall(action=status, deliberation_id=<id>). argument_sourcing: response counts from Hall state; missing agent from empty slots; dispatch state from council_request records; timeout from infra:council-comms. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as no quorum or missing participant response, not a deliberation disagreement. expected_failures: generating cross-poll early or diagnosing a policy deadlock before quorum. next_step_success: use G-01 to verify health, redispatch once, or record a quorum exception. next_step_failure: keep independent phase blocked until the absent participant decision is explicit.
+    expected_answers:
+      - kind: human_action
+        verb: inspect
+        object: independent phase response slots
+        target: F-01 then G-01
+    weight: 0.06666666666666667
+  - id: I-08
+    type: isolate
+    refs: [F-03, G-03]
+    scenario: |
+      id: F-03. trigger: get_cross_poll_bundle returns an empty bundle for a Hall that was just started. pre_conditions: deliberation_id exists, phase is independent, and no agent response slots are populated. tool_or_endpoint: council_hall(action=get_cross_poll_bundle, deliberation_id=<id>). argument_sourcing: phase and response slots from Hall state; bundle transcript from the attempted call. idempotency: READ_ONLY_DIAGNOSTIC for diagnosis; do not dispatch the empty bundle. expected_success: classify as premature cross-pollination caused by no recorded independent responses. expected_failures: treating the empty bundle as valid or filling it manually from memory. next_step_success: cancel the bundle, restore independent phase, and collect responses through E-02. next_step_failure: invalidate any cross-poll dispatch that used the empty bundle.
+    expected_answers:
+      - kind: human_action
+        verb: reject
+        object: empty cross-poll bundle
+        target: F-03 then G-03
+    weight: 0.06666666666666667
+  - id: I-09
+    type: repair
+    refs: [G-01, F-01, agent-dispatch:F-01]
+    scenario: |
+      id: G-01. trigger: DeepSeek is the only missing Hall participant after the independent-response timeout. pre_conditions: original neutral prompt, evidence refs, missing dispatch task id, and changed-file diff are available. tool_or_endpoint: council_request(agent=deepseek, mode=open_response, task=<diff_only_retry_prompt>, context_refs=<changed_files>). argument_sourcing: changed_files from git diff --name-only or the BQ evidence list; retry prompt from the original neutral prompt plus "answer only for these diffs"; dispatch cap from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + retry_prompt_digest. expected_success: missing reviewer returns a bounded independent assessment suitable for record_response. expected_failures: retry prompt exposes peer answers, uses strict review schema, or expands beyond the diff-only scope. next_step_success: record_response for DeepSeek and resume synthesis. next_step_failure: record a named quorum exception and proceed only if policy allows.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, context_refs]
+        argument_values:
+          agent: deepseek
+          mode: open_response
+    weight: 0.06666666666666667
+  - id: I-10
+    type: repair
+    refs: [G-02, F-02]
+    scenario: |
+      id: G-02. trigger: A late AG independent response should be included because it raises a material evidence gap before cross-poll dispatch. pre_conditions: late response, prior synthesis note, current phase, and dispatch timestamps are preserved. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=ag, phase=independent, response=<late_answer>, transition=synthesis_restart). argument_sourcing: response from AG transcript; transition reason from Vulcan materiality check; timestamps from Hall state. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase + dispatch_task_id. expected_success: the late response is added as late-arriver evidence and phase is manually returned to synthesis before a new cross-poll bundle is generated. expected_failures: overwriting the prior synthesis without trace or advancing directly to cross-poll. next_step_success: rebuild synthesis with the AG claim included and preserve the original synthesis timestamp. next_step_failure: exclude duplicate late evidence and document why.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, deliberation_id, agent, phase, response]
+        argument_values:
+          action: record_response
+          agent: ag
+          phase: independent
+    weight: 0.06666666666666667
+  - id: I-11
+    type: repair
+    refs: [G-04, F-01, council-gate-process:F-04]
+    scenario: |
+      id: G-04. trigger: MP and DeepSeek responded, AG is absent, and the gate owner asks for an explicit partial-response summary instead of waiting another cycle. pre_conditions: quorum exception is allowed, absent agent is named, MP and DeepSeek raw responses are available, and the BQ risk of delay is recorded. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>, include_partial=true). argument_sourcing: participating agents from response slots; absent agent from Hall participant list; quorum exception from operator or gate owner; risk note from BQ state. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + partial_response_set_hash. expected_success: summary names the partial response set, absent AG, confidence reduction, dissent status, and whether council-gate-process repair is needed. expected_failures: presenting partial concurrence as full Hall consensus or hiding the missing reviewer. next_step_success: attach partial summary to the gate record and route any gate-blocking issue through council-gate-process:F-04. next_step_failure: keep the Hall open and redispatch the missing reviewer.
+    expected_answers:
+      - kind: tool_call
+        tool: council_hall
+        argument_keys: [action, deliberation_id, include_partial]
+        argument_values:
+          action: summarize
+          include_partial: true
+    weight: 0.06666666666666667
+  - id: I-12
+    type: evolve
+    refs: [§H, §H.2, §H.3]
+    scenario: |
+      id: H-01. trigger: A proposal changes the normal Hall pattern from three voters to four by adding CC as a default voter, not just a fallback perspective. pre_conditions: proposed participant list, quorum math, cost cap, auth scope, and infra:council-comms patch are available. tool_or_endpoint: infra:council-comms participant-set patch plus runbook update. argument_sourcing: current defaults from Living State; new role from proposal; quorum and escalation effects from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because the default deliberation participant set and consensus math change. expected_failures: calling it SAFE because CC already appears in the capability map. next_step_success: open a Council config change review before using the four-voter pattern. next_step_failure: continue using MP, AG, and DeepSeek defaults.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.06666666666666667
+  - id: I-13
+    type: evolve
+    refs: [§H, §H.3]
+    scenario: |
+      id: H-02. trigger: A proposal changes Hall verdict values from free-form approve/reject style labels to approve, reject, and conditional. pre_conditions: current response contract, parser behavior, summarize logic, and gate concurrence expectations are known. tool_or_endpoint: council_hall response contract update plus runbook update. argument_sourcing: current output fields from E-02; summary classifications from E-04; gate expectations from council-gate-process. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the response contract changes while preserving the three-phase Hall invariant. expected_failures: treating the enum change as prompt wording only or deploying it without summary/gate interpretation. next_step_success: review parser, summary, and gate mapping before accepting conditional as a new value. next_step_failure: keep the prior verdict contract.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.06666666666666667
+  - id: I-14
+    type: evolve
+    refs: [§H, §H.3, E-03]
+    scenario: |
+      id: H-03. trigger: A proposal changes the cross-poll bundle from one prompt plus all independent assessments to per-agent customized bundles that omit each agent's original answer. pre_conditions: proposed bundle schema, anchoring analysis, transcript storage, and compatibility with get_cross_poll_bundle are available. tool_or_endpoint: council_hall(action=get_cross_poll_bundle) schema change. argument_sourcing: current bundle contract from E-03; proposed fields from design patch; integrity requirements from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the public cross-poll contract changes and must prove it still preserves eligible assessments exactly once. expected_failures: calling it SAFE formatting or losing auditability of what each agent saw. next_step_success: require schema review and transcript tests before rollout. next_step_failure: keep the existing bundle structure.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.06666666666666667
+  - id: I-15
+    type: ambiguous
+    refs: [F-04, G-04, council-gate-process:F-04, council:I-12]
+    scenario: |
+      id: AMB-01. trigger: AG returns verdict=conditional while MP and DeepSeek return approve, and the operator asks whether the Hall has concurrence. pre_conditions: AG condition text, MP and DeepSeek approvals, gate status, and cross-poll responses are available. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>) followed by council-gate-process repair if the condition blocks gate promotion. argument_sourcing: conditional predicate from AG response; concurrence requirement from gate process; dissent and evidence gaps from Hall synthesis. idempotency: READ_ONLY_DIAGNOSTIC until gate repair is selected. expected_success: classify as ambiguous Hall concurrence, not automatic approval; summarize as majority-plus-condition or no-consensus depending on whether the condition is satisfied, then redirect gate-blocking repair to council-gate-process:F-04. expected_failures: counting conditional as unconditional concurrence, or changing the Hall verdict enum ad hoc. next_step_success: either prove the condition satisfied and record it, or route through the cross-review gate repair pattern. next_step_failure: escalate to Max when the condition is a policy judgment.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: conditional Hall verdict
+        target: ambiguous concurrence then council-gate-process:F-04 repair
+    weight: 0.06666666666666667
+```
 
 ## §J. Lifecycle
 
