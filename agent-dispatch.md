@@ -19,7 +19,7 @@ Tracked under `BQ-MODEL-REGISTRY-CENTRALIZATION` (P1, planned) — extends struc
 | AG | `gemini-3.1-pro-preview` (Vertex AI) | `council_request(agent=ag)` | **DEFAULTS TO ACTION** — treats every task as a build order. Always add "READ-ONLY — DO NOT modify any files" for non-build tasks. |
 | MP | `gpt-5.5` (Codex CLI / ChatGPT OAuth) | `council_request(agent=mp)` | Analysis and review. Fully automated via Codex CLI. **Mandatory on ALL reviews.** |
 | XAI | `grok-4-1-fast-reasoning` (TENTATIVE — verification pending under BQ-MODEL-REGISTRY-CENTRALIZATION) | `council_request(agent=xai)` | Architecture review, challenging assumptions. **Excluded from code audits** (fabricates line numbers). |
-| DeepSeek | `deepseek-v4-pro` (frontier-only, S516 directive) | `council_request(agent=deepseek)` | **READ-ONLY ENFORCED during eval window** (2026-04-27 → ~2026-05-11). Direct-API today; full Council parity (server + tool surface + agentic loop) lands under BQ-COUNCIL-DEEPSEEK-SERVER-PARITY (Gate 1 APPROVED S516, Gate 2 chunking pending WRAPPER-RELAXED-MODE). |
+| DeepSeek | Registry-resolved primary alias (frontier-only, S516 directive) | `council_request(agent=deepseek)` | **READ-ONLY ENFORCED during eval window** (2026-04-27 → ~2026-05-11). Server-routed through `deepseek_server.py` on port 8768 with MCP tool surface and mode-aware envelopes. |
 | CC | `claude-opus-4-7` (Claude Opus 4.7) | `council_request(agent=cc)` | Full filesystem builds, multi-file refactors. Always runs in background. |
 
 ## AG dispatch path (current as of S293)
@@ -88,21 +88,21 @@ council_request(agent=xai, task=...)
 - Mandatory dissent voice in Council design reviews (Gate 1)
 - For Gate 3 when 4/4 unanimous is needed (security/money): include XAI but scope to architecture-only review
 
-## DeepSeek dispatch path (current as of S516)
+## DeepSeek Council Voter (server-routed, current as of S527)
 
 ```
-council_request(agent=deepseek, task=..., mode=review)
+council_request(agent=deepseek, task=..., mode=review|open_response)
   → Koskadeux _handle_call_deepseek()
-  → Direct DeepSeek API call (https://api.deepseek.com/v1/chat/completions)
-  → Strict review-schema validation (verdict + findings list)
-  → Returns dict with result_text + token metrics
+  → httpx.post("http://127.0.0.1:8768/api/task")  ← deepseek_server.py
+  → DeepSeek client agentic loop (tool calls via MCP HTTP API on port 8765)
+  → Returns mode-aware result + token metrics
 ```
 
-**Important — current state is NOT full Council voter parity.** Current DeepSeek dispatch is a direct-API call with strict-schema validation, no Koskadeux MCP gateway tools (no `state_request`, no `shell_request`, no filesystem, no git), no agentic loop. This is a known gap; full parity ships under `BQ-COUNCIL-DEEPSEEK-SERVER-PARITY` (Gate 1 APPROVED at spec SHA `54f1e0e`, S516).
+**Important:** DeepSeek is now routed through `deepseek_server.py` on port `8768` (LaunchAgent: `com.koskadeux.deepseek_server`). Do not add or use any alternate DeepSeek dispatch path; the server is the canonical Council voter path.
 
 ### DeepSeek frontier-only policy (S516)
 
-- **`infra:council-comms.deepseek.models.primary` = `deepseek-v4-pro`** — the sole production model.
+- **`infra:council-comms.deepseek.models.primary`** resolves the sole production model alias. The registry wins over environment variables and runbook text.
 - **`infra:council-comms.deepseek.models.primary_max_reasoning_alias` = `deepseek-v4-pro-max`** — available for tasks where maximum reasoning effort matters (Think Max mode).
 - **BANNED aliases** (do not use):
   - `deepseek-v4-flash` — cost variant, OUT of scope per Max S516 directive
@@ -113,42 +113,48 @@ council_request(agent=deepseek, task=..., mode=review)
 ### DeepSeek auth + secret management
 
 - `DEEPSEEK_API_KEY` lives in **Infisical** at `infisical://secrets.ai.market/koskadeux-mcp/PROD/DEEPSEEK_API_KEY` (project ID `0943f641-faee-4324-b337-0d50c276e4a9`, env `prod`).
-- **No `.env` fallback. No hardcoded literal. No alternative providers.** This is preventive defense-in-depth applied before any credential drift can happen (lessons from `BQ-AG-DISPATCH-DEFENSE-IN-DEPTH`).
-- After Gate 2 ships: `launch_deepseek_server.sh` performs Infisical-only fetch and `deepseek_server.py` startup assertion fail-loud-crashes if the credential is absent.
+- `scripts/launch_deepseek_server.sh` fetches only that Infisical project/env/path (`/`) and exports the key before starting the server.
+- **No `.env` fallback. No hardcoded literal. No alternative providers.** `deepseek_server.py` performs a startup auth/model probe and exits non-zero before binding port `8768` if credentials or registry resolution fail.
+
+### DeepSeek safety rules
+
+- **READ-ONLY normalization:** during the active eval window, DeepSeek may run `mode=review` and `mode=open_response`; write-capable build/author modes stay blocked by the router and client-side read-only filters.
+- **Tool safety:** review-mode tool exposure is normalized to read-only MCP tools. Write tools are not offered for review dispatch.
+- **Parallel fallback latch:** native parallel tool calls may run only after the probe path allows them. Transient gateway/provider failures latch the dispatch back to serial tool execution for the current request.
+- **Registry-resolved model alias:** production dispatch uses `infra:council-comms.deepseek.models.primary`; do not hardcode or silently override the alias in launch scripts or wrapper code.
+
+### DeepSeek mode examples
+
+```json
+{"agent": "mp", "mode": "open_response", "task": "Summarize the release risk in one paragraph."}
+```
+
+```json
+{"agent": "ag", "mode": "open_response", "task": "READ-ONLY -- DO NOT modify any files. Explain the likely failing test."}
+```
+
+```json
+{"agent": "xai", "mode": "open_response", "task": "Challenge the architecture assumptions for this gate."}
+```
+
+```json
+{"agent": "deepseek", "mode": "open_response", "task": "Answer as a Council voter without strict review JSON."}
+```
 
 ### DeepSeek evaluation window (active S513 → ~S540)
 
 - Started: 2026-04-27T07:40Z
 - Expected end: 2026-05-11T07:40Z (14d) or earlier sample-size-bound (28d hard max: 2026-05-25)
 - `infra:council-comms.deepseek.evaluation.active = true`
-- `infra:council-comms.deepseek.read_only = true` enforced at three layers (router, DeepSeek client, XAI client) via `eval_active.is_deepseek_eval_active()` (cache TTL 60s)
+- `infra:council-comms.deepseek.read_only = true` enforced at router, wrapper, server tool-filter, and client layers via `eval_active.is_deepseek_eval_active()` (cache TTL 60s)
 - Cost caps: $1/dispatch, $10/day, $100/window
 - Tracked in `BQ-COUNCIL-DEEPSEEK-EVALUATION` (Gate 2 APPROVED at 512490f).
 
-### DeepSeek roadmap to full Council parity
-
-`BQ-COUNCIL-DEEPSEEK-SERVER-PARITY` Gate 1 APPROVED S516. Gate 2 chunking sequenced after `BQ-COUNCIL-DISPATCH-WRAPPER-RELAXED-MODE` Gate 1 APPROVED. Five planned chunks:
-
-1. `deepseek_server.py` skeleton + `/health` endpoint (FastAPI on port 8767)
-2. Agentic loop with tool-fetching from `localhost:8765/api/tools`
-3. Launch script + plist + Infisical integration (preventive AG-defense L1–L6 parity)
-4. Dispatch wrapper rewire in `tools/agents.py:_handle_call_deepseek` + mode-aware response
-5. Tests + CI workflow + this runbook updated to reflect server-routed dispatch
-
-After Gate 2 build ships, the dispatch path becomes:
-
-```
-council_request(agent=deepseek, task=..., mode=review|author|build)
-  → Koskadeux _handle_call_deepseek()
-  → httpx.post("http://127.0.0.1:8767/api/task")  ← deepseek_server.py (DeepSeek API + MCP tools)
-  → DeepSeek client agentic loop (tool calls via MCP HTTP API on port 8765)
-  → Returns mode-aware result + token metrics
-```
-
 ### DeepSeek known issues
 
-- **Wrapper schema mismatch for non-review tasks (S514):** `deepseek_client.py` enforces strict review schema (verdict + findings list). Open-ended question authoring fails wrapper validation even when API returns 200 OK. Tracked under `BQ-COUNCIL-DISPATCH-WRAPPER-RELAXED-MODE` (Gate 1 R1 APPROVE_WITH_MANDATES, R2 in flight). Workaround during S514: direct API bypass for question-authoring tasks. Stop using bypass once Gate 2 of WRAPPER-RELAXED-MODE ships.
-- **Council compliance gate (existing):** Council compliance gate enforces `read_only = true` at router/client layers during eval window. Do NOT attempt to bypass.
+- **Review mode remains strict:** `mode=review` must return the strict review envelope (`verdict`, `findings`, `summary`). Use `mode=open_response` for plain text.
+- **Tool probe Branch B fallback:** if the native tool-use probe logs repeated transient failures or provider rejection, `deepseek_server.py` logs Branch B fallback details and uses the emulated/serial path instead of exiting. Check `/var/tmp/koskadeux/deepseek_server.log` and `/var/tmp/koskadeux/deepseek_server_error.log` for `DeepSeek tool probe`, `mode=emulated`, and `requires_chunk=B3`.
+- **Council compliance gate (existing):** Council compliance gate enforces `read_only = true` during eval window. Do NOT attempt to bypass.
 
 ## CC builds
 
@@ -187,12 +193,15 @@ council_request(agent=cc, task=..., cwd=..., bq_code=...)
 | MP 401 / connection refused | Using dead `call_mp` API | Use `council_request(agent=mp)` (Codex CLI path) |
 | MP timeout | Task too long for sync dispatch | Use `dispatch_mp_build` for background |
 | XAI fabricated findings | XAI auditing code without tool access | Never trust XAI code-level citations. Verify independently. |
+| DeepSeek health probe fails | Missing Infisical credential or registry lookup failure | Check `launchctl print gui/$(id -u)/com.koskadeux.deepseek_server`, `/var/tmp/koskadeux/deepseek_server_error.log`, and Infisical project `0943f641-faee-4324-b337-0d50c276e4a9` env `prod` path `/` |
+| DeepSeek tool probe falls back | Provider/gateway transient errors or native tool-call rejection | Check `/var/tmp/koskadeux/deepseek_server.log` for `DeepSeek tool probe`, `mode=emulated`, `requires_chunk=B3`, and Branch B fallback details |
+| DeepSeek review rejects plain text | `mode=review` requires strict review JSON | Use `mode=open_response` for plain text Council answers |
 | CC compliance gate blocks | Gate 2 not passed in Living State | Check `state_get("build:bq-...")` gate2 status |
 | CC missing `gh` | CC doesn't have GitHub CLI | Use `run_background` with PATH export for releases |
 
 ---
 
-*Last updated: S516 (2026-04-27) — added DeepSeek dispatch section + frontier-only model policy + BQ-AG-DEFENSE-IN-DEPTH revocation note. Prior: S363 (2026-04-01) added AG Vertex AI auth section.*
+*Last updated: S527 (2026-04-29) — updated DeepSeek to server-routed Council voter path on port 8768, added open_response examples, safety rules, and Branch B fallback troubleshooting. Prior: S516 (2026-04-27) added DeepSeek dispatch section + frontier-only model policy + BQ-AG-DEFENSE-IN-DEPTH revocation note. Prior: S363 (2026-04-01) added AG Vertex AI auth section.*
 
 ## AG Vertex AI Auth (CRITICAL — do not revert)
 
