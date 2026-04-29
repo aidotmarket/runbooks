@@ -249,7 +249,143 @@ When agents disagree on the evolve class for a gate-process change, use the more
 
 ## §I. Scenario Set
 
-C3 placeholder: the gate-process scenario set is populated in C5a.3. That chunk must add at least 5 scenarios scoped to gate flow with at least 2 operate scenarios, 1 isolate scenario, 1 repair scenario, and 1 evolve or ambiguous-symptom scenario. This placeholder intentionally omits the `yaml acceptance` block so linter v1.0.0 reports the single expected §I placeholder failure for this chunk.
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01, §C, agent-dispatch:E-02]
+    scenario: |
+      id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, reviewer is available, and no chunk spec has been promoted. tool_or_endpoint: bq_update(entity=build:bq-*, gate=gate1, status=<status>, reviewer_verdict=<verdict>). argument_sourcing: entity from Living State; reviewer from current Council review availability; status from verdict using APPROVED, APPROVED_WITH_MANDATES, or REJECTED. idempotency: IDEMPOTENT_WITH_KEY on entity + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and mandate text are attached to the BQ entity with design evidence. expected_failures: missing problem statement, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure: return to design authoring or escalate ambiguous scope to Vulcan.
+    expected_answers:
+      - kind: tool_call
+        tool: bq_update
+        argument_keys: [entity, gate, status, reviewer_verdict]
+        argument_values:
+          gate: gate1
+    weight: 0.08333333333333333
+  - id: I-02
+    type: operate
+    refs: [E-02, F-02, G-02]
+    scenario: |
+      id: E-02. trigger: Gate 1 has passed and the BQ needs a bounded Gate 2 implementation spec before chunk build dispatch. pre_conditions: gate1.status is APPROVED or mandate-resolution evidence exists, spec path is selected, files touched and test plan are known, and compliance gate state is readable. tool_or_endpoint: specs/BQ-*-GATE2.md plus bq_update(entity=build:bq-*, gate=gate2, status=<status>). argument_sourcing: spec_path from BQ slug; files_touched from repository survey and approved design; status from implementation-spec review. idempotency: IDEMPOTENT_WITH_KEY on entity + spec_path + spec_commit. expected_success: reviewed Gate 2 spec names chunk ACs, file scope, risks, and tests, and BQ gate2 state matches the spec commit. expected_failures: Gate 1 still says APPROVED_WITH_MANDATES after mandates were satisfied, chunk scope omits affected files, or dispatch proceeds with no reviewed spec. next_step_success: dispatch the approved chunk build through the builder path. next_step_failure: apply G-02 or revise the Gate 2 spec before dispatch.
+    expected_answers:
+      - kind: tool_call
+        tool: bq_update
+        argument_keys: [entity, gate, status]
+        argument_values:
+          gate: gate2
+    weight: 0.08333333333333333
+  - id: I-03
+    type: operate
+    refs: [E-03, F-04, agent-dispatch:E-03]
+    scenario: |
+      id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, and reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=mp, task=<audit_prompt>, allowed_tools=[Read,Grep,Glob,LS]). argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: PASS, PASS_WITH_MANDATES, or FAIL verdict tied to the audited commit, with line claims verified before attachment. expected_failures: review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification. next_step_failure: redispatch a strict read-only review or return the chunk to build repair.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, task, allowed_tools]
+        argument_values:
+          agent: mp
+          allowed_tools: [Read, Grep, Glob, LS]
+    weight: 0.08333333333333333
+  - id: I-04
+    type: operate
+    refs: [E-04, F-01, agent-dispatch:E-02]
+    scenario: |
+      id: E-04. trigger: Gate 3 has passed and the BQ is ready for Gate 4 production verification plus bq_complete. pre_conditions: gate3 passed, customer-perspective check is defined, reviewers and builders are readable, non-builder reviewer is available, and break_glass sentinel is absent. tool_or_endpoint: bq_complete(entity=build:bq-*, verification=<customer_perspective_evidence>). argument_sourcing: verification from endpoint checks, UI behavior, logs, or data validation; reviewers from BQ reviewers and gate4.<agent>_verdict fields; builders from BQ builders. idempotency: IDEMPOTENT_WITH_KEY on entity + gate4 + verification_digest + reviewer. expected_success: BQ completes only when Gate 4 PASS evidence exists and approved_reviewers - builders is non-empty. expected_failures: only builders approved, non-builder verdict says REQUEST_CHANGES, approval wording misses the accepted regex, or break_glass remains enabled. next_step_success: close handoff with entity key, commit, verification, and reviewer summary. next_step_failure: obtain valid non-builder verification before retrying bq_complete.
+    expected_answers:
+      - kind: tool_call
+        tool: bq_complete
+        argument_keys: [entity, verification]
+    weight: 0.08333333333333333
+  - id: I-05
+    type: isolate
+    refs: [F-02, G-02, E-02]
+    scenario: |
+      id: F-02. trigger: Gate 2 build dispatch is blocked even though mandate-resolution notes say Gate 1 work was satisfied. pre_conditions: BQ entity, Gate 1 verdict, mandate-resolution evidence, and dispatch block message are available. tool_or_endpoint: state_get("build:bq-*"). argument_sourcing: entity from blocked dispatch; mandate evidence from BQ body and spec; status from gate1.status. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify the block as the Gate 1 APPROVED_WITH_MANDATES compliance trap when prose is resolved but status still blocks downstream dispatch. expected_failures: bypassing the compliance gate, creating a new BQ, or editing Gate 2 before fixing the stale Gate 1 status. next_step_success: apply G-02 and read the entity back. next_step_failure: keep dispatch blocked and return to mandate resolution.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: Gate 1 APPROVED_WITH_MANDATES trap
+        target: G-02 status patch
+    weight: 0.08333333333333333
+  - id: I-06
+    type: isolate
+    refs: [F-03, G-03]
+    scenario: |
+      id: F-03. trigger: Promotion shows a ghost entity from a BQ-code commit, such as the S407 fix path, and the visible BQ state does not match branch evidence. pre_conditions: target build:bq-* key, recent event history, git branch, commit SHA, and handoff text are available. tool_or_endpoint: state_get("build:bq-*") plus git log --oneline. argument_sourcing: entity key from promotion command; commit from git; slug and branch from handoff. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as stale or wrong Living State targeting before promoting, and identify the correct entity, branch HEAD, spec path, and commit. expected_failures: completing the ghost entity, reverting code to make state match, or patching multiple entities without a supersedes note. next_step_success: apply G-03 to reconcile the intended entity. next_step_failure: pause promotion for Vulcan state adjudication.
+    expected_answers:
+      - kind: human_action
+        verb: reconcile
+        object: ghost BQ entity against branch and commit evidence
+        target: G-03 correct entity patch
+    weight: 0.08333333333333333
+  - id: I-07
+    type: isolate
+    refs: [F-01, G-01, E-04]
+    scenario: |
+      id: F-01. trigger: bq_complete refuses a BQ because the only non-builder Gate 4 verdict is REQUEST_CHANGES. pre_conditions: builders list, reviewers list, gate4.<agent>_verdict fields, and completion error are available. tool_or_endpoint: cross_review_gate.py evaluation or manual approved_reviewers - builders computation. argument_sourcing: builder and reviewer sets from BQ entity; approval semantics from verdict strings; failing verdict from Gate 4 field. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as a cross-review gate block because REQUEST_CHANGES is reviewer evidence but not approving evidence. expected_failures: counting a builder PASS as independent review, regex-forcing the verdict text, or using break_glass without emergency authorization. next_step_success: get a real non-builder PASS or address requested changes. next_step_failure: leave the BQ open.
+    expected_answers:
+      - kind: human_action
+        verb: compute
+        object: approved_reviewers minus builders
+        target: F-01 cross-review block
+    weight: 0.08333333333333333
+  - id: I-08
+    type: repair
+    refs: [G-02, F-02, E-02]
+    scenario: |
+      id: G-02. trigger: Gate 1 mandates are demonstrably resolved, but gate1.status still blocks Gate 2 chunk build dispatch. pre_conditions: original Gate 1 mandate text, resolution evidence, BQ entity version, and intended Gate 2 spec are present. tool_or_endpoint: bq_update(entity=build:bq-*, gate=gate1, status=APPROVED). argument_sourcing: entity from blocked build; resolution evidence from entity or spec; status from the compliance gate contract. idempotency: IDEMPOTENT_WITH_KEY on entity + gate1 + approved_patch + evidence_digest. expected_success: gate1.status changes from APPROVED_WITH_MANDATES to APPROVED, the resolution note remains auditable, and only the intended chunk is unblocked. expected_failures: approving without evidence, deleting mandate history, or patching the wrong BQ key. next_step_success: rerun the Gate 2 dispatch precheck. next_step_failure: restore APPROVED_WITH_MANDATES and finish mandate work.
+    expected_answers:
+      - kind: tool_call
+        tool: bq_update
+        argument_keys: [entity, gate, status]
+        argument_values:
+          gate: gate1
+          status: APPROVED
+    weight: 0.08333333333333333
+  - id: I-09
+    type: repair
+    refs: [G-03, F-03]
+    scenario: |
+      id: G-03. trigger: Promotion found ghost BQ entities or stale keys whose state diverges from the branch, and the operator must clean them without touching code commits. pre_conditions: wrong entity key, correct entity key, branch HEAD, affected commit, and evidence trail are known. tool_or_endpoint: bq_bulk_update(action=cancel, entities=<ghost_keys>, reason=<superseded_by_correct_entity>). argument_sourcing: ghost_keys from state search; correct entity and commit from git and handoff; reason from reconciliation notes. idempotency: IDEMPOTENT_WITH_KEY on sorted(ghost_keys) + correct_entity + commit. expected_success: ghost entities are canceled or annotated as superseded, correct entity remains promoted, and branch evidence is unchanged. expected_failures: canceling the live BQ, reverting code, or hiding stale history. next_step_success: retry promotion against the correct BQ. next_step_failure: escalate Living State repair to Vulcan.
+    expected_answers:
+      - kind: tool_call
+        tool: bq_bulk_update
+        argument_keys: [action, entities, reason]
+        argument_values:
+          action: cancel
+    weight: 0.08333333333333333
+  - id: I-10
+    type: evolve
+    refs: [§H, E-01, E-04]
+    scenario: |
+      id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from §H.5; invariants from §H.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before bq_complete. expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-11
+    type: evolve
+    refs: [§H, F-01, G-01]
+    scenario: |
+      id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from §C and §E-04; review predicates from §H.3; invariants from §H.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [E-02, F-03, G-03]
+    scenario: |
+      id: AMB-01. trigger: A build's chunks_complete count drifts from main after a merge, and Gate 2 status, reconciler output, and Living State do not agree. pre_conditions: main branch BQ state, feature branch BQ state, Gate 2 spec, reconciler transcript, and current commit are available. tool_or_endpoint: compare Gate 2 spec, state_get("build:bq-*"), and git diff origin/main...HEAD. argument_sourcing: chunks_complete from Living State; expected chunks from the spec; branch drift from git; reconciler limitations from recent state notes. idempotency: READ_ONLY_DIAGNOSTIC until the root cause is identified. expected_success: hold three hypotheses open: Gate 2 may be incomplete, reconciler may be unable to infer unsupported chunk_plan_unavailable schemas such as BQ-LS-BUILD-QUEUE-AUTORECONCILE-CHUNK-PLAN-SCHEMA/S530, or Living State may be stale. expected_failures: marking Gate 2 complete from a count alone, bypassing reconcile without audit justification, or rewriting the spec to match stale state. next_step_success: pick the evidence-backed repair path, using bypass_reconcile only with an audit-justified note for unsupported BQ schemas. next_step_failure: leave completion blocked pending Vulcan adjudication.
+    expected_answers:
+      - kind: human_action
+        verb: triage
+        object: chunks_complete drift across spec, git, reconciler, and Living State
+        target: evidence-backed repair path
+    weight: 0.08333333333333333
+```
 
 ## §J. Lifecycle
 
