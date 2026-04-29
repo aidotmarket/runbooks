@@ -222,7 +222,143 @@ When two agents classify a dispatch change differently, use the more restrictive
 
 ## §I. Scenario Set
 
-C2 placeholder: the dispatch scenario set is populated in C5a.2. That chunk must add at least 5 scenarios scoped to dispatch mechanics with at least 2 operate scenarios, 1 isolate scenario, 1 repair scenario, and 1 evolve or ambiguous-symptom scenario.
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-02, §D, council:I-02]
+    scenario: |
+      id: E-02. trigger: A completed dispatch-gateway patch needs independent AG review before Gate 3 closes. pre_conditions: commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: agent and mode from §D auth map; task from gate ACs plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns a read-only verdict with no file writes, and cited lines are verified before attachment. expected_failures: AG progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, or unhealthy AG backend. next_step_success: attach the verified verdict to the gate record. next_step_failure: isolate with F-02 and repair with G-02 or cover the review with another voter.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd]
+        argument_values:
+          agent: ag
+          mode: review
+    weight: 0.08333333333333333
+  - id: I-02
+    type: operate
+    refs: [E-01, F-04, G-04]
+    scenario: |
+      id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, and intentional bypass_reconcile rationale are available. tool_or_endpoint: dispatch_mp_build(task=<prompt>, cwd=<repo>, branch=<branch>, timeout=300, bypass_reconcile=true). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; branch from git status; bypass_reconcile from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on branch + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to reconcile before retrying or escalating.
+    expected_answers:
+      - kind: tool_call
+        tool: dispatch_mp_build
+        argument_keys: [task, cwd, branch, timeout, bypass_reconcile]
+        argument_values:
+          bypass_reconcile: true
+    weight: 0.08333333333333333
+  - id: I-03
+    type: operate
+    refs: [E-03, §D, council:I-01]
+    scenario: |
+      id: E-03. trigger: A cross-vote needs DeepSeek to review an open_response-style agent output for dispatch correctness. pre_conditions: DeepSeek health, dispatch_cost_cap, open_response transcript, review prompt, and repo cwd are available. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<open_response_cross_vote_prompt>, cwd=<repo>). argument_sourcing: task from the open_response transcript plus gate questions; cwd from the reviewed repo; cost cap from infra:council-comms; agent role from §D. idempotency: IDEMPOTENT_WITH_KEY on deepseek + transcript_digest + review_scope. expected_success: DeepSeek returns a schema-valid read-only verdict that agrees or identifies concrete dispatch issues. expected_failures: health failure, token failure, schema validation failure, or cost cap refusal. next_step_success: add DeepSeek verdict to the Council review set. next_step_failure: repair DeepSeek backend health or route fallback per gate policy.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd]
+        argument_values:
+          agent: deepseek
+          mode: review
+    weight: 0.08333333333333333
+  - id: I-04
+    type: isolate
+    refs: [F-02, G-02, council:I-04]
+    scenario: |
+      id: F-02. trigger: AG review dispatch stalls with a progress-guard timeout while checking a dispatch patch. pre_conditions: AG transcript, last progress marker, original prompt, repo cwd, and AG server health are available. tool_or_endpoint: AG transcript plus council_request task record. argument_sourcing: task id from gateway response; timeout marker from transcript; prompt size from payload; health from AG server check. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX before any redispatch. expected_failures: treating it as a policy disagreement, losing the transcript, or rerunning the same broad prompt. next_step_success: use G-02 with a narrower read-only prompt. next_step_failure: escalate backend health and cover with MP/DeepSeek if gate timing requires.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: AG progress-guard timeout
+        target: F-02 then G-02
+    weight: 0.08333333333333333
+  - id: I-05
+    type: isolate
+    refs: [F-02, G-02, council:I-05]
+    scenario: |
+      id: F-02. trigger: AG returns no verdict because review-mode MAX_TURNS=25 is exhausted on a broad dispatch diff. pre_conditions: AG transcript, max-turn marker, diff size, prompt body, and review_order are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; changed files from git diff; role expectation from infra:council-comms review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: accepting a partial non-verdict, widening timeout without narrowing scope, or confusing it with gateway outage. next_step_success: redispatch with G-02 using an ultra-tight diff-only prompt. next_step_failure: preserve AG non-response and use MP/DeepSeek verdicts for coverage.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: AG MAX_TURNS=25 review-mode exhaustion
+        target: BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE then G-02
+    weight: 0.08333333333333333
+  - id: I-06
+    type: isolate
+    refs: [F-01, G-01, F-05, G-05]
+    scenario: |
+      id: F-01. trigger: MP dispatch appears to fail silently after a cwd shorthand is used, and a later retry returns a gateway timeout after more than 30 seconds. pre_conditions: submitted prompt, cwd argument, gateway response, backend logs, and MCP tool-call trace are available. tool_or_endpoint: gateway logs plus dispatch_mp_build transcript. argument_sourcing: cwd from the failed payload; duration from gateway logs; S347 evidence from incident notes; tool prefix from transcript. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify cwd shorthand silent failure as the first defect, cite S347, and separately identify the >30s gateway timeout path as F-01 if the retry reached the backend. expected_failures: collapsing both symptoms into auth failure, or retrying without converting cwd to an absolute path. next_step_success: rerun with absolute cwd and background dispatch if the task exceeds sync tolerance. next_step_failure: escalate gateway logs with transcript evidence.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: MP cwd shorthand silent failure plus gateway timeout
+        target: S347, F-01, and G-01
+    weight: 0.08333333333333333
+  - id: I-07
+    type: repair
+    refs: [G-02, F-02, council:I-08]
+    scenario: |
+      id: G-02. trigger: AG MAX_TURNS exhaustion leaves a dispatch-gateway review without a usable verdict. pre_conditions: failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from §E. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns a focused read-only verdict over only the dispatch diff. expected_failures: second timeout, broad architecture critique, or fabricated file:line claim. next_step_success: attach replacement verdict and mark the failed task superseded. next_step_failure: use MP/DeepSeek coverage and record AG non-response.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd]
+        argument_values:
+          agent: ag
+          mode: review
+    weight: 0.08333333333333333
+  - id: I-08
+    type: repair
+    refs: [G-02, E-02, council:I-09]
+    scenario: |
+      id: G-02. trigger: A Council review contains AG file:line claims and the operator must validate them before promoting the verdict. pre_conditions: verdict text, file path, line number, and reviewed commit checkout are available. tool_or_endpoint: nl -ba FILE | sed -n 'Np'. argument_sourcing: FILE and N from each AG citation; commit from the gate review record; repo path from cwd. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: every cited line is checked against the reviewed commit and only matching claims are accepted. expected_failures: wrong checkout, off-by-one line, fabricated line, or accepting unverified evidence. next_step_success: keep verified findings and annotate unsupported claims. next_step_failure: reject line-specific claim and request evidence-backed restatement.
+    expected_answers:
+      - kind: tool_call
+        tool: nl -ba FILE | sed -n 'Np'
+        argument_keys: [FILE, N]
+    weight: 0.08333333333333333
+  - id: I-09
+    type: evolve
+    refs: [§H, §D, council:I-10]
+    scenario: |
+      id: H-01. trigger: A proposal adds a new active Council agent to dispatch rotation. pre_conditions: proposed agent role, auth scope, backend surface, model frontier, review_order impact, and dispatch_patterns patch are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; backend contract from proposed code; auth boundary from §D and §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because active membership and dispatch math change. expected_failures: calling it SAFE because existing tools still accept the same arguments, or skipping retired-agent policy review. next_step_success: open Gate 1/Gate 2 Council review before activation. next_step_failure: block active dispatch until adjudicated.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-10
+    type: evolve
+    refs: [§H, §D, council:I-11]
+    scenario: |
+      id: H-02. trigger: A proposal changes the frontier model for MP while keeping the Codex CLI dispatch surface unchanged. pre_conditions: prior model, proposed model, role, timeout/cost effects, and review-quality evidence are available. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from §D. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model meets or exceeds the prior dispatch role. expected_failures: treating it as docs-only because handler arguments are unchanged, or ignoring role-specific quirks. next_step_success: update model policy and runbook rows after review. next_step_failure: keep the prior frontier.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.08333333333333333
+  - id: I-11
+    type: ambiguous
+    refs: [F-01, F-03, F-05, G-01, G-03, G-05]
+    scenario: |
+      id: AMB-01. trigger: A dispatch failed silently and the operator cannot tell whether the cause is auth, gateway timeout, mutex contention, or malformed task/cwd. pre_conditions: submitted payload, auth context, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available. tool_or_endpoint: compare gateway logs, auth/token state, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: token source from launch env; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: branch the ambiguity into concrete §F symptoms: auth/token outside this runbook's provider setup, F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, assuming auth without timing evidence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching §G repair and preserve the failed transcript. next_step_failure: escalate with payload and log excerpts.
+    expected_answers:
+      - kind: human_action
+        verb: triage
+        object: silent dispatch failure
+        target: auth versus F-01/F-03/F-05 versus malformed task or cwd
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [F-04, G-04, F-01, G-01]
+    scenario: |
+      id: AMB-02. trigger: MP says a build completed, but the gateway task still looks stale and the branch may or may not contain the commit. pre_conditions: MP transcript, gateway task id, git log, git status, BQ build summary, and branch name are available. tool_or_endpoint: compare git HEAD, dispatcher task record, and Living State build entity. argument_sourcing: commit SHA from MP transcript and git log; task status from gateway; build summary from BQ entity; branch from git status. idempotency: READ_ONLY_DIAGNOSTIC until state reconciliation is intentionally patched. expected_success: distinguish dispatcher-stale-but-files-committed F-04 from a real gateway timeout F-01, and do not launch duplicate build work until git HEAD is checked. expected_failures: accepting stale state as failure without checking git, or patching Living State to a commit that is not on the branch. next_step_success: use G-04 to reconcile state if the commit exists, or G-01 to retry narrowly if it does not. next_step_failure: escalate with transcript, task id, and git evidence.
+    expected_answers:
+      - kind: human_action
+        verb: distinguish
+        object: stale dispatcher state versus failed MP build
+        target: F-04/G-04 before F-01/G-01 retry
+    weight: 0.08333333333333333
+```
 
 ## §J. Lifecycle
 
