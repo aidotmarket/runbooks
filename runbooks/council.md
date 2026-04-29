@@ -196,7 +196,145 @@ When two agents classify a Council change differently, use the more restrictive 
 
 ## §I. Acceptance Criteria
 
-C1 placeholder: the full Council scenario set is authored in C5a.1. That chunk must add at least 10 scenarios with the Gate 1 distribution: at least 3 operate, 3 isolate, 2 repair, 2 evolve, and 1 ambiguous-symptom scenario.
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01, §D, agent-dispatch:E-02]
+    scenario: |
+      id: E-01. trigger: A Gate 2 chunking spec needs full Council review before the build plan closes. pre_conditions: feature branch, Gate 2 spec path, BQ entity, and current infra:council-comms.dispatch_patterns.gate2_spec_review are available. tool_or_endpoint: council_request(action=review, agents=[mp, ag, deepseek], dispatch_pattern=gate2_spec_review, context_refs=<spec, branch, build_id>). argument_sourcing: agents and pattern from infra:council-comms; branch from git; build_id from Living State. idempotency: IDEMPOTENT_WITH_KEY on build_id + gate + spec_sha + agent. expected_success: three read-only verdicts attached to the BQ record. expected_failures: timeout, missing agent backend, stale dispatch pattern, or auth-mode mismatch. next_step_success: close Gate 2 review or fold mandates into the spec. next_step_failure: isolate with F-01/F-03 or dispatch mechanics via agent-dispatch:F-02.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [action, agents, dispatch_pattern, context_refs]
+        argument_values:
+          action: review
+          agents: [mp, ag, deepseek]
+          dispatch_pattern: gate2_spec_review
+    weight: 0.08333333333333333
+  - id: I-02
+    type: operate
+    refs: [E-02, §D, agent-dispatch:E-03]
+    scenario: |
+      id: E-02. trigger: A Gate 3 post-build audit is ready after a code chunk lands. pre_conditions: feature branch HEAD, committed diff, build entity, and security-sensitive scope are known. tool_or_endpoint: council_request(action=gate_review, agents=[mp, ag, deepseek], dispatch_pattern=gate3_post_build_audit, commit=<sha>). argument_sourcing: agents from the security rule in infra:council-comms; commit from git rev-parse HEAD; evidence refs from spec and diff. idempotency: IDEMPOTENT_WITH_KEY on build_id + gate3 + commit + agent. expected_success: MP, AG, and DeepSeek deliver read-only audit verdicts with no write side effects. expected_failures: AG line-number risk, backend timeout, stale review_order, or missing dispatch token. next_step_success: attach verdict set and promote or remediate. next_step_failure: isolate with F-01/F-03 and verify any file:line claims before accepting them.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [action, agents, dispatch_pattern, commit]
+        argument_values:
+          action: gate_review
+          agents: [mp, ag, deepseek]
+          dispatch_pattern: gate3_post_build_audit
+    weight: 0.08333333333333333
+  - id: I-03
+    type: operate
+    refs: [E-01, §D, agent-dispatch:E-01]
+    scenario: |
+      id: E-03. trigger: A code chunk has an approved Gate 2 spec and needs an implementation author. pre_conditions: branch target, spec excerpt, acceptance criteria, and write-mode authorization are explicit. tool_or_endpoint: council_request(action=build, agent=mp, prompt=<code chunk>, context_refs=<spec, branch, files>). argument_sourcing: agent from §D primary-builder policy; prompt from chunk spec; branch from git; auth mode from gate record. idempotency: IDEMPOTENT_WITH_KEY on build_id + chunk_id + branch + prompt_digest. expected_success: MP returns a commit SHA and implementation summary. expected_failures: Codex CLI timeout, missing repo context, or accidental review-mode token. next_step_success: send the commit to Gate 3 review. next_step_failure: reconcile dispatcher state with git or use CC fallback if MP times out.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [action, agent, prompt, context_refs]
+        argument_values:
+          action: build
+          agent: mp
+    weight: 0.08333333333333333
+  - id: I-04
+    type: isolate
+    refs: [F-01, G-01, agent-dispatch:F-02]
+    scenario: |
+      id: F-01. trigger: AG review-mode dispatch stops with a progress-guard timeout while reviewing a Council spec. pre_conditions: dispatch transcript and timeout policy are available. tool_or_endpoint: dispatcher transcript plus infra:council-comms.dispatch_patterns. argument_sourcing: task id from council_request response; timeout cap from Living State; prompt size from dispatch payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX C1-C4 as the relevant defect/fix history. expected_failures: confusing backend outage with prompt-budget exhaustion, or redispatching before preserving transcript evidence. next_step_success: apply G-01 with a narrower review prompt. next_step_failure: escalate backend health to dispatch maintainers.
+    expected_answers:
+      - kind: human_action
+        verb: inspect
+        object: AG progress-guard timeout transcript
+        target: F-01 then G-01
+    weight: 0.08333333333333333
+  - id: I-05
+    type: isolate
+    refs: [F-01, G-01, agent-dispatch:F-02]
+    scenario: |
+      id: F-02. trigger: AG returns no verdict because review-mode MAX_TURNS=25 is exhausted on a broad diff. pre_conditions: AG transcript, prompt body, and diff size are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; affected files from git diff; expected agent role from infra:council-comms.review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: treating it as a Council policy disagreement or accepting a partial non-verdict. next_step_success: use G-01 redispatch with an ultra-tight diff-only prompt. next_step_failure: request MP/DeepSeek read-only coverage while preserving the exhausted AG result.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: AG MAX_TURNS exhaustion
+        target: G-01 diff-only redispatch
+    weight: 0.08333333333333333
+  - id: I-06
+    type: isolate
+    refs: [F-02, G-02, agent-dispatch:F-02]
+    scenario: |
+      id: F-03. trigger: MP was dispatched for review but produced a commit. pre_conditions: dispatch mode, task prompt, git log, and branch status are available. tool_or_endpoint: git log plus council_request dispatch record. argument_sourcing: token mode from gateway record; commits from git; prompt role from task payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as MP READ-ONLY violation, cite the S452 quirk, and quarantine the commit before accepting any review result. expected_failures: silently keeping the commit, or rerunning from the dirty branch. next_step_success: apply G-02 and rerun the review from clean read-only state. next_step_failure: escalate auth-boundary mismatch to Vulcan/Max.
+    expected_answers:
+      - kind: human_action
+        verb: quarantine
+        object: MP review-mode commit
+        target: F-02 then G-02
+    weight: 0.08333333333333333
+  - id: I-07
+    type: isolate
+    refs: [§D, G-01]
+    scenario: |
+      id: F-04. trigger: AG verdict cites exact file:line findings that look plausible but do not match the diff. pre_conditions: AG verdict text, affected file paths, and repository checkout are available. tool_or_endpoint: nl -ba FILE | sed -n 'Np'. argument_sourcing: FILE and N from the AG verdict; repo path from the checked-out branch. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG line-number fabrication risk per BQ-COUNCIL-AG-LINE-NUMBER-VERIFICATION and verify every cited line before promoting the verdict. expected_failures: treating fabricated lines as confirmed audit evidence. next_step_success: accept only verified claims and record unverified ones as unsupported. next_step_failure: request a corrected review without line-number dependence.
+    expected_answers:
+      - kind: tool_call
+        tool: nl -ba FILE | sed -n 'Np'
+        argument_keys: [FILE, N]
+    weight: 0.08333333333333333
+  - id: I-08
+    type: repair
+    refs: [G-01, F-01, agent-dispatch:G-02]
+    scenario: |
+      id: G-01. trigger: AG MAX_TURNS=25 exhaustion leaves a Gate 2 review without a verdict. pre_conditions: exhausted transcript, original diff, and target review questions are preserved. tool_or_endpoint: council_request(action=review, agent=ag, prompt=<diff-only narrowed prompt>, context_refs=<changed files>). argument_sourcing: changed files from git diff --name-only; review questions from the failed prompt; timeout cap from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns a focused verdict over the exact diff. expected_failures: second timeout, unsupported broad architecture critique, or line-number fabrication. next_step_success: attach the replacement verdict and mark the failed task superseded. next_step_failure: use MP/DeepSeek verdicts and record AG non-response in the BQ.
+    expected_answers:
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [action, agent, prompt, context_refs]
+        argument_values:
+          action: review
+          agent: ag
+    weight: 0.08333333333333333
+  - id: I-09
+    type: repair
+    refs: [G-01, §D]
+    scenario: |
+      id: G-02. trigger: A Council verdict contains file:line claims from AG and the operator must decide whether they are reliable. pre_conditions: verdict, file path, line numbers, and checked-out commit are available. tool_or_endpoint: nl -ba FILE | sed -n 'Np'. argument_sourcing: FILE and N from each verdict citation; commit from the review record. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: every cited line is checked against the reviewed commit and the accepted finding text matches the actual line. expected_failures: wrong checkout, off-by-one citation, or fabricated line. next_step_success: keep verified claims and annotate unsupported claims. next_step_failure: reject the line-specific finding and request evidence-backed restatement.
+    expected_answers:
+      - kind: tool_call
+        tool: nl -ba FILE | sed -n 'Np'
+        argument_keys: [FILE, N]
+    weight: 0.08333333333333333
+  - id: I-10
+    type: evolve
+    refs: [§H]
+    scenario: |
+      id: H-01. trigger: A proposal adds a new Council agent to active review rotation. pre_conditions: proposed agent role, auth scope, model frontier, and dispatch backend are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; dispatch patterns from infra:council-comms; security rule from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes dispatch_patterns, review_order, and 3-of-3 security rule math. expected_failures: calling it SAFE because code entry points stay the same. next_step_success: open a Gate 1/Gate 2 change with Council review. next_step_failure: block active dispatch until the policy is adjudicated.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-11
+    type: evolve
+    refs: [§H]
+    scenario: |
+      id: H-02. trigger: A proposal changes the frontier model for an existing Council agent. pre_conditions: prior model, proposed model, role, measured review quality, and cost/timeout implications are known. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from §D. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model performs at or above the prior bar. expected_failures: treating the swap as documentation-only or ignoring role-specific quirks. next_step_success: update model_policy and runbooks after review. next_step_failure: keep the prior model frontier.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [E-03, §H, council-hall-deliberation:F-04, council-hall-deliberation:G-04]
+    scenario: |
+      id: AMB-01. trigger: A Gate 2 chunking spec gets conflicting MP and AG decomposition recommendations. pre_conditions: both verdicts, original spec, chunk-risk rationale, and BQ state are available. tool_or_endpoint: compare verdicts, then repair through Vulcan-direct fold or Council Hall only if evidence remains insufficient. argument_sourcing: claims from MP/AG transcripts; chunk boundaries from the spec; precedent from the S529 R2 Vulcan-direct fold pattern. idempotency: READ_ONLY_DIAGNOSTIC until a new spec patch is intentionally authored. expected_success: classify first as §F cross-vote divergence, not immediate §H evolution; redirect to §G repair by folding mandates into the spec or escalating to council-hall-deliberation:G-04 if the conflict is substantive. expected_failures: changing chunking rules prematurely, or picking one reviewer without preserving the dissent. next_step_success: produce a revised Gate 2 spec with both concerns resolved. next_step_failure: open Council Hall/Max adjudication.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: MP/AG chunk decomposition disagreement
+        target: cross-vote divergence then council-hall-deliberation:G-04 before §H evolution
+    weight: 0.08333333333333333
+```
 
 ## §J. Lifecycle
 
