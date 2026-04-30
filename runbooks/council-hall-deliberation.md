@@ -491,6 +491,14 @@ Which process to restart when code changes land on disk:
 
 `launchd` plists exist for `ag_server`, `deepseek_server`, and `koskadeux_server`/`gateway_server`. Auto-restart is enabled with KeepAlive=true. ThrottleInterval backoff applies — if a process is killed within 10s of a previous restart, `launchctl kickstart -k gui/$(id -u)/com.koskadeux.<service>` clears throttle, or `launchctl bootout && bootstrap` for a clean reload. The MCP gateway (`koskadeux_server.py`) restart breaks any active Claude.ai connector session and requires manual reconnect.
 
-### M.5 — DeepSeek model tier whitelist gap (S533 follow-on)
+### M.5 — DeepSeek model tiers (S533 verified empirically)
 
-Memory and `BQ-MODEL-CONFIGURATION-RUNBOOK` reference `deepseek-v4-pro-max` as the code-review tier. Codebase reality: `DEEPSEEK_ALLOWED_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})` — pro-max is not in the whitelist. Council reviews currently run on `deepseek-v4-pro` regardless of code-vs-spec context. Follow-up BQ to be filed: `BQ-DEEPSEEK-MODEL-TIER-ALIGNMENT` (P1) — whitelist add + cost table + review-path routing + tests.
+DeepSeek currently exposes exactly two models per `/v1/models`:
+- `deepseek-v4-pro` — top tier (used for all Council reviews today)
+- `deepseek-v4-flash` — cheaper tier
+
+`deepseek-v4-pro-max` does NOT exist at the provider. S533 direct probe of the chat completions endpoint with `model="deepseek-v4-pro-max"` returns HTTP 400: *"The supported API model names are deepseek-v4-pro or deepseek-v4-flash, but you passed deepseek-v4-pro-max."* Probes against `deepseek-r1`, `deepseek-r1-pro`, `deepseek-v3`, `deepseek-v4`, `deepseek-v4-max` all return 400 invalid. `deepseek-reasoner` and `deepseek-coder` are accepted aliases but resolve to `deepseek-v4-flash` (the cheaper tier).
+
+So `deepseek-v4-pro` IS the canonical code-review tier today. There is no higher tier to upgrade to.
+
+**Mandate: when DeepSeek announces a new tier higher than `deepseek-v4-pro`, this section, the user memory note about Council models, and the in-code whitelist `DEEPSEEK_ALLOWED_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})` at `koskadeux-mcp/deepseek_client.py:34` (plus the `DEEPSEEK_PRICING` table directly below it) MUST all be updated together in the same commit.** Add a line to this section linking to the new model's pricing source and a sample chat probe confirming the model name resolves at the API.
