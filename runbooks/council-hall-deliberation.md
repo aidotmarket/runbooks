@@ -450,3 +450,47 @@ word_count_delta: null
 ```
 
 `conformance_status: provisional` is the intended C5c state under Gate 1 §10; the runbook-lint v1.0.0 §K YAML schema rejects that additional key, so it remains prose-only until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 accepts freshness fields.
+
+
+## §M — S533 Operational Updates
+
+### M.1 — DeepSeek review-mode bypass (S533 R3)
+
+`deepseek_server.py:run_deepseek_task` branches on `mode == "review"` BEFORE instantiating `DeepSeekNativeAgenticLoop`. Review tasks route through `DeepSeekClient.run_council_review()` which:
+
+1. Forces `response_format={"type": "json_object"}` API-side
+2. Constrains the verdict enum (`APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE | REQUEST_CHANGES | REJECT`) and finding-object schema in the prompt
+3. Returns a complete envelope shape that `tools/agents.py:_normalize_deepseek_review_response` fast-paths
+
+Rationale: `response_format=json_object` is mutually exclusive with `tools`/`tool_choice="auto"` on the DeepSeek API. The agentic loop uses tools, so it cannot also force structured JSON output. Bypass restores deterministic JSON envelopes for review-mode calls.
+
+The agentic loop remains unchanged for `build` and `author` modes. DS has no tool/file access in review-mode bypass — inline the spec content into the task body.
+
+### M.2 — XAI retired from active Council (S528)
+
+XAI is no longer an active Council voter. The frontier-only policy retired XAI in S528 per Max directive. `xai_client.py` and `grok_cli_bridge.py` are preserved in repo for reactivation. Reactivation runbook is at `infra:council-comms.retired_agents.xai`. Active voters: MP (mandatory), AG (cross-vote), DeepSeek (guaranteed +1).
+
+### M.3 — AG progress-guard ≤4-file workaround for review-mode
+
+`antigravity_cli_bridge.py` enforces a "15-turn no-file-changes" progress guard intended for build-mode dispatches. In review-mode this guard kills AG before it can return its envelope when the task asks AG to read many files. Pattern observed in S533: a review task with 8 file reads + analysis hit 15 turns before envelope return.
+
+Workaround until `BQ-COUNCIL-AG-PROGRESS-GUARD-FIX` Gate 3 closes: cap AG review-mode tasks at **≤4 file reads** total. Phrase the task with explicit "STRICT BUDGET: ≤N file reads then return JSON envelope" and "Do not read additional files." This keeps AG well under the 15-turn limit.
+
+If a review genuinely needs broader code survey, do the survey work Vulcan-direct via `shell_request`, then dispatch AG with the findings inlined for verdict-only judgment.
+
+### M.4 — Restart procedure matrix
+
+Which process to restart when code changes land on disk:
+
+| Code change in | Restart |
+|---|---|
+| `deepseek_client.py` (review-mode envelope, prompt, response_format) | `deepseek_server.py` (port 8768) AND `koskadeux_server.py` (port 8765) — both import in-process |
+| `deepseek_server.py` (agentic loop, review-mode bypass logic) | `deepseek_server.py` (port 8768) only |
+| `antigravity_client.py` / `ag_server.py` | `ag_server.py` (port 8766) only — separate process |
+| `tools/agents.py` (council_request handlers) | `koskadeux_server.py` (port 8765) — MCP gateway |
+
+`launchd` plists exist for `ag_server`, `deepseek_server`, and `koskadeux_server`/`gateway_server`. Auto-restart is enabled with KeepAlive=true. ThrottleInterval backoff applies — if a process is killed within 10s of a previous restart, `launchctl kickstart -k gui/$(id -u)/com.koskadeux.<service>` clears throttle, or `launchctl bootout && bootstrap` for a clean reload. The MCP gateway (`koskadeux_server.py`) restart breaks any active Claude.ai connector session and requires manual reconnect.
+
+### M.5 — DeepSeek model tier whitelist gap (S533 follow-on)
+
+Memory and `BQ-MODEL-CONFIGURATION-RUNBOOK` reference `deepseek-v4-pro-max` as the code-review tier. Codebase reality: `DEEPSEEK_ALLOWED_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})` — pro-max is not in the whitelist. Council reviews currently run on `deepseek-v4-pro` regardless of code-vs-spec context. Follow-up BQ to be filed: `BQ-DEEPSEEK-MODEL-TIER-ALIGNMENT` (P1) — whitelist add + cost table + review-path routing + tests.

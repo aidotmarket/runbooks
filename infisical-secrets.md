@@ -98,3 +98,35 @@ curl -s "https://secrets.ai.market/api/v3/secrets/raw?workspaceId=<PROJECT_ID>&e
 ## Legacy: Doppler
 
 Doppler (`doppler-secrets.md`) is demoted to archive-only. It still contains a snapshot of secrets as of 2026-03-30 but is NOT the source of truth. Do not update secrets in Doppler.
+
+## Known Gotchas (S533)
+
+### CLI `--plain` flag mangles JSON values with literal newlines
+
+`infisical secrets get <NAME> --plain` converts escaped `\n` inside a JSON string value (e.g. the `private_key` field of a service-account JSON) into actual newline characters in the output stream. This produces JSON that fails `json.loads()` with `Invalid control character at: line N column X` because real newline chars are not legal inside JSON string values.
+
+Workaround when you need to consume an SA JSON locally via CLI:
+
+```python
+import sys, json
+raw = sys.stdin.read().rstrip()
+sanitized = raw.replace('\r\n', '\\n').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+info = json.loads(sanitized)
+```
+
+This is a CLI-output-format issue, not a stored-value issue. Railway env-var sync transmits the value correctly because env vars handle escapes differently than CLI stdout.
+
+### Naming convention: canonical UPPER_SNAKE for Pydantic Settings
+
+Application services using Pydantic `SettingsConfigDict(case_sensitive=True)` (e.g. ai-market-backend) require Infisical secret names to match Pydantic field names exactly. The canonical convention is UPPER_SNAKE_CASE (e.g. `VERTEX_GEMINI_KEY`, not `Vertex_Gemini_Key`).
+
+When introducing a new secret, name it UPPER_SNAKE in Infisical from the start to avoid an Infisical→Railway→code rename round-trip.
+
+### Vertex Gemini key consolidation pending (S533)
+
+As of S533, three Infisical secret names hold (or have held) the same Vertex Express API key:
+- `Vertex_Gemini_Key` — primary today (created during S533 P0 incident response)
+- `VERTEX_API_KEY` — used by AG/Council via `koskadeux-mcp/scripts/launch_ag_server.sh`
+- `VERTEX_GEMINI_KEY` — canonical name targeted by `BQ-LLM-EMBEDDING-VERTEX-MIGRATION` Gate 2
+
+Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
