@@ -68,6 +68,14 @@ Every agent extends `BaseAgent` and declares:
 | `app/allai/trace_context.py` | Request tracing across agent calls |
 | `app/allai/agents/manifests.py` | Compiled manifests for all agents |
 
+## State architecture — build-queue lifecycle ownership
+
+Living State entities (`build:bq-*`, `config:*`, `infra:*`) are persisted in the ai-market-backend Postgres `StateEntity` table. The backend owns build-queue lifecycle alongside the data: status transition rules, gate progression, build-body invariants, and the `config:core-pillars` enum check are evaluated in-process by `app/services/bq_lifecycle_service.py` (`BuildQueueLifecycleService`), which delegates persistence to `StateService.atomic_write`. The dedicated lifecycle endpoint group `/api/v1/allai/build-queue/*` is the canonical write path for status changes; generic state CRUD via `/api/v1/allai/state/*` is for non-lifecycle entity access.
+
+The Mac-side `koskadeux-mcp/tools/state.py` `bq_*` handlers (Titan-1) retain their own validation logic for now and continue calling `/api/v1/allai/state/atomic_write` directly — this is a transitional state. A subsequent BQ migrates the Mac-side handlers to call the new backend lifecycle endpoints, retiring the duplicate validators on Titan-1; until then, both paths must remain bug-for-bug compatible (gated by the golden parity test suite in ai-market-backend at `tests/integration/test_bq_lifecycle_parity.py`).
+
+**Implication for agents:** any agent that needs to move a BQ between `planned/in_progress/completed/failed/blocked/cut/approved/done` should prefer the backend lifecycle endpoint. Direct `kind='build'` writes through generic state CRUD bypass the lifecycle validator and are tracked as a follow-up audit item.
+
 ## Monitoring
 
 Agent health visible at `ops.ai.market/agents`. Three data sources merged:

@@ -20,7 +20,7 @@ Each tab in the dashboard pulls from specific backend endpoints. All backend end
 |-----|-----------|---------|-------------------|-----------------|
 | OPS | `OpsPanel.tsx` | Railway health, AI Context Console | `/health`, `/api/v1/ops/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | MONITOR | `MonitorPanel.tsx` | Comms feed, Council Hall, command console | `/api/v1/allai/*`, `/api/v1/comms` (SSE) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
-| BUILD QUEUE | `BuildQueuePanel.tsx` | BQ CRUD, status, roadmap view | `/api/v1/allai/state/*` (Living State) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
+| BUILD QUEUE | `BuildQueuePanel.tsx` | BQ CRUD, status, roadmap view | Reads: `/api/v1/allai/state/*` (Living State entity access). Lifecycle writes (cancel, priority, affirm, complete, reorder, bulk-transition): `/api/v1/allai/build-queue/*` — `POST /bulk-transition` and `POST /{key:path}/transition`, auth via `X-Internal-API-Key`. | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | AGENTS | `AgentsPanel.tsx` | Unified agent fleet, health, proposals | `/api/v1/cp/agents/*`, `/api/v1/allai/agents/status`, `/api/v1/internal/agent-health` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | RUNBOOKS | `RunbooksPanel.tsx` | Browse and read all operational runbooks | GitHub API (public, no auth) | [runbooks](https://github.com/aidotmarket/runbooks) |
 | MARKETING | `MarketingPanel.tsx` | Task queue, campaigns, brand voice | `/api/v1/marketing/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
