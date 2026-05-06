@@ -50,13 +50,22 @@ curl -s https://api.ai.market/health
 | `/api/v1/allai` | `allai.py` | allAI brain, search, agent dispatch |
 | `/api/v1/cp/agents` | `agent_control.py` | Agent control plane — fleet management |
 | `/api/v1/crm` | `crm.py`, `crm_pipeline.py` | CRM contacts, organizations, pipeline |
-| `/api/v1/state` | `state.py` | Living State — build queue, config |
+| `/api/v1/allai/state` | `state.py` | Living State — generic entity CRUD, atomic writes, event ledger. Build-queue lifecycle decisions are NOT made here; see `/api/v1/allai/build-queue` for status transitions. |
+| `/api/v1/allai/build-queue` | `bq_lifecycle.py` | Build-queue lifecycle transitions. `POST /bulk-transition` (registered first) and `POST /{key:path}/transition`. Auth: `X-Internal-API-Key`. Calls `BuildQueueLifecycleService` in-process; persists via `StateService.atomic_write` (single Postgres tx for entity + event ledger). |
 | `/api/v1/marketing` | `marketing.py` | Campaign management, drafts |
 | `/api/v1/finance` | (via `financeApi`) | Revenue, transactions, invoices |
 | `/api/v1/internal` | `agent_health.py`, `health_internal.py` | Internal health checks (X-Internal-API-Key required) |
 | `/webhooks` | `webhooks.py`, `gmail_webhook.py`, etc. | Stripe, Gmail, Drive, Railway webhooks |
 | `/api/v1/search` | `search.py` | Listing search (Qdrant-backed) |
 | `/api/v1/mcp` | `mcp.py`, `mcp_server.py` | MCP protocol endpoints |
+
+## Notable services (`app/services/`)
+
+| Service file | Class | Purpose |
+|--------------|-------|---------|
+| `bq_lifecycle_service.py` | `BuildQueueLifecycleService` | Build-queue lifecycle decisions (status transitions, gate progression, build-body invariants, pillar enum check). Wraps `StateService.atomic_write` for persistence; never mutates `StateEntity` directly. Bug-for-bug compatible with the Mac-side validators in `koskadeux-mcp/tools/state.py` at the time of the BQ-BACKEND-V2-PROXY-REAL-MCP-INTEGRATION-VERIFICATION cutover. |
+| `business_summary_validator.py` | (pure-function module) | Validates the `body.summary` field on `kind=build` entities. Ported from `koskadeux-mcp/tools/state_validators/business_summary_validator.py` so backend can enforce summary requirements alongside the data, in-process. |
+| `state_service.py` | `StateService` | Generic Living State CRUD, version locking, cache, event ledger. Owns `atomic_write` (single Postgres transaction for `entity_write` + `token_consume` + `event_append`). Build-queue specifics live in `bq_lifecycle_service.py`, which delegates here. |
 
 ## Database
 
