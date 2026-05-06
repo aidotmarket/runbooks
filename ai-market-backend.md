@@ -110,6 +110,7 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 | Agent health endpoint 401 | Missing `X-Internal-API-Key` header | Check ops dashboard API config matches `INTERNAL_API_KEY` |
 | Qdrant search failures | Check Qdrant service in Railway | Verify `QDRANT_URL` and collection exists |
 | Stripe webhook failures | Check webhook signing secret | Verify `STRIPE_WEBHOOK_SECRET` in Infisical |
+| Customer sees `/login?error=oauth_failed` after Google/GitHub consent | Sign-up path failure — check `app/auth/oauth.py:408` `ensure_user_crm_identity` is NOT raising and rolling back the auth transaction | See `auth-signup-flow.md` for full architecture, known issues, diagnostic procedure, and backfill |
 
 ---
 
