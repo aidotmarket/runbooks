@@ -1,5 +1,7 @@
 # MCP Gateway
 
+> **⚠️ DRIFT WARNING — 2026-05-22 (S691)** — This runbook's Transport, Architecture, Restart, and History sections still describe Tailscale Funnel as the active `mcp.ai.market` transport. **This is wrong.** The live transport is **Cloudflared** (`com.koskadeux.cloudflared` LaunchAgent, runs `cloudflared tunnel run koskadeux`, verified active via `launchctl list | grep cloudflared` and `mcp.ai.market` DNS → `cfargotunnel.com`). See `cloudflare-and-dns.md` drift items #1 and #5 for the verified architecture. **Do not remove the cloudflared plist.** Full section rewrite tracked as follow-up under the S690 runbook audit (HIGH H-1, H-5).
+
 ## What it does
 
 Exposes the Koskadeux MCP server on Titan-1 to the public internet at `https://mcp.ai.market` so Vulcan (Claude on claude.ai) can call MCP tools from a hosted browser session. All MCP tool calls (`council_request`, `state_request`, `kd_session_*`, `shell_request`, `dispatch_mp_build`, etc.) flow through this path and are executed locally on Titan-1 against the user's filesystem, agents, and Council infrastructure.
@@ -33,7 +35,7 @@ The split into two local processes is load-bearing. `gateway_server.py` is a thi
 | `lilly_server.py` | — | `com.koskadeux.lilly` | Companion service. |
 | `council-hall` | — | `com.koskadeux.council-hall` | Council hall service. |
 
-**Public exposure** is provided by `tailscaled` (Tailscale daemon), not by a `com.koskadeux.*` LaunchAgent. Funnel state for `mcp.ai.market` is managed by `tailscale funnel` / `tailscale serve` configuration on Titan-1; there is no app-level tunnel binary in the Koskadeux launchd tree. The legacy `com.koskadeux.cloudflared` agent is decommissioned (registry: "Tailscale Funnel has replaced Cloudflare for mcp.ai.market exposure"); SysAdmin follow-up is to remove the stale plist entirely.
+**Public exposure** is provided by `tailscaled` (Tailscale daemon), not by a `com.koskadeux.*` LaunchAgent. Funnel state for `mcp.ai.market` is managed by `tailscale funnel` / `tailscale serve` configuration on Titan-1; there is no app-level tunnel binary in the Koskadeux launchd tree. **CORRECTION (S691)**: The `com.koskadeux.cloudflared` LaunchAgent **IS the active transport** for `mcp.ai.market` — NOT decommissioned, despite resource-registry claims to the contrary. The plist at `~/Library/LaunchAgents/com.koskadeux.cloudflared.plist` runs `cloudflared tunnel run koskadeux` and is **load-bearing**. Do not remove. See `cloudflare-and-dns.md` drift items #1 and #5.
 
 **Plist locations** (all under `~/Library/LaunchAgents/`):
 - `com.koskadeux.mcp.plist` → `python /Users/max/koskadeux-mcp/koskadeux_server.py` (logs `/tmp/koskadeux_mcp.log`)
@@ -119,5 +121,5 @@ Tailscale provides built-in connection health for the Funnel surface (`tailscale
 - **S485** — `launchd_services` registry mapped: `com.koskadeux.mcp` (port 8765, real handler), `com.koskadeux.gateway` (proxy), `com.koskadeux.ag_server`, `com.koskadeux.lilly`, `com.koskadeux.council-hall`, plus the now-legacy `com.koskadeux.cloudflared`. Restart wipes in-memory session state.
 - **S519** — Two-process architecture clarified: `gateway_server.py` is a proxy; `koskadeux_server.py` is the real handler that imports `tools/agents.py`. Restart pattern correction filed in registry under `process_architecture_s519`.
 - **S520** — `pkill` restart pattern corrected to `launchctl kickstart -k -p gui/$(id -u)/com.koskadeux.mcp`. The handlers are launchd-supervised (PPID=1, KeepAlive=true) and respawn instantly after `pkill`, making the older guidance unreliable.
-- **Pre-S572** — Tailscale Funnel migration replaced Cloudflare Tunnel as the `mcp.ai.market` public transport (per `config:resource-registry`: "Tailscale Funnel has replaced Cloudflare for mcp.ai.market exposure"). The `com.koskadeux.cloudflared` LaunchAgent is decommissioned and pending plist removal by SysAdmin.
+- **Pre-S572** — Tailscale Funnel migration **was attempted** to replace Cloudflare Tunnel as the `mcp.ai.market` public transport (per `config:resource-registry`). **S688 verification (2026-05-22): the migration did NOT complete.** Cloudflared remains the active transport; the resource-registry claim is stale. The `com.koskadeux.cloudflared` LaunchAgent is **active and load-bearing**, not decommissioned.
 - **S572** — Runbook fully rewritten to match the current Tailscale Funnel architecture (BQ-BACKEND-V2-PROXY-REAL-MCP-INTEGRATION-VERIFICATION §3.6).

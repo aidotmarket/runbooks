@@ -1,4 +1,6 @@
 # Cloudflare Worker (get.vectoraiz.com)
+> **⚠️ DEPRECATED — superseded 2026-04-29 by `cloudflare-and-dns.md` (S688), banner applied 2026-05-22 (S691)** — This runbook has been **fully subsumed** by `cloudflare-and-dns.md`, which is the canonical authority for all Cloudflare DNS, Tunnel, and Worker operations (including the four active Workers: `get-ai-market`, `allai-dead-man-switch`, `vectoraiz-installer`, `aim-node-installer`). **Content here is preserved for historical reference only and may contain stale claims.** Always consult `cloudflare-and-dns.md` first. Cross-references to this file in `vz-release-process.md`, `aim-data-release-process.md`, and `aim-node-release-process.md` will be updated separately.
+
 
 ## What it does
 

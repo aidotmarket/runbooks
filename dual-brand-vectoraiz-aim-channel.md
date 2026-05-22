@@ -71,6 +71,8 @@ ai.market has four products:
 - DO NOT hardcode brand strings in new components — always use useBrand()
 - DO NOT confuse the useChannel hook (feature-level channel detection) with the brand system (product-level branding)
 
+> **⚠️ SUPERSEDED-BY-MAX-S690 (2026-05-22 (S691))** — The Council Hall decision recorded below rejected "AIM Data" as a product name. **Max overrode this in S690 (2026-05-22)**: "AIM Data" is now the canonical external-facing product name for the data-feeding-the-marketplace surface. Internal pillar identity remains **AIM-Channel** (vectorAIz codebase). See `decision:aim-data-canonical-naming-s690` in Living State, and `aim-data-release-process.md` for the live release surface. The "Rejected" list below is **historical only** and does not reflect current naming.
+
 ## Council Hall Decision (S425)
 Names decided by Council Hall consensus: MP + AG unanimous, Vulcan concurred.
 - "AIM Node" kept for compute (static endpoint in P2P network)
