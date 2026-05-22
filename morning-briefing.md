@@ -6,13 +6,15 @@ Sends a daily CRM briefing email to max@ai.market at 08:00 CET (07:00 UTC). Cont
 
 ## How it works
 
+> **⚠️ S691 CORRECTION** — The automatic 07:00 UTC briefing is driven by **APScheduler in `app/core/scheduler.py`**, NOT by a CRM Steward asyncio `_daily_timer_loop`. The CRM Steward dependency described below applies only to the **manual** path, and even that path needs re-verification: `_handle_manual_briefing` and `CRM_MANUAL_BRIEFING` are NOT found in current `crm_steward.py` source (S690 audit M-3). Treat the manual-path text as unverified until reconfirmed against source.
+
 Two paths to send a briefing:
 
 ### 1. Daily timer (automatic)
 ```
 Railway (ai-market-backend) boots
-  → CRM Steward agent starts via AgentHost
-  → asyncio _daily_timer_loop() waits until 07:00 UTC
+  → APScheduler initialized in app/core/scheduler.py
+  → send_morning_briefing_job registered as CronTrigger at 07:00 UTC (scheduler.py:214; cron registration scheduler.py:810)
   → Calls CRMBriefingService.send_daily_briefing() DIRECTLY (no event bus)
   → Sends via Gmail API (OAuth token from gmail_tokens table)
   → Pings Healthchecks.io
@@ -34,7 +36,7 @@ POST /api/v1/crm/admin/send-briefing
 
 | File | Purpose |
 |------|---------|
-| `app/allai/agents/crm_steward.py` | `_daily_timer_loop()` fires at 07:00 UTC (automatic path) |
+| `app/core/scheduler.py` | `send_morning_briefing_job` registered as CronTrigger at 07:00 UTC (line 214; cron registration line 810) — **automatic path** (S691 correction; CRM Steward is NOT in the automatic chain) |
 | `app/allai/agents/crm_steward.py` | `_handle_manual_briefing()` handles CRM_MANUAL_BRIEFING event (manual path) |
 | `app/services/crm_briefing_service_gmail.py` | Gmail-based briefing generator + sender |
 | `app/services/crm_briefing_service.py` | Legacy Postmark-based version (DO NOT USE — Postmark not configured) |
