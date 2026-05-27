@@ -1,0 +1,317 @@
+# AIM Data — Local-First Data Publishing for ai.market
+
+AIM Data is what a data seller installs on their own infrastructure to list datasets on the ai.market marketplace. It runs as a Docker container on the seller's machine, profiles the data, generates the listing metadata via allAI, and never copies the raw data anywhere. When a buyer purchases a listing, ai.market issues a signed delivery token and the bytes flow peer-to-peer from the seller's AIM Data install to the buyer. ai.market handles discovery, payments via Stripe, and the delivery token, but never sees or touches raw data.
+
+**IS:** Customer-deployed Docker app. Local-first. Non-custodial. Tied to one seller identity on ai.market. The conduit through which allAI's metadata-generation work reaches the seller's data sources.
+
+**IS NOT:** A cloud service. A data warehouse. A data mover. AIM Data never phones home with raw data, never stores buyer-side state, and never holds keys to the customer's S3 buckets. Long-lived AWS credentials stay in the customer's account. AIM Data only holds short-lived assumed-role sessions when it reads.
+
+**Pillar:** AIM Data is the customer-deployed product that data sellers install to list datasets on ai.market. Originally launched as AIM Connect, then renamed to AIM Data. The codebase was forked from vectorAIz's into its own repo at `aidotmarket/aim-data`, since AIM Data does not need the document-to-vector-database conversion that defines vectorAIz. The two products are now separate codebases on separate lifecycles.
+
+**Customer install URL (the advertised path):**
+```
+curl -fsSL https://get.ai.market/aim-data | bash           # macOS / Linux
+irm https://get.ai.market/aim-data/windows | iex            # Windows
+```
+
+The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves `installers/aim-data/install.sh` and `install.ps1` from the repo. CF Worker config lives in [cloudflare-worker.md](cloudflare-worker.md).
+
+**Repo:** [aidotmarket/aim-data](https://github.com/aidotmarket/aim-data) (private)
+**Local clone:** `/Users/max/aim-data`
+**Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.41`)
+**Customer install guide:** `docs/INSTALL.md` in the repo
+**Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
+
+## Capability Matrix
+
+What AIM Data does today, by feature, with status and the code that backs it. `BROKEN` and `PARTIAL` items have a `Notes` line. Everything else is shipped and working unless flagged otherwise.
+
+| Feature | Status | Backing code | Customer-facing |
+|---------|--------|--------------|-----------------|
+| Install via one-liner from get.ai.market | **BROKEN** | `installers/aim-data/install.sh`, CF Worker | Yes — currently returns 502; customers cannot install via the advertised path |
+| Install via manual compose | SHIPPED | `docker-compose.aim-data.yml` + `docs/INSTALL.md` | Yes — works; 7 env vars to set |
+| Admin account creation on first visit | SHIPPED | `app/auth/`, `app/routers/auth.py` | Yes — first browser visit at `localhost:8080` |
+| Serial + bootstrap-token activation | SHIPPED | `app/services/activation_manager.py` | Silent at first boot, no UI prompt |
+| Local data profiling | SHIPPED | `app/services/profiling/` | Surfaces in the listing draft |
+| Local PII scanning (tri-state signal) | SHIPPED | `app/services/pii_scanner.py` | Yes — `passed` / `flagged` / `not run` per ai.market/aim-data trust signals |
+| Local quality scoring (nullable) | SHIPPED | `app/services/quality_scorer.py` | Yes — nullable score on listing |
+| allAI metadata generation | SHIPPED | `app/services/allai_client.py` | Yes — generates description and tags |
+| Marketplace registration | SHIPPED | `app/services/marketplace_register.py` | Yes — Settings → Marketplace |
+| Listing publish | SHIPPED | `app/routers/listings.py` | Yes |
+| S3 source connector (STS trust policy paste flow) | PARTIAL | `app/services/s3_connector.py` | Yes — wizard renders and accepts inputs; full activation gate is in flight under the S3 STS fulfillment work |
+| Signed delivery tokens | SHIPPED | `app/services/delivery_token.py` | No — server-to-server with ai.market backend |
+| Peer-to-peer delivery channel | SHIPPED | `app/peer/` (shared aim-core with AIM Node) | No — kicks in at buyer-purchase time |
+| Stripe payouts | SHIPPED | server-side at ai.market backend (Stripe Connect) | Yes — connects via Settings → Marketplace |
+| One-click auto-update from UI | SHIPPED | mounts `/var/run/docker.sock` in compose | Yes — optional; customer can remove the mount |
+| Embedded allAI assistant chat | SHIPPED | `app/routers/allai_chat.py`, `app/services/allai_agentic_provider.py` | Yes — routes through ai.market's `/api/v1/allie/chat/agentic` proxy; no customer Anthropic key needed |
+| MCP server endpoint | SHIPPED | `app/mcp_server.py` | Yes — exposes AIM Data to AI agents |
+| Database connector (BQ-VZ-DB-CONNECT) | SHIPPED | `app/services/db_extractor.py` | Yes — extract from customer's local Postgres / MySQL |
+| Tika document parsing | SHIPPED | `app/services/tika_client.py` | Yes — extracts text from PDFs and Office docs |
+
+## Architecture
+
+Two containers on the customer's machine.
+
+```
+docker-compose.aim-data.yml
+├── vectoraiz    ghcr.io/aidotmarket/aim-data:${AIM_DATA_VERSION}   nginx (UI) + uvicorn (API)
+└── postgres     postgres:16-alpine                                  metadata, local auth, usage tracking
+```
+
+AIM Data does not bundle a vector database. The earlier stack carried a Qdrant container that has been removed from the product because AIM Data does not convert documents into vector databases. That capability lives in vectorAIz (the separate parallel product), where it is the value prop for corporate customers who want to ship vector-ready data to the market.
+
+The image is one container with both nginx and uvicorn running side by side via the entrypoint. nginx exposes port 80 internally and serves the React UI plus reverse-proxies `/api/*` to uvicorn on `127.0.0.1:8000`. The compose file maps the customer's `${AIM_DATA_PORT:-8080}` to the container's 80. Uvicorn is locked to a single worker because the Co-Pilot uses a file-lock for coordination; scaling to multiple workers requires migrating that to Redis pub/sub. Cloudflared is baked into the image and the `tunnel` router exists for optional outbound-only tunnel deployments (useful for sellers behind restrictive NATs).
+
+Inside the API container, the layout follows a standard FastAPI app:
+
+```
+/Users/max/aim-data/
+├── app/
+│   ├── main.py              FastAPI entrypoint + router wiring
+│   ├── mcp_server.py        MCP server entrypoint for agent integration
+│   ├── config.py            settings (env vars, feature flags, service URLs)
+│   ├── auth/                local admin auth, API key issuance, JWT
+│   ├── routers/             ~35 endpoint groups (listings, sources, allai_chat, marketplace, ...)
+│   ├── services/            ~95 service modules (profiling, PII, quality, S3, allAI client, etc.)
+│   ├── models/              SQLAlchemy models (~28 tables, alembic-managed)
+│   ├── schemas/             Pydantic request/response schemas
+│   ├── middleware/          auth middleware, request logging, CORS
+│   ├── core/                cryptography, structured logging, error handling
+│   ├── cli/                 Click CLI (admin operations from inside the container)
+│   ├── scripts/             one-off setup scripts (run via entrypoint or manually)
+│   └── prompts/             Jinja templates for allAI prompts
+├── alembic/                 database migrations
+├── docker-compose.aim-data.yml
+├── Dockerfile               developer build
+├── Dockerfile.customer      production image pushed to GHCR
+├── entrypoint.sh            starts nginx + uvicorn together
+├── docs/
+│   ├── INSTALL.md           customer install guide (the one /aim-data#install links to)
+│   ├── RELEASING.md         developer release procedure
+│   ├── diagnostics/TROUBLESHOOTING.md
+│   └── security/SECURITY_MODEL.md
+└── installers/
+    └── aim-data/
+        ├── install.sh       served at get.ai.market/aim-data via CF Worker
+        └── install.ps1      served at get.ai.market/aim-data/windows
+```
+
+### Integration points
+
+| Integrates with | How | Purpose |
+|-----------------|-----|---------|
+| ai.market backend | HTTPS API + WebSocket Trust Channel | Marketplace registration, listing publish, delivery token issuance, metering, billing |
+| ai.market backend (Stripe Connect) | OAuth handoff | Seller Stripe account linking; payouts flow seller-direct |
+| allAI | HTTPS via ai.market proxy | Metadata generation, classification, listing description authoring |
+| Customer's S3 bucket | STS assume-role into customer's AWS account | Read-only; short-lived sessions; never reads when buyer isn't paying |
+| Customer's local databases | Direct via `host.docker.internal` or service name | Postgres, MySQL extraction (BQ-VZ-DB-CONNECT) |
+| Buyer's AIM Node or browser | Peer-to-peer encrypted channel (ChaCha20-Poly1305) | Data delivery at purchase time |
+| GHCR | Docker image pull | Customer pulls `ghcr.io/aidotmarket/aim-data:latest` at install and update |
+| Anthropic API | Customer's own key | Embedded allAI assistant chat (optional, off if key not provided) |
+
+### Fork ancestry, vectorAIz relationship, and legacy naming
+
+vectorAIz is the parallel product that converts documents into vector database files. That capability is its value prop, aimed at attracting corporate data to the marketplace where buyers can purchase ready-to-use vector data. vectorAIz remains a live product on its own development track.
+
+AIM Data was forked from vectorAIz's repo into its own `aidotmarket/aim-data` codebase because AIM Data does not need the document-to-vector-database conversion, and the two products serve different seller workflows on different roadmaps. The two are now separate codebases on separate lifecycles.
+
+The fork is recent enough that legacy vectorAIz naming still surfaces inside AIM Data. Env vars like `VECTORAIZ_CHANNEL`, `VECTORAIZ_VERSION`, and `VECTORAIZ_SECRET_KEY` appear in `docker-compose.aim-data.yml`. The compose service that runs the API is still named `vectoraiz`. A handful of files like `vectoraiz_crypto.py` and `local_only_*` remained in the repo because internal code in `app/services/` still imports them. This naming is cosmetic legacy from the fork ancestor. Customer installs work fine through it. Rename cleanup is on the backlog and not blocking anything customer-facing.
+
+## Agent Capability Map
+
+Which AI agents touch AIM Data and what they can do.
+
+| Agent | Where it runs | What it does | Scope |
+|-------|---------------|--------------|-------|
+| allAI (metadata generator) | ai.market backend, called from inside AIM Data | Reads customer's profiled data structure (NOT raw rows), writes listing description, generates tags, classifies fields, scores PII risk, scores quality | Metadata only. Never sees raw data. Output is structured (Pydantic schemas). |
+| allAI (embedded chat) | AIM Data container, calls Anthropic API direct with customer's own key | In-product chat for the seller, can answer questions about their data and their listings | Customer-side only. Optional. Off if `ANTHROPIC_API_KEY` not set. |
+| ai.market MCP server (server-side) | ai.market backend | Exposes the marketplace to AI agents: search, listing detail, purchase intent, requirements board | AIM Data's listings are automatically agent-discoverable through this. No extra integration on the seller's side. |
+| AIM Data MCP server (customer-side) | Inside the AIM Data container | Exposes seller-side data operations (listing draft, publish, source management) to local AI agents | Customer-side automation. Off by default; customer enables when they want agent-driven publishing. |
+| AG / MP / DeepSeek / CC (Council) | ai.market backend during build/review | Reviews specs and PRs that touch AIM Data. Not customer-facing. | Internal dev only. Never exposed to sellers or buyers. |
+
+The principle from CORE.md §2 holds end-to-end: **allAI mediates everything**. Buyers and sellers never communicate directly. The agent that prepared the listing on the seller's side is the same one that answers a buyer's clarifying question on the marketplace side.
+
+## Operate — Serving Sellers
+
+The end-to-end flow from "seller signs up on ai.market" to "buyer's purchase pays out via Stripe."
+
+### Install
+
+1. Seller visits ai.market/aim-data and clicks Install.
+2. Seller runs the one-liner appropriate for their OS. Currently broken at `get.ai.market` (502); fallback is the manual compose flow in `docs/INSTALL.md`.
+3. Seller creates a `.env` file per the values in `docs/INSTALL.md`. `POSTGRES_PASSWORD` is required (the compose fails fast without it). Other values either auto-generate to `/data` on first boot if not provided (HMAC secret, Fernet key) or come from me at activation time (serial + bootstrap token + keystore passphrase). AIM Data does NOT use the customer's own Anthropic API key — all allAI calls route through the ai.market `/agentic` proxy. INSTALL.md currently still lists `ANTHROPIC_API_KEY` as required; that's documentation drift from before the air-gap refactor and is flagged for correction.
+4. `docker compose -f docker-compose.aim-data.yml up -d` pulls about 5GB of images on first run and brings up the three containers.
+5. After roughly a minute, `curl http://localhost:8080/api/health` returns `status: ok`.
+
+### First admin login
+
+Seller opens `http://localhost:8080` in a browser. The first visit shows an admin-creation screen because no users exist yet. Seller picks an email and password. That account is the admin with full access. There is no password reset path on the install side, so the seller saves the password somewhere safe.
+
+### Serial activation
+
+If I issued the seller a serial and bootstrap token (per-customer values I send by email at signup), they go in `.env` as `AIM_DATA_SERIAL` and `AIM_DATA_BOOTSTRAP_TOKEN`. The container reads both at first boot, calls home to ai.market once to register, and clears the bootstrap token from memory after a successful activation. After that the seller only needs the serial. The activation is silent and has no UI prompt. Without the serial, the install still runs but is not marketplace-connected.
+
+### Connect to ai.market as a seller
+
+Inside the app: Settings → Marketplace. The flow asks for the seller's name, billing email, and counterparty business details. After submit, ai.market sends a confirmation email. Clicking the link makes the install show up as a seller on the marketplace. Until that click, no listings can publish.
+
+### Set up the S3 source connector
+
+Settings → Data Sources → Add S3 Source. The wizard renders a JSON trust policy that names the ai.market AWS account as the trusted principal. Seller copies the JSON, opens their own AWS IAM console, creates a role with S3 read access to the bucket they want to list from, pastes the trust policy as the role's trust relationship, and pastes the role ARN back into AIM Data. Clicking Verify runs an STS `AssumeRole` call. Green means the connector is ready. Long-lived AWS credentials stay in the seller's account. AIM Data only holds the short-lived assumed-role session when it reads.
+
+### Prepare and publish a listing
+
+Seller picks a data source (S3 prefix, local database, local file directory). AIM Data profiles structure, runs the PII scan if enabled, runs the quality score if enabled, and asks allAI to draft the listing description. Seller reviews everything, edits as needed, and clicks Publish. Only the metadata and the description go live on ai.market. Raw data stays with the seller.
+
+### Buyer purchases, delivery happens
+
+When a buyer purchases on ai.market, Stripe processes payment. ai.market sends the seller's AIM Data instance a signed delivery token over the Trust Channel. AIM Data validates the token, opens an encrypted peer-to-peer channel to the buyer (ChaCha20-Poly1305, per-session ephemeral keys), and streams the bytes. The relay sees only ciphertext. ai.market never sees the data. Stripe Connect pays out the seller minus the 5% marketplace commission.
+
+### Update to a new version
+
+When I release a new version:
+
+```
+docker compose -f docker-compose.aim-data.yml pull
+docker compose -f docker-compose.aim-data.yml up -d
+```
+
+Data, settings, registration, and connectors carry across.
+
+## Evolve — Invariants and Boundaries
+
+What CAN'T change without re-architecting AIM Data.
+
+### Invariants
+
+1. **Non-custodial.** AIM Data is on the seller's machine. ai.market never holds the seller's raw data, never holds their AWS credentials, and never holds their data bucket contents. Any change that requires raw data to transit ai.market servers is BREAKING.
+2. **allAI mediates everything.** Buyers and sellers never communicate directly through AIM Data. Any flow that creates a direct buyer-seller channel without allAI in the middle is BREAKING.
+3. **Local-first processing.** Profiling, PII scanning, and quality scoring run on the seller's machine. Pushing any of these to ai.market is BREAKING.
+4. **Honest signals.** PII and quality scores are nullable. `null` means "the seller has not run this scan." Faking a clean signal when a scan has not run is BREAKING.
+5. **One seller identity per install.** AIM Data is tied to one ai.market seller account at activation. Multi-tenant inside one install is BREAKING.
+6. **Read-only S3.** The STS assumed role grants S3 read only. Any code path that writes to a customer S3 bucket is BREAKING.
+7. **Customer keeps the keystore passphrase.** The passphrase signs the seller's marketplace requests. ai.market never has it. If the seller loses it, they regenerate and lose attribution on existing listings. This is by design and is documented to customers.
+
+### Boundaries — what stays in AIM Data, what stays at ai.market
+
+| Stays inside AIM Data (seller's machine) | Stays at ai.market |
+|------------------------------------------|-----|
+| Raw data | Listing metadata only |
+| Customer's AWS credentials | Listing index, search, agent-discoverable surface |
+| Local Postgres state | Buyer accounts, purchase ledger |
+| Customer's Anthropic key | Stripe Connect link to seller account |
+| Profiling / PII / quality outputs | Delivery tokens (issued at purchase, signed) |
+| Customer's seller identity keystore | Aggregated metering (counts, byte volumes) |
+
+### Change classes
+
+**BREAKING** — anything that violates the invariants above, or removes a Settings page, or changes the `.env` contract without a backwards-compatible default, or changes an authz scope.
+
+**REVIEW** — anything that touches the activation flow, the marketplace registration flow, the Stripe Connect handoff, the delivery token validation, or the S3 STS trust policy template. These are the surfaces where a regression silently breaks customer trust.
+
+**SAFE** — UI copy, internal service refactors that preserve external behavior, allAI prompt tweaks that don't change schema, version bumps to non-protocol dependencies.
+
+### Active product changes in flight
+
+Concrete items pending follow-up builds. Each is a real customer-facing risk if not closed.
+
+- **Qdrant removal from the AIM Data stack.** Product decision: AIM Data is not in the vector-database business; that capability belongs to vectorAIz. The Qdrant container has been removed from this runbook's architecture description. The actual `docker-compose.aim-data.yml`, any `qdrant_client` calls in `app/services/`, and the `QDRANT_HOST` / `QDRANT_PORT` env vars are pending removal in a follow-up build. Customer-facing impact: nothing breaks for current customers because Qdrant was internal to the stack; the next image build drops the container.
+
+- **`get.ai.market` Cloudflare Worker returns 502.** Both customer install entry points (curl-bash and PowerShell) are dead. The manual `docker-compose` flow in `docs/INSTALL.md` still works as a fallback. Fix is either repairing the Worker route binding to serve `install.sh` and `install.ps1` from GitHub release assets, or redirecting `get.ai.market/aim-data` to the GitHub release URL directly. Highest-priority customer-ship blocker.
+
+- **Installer image-name drift.** The Mac/Linux and Windows installers both pre-pull `ghcr.io/aidotmarket/vectoraiz:latest`, but the compose file references `ghcr.io/aidotmarket/aim-data:${AIM_DATA_VERSION:-latest}`. Either these are the same image double-tagged, or the installer wastes a ~5GB pull and the actual compose pull happens silently on `up`. Worth a one-pass fix to align the installer to `aim-data` so the pre-pull lines up with what `compose up` actually uses.
+
+- **Compose-file source URL points at the old monorepo.** The Mac/Linux installer downloads `docker-compose.aim-data.yml` from `raw.githubusercontent.com/aidotmarket/vectoraiz/main`, but `docs/INSTALL.md` (the human-facing guide) tells customers to fetch from `aidotmarket/aim-data/main`. If the two repos drift, customers following different paths get different compose files. Pick one canonical, fix the other.
+
+- **Release workflow smoke test broken.** `aim-data-release.yml` does `docker run -d -p 8080:8080` and `curl http://localhost:8080/health`, but the customer image exposes port 80 (nginx) with the API at `/api/health`. Nothing listens on 8080 inside the container, so the smoke test always times out. Effect: either every release has been silently failing the smoke step (and the create-release job that follows it), or the workflow is reporting green on a bad test. Worth checking recent Actions runs before assuming the smoke is functional. Fix: change to `-p 8080:80` and `curl http://localhost:8080/api/health`.
+
+- **INSTALL.md drift on `ANTHROPIC_API_KEY`.** The customer-facing install guide instructs sellers to set `ANTHROPIC_API_KEY=sk-ant-...` in their `.env`. After the air-gap refactor (`BQ-127`), all allAI calls route through the ai.market `/agentic` proxy — no customer Anthropic key is needed anywhere in the stack. Documentation drift, not a code bug. Customer-facing impact: sellers think they need an Anthropic account and key, which is incorrect friction. Fix is a doc edit to INSTALL.md.
+
+- **Release runbook still references the old monorepo.** `aim-data-release-process.md` says the repo is `aidotmarket/vectoraiz`. The release script `release-aim-data.sh` does live in the monorepo (canonical at `/Users/max/Projects/vectoraiz/vectoraiz-monorepo/scripts/`), but the AIM Data product repo is now `aidotmarket/aim-data`. Update the release runbook to reflect both paths.
+
+### Known unfixed product bugs (from TROUBLESHOOTING.md)
+
+Surfacing here so they don't get lost between sessions.
+
+- **RC#22 (CRITICAL):** ProcessWorkerManager semaphore leak in indexing path. Every customer batch-uploading past `N` files hits a deadlock. `N` defaults to `max(2, min(cores//4, 8))` so on a typical 8-core machine this is 8 files. One-liner fix: add `handle._cleanup()` in `app/services/processing_service.py:_run_indexing()` after `handle.wait()`. (Captured as F-11 in §F.)
+- **RC#15:** No re-queue on startup recovery. Files in `uploaded` status at restart never auto-resume; customer must manually re-trigger reprocessing. Fix in `app/main.py` lifespan after `recover_stuck_records()`.
+- **RC#16:** WorkerHandle cleanup not guaranteed; `_active_processes` list grows forever in long-running containers.
+- **RC#19:** `/api/allai/status` endpoint shows `not_configured` because it hasn't been updated to reflect the ai.market proxy mode. Cosmetic — customers think the LLM is broken when it works.
+
+## Isolate — Diagnosing Deviations
+
+The known failure modes a seller or operator hits, ranked by likelihood. This table is enriched as we run more real installs. Currently the highest-frequency entry is the install one-liner returning 502 because the customer never gets past step one.
+
+| ID | Symptom | Probable causes | Verify by | Repair |
+|----|---------|-----------------|-----------|--------|
+| F-01 | `curl https://get.ai.market/aim-data` returns 502 | Cloudflare Worker at `get.ai.market` not deployed or misconfigured. | `curl -I https://get.ai.market/aim-data` returns 502; `dig get.ai.market` resolves to Cloudflare. | Repair the Worker route OR redirect `get.ai.market/aim-data` to the GitHub release asset. Until fixed, direct customers to the manual `docker-compose` flow in `docs/INSTALL.md`. |
+| F-02 | Installer dies with "Docker is not installed" or "daemon not running" | Docker Desktop or Docker Engine not present, or daemon stopped. | `docker info` returns errors. | Customer installs Docker Desktop or Engine, starts the daemon, re-runs the installer. |
+| F-03 | `docker compose up -d` fails with "port is already allocated" or "address already in use" | Customer already running something on 8080, or a previous AIM Data instance was not torn down. | `lsof -iTCP:8080 -sTCP:LISTEN` (Mac/Linux) or `netstat -ano \| findstr :8080` (Windows). | Set `AIM_DATA_PORT=<other>` in `.env` and `docker compose up -d`. |
+| F-04 | Compose fails with "Set POSTGRES_PASSWORD in .env" before any container starts | `.env` file missing the required value. The compose file uses `:?` to hard-fail when this is missing. | `grep POSTGRES_PASSWORD .env` — empty or absent. | Add `POSTGRES_PASSWORD=<strong-random>` to `.env` (e.g. `openssl rand -hex 32`). Then `docker compose up -d`. |
+| F-05 | Apple Silicon Mac fails docker pull with "no matching manifest for linux/arm64" | A release missed the multi-arch build, or QEMU setup in the release workflow regressed. | `docker manifest inspect ghcr.io/aidotmarket/aim-data:<tag>` must list both `amd64` and `arm64`. | Re-run the release workflow with QEMU setup verified. CI integrity gate normally catches this but has been known to slip. |
+| F-06 | `docker compose up -d` looks frozen on first pull | First-pull downloads about 5GB of images. Slow connections take several minutes. Normal. | `docker compose -f docker-compose.aim-data.yml logs vectoraiz` shows pull progress. | Wait. Subsequent starts are fast. |
+| F-07 | `localhost:8080` shows `ERR_CONNECTION_REFUSED` | Containers not running. Most often: customer ran `up` without `-d` and closed the terminal, or `docker compose down` was run. | `docker compose -f docker-compose.aim-data.yml ps` — no rows or all `Exited`. | `docker compose -f docker-compose.aim-data.yml up -d` again. Inspect `docker compose logs` if it won't start. |
+| F-08 | S3 connector wizard shows `status=error` with "STS AssumeRole AccessDenied" or 403 | Trust policy paste wrong, role ARN wrong, missing `external_id` condition, role lacks `s3:ListBucket` + `s3:GetObject`, or bucket region mismatch. | From inside the container: `aws sts assume-role --role-arn <pasted> --role-session-name test` — should return temporary credentials. | Re-paste the trust policy from the wizard exactly. Add `s3:ListBucket` on bucket ARN plus `s3:GetObject` on `bucket/*` in the role's permission policy. Confirm bucket region matches. Click Verify. |
+| F-09 | First-boot activation fails: container repeatedly logs "activation required" or "422 from /serials/{serial}/activate" | Customer pasted token wrong, token already redeemed (one-time-use), or network blocked outbound to `api.ai.market`. | `docker compose logs vectoraiz \| grep -i activation` shows the activation outcome. | Ask Max for a fresh token. Re-paste `AIM_DATA_SERIAL` and `AIM_DATA_BOOTSTRAP_TOKEN`. `docker compose restart vectoraiz`. |
+| F-10 | Marketplace registration confirmation email never arrives | ai.market backend Stripe webhook delay, customer typo in billing email, or spam folder. | Check spam. Check the address in Settings → Marketplace matches the one I sent the serial to. | Resend from ai.market admin. Worst case I flip the seller-confirmation flag manually. |
+| F-11 | Batch upload of N+1 files freezes after N complete; (N+1)th file stuck in `extracting` or `indexing` forever | **CRITICAL — RC#22 semaphore leak in indexing path.** `ProcessWorkerManager` leaks a semaphore on each indexing run. N defaults to `max(2, min(cores//4, 8))`. Every customer doing batch upload past N files hits this. | `docker exec ... ps aux \| grep python` shows only 1 python process; postgres `SELECT status, count(*) FROM dataset_records GROUP BY status` shows stuck files; container at low CPU. | **Workaround**: `docker restart vectoraiz` container; re-trigger reprocessing via UI. **Real fix pending**: one-liner add `handle._cleanup()` to indexing path in `app/services/processing_service.py:_run_indexing()` after `handle.wait()`. Tracked as RC#22 in TROUBLESHOOTING.md. |
+| F-12 | After `AIM_DATA_KEYSTORE_PASSPHRASE` rotation, marketplace publish fails with signature error; existing listings orphan | Wallet identity is bound to passphrase via KDF; `/data/keystore/keystore.json` was generated with old passphrase. | Compare current `AIM_DATA_KEYSTORE_PASSPHRASE` in `.env` against backup. | Restore old passphrase from backup if available. If not, delete `/data/keystore/`, restart container, accept that existing listings orphan under fresh seller identity. Document the trade-off to customer up front. |
+| F-13 | After `/data` volume wipe, install loses all API keys, keystore identity, and HMAC secret; encrypted-at-rest data unrecoverable | Customer wiped `/data` thinking it was scratch, or `docker compose down -v` recreated the volume. | `docker volume ls \| grep aim-data-data` — if missing, wipe happened. Check `/data/.vectoraiz_secret_key` and `/data/.vectoraiz_hmac_secret` on next boot — if regenerated, old keys lost. | Restore `/data` from backup. Without backup, all encrypted-at-rest data is unrecoverable; customer regenerates everything. |
+| F-14 | `docker pull ghcr.io/aidotmarket/aim-data:latest` fails with `toomanyrequests` or 429 | GHCR rate limit per IP, or customer behind shared NAT with other GHCR users. | Error message includes "toomanyrequests" or "rate limit." | `docker login ghcr.io` with a GitHub personal access token (`read:packages` scope). Retry pull. |
+
+## Repair Patterns
+
+Concrete fixes for the failure modes above, ordered to match. For each: the change, the rollback, and how to verify the repair held.
+
+These patterns assume the customer is technical enough to read a log file. For non-technical customers, escalate to me directly.
+
+### G-01 — Fix the broken install one-liner (F-01)
+
+**Change:** Deploy the Cloudflare Worker at `get.ai.market` so it serves `installers/aim-data/install.sh` for `/aim-data` and `install.ps1` for `/aim-data/windows`. CF Worker source and deploy procedure in cloudflare-worker.md.
+
+**Rollback:** Revert the Worker deployment. Customers fall back to `docs/INSTALL.md` manual flow which works.
+
+**Verify:** `curl -I https://get.ai.market/aim-data` returns 200 with `Content-Type: text/x-shellscript` or similar. Run the one-liner from a fresh directory and watch it complete.
+
+### G-02 to G-14 — Per the F-table
+
+For now, the Verify and Repair columns in §F are the operational guidance. When this section is enriched in a follow-up session, each F-row gets a matching G-row with code-level entry points and rollback procedures.
+
+## Acceptance Criteria — for this runbook
+
+This runbook is acceptable when:
+
+- A stateless operator (human or agent) given only this document and no prior context can: install AIM Data from scratch, diagnose any of the F-01 through F-14 failure modes, and execute the matching repair.
+- Every status in the Capability Matrix matches reality on the day of last verification.
+- Every BROKEN or PARTIAL item has a backing BQ or a flagged follow-up.
+- The Invariants section reflects the current CORE.md product description for AIM Data.
+- The install URLs (the curl one-liner and the manual compose URL) match what the ai.market website tells customers to run.
+
+## Lifecycle
+
+| Field | Value |
+|-------|-------|
+| Created | 2026-05-27 |
+| Last verified end-to-end | (pending the first real customer install) |
+| Refresh trigger | Any BREAKING change per §H, any new BROKEN status in the Capability Matrix, or 90 days since last verified |
+| Owner | Vulcan (orchestration) for content sync, Max for product decisions |
+| Escalation | Max directly |
+
+## Conformance
+
+The runbook standard at `specs/BQ-RUNBOOK-STANDARD.md` defines §A through §K with prescribed agent forms. This runbook follows the conceptual coverage of those sections but uses the narrative + tables style of `aim-node.md` rather than the strict template skeleton at `templates/runbook.template.md`. Reasons:
+
+- The strict template is structured for the runbook linter and harness. Until both are wired against this file, the narrative form is more useful for a non-technical co-founder read.
+- The peer product runbook (`aim-node.md`) is also narrative + tables, and is the de facto pattern in this repo today.
+
+When the linter + harness ship, this runbook converts to the strict form. The conceptual content stays. Until then, the gaps from strict conformance are: no YAML frontmatter `linter_version` field, §E scenarios in prose rather than `yaml operate` blocks, §G patterns in prose rather than `yaml repair` blocks.
+
+## Related
+
+- [aim-data-release-process.md](aim-data-release-process.md) — release cut procedure (needs update to the forked repo path)
+- [aim-node.md](aim-node.md) — peer product runbook (the dev conduit; AIM Data is the seller conduit)
+- [cloudflare-worker.md](cloudflare-worker.md) — `get.ai.market` Worker that serves the install one-liner
+- [infisical-secrets.md](infisical-secrets.md) — how the seller's `.env` values relate to operator-side secrets
+- [ai-market-backend.md](ai-market-backend.md) — the marketplace side AIM Data talks to
+- ai.market customer-facing pages: [/aim-data](https://ai.market/aim-data), [/sell-data](https://ai.market/sell-data)
+- CORE.md product description: `docs/core/CORE.md` → "AIM-Channel — The Non-Dev Conduit" (CORE.md positions AIM-Channel as the data-seller conduit class; AIM Data is the current implementation of that role. CORE.md still describes a shared-codebase-with-vectorAIz model that is no longer accurate post-fork — flagged for CORE.md update)
