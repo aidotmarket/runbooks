@@ -65,14 +65,16 @@ irm https://get.ai.market/aim-data/windows | iex            # Windows
 
 **Status:** CF Worker routes — see [cloudflare-worker.md](cloudflare-worker.md) for current state.
 
-## Repo
+## Repos
 
-- **GitHub:** aidotmarket/vectoraiz (monorepo)
-- **Local:** `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`
-- **Docker image:** `ghcr.io/aidotmarket/aim-data`
-- **Dockerfile:** `Dockerfile.customer` in monorepo root
-- **Compose file:** `docker-compose.aim-data.yml`
-- **Installers:** `installers/aim-data/install.sh`, `installers/aim-data/install.ps1`
+The AIM Data product split off from the vectoraiz monorepo. Release machinery still lives in the monorepo. Product code, customer-facing installers, and the published Docker image live in the standalone repo.
+
+- **Product repo (customer-facing code, installers, compose, INSTALL.md):** `aidotmarket/aim-data` — local at `/Users/max/aim-data`
+- **Release script repo (`release-aim-data.sh`, tag bumping, GHA workflow inputs):** `aidotmarket/vectoraiz` — local at `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`
+- **Docker image:** `ghcr.io/aidotmarket/aim-data` (multi-arch amd64 + arm64)
+- **Dockerfile:** `Dockerfile.customer` (lives in `aidotmarket/aim-data` and is what the GHA release workflow builds)
+- **Compose file:** `docker-compose.aim-data.yml` at the root of `aidotmarket/aim-data`
+- **Installers:** `installers/aim-data/install.sh` and `install.ps1` in `aidotmarket/aim-data`. Served at `get.ai.market/aim-data` and `get.ai.market/aim-data/windows` via the `get-ai-market` Cloudflare Worker (source: `aidotmarket/cf-get-worker`).
 
 ## When it breaks
 
