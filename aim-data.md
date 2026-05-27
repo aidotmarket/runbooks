@@ -217,7 +217,7 @@ Concrete items pending follow-up builds. Each is a real customer-facing risk if 
 
 - **Qdrant removal from the AIM Data stack.** Product decision: AIM Data is not in the vector-database business; that capability belongs to vectorAIz. The Qdrant container has been removed from this runbook's architecture description. The actual `docker-compose.aim-data.yml`, any `qdrant_client` calls in `app/services/`, and the `QDRANT_HOST` / `QDRANT_PORT` env vars are pending removal in a follow-up build. Customer-facing impact: nothing breaks for current customers because Qdrant was internal to the stack; the next image build drops the container.
 
-- **`get.ai.market` Cloudflare Worker returns 502.** Both customer install entry points (curl-bash and PowerShell) are dead. The manual `docker-compose` flow in `docs/INSTALL.md` still works as a fallback. Fix is either repairing the Worker route binding to serve `install.sh` and `install.ps1` from GitHub release assets, or redirecting `get.ai.market/aim-data` to the GitHub release URL directly. Highest-priority customer-ship blocker.
+- **~~`get.ai.market` Cloudflare Worker returns 502~~ DONE 2026-05-27.** Repointed Worker GitHub-raw constant from `aidotmarket/vectoraiz` to `aidotmarket/aim-data` after the repo split moved the installer files. Same fix added `/aim-data/windows` and `/aim-node/windows` routes that were advertised on the marketing site but had no Worker handler. Both customer install one-liners (curl-bash and PowerShell irm) now return 200. Commits `46c3806` and `a6729e5` on `aidotmarket/cf-get-worker`. See §G-01 for the repeatable Worker install-path-drift pattern.
 
 - **Installer image-name drift.** The Mac/Linux and Windows installers both pre-pull `ghcr.io/aidotmarket/vectoraiz:latest`, but the compose file references `ghcr.io/aidotmarket/aim-data:${AIM_DATA_VERSION:-latest}`. Either these are the same image double-tagged, or the installer wastes a ~5GB pull and the actual compose pull happens silently on `up`. Worth a one-pass fix to align the installer to `aim-data` so the pre-pull lines up with what `compose up` actually uses.
 
@@ -244,7 +244,7 @@ The known failure modes a seller or operator hits, ranked by likelihood. This ta
 
 | ID | Symptom | Probable causes | Verify by | Repair |
 |----|---------|-----------------|-----------|--------|
-| F-01 | `curl https://get.ai.market/aim-data` returns 502 | Cloudflare Worker at `get.ai.market` not deployed or misconfigured. | `curl -I https://get.ai.market/aim-data` returns 502; `dig get.ai.market` resolves to Cloudflare. | Repair the Worker route OR redirect `get.ai.market/aim-data` to the GitHub release asset. Until fixed, direct customers to the manual `docker-compose` flow in `docs/INSTALL.md`. |
+| F-01 | `curl https://get.ai.market/aim-data` returned 502 (FIXED 2026-05-27) | Worker was fetching install.sh from `aidotmarket/vectoraiz` repo at the old path after the repo split moved files to `aidotmarket/aim-data`. Worker returned 502 with body `Upstream error: 404`. | `curl -I https://get.ai.market/aim-data` returns 200 (was 502). | Fixed in `aidotmarket/cf-get-worker` commit `46c3806` — repointed `GITHUB_RAW` from vectoraiz to aim-data. Same patch also added `/aim-data/windows` route for PowerShell `irm`. Reference for future similar Worker drift. |
 | F-02 | Installer dies with "Docker is not installed" or "daemon not running" | Docker Desktop or Docker Engine not present, or daemon stopped. | `docker info` returns errors. | Customer installs Docker Desktop or Engine, starts the daemon, re-runs the installer. |
 | F-03 | `docker compose up -d` fails with "port is already allocated" or "address already in use" | Customer already running something on 8080, or a previous AIM Data instance was not torn down. | `lsof -iTCP:8080 -sTCP:LISTEN` (Mac/Linux) or `netstat -ano \| findstr :8080` (Windows). | Set `AIM_DATA_PORT=<other>` in `.env` and `docker compose up -d`. |
 | F-04 | Compose fails with "Set POSTGRES_PASSWORD in .env" before any container starts | `.env` file missing the required value. The compose file uses `:?` to hard-fail when this is missing. | `grep POSTGRES_PASSWORD .env` — empty or absent. | Add `POSTGRES_PASSWORD=<strong-random>` to `.env` (e.g. `openssl rand -hex 32`). Then `docker compose up -d`. |
@@ -265,13 +265,19 @@ Concrete fixes for the failure modes above, ordered to match. For each: the chan
 
 These patterns assume the customer is technical enough to read a log file. For non-technical customers, escalate to me directly.
 
-### G-01 — Fix the broken install one-liner (F-01)
+### G-01 — Worker install-path drift (the F-01 class of fix, shipped 2026-05-27)
 
-**Change:** Deploy the Cloudflare Worker at `get.ai.market` so it serves `installers/aim-data/install.sh` for `/aim-data` and `install.ps1` for `/aim-data/windows`. CF Worker source and deploy procedure in cloudflare-worker.md.
+**Symptom class:** A `get.ai.market/<product>` URL returns 502 with body `Upstream error: 404` (the Worker is alive and reached upstream, but upstream is missing the file).
 
-**Rollback:** Revert the Worker deployment. Customers fall back to `docs/INSTALL.md` manual flow which works.
+**Root cause:** The Worker source in `aidotmarket/cf-get-worker` has hardcoded GitHub raw URLs at the top of `src/index.js`. When a product repo gets split or renamed, those constants need updating. The 502 is the Worker translating a 404 from `raw.githubusercontent.com`.
 
-**Verify:** `curl -I https://get.ai.market/aim-data` returns 200 with `Content-Type: text/x-shellscript` or similar. Run the one-liner from a fresh directory and watch it complete.
+**Change:** Update the relevant constant in `src/index.js` (e.g. `GITHUB_RAW`, `AIM_NODE_RAW`). Then `cd /Users/max/Projects/ai-market/cf-get-worker && CLOUDFLARE_API_TOKEN=$(infisical secrets get CLOUDFLARE_API_TOKEN --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c --env prod --domain https://secrets.ai.market --plain) npx wrangler deploy`. Wrangler may report a route-binding 401 — that's benign because routes in wrangler.toml already match what's configured at Cloudflare; the script upload step still succeeds.
+
+**Rollback:** `git revert` the source commit, re-deploy. Customer fallback while the Worker is broken is the manual `docker compose` flow in `docs/INSTALL.md` which doesn't depend on `get.ai.market`.
+
+**Verify:** `curl -sI -H "Cache-Control: no-cache" https://get.ai.market/aim-data` returns 200 with `Content-Type: text/x-shellscript`. Body of a successful `curl -sL` should start with `#!/usr/bin/env bash`.
+
+**Adjacent paths to verify on every Worker change:** `/aim-data`, `/aim-data/install.sh`, `/aim-data/install.ps1`, `/aim-data/docker-compose.yml`, `/aim-data/windows`, `/aim-data/` (landing), and the peer `/aim-node` set. The Worker handles both products.
 
 ### G-02 to G-14 — Per the F-table
 
