@@ -16,7 +16,8 @@
 |---|---|---|---|---|
 | `aimarket-aimdata-staging` (node staging bucket, eu-north-1) | SHIPPED | created S720 via `s3api create-bucket`; lockdown commands §E-01 | put/get/list/delete round-trip (S720) | 2026-05-28 |
 | Bucket lockdown baseline (BPA + BucketOwnerEnforced + SSE-S3) | SHIPPED | §E-01 command sequence; `aimarket-s3-svc` policy | verified on staging bucket (S720) | 2026-05-28 |
-| `aimarket-backups-prod` (versioned + Object Lock + Glacier lifecycle) | PLANNED | §E-05/§E-03 | — | — |
+| `aimarket-backups-prod` (versioned + Object Lock COMPLIANCE/35d) | SHIPPED | created S723 (§E-05); see §E-06 backup-writer | first ai.market PG dump uploaded + size-matched; write/delete probe (S723) | 2026-05-28 |
+| `aimarket-backup-writer` IAM identity (write-only backups) | SHIPPED | inline policy `backup-write-only` = `s3:PutObject`+`s3:ListBucket` only | PutObject OK / DeleteObject AccessDenied verified (S723) | 2026-05-28 |
 | S3 connector assume-role (`role_arn` + `external_id`) | PLANNED | backend `app/models/s3_connection.py:S3Connection`; trust+permission policy §E-04 | — | — |
 | Object lifecycle → Glacier Deep Archive (backups) | PLANNED | §E-03 | — | — |
 
@@ -79,11 +80,18 @@ aws s3api put-bucket-tagging --bucket $B --tagging 'TagSet=[{Key=project,Value=a
 - expected_failures: `AccessDenied` on AssumeRole (trust principal or ExternalId mismatch) → §F-03
 - next_step_success: configure the connection in the AIM Data app with `role_arn` + `external_id`
 
-**E-05 — Enable versioning + Object Lock (backups bucket).**
-- note: Object Lock must be enabled at create-time (`--object-lock-enabled-for-bucket`); versioning is auto-on with it
-- tool_or_endpoint: `aws s3api create-bucket ... --object-lock-enabled-for-bucket $P`; then `put-object-lock-configuration` (GOVERNANCE/COMPLIANCE, retention days)
+**E-05 — Enable versioning + Object Lock (backups bucket).** *(DONE for `aimarket-backups-prod` S723)*
+- note: Object Lock must be enabled at create-time (`--object-lock-enabled-for-bucket`); versioning is auto-on with it. **Mode is permanent at creation** — cannot be changed/added later.
+- tool_or_endpoint: `aws s3api create-bucket ... --object-lock-enabled-for-bucket $P`; then `put-object-lock-configuration`
+- **DECIDED (S723, Max):** `aimarket-backups-prod` = **COMPLIANCE / 35-day** default retention. Compliance (not Governance) so backups survive a compromised credential — no principal incl. root can delete/shorten a locked object within 35 days. SSE-S3 AES256 + bucket key; BPA all-true. acct 948749907373, eu-north-1.
 - idempotency: config IDEMPOTENT
-- expected_success: versioning Enabled; object-lock configured
+- expected_success: versioning Enabled; object-lock = COMPLIANCE/35
+
+**E-06 — Write a backup object (write-only identity).** *(the path the nightly job uses)*
+- identity: IAM user `aimarket-backup-writer`, inline policy `backup-write-only` (`s3:PutObject` on `aimarket-backups-prod/*` + `s3:ListBucket`). **No** Delete / PutObjectRetention / BypassGovernanceRetention — a stolen writer key cannot destroy or alter existing backups.
+- creds: Infisical project `ai-market-backend` (bd272d48-...), env prod: `AWS_BACKUP_WRITER_ACCESS_KEY_ID` / `AWS_BACKUP_WRITER_SECRET`.
+- layout: `s3://aimarket-backups-prod/postgres/ai-market/<date>/` and `/postgres/infisical/<date>/`.
+- verified S723: PutObject OK, ListBucket OK, DeleteObject → AccessDenied (least-privilege holds). First ai.market PG dump (~987MB, custom format) uploaded + S3 size matched byte-for-byte; restore-readiness confirmed via `pg_restore --list` (2,100 TOC entries), no restore against any live DB.
 
 ## §F. Isolate — Diagnosing Deviations
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
@@ -126,8 +134,8 @@ aws s3api put-bucket-tagging --bucket $B --tagging 'TagSet=[{Key=project,Value=a
 *(Equal weight. Harness + MP/AG answer-key sign-off pending — see §K.)*
 
 ## §J. Lifecycle
-- **last_refresh_session:** S720
-- **last_refresh_commit:** initial authoring (this commit)
+- **last_refresh_session:** S723 (backups-prod went live; was S720 authoring)
+- **last_refresh_commit:** S723 backup-bucket-live update
 - **last_refresh_date:** 2026-05-28
 - **owner_agent:** Vulcan-Primary
 - **refresh_triggers:** new bucket; connector-role change; lockdown-baseline change; incident; scheduled cadence
