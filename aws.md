@@ -16,9 +16,9 @@
 |---|---|---|---|---|
 | Scoped S3 service identity `svc-titan-vulcan` | SHIPPED | IAM policy `arn:aws:iam::948749907373:policy/aimarket-s3-svc`; Titan `~/.aws` profile `aimarket` | Manual: `sts get-caller-identity` + S3 round-trip (S720) | 2026-05-28 |
 | S3 bucket/object ops on `aimarket-*` | SHIPPED | `aimarket-s3-svc`; AWS CLI `~/Library/Python/3.13/bin/aws` on Titan-1 | put/get/list/delete round-trip (S720) | 2026-05-28 |
-| Broad operational access (PowerUser-class) for agent | PLANNED | proposed policy `aimarket-ops` (see §D, §E-05) | — | — |
+| Broad operational access (PowerUser-class) for agent | SHIPPED | AWS-managed `PowerUserAccess` + customer `aimarket-guardrail-deny`, attached to `svc-titan-vulcan` | Verified S720: broad allow works; Org/CloudTrail/IAM denies refused | 2026-05-28 |
 | Connector assume-role (`role_arn` + `external_id`) | PLANNED | backend `app/models/s3_connection.py:S3Connection`; IAM role TBD | — | — |
-| Billing budget + cost alarm | PLANNED | AWS Budgets (not yet created) | — | — |
+| Billing budget + cost alarm | SHIPPED | AWS Budgets `aimarket-monthly-guardrail` ($50/mo; alerts 50/80/100% to max@ai.market) | created S720 | 2026-05-28 |
 | Backend STS identity `ai-market-backend-sts` | SHIPPED | pre-existing IAM user (backend-owned, NOT agent-managed) | backend-owned | — |
 
 ## §C. Architecture & Interactions
@@ -34,11 +34,13 @@
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan | S3 bucket+object ops on `aimarket-*` | AWS CLI (Titan, profile `aimarket`) | `aimarket-s3-svc`: S3 on `aimarket-*` + `CreateBucket`/`ListAllMyBuckets` + `sts:GetCallerIdentity` | COMPLETE |
-| Vulcan | Broad AWS operational actions ("just do it") | AWS CLI | PROPOSED `aimarket-ops` = AWS-managed **PowerUserAccess** + explicit deny-guardrail; excludes IAM-admin / Organizations / account / billing-write | PLANNED — closes when Max attaches `aimarket-ops` (see §E-05) |
+| Vulcan | Broad AWS operational actions ("just do it") | AWS CLI | AWS-managed **PowerUserAccess** + customer **aimarket-guardrail-deny** (denies Organizations/account/billing-write, IAM identity+key creation & AttachUserPolicy, CloudTrail StopLogging/DeleteTrail, KMS DisableKey/ScheduleKeyDeletion, Config/GuardDuty disable) | COMPLETE — verified S720 |
 | Vulcan | Create the connector assume-role | AWS CLI | scoped `iam:CreateRole`+`PutRolePolicy` on `aimarket-connector-*` only | GAP — closes via console walk-through OR a narrow IAM add-on policy |
 | Vulcan | Destructive / IAM / billing / out-of-footprint | — | CONFIRM-FIRST (operating agreement, §H.1) | N/A — never auto; always surfaced to Max |
 
 **Operating agreement (the human guardrail behind "just do it").** With `aimarket-ops` attached, Vulcan auto-executes reversible, low-cost operational actions (create/configure/read S3, budgets, tagging, lifecycle rules, read-only across services). Vulcan CONFIRMS WITH MAX FIRST before: deleting buckets/objects holding data; terminating or deleting any resource holding state; any action with material recurring cost; anything touching IAM identities/policies or security/logging config (CloudTrail, KMS); or any action outside the ai.market footprint. Mirrors the §3 ASK-Max discipline in the session contract.
+
+**Verification (S720).** Broad allow confirmed (`ec2:DescribeRegions`, `s3 ls`). Deny-guardrail confirmed refusing `organizations:*`, `cloudtrail:StopLogging`, `iam:AttachUserPolicy`. The KMS deny is present (same policy statement as the confirmed CloudTrail deny) but is not positively testable with a nonexistent key — KMS returns `NotFoundException` for absent keys regardless of allow/deny. No customer-managed KMS keys are in use (S3 uses SSE-S3), so current exposure is nil; re-verify against a real key if/when CMKs are introduced.
 
 ## §E. Operate — Serving Customers
 **E-01 — Verify which AWS identity the agent is acting as.**
