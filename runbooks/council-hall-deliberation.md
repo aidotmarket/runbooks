@@ -31,7 +31,7 @@ The YAML frontmatter above defines the §A header. This runbook documents the Co
 
 ## §C. Architecture & Interactions
 
-Council Hall is a deliberation workflow, not a generic dispatch tool. It is used when independent reviews leave a strategic, architectural, process, or policy decision unresolved. The slice has three phases: Phase 1 independent assessment, Phase 2 collection and synthesis, and Phase 3 cross-pollination. A final decision record is produced after those phases by Vulcan, with Max escalation when no consensus emerges.
+Council Hall is a deliberation workflow, not a generic dispatch tool. It is used when independent reviews leave a strategic, architectural, process, or policy decision unresolved. The slice has three phases: Phase 1 independent assessment, Phase 2 collection and synthesis, and Phase 3 cross-pollination. Cross-pollination may iterate up to a HARD CAP of 4 rounds (Max-S726 directive). A final decision record is produced after those phases by Vulcan; if consensus has not emerged after 4 cross-poll rounds, Vulcan STOPS and escalates the decision to Max rather than looping further.
 
 Strategic why: the three-phase pattern exists to preserve independent reasoning before consensus pressure appears. Independent assessment comes first because showing one agent another agent's answer creates anchoring and role bias. Collection/synthesis comes second because Vulcan needs a faithful comparison table before deciding whether the disagreement is real or just wording. Cross-pollination comes after synthesis because agents should respond to concrete competing claims, not to vague disagreement summaries. DeepSeek is now a full voter because S528 graduation showed 94 dispatches with `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical record floor crushed 4.7x; it participates in open-ended deliberation through `mode=open_response` rather than the stricter review schema.
 
@@ -50,12 +50,12 @@ Strategic why: the three-phase pattern exists to preserve independent reasoning 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | MP | independent assessment and cross-poll response | Codex CLI / GPT-5.5 | repo read, optional full repo write only outside Hall review | COMPLETE |
-| AG | independent assessment and cross-vote reasoning | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
+| AG | independent assessment and cross-vote reasoning | google-genai SDK / Gemini 3.5 Flash (Vertex) | repo read | COMPLETE |
 | DeepSeek | full-voter open-response deliberation | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | fallback builder perspective and implementation-risk assessment | Claude Code / Opus | repo read for Hall, full repo write only after Hall decision | COMPLETE |
+| CC | full-voter deliberation + implementation-risk assessment (promoted fallback->4th voter per Max-S726) | Claude Code / Opus | repo read for Hall, full repo write only after Hall decision | COMPLETE |
 | Vulcan | orchestration, neutral prompt construction, synthesis, escalation | Anthropic API / MCP tools | gateway, Living State, all repos | COMPLETE |
 
-CC coverage is `COMPLETE` for the operation named in the row: implementation-risk assessment when Hall scope needs a fallback-builder read. CC is not required for every Hall. MP, AG, and DeepSeek are the normal deliberation voters. Vulcan is not a peer voter; Vulcan preserves neutrality, collects evidence, synthesizes faithfully, and escalates unresolved policy choices to Max.
+CC coverage is `COMPLETE` for the operation named in the row: implementation-risk assessment when Hall scope needs a fallback-builder read. CC is not required for every Hall. MP, AG, DeepSeek, and CC are the four normal deliberation voters (Max-S726 directive: DeepSeek waiver lifted per S725 verdict-emission fix; CC promoted from fallback to 4th full voter). Vulcan is not a peer voter; Vulcan preserves neutrality, collects evidence, synthesizes faithfully, and escalates unresolved policy choices to Max.
 
 ## §E. Operate
 
@@ -190,11 +190,13 @@ CC coverage is `COMPLETE` for the operation named in the row: implementation-ris
 - Cross-pollination must use a bundle that contains every eligible independent assessment exactly once.
 - Vulcan synthesis must separate agent positions from Vulcan's own assessment.
 - Live participant sets, model names, cost caps, and retired-agent state remain authoritative in `infra:council-comms`.
+- The default deliberation set is 4 full voters: MP, AG, DeepSeek, and CC (Max-S726; CC promoted from fallback, DeepSeek waiver lifted).
+- Cross-pollination is capped at 4 rounds; persistent no-consensus after round 4 escalates to Max and does not loop further.
 
 ### §H.2 BREAKING predicates
 
 - Removing the independent phase is BREAKING because it destroys the anti-anchoring property of the Hall.
-- Changing Hall participants from MP, AG, and DeepSeek defaults without a Council config review is BREAKING.
+- Changing Hall participants from the MP, AG, DeepSeek, CC 4-voter default (Max-S726) without a Council config review is BREAKING.
 - Enabling write-mode during Hall deliberation for AG or DeepSeek is BREAKING because deliberation is read-oriented.
 - Reintroducing XAI as an active Hall participant is BREAKING because retired-agent state and reliability assumptions change.
 
@@ -420,9 +422,9 @@ scenario_set:
 Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
 
 ```yaml lifecycle
-last_refresh_session: S530
+last_refresh_session: 726.W
 last_refresh_commit: 8929cbf
-last_refresh_date: 2026-04-29T00:00:00Z
+last_refresh_date: 2026-05-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
   - Council hall phase flow or synthesis policy changes
