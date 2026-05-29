@@ -12,18 +12,18 @@
 - **linter_version:** not yet run (prose form, consistent with sibling runbooks pending the harness pass)
 
 ## §B. Coverage Matrix — what restoring the whole market requires
-> Honest status as of S723. **A backup is only DR-complete when its row is LIVE.** Today only row 1 is LIVE.
+> Honest status as of S724. **A backup is only DR-complete when its row is LIVE.** LIVE: row 1 (ai.market PG, nightly) + row 8 (heartbeat/alerting for PG). PENDING: rows 2–7.
 
 | # | Component | Why it matters for restore | Backup method | Status | Restore ref |
 |---|---|---|---|---|---|
-| 1 | **ai.market Postgres** (marketplace + Living State + author_dispatch) | The platform's core data + dev/build state | `pg_dump -Fc` → S3 `postgres/ai-market/<date>/` (+ Railway native backups) | **LIVE** — first dump uploaded + verified S723 | §E-R2 |
+| 1 | **ai.market Postgres** (marketplace + Living State + author_dispatch) | The platform's core data + dev/build state | `pg_dump@17 -Fc` → S3 `postgres/ai-market/<date>/` via nightly launchd `com.aimarket.pg-backup` (+ Railway native backups) | **LIVE** — nightly automated; heartbeat to `infra:backup-health`; verified S724 | §E-R2 |
 | 2 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing can authenticate/deploy | in-Railway scheduled dump → S3 `postgres/infisical/<date>/` (DB has no public endpoint; dump runs inside its Railway project) | PENDING (build approved S723) | §E-R3 |
 | 3 | **Source code** (all `aidotmarket/*` repos) | The application itself; specs; HANDOFF history | nightly `git clone --mirror` / `fetch --all` → S3 `git-mirrors/<repo>.git` | PENDING | §E-R4 |
 | 4 | **Railway deployment config** (services, env vars, build/start, volumes, domains, cron) | How the code is wired into running infrastructure | nightly Railway API export (project/service/variables) → S3 `railway-config/<date>/` | PENDING | §E-R5 |
 | 5 | **Cloudflare** (Workers KV data, Worker code, DNS/zone config) | Edge routing, redirects, KV-held state | Worker code in repos (row 3); nightly KV bulk export + zone/DNS export → S3 `cloudflare/<date>/` | PENDING | §E-R6 |
 | 6 | **User/object data** | Marketplace is **non-custodial** — seller data stays in the seller's own S3 via STS, so it is NOT ours to back up. Any app-side uploaded files → confirm + cover. Qdrant vectors = re-ingestable, excluded. | per-source (confirm app object storage exists) | PENDING (scope confirm) | §E-R7 |
 | 7 | **Encryption key custody** (client-side AES-256-GCM key, offline) | Decrypt backups if Titan + all online copies are gone | key in Infisical + offline paper copy (S681 §14) | PENDING | §G-03 |
-| 8 | **Nightly automation + silent-failure alerting** | The last backup job failed silently for months | scheduled jobs + daily heartbeat to `infra:backup-health` + dead-man alert | PENDING | §F-01 |
+| 8 | **Nightly automation + silent-failure alerting** | The last backup job failed silently for months | scheduled jobs + per-run heartbeat to `infra:backup-health`; SysAdmin polls daily + escalates to allAI (sole Max-notifier: Telegram + support@ai.market) | **LIVE (ai.market PG)** — heartbeat + staleness contract shipped S724; flips fully LIVE as rows 2–5 jobs land | §F-01 |
 
 **Restore-from-bucket-alone answer (S723):** NOT YET. The bucket currently holds one snapshot of component 1. The other components still exist only in their primary homes (GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss — but a true "rebuild the market from the bucket" posture requires rows 2–6 to go LIVE.
 
@@ -38,7 +38,7 @@
 |---|---|---|---|---|
 | Vulcan | On-demand ai.market PG backup | `pg_dump@17` + boto3 (writer key) | backup-write-only + DB superuser URL | COMPLETE (§E-01) |
 | Vulcan | Verify a backup landed / restore-readiness | boto3 list + `pg_restore --list` | read | COMPLETE (§E-03) |
-| Vulcan | Build nightly jobs | launchd (Titan) + Railway cron | per-source | PENDING |
+| Vulcan | Build nightly jobs | launchd (Titan) + Railway cron | per-source | ai.market PG LIVE (S724); rows 2–5 PENDING |
 | Max | Enable Railway native backups/PITR | Railway console | owner | PENDING |
 | Max | Offline custody of encryption + Infisical master key | offline | physical | PENDING |
 
@@ -48,7 +48,7 @@
 - creds: `AUTHOR_DISPATCH_DATABASE_URL` (DB) + `AWS_BACKUP_WRITER_*` (S3), both Infisical `ai-market-backend` prod, injected via `infisical run`.
 - expected_success: pg_dump rc=0; S3 object size == local bytes; `pg_restore --list` returns a non-trivial TOC.
 
-**E-02 — Nightly automated (PENDING build).** Titan launchd for rows 1,3,4,5; Railway-internal cron for row 2; daily heartbeat to `infra:backup-health`; dead-man alert on staleness. Until LIVE, run E-01 manually.
+**E-02 — Nightly automated.** ai.market PG: **LIVE** — launchd `com.aimarket.pg-backup` on Titan-1, DST-safe dual schedule (01:00/02:00 Europe/Berlin) with a per-UTC-day success-lock (failed early slot retries at the later slot). Writes a per-run heartbeat (ok or failed) to `infra:backup-health` under `sources.ai-market-pg`. SysAdmin polls daily; if a source is stale (>26h) or last status != ok, it escalates to allAI — the only agent authorized to notify Max (Telegram + support@ai.market). Backup jobs and SysAdmin never contact Max directly. PENDING: row 2 (Railway-internal cron), rows 3/4/5 (Titan launchd). Until each is LIVE, run E-01 manually for that source.
 
 **E-03 — Verify a backup.** boto3 `list_objects_v2` shows today's object; size matches; `pg_restore --list` reads the archive (restore-readiness without restoring).
 
@@ -97,8 +97,8 @@
 
 ## §J. Lifecycle
 - **last_refresh_session:** S723 (authored; bucket live, ai.market PG backed up; rows 2–8 pending)
-- **last_refresh_commit:** S723 initial authoring
-- **last_refresh_date:** 2026-05-28
+- **last_refresh_commit:** S724 — ai.market PG nightly automation + heartbeat LIVE
+- **last_refresh_date:** 2026-05-29
 - **owner_agent:** Vulcan-Primary
 - **refresh_triggers:** a coverage row goes LIVE; new source; retention/mode change; restore drill; incident
 - **scheduled_cadence:** 90 days
