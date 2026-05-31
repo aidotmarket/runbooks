@@ -18,7 +18,7 @@
 | Bucket lockdown baseline (BPA + BucketOwnerEnforced + SSE-S3) | SHIPPED | §E-01 command sequence; `aimarket-s3-svc` policy | verified on staging bucket (S720) | 2026-05-28 |
 | `aimarket-backups-prod` (versioned + Object Lock COMPLIANCE/35d) | SHIPPED | created S723 (§E-05); see §E-06 backup-writer | first ai.market PG dump uploaded + size-matched; write/delete probe (S723) | 2026-05-28 |
 | `aimarket-backup-writer` IAM identity (write-only backups) | SHIPPED | inline policy `backup-write-only` = `s3:PutObject`+`s3:ListBucket` only | PutObject OK / DeleteObject AccessDenied verified (S723) | 2026-05-28 |
-| S3 connector assume-role (`role_arn` + `external_id`) | PLANNED | backend `app/models/s3_connection.py:S3Connection`; trust+permission policy §E-04 | — | — |
+| S3 connector assume-role (`role_arn` + `external_id`) | SHIPPED (staging) | IAM role `aimarket-connector-aimdata-staging` (trust=`ai-market-backend-sts` + ExternalId; read-only on `aimarket-aimdata-staging`); §E-04 | trust verified S740; assume+list green S722 | 2026-05-31 |
 | Object lifecycle → Glacier Deep Archive (backups) | PLANNED | §E-03 | — | — |
 
 ## §C. Architecture & Interactions

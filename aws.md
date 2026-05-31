@@ -17,9 +17,9 @@
 | Scoped S3 service identity `svc-titan-vulcan` | SHIPPED | IAM policy `arn:aws:iam::948749907373:policy/aimarket-s3-svc`; Titan `~/.aws` profile `aimarket` | Manual: `sts get-caller-identity` + S3 round-trip (S720) | 2026-05-28 |
 | S3 bucket/object ops on `aimarket-*` | SHIPPED | `aimarket-s3-svc`; AWS CLI `~/Library/Python/3.13/bin/aws` on Titan-1 | put/get/list/delete round-trip (S720) | 2026-05-28 |
 | Broad operational access (PowerUser-class) for agent | SHIPPED | AWS-managed `PowerUserAccess` + customer `aimarket-guardrail-deny`, attached to `svc-titan-vulcan` | Verified S720: broad allow works; Org/CloudTrail/IAM denies refused | 2026-05-28 |
-| Connector assume-role (`role_arn` + `external_id`) | PLANNED | backend `app/models/s3_connection.py:S3Connection`; IAM role TBD | — | — |
+| Connector assume-role (`role_arn` + `external_id`) | SHIPPED (staging/dogfood) | IAM role `aimarket-connector-aimdata-staging`; trust principal `ai-market-backend-sts` + ExternalId; read-only on `aimarket-aimdata-staging` | trust policy verified S740; assume+list green S722 | 2026-05-31 |
 | Billing budget + cost alarm | SHIPPED | AWS Budgets `aimarket-monthly-guardrail` ($50/mo; alerts 50/80/100% to max@ai.market) | created S720 | 2026-05-28 |
-| Backend STS identity `ai-market-backend-sts` | SHIPPED | pre-existing IAM user (backend-owned, NOT agent-managed) | backend-owned | — |
+| Backend STS identity `ai-market-backend-sts` | SHIPPED (identity); creds NOT yet wired to any deployed service | IAM user (backend-owned). Creds in Infisical `ai-market-backend`/prod: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `AI_MARKET_AWS_ACCOUNT_ID`. Runtime delivery: Railway env (see §E-07) | Titan profile `aimarket` resolves identity, verified S740 | 2026-05-31 |
 
 ## §C. Architecture & Interactions
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
@@ -94,6 +94,17 @@
 - expected_success: budget visible; alert on threshold
 - next_step_failure: §F-01 (AccessDenied — budgets require billing perms; Max action)
 
+**E-07 — Use / wire the backend STS broker (`ai-market-backend-sts`).** *(the identity the backend assumes seller/connector roles AS, at fulfillment time)*
+- what_it_is: `app/services/sts_assumer.py:assume_seller_role()` calls `boto3.client("sts").assume_role(...)` using the **default credential chain** (no keys passed in code) — so the running process MUST have `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` in its environment. `order_service.py` is the caller (buyer-delivery path).
+- credentials (source of truth): Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod`: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` (`eu-north-1`), `AI_MARKET_AWS_ACCOUNT_ID` (`948749907373`). Read via the SysAdmin machine-identity token at Titan `/Users/max/.config/infisical/sysadmin-token` (see `infisical-secrets.md` → "Accessing Secrets"; the CLI must be pointed at `--domain=https://secrets.ai.market` or it silently tries Infisical Cloud and fails).
+- runtime_injection: per `infisical-secrets.md`, **Railway env vars are the deploy-time injection source.** A secret in Infisical is NOT live in a service until it is ALSO set in that service's Railway variables.
+- **CURRENT GAP (S740):** these AWS vars exist in Infisical prod but are **NOT set on any Railway service** (`ai-market-backend` and `ai-market-celery-worker` both lack them). Until synced onto the service that runs fulfillment, production (non-Titan) S3 delivery fails at `assume_role` with `NoCredentialsError`. Titan-local dogfooding works only because the workstation `~/.aws` profile `aimarket` supplies creds; the deployed service has none.
+- seller_principal: the ARN a seller (or our dogfood connector role) grants `sts:AssumeRole` to is `arn:aws:iam::948749907373:user/ai-market-backend-sts`. In AIM Data connected-mode config this is pinned via `AI_MARKET_ASSUME_ROLE_PRINCIPAL_ARN`; unset → safe default of account-root + ExternalId.
+- to_wire: read the three values from Infisical prod (token above), then `railway variables --service <svc> --set AWS_ACCESS_KEY_ID=… --set AWS_SECRET_ACCESS_KEY=… --set AWS_REGION=eu-north-1`. CONFIRM-FIRST (production credential change, §H.1 #5).
+- idempotency: IDEMPOTENT_WITH_KEY (var name)
+- expected_success: from the service, identity resolves to `…/user/ai-market-backend-sts`; `assume_seller_role` returns short-lived creds instead of `NoCredentialsError`.
+- next_step_failure: §F-03 (InvalidClientTokenId → key bad/rotated)
+
 ## §F. Isolate — Diagnosing Deviations
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -142,9 +153,9 @@
 *(Equal weight. Harness + MP/AG answer-key sign-off pending — see §K.)*
 
 ## §J. Lifecycle
-- **last_refresh_session:** S720
-- **last_refresh_commit:** initial authoring (this commit)
-- **last_refresh_date:** 2026-05-28
+- **last_refresh_session:** S740
+- **last_refresh_commit:** S740 broker-credential location + connector-role-shipped accuracy pass
+- **last_refresh_date:** 2026-05-31
 - **owner_agent:** Vulcan-Primary
 - **refresh_triggers:** new IAM identity/policy change; new bucket class; access-tier change; incident; scheduled cadence
 - **scheduled_cadence:** 90 days
