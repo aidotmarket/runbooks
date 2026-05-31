@@ -38,7 +38,7 @@ What AIM Data does today, by feature, with status and the code that backs it. `B
 | allAI metadata generation | SHIPPED | `app/services/allai_client.py` | Yes — generates description and tags |
 | Marketplace registration | SHIPPED | `app/services/marketplace_register.py` | Yes — Settings → Marketplace |
 | Listing publish | SHIPPED | `app/routers/listings.py` | Yes |
-| S3 source connector (STS trust policy paste flow) | PARTIAL | `app/services/s3_connector.py` | Yes — wizard renders and accepts inputs; full activation gate is in flight under the S3 STS fulfillment work |
+| S3 source connector (STS assume-role, no-copy) | SHIPPED | `app/routers/s3_connections.py`, `app/models/s3_connection.py`, `app/models/s3_scan_job.py`, `app/models/s3_object_metadata.py` | Yes — full flow live: create connection → set role ARN → verify (STS AssumeRole) → scan bucket → review objects → register object as dataset → publish. allAI assists IAM-role setup on the connection screen. Remaining (separate items): buyer-side download UX on the marketplace frontend, and agent-QA use of the assumed credentials. |
 | Signed delivery tokens | SHIPPED | `app/services/delivery_token.py` | No — server-to-server with ai.market backend |
 | Peer-to-peer delivery channel | SHIPPED | `app/peer/` (shared aim-core with AIM Node) | No — kicks in at buyer-purchase time |
 | Stripe payouts | SHIPPED | server-side at ai.market backend (Stripe Connect) | Yes — connects via Settings → Marketplace |
@@ -107,7 +107,7 @@ Inside the API container, the layout follows a standard FastAPI app:
 | Customer's local databases | Direct via `host.docker.internal` or service name | Postgres, MySQL extraction (BQ-VZ-DB-CONNECT) |
 | Buyer's AIM Node or browser | Peer-to-peer encrypted channel (ChaCha20-Poly1305) | Data delivery at purchase time |
 | GHCR | Docker image pull | Customer pulls `ghcr.io/aidotmarket/aim-data:latest` at install and update |
-| Anthropic API | Customer's own key | Embedded allAI assistant chat (optional, off if key not provided) |
+| Anthropic API | Not used directly — no customer key | Embedded allAI chat routes through the ai.market `/api/v1/allie/chat/agentic` proxy; AIM Data holds no Anthropic key. (Corrects prior drift: there is no customer-key path.) |
 
 ### Fork ancestry, vectorAIz relationship, and legacy naming
 
@@ -124,7 +124,7 @@ Which AI agents touch AIM Data and what they can do.
 | Agent | Where it runs | What it does | Scope |
 |-------|---------------|--------------|-------|
 | allAI (metadata generator) | ai.market backend, called from inside AIM Data | Reads customer's profiled data structure (NOT raw rows), writes listing description, generates tags, classifies fields, scores PII risk, scores quality | Metadata only. Never sees raw data. Output is structured (Pydantic schemas). |
-| allAI (embedded chat) | AIM Data container, calls Anthropic API direct with customer's own key | In-product chat for the seller, can answer questions about their data and their listings | Customer-side only. Optional. Off if `ANTHROPIC_API_KEY` not set. |
+| allAI (embedded chat / CoPilot) | AIM Data container UI; all LLM calls go out through the ai.market `/agentic` proxy (no customer Anthropic key) | Every-page in-product assistant; on the S3 setup screen it walks the seller through creating the IAM role, hands them the trust policy stamped with their external ID, and validates the pasted role ARN | Proxy-only. Metered + capped per the allAI usage billing policy (see the allAI-usage-billing change in flight below). |
 | ai.market MCP server (server-side) | ai.market backend | Exposes the marketplace to AI agents: search, listing detail, purchase intent, requirements board | AIM Data's listings are automatically agent-discoverable through this. No extra integration on the seller's side. |
 | AIM Data MCP server (customer-side) | Inside the AIM Data container | Exposes seller-side data operations (listing draft, publish, source management) to local AI agents | Customer-side automation. Off by default; customer enables when they want agent-driven publishing. |
 | AG / MP / DeepSeek / CC (Council) | ai.market backend during build/review | Reviews specs and PRs that touch AIM Data. Not customer-facing. | Internal dev only. Never exposed to sellers or buyers. |
@@ -214,6 +214,8 @@ What CAN'T change without re-architecting AIM Data.
 ### Active product changes in flight
 
 Concrete items pending follow-up builds. Each is a real customer-facing risk if not closed.
+
+- **allAI usage billing for AIM Data — free monthly cost cap (in flight, S736).** AIM Data customers are intended to get allAI for free up to an operator-set monthly cost ceiling (default $10 per customer per month, resetting each calendar month), with no forced conversion to a paid plan. This is deliberately different from vectorAIz, where customers get a one-time free trial (~$5) and are then required to buy credits. Today the backend runs only the vectorAIz trial-then-pay model (`app/services/credits_service.py`: free_trial → balance → 'purchase more credits'), so AIM customers look free only while seeded trial credit lasts. Build in progress (`build:bq-aim-data-allai-monthly-cap-s736`, branch `build/bq-aim-data-allai-monthly-cap-s736`) adds a second billing mode (`monthly_free_cap`) on the account/credits model: monthly spend tracking with calendar rollover, soft cutoff at the cap (reason `monthly_allowance_reached`, no purchase prompt, we absorb the cost), and internal admin endpoints to set the per-customer cap / toggle allAI on-off / change billing mode. vectorAIz `trial_then_pay` behaviour is preserved unchanged. Follow-ups: ops.ai.market frontend console for per-customer cap view/edit/toggle; customer-app cutoff copy 'monthly allowance reached'. Business-logic detail: spec `specs/BQ-AIM-DATA-ALLAI-MONTHLY-CAP-S736.md` (ai-market-backend).
 
 - **Qdrant removal from the AIM Data stack.** Product decision: AIM Data is not in the vector-database business; that capability belongs to vectorAIz. The Qdrant container has been removed from this runbook's architecture description. The actual `docker-compose.aim-data.yml`, any `qdrant_client` calls in `app/services/`, and the `QDRANT_HOST` / `QDRANT_PORT` env vars are pending removal in a follow-up build. Customer-facing impact: nothing breaks for current customers because Qdrant was internal to the stack; the next image build drops the container.
 
