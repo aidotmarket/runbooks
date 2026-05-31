@@ -1,157 +1,127 @@
 # Connectivity Layer
 
-**Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Titan-1.
+**Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Titan-1 incl. serials + `tailscale whois`.
 **Owner:** SysAdmin agent / Council instances.
 **Last updated:** 2026-05-31.
 
 ## What this covers
 
-The end-to-end network path that lets Claude instances (Vulcan, Mars) on claude.ai
-reach the Koskadeux MCP gateway on Titan-1, plus the local-area and tailnet topology
-that the two physical machines (Mac Studio + laptop) sit on. This is the connectivity
-overview; the Cloudflare-specific detail lives in `cloudflare-and-dns.md` and the
-gateway/proxy internals live in `mcp-gateway.md`. This doc is the canonical answer to
-"how do the machines talk to each other and to Claude, and where is it redundant."
+How Claude (Vulcan, Mars on claude.ai) reaches the Koskadeux MCP gateway on Titan-1, and
+the LAN / tailnet topology the machines sit on. Cloudflare detail lives in
+`cloudflare-and-dns.md`; gateway internals in `mcp-gateway.md`. This is the canonical
+answer to "how do the machines talk to each other and to Claude, and where is it redundant."
 
 ## Physical & network topology
-
-One site, one local ethernet, one internet uplink:
 
 | Element | Value (verified 2026-05-31) |
 |---|---|
 | Workhorse | Mac Studio, serial **G6XQC2KL44** — the machine the team calls **"Titan-1"** |
-| LAN interface | `en0`, **192.168.1.192/24**, status active (wired ethernet) |
+| LAN interface | `en0`, **192.168.1.192/24**, wired ethernet |
 | LAN gateway/router | **192.168.1.1** |
-| Public WAN IP | **79.154.174.218** (single uplink; all egress + all ingress tunnels ride this one link) |
-| LAN neighbours seen | ~8 hosts on 192.168.1.0/24 (router + several devices incl. the laptop) |
+| Public WAN IP | **79.154.174.218** (single uplink — all egress + the Cloudflare tunnel ride this one link) |
+| The laptop | **MAXBOOKPRO-2**, LAN **192.168.1.200** (same ethernet segment as Titan-1) |
 
-There is exactly **one internet uplink** for the site. Every path below — the Cloudflare
-tunnel, the Tailscale connections, and any laptop traffic — shares that single link.
-That shared link is the dominant common-failure-domain (see Redundancy analysis).
+One site, one ethernet, one internet uplink. Everything below shares that uplink — it's the
+dominant common-failure-domain.
 
-## Tailnet node map (READ THIS — the names are inverted)
+## Tailnet node map (the names mislead — verified by serial + whois)
 
-The Tailscale node names do **not** match the team's machine names. This has caused
-repeated confusion:
-
-| Tailscale node name | Tailscale IP | Physical machine | Role |
+| Tailscale node | Tailscale IP | Actual machine | Notes |
 |---|---|---|---|
-| **`Koskadeux (10)` / `koskadeux-10`** | 100.95.61.121 | **Mac Studio (Titan-1, G6XQC2KL44)** | Runs the gateway, cloudflared, Tailscale Funnel. THE workhorse. |
-| **`titan-1`** | 100.108.49.1 | **the laptop** (macOS; team serial HY769XY4QJ) | SSH target only; NOT the machine called Titan-1. |
-| `localhost` / `iphone172` | 100.71.214.47 | Max's iPhone | — |
-| `funnel-ingress-node` ×~24 | fd7a:115c:… (IPv6) | Tailscale's own Funnel edge nodes | Infrastructure; appear because Funnel is enabled. |
+| `Koskadeux (10)` / `koskadeux-10` | 100.95.61.121 | **Mac Studio (Titan-1, G6XQC2KL44)** | The live node. Gateway, cloudflared, Funnel. |
+| `titan-1` | 100.108.49.1 | **ALSO the Mac Studio (G6XQC2KL44)** — a **stale/duplicate tailnet identity** | NOT a separate machine. SSH to it returns serial G6XQC2KL44; `whois` shows same owner. **Ghost node — cleanup candidate.** |
+| `localhost` / `iphone172` | 100.71.214.47 | Max's iPhone (iOS) | — |
+| `funnel-ingress-node` ×~24 | fd7a:115c:… | Tailscale's own Funnel edge | Infra; present because Funnel is on. |
 
-**Trap:** the node literally named `titan-1` is the laptop. The machine you call Titan-1
-is the node `koskadeux-10`. Renaming the laptop node (e.g. to `laptop` / `macbook`) is a
-recommended cleanup; until then, always map by Tailscale IP, not by node name.
+**Critical:** the node named `titan-1` is a **duplicate of the Mac Studio**, not the laptop.
+**The laptop (MAXBOOKPRO-2) is NOT on the tailnet** — it is reachable only on the local
+ethernet (192.168.1.200). The only real tailnet members are the Mac Studio (appearing twice
+via the duplicate identity) and the iPhone.
 
-## The two public ingress paths to the MCP gateway
+## How the machines actually talk today
 
-Both of these are live **simultaneously** and both terminate at the **same** local origin
-`http://localhost:8767` (the gateway proxy, PID family `com.koskadeux.gateway` → forwards
-to the real handler on :8765):
+- **Claude → MCP gateway:** over **Cloudflare** (`https://mcp.ai.market`, `cloudflared tunnel
+  run koskadeux` → `localhost:8767`). This is the live path. **Tailscale Funnel**
+  (`koskadeux-10.tail30cd96.ts.net` → same `:8767`) is a parallel, idle public exposure.
+- **Laptop ↔ Titan-1 (screen sharing, file sharing, etc.):** over the **local ethernet**
+  (both on 192.168.1.0/24), NOT Tailscale — because the laptop isn't on the tailnet. Apple
+  Continuity (rapportd, link-local) also runs locally. Confirmed: an active Screen Sharing
+  session was observed between Titan-1 and 192.168.1.200 over the LAN.
 
-| Path | Public URL | Mechanism | Status |
-|---|---|---|---|
-| **Cloudflare Tunnel** (PRIMARY) | `https://mcp.ai.market` | `cloudflared tunnel run koskadeux` (UUID `007ddc34-de07-474c-adbc-a648663b9c78`), config `~/.cloudflared/config.yml`, ingress → `localhost:8767`, `/api/admin/*` blocked at the edge (404) | **Live. This is the path Claude uses** — the claude.ai MCP connector points at `https://mcp.ai.market`. Verified: the only established connection to :8767 right now is cloudflared. |
-| **Tailscale Funnel** (PARALLEL) | `https://koskadeux-10.tail30cd96.ts.net` | `tailscale funnel` / `serve` → `localhost:8767` | **On, but idle** — a second public exposure of the same gateway. Not currently wired as Claude's failover. |
+## Remote access to Titan-1
 
-So the long-running "is it Cloudflare or Tailscale?" doc contradiction resolves as:
-**both are running; Cloudflare is the active transport, Tailscale Funnel is a parallel
-exposure of the same origin.** Tailscale's load-bearing distinct value is the SSH backup
-admin path (below), not ingress failover.
+Titan-1 exposes two remote-admin surfaces, both gated on **being a member of the tailnet**:
+
+- **SSH over Tailscale** — out-of-band admin path; reach Titan-1 to `launchctl kickstart`
+  the gateway even when the MCP surface is degraded. Independent of Cloudflare.
+- **Apple Screen Sharing (VNC)** — **enabled** on Titan-1: `screensharingd` listens on
+  `:5900` (all interfaces, incl. the tailnet IP; verified `100.95.61.121:5900` reachable).
+  From a tailnet device: `vnc://100.95.61.121` (or the MagicDNS name if the client has
+  Tailscale DNS on). The macOS login password still gates the session.
+
+**To use either of these from another location, the connecting device must be on the
+tailnet.** The laptop currently is NOT, so as configured it CANNOT reach Titan-1 remotely —
+install + sign in Tailscale (account `max@ai.market`) on the laptop first. On the desk it
+works only because both sit on the same LAN.
 
 ## Redundancy analysis — are Cloudflare and Tailscale redundant?
 
-**Partly, and NOT against the failure you actually see.**
+**Partly, and NOT against the failure you see.**
 
-- **Redundant at the public edge:** two independent vendors (Cloudflare anycast vs
-  Tailscale Funnel edge), different DNS, different global networks. A Cloudflare-edge
-  regional outage would not take down the Tailscale Funnel URL.
-- **NOT redundant downstream:** both paths converge on the **same gateway process
-  (:8767)**, the **same Mac Studio**, and the **same single WAN uplink**. A blip in the
-  gateway, the Mac, the router, or the ISP link takes out **both at once**.
-- **This explains the correlated glitches.** When Claude↔MCP glitches at the same moment
-  as laptop↔Titan-1, the common cause is almost always the shared local uplink / router:
-  cloudflared's outbound tunnel AND the laptop's Tailscale path BOTH ride that one link
-  (the laptop link is relay-routed over the WAN today — see next section), so they drop
-  together. The two "redundant" paths are not independent at the layer that fails most.
-
-To get real ingress redundancy you would need Claude pointed at a failover URL on a
-*different* uplink (not just a second tunnel on the same link), or a second WAN uplink
-on the Mac Studio. Today neither exists.
-
-## Same local segment — are we tunnelling traffic that should stay on the wire?
-
-**RESOLVED 2026-05-31 (S738.w) — now direct over the LAN.** Max confirmed both machines sit on the same desk / same ethernet segment. `tailscale status` now shows the laptop link as `direct 192.168.1.192:54698` (~4ms), not relayed. The Madrid relay was a stale fallback path (Mac firewall off, clean NAT, UDP open — nothing blocked direct); a `tailscale ping 100.108.49.1` forced direct-path discovery and it upgraded immediately. It holds direct while both stay on-segment; after a laptop sleep/roam Tailscale re-upgrades to direct on next traffic. _Prior diagnosis retained below._
-
-The laptop (Tailscale node `titan-1`, 100.108.49.1) reaches the Mac Studio over Tailscale
-via a **DERP relay in Madrid** — it is **not** a direct connection and advertises **no LAN
-endpoint** (no 192.168.x candidate). The Mac Studio itself does advertise its LAN endpoint
-(`192.168.1.192:41641`). If the two machines are on the same ethernet segment (the Mac
-Studio is on 192.168.1.0/24), their traffic is detouring out to Madrid and back instead of
-crossing the local switch — wasteful on latency/bandwidth and, critically, a **shared
-failure point with the Cloudflare path** (same WAN uplink → they fail together).
-
-**Caveat (cannot fully confirm same-segment from Titan-1):** the laptop is not advertising
-any 192.168.x endpoint, which is itself the symptom. If it were healthily on the same L2,
-Tailscale would normally have found a direct LAN path (`CurAddr` would show 192.168.1.x).
-Likely causes of the relay fallback: laptop on Wi-Fi with AP/client-isolation, on a
-different subnet/VLAN, or genuinely off-site. **Fix path if same-segment:** put both on the
-same L2 with client-isolation off; verify a direct path appears via
-`tailscale status` (peer shows `direct 192.168.1.x:port`, not `relay "mad"`).
-
-## Tailscale SSH backup admin path
-
-Tailscale's genuinely load-bearing role here is **out-of-band admin access**, independent
-of the Cloudflare tunnel. If the gateway is wedged but the Mac is up, Tailscale SSH reaches
-Titan-1 to run `launchctl kickstart -k …` even when `mcp.ai.market` is degraded. This is
-the recovery path when the only normal way in (the MCP surface) is down.
+- **Redundant at the public edge:** two vendor edges (Cloudflare anycast vs Tailscale Funnel)
+  both front the gateway. A Cloudflare-edge regional outage wouldn't kill the Funnel URL.
+- **NOT redundant downstream:** both converge on the same gateway process (`:8767`), the same
+  Mac, and the same single WAN uplink. A blip in the gateway, the Mac, the local
+  router/switch, or the ISP link takes out both at once.
+- **Likely cause of correlated glitches:** Claude↔MCP runs out over the WAN uplink
+  (Cloudflare); laptop↔Titan-1 runs over the local router/switch. A disturbance in the shared
+  local network gear or the uplink can hit both at the same moment. (Note: this is a
+  LAN/uplink common-mode — it is NOT a Tailscale relay path, because the laptop isn't on the
+  tailnet.) Real ingress redundancy would need a second uplink or a Claude-side failover URL
+  on an independent path; neither exists today.
 
 ## Verification quick reference
 
-    # On Titan-1 (the Mac Studio / node koskadeux-10):
-    ioreg -l | grep IOPlatformSerialNumber            # expect G6XQC2KL44
-    pgrep -fl cloudflared                              # cloudflared tunnel ... run koskadeux
-    cat ~/.cloudflared/config.yml                      # ingress mcp.ai.market -> localhost:8767
-    tailscale status                                   # node map; who is direct vs relayed
+    ioreg -l | grep IOPlatformSerialNumber            # G6XQC2KL44 = Mac Studio/Titan-1
+    pgrep -fl cloudflared                              # cloudflared ... run koskadeux (live transport)
+    tailscale status                                   # tailnet members; direct vs relay
+    tailscale whois <100.x ip>                         # which machine a node really is
     tailscale funnel status                            # koskadeux-10...ts.net -> localhost:8767
-    lsof -nP -iTCP:8767                                # who is connected to the gateway now
+    lsof -nP -iTCP -sTCP:LISTEN | grep -E ':5900|cloudflar'  # screensharingd + tunnel
+    netstat -an | grep '\.5900 '                       # screen sharing listener (on-demand: may be dormant)
     ipconfig getifaddr en0; route -n get default       # LAN addr + uplink
     curl -s http://localhost:8767/health               # local gateway health
-    curl -s -i https://mcp.ai.market/.well-known/oauth-protected-resource   # public path
 
 ## Known issues / follow-ups
 
-- **Laptop↔Mac-Studio link — RESOLVED 2026-05-31 (S738.w):** confirmed same-segment; forced
-  to direct-LAN via `tailscale ping`. WAN detour + correlated-glitch coupling removed.
-  Re-verify with `tailscale status` if the laptop roams off and back.
-- **No true ingress failover.** Cloudflare + Tailscale Funnel share origin + uplink. A
-  second uplink, or a Claude-side failover URL on an independent path, is the only thing
-  that buys real redundancy. Decision for Max — not yet scoped.
-- **Tailnet node naming inverted** (`titan-1` = laptop). Rename to avoid recurring
-  confusion.
-- **`mcp-gateway.md`** was already corrected upstream (S690 audit H-1/H-5 rewrite, now on
-  main): it states cloudflared is the primary transport. This doc is the topology-level
-  companion to it and to `cloudflare-and-dns.md`.
+- **Duplicate tailnet node `titan-1` (100.108.49.1)** is a stale second identity of the Mac
+  Studio (serial-confirmed). Remove it from the Tailscale admin console to stop the confusion
+  (same hazard class as the duplicate MCP connector). Until removed, map nodes by `whois`/serial,
+  not by name.
+- **Laptop (MAXBOOKPRO-2) is not on the tailnet.** Remote SSH/Screen-Sharing to Titan-1 won't
+  work while travelling until Tailscale is installed + signed in on the laptop.
+- **No true ingress redundancy.** Cloudflare + Funnel share origin + uplink. A second uplink
+  or an independent Claude-side failover URL is the only thing that buys real redundancy.
+  Decision for Max — not yet scoped.
 
 ## History
 
-- **2026-05-31 (S738.w):** Runbook created. Live-verified the full path: cloudflared
-  PRIMARY (mcp.ai.market), Tailscale Funnel parallel/idle, laptop relayed via Madrid DERP
-  (no direct LAN), single WAN uplink as common-failure-domain, tailnet node-name inversion.
-  Resolves the Cloudflare-vs-Tailscale ambiguity that recurred across mcp-gateway.md.
-- **2026-05-31 (S738.w), later:** Laptop↔Mac-Studio link forced from Madrid DERP relay to
-  direct-LAN via `tailscale ping` (Max confirmed same-segment). Now `direct 192.168.1.x`, ~4ms.
+- **2026-05-31 (S738.w):** Runbook created, then corrected the same session. Initial draft
+  mis-identified the Tailscale node `titan-1` as the laptop and recorded a bogus "laptop
+  relayed via Madrid, fixed to direct-LAN" item — that node is actually a duplicate of the
+  Mac Studio itself (proven by SSH serial G6XQC2KL44 + `tailscale whois`, no SSH alias). The
+  laptop (MAXBOOKPRO-2) is LAN-only and not on the tailnet. Verified: cloudflared PRIMARY,
+  Funnel parallel/idle, Screen Sharing enabled (`:5900` reachable on the tailnet IP), single
+  WAN uplink as common-failure-domain. Lesson recorded: verify to ground truth (serial/whois),
+  not to node names.
 
 ## References
 
-- `cloudflare-and-dns.md` — Cloudflare zones, Workers, and the mcp.ai.market tunnel detail.
+- `cloudflare-and-dns.md` — Cloudflare zones, Workers, mcp.ai.market tunnel detail.
 - `mcp-gateway.md` — gateway/proxy internals, restart, session boot gate.
 - `config:resource-registry` (Living State) — canonical service/path registry.
 
 ## Discipline
 
-Keep this current whenever the transport, uplink, or tailnet topology changes. Re-verify
-with the Verification quick reference block; do not edit from memory. If a change touches
-the public path, update `cloudflare-and-dns.md` and `mcp-gateway.md` in the same session.
+Keep current whenever transport, uplink, or tailnet topology changes. Verify with the
+Verification block — and confirm machine identity by serial/`whois`, never by node name.
