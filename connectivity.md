@@ -83,7 +83,7 @@ on the Mac Studio. Today neither exists.
 
 ## Same local segment — are we tunnelling traffic that should stay on the wire?
 
-**Yes, currently the laptop↔Mac-Studio link is taking the long way around.**
+**RESOLVED 2026-05-31 (S738.w) — now direct over the LAN.** Max confirmed both machines sit on the same desk / same ethernet segment. `tailscale status` now shows the laptop link as `direct 192.168.1.192:54698` (~4ms), not relayed. The Madrid relay was a stale fallback path (Mac firewall off, clean NAT, UDP open — nothing blocked direct); a `tailscale ping 100.108.49.1` forced direct-path discovery and it upgraded immediately. It holds direct while both stay on-segment; after a laptop sleep/roam Tailscale re-upgrades to direct on next traffic. _Prior diagnosis retained below._
 
 The laptop (Tailscale node `titan-1`, 100.108.49.1) reaches the Mac Studio over Tailscale
 via a **DERP relay in Madrid** — it is **not** a direct connection and advertises **no LAN
@@ -123,9 +123,9 @@ the recovery path when the only normal way in (the MCP surface) is down.
 
 ## Known issues / follow-ups
 
-- **Laptop↔Mac-Studio relayed via Madrid, not direct-LAN** (above). Diagnose same-segment;
-  if co-located, fix to a direct LAN path. Removes a needless WAN dependency + the
-  correlated-glitch coupling.
+- **Laptop↔Mac-Studio link — RESOLVED 2026-05-31 (S738.w):** confirmed same-segment; forced
+  to direct-LAN via `tailscale ping`. WAN detour + correlated-glitch coupling removed.
+  Re-verify with `tailscale status` if the laptop roams off and back.
 - **No true ingress failover.** Cloudflare + Tailscale Funnel share origin + uplink. A
   second uplink, or a Claude-side failover URL on an independent path, is the only thing
   that buys real redundancy. Decision for Max — not yet scoped.
@@ -141,6 +141,8 @@ the recovery path when the only normal way in (the MCP surface) is down.
   PRIMARY (mcp.ai.market), Tailscale Funnel parallel/idle, laptop relayed via Madrid DERP
   (no direct LAN), single WAN uplink as common-failure-domain, tailnet node-name inversion.
   Resolves the Cloudflare-vs-Tailscale ambiguity that recurred across mcp-gateway.md.
+- **2026-05-31 (S738.w), later:** Laptop↔Mac-Studio link forced from Madrid DERP relay to
+  direct-LAN via `tailscale ping` (Max confirmed same-segment). Now `direct 192.168.1.x`, ~4ms.
 
 ## References
 
