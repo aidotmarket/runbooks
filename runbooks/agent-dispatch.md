@@ -76,7 +76,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     timeout: use the configured MP background timeout unless the BQ states otherwise
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(branch + prompt_digest + target_commit)
-  expected_success: {shape: background task id plus committed artifact or audit verdict, verification: compare git HEAD, task transcript, and BQ build summary}
+  expected_success: {shape: "background task id plus committed artifact or audit verdict", verification: "compare git HEAD, task transcript, and BQ build summary"}
   expected_failures:
     - {signature: gateway_timeout, cause: task exceeded synchronous endpoint limit}
     - {signature: stale_task_state, cause: files committed but dispatcher status did not refresh}
@@ -122,10 +122,10 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     plist_path: ~/Library/LaunchAgents/com.koskadeux.council-hall.plist (the dispatch process; NOT com.koskadeux.mcp.plist)
     domain: gui/$(id -u) where uid is the active user (typically 501 on Titan-1)
     smoke_cwd: any path under /Users/max/Projects/* (e.g. ai-market-backend) — MUST exercise _should_route_to_laptop() routing decision; DEFAULT_CWD bypasses the check and false-positives the verification
-    smoke_task: short prompt that returns hostname + env var value (verbatim shell echo); response time and absence of laptop-side error ("node: No such file or directory") is the diagnostic
+    smoke_task: 'short prompt that returns hostname + env var value (verbatim shell echo); response time and absence of laptop-side error ("node: No such file or directory") is the diagnostic'
   idempotency: IDEMPOTENT_WITHIN_PLIST_VERSION
   idempotency_key: hash(plist_sha256 + env_var_state)
-  expected_success: {shape: smoke response returns Titan-1 hostname (Koskadeux.local) + env var value "1" + no SSH-to-laptop error, verification: ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical "environment" Dict (not only "inherited environment")}
+  expected_success: {shape: 'smoke response returns Titan-1 hostname (Koskadeux.local) + env var value "1" + no SSH-to-laptop error', verification: 'ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical "environment" Dict (not only "inherited environment")'}
   expected_failures:
     - {signature: env_var_in_inherited_only, cause: bootout+bootstrap was not run; the user-domain launchctl setenv inheritance is propagating the var but the plist EnvironmentVariables Dict does not contain it; logout/reboot will lose the fix}
     - {signature: default_cwd_false_positive, cause: smoke called council_request without an explicit cwd under /Users/max/Projects/*; routing decision bypassed; verification meaningless}
@@ -138,7 +138,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     2: "Backup: cp <plist> /tmp/<plist-name>.S<session>.bak"
     3: "Add env var: /usr/libexec/PlistBuddy -c 'Add :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING string 1' <plist>"
     4: "Validate XML: plutil -lint <plist>"
-    5: "Capture OLD_PID: launchctl list | awk '$3=="<service>"{print $1}'"
+    5: 'Capture OLD_PID: launchctl list | awk ''$3=="<service>"{print $1}'''
     6: "bootout: launchctl bootout gui/$(id -u)/<service>; poll launchctl list until service unloaded"
     7: "bootstrap: launchctl bootstrap gui/$(id -u) <plist>; poll launchctl list until NEW_PID present and != OLD_PID"
     8: "Verify env in BOTH bash wrapper AND python child PIDs: pstree -p <NEW_PID>; for each PID, ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING (no tr pipe)"
