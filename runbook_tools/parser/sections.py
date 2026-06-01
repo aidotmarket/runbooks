@@ -56,7 +56,10 @@ def extract_yaml_frontmatter(markdown_text: str) -> dict | None:
     if match is None:
         return None
 
-    loaded = yaml.safe_load(match.group(1))
+    try:
+        loaded = yaml.safe_load(match.group(1))
+    except yaml.YAMLError:
+        return None
     return loaded if isinstance(loaded, dict) else None
 
 
@@ -69,7 +72,12 @@ def extract_fenced_yaml_block(section: Section, info_marker: str) -> dict | list
     if not matches:
         return None
 
-    parsed_blocks = [yaml.safe_load(block) for block in matches]
+    parsed_blocks = []
+    for block in matches:
+        try:
+            parsed_blocks.append(yaml.safe_load(block))
+        except yaml.YAMLError:
+            return None
     if all(isinstance(block, list) for block in parsed_blocks):
         combined: list = []
         for block in parsed_blocks:
