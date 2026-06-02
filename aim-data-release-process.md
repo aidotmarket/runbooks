@@ -21,7 +21,7 @@ scripts/release-aim-data.sh promote [vX.Y.Z-rc.N]
 
 **From Vulcan (via run_background):**
 ```bash
-export PATH="/opt/homebrew/bin:$PATH" && cd ~/Projects/vectoraiz/vectoraiz-monorepo && scripts/release-aim-data.sh rc patch
+export PATH="/opt/homebrew/bin:$PATH" && cd ~/Projects/ai-market/aim-data && scripts/release-aim-data.sh rc patch
 ```
 
 **Important:** Always use `run_background` with explicit PATH prefix. CC does NOT have `gh` in PATH — never use CC for releases.
@@ -67,10 +67,10 @@ irm https://get.ai.market/aim-data/windows | iex            # Windows
 
 ## Repos
 
-The AIM Data product split off from the vectoraiz monorepo. Release machinery still lives in the monorepo. Product code, customer-facing installers, and the published Docker image live in the standalone repo.
+The AIM Data product split off from the vectoraiz monorepo. Release machinery now lives in the product repo itself — decoupled from the vectoraiz repo (S751). Product code, customer-facing installers, and the published Docker image live in the standalone repo.
 
 - **Product repo (customer-facing code, installers, compose, INSTALL.md):** `aidotmarket/aim-data` — local at `/Users/max/aim-data`
-- **Release script repo (`release-aim-data.sh`, tag bumping, GHA workflow inputs):** `aidotmarket/vectoraiz` — local at `/Users/max/Projects/vectoraiz/vectoraiz-monorepo`
+- **Release script repo (`release-aim-data.sh`, tag bumping, GHA workflow inputs):** `aidotmarket/aim-data` — local at `/Users/max/Projects/ai-market/aim-data`
 - **Docker image:** `ghcr.io/aidotmarket/aim-data` (multi-arch amd64 + arm64)
 - **Dockerfile:** `Dockerfile.customer` (lives in `aidotmarket/aim-data` and is what the GHA release workflow builds)
 - **Compose file:** `docker-compose.aim-data.yml` at the root of `aidotmarket/aim-data`
