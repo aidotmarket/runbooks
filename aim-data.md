@@ -17,7 +17,8 @@ irm https://get.ai.market/aim-data/windows | iex            # Windows
 The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves `installers/aim-data/install.sh` and `install.ps1` from the repo. CF Worker config lives in [cloudflare-worker.md](cloudflare-worker.md).
 
 **Repo:** [aidotmarket/aim-data](https://github.com/aidotmarket/aim-data) (private)
-**Local clone:** `/Users/max/aim-data`
+**Source repo (git — build and edit here):** `/Users/max/Projects/ai-market/aim-data` (the active feature branch is checked out here).
+**Deploy directory (NOT a git repo):** `/Users/max/aim-data` — holds `docker-compose.aim-data.yml`, `.env` (secrets + `AIM_DATA_VERSION`), `import/`, and the `aim-data-data` Docker volume. These two directories are easy to confuse; the source code is NOT under `/Users/max/aim-data`.
 **Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.41`)
 **Customer install guide:** `docs/INSTALL.md` in the repo
 **Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
@@ -37,7 +38,7 @@ What AIM Data does today, by feature, with status and the code that backs it. `B
 | Local quality scoring (nullable) | SHIPPED | `app/services/quality_scorer.py` | Yes — nullable score on listing |
 | allAI metadata generation | SHIPPED | `app/services/allai_client.py` | Yes — generates description and tags |
 | Marketplace registration | SHIPPED | `app/services/marketplace_register.py` | Yes — Settings → Marketplace |
-| Listing publish | SHIPPED | `app/routers/listings.py` | Yes |
+| Listing publish (signed VZ flow) | SHIPPED | `app/routers/marketplace_publish.py` → ai.market `/api/v1/vz/publish` | Yes — see "Publishing to ai.market (signed VZ flow)" below. NOT `/datasets/{id}/publish` (processing-era, dead after de-vectorization). |
 | S3 source connector (STS assume-role, no-copy) | SHIPPED | `app/routers/s3_connections.py`, `app/models/s3_connection.py`, `app/models/s3_scan_job.py`, `app/models/s3_object_metadata.py` | Yes — full flow live: create connection → set role ARN → verify (STS AssumeRole) → scan bucket → review objects → register object as dataset → publish. allAI assists IAM-role setup on the connection screen. Remaining (separate items): buyer-side download UX on the marketplace frontend, and agent-QA use of the assumed credentials. |
 | Signed delivery tokens | SHIPPED | `app/services/delivery_token.py` | No — server-to-server with ai.market backend |
 | Peer-to-peer delivery channel | SHIPPED | `app/peer/` (shared aim-core with AIM Node) | No — kicks in at buyer-purchase time |
@@ -62,10 +63,10 @@ AIM Data does not bundle a vector database. The earlier stack carried a Qdrant c
 
 The image is one container with both nginx and uvicorn running side by side via the entrypoint. nginx exposes port 80 internally and serves the React UI plus reverse-proxies `/api/*` to uvicorn on `127.0.0.1:8000`. The compose file maps the customer's `${AIM_DATA_PORT:-8080}` to the container's 80. Uvicorn is locked to a single worker because the Co-Pilot uses a file-lock for coordination; scaling to multiple workers requires migrating that to Redis pub/sub. Cloudflared is baked into the image and the `tunnel` router exists for optional outbound-only tunnel deployments (useful for sellers behind restrictive NATs).
 
-Inside the API container, the layout follows a standard FastAPI app:
+Inside the API container, the layout follows a standard FastAPI app. This tree is the **source repo at `/Users/max/Projects/ai-market/aim-data/`**, not the deploy directory:
 
 ```
-/Users/max/aim-data/
+/Users/max/Projects/ai-market/aim-data/
 ├── app/
 │   ├── main.py              FastAPI entrypoint + router wiring
 │   ├── mcp_server.py        MCP server entrypoint for agent integration
@@ -161,7 +162,27 @@ Settings → Data Sources → Add S3 Source. The wizard renders a JSON trust pol
 
 ### Prepare and publish a listing
 
-Seller picks a data source (S3 prefix, local database, local file directory). AIM Data profiles structure, runs the PII scan if enabled, runs the quality score if enabled, and asks allAI to draft the listing description. Seller reviews everything, edits as needed, and clicks Publish. Only the metadata and the description go live on ai.market. Raw data stays with the seller.
+After de-vectorization (S758–S760), the flow is the simplified "list a file": seller picks a file or source, lands on a single listing editor (title, description, tags, category, price), and clicks **Publish to ai.market**. No register/preview/confirm/index screens. PII scan and quality score still surface when enabled. Only metadata + description go live; raw data stays with the seller.
+
+### Publishing to ai.market (signed VZ flow) — READ before touching publish
+
+The **only** path that puts a listing on the live market:
+
+1. The editor calls `POST /api/marketplace/publish` (`app/routers/marketplace_publish.py`) — the signed proxy.
+2. The install registers its Ed25519 public key **once** with ai.market via `POST /api/v1/vz/register` (authed with the seller's ai.market bearer token), which returns a backend `install_id` (UUID). Client: `registration_service.ensure_vz_install_registered`; persisted in `serial.json` as `vz_install_id`.
+3. To publish, the proxy signs a short-lived EdDSA JWT (`iss = install_id`, `sub = seller_id`, `metadata_hash`, 5-min exp, `jti`) and POSTs metadata to `{ai_market}/api/v1/vz/publish`. The backend looks up the `VZInstall` by `iss`, verifies the signature with the stored public key, checks `sub`, enforces replay (`jti` via Redis) and rate limits.
+
+**Dead paths — do NOT wire publish to these:**
+- `POST /api/datasets/{id}/publish` → `MarketplacePushService` is processing-era: it needs `/data/processed/{id}` artifacts that de-vectorization removed, plus a shared internal key. Returns 401/403.
+- Local raw-listing publish (`RawListingService.publish_listing`) only sets a **local** status; it never syncs to ai.market.
+
+**Two registrations that are easy to confuse** (they are different and write different tables):
+- *Trust Channel* device registration → `POST /api/v1/trust/register` (`registration_service.register_with_marketplace`). Used for delivery/trust channel.
+- *VZ publish* registration → `POST /api/v1/vz/register` (`ensure_vz_install_registered`). The publish JWT validates against the `VZInstall` created **here** — NOT the trust-channel registration. An install can be trust-registered yet still fail publish with `401 "VZ install not found"` if it was never vz-registered.
+
+**Hard prerequisite — signing passphrase:** `AIM_DATA_KEYSTORE_PASSPHRASE` must be set (non-empty) in the deploy `.env`. Without it the app skips keypair generation at boot, never creates `/data/keystore.json`, and publish fails to sign (503 "Keystore passphrase not configured"). It is the device's signing identity — losing or rotating it orphans existing listings (see F-12). Store a copy safely.
+
+> Status: this signed flow was wired into the client in S760 on branch `fix/devectorize-publish-s760` (de-vec + listing UI + register/sign fix). Confirm it is merged to `main` before treating it as the shipped state.
 
 ### Buyer purchases, delivery happens
 
@@ -239,6 +260,13 @@ Surfacing here so they don't get lost between sessions.
 - **RC#15:** No re-queue on startup recovery. Files in `uploaded` status at restart never auto-resume; customer must manually re-trigger reprocessing. Fix in `app/main.py` lifespan after `recover_stuck_records()`.
 - **RC#16:** WorkerHandle cleanup not guaranteed; `_active_processes` list grows forever in long-running containers.
 - **RC#19:** `/api/allai/status` endpoint shows `not_configured` because it hasn't been updated to reflect the ai.market proxy mode. Cosmetic — customers think the LLM is broken when it works.
+
+## Gotchas — sources of past confusion (read before debugging publish/deploy)
+
+- **Two directories.** Source repo (git): `/Users/max/Projects/ai-market/aim-data`. Deploy dir (compose + `.env` + data volume, not git): `/Users/max/aim-data`. Build/edit in the first; deploy from the second.
+- **Env var prefixes.** Settings read `AIM_DATA_<NAME>` or `VECTORAIZ_<NAME>` (via `_env_alias` in `app/config.py`). Check the prefixed name (e.g. `AIM_DATA_KEYSTORE_PASSPHRASE`), not the bare `KEYSTORE_PASSPHRASE`.
+- **`docker inspect ... .Config.Env` lies about emptiness.** Compose passes `VAR=${VAR:-}`, so a key shows up in `Config.Env` even when its value is empty. Don't conclude a var is set from that listing. Verify the real value with `docker exec <c> printenv VAR`, and confirm effect via boot logs (`Device keypairs initialized` vs `…passphrase not set — skipped`) and `ls /data/keystore.json`.
+- **Local test deploy (no CI/GHCR).** Build the customer image from the source repo: `docker build -f Dockerfile.customer -t ghcr.io/aidotmarket/aim-data:<tag> .`. `Dockerfile.customer` builds the React UI (node) + nginx + API; the plain `Dockerfile` is **backend-only and does not build the frontend** — UI changes won't appear if you use it. Then in the deploy dir set `AIM_DATA_VERSION=<tag>` (and the passphrase) in `.env` and `docker compose -f docker-compose.aim-data.yml up -d app`. The official release is `scripts/release-aim-data.sh` (pushes a tag; CI builds + pushes the GHCR image).
 
 ## Isolate — Diagnosing Deviations
 
