@@ -30,13 +30,13 @@ Add `AND COALESCE({t}.lifecycle_released, false) = true`. Python/SQL parity test
 
 ### §3.4 Dispatch admission guard — HARD (MP F1/F2). Gateway paths under `/Users/max/koskadeux-mcp`.
 Shared helper `assert_release_admitted(bq_code, *, ownership)` (resolve entity, evaluate the shared predicate incl `released`, raise typed "HELD — not released" otherwise) invoked **before dispatch** at:
-- `tools/agents.py:333-348` — `dispatch_build` (CC)
-- `tools/agents.py:351-363` — `dispatch_mp_build` (MP/Codex)
-- `tools/agents.py:459-472` — `council_request agent=cc mode=build` routing
-- `call_claude_code` auto-demotion path
+- `tools/agents.py:3141` — `_handle_dispatch_build` (CC)
+- `tools/agents.py:3160` — `_handle_dispatch_mp_build` (MP/Codex)
+- `tools/agents.py:4107` — `_handle_council_request` routing (CC build path `:4124-4197`)
+- `tools/agents.py:3120` — `_handle_call_claude_code` auto-demotion path
 - `council_compliance_gate.py:176-230` — extend the Gate-1 check to also require release admission
 
-**Fail closed (F2):** `council_compliance_gate.py:180-189` currently ALLOWS dispatch when `bq_code` is absent — under this spec a missing/unresolved `bq_code` MUST reject build dispatch. The auto-create path `tools/agents.py:393-439` (today creates a missing entity `status:in_progress`, fails open) MUST create it **held** (`released=false`, not auto-dispatchable) and **not** auto-release; no build in the same call.
+**Fail closed (F2):** `council_compliance_gate.py:180-189` currently ALLOWS dispatch when `bq_code` is absent — under this spec a missing/unresolved `bq_code` MUST reject build dispatch. The auto-create path `tools/agents.py:3721` (`_ensure_bq_entity`; auto-create + `status:in_progress` at `:3740-3751`) MUST create it **held** (`released=false`, not auto-dispatchable) and **not** auto-release; no build in the same call.
 
 ### §3.5 Migration / grandfather (MP F5: acceptable)
 One-time migration sets `lifecycle_released=true` (+ body, `released_by="migration:S760"`) for every existing `kind='build'` entity. `manual_block`/reconciliation blocks stay independent conjuncts, so grandfathering unblocks nothing blocked for other reasons. New entities default held.
@@ -61,7 +61,7 @@ Per-row Max-only **Release/Hold** toggle (calls §3.6, version-checked, 409->ref
 | Predicate (Py) | backend `eligibility.py:130-140` | `and released` |
 | Predicate (SQL) | backend `eligibility.py:44-62` | `AND COALESCE(...lifecycle_released,false)=true` |
 | Schema | backend `allai_state.py:112-131` + migration | `lifecycle_released` default false |
-| Dispatch guard | koskadeux-mcp `tools/agents.py:333-348,351-363,459-472,393-439`; `council_compliance_gate.py:176-230,180-189` | shared `assert_release_admitted`; missing bq_code fails closed; auto-create held |
+| Dispatch guard | koskadeux-mcp `tools/agents.py:3120,3141,3160,4107(+4124-4197),3721`; `council_compliance_gate.py:176-230,180-189` | shared `assert_release_admitted`; missing bq_code fails closed; auto-create held |
 | Write guard | backend `state_service.py:302-369,389-397,476-538,556-582`; `state.py:443-477,490-507,537-558`; `bq_lifecycle.py:64-72` | flag immutable via generic+CAS paths; authenticated identity only |
 | Release endpoint+UI | backend `/build-queue/{code}/release\|hold` + console | Max-only toggle |
 | WS4/WS5 forward constraint | future pickup/assignment queries | MUST use the predicate/SQL |
@@ -85,4 +85,5 @@ Bulk release UX, scheduled/auto-release, per-priority policies, `manual_block`/r
 
 ## Changelog
 - **R2 (MP 3db8508b):** F1 dispatch guard elevated to hard requirement at all entry points; F2 missing-bq_code fail-closed + auto-create-held; F3 authenticated-identity write guard across put/patch/atomic/top-level; F4 honest enforcement framing + WS4/WS5 forward constraint; F5 create-and-dispatch resolved.
-- **R3 (MP f9140e72):** fixed gateway path citations to the ACTIVE `/Users/max/koskadeux-mcp` (repo-root-relative; stale-sibling caveat); added the CAS generic-merge write path (`state.py:537-558`->`state_service.py:476-538`->`_write_locked_entity:556-582`) to §3.6/§4 and a CAS write-guard test to §5.
+- **R3 (MP f9140e72):** fixed gateway path repo (ACTIVE `/Users/max/koskadeux-mcp`); added the CAS generic-merge write path to §3.6/§4/§5.
+- **R4 (MP f5a3e85a):** corrected dispatch-guard line numbers to the real handler symbols in the 174KB active `tools/agents.py` (`_handle_dispatch_build:3141`, `_handle_dispatch_mp_build:3160`, `_handle_council_request:4107` CC routing `:4124-4197`, `_handle_call_claude_code:3120`, `_ensure_bq_entity:3721` auto-create) — the round-1 ranges (333-472) were stale.
