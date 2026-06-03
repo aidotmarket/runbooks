@@ -146,6 +146,21 @@ table (boot-gate persistence) is correct and stays.
 repo). The legacy single-file `/var/tmp/koskadeux/HANDOFF.md` scheme was retired S733 (Unit B);
 a worker boot reads `HANDOFF.worker.md` regardless of how it was written.
 
+## Infisical token & auth refresh (S760)
+
+All launchd-managed services (gateway, mcp, council-hall, AG/DeepSeek servers) start via `/Users/max/bin/launch_with_infisical.sh`, which injects prod secrets through `infisical run`. The Infisical access token is a short-lived JWT (~24h) stored at `~/.config/infisical/sysadmin-token`, minted from a universal-auth machine identity whose client-id/secret live in the macOS login keychain (account `infisical-sysadmin-agent`) via `/Users/max/bin/infisical_auth_refresh.sh` (idempotent; writes the JWT to the token file).
+
+**Failure mode (fixed S760):** the token file was refreshed only on-demand with no schedule, so the JWT could lapse. A service restart after expiry reads the stale token and fails to fetch secrets (`infisical run` -> 403 -> service comes up with empty env). Misleading symptom: secret reads via that token return empty/403 and can look like "secret missing in Infisical" — it is not. Re-mint the token first, then re-check.
+
+**Fix (S760):**
+- `launch_with_infisical.sh` now calls `infisical_auth_refresh.sh` before reading the token file, so every (re)start gets a fresh JWT. The refresh is **non-fatal**: if it fails, the wrapper falls back to the existing token file rather than blocking startup. Original wrapper backed up at `launch_with_infisical.sh.bak-S760`.
+- New LaunchAgent `com.koskadeux.infisical-token-refresh` runs the refresh every 6h (`StartInterval 21600`, `RunAtLoad`), keeping the file valid for any direct reader. stdout is discarded (it would print the JWT); errors go to `/var/tmp/koskadeux/token-refresh.err`.
+
+**Recovery (token expired / service can't fetch secrets):**
+- Re-mint now: `/Users/max/bin/infisical_auth_refresh.sh >/dev/null`
+- Confirm validity: decode the JWT `exp` in `~/.config/infisical/sysadmin-token`.
+- If the refresh errors with "Infisical creds missing from keychain", restore the universal-auth client-id/secret to keychain account `infisical-sysadmin-agent`.
+
 ## Recovery
 
 - **Force recovery:** `touch /var/tmp/koskadeux/force_recovery` (or tell the instance "recover").
