@@ -184,6 +184,38 @@ The **only** path that puts a listing on the live market:
 
 > Status: this signed flow was wired into the client in S760 on branch `fix/devectorize-publish-s760` (de-vec + listing UI + register/sign fix). Confirm it is merged to `main` before treating it as the shipped state.
 
+### The list-a-file flow end to end — PII review, allAI metadata enhancement, billing (READ FIRST when "the listing step is broken")
+
+> Added S769 (2026-06-04). This step has been re-diagnosed and re-fixed many times and keeps rotting. If a seller "can't get allAI to enhance the metadata" or "publish does nothing," read this BEFORE changing any code. The repeated failures have come from fixing dead code and from a billing-mode gap, not from the listing logic itself.
+
+**The live flow (post de-vectorization, S758-S760):**
+1. Seller picks a file or connects a source (e.g. the S3 connector).
+2. For an S3 object: register downloads the object locally via a presigned URL into `record.upload_path`, then kicks `process_dataset_task` -> `processing_service.process_file`. That path extracts the file, runs the **PII scan inside `_run_post_extract_analysis`** (writes `record.metadata["pii_scan"]`), enriches via DuckDB, and lands the dataset at `PREVIEW_READY`. **PII genuinely runs here.** `listing_metadata` does NOT run in `process_file`.
+3. Seller lands in the single listing editor (title, description, tags, category, price). The PII result surfaces for review. The embedded allAI assistant helps enhance the metadata (description, tags, field classification). This is the interactive "work with allAI" step.
+4. Seller clicks **Publish to ai.market** -> `POST /api/marketplace/publish` (`app/routers/marketplace_publish.py`) -> signs a short-lived EdDSA JWT -> `POST {ai_market}/api/v1/vz/publish`. Only metadata goes live; raw data stays with the seller.
+
+**The dead-path trap - the #1 reason this work gets redone:**
+- `POST /api/datasets/{id}/publish` (`MarketplacePushService`) is **processing-era and dead** after de-vectorization. It needs `/data/processed/{id}` artifacts that no longer exist plus a shared internal key; it returns 401/403. **Do not wire publish to it.**
+- `RawListingService.publish_listing` only sets a **local** status; it never syncs to ai.market.
+- Wiring metadata generation into `process_file` or the `PipelineService` (`run_pipeline` / `run_full_pipeline`) is **also wrong** for the listing flow - those are processing-era and the live flow never calls them. Note the inverted names: `run_pipeline` is the EXTENDED step set (includes `listing_metadata`); `run_full_pipeline` is the smaller set. Neither is on the live listing path.
+
+**allAI runs on OUR Anthropic key, through the proxy - config lives on the ai.market BACKEND, not in AIM Data:**
+- AIM Data holds **no Anthropic key**. The assistant routes through ai.market's agentic proxy (`/api/v1/allie/chat/agentic`; service `app/services/allie_proxy_service.py`). The structured enricher is `app/allai/agents/listing_enricher.py` (`ListingEnricherAgent`).
+- **Listing-assistance model:** the proxy default is `allie_model_default` (was `claude-sonnet-4-5-*`). Listing assistance should run on **Opus 4.8 (`claude-opus-4-8`)** (Max, S769).
+- **Anti-abuse cap, not a billing lever:** a real metadata enhancement costs **pennies**. The cap exists only to stop a customer hammering allAI on a product that is free to them. Two distinct knobs: a per-operation guardrail `ListingEnricherAgent.budget_cap_usd` (was `$5.00`), and the per-customer ceiling that ships with the free-with-cap billing mode below. Max's target abuse ceiling for AIM Data is **$20** (S769).
+- Cosmetic red herring: `/api/allai/status` can report `not_configured` under proxy mode (RC#19) even when allAI works. Do not chase it as the cause.
+
+**Billing model - the deep root cause of "works once then rots":**
+- **Product intent (Max, S769):** vectorAIz is an ongoing tool (an LLM searching the customer's own vectorized documents), so it gets a **$5 trial then paid** use. **AIM Data has exactly one job** - get the customer's data onto the market and be the peer-to-peer fulfillment vehicle when it sells - so **we pay for the metadata enhancement; that is the product's purpose.** AIM Data allAI use is free to the customer, capped only to prevent abuse.
+- **Reality on `main` today:** AIM Data runs the **same** billing as vectorAIz - starter trial credit then prepaid/"buy more" (`app/services/credits_service.py`: `free_trial` -> `balance`; `billing_mode` enum is only `prepaid`/`invoice`). The intended **free-with-cap** mode (`monthly_free_cap`, `build:bq-aim-data-allai-monthly-cap-s736`) is **built and Gate-1 approved but NOT merged to main** (branch `build/bq-aim-data-allai-monthly-cap-s736`, default cap $10; set to $20 for AIM Data per Max).
+- **Consequence:** until that ships, every AIM Data account behaves like vectorAIz - the moment its starter credit lapses, allAI stops responding and the metadata step **looks broken**. A freshly registered account has starter credit (covers a pennies-cost enhancement), so a first listing can succeed, but reused or aged accounts hit the wall. That intermittency is the "fixed it, then it broke again" symptom.
+
+**Fix order when this breaks:**
+1. Confirm you are on the **live** publish path (`/api/marketplace/publish` -> `vz/publish`), not a dead path.
+2. Confirm listing assistance uses **Opus 4.8** and the abuse cap is **$20**.
+3. Confirm the account is not blocked by **credit exhaustion** (durable fix: ship the free-with-cap billing mode so AIM Data never depends on trial credit).
+4. Confirm `AIM_DATA_KEYSTORE_PASSPHRASE` is set, or publish fails to sign (see the signed-VZ-flow section above).
+
 ### Buyer purchases, delivery happens
 
 When a buyer purchases on ai.market, Stripe processes payment. ai.market sends the seller's AIM Data instance a signed delivery token over the Trust Channel. AIM Data validates the token, opens an encrypted peer-to-peer channel to the buyer (ChaCha20-Poly1305, per-session ephemeral keys), and streams the bytes. The relay sees only ciphertext. ai.market never sees the data. Stripe Connect pays out the seller minus the 5% marketplace commission.
