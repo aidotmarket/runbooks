@@ -86,6 +86,21 @@ launchctl kickstart -k gui/$(id -u)/com.koskadeux.ag_server
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server
 ```
 
+**Verify the restart actually bounced the process — `kickstart` can silently no-op.**
+`launchctl kickstart -k` returns exit 0 (the command "fired") even when it does NOT replace
+the running process: the old PID keeps serving the old code, so a code change looks like it
+never landed. ALWAYS confirm the PID changed before declaring the new code live (S766 boot-path
+activation lesson — a launchctl restart reported "fired" yet the old process kept running):
+
+```bash
+# Capture PID, kickstart, confirm a DIFFERENT PID is now serving
+OLD=$(launchctl list | awk '/com\.koskadeux\.mcp/{print $1}')
+launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
+sleep 2
+NEW=$(launchctl list | awk '/com\.koskadeux\.mcp/{print $1}')
+echo "pid $OLD -> $NEW"   # MUST differ; if equal, the restart no-opped — re-run kickstart
+```
+
 **A handler restart drops BOTH instances' in-memory session state** → both Vulcan and Mars
 must re-open + re-plan. Never restart unilaterally while the peer is live — coordinate
 (via Max) when both reach a clean stop. (See "Known issues → restarts drop both sessions.")
@@ -100,7 +115,13 @@ only **close order** (worker releases first), NOT authority.
 
 ```
 kd_session_open(session_id, instance_role=primary|worker, parent_session_id=<primary id, for worker>)
-  → returns CORE.md + per-instance HANDOFF.<role>.md + BQ status + service health
+  → returns CORE.md + handoff + BQ status + service health
+  → handoff is read DB-FIRST from infra:handoff:role=<role> (per-role file is the fallback);
+    the boot payload reports handoff_source = "db" | "file" so you can tell which path served.
+    "db" = the database read worked (the proven path since the S766 cutover); "file" = the DB
+    read/write is broken and the file fallback served — investigate before trusting the handoff.
+  → also surfaces read-only next_ready: the top pending item peeked from the author-dispatch
+    database (pickup_query.peek over AUTHOR_DISPATCH_DATABASE_URL). Additive; legacy pickup still live.
   → registers the session in the local registry; claims the role slot in the remote lock
 kd_session_plan(session_id, tool_budget, objectives, delegation_strategy)
   → transitions the boot gate PLANNING → OPERATIONAL; unlocks all other tools
@@ -116,7 +137,9 @@ in-process server object is re-instantiated.
 
 ```
 kd_session_close(session_id, instance_role, reason, summary, handoff_content)
-  → commit/push dirty repos → write HANDOFF.<role>.md → release the role slot → log end
+  → commit/push dirty repos → DUAL-WRITE the handoff to BOTH the database
+    (infra:handoff:role=<role>) AND HANDOFF.<role>.md → release the role slot → log end
+  → do NOT hand-edit HANDOFF.<role>.md: close owns both writes and they must stay in sync.
 ```
 
 ### Where session state lives — TWO records, and why
@@ -189,9 +212,11 @@ A path failure localises by which step first stops returning 200 / active.
 | All MCP tools fail; `:8765` `/api/tools` is fine | Gateway proxy stale | `launchctl kickstart -k gui/$(id -u)/com.koskadeux.gateway` |
 | All MCP tools fail; `:8765` errors/hangs | Handler wedged | kickstart `com.koskadeux.mcp`, then re-run `kd_session_open` + `kd_session_plan` |
 | Code change to a tool handler not visible | Restarted gateway, not handler | kickstart `com.koskadeux.mcp` (it imports `tools/agents.py`) |
+| Code change still not visible after kickstarting the handler | `kickstart` fired but no-opped — PID unchanged | Confirm the PID changed (`launchctl list \| grep com.koskadeux.mcp`); if unchanged, re-run kickstart and re-verify before declaring the new code live (S766) |
 | `mcp.ai.market` 502/504 but `:8767` healthy | Cloudflared tunnel down/misrouted | kickstart `com.koskadeux.cloudflared`; check `cloudflared tunnel info koskadeux` |
 | `mcp.ai.market` 401/403 | OAuth flow rejected the bearer | Verify the OAuth metadata endpoint issuer; re-auth from claude.ai |
 | "BOOT GATE / checkpoint required" | Session state expects open+plan after a restart | Re-run `kd_session_open` then `kd_session_plan` before any other tool |
+| `handoff_source` reads `file` when `db` was expected | DB handoff read or write failing; per-role file fallback served | Inspect the `_upsert_handoff_entity` DB write path (look for `handoff_db_write=warn`); confirm `infra:handoff:role=<role>` exists in Living State |
 | A call returns *another* call's output | Response cross-talk under concurrent load | See Known issues → "response cross-talk"; re-read (idempotent GET) to confirm true state |
 | `git push origin main` says "up-to-date" but no commit lands | Local `main` tracks `origin/HEAD` | `git push origin HEAD:main`; verify `git fetch origin && git log --oneline -3 origin/main` (S519) |
 
