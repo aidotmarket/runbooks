@@ -160,7 +160,7 @@ Auto-promotion (S772): a first-time **buyer**-role account is promoted to **sell
 
 ### Set up the S3 source connector
 
-Settings → Data Sources → Add S3 Source. The wizard renders a JSON trust policy that names the ai.market AWS account as the trusted principal. Seller copies the JSON, opens their own AWS IAM console, creates a role with S3 read access to the bucket they want to list from, pastes the trust policy as the role's trust relationship, and pastes the role ARN back into AIM Data. Clicking Verify runs an STS `AssumeRole` call. Green means the connector is ready. Long-lived AWS credentials stay in the seller's account. AIM Data only holds the short-lived assumed-role session when it reads.
+The seller connects a bucket directly from the listing flow, with no separate Settings step. AIM Data renders a JSON trust policy that names the ai.market AWS account as the trusted principal. The seller copies the JSON, opens their own AWS IAM console, creates a role with S3 read access to the bucket they want to list from, pastes the trust policy as the role's trust relationship, and pastes the role ARN back into AIM Data. Clicking Verify runs an STS `AssumeRole` call. Green means the connector is ready. Long-lived AWS credentials stay in the seller's account. AIM Data only holds the short-lived assumed-role session when it reads.
 
 ### Prepare and publish a listing
 
