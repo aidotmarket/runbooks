@@ -356,7 +356,7 @@ last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
 
-The Council runbook family conformance status is `CONFORMANT` per Gate 1 §10. C5c was finalized in S778.w (Max-approved): the Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across all four family files.
+The Council runbook family conformance status is `provisional` per Gate 1 §10 and Max's locked Option B decision (S530). The Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across all four family files, but final CONFORMANT is gated on AC14 — the §I scenario-scoring harness step (weighted score ≥0.80 per runbook) — which is blocked pending BQ-RUNBOOK-HARNESS-COMPACT-IO. Per Max Option B, AC14 stays a hard gate; the family is not certified on structure-and-lint alone.
 
 ## §K. Conformance
 
@@ -370,4 +370,4 @@ trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: CONFORMANT` is the certified C5c value under Gate 1 §10; it stays documented in prose because the current linter schema does not yet accept that key in the §K YAML block (machine field deferred to BQ-RUNBOOK-LINT-FRESHNESS-FIELDS / v1.1.0).
+`conformance_status: provisional` is the intended C5c value under Gate 1 §10; it stays documented in prose because the current linter schema does not yet accept that key in the §K YAML block (machine field deferred to BQ-RUNBOOK-LINT-FRESHNESS-FIELDS / v1.1.0).

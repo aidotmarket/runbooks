@@ -437,7 +437,7 @@ last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
 
-Conformance status is `CONFORMANT` per Gate 1 §10. C5c was finalized in S778.w (Max-approved): the Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across the family. This status is documented in prose only because runbook-lint v1.0.0 rejects `conformance_status` inside §K YAML.
+Conformance status is `provisional` per Gate 1 §10 and Max's locked Option B decision (S530). The Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across the family, but final CONFORMANT is gated on AC14 — the §I scenario-scoring harness step (weighted score ≥0.80 per runbook) — which is blocked pending BQ-RUNBOOK-HARNESS-COMPACT-IO. Per Max Option B, AC14 stays a hard gate. This status is documented in prose only because runbook-lint v1.0.0 rejects `conformance_status` inside §K YAML.
 
 ## §K. Conformance
 
@@ -451,7 +451,7 @@ trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: CONFORMANT` is the certified C5c state under Gate 1 §10; the runbook-lint v1.0.0 §K YAML schema rejects that additional key, so it remains prose-only until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 accepts freshness fields.
+`conformance_status: provisional` is the intended C5c state under Gate 1 §10; the runbook-lint v1.0.0 §K YAML schema rejects that additional key, so it remains prose-only until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 accepts freshness fields.
 
 
 ## §M — S533 Operational Updates
