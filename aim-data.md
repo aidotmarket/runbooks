@@ -162,7 +162,15 @@ Settings → Data Sources → Add S3 Source. The wizard renders a JSON trust pol
 
 ### Prepare and publish a listing
 
-After de-vectorization (S758–S760), the flow is the simplified "list a file": seller picks a file or source, lands on a single listing editor (title, description, tags, category, price), and clicks **Publish to ai.market**. No register/preview/confirm/index screens. PII scan and quality score still surface when enabled. Only metadata + description go live; raw data stays with the seller.
+As of v1.20.53 (S773) listing a file is a guided three-screen wizard. Raw data never leaves the seller; only metadata and the description go live on ai.market.
+
+1. Privacy Review (automatic). When the seller opens a dataset the PII scan runs automatically on entry, with no manual scan button. The seller lands directly on the Privacy Review results and reviews detected PII; the privacy attestation is recorded truthfully from this screen. Click Continue.
+2. Metadata Review. Metadata is auto-generated on entry through allAI (claude-opus-4-8 via the /agentic proxy, cost capped). The seller reviews the generated title, description, tags, and category, edits if needed, clicks Approve, then Continue to publish.
+3. Listing Details and Publish. The seller confirms listing details (price, category) and clicks Publish to ai.market.
+
+Publish is the signed path: POST /api/marketplace/publish to {ai_market}/api/v1/vz/publish. A first-time seller account is auto-promoted from buyer to seller on /vz/register. AIM_DATA_KEYSTORE_PASSPHRASE must be set or publish returns 503. Quality score still surfaces when enabled.
+
+Dead paths, do not use: /pipeline, /process-full, /{id}/publish, /{id}/confirm. No vectorization, Qdrant, or RAG in this flow.
 
 ### Publishing to ai.market (signed VZ flow) — READ before touching publish
 
