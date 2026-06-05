@@ -356,7 +356,7 @@ last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
 
-Initial conformance status for the Council runbook family is `provisional` per Gate 1 §10 until C5c finalizes lifecycle telemetry after the Infisical cutover constraint is cleared.
+The Council runbook family conformance status is `CONFORMANT` per Gate 1 §10. C5c was finalized in S778.w (Max-approved): the Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across all four family files.
 
 ## §K. Conformance
 
@@ -370,4 +370,4 @@ trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: provisional` is the intended C5c value under Gate 1 §10; the current linter schema does not yet accept that key in the §K YAML block.
+`conformance_status: CONFORMANT` is the certified C5c value under Gate 1 §10; it stays documented in prose because the current linter schema does not yet accept that key in the §K YAML block (machine field deferred to BQ-RUNBOOK-LINT-FRESHNESS-FIELDS / v1.1.0).

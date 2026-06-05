@@ -407,7 +407,7 @@ last_harness_date: 2026-04-29T00:00:00Z
 first_staleness_detected_at: null
 ```
 
-Current conformance_status is `provisional` per Gate 1 §10 until C5c finalizes lifecycle telemetry after scenario authoring, harness execution, and the Infisical cutover constraint. This field is prose-only here because runbook-lint v1.0.0 rejects `conformance_status` as an additional §K YAML key.
+Current conformance_status is `CONFORMANT` per Gate 1 §10. C5c was finalized in S778.w (Max-approved): the Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across the family. This field is prose-only here because runbook-lint v1.0.0 rejects `conformance_status` as an additional §K YAML key.
 
 ## §K. Conformance
 
@@ -421,4 +421,4 @@ trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: provisional` is intentionally not present in §K YAML until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 expands the schema.
+`conformance_status: CONFORMANT` is intentionally kept in prose (not §K YAML) until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 expands the schema.
