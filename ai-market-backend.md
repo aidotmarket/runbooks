@@ -69,7 +69,7 @@ curl -s https://api.ai.market/health
 
 ## Database
 
-PostgreSQL on Railway. Connection via `DATABASE_URL` (internal Railway hostname — not reachable externally).
+PostgreSQL on Railway. The app connects via `DATABASE_URL` (internal Railway hostname `postgres.railway.internal`, not reachable externally). To reach production from an external host (Titan-1, the laptop), use the public TCP proxy exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service — see "Customer data: where it lives, and how to delete or reset an account" below for the exact connect snippet.
 
 **Alembic migrations:** All migrations must be idempotent using existence checks (`DO $$ BEGIN ... EXCEPTION WHEN duplicate_object`). Railway runs `alembic upgrade head` on every deploy.
 
@@ -112,9 +112,73 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 | Stripe webhook failures | Check webhook signing secret | Verify `STRIPE_WEBHOOK_SECRET` in Infisical |
 | Customer sees `/login?error=oauth_failed` after Google/GitHub consent | Sign-up path failure — check `app/auth/oauth.py:408` `ensure_user_crm_identity` is NOT raising and rolling back the auth transaction | See `auth-signup-flow.md` for full architecture, known issues, diagnostic procedure, and backfill |
 
+## Customer data: where it lives, and how to delete or reset an account
+
+All customer and account data lives in the **PostgreSQL `Postgres` service** of the `ai-market` Railway project (production environment). That is the single source of truth for customer identity. Qdrant and Redis hold only derived or transient data, and raw seller data never leaves the seller's own AIM Data install.
+
+**Connecting to production Postgres from an external host (Titan-1, laptop):** the internal `DATABASE_URL` host (`postgres.railway.internal`) is not reachable externally. Use the public TCP proxy, exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service:
+
+```sh
+PUB=$(railway variables -s Postgres --json | python3 -c 'import json,sys;print(json.load(sys.stdin)["DATABASE_PUBLIC_URL"])')
+psql "$PUB" -c '\conninfo'
+# host: shuttle.proxy.rlwy.net   port: <project TCP-proxy port, currently 50727>   db: railway
+```
+
+Same credentials and database as the internal URL; only host and port differ. Never echo the full URL (it carries the password) — print host only when logging.
+
+**The account row:** a customer is one row in `users` (`id uuid`, `email`, `role` — a Postgres `userrole` enum with values `buyer` / `seller` / `admin`):
+
+```sh
+psql "$PUB" -c "SELECT id, email, role, created_at FROM users WHERE email='<email>';"
+```
+
+**Where the data is spread:** roughly 80 tables carry a foreign key to `users`, most empty for a typical seller. Delete rules differ per table, which is why a blind `DELETE FROM users` either fails or orphans rows:
+
+- `ON DELETE CASCADE` (removed automatically with the user): `listings`, `auth_sessions`, `notifications`, `allai_preferences`, `wallets`, `user_preferences`, `notification_preferences`, `conversations`, `inquiries`, `ratings`, `credit_reservations`, `crm_user_roles`, `organization_memberships`, `seller_inquiry_preferences`, and similar.
+- `ON DELETE NO ACTION` (blocks the delete; must be cleared first when rows exist): `vz_installs.seller_id`, `buyer_profiles.user_id`, `seller_profiles.user_id`, `crm_people.user_id`, `orders`, `transactions`, `purchases`, `invoices`, `payments`, `api_keys`, `api_credits`, `credit_ledger`, `publish_operations`, and others.
+- `ON DELETE SET NULL`: most `crm_*` audit columns (`created_by_user_id`, `*_by`), which are left in place and simply de-attributed.
+
+**Probe exactly which child tables hold rows for a user** (read-only — run before deleting):
+
+```sql
+DO $$
+DECLARE r RECORD; n BIGINT; uid uuid := '<user-uuid>';
+BEGIN
+  FOR r IN SELECT tc.table_name t, kcu.column_name c
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu ON tc.constraint_name=kcu.constraint_name
+    JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name=ccu.constraint_name
+    WHERE tc.constraint_type='FOREIGN KEY' AND ccu.table_name='users'
+  LOOP
+    EXECUTE format('SELECT count(*) FROM %I WHERE %I = $1', r.t, r.c) INTO n USING uid;
+    IF n>0 THEN RAISE NOTICE '%.% = %', r.t, r.c, n; END IF;
+  END LOOP;
+END $$;
+```
+
+**Delete or reset an account:** clear the non-cascading children the probe reported, then the user; cascades remove the rest. Run it as one transaction with `ON_ERROR_STOP` so an unexpected dependency aborts cleanly instead of partially deleting:
+
+```sql
+BEGIN;
+DELETE FROM vz_installs     WHERE seller_id='<uuid>';
+DELETE FROM buyer_profiles  WHERE user_id ='<uuid>';
+DELETE FROM seller_profiles WHERE user_id ='<uuid>';
+DELETE FROM crm_people      WHERE user_id ='<uuid>';
+-- add any other NO ACTION tables the probe reported (orders/transactions/etc. for accounts that traded)
+DELETE FROM users           WHERE id      ='<uuid>';
+SELECT count(*) FROM users WHERE email='<email>';   -- expect 0
+COMMIT;
+```
+
+Invoke with `psql -v ON_ERROR_STOP=on -f reset.sql`. After this the email is free to register from scratch. For a fresh test seller that only listed (no buyers or orders), the non-cascading set is typically just `vz_installs`, `buyer_profiles`, and `crm_people`.
+
+> Worked example (S773): resetting `max@kisa.cat` (a seller that had published) cleared 1 `vz_installs`, 1 `buyer_profiles`, 1 `crm_people`, then cascaded 2 `listings`, 6 `auth_sessions`, 2 `notifications`, and 1 `allai_preferences` when the user row was deleted.
+
+
 ---
 
 *Created: S363 (2026-04-01)*
+*Customer data + reset procedure added: S773 (2026-06-05)*
 
 ## Alembic + asyncpg Gotchas (Railway)
 
