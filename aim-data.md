@@ -31,7 +31,7 @@ What AIM Data does today, by feature, with status and the code that backs it. `B
 |---------|--------|--------------|-----------------|
 | Install via one-liner from get.ai.market | **BROKEN** | `installers/aim-data/install.sh`, CF Worker | Yes — currently returns 502; customers cannot install via the advertised path |
 | Install via manual compose | SHIPPED | `docker-compose.aim-data.yml` + `docs/INSTALL.md` | Yes — works; 7 env vars to set |
-| Admin account creation on first visit | SHIPPED | `app/auth/`, `app/routers/auth.py` | Yes — first browser visit at `localhost:8080` |
+| Sign in with ai.market account | SHIPPED | `app/auth/`, `app/routers/auth.py` | Yes — sign in (or create) with an ai.market account at `localhost:8080/login`; no separate AIM Data account |
 | Serial + bootstrap-token activation | SHIPPED | `app/services/activation_manager.py` | Silent at first boot, no UI prompt |
 | Local data profiling | SHIPPED | `app/services/profiling/` | Surfaces in the listing draft |
 | Local PII scanning (tri-state signal) | SHIPPED | `app/services/pii_scanner.py` | Yes — `passed` / `flagged` / `not run` per ai.market/aim-data trust signals |
@@ -71,7 +71,7 @@ Inside the API container, the layout follows a standard FastAPI app. This tree i
 │   ├── main.py              FastAPI entrypoint + router wiring
 │   ├── mcp_server.py        MCP server entrypoint for agent integration
 │   ├── config.py            settings (env vars, feature flags, service URLs)
-│   ├── auth/                local admin auth, API key issuance, JWT
+│   ├── auth/                ai.market account sign-in, API key issuance, JWT
 │   ├── routers/             ~35 endpoint groups (listings, sources, allai_chat, marketplace, ...)
 │   ├── services/            ~95 service modules (profiling, PII, quality, S3, allAI client, etc.)
 │   ├── models/              SQLAlchemy models (~28 tables, alembic-managed)
@@ -144,9 +144,9 @@ The end-to-end flow from "seller signs up on ai.market" to "buyer's purchase pay
 4. `docker compose -f docker-compose.aim-data.yml up -d` pulls about 5GB of images on first run and brings up the three containers.
 5. After roughly a minute, `curl http://localhost:8080/api/health` returns `status: ok`.
 
-### First admin login
+### First sign-in (ai.market account)
 
-Seller opens `http://localhost:8080` in a browser. The first visit shows an admin-creation screen because no users exist yet. Seller picks an email and password. That account is the admin with full access. There is no password reset path on the install side, so the seller saves the password somewhere safe.
+AIM Data has **no local admin account** — that concept belongs to vectorAIz, the standalone tool AIM Data was forked from at the 2026-05-28 split. AIM Data authenticates **only** against ai.market. The seller opens `http://localhost:8080`, lands on the sign-in screen ("Sign in with your ai.market account"), and signs in with an existing ai.market account or uses "Create one at ai.market" to register. There is no separate AIM Data account and no install-side admin-creation or password-reset screen — account and password management live entirely at ai.market.
 
 ### Serial activation
 
