@@ -133,20 +133,6 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: tr_truncation_false_negative, cause: env verification pipe `ps -E | tr ' ' '\n' | grep VAR` splits env entries containing spaces; var appears missing when actually present; use `ps -E -p PID | grep VAR` directly without tr}
   next_step_success: Patch the relevant BQ body.s<session>_durability_fix_resolution with smoke evidence (new PID, response time, hostname, env var presence in both bash wrapper and python child); record plist backup path for rollback.
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
-#  canonical_smoke_sequence:
-#    1: "Confirm env var ABSENT in plist before edit: /usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING' <plist> should fail"
-#    2: "Backup: cp <plist> /tmp/<plist-name>.S<session>.bak"
-#    3: "Add env var: /usr/libexec/PlistBuddy -c 'Add :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING string 1' <plist>"
-#    4: "Validate XML: plutil -lint <plist>"
-#    5: "Capture OLD_PID: launchctl list | awk '$3=="<service>"{print $1}'"
-#    6: "bootout: launchctl bootout gui/$(id -u)/<service>; poll launchctl list until service unloaded"
-#    7: "bootstrap: launchctl bootstrap gui/$(id -u) <plist>; poll launchctl list until NEW_PID present and != OLD_PID"
-#    8: "Verify env in BOTH bash wrapper AND python child PIDs: pstree -p <NEW_PID>; for each PID, ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING (no tr pipe)"
-#    9: "Cross-check launchctl print gui/$(id -u)/<service> shows env var in canonical 'environment' Dict, NOT only 'inherited environment'"
-#    10: "Smoke dispatch: council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'; verify hostname=Koskadeux.local, env=1, no node-path error"
-#    11: "Optional: mode=review smoke with a real BQ context (this is implicitly covered by any subsequent reviewer dispatch in the same session)"
-#  precedent_session: S691 (first complete codified application; predecessor durability gap S686 with Mars S690.W T3 ordering finding)
-#  related_repair_scenarios: [G-01 (gateway timeout), G-03 (codex queue), G-06 (routing-fix smoke recovery)]
 ```
 
 ## §F. Isolate
@@ -158,6 +144,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-03 | MP mutex queue visible during multiple MP dispatches | Multiple MP dispatches serialize through the Codex CLI path; observable queue, not a correctness failure | Check task start times and mutex/queue logs before declaring failure | G-03 | CONFIRMED |
 | F-04 | Dispatcher stale but files committed | MP completed local work but gateway task state or Living State did not refresh | Compare git log/status with dispatcher task record and build entity `body.summary` | G-04 | CONFIRMED |
 | F-05 | MCP tool prefix lowercase silent-fail | Tool prefix used as `koskadeux:` instead of capitalized `Koskadeux:` | Check the tool name casing in the dispatched prompt or MCP call trace | G-05 | CONFIRMED |
+| F-06 | DeepSeek dispatch fails (connection refused on 127.0.0.1:8768, or the server crash-loops at startup) | Server down; launcher resolved no or invalid DEEPSEEK_API_KEY from Infisical; or the stored key is expired, malformed, or overwritten so the startup auth-probe gets HTTP 401 from api.deepseek.com | Check the listener with `lsof -nP -iTCP:8768 -sTCP:LISTEN` and tail `/var/tmp/koskadeux/deepseek_server.log` plus `_error.log`; a startup 401 means a bad stored key value, an Infisical fetch error means launcher wiring (wrong project) | G-06 | CONFIRMED |
 
 ## §G. Repair
 
@@ -202,6 +189,14 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   change_pattern: Replace lowercase `koskadeux:` with capitalized `Koskadeux:` and rerun the affected dispatch step.
   rollback_procedure: Mark the failed lowercase attempt as superseded.
   integrity_check: Confirm the next transcript contains the expected tool call result.
+- id: G-06
+  symptom_ref: F-06
+  component_ref: DeepSeek Backend
+  root_cause: DeepSeek server is down, the launcher resolved no or invalid DEEPSEEK_API_KEY from Infisical, or the stored key value is malformed or overwritten so the startup auth-probe fails with HTTP 401.
+  repair_entry_point: koskadeux-mcp/scripts/launch_deepseek_server.sh -> /Users/max/bin/launch_with_infisical.sh (Infisical project bd272d48) -> DEEPSEEK_API_KEY
+  change_pattern: "On a startup 401: rotate DEEPSEEK_API_KEY in the canonical Infisical project (prod), then launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server. On an Infisical fetch error: point launch_with_infisical.sh at project bd272d48. No automated process writes this secret, so a junk value indicates a manual overwrite, rotate it in Infisical and re-probe."
+  rollback_procedure: Old launcher backups are kept at /tmp/launch_deepseek_server.sh.bak.*; restore the prior launcher if an edit regresses.
+  integrity_check: curl 127.0.0.1:8768/health returns ok, and a live council_request open_response to deepseek returns success=true with model_actual=deepseek-v4-pro.
 ```
 
 ## §H. Evolve
@@ -438,3 +433,19 @@ XAI was Council's challenger/architect-only voter from S342-S528. It was retired
 Cold-storage state: preserved via `xai_client.py` and `grok_cli_bridge.py` in the koskadeux-mcp repo; reactivation runbook documented at `infra:council-comms.retired_agents.xai` Living State entity.
 
 Reactivation procedure summary: see `infra:council-comms.retired_agents.xai.reactivation_procedure` for step-by-step. Trigger conditions are a model upgrade significantly improving line-number reliability or a specific audit niche that XAI uniquely fills.
+
+## Appendix - E-04 Canonical Smoke Sequence (laptop-routing durability fix)
+
+Precedent S691 (first complete codified application; predecessor durability gap S686, Mars S690.W T3 ordering finding). Related repair scenarios: G-01 (gateway timeout), G-03 (codex queue), G-06 (routing-fix smoke recovery).
+
+1. Confirm env var ABSENT in plist before edit: `/usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING' <plist>` should fail.
+2. Backup: `cp <plist> /tmp/<plist-name>.S<session>.bak`.
+3. Add env var: `/usr/libexec/PlistBuddy -c 'Add :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING string 1' <plist>`.
+4. Validate XML: `plutil -lint <plist>`.
+5. Capture OLD_PID: `launchctl list | awk '$3=="<service>"{print $1}'`.
+6. bootout: `launchctl bootout gui/$(id -u)/<service>`; poll `launchctl list` until the service is unloaded.
+7. bootstrap: `launchctl bootstrap gui/$(id -u) <plist>`; poll `launchctl list` until NEW_PID is present and != OLD_PID.
+8. Verify env in BOTH the bash wrapper AND python child PIDs: `pstree -p <NEW_PID>`; for each PID, `ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING` (no tr pipe).
+9. Cross-check `launchctl print gui/$(id -u)/<service>` shows the env var in the canonical 'environment' Dict, NOT only 'inherited environment'.
+10. Smoke dispatch: `council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'`; verify hostname=Koskadeux.local, env=1, no node-path error.
+11. Optional: mode=review smoke with a real BQ context (implicitly covered by any subsequent reviewer dispatch in the same session).
