@@ -76,7 +76,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     timeout: use the configured MP background timeout unless the BQ states otherwise
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(branch + prompt_digest + target_commit)
-  expected_success: {shape: background task id plus committed artifact or audit verdict, verification: compare git HEAD, task transcript, and BQ build summary}
+  expected_success: {shape: background task id plus committed artifact or audit verdict, verification: "compare git HEAD, task transcript, and BQ build summary"}
   expected_failures:
     - {signature: gateway_timeout, cause: task exceeded synchronous endpoint limit}
     - {signature: stale_task_state, cause: files committed but dispatcher status did not refresh}
@@ -122,10 +122,10 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     plist_path: ~/Library/LaunchAgents/com.koskadeux.council-hall.plist (the dispatch process; NOT com.koskadeux.mcp.plist)
     domain: gui/$(id -u) where uid is the active user (typically 501 on Titan-1)
     smoke_cwd: any path under /Users/max/Projects/* (e.g. ai-market-backend) — MUST exercise _should_route_to_laptop() routing decision; DEFAULT_CWD bypasses the check and false-positives the verification
-    smoke_task: short prompt that returns hostname + env var value (verbatim shell echo); response time and absence of laptop-side error ("node: No such file or directory") is the diagnostic
-  idempotency: IDEMPOTENT_WITHIN_PLIST_VERSION
+    smoke_task: "short prompt that returns hostname + env var value (verbatim shell echo); response time and absence of laptop-side error (\"node: No such file or directory\") is the diagnostic"
+  idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(plist_sha256 + env_var_state)
-  expected_success: {shape: smoke response returns Titan-1 hostname (Koskadeux.local) + env var value "1" + no SSH-to-laptop error, verification: ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical "environment" Dict (not only "inherited environment")}
+  expected_success: {shape: "smoke response returns Titan-1 hostname (Koskadeux.local) + env var value \"1\" + no SSH-to-laptop error", verification: "ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical \"environment\" Dict (not only \"inherited environment\")"}
   expected_failures:
     - {signature: env_var_in_inherited_only, cause: bootout+bootstrap was not run; the user-domain launchctl setenv inheritance is propagating the var but the plist EnvironmentVariables Dict does not contain it; logout/reboot will lose the fix}
     - {signature: default_cwd_false_positive, cause: smoke called council_request without an explicit cwd under /Users/max/Projects/*; routing decision bypassed; verification meaningless}
@@ -133,20 +133,20 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: tr_truncation_false_negative, cause: env verification pipe `ps -E | tr ' ' '\n' | grep VAR` splits env entries containing spaces; var appears missing when actually present; use `ps -E -p PID | grep VAR` directly without tr}
   next_step_success: Patch the relevant BQ body.s<session>_durability_fix_resolution with smoke evidence (new PID, response time, hostname, env var presence in both bash wrapper and python child); record plist backup path for rollback.
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
-  canonical_smoke_sequence:
-    1: "Confirm env var ABSENT in plist before edit: /usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING' <plist> should fail"
-    2: "Backup: cp <plist> /tmp/<plist-name>.S<session>.bak"
-    3: "Add env var: /usr/libexec/PlistBuddy -c 'Add :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING string 1' <plist>"
-    4: "Validate XML: plutil -lint <plist>"
-    5: "Capture OLD_PID: launchctl list | awk '$3=="<service>"{print $1}'"
-    6: "bootout: launchctl bootout gui/$(id -u)/<service>; poll launchctl list until service unloaded"
-    7: "bootstrap: launchctl bootstrap gui/$(id -u) <plist>; poll launchctl list until NEW_PID present and != OLD_PID"
-    8: "Verify env in BOTH bash wrapper AND python child PIDs: pstree -p <NEW_PID>; for each PID, ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING (no tr pipe)"
-    9: "Cross-check launchctl print gui/$(id -u)/<service> shows env var in canonical 'environment' Dict, NOT only 'inherited environment'"
-    10: "Smoke dispatch: council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'; verify hostname=Koskadeux.local, env=1, no node-path error"
-    11: "Optional: mode=review smoke with a real BQ context (this is implicitly covered by any subsequent reviewer dispatch in the same session)"
-  precedent_session: S691 (first complete codified application; predecessor durability gap S686 with Mars S690.W T3 ordering finding)
-  related_repair_scenarios: [G-01 (gateway timeout), G-03 (codex queue), G-06 (routing-fix smoke recovery)]
+#  canonical_smoke_sequence:
+#    1: "Confirm env var ABSENT in plist before edit: /usr/libexec/PlistBuddy -c 'Print :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING' <plist> should fail"
+#    2: "Backup: cp <plist> /tmp/<plist-name>.S<session>.bak"
+#    3: "Add env var: /usr/libexec/PlistBuddy -c 'Add :EnvironmentVariables:KOSKADEUX_DISABLE_LAPTOP_ROUTING string 1' <plist>"
+#    4: "Validate XML: plutil -lint <plist>"
+#    5: "Capture OLD_PID: launchctl list | awk '$3=="<service>"{print $1}'"
+#    6: "bootout: launchctl bootout gui/$(id -u)/<service>; poll launchctl list until service unloaded"
+#    7: "bootstrap: launchctl bootstrap gui/$(id -u) <plist>; poll launchctl list until NEW_PID present and != OLD_PID"
+#    8: "Verify env in BOTH bash wrapper AND python child PIDs: pstree -p <NEW_PID>; for each PID, ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING (no tr pipe)"
+#    9: "Cross-check launchctl print gui/$(id -u)/<service> shows env var in canonical 'environment' Dict, NOT only 'inherited environment'"
+#    10: "Smoke dispatch: council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'; verify hostname=Koskadeux.local, env=1, no node-path error"
+#    11: "Optional: mode=review smoke with a real BQ context (this is implicitly covered by any subsequent reviewer dispatch in the same session)"
+#  precedent_session: S691 (first complete codified application; predecessor durability gap S686 with Mars S690.W T3 ordering finding)
+#  related_repair_scenarios: [G-01 (gateway timeout), G-03 (codex queue), G-06 (routing-fix smoke recovery)]
 ```
 
 ## §F. Isolate

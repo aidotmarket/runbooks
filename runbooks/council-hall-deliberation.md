@@ -422,7 +422,7 @@ scenario_set:
 Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
 
 ```yaml lifecycle
-last_refresh_session: 726.W
+last_refresh_session: S726
 last_refresh_commit: 8929cbf
 last_refresh_date: 2026-05-29T00:00:00Z
 owner_agent: vulcan
