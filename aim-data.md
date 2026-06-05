@@ -19,7 +19,7 @@ The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves 
 **Repo:** [aidotmarket/aim-data](https://github.com/aidotmarket/aim-data) (private)
 **Source repo (git — build and edit here):** `/Users/max/Projects/ai-market/aim-data` (the active feature branch is checked out here).
 **Deploy directory (NOT a git repo):** `/Users/max/aim-data` — holds `docker-compose.aim-data.yml`, `.env` (secrets + `AIM_DATA_VERSION`), `import/`, and the `aim-data-data` Docker volume. These two directories are easy to confuse; the source code is NOT under `/Users/max/aim-data`.
-**Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.41`)
+**Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.53`)
 **Customer install guide:** `docs/INSTALL.md` in the repo
 **Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
 
@@ -156,6 +156,8 @@ If I issued the seller a serial and bootstrap token (per-customer values I send 
 
 Inside the app: Settings → Marketplace. The flow asks for the seller's name, billing email, and counterparty business details. After submit, ai.market sends a confirmation email. Clicking the link makes the install show up as a seller on the marketplace. Until that click, no listings can publish.
 
+Auto-promotion (S772): a first-time **buyer**-role account is promoted to **seller** automatically on its first `POST /api/v1/vz/register` during publish, so a brand-new account can list without doing the Settings -> Marketplace step first. That promotion writes `users.role`, a Postgres `userrole` enum. A bug that wrote the value as bare varchar made `/vz/register` return 500 and publish return 409 ("VZ install registration not available") for buyer-role accounts; fixed S772 by casting the value to the enum and dropping an enum-vs-varchar `WHERE` comparison. If a fresh account 409s on publish again, check the register role-write path first.
+
 ### Set up the S3 source connector
 
 Settings → Data Sources → Add S3 Source. The wizard renders a JSON trust policy that names the ai.market AWS account as the trusted principal. Seller copies the JSON, opens their own AWS IAM console, creates a role with S3 read access to the bucket they want to list from, pastes the trust policy as the role's trust relationship, and pastes the role ARN back into AIM Data. Clicking Verify runs an STS `AssumeRole` call. Green means the connector is ready. Long-lived AWS credentials stay in the seller's account. AIM Data only holds the short-lived assumed-role session when it reads.
@@ -190,7 +192,7 @@ The **only** path that puts a listing on the live market:
 
 **Hard prerequisite — signing passphrase:** `AIM_DATA_KEYSTORE_PASSPHRASE` must be set (non-empty) in the deploy `.env`. Without it the app skips keypair generation at boot, never creates `/data/keystore.json`, and publish fails to sign (503 "Keystore passphrase not configured"). It is the device's signing identity — losing or rotating it orphans existing listings (see F-12). Store a copy safely.
 
-> Status: this signed flow was wired into the client in S760 on branch `fix/devectorize-publish-s760` (de-vec + listing UI + register/sign fix). Confirm it is merged to `main` before treating it as the shipped state.
+> Status (S773): shipped and confirmed live in production. The signed flow (wired S760 on `fix/devectorize-publish-s760`) is merged to `main`, and a real signed publish from a fresh seller account succeeded end to end on 2026-06-05.
 
 ### The list-a-file flow end to end — PII review, allAI metadata enhancement, billing (READ FIRST when "the listing step is broken")
 
@@ -199,7 +201,7 @@ The **only** path that puts a listing on the live market:
 **The live flow (post de-vectorization, S758-S760):**
 1. Seller picks a file or connects a source (e.g. the S3 connector).
 2. For an S3 object: register downloads the object locally via a presigned URL into `record.upload_path`, then kicks `process_dataset_task` -> `processing_service.process_file`. That path extracts the file, runs the **PII scan inside `_run_post_extract_analysis`** (writes `record.metadata["pii_scan"]`), enriches via DuckDB, and lands the dataset at `PREVIEW_READY`. **PII genuinely runs here.** `listing_metadata` does NOT run in `process_file`.
-3. Seller lands in the single listing editor (title, description, tags, category, price). The PII result surfaces for review. The embedded allAI assistant helps enhance the metadata (description, tags, field classification). This is the interactive "work with allAI" step.
+3. The seller steps through the three-screen wizard: the PII scan auto-runs on entry and lands on **Privacy Review** (review detected PII; attestation recorded), Continue to **Metadata Review** (allAI auto-generates title, description, tags, and category; the embedded assistant helps refine; Approve, then Continue to publish), then **Listing Details and Publish**. See "Prepare and publish a listing" above for the screen-by-screen detail.
 4. Seller clicks **Publish to ai.market** -> `POST /api/marketplace/publish` (`app/routers/marketplace_publish.py`) -> signs a short-lived EdDSA JWT -> `POST {ai_market}/api/v1/vz/publish`. Only metadata goes live; raw data stays with the seller.
 
 **The dead-path trap - the #1 reason this work gets redone:**
