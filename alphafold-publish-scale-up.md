@@ -1,195 +1,345 @@
-# AlphaFold Reference Listings — Publish Scale-Up Runbook
-
-## What it is
-
-Operational procedure for publishing AlphaFold model-organism proteomes to ai.market as
-free ($0) reference listings, and for adding more reference datasets later. Reference
-listings are non-custodial pointers: the listing carries metadata + a public source URL;
-ai.market never stores the data. As of S789 all 10 model-organism proteomes are live.
-
-**Pillar:** ai.market (the marketplace) + AI-discoverability of public datasets.
-**Seller surface:** `public@ai.market` auto-publish (L3).
-**Live:** `api.ai.market` / listing pages on `www.ai.market`.
-
+---
+system_name: alphafold-reference-listings
+purpose_sentence: Publish AlphaFold model-organism proteomes to ai.market as free reference listings and keep the publish, shard-verification, and order-view paths working.
+owner_agent: vulcan
+escalation_contact: max
+lifecycle_ref: §J
+authoritative_scope: Reference-listing publish flow for public dataset proteomes including source-URL shard representation, zero-cost pricing, markdown descriptions, gsutil shard verification, and order-path enum integrity.
+linter_version: 1.0.0
 ---
 
-## §A — Prerequisites (the four enabling fixes)
+# AlphaFold Reference Listings
 
-A reference-listing publish + view path only works with all four of these on `main`:
+## §A. Header
 
-| Fix | Repo / PR | Why it is required |
-|-----|-----------|--------------------|
-| `FulfillmentType.REFERENCE = "reference"` | ai-market-backend #119 | Lets a listing declare a reference fulfillment type without a 500 on the marketplace path. |
-| Relax `orders_amount_cents_check` for $0 | ai-market-backend #120 | Reference listings are $0; the old CHECK constraint rejected zero-cent orders. |
-| `DeliveryMethod.REFERENCE = "reference"` (model **and** schema) | ai-market-backend #121 | Order-detail response serialization coerces `delivery_method` through the enum; missing member = 500 on `GET /orders/{id}`. See §I. |
-| Listing description renders sanitized markdown | ai-market-frontend #24 | Descriptions are authored in markdown (§E); without this the detail page shows raw markdown in one `<p>`. |
+The YAML frontmatter above defines the authoritative §A header values for this runbook.
 
-Verify before any bulk publish:
-```sh
-cd /Users/max/Projects/ai-market/ai-market-backend && git fetch origin -q
-git log --oneline origin/main | grep -E '#119|#120|#121'
-cd ../ai-market-frontend && git fetch origin -q && git log --oneline origin/main | grep '#24'
-railway deployment list -s ai-market-backend --json | python3 -c "import sys,json;print(json.load(sys.stdin)[0]['status'])"
+## §B. Capability Matrix
+
+| Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
+|---|---|---|---|---|
+| Reference fulfillment type | SHIPPED | `app/models/order.py:FulfillmentType` | `manual: marketplace listing smoke (PR 119)` | 2026-06-06 |
+| Zero-cost reference orders | SHIPPED | `alembic: orders_amount_cents_check relax (PR 120)` | `manual: zero-cent order create smoke` | 2026-06-06 |
+| Multi-shard wildcard source delivery | SHIPPED | `reference listing source_delivery.url wildcard` | `manual: gsutil shard count per organism` | 2026-06-06 |
+| Markdown listing descriptions | SHIPPED | `ai-market-frontend react-markdown (PR 24)` | `manual: listing detail render check` | 2026-06-06 |
+| Order-detail reference delivery method | SHIPPED | `app/models/order.py and app/schemas/order.py DeliveryMethod` | `manual: OrderResponse reference round-trip` | 2026-06-06 |
+| Bulk publish automation | PLANNED | — | — | 2026-06-06 |
+
+## §C. Architecture & Interactions
+
+| Component | Component Entry Point | State Stores | Integrates With | Notes |
+|---|---|---|---|---|
+| Publisher | reference-listing publish payload to `POST /api/v1/listings` | listings table, metadata enrichment cache | seller auth, public GCS bucket | Synchronous publish roughly eleven seconds each; idempotent upsert by device, dataset, and seller. |
+| Order Detail | `GET /api/v1/orders/{id}` via `app/api` order endpoint | orders table | order response serializer | Serializes delivery_method through the response enum; a missing member raises during response validation. |
+| Listing Frontend | listing detail page on `www.ai.market` | none | listings API, markdown renderer | Renders the markdown description through react-markdown with rehype-sanitize. |
+
+## §D. Agent Capability Map
+
+| Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
+|---|---|---|---|---|
+| vulcan | publish a reference listing | `Koskadeux:shell_request -> POST /api/v1/listings` | seller-token-public-at-ai-market | COMPLETE |
+| vulcan | verify proteome shard count | `Koskadeux:shell_request -> gsutil ls` | gcs-read-aimarket-prod | COMPLETE |
+| vulcan | verify order-view path | `Koskadeux:shell_request -> GET /api/v1/orders` | buyer-token | COMPLETE |
+| mp | add a new delivery or fulfillment enum value | `Koskadeux:council_request -> build` | repo-write | PARTIAL — needs both model and schema edits in one change |
+
+## §E. Operate
+
+```yaml operate
+- id: E-01
+  trigger: A public dataset proteome should be listed on the marketplace as a free reference listing.
+  pre_conditions:
+    - seller_authenticated
+    - source_bucket_reachable
+  tool_or_endpoint: POST /api/v1/listings
+  argument_sourcing:
+    seller_token: minted from the public seller account using the live signing key
+    source_url: whole-proteome gcs wildcard from the shard table
+    price: constant zero
+    fulfillment_type: constant reference
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: Created listing record with reference fulfillment and zero price
+    verification: Fetch the public listings endpoint and confirm the organism appears exactly once
+  expected_failures:
+    - signature: "422 unprocessable"
+      cause: price floor or fulfillment type rejected because an enabling migration is missing
+  next_step_success: Apply the markdown description template and confirm the detail page renders
+  next_step_failure: Escalate to §F-01 symptom isolation
+- id: E-02
+  trigger: A proteome wildcard must be confirmed to resolve to the expected number of shards before publish.
+  pre_conditions:
+    - gcloud_account_set
+    - requester_pays_project_available
+  tool_or_endpoint: gsutil ls -u aimarket-prod gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-<TAX>-*_v4.tar
+  argument_sourcing:
+    billing_project: constant aimarket-prod
+    tax_id: organism to tax id map in worker-coord state
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: A list of shard object names whose count matches the shard table
+    verification: Compare the line count against the expected shard count for the organism
+  expected_failures:
+    - signature: "AccessDeniedException 403"
+      cause: requester-pays billing project flag omitted
+  next_step_success: Proceed to publish the listing with the verified wildcard
+  next_step_failure: Escalate to §F-02 symptom isolation
+- id: E-03
+  trigger: After a publish batch the marketplace must be confirmed healthy and free of duplicates.
+  pre_conditions:
+    - listings_api_reachable
+  tool_or_endpoint: GET /api/v1/listings?limit=100
+  argument_sourcing:
+    limit: constant one hundred because the endpoint caps the limit at one hundred
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: A listings page where each organism appears exactly once
+    verification: Count organisms in the response and confirm no duplicates after the cache settles
+  expected_failures:
+    - signature: "422 unprocessable"
+      cause: limit set above one hundred
+  next_step_success: Record the live listing count in the publish log
+  next_step_failure: Escalate to §F-02 symptom isolation
+- id: E-04
+  trigger: The order-view path must be confirmed working for a reference listing.
+  pre_conditions:
+    - buyer_token_available
+    - reference_order_exists
+  tool_or_endpoint: GET /api/v1/orders/<id>
+  argument_sourcing:
+    order_id: a delivered reference order id
+    buyer_token: minted for the order owner using the live signing key
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: Order detail response with delivery_method reference and http status two hundred
+    verification: Confirm the response status is two hundred and the delivery method reads reference
+  expected_failures:
+    - signature: "500 internal server error"
+      cause: a delivery or fulfillment enum value missing from the model or the response schema
+  next_step_success: Record the order path as verified for reference listings
+  next_step_failure: Escalate to §F-03 symptom isolation
 ```
 
----
+## §F. Isolate
 
-## §B — Source dataset & multi-shard wildcard representation
+| ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
+|---|---|---|---|---|---|
+| F-01 | Publish rejected with a 422 or the marketplace 500s on a reference listing | a missing enabling migration or fulfillment enum member | Confirm the reference fulfillment and zero-price migrations are present on the deployed main | §G-01 | CONFIRMED |
+| F-02 | A published listing wildcard resolves to zero or the wrong number of shards | wrong tax id, missing requester-pays flag, or a malformed wildcard | Re-run the authenticated gsutil listing and compare the count against the shard table | §G-02 | CONFIRMED |
+| F-03 | Order detail returns 500 for a reference order | a delivery method value present in the database but absent from the response enum | Coerce the stored delivery method through the response schema enum and observe the validation error | §G-03 | CONFIRMED |
 
-Source bucket (requester-pays): `gs://public-datasets-deepmind-alphafold-v4`.
-Per-proteome objects live under `proteomes/` and are sharded by size. Represent the **whole
-proteome** with a single wildcard so the listing points at every shard:
+## §G. Repair
 
-```
-source_delivery.url = gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-<TAX>-*_v4.tar
-```
-
-E. coli is the one exception — it is a single object, so use the explicit suffix
-`-0_v4.tar` (no wildcard). Shard counts (canonical organism→tax_id map lives in Living State
-`infra:worker-coord:789:alphafold-free-listings`; verify there before trusting tax ids):
-
-| Organism | tax_id | Shards | URL suffix |
-|----------|--------|--------|-----------|
-| E. coli | 83333 | 1 | `-0_v4.tar` (explicit, no wildcard) |
-| C. elegans | 6239 | 3 | `-*_v4.tar` |
-| Fruit fly (D. melanogaster) | 7227 | 4 | `-*_v4.tar` |
-| Rat | 10116 | 4 | `-*_v4.tar` |
-| Yeast (S. cerevisiae) | 559292 | 4 | `-*_v4.tar` |
-| Zebrafish | 7955 | 6 | `-*_v4.tar` |
-| Mouse | 10090 | 8 | `-*_v4.tar` |
-| Arabidopsis thaliana | 3702 | 14 | `-*_v4.tar` |
-| Human | 9606 | 19 | `-*_v4.tar` |
-| Maize (Zea mays) | 4577 | 20 | `-*_v4.tar` |
-
----
-
-## §C — Seller identity & auth
-
-| Field | Value |
-|-------|-------|
-| Seller | `public@ai.market` |
-| user_id | `d9490c85-41b1-4a13-a759-f9280dc1e22b` |
-| device | `e44915fe664c3848fd874a8fa79d113b1a83c51dba6b253c8b3b24f355451241` (L3 auto-publish) |
-| dataset id pattern | `alphafold-<organism_key>-<tax_id>-v4` |
-
-**Token mint (until the SECRET_KEY drift is reconciled, sign with Railway's *live* key — never the canonical store):**
-```sh
-railway variables -s ai-market-backend --json > /tmp/rv.json
-RK=$(python3 -c "import json;print(json.load(open('/tmp/rv.json'))['SECRET_KEY'])")
-SECRET_KEY="$RK" .venv/bin/python -c "from app.core.security import create_access_token; from datetime import timedelta; print(create_access_token({'sub':'d9490c85-41b1-4a13-a759-f9280dc1e22b'}, expires_delta=timedelta(minutes=60)))"
-```
-Do not hardcode the key anywhere. See `backup-and-recovery.md`/Infisical notes for the drift status.
-
----
-
-## §D — Markdown description template
-
-Every reference listing description uses this structure (renders via §A fix #24):
-
-```markdown
-**<one-line bold summary of the proteome>**
-
-## What's included
-- Predicted 3D structures for the complete <organism> proteome (<N> shards)
-- Per-residue confidence (pLDDT) and PAE where provided by AlphaFold DB
-
-## Delivery
-This is a reference listing pointing at a public Google Cloud bucket. Fetch with:
-```
-gsutil -u <your-billing-project> -m cp "gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-<TAX>-*_v4.tar" .
+```yaml repair
+- id: G-01
+  symptom_ref: F-01
+  component_ref: Publisher
+  root_cause: An enabling migration or fulfillment enum member required by reference listings was not present on the deployed main.
+  repair_entry_point: app/models/order.py:FulfillmentType
+  change_pattern: Add the reference fulfillment member and the zero-cost order migration, then redeploy from main.
+  rollback_procedure: Revert the enum and migration commits and redeploy the prior main.
+  integrity_check: Publish one reference listing and confirm it appears once on the public listings endpoint.
+- id: G-02
+  symptom_ref: F-02
+  component_ref: Publisher
+  root_cause: The source wildcard used a wrong tax id or omitted the requester-pays billing project.
+  repair_entry_point: reference listing source_delivery.url wildcard
+  change_pattern: Correct the tax id from the organism map and always pass the requester-pays project on verification.
+  rollback_procedure: Restore the previous source url on the listing record.
+  integrity_check: Re-run the authenticated gsutil listing and confirm the shard count matches the table.
+- id: G-03
+  symptom_ref: F-03
+  component_ref: Order Detail
+  root_cause: A delivery method value stored in the database was missing from the Pydantic response enum so serialization raised.
+  repair_entry_point: app/schemas/order.py:DeliveryMethod
+  change_pattern: Add the new value to both the model enum and the schema enum in the same change.
+  rollback_procedure: Revert the enum additions and redeploy the prior main.
+  integrity_check: Coerce the stored value through the response schema and confirm the order endpoint returns two hundred.
 ```
 
-## License & citation
-AlphaFold DB data under CC-BY-4.0. Cite Jumper et al. 2021 and Varadi et al. 2024.
+## §H. Evolve
+
+### §H.1 Invariants
+
+- A reference listing must never cause raw data to transit ai.market; it carries only metadata and a public source url.
+- Any delivery or fulfillment value stored in the database must have a matching member in both the model enum and the response schema enum.
+
+### §H.2 BREAKING predicates
+
+- Any change that removes a fulfillment or delivery enum member that existing listings or orders depend on is BREAKING.
+- Any change that makes the listings endpoint reject the documented limit of one hundred is BREAKING.
+
+### §H.3 REVIEW predicates
+
+- Any change that adds a new fulfillment or delivery enum value requires REVIEW.
+- Any change to the source-url wildcard representation for sharded datasets requires REVIEW.
+
+### §H.4 SAFE predicates
+
+- Editing the markdown description text of an existing listing is SAFE.
+- Adding a new organism listing using the established wildcard pattern is SAFE.
+
+### §H.5 Boundary definitions
+
+#### module
+
+The module boundary is one deployable unit of the publish path such as the backend listings service or the frontend listing detail page.
+
+#### public contract
+
+The public contract is the listing publish payload, the listings and orders endpoints, and the documented limit and pricing behavior exposed to sellers and buyers.
+
+#### runtime dependency
+
+A runtime dependency is any external service required for the flow such as the public GCS bucket, the requester-pays billing project, or the signing key used to mint tokens.
+
+#### config default
+
+A config default is a fallback such as the listings endpoint limit cap or the single-file suffix used for the one unsharded organism.
+
+### §H.6 Adjudication
+
+When a proposed change touches more than one boundary class, classify it at the highest-risk class and record the reasoning in the change review.
+
+## §I. Acceptance Criteria
+
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01]
+    scenario: A public proteome should be listed for free and the responder needs the first publish action.
+    expected_answers:
+      - kind: tool_call
+        tool: POST /api/v1/listings
+        argument_keys: [seller_token, source_url, price, fulfillment_type]
+    weight: 0.08333333333333333
+  - id: I-02
+    type: operate
+    refs: [E-02]
+    scenario: Before publishing a proteome the responder must confirm the wildcard resolves to the expected shard count.
+    expected_answers:
+      - kind: tool_call
+        tool: gsutil ls
+        argument_keys: [billing_project, tax_id]
+    weight: 0.08333333333333333
+  - id: I-03
+    type: operate
+    refs: [E-03]
+    scenario: After a publish batch the responder must confirm the marketplace shows each organism once.
+    expected_answers:
+      - kind: tool_call
+        tool: GET /api/v1/listings
+        argument_keys: [limit]
+    weight: 0.08333333333333333
+  - id: I-04
+    type: operate
+    refs: [E-04]
+    scenario: The responder must confirm a buyer can open a reference order without error.
+    expected_answers:
+      - kind: tool_call
+        tool: GET /api/v1/orders
+        argument_keys: [order_id, buyer_token]
+    weight: 0.08333333333333333
+  - id: I-05
+    type: isolate
+    refs: [F-01]
+    scenario: A reference publish was rejected and the responder must confirm whether an enabling migration is missing.
+    expected_answers:
+      - kind: human_action
+        verb: confirm
+        object: enabling migrations
+        target: deployed main for reference and zero-price support
+    weight: 0.08333333333333333
+  - id: I-06
+    type: isolate
+    refs: [F-02]
+    scenario: A listing wildcard resolved to the wrong shard count and the responder must verify the cause.
+    expected_answers:
+      - kind: tool_call
+        tool: gsutil ls
+        argument_keys: [billing_project, tax_id]
+    weight: 0.08333333333333333
+  - id: I-07
+    type: isolate
+    refs: [F-03]
+    scenario: An order detail call returned 500 and the responder must determine whether an enum value is missing.
+    expected_answers:
+      - kind: human_action
+        verb: coerce
+        object: stored delivery method
+        target: response schema enum
+    weight: 0.08333333333333333
+  - id: I-08
+    type: repair
+    refs: [G-01]
+    scenario: A reference publish keeps failing and the fix for the missing enabling support is needed.
+    expected_answers:
+      - kind: human_action
+        verb: patch
+        object: fulfillment enum and zero-price migration
+        target: app/models/order.py:FulfillmentType
+    weight: 0.08333333333333333
+  - id: I-09
+    type: repair
+    refs: [G-03]
+    scenario: The order endpoint 500s on reference orders and the fix for the missing enum value is needed.
+    expected_answers:
+      - kind: human_action
+        verb: patch
+        object: delivery method enum
+        target: app/schemas/order.py:DeliveryMethod
+    weight: 0.08333333333333333
+  - id: I-10
+    type: evolve
+    refs: [§H]
+    scenario: A proposal adds a brand new fulfillment value and needs classification against the evolve predicates.
+    expected_answers:
+      - kind: classification
+        label: REVIEW
+    weight: 0.08333333333333333
+  - id: I-11
+    type: evolve
+    refs: [§H]
+    scenario: A proposal removes an existing delivery enum member that current orders depend on.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [E-04, F-03, G-03, §H]
+    scenario: A single order detail 500 might be a missing enum value or an unrelated serializer regression and needs careful classification.
+    expected_answers:
+      - kind: human_action
+        verb: investigate
+        object: order detail failure
+        target: stored delivery value plus response schema
+    weight: 0.08333333333333333
 ```
 
----
+## §J. Lifecycle
 
-## §E — Publish procedure
-
-Publishing is **synchronous** (~11s each — metadata enrichment runs inline). Throughput rules:
-
-- Do **not** loop more than ~4 publishes inside one 60s `exec`. Use `timeout=120`, or run the batch in `background`.
-- The publish is idempotent: upsert keys on `(device, dataset, seller)`, so retries are safe — re-running never creates duplicates. Each organism appears exactly once.
-- After publishing, the **public listings endpoint is cache-backed** — a read immediately after a write can be stale. Re-poll after a few seconds before concluding a publish failed.
-
-Publish payload essentials: `price = 0`, `fulfillment_type = reference`, `delivery_method = reference`,
-`source_delivery.url` = the wildcard from §B, `description` = §D template filled in.
-
----
-
-## §F — Per-organism gsutil shard verification
-
-Confirm every shard the wildcard claims actually exists before/after publish:
-```sh
-gcloud config set account max@ai.market
-gsutil -u aimarket-prod ls "gs://public-datasets-deepmind-alphafold-v4/proteomes/proteome-tax_id-9606-*_v4.tar" | wc -l   # expect 19 for human
-```
-- `-u aimarket-prod` is **required** (requester-pays bucket); omitting it fails with a billing error, not a not-found.
-- An anonymous HTTP `HEAD` on a bucket object returns **403** — that is the requester-pays gate, **not** a reachability/missing-object signal. Use authenticated `gsutil`, never anon HTTP, to judge existence.
-- Expected shard count per organism is the §B table.
-
----
-
-## §G — Post-publish marketplace health check
-
-```sh
-curl -s "https://api.ai.market/api/v1/listings?limit=100" | python3 -c "import sys,json;d=json.load(sys.stdin);print('count',len(d.get('items',d.get('listings',[]))))"
-```
-- The listings endpoint **caps `limit` at 100** — `limit=200` returns HTTP 422. Paginate for larger pulls.
-- Confirm each organism appears exactly once and renders markdown on its detail page.
-- Sanity-check one order path end to end (see §I) — a $0 reference purchase should create an order and `GET /api/v1/orders/{id}` should return 200.
-
----
-
-## §H — The order-detail enum gotcha (read before adding ANY new fulfillment/delivery value)
-
-The order-detail 500 fixed in #121 will **recur** for any future delivery/fulfillment value
-unless you add the new enum member in **both** places, in the same change:
-
-- `app/models/order.py` — the SQLAlchemy `DeliveryMethod` (and `FulfillmentType`) enum
-- `app/schemas/order.py` — the Pydantic `DeliveryMethod` (and `FulfillmentType`) enum
-
-The DB column can hold a string the Pydantic response model has never heard of; serialization
-coerces the column value through the response enum, and a missing member raises during
-response validation → 500 on `GET /api/v1/orders/{id}`, not at write time. Always grep both
-files when touching either enum:
-```sh
-grep -rn "class DeliveryMethod\|class FulfillmentType" app/models/order.py app/schemas/order.py
+```yaml lifecycle
+last_refresh_session: S790
+last_refresh_commit: aedc0a1
+last_refresh_date: 2026-06-06T21:50:00Z
+owner_agent: vulcan
+refresh_triggers:
+  - bq_completion
+  - gate_approval
+  - incident
+scheduled_cadence: 90d
+last_harness_pass_rate: 1.0
+last_harness_date: 2026-06-06T21:50:00Z
+first_staleness_detected_at: null
 ```
 
----
+## §K. Conformance
 
-## §I — Verifying the order path
-
-No live reference orders may exist yet; to exercise the path, place a $0 reference order via
-the public API as a test buyer, then:
-```sh
-curl -s -o /tmp/ord.json -w "HTTP %{http_code}\n" -H "Authorization: Bearer <token>" "https://api.ai.market/api/v1/orders/<ORDER_ID>"
+```yaml conformance
+linter_version: 1.0.0
+last_lint_run: S790 / 2026-06-06T21:50:00Z
+last_lint_result: PASS
+trace_matrix_path: null
+word_count_delta: null
 ```
-Expect HTTP 200 with `delivery_method: "reference"` in the body. HTTP 500 here means an enum
-member is missing (§H).
-
----
-
-## §J — Adding a new reference dataset later
-
-1. Confirm the §A fixes are still on `main` (they are permanent, but re-verify after large refactors).
-2. Pick the source bucket + wildcard representation (§B). Count shards with §F before publishing.
-3. Fill the §D description template.
-4. Mint a seller token (§C), publish with the §E throughput rules.
-5. Run the §G health check and the §I order path.
-6. Record the new dataset in `infra:worker-coord:*` so the organism→source map stays canonical.
-
----
-
-## §K — Known gotchas (quick reference)
-
-- Requester-pays: always `gsutil -u aimarket-prod`. Anon HTTP HEAD 403 ≠ missing.
-- Listings `limit` caps at 100 (422 above that).
-- Publish is synchronous ~11s; cap at ~4 per 60s exec or background it.
-- Public listings reads are cache-backed — stale right after a write.
-- Token mint signs with Railway's live SECRET_KEY until the Infisical drift is reconciled.
-- New delivery/fulfillment enum value → add to BOTH model and schema (§H) or order-detail 500s.
-- E. coli is single-shard (`-0_v4.tar`); every other organism uses the `-*_v4.tar` wildcard.
-- Backend canonical clone may be parked on a feature branch because the worker worktree holds `main` — verify against `origin/main`, do not trust the local checkout.
