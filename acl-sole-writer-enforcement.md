@@ -61,7 +61,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   tool_or_endpoint: tools/acl_enforce/orchestrate.py:start_phase_b_warn(conn)
   argument_sourcing:
     conn: open against the Living State DB via DATABASE_PUBLIC_URL (Infisical-sourced) from Titan-1
-  idempotency: re-running in a pure-WARN state re-emits acl_warn_started; raises if any enforce row exists (guard, not a write)
+  idempotency: IDEMPOTENT
   expected_success:
     shape: returns None; one acl_warn_started event in event_ledger with enforce_rows=0
     verification: SELECT count(*) FROM event_ledger WHERE event_type='acl_warn_started' ORDER BY occurred_at DESC LIMIT 1
@@ -79,7 +79,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   argument_sourcing:
     conn: Living State DB via DATABASE_PUBLIC_URL
     eligible_rows: SELECT (entity_kind, path_pattern, path_type) FROM field_acl WHERE enforce_mode='warn' for the candidate set
-  idempotency: read-only; safe to re-run; emits acl_flip_ready or acl_flip_blocked
+  idempotency: IDEMPOTENT
   expected_success:
     shape: "SloVerdict(ready: bool, blocked_reasons: list, global_violation_rate: float, per_row: dict)"
     verification: verdict.ready is True AND verdict.blocked_reasons is empty
@@ -99,7 +99,7 @@ YAML frontmatter above is authoritative for the §A header fields.
     conn: Living State DB via DATABASE_PUBLIC_URL
     eligible_rows: the verified-ready set from E-02
     operator: the human operator identity directing the flip
-  idempotency: NOT idempotent; a re-run on already-enforced rows raises 409 field_acl_row_already_enforced
+  idempotency: NOT_IDEMPOTENT
   expected_success:
     shape: FlipResult(rows_flipped, flipped_at, flipped_by, event_id); one acl_flip_done event
     verification: SELECT enforce_mode FROM field_acl for each row returns 'enforce'
@@ -119,7 +119,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   tool_or_endpoint: tools/acl_enforce/audit.py:collect_phase_a_audit(conn, window_days=14)
   argument_sourcing:
     conn: Living State DB via DATABASE_PUBLIC_URL
-  idempotency: read-only replay; emits one acl_audit_done; never mutates field_acl
+  idempotency: IDEMPOTENT
   expected_success:
     shape: AuditReport(covered_writer_match, covered_writer_mismatch, uncovered, total_writes, window_start, window_end)
     verification: acl_audit_done event present with matching total_writes
