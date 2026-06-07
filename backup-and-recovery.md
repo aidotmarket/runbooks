@@ -1,111 +1,104 @@
 # Backup & Recovery — ai.market
 
-> Destination/identity specifics live in [aws-s3.md](./aws-s3.md). Architecture rationale: `BQ-AI-MARKET-COMPLETE-BACKUP-ARCHITECTURE-TITAN1-CENTRIC-S681`. This runbook is the source of truth for **what is backed up, on what cadence, and how to restore the market**.
+> Source of truth for **what is backed up, where, on what cadence, how failure is alerted, and how to restore the market.** Destination/identity specifics: [aws-s3.md](./aws-s3.md). Secret locations: [infisical-secrets.md](./infisical-secrets.md). Architecture rationale: `BQ-AI-MARKET-COMPLETE-BACKUP-ARCHITECTURE-TITAN1-CENTRIC-S681`.
 
 ## §A. Header
 - **system_name:** backup-and-recovery
-- **purpose_sentence:** Define what must be backed up to reconstruct ai.market, how each piece is captured to the immutable S3 bucket, and the exact procedure to restore after data loss or credential compromise.
-- **owner_agent:** Vulcan-Primary
-- **escalation_contact:** Max
+- **purpose_sentence:** Define what must be backed up to reconstruct ai.market, how each piece is captured to the immutable S3 bucket, how a missed/failed backup pages Max on Telegram, and the exact restore procedure after data loss or credential compromise.
+- **owner_agent:** Vulcan-Primary / Mars-Worker
+- **escalation_contact:** Max (Telegram, primary)
 - **lifecycle_ref:** §J
-- **authoritative_scope:** Source of truth for backup coverage, cadence, integrity verification, and per-component restore procedures. Bucket lockdown + writer identity inherit from `aws-s3.md`. Secret locations from `infisical-secrets.md`.
-- **linter_version:** not yet run (prose form, consistent with sibling runbooks pending the harness pass)
+- **authoritative_scope:** Backup coverage, cadence, integrity verification, failure alerting, and per-component restore. Bucket lockdown + writer identity inherit from aws-s3.md.
+- **last_verified:** 2026-06-07 (S792)
 
 ## §B. Coverage Matrix — what restoring the whole market requires
-> Honest status as of S724. **A backup is only DR-complete when its row is LIVE.** LIVE: row 1 (ai.market PG, nightly) + row 8 (heartbeat/alerting for PG). PENDING: rows 2–7.
+> **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Today GCS is still the only *recurring* live backup; S3 holds a current manual copy of the main DB plus the live failure-alert watchdog.
 
-| # | Component | Why it matters for restore | Backup method | Status | Restore ref |
+| # | Component | Why it matters | Backup method (target) | Status 2026-06-07 | Restore ref |
 |---|---|---|---|---|---|
-| 1 | **ai.market Postgres** (marketplace + Living State + author_dispatch) | The platform's core data + dev/build state | `pg_dump@17 -Fc` → S3 `postgres/ai-market/<date>/` via nightly launchd `com.aimarket.pg-backup` (+ Railway native backups) | **LIVE** — nightly automated; heartbeat to `infra:backup-health`; verified S724 | §E-R2 |
-| 2 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing can authenticate/deploy | in-Railway scheduled dump → S3 `postgres/infisical/<date>/` (DB has no public endpoint; dump runs inside its Railway project) | PENDING (build approved S723) | §E-R3 |
-| 3 | **Source code** (all `aidotmarket/*` repos) | The application itself; specs; HANDOFF history | nightly `git clone --mirror` / `fetch --all` → S3 `git-mirrors/<repo>.git` | PENDING | §E-R4 |
-| 4 | **Railway deployment config** (services, env vars, build/start, volumes, domains, cron) | How the code is wired into running infrastructure | nightly Railway API export (project/service/variables) → S3 `railway-config/<date>/` | PENDING | §E-R5 |
-| 5 | **Cloudflare** (Workers KV data, Worker code, DNS/zone config) | Edge routing, redirects, KV-held state | Worker code in repos (row 3); nightly KV bulk export + zone/DNS export → S3 `cloudflare/<date>/` | PENDING | §E-R6 |
-| 6 | **User/object data** | Marketplace is **non-custodial** — seller data stays in the seller's own S3 via STS, so it is NOT ours to back up. Any app-side uploaded files → confirm + cover. Qdrant vectors = re-ingestable, excluded. | per-source (confirm app object storage exists) | PENDING (scope confirm) | §E-R7 |
-| 7 | **Encryption key custody** (client-side AES-256-GCM key, offline) | Decrypt backups if Titan + all online copies are gone | key in Infisical + offline paper copy (S681 §14) | PENDING | §G-03 |
-| 8 | **Nightly automation + silent-failure alerting** | The last backup job failed silently for months | scheduled jobs + per-run heartbeat to `infra:backup-health`; SysAdmin polls daily + escalates to allAI (sole Max-notifier: Telegram + support@ai.market) | **LIVE (ai.market PG)** — heartbeat + staleness contract shipped S724; flips fully LIVE as rows 2–5 jobs land | §F-01 |
+| 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **GCS LIVE daily**; S3 = fresh manual copy 2026-06-07; **recurring-to-S3 PENDING machine identity** | §E-R2 |
+| 2 | **ai.market Qdrant** (allAI knowledge_base) | allAI memory | nightly snapshot -> S3 `qdrant/` | **GCS LIVE daily**; S3 PENDING | §E-R7 |
+| 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **NONE anywhere — CRITICAL gap**; PENDING machine identity | §E-R3 |
+| 4 | **vectorAIz Postgres + Qdrant** (separate Railway project) | Second data surface | nightly dump/snapshot -> S3 | NONE; PENDING | §E-R7 |
+| 5 | **Source code** (all `aidotmarket/*` repos) | The app, specs, handoff history | GitHub (durable) + Max Titan-1 clones; nightly `git --mirror` -> S3 `git-mirrors/` | Code SAFE (GitHub + local clones); S3 mirror PENDING | §E-R4 |
+| 6 | **Railway deploy config** (services, env, domains, cron) | How code is wired into infra | nightly Railway API export -> S3 `railway-config/<date>/` | PENDING | §E-R5 |
+| 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | PENDING | §E-R6 |
+| 8 | **Failure alerting** | A backup must never fail silently again | S3-freshness watchdog -> Telegram; secondary GitHub issue | **LIVE (S792)** — see §F | §F-01 |
 
-**Restore-from-bucket-alone answer (S723):** NOT YET. The bucket currently holds one snapshot of component 1. The other components still exist only in their primary homes (GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss — but a true "rebuild the market from the bucket" posture requires rows 2–6 to go LIVE.
+**Restore-from-S3-alone today:** PARTIAL. S3 holds a current main-DB dump only. Rows 2–7 still live only in their primary homes (GCS, GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss, but a true "rebuild the market from S3" posture needs rows 2–4 LIVE to S3 (gated on the machine identity, §H-1).
 
 ## §C. Architecture & Interactions
-- **Immutable destination:** S3 `aimarket-backups-prod` (eu-north-1, acct 948749907373) — versioning + Object Lock **COMPLIANCE/35d** + SSE-S3 + public access blocked. Locked objects are un-deletable/un-overwritable by anyone (incl. root) for 35 days. (`aws-s3.md` §E-05/§E-06.)
-- **Write path:** IAM `aimarket-backup-writer`, policy `backup-write-only` (PutObject + ListBucket only). A stolen writer key cannot destroy or alter history. Creds in Infisical `ai-market-backend` prod.
-- **Tiers (S681):** (1) Railway-native scheduled backups/PITR on each Postgres; (2) immutable S3 copies (this bucket); (3) Time Machine on Titan-1; (4) Backblaze offsite. Independent failure domains.
-- **Run location:** ai.market PG + repos + Railway/CF exports run from Titan-1 (reachable). Infisical PG dump runs **inside its own Railway project** (no public endpoint — deliberate hardening, not relaxed for backup).
+- **Primary destination (target):** S3 `aimarket-backups-prod` — eu-north-1, acct `948749907373`. Versioning + **Object Lock COMPLIANCE / 35-day** + SSE-S3 + Block-Public-Access. A locked object cannot be deleted or overwritten by anyone (incl. root) for 35 days — survives a stolen credential. Layout `postgres/ai-market/<date>/`, `postgres/infisical/<date>/`, `qdrant/`.
+- **Write identity:** IAM `aimarket-backup-writer`, policy `backup-write-only` (PutObject + ListBucket only). Creds in Infisical `ai-market-backend` prod (`AWS_BACKUP_WRITER_ACCESS_KEY_ID` / `_SECRET`). Manual ops use `aws --profile aimarket` (svc-titan-vulcan).
+- **Legacy destination (RETIRING):** GCS `gs://aimarket-backups` (GCP project `aimarket-prod`). Drives the only *recurring* live backup today via GitHub Actions `backup.yml`. Decommission ONLY after rows 1–4 are LIVE to S3 and a restore drill passes (§H-5).
+- **Tiers (S681 target):** (1) Railway-native PITR per Postgres; (2) immutable S3 (this bucket); (3) Time Machine on Titan-1; (4) Backblaze offsite. Independent failure domains.
 
-## §D. Agent Capability Map
-| Agent | Operation | Tool | Auth | Coverage |
+## §D. Current Mechanisms (exact, as deployed)
+| Mechanism | Where | Schedule | Does | Status |
 |---|---|---|---|---|
-| Vulcan | On-demand ai.market PG backup | `pg_dump@17` + boto3 (writer key) | backup-write-only + DB superuser URL | COMPLETE (§E-01) |
-| Vulcan | Verify a backup landed / restore-readiness | boto3 list + `pg_restore --list` | read | COMPLETE (§E-03) |
-| Vulcan | Build nightly jobs | launchd (Titan) + Railway cron | per-source | ai.market PG LIVE (S724); rows 2–5 PENDING |
-| Max | Enable Railway native backups/PITR | Railway console | owner | PENDING |
-| Max | Offline custody of encryption + Infisical master key | offline | physical | PENDING |
+| GitHub Actions `Automated Backups` (`backup.yml`) | aidotmarket/ai-market-backend | daily 03:00 UTC + dispatch | `pg_dump` + Qdrant snapshot -> **GCS**; opens a GitHub issue on failure | **LIVE** (only recurring backup) |
+| GitHub Actions `Backup Staleness Check` (`backup-verify.yml`) | same | daily 06:00 UTC | hits `/api/v1/internal/backup-status`; opens a GitHub issue if PG/Qdrant > 6h stale | LIVE (secondary alert) |
+| launchd `com.aimarket.pg-backup` (`run_pg_backup.sh` -> `backup_pg.py`) | Titan-1 | 01:00/02:00 Europe/Berlin | direct `pg_dump` -> **S3** via `infisical run` | **DEAD since 2026-05-29** — Infisical CLI login expired -> rc=1 nightly. Revive via §H-1 |
+| **launchd `com.aimarket.s3-backup-watchdog`** (`runbooks/scripts/s3_backup_watchdog.sh`) | Titan-1 | every 6h + RunAtLoad | checks newest S3 main-DB dump; **Telegram alert if missing or > 26h** | **LIVE (S792)** — see §F |
+| Manual GCS->S3 copy | Titan-1 (`aws --profile aimarket`) | on demand | mirrors a fresh GCS dump into immutable S3 | used 2026-06-07 to place a current S3 copy |
 
 ## §E. Operate
-**E-01 — On-demand ai.market PG backup (the path used S723).**
-- `pg_dump@17 -Fc --no-owner --no-privileges` against the ai.market PG public proxy → local file → boto3 `upload_file` to `aimarket-backups-prod` under `postgres/ai-market/<YYYYMMDD>/railway-<ts>.dump` with sha256 + bytes in object metadata → local temp removed.
-- creds: `AUTHOR_DISPATCH_DATABASE_URL` (DB) + `AWS_BACKUP_WRITER_*` (S3), both Infisical `ai-market-backend` prod, injected via `infisical run`.
-- expected_success: pg_dump rc=0; S3 object size == local bytes; `pg_restore --list` returns a non-trivial TOC.
+**E-01 — Take an immediate S3 copy of the main DB (no Infisical needed).** Copy the latest GCS dump into S3 with the operator profile:
+`gcloud storage cp gs://aimarket-backups/postgres/<latest>.dump /tmp/pg.dump && aws s3 cp /tmp/pg.dump s3://aimarket-backups-prod/postgres/ai-market/<YYYYMMDD>/railway-<ts>.dump --profile aimarket && rm /tmp/pg.dump` — verify size matches source.
+**E-02 — Trigger the recurring (GCS) backup now.** `gh -R aidotmarket/ai-market-backend workflow run "Automated Backups"`; watch with `gh run watch <id>`.
+**E-03 — Verify a backup landed.** `aws s3 ls s3://aimarket-backups-prod/postgres/ai-market/ --recursive --profile aimarket | tail`; size > 0; optionally `pg_restore --list <dump>` returns a TOC.
+**E-04 — Revive the direct nightly S3 job** (after §H-1 machine identity exists): set the identity's client-id/secret where `run_pg_backup.sh` can read them non-interactively (NOT interactive `infisical login`), `launchctl kickstart -k gui/$(id -u)/com.aimarket.pg-backup`, confirm a fresh object lands + the watchdog logs OK.
 
-**E-02 — Nightly automated.** ai.market PG: **LIVE** — launchd `com.aimarket.pg-backup` on Titan-1, DST-safe dual schedule (01:00/02:00 Europe/Berlin) with a per-UTC-day success-lock (failed early slot retries at the later slot). Writes a per-run heartbeat (ok or failed) to `infra:backup-health` under `sources.ai-market-pg`. SysAdmin polls daily; if a source is stale (>26h) or last status != ok, it escalates to allAI — the only agent authorized to notify Max (Telegram + support@ai.market). Backup jobs and SysAdmin never contact Max directly. PENDING: row 2 (Railway-internal cron), rows 3/4/5 (Titan launchd). Until each is LIVE, run E-01 manually for that source.
+## §E-R. Restore the market (ordered: secrets -> infra -> data -> code -> edge)
+- **R1 Pre-flight:** scope the failure (one component vs total loss). Retrieve the offline encryption + Infisical master key if online copies are gone.
+- **R2 ai.market PG:** provision Postgres -> `pg_restore` latest `postgres/ai-market/<date>/` -> point backend `DATABASE_URL` at it.
+- **R3 Infisical PG:** provision Postgres -> restore `postgres/infisical/<date>/` -> bring up Infisical with its master key -> all services can fetch secrets again.
+- **R4 Source:** `git clone` from `git-mirrors/` (or GitHub) .
+- **R5 Railway infra:** recreate services from `railway-config/<date>/` -> set env from restored Infisical -> deploy restored code.
+- **R6 Cloudflare:** redeploy Workers -> restore KV from `cloudflare/<date>/` -> re-apply DNS.
+- **R7 Data:** non-custodial seller data is in sellers' own S3 (not ours); re-ingest Qdrant from `qdrant/` or source.
+- **R8 Validate:** health green; a known listing + order present; Living State queryable; signed publish works.
 
-**E-03 — Verify a backup.** boto3 `list_objects_v2` shows today's object; size matches; `pg_restore --list` reads the archive (restore-readiness without restoring).
+## §F. Failure Alerting — Telegram (the dead-man's switch)
+**This is the answer to "tell me when a backup does not run."**
+- **What:** `com.aimarket.s3-backup-watchdog` runs `runbooks/scripts/s3_backup_watchdog.sh` every 6 hours (and at load).
+- **Check:** newest object under `s3://aimarket-backups-prod/postgres/ai-market/`. If none, or older than **26h**, it fires.
+- **Alert path:** direct HTTPS POST to `https://api.telegram.org/bot<token>/sendMessage` -> bot **koskadeux_bot** -> Max's chat. Creds `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` read from `koskadeux-mcp/.env`. No Infisical dependency (deliberate — the alerter must work even when Infisical is the thing that's broken).
+- **Verified:** 2026-06-07 test ping delivered (message_id 1639) to chat 80805807.
+- **Secondary alert:** the GitHub `Backup Staleness Check` opens an urgent GitHub issue (email) if the backend-reported PG/Qdrant backups go > 6h stale.
+- **Log:** `~/Library/Logs/aimarket_s3_backup_watchdog.log` (one `OK`/`ALERT` line per run).
+- **Test it:** `bash /Users/max/Projects/ai-market/runbooks/scripts/s3_backup_watchdog.sh` (logs OK when fresh); to force-test the channel, temporarily lower `MAX_AGE_H` or send a manual `sendMessage` curl.
 
-## §E-R. Restore the market (DR procedure, ordered)
-> Order matters: secrets → infra → data → code → edge.
-- **§E-R1 Pre-flight:** identify the failure (single component vs full loss). Retrieve the offline encryption key + Infisical master key from offline custody if online copies are gone.
-- **§E-R2 ai.market PG:** provision a Postgres (Railway or elsewhere) → `pg_restore` the latest `postgres/ai-market/<date>/` dump → point the backend `DATABASE_URL` at it. (Marketplace + Living State + dispatch ledger come back together — they share one DB.)
-- **§E-R3 Infisical PG:** provision Postgres → restore latest `postgres/infisical/<date>/` → bring up Infisical with its master key → all other services can now fetch secrets.
-- **§E-R4 Source code:** `git clone` from `git-mirrors/` (or GitHub if intact) → repos restored.
-- **§E-R5 Railway infra:** recreate project/services from `railway-config/<date>/` export → set env vars from restored Infisical → deploy from restored code.
-- **§E-R6 Cloudflare:** redeploy Workers from code → restore KV from `cloudflare/<date>/` → re-apply DNS/zone config.
-- **§E-R7 User/object data:** non-custodial seller data is in sellers' own S3 (not restored by us); restore any app object storage from its prefix; re-ingest Qdrant from source.
-- **§E-R8 Validate:** health checks green; a known listing + order present; Living State queryable; signed publish works.
-
-## §F. Isolate
-| ID | Symptom | Probable cause | Verify | Repair | Confidence |
-|---|---|---|---|---|---|
-| F-01 | No new backup object for a source today | job not scheduled / silently failing (the S466 + Mar–Apr `koskadeux_backup` class — failed nightly for months pointing at a dead path) | `infra:backup-health` heartbeat stale; `list_objects_v2` shows no today prefix | §G-01 | CONFIRMED |
-| F-02 | Dump uploaded but tiny / size mismatch | empty/partial dump; source unreachable mid-run | compare S3 size vs prior day; `pg_restore --list` TOC count drop >10% | §G-02 | CONFIRMED |
-| F-03 | Can't decrypt a restored backup | wrong/lost encryption key | check key id vs object; retrieve offline copy | §G-03 | HYPOTHESIZED |
+| ID | Symptom | Cause | Verify | Repair |
+|---|---|---|---|---|
+| F-01 | No fresh S3 object today | nightly job not running (e.g. Infisical login expired — the 2026-05-29 class) | watchdog ALERT in log + Telegram; `aws s3 ls` shows no today prefix | §H-1 revive job; meanwhile §E-01 |
+| F-02 | Dump present but tiny | empty/partial dump | size vs prior day; `pg_restore --list` TOC drop | re-run; fix source; halt rotation so a good copy isn't pruned |
+| F-03 | No Telegram alert despite stale | watchdog not loaded / Telegram creds rotated | `launchctl list | grep s3-backup-watchdog`; check `.env` creds | reload plist; refresh creds in `koskadeux-mcp/.env` |
+| F-04 | Can't decrypt a restored backup | wrong/lost key | key id vs object | retrieve offline copy |
 
 ## §G. Repair
-- **G-01** Re-establish the schedule (launchd/Railway cron); add the heartbeat + dead-man alert so a silent failure can't persist. Root cause class: jobs that fail without alerting (the exact gap that left us with zero working backups for months).
-- **G-02** Re-run the dump; if source is the issue, fix connectivity; halt local rotation so a good prior copy isn't aged out by a bad run.
+- **G-01** Re-establish the schedule + alert so a silent failure can't persist (root-cause class: jobs that fail without paging). 
+- **G-02** Re-run the dump; fix source connectivity; halt local rotation so a good prior copy isn't aged out.
 - **G-03** Retrieve the offline key/paper copy; never store the only copy on Titan-1.
 
-## §H. Evolve — Invariants
-1. **Immutability:** the offsite bucket is Object Lock COMPLIANCE — never weaken to Governance; never grant the writer key Delete/Bypass.
-2. **Least privilege:** the backup writer can only add; restore/admin uses a separate, human-gated path.
-3. **No public exposure of the secrets DB** to take a backup — back it up from inside its own network.
-4. **Every scheduled backup must alert on failure** (no silent failure — ever again).
-5. **A backup isn't real until a restore drill proves it** (§I + S681 §12).
-- Change classes — BREAKING: weakening Object Lock; giving the writer delete/bypass; exposing the secrets DB publicly. REVIEW: new source; changing retention; changing run location. SAFE: adding a source backup per pattern; tagging; a verification check.
+## §H. Evolve — Invariants & the Infisical root-cause fix
+1. **Automated jobs authenticate to Infisical with a MACHINE IDENTITY (Universal Auth client-id/secret or access token) — NEVER interactive `infisical login`.** Interactive sessions expire and then fail silently into a login prompt — the exact cause of the 2026-05-29 backup death and the recurring "Infisical keeps bothering me" pain. Machine-identity tokens are non-interactive and renewable. This is the keystone that unblocks rows 1–4 to S3.
+2. **Immutability:** the S3 bucket stays Object Lock COMPLIANCE — never weaken to Governance; never give the writer key Delete/Bypass.
+3. **The alerter must not depend on Infisical** (it reads Telegram creds from `.env`) — so it still pages even when Infisical is down.
+4. **Back up Infisical's own DB to S3** (row 3) — the root of trust must be recoverable; keep the master key offline.
+5. **A backup isn't real until a restore drill proves it.** Retire GCS only after rows 1–4 are LIVE to S3 AND one restore drill passes.
+- Change classes — BREAKING: weakening Object Lock; writer delete/bypass; exposing the secrets DB publicly; an Infisical consumer reverting to interactive login. REVIEW: new source; retention change; run-location change. SAFE: add a source per pattern; tagging; a verification check.
 
 ## §I. Acceptance Criteria
-1. (E) "Take a backup of the ai.market DB now." → E-01.
-2. (E) "Confirm last night's backups landed." → E-03 + `infra:backup-health`.
-3. (R) "The ai.market DB is lost — restore it." → §E-R2.
-4. (R) "Total loss — rebuild the market from the bucket." → §E-R1→R8 in order.
-5. (F) "No backup appeared today and nobody noticed." → F-01 (the historical failure mode; heartbeat + dead-man must catch it).
-6. (F) "A dump uploaded but is suspiciously small." → F-02 size/TOC check.
-7. (H) Classify: "Switch the bucket to Governance so we can prune mistakes." → BREAKING (defeats compromise resistance).
-8. (R) "Restore but the encryption key is gone." → §G-03 offline copy.
-9. (E) "Back up the secrets DB." → in-Railway job (§E-R3 path), never a public proxy.
-10. (ambiguous) "Backups seem broken." → acceptable first actions: check `infra:backup-health` staleness (F-01) OR list today's prefixes (F-01) OR compare object sizes vs prior day (F-02).
+1. (E) "Take a backup now." -> §E-01/E-02.  2. (E) "Confirm last night landed." -> §E-03.  3. (R) "Main DB lost." -> §E-R2.  4. (R) "Total loss — rebuild from S3." -> §E-R1→R8.  5. (F) "A backup didn't run and nobody noticed." -> §F watchdog Telegram (primary) + GitHub staleness (secondary).  6. (F) "Dump suspiciously small." -> F-02.  7. (H) "Switch bucket to Governance to prune mistakes." -> BREAKING, refuse.  8. (R) "Restore but key is gone." -> G-03 offline copy.  9. (E) "Back up the secrets DB." -> in-Railway dump, never a public proxy (§H-4).  10. (H) "Why does Infisical keep breaking backups?" -> §H-1: interactive login expiry; fix = machine identity.
 
 ## §J. Lifecycle
-- **last_refresh_session:** S723 (authored; bucket live, ai.market PG backed up; rows 2–8 pending)
-- **last_refresh_commit:** S724 — ai.market PG nightly automation + heartbeat LIVE
-- **last_refresh_date:** 2026-05-29
-- **owner_agent:** Vulcan-Primary
-- **refresh_triggers:** a coverage row goes LIVE; new source; retention/mode change; restore drill; incident
+- **last_refresh_session:** S792 (accuracy pass: GCS-vs-S3 reality corrected; direct S3 job documented DEAD; Telegram watchdog added + verified)
+- **last_refresh_date:** 2026-06-07
+- **owner_agent:** Vulcan-Primary / Mars-Worker
+- **refresh_triggers:** a coverage row goes LIVE to S3; machine identity created; GCS retired; restore drill; incident
 - **scheduled_cadence:** 90 days
-- **last_harness_pass_rate:** not yet run
-- **last_harness_date:** null
 
 ## §K. Conformance
-- **linter_version:** unverified — `runbook-lint` not yet run
-- **last_lint_result:** NOT_RUN — prose form consistent with sibling runbooks; harness pass is a follow-up
-- **status_caveat:** This runbook is intentionally honest about PENDING coverage. As each nightly source goes LIVE, flip its §B row and update §J.
+- **linter_version:** not yet run (prose form; harness pass is a follow-up)
+- **status_caveat:** Intentionally honest about PENDING coverage. Flip §B/§D rows and update §J as each S3 source goes LIVE.

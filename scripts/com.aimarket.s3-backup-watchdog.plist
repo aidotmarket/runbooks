@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.aimarket.s3-backup-watchdog</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/max/Projects/ai-market/runbooks/scripts/s3_backup_watchdog.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>StartInterval</key><integer>21600</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/Users/max/Library/Logs/aimarket_s3_backup_watchdog.out.log</string>
+  <key>StandardErrorPath</key><string>/Users/max/Library/Logs/aimarket_s3_backup_watchdog.err.log</string>
+  <key>Nice</key><integer>10</integer>
+</dict>
+</plist>
