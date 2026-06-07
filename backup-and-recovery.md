@@ -9,15 +9,15 @@
 - **escalation_contact:** Max (Telegram, primary)
 - **lifecycle_ref:** §J
 - **authoritative_scope:** Backup coverage, cadence, integrity verification, failure alerting, and per-component restore. Bucket lockdown + writer identity inherit from aws-s3.md.
-- **last_verified:** 2026-06-07 (S792)
+- **last_verified:** 2026-06-07 (S795 — Qdrant nightly to S3 LIVE; watchdog covers PG+Qdrant; backup machine-identity Client ID rotated)
 
 ## §B. Coverage Matrix — what restoring the whole market requires
-> **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Today GCS is still the only *recurring* live backup; S3 holds a current manual copy of the main DB plus the live failure-alert watchdog.
+> **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Both the main Postgres DB and the Qdrant knowledge_base now back up nightly to S3 (recurring, machine-identity auth); GCS still runs in parallel pending rows 3–4 coverage and a restore drill.
 
 | # | Component | Why it matters | Backup method (target) | Status 2026-06-07 | Restore ref |
 |---|---|---|---|---|---|
-| 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **GCS LIVE daily**; S3 = fresh manual copy 2026-06-07; **recurring-to-S3 PENDING machine identity** | §E-R2 |
-| 2 | **ai.market Qdrant** (allAI knowledge_base) | allAI memory | nightly snapshot -> S3 `qdrant/` | **GCS LIVE daily**; S3 PENDING | §E-R7 |
+| 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **LIVE to S3 nightly (S793, machine identity)**; GCS also live | §E-R2 |
+| 2 | **ai.market Qdrant** (allAI knowledge_base) | allAI memory | nightly snapshot -> S3 `qdrant/<date>/` | **LIVE to S3 nightly (S794)**; GCS also live | §E-R7 |
 | 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **NONE anywhere — CRITICAL gap**; PENDING machine identity | §E-R3 |
 | 4 | **vectorAIz Postgres + Qdrant** (separate Railway project) | Second data surface | nightly dump/snapshot -> S3 | NONE; PENDING | §E-R7 |
 | 5 | **Source code** (all `aidotmarket/*` repos) | The app, specs, handoff history | GitHub (durable) + Max Titan-1 clones; nightly `git --mirror` -> S3 `git-mirrors/` | Code SAFE (GitHub + local clones); S3 mirror PENDING | §E-R4 |
@@ -25,7 +25,7 @@
 | 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | PENDING | §E-R6 |
 | 8 | **Failure alerting** | A backup must never fail silently again | S3-freshness watchdog -> Telegram; secondary GitHub issue | **LIVE (S792)** — see §F | §F-01 |
 
-**Restore-from-S3-alone today:** PARTIAL. S3 holds a current main-DB dump only. Rows 2–7 still live only in their primary homes (GCS, GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss, but a true "rebuild the market from S3" posture needs rows 2–4 LIVE to S3 (gated on the machine identity, §H-1).
+**Restore-from-S3-alone today:** PARTIAL. S3 now holds nightly main-DB dumps (row 1) and Qdrant snapshots (row 2). Rows 3–7 still live only in their primary homes (GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss; a true "rebuild the market from S3" posture still needs rows 3–4 LIVE to S3.
 
 ## §C. Architecture & Interactions
 - **Primary destination (target):** S3 `aimarket-backups-prod` — eu-north-1, acct `948749907373`. Versioning + **Object Lock COMPLIANCE / 35-day** + SSE-S3 + Block-Public-Access. A locked object cannot be deleted or overwritten by anyone (incl. root) for 35 days — survives a stolen credential. Layout `postgres/ai-market/<date>/`, `postgres/infisical/<date>/`, `qdrant/`.
@@ -38,8 +38,9 @@
 |---|---|---|---|---|
 | GitHub Actions `Automated Backups` (`backup.yml`) | aidotmarket/ai-market-backend | daily 03:00 UTC + dispatch | `pg_dump` + Qdrant snapshot -> **GCS**; opens a GitHub issue on failure | **LIVE** (only recurring backup) |
 | GitHub Actions `Backup Staleness Check` (`backup-verify.yml`) | same | daily 06:00 UTC | hits `/api/v1/internal/backup-status`; opens a GitHub issue if PG/Qdrant > 6h stale | LIVE (secondary alert) |
-| launchd `com.aimarket.pg-backup` (`run_pg_backup.sh` -> `backup_pg.py`) | Titan-1 | 01:00/02:00 Europe/Berlin | direct `pg_dump` -> **S3** via `infisical run` | **DEAD since 2026-05-29** — Infisical CLI login expired -> rc=1 nightly. Revive via §H-1 |
-| **launchd `com.aimarket.s3-backup-watchdog`** (`runbooks/scripts/s3_backup_watchdog.sh`) | Titan-1 | every 6h + RunAtLoad | checks newest S3 main-DB dump; **Telegram alert if missing or > 26h** | **LIVE (S792)** — see §F |
+| launchd `com.aimarket.pg-backup` (`run_pg_backup.sh` -> `backup_pg.py`) | Titan-1 | 01:00/02:00 Europe/Berlin | direct `pg_dump` -> **S3** via machine-identity `infisical run` | **LIVE (S793)** — revived via Universal Auth machine identity; verified 2.41 GB dump to S3 |
+| **launchd `com.aimarket.qdrant-backup`** (`run_qdrant_backup.sh` -> `backup_qdrant.py`) | Titan-1 | 02:30/03:30 Europe/Berlin (per-UTC-day lock) | snapshot `knowledge_base` -> **S3** `qdrant/<date>/`; size-verified via ListBucket; health record to `backup-health/qdrant/last-run.json` | **LIVE (S794)** — ran via launchd path, verified |
+| **launchd `com.aimarket.s3-backup-watchdog`** (`runbooks/scripts/s3_backup_watchdog.sh`) | Titan-1 | every 6h + RunAtLoad | checks newest S3 **Postgres and Qdrant** objects; **Telegram alert if missing or > 26h** | **LIVE (S792, widened S794)** — see §F |
 | Manual GCS->S3 copy | Titan-1 (`aws --profile aimarket`) | on demand | mirrors a fresh GCS dump into immutable S3 | used 2026-06-07 to place a current S3 copy |
 
 ## §E. Operate
@@ -62,7 +63,7 @@
 ## §F. Failure Alerting — Telegram (the dead-man's switch)
 **This is the answer to "tell me when a backup does not run."**
 - **What:** `com.aimarket.s3-backup-watchdog` runs `runbooks/scripts/s3_backup_watchdog.sh` every 6 hours (and at load).
-- **Check:** newest object under `s3://aimarket-backups-prod/postgres/ai-market/`. If none, or older than **26h**, it fires.
+- **Check:** newest object under `s3://aimarket-backups-prod/postgres/ai-market/` **and** under `s3://aimarket-backups-prod/qdrant/`. If either is missing, or older than **26h**, it fires.
 - **Alert path:** direct HTTPS POST to `https://api.telegram.org/bot<token>/sendMessage` -> bot **koskadeux_bot** -> Max's chat. Creds `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` read from `koskadeux-mcp/.env`. No Infisical dependency (deliberate — the alerter must work even when Infisical is the thing that's broken).
 - **Verified:** 2026-06-07 test ping delivered (message_id 1639) to chat 80805807.
 - **Secondary alert:** the GitHub `Backup Staleness Check` opens an urgent GitHub issue (email) if the backend-reported PG/Qdrant backups go > 6h stale.
@@ -93,7 +94,7 @@
 1. (E) "Take a backup now." -> §E-01/E-02.  2. (E) "Confirm last night landed." -> §E-03.  3. (R) "Main DB lost." -> §E-R2.  4. (R) "Total loss — rebuild from S3." -> §E-R1→R8.  5. (F) "A backup didn't run and nobody noticed." -> §F watchdog Telegram (primary) + GitHub staleness (secondary).  6. (F) "Dump suspiciously small." -> F-02.  7. (H) "Switch bucket to Governance to prune mistakes." -> BREAKING, refuse.  8. (R) "Restore but key is gone." -> G-03 offline copy.  9. (E) "Back up the secrets DB." -> in-Railway dump, never a public proxy (§H-4).  10. (H) "Why does Infisical keep breaking backups?" -> §H-1: interactive login expiry; fix = machine identity.
 
 ## §J. Lifecycle
-- **last_refresh_session:** S792 (accuracy pass: GCS-vs-S3 reality corrected; direct S3 job documented DEAD; Telegram watchdog added + verified)
+- **last_refresh_session:** S795 (Qdrant nightly to S3 documented LIVE; watchdog widened to PG+Qdrant; backup machine-identity Client ID rotation recorded; §B/§D Postgres rows reconciled to the S793 machine-identity cutover)
 - **last_refresh_date:** 2026-06-07
 - **owner_agent:** Vulcan-Primary / Mars-Worker
 - **refresh_triggers:** a coverage row goes LIVE to S3; machine identity created; GCS retired; restore drill; incident
@@ -118,6 +119,6 @@ Root-cause fix for the recurring Infisical login-expiry failures (job dead since
 
 ### Still open
 - Extend coverage to the Infisical secrets DB and the vectorAIz project; restore test; retire GCS (`aimarket-backups` / project `aimarket-prod`) only after S3 is proven (destructive, requires Max go).
-- Rotate the machine-identity Client Secret (it transited chat during setup).
-- Root-cause the secrets.ai.market reachability flap (Tailscale accept-routes / dual default route).
+- ~~Rotate the machine-identity Client Secret (it transited chat during setup).~~ **DONE (S794):** recreating the Universal Auth method changed the Client ID; new Client ID `6673bf3a-3601-4df3-9e01-f7b5bb42e8e4` synced to `~/.config/infisical/backup-machine-identity.client-id`, secret rotated via the paste-once tool, old secret revoked. Verified: auth OK, 118 secrets injected, full PG backup ran.
+- Root-cause the secrets.ai.market reachability flap. **Mitigated (S794):** `tailscale set --accept-routes=false` on Titan-1 (it was pulling egress onto the tunnel); secrets.ai.market healthy over LAN. WATCH: a stale utun9 default route lingers and Tailscale CLI 1.94.2 lags daemon 1.98.5 — if the flap recurs, clear the version skew / bounce tailscaled.
 - Convert or retire other Infisical consumers (e.g. `com.koskadeux.infisical-token-refresh`) after review.
