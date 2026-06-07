@@ -102,3 +102,22 @@
 ## §K. Conformance
 - **linter_version:** not yet run (prose form; harness pass is a follow-up)
 - **status_caveat:** Intentionally honest about PENDING coverage. Flip §B/§D rows and update §J as each S3 source goes LIVE.
+
+---
+
+## 2026-06-07 (S793): Machine identity LIVE — direct S3 nightly backup restored
+
+Root-cause fix for the recurring Infisical login-expiry failures (job dead since 2026-05-29).
+
+- Auth: `com.aimarket.pg-backup` now uses an Infisical Universal Auth machine identity (`titan1-unattended-backup`, Viewer on the ai-market-backend prod project). No interactive `infisical login`.
+- Credentials on Titan-1: `~/.config/infisical/backup-machine-identity.client-id` and `.client-secret` (owner `max`, `chmod 600`). Job logs in non-interactively and passes the short-lived token to `infisical run`.
+- Login retry: `secrets.ai.market` resolves to two Cloudflare anycast IPs and one is intermittently unreachable from Titan-1 (suspected Tailscale dual-default-route; not yet root-caused). Job retries login up to 6x.
+- Postgres client: server is v17, so the job pins `PG_DUMP_BIN`/`PG_RESTORE_BIN` to `/opt/homebrew/opt/postgresql@17/bin` (default PATH `pg_dump` was v14 and refused).
+- Script location: LaunchAgent runs `/Users/max/ops/aimarket-backend-main/scripts/run_pg_backup.sh`, a worktree pinned to `origin/main`, so the live job no longer depends on a dev checkout's branch. Refresh with `git -C /Users/max/ops/aimarket-backend-main pull` after backup-script changes merge to main.
+- Verified 2026-06-07: produced `s3://aimarket-backups-prod/postgres/ai-market/20260607/railway-20260607T135444Z.dump` (2.41 GB, size+sha256 verified), health `status=ok`, watchdog healthy.
+
+### Still open
+- Extend coverage to the Infisical secrets DB and the vectorAIz project; restore test; retire GCS (`aimarket-backups` / project `aimarket-prod`) only after S3 is proven (destructive, requires Max go).
+- Rotate the machine-identity Client Secret (it transited chat during setup).
+- Root-cause the secrets.ai.market reachability flap (Tailscale accept-routes / dual default route).
+- Convert or retire other Infisical consumers (e.g. `com.koskadeux.infisical-token-refresh`) after review.
