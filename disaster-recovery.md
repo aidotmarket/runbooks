@@ -14,7 +14,7 @@ You cannot read the backups without these, and they are deliberately NOT in S3 o
 | `postgres/ai-market/<date>/` | Main marketplace DB (marketplace + Living State + dispatch ledger), `pg_dump -Fc` | nightly | R2 |
 | `postgres/infisical/<date>/` | Infisical secrets DB, age-encrypted `.dump.age` | nightly 03:00 UTC | R1 |
 | `qdrant/knowledge_base/<date>/` | allAI memory (Qdrant snapshot) | nightly | R5 |
-| `railway-config/<date>/` | Railway topology map: services, source repo/branch, config-as-code path, cron, domains, variable NAMES — **no secret values** | script live; schedule pending | R3 |
+| `railway-config/<date>/` | Railway topology map: services, source repo/branch, config-as-code path, cron, domains, variable NAMES — **no secret values** | nightly | R3 |
 | `backup-health/` | Per-source last-run status JSON | per run | — |
 
 **Intentionally not in this bucket:** our own AIM Data + vectorAIz data — it lives on Titan-1, covered by Titan-1's own local + physically-separate backup (owner decision); customer datasets are non-custodial (sellers' own buckets). **Still to add to S3:** Cloudflare (Worker KV + DNS) and an S3 git mirror. Application **code** for every system is in GitHub + local clones, so it is rebuildable.
