@@ -15,9 +15,10 @@ You cannot read the backups without these, and they are deliberately NOT in S3 o
 | `postgres/infisical/<date>/` | Infisical secrets DB, age-encrypted `.dump.age` | nightly 03:00 UTC | R1 |
 | `qdrant/knowledge_base/<date>/` | allAI memory (Qdrant snapshot) | nightly | R5 |
 | `railway-config/<date>/` | Railway topology map: services, source repo/branch, config-as-code path, cron, domains, variable NAMES — **no secret values** | nightly | R3 |
+| `cloudflare/<date>/` | DNS records + zone settings for ai.market + vectoraiz.com (Worker scripts in GitHub; KV not captured) | nightly | R6 |
 | `backup-health/` | Per-source last-run status JSON | per run | — |
 
-**Intentionally not in this bucket:** our own AIM Data + vectorAIz data — it lives on Titan-1, covered by Titan-1's own local + physically-separate backup (owner decision); customer datasets are non-custodial (sellers' own buckets). **Still to add to S3:** Cloudflare (Worker KV + DNS) and an S3 git mirror. Application **code** for every system is in GitHub + local clones, so it is rebuildable.
+**Intentionally not in this bucket:** our own AIM Data + vectorAIz data — it lives on Titan-1, covered by Titan-1's own local + physically-separate backup (owner decision); customer datasets are non-custodial (sellers' own buckets). **Still to add to S3:** an S3 git mirror (code is durable in GitHub + local clones). Application **code** for every system is in GitHub + local clones, so it is rebuildable.
 
 ## 2. Restore order — secrets, infra, data, code, edge
 - **R1 Infisical secrets DB.** Pull newest `postgres/infisical/<date>/*.dump.age`; `age -d -i <offline-key> -o infisical.dump <obj>`; restore with a **Postgres 18** client (`docker run --rm -v "$PWD":/work postgres:18 pg_restore --clean --if-exists -d <db-url> /work/infisical.dump`); bring Infisical up with its master key. Secrets come back first — everything else authenticates against them.
@@ -25,7 +26,7 @@ You cannot read the backups without these, and they are deliberately NOT in S3 o
 - **R3 Railway infra.** Read newest `railway-config/<date>/*.json` for the service map (repos, branches, config-as-code paths, cron, domains, variable names); recreate services from those repos; set each variable's VALUE from restored Infisical (the export holds names only).
 - **R4 Code.** `git clone github.com/aidotmarket/*` (plus local clones on Titan-1).
 - **R5 allAI memory.** Recreate Qdrant; restore newest `qdrant/knowledge_base/<date>/` snapshot.
-- **R6 Edge.** Redeploy Cloudflare Workers from repos; re-apply DNS/KV (today rebuilt from repo/manual, not from S3).
+- **R6 Edge.** Redeploy Cloudflare Workers from repos; restore DNS records + zone settings from newest `cloudflare/<date>/`; KV (regenerable DMS counters) is re-created at runtime.
 
 ## 3. Is it working? — monitoring
 A Titan-1 watchdog checks the newest object under each monitored prefix every 6h and **pages Max on Telegram** if any is missing or older than 26h, independent of Infisical. It currently covers `postgres/ai-market/`, `postgres/infisical/`, and `qdrant/`.

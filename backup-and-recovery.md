@@ -22,7 +22,7 @@
 | 4 | **vectorAIz + AIM Data (our own)** | Our own second-surface data | n/a — on Titan-1 | **OUT OF SCOPE for S3 (owner decision S799):** our own AIM Data + vectorAIz data lives on Titan-1, covered by Titan-1 local + physically-separate backup; customer data is non-custodial (sellers' own buckets). Not in S3 by design. | Titan-1 backup |
 | 5 | **Source code** (all `aidotmarket/*` repos) | The app, specs, handoff history | GitHub (durable) + Max Titan-1 clones; nightly `git --mirror` -> S3 `git-mirrors/` | Code SAFE (GitHub + local clones); S3 mirror PENDING | §E-R4 |
 | 6 | **Railway deploy config** (services, env, domains, cron) | How code is wired into infra | nightly Railway API export -> S3 `railway-config/<date>/` | **LIVE (S799.w):** nightly export (04:00/05:00 local, machine-identity) + watchdog monitors `railway-config/` | §E-R5 |
-| 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | PENDING | §E-R6 |
+| 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | **LIVE (S799.w):** nightly DNS records + zone settings to `cloudflare/<date>/` (04:30/05:30 local, machine-identity) + watchdog; Worker scripts in GitHub; KV not captured (token scope; regenerable DMS counters) | §E-R6 |
 | 8 | **Failure alerting** | A backup must never fail silently again | S3-freshness watchdog -> Telegram; secondary GitHub issue | **LIVE (S792)** — see §F | §F-01 |
 
 **Restore-from-S3-alone today:** PARTIAL. S3 now holds nightly main-DB dumps (row 1, restore-validated 2026-06-07) and Qdrant snapshots (row 2). Rows 3–7 still live only in their primary homes (GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss; a true "rebuild the market from S3" posture still needs rows 3–4 LIVE to S3.
@@ -151,3 +151,7 @@ Investigating a "do-not-merge-blind" flag on the infisical backup branch surface
 
 ### 2026-06-08 (S799.w): vectorAIz + AIM Data excluded from S3 (owner decision)
 Our own AIM Data and vectorAIz data lives on Titan-1 and is covered by Titan-1's own local + physically-separate backup; customer datasets are non-custodial (in sellers' own buckets), not ours to back up. Per Max, these are OUT OF SCOPE for the S3 bucket (row 4 updated). Remaining S3 gaps: Cloudflare (Worker KV/DNS) and an S3 git mirror; code is durable in GitHub + local clones.
+
+
+### 2026-06-08 (S799.w): Cloudflare DR export LIVE
+Nightly Cloudflare export to S3 (`cloudflare/<date>/`): all DNS records (ai.market 30, vectoraiz.com 8) + zone settings, via `scripts/cloudflare_export.py` wrapped by `run_cloudflare_export.sh` (machine-identity) under launchd `com.aimarket.cloudflare-export` (04:30/05:30 local, per-UTC-day lock). Watchdog extended to `cloudflare/`. Worker SCRIPTS are not exported (source in GitHub). Worker KV is not captured — the current token lacks KV scope and KV holds only regenerable dead-man-switch counters; mint a KV-read token if KV capture is later wanted. This closes the last S3 coverage gap; the only item still not in S3 is an S3 git mirror (code is durable in GitHub + local clones).

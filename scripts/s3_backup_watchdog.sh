@@ -12,6 +12,7 @@ TARGETS=(
   "infisical-secrets|s3://aimarket-backups-prod/postgres/infisical/"
   "qdrant|s3://aimarket-backups-prod/qdrant/"
   "railway-config|s3://aimarket-backups-prod/railway-config/"
+  "cloudflare|s3://aimarket-backups-prod/cloudflare/"
 )
 tg() {
   local tok cid
