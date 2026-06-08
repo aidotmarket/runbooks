@@ -1,6 +1,6 @@
 #!/bin/bash
 # s3_backup_watchdog.sh — Telegram alert if any ai.market S3 backup is missing or stale (>26h).
-# Covers Postgres and Qdrant. Autonomous: local `aimarket` AWS profile + Telegram creds from koskadeux-mcp/.env.
+# Covers Postgres (ai-market + Infisical secrets root-of-trust) and Qdrant. Autonomous: local `aimarket` AWS profile + Telegram creds from koskadeux-mcp/.env.
 # Scheduled by launchd com.aimarket.s3-backup-watchdog (every 6h + RunAtLoad). See backup-and-recovery.md §F.
 set -uo pipefail
 ENVF=/Users/max/koskadeux-mcp/.env
@@ -9,6 +9,7 @@ PROFILE=aimarket
 LOG=/Users/max/Library/Logs/aimarket_s3_backup_watchdog.log
 TARGETS=(
   "postgres|s3://aimarket-backups-prod/postgres/ai-market/"
+  "infisical-secrets|s3://aimarket-backups-prod/postgres/infisical/"
   "qdrant|s3://aimarket-backups-prod/qdrant/"
 )
 tg() {

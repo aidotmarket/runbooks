@@ -18,7 +18,7 @@
 |---|---|---|---|---|---|
 | 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **LIVE to S3 nightly (S793, machine identity)**; restore-validated 2026-06-07; GCS retired | §E-R2 |
 | 2 | **ai.market Qdrant** (allAI knowledge_base) | allAI memory | nightly snapshot -> S3 `qdrant/<date>/` | **LIVE to S3 nightly (S794)**; GCS retired | §E-R7 |
-| 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **NONE anywhere — CRITICAL gap**; PENDING machine identity | §E-R3 |
+| 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **LIVE (S797)** — nightly Railway cron, age-encrypted to offline key; restore-drill verified (1,209 tables) | §E-R3 |
 | 4 | **vectorAIz Postgres + Qdrant** (separate Railway project) | Second data surface | nightly dump/snapshot -> S3 | NONE; PENDING | §E-R7 |
 | 5 | **Source code** (all `aidotmarket/*` repos) | The app, specs, handoff history | GitHub (durable) + Max Titan-1 clones; nightly `git --mirror` -> S3 `git-mirrors/` | Code SAFE (GitHub + local clones); S3 mirror PENDING | §E-R4 |
 | 6 | **Railway deploy config** (services, env, domains, cron) | How code is wired into infra | nightly Railway API export -> S3 `railway-config/<date>/` | PENDING | §E-R5 |
@@ -39,6 +39,7 @@
 | GitHub Actions `Automated Backups` (`backup.yml`) | aidotmarket/ai-market-backend | daily 03:00 UTC + dispatch | `pg_dump` + Qdrant snapshot -> **GCS**; opens a GitHub issue on failure | **DISABLED (S794)** — was the GCS writer; GCS bucket retired S795 |
 | GitHub Actions `Backup Staleness Check` (`backup-verify.yml`) | same | daily 06:00 UTC | hits `/api/v1/internal/backup-status`; opens a GitHub issue if PG/Qdrant > 6h stale | **DISABLED (S794)** — read GCS-fed events; superseded by the S3 watchdog (§F) |
 | launchd `com.aimarket.pg-backup` (`run_pg_backup.sh` -> `backup_pg.py`) | Titan-1 | 01:00/02:00 Europe/Berlin | direct `pg_dump` -> **S3** via machine-identity `infisical run` | **LIVE (S793)** — revived via Universal Auth machine identity; verified 2.41 GB dump to S3 |
+| Railway cron `infisical-pg-backup` (`backup_pg.py`, config `railway.infisical-backup.json`) | Railway (infisical secrets project) | 03:00 UTC nightly | `pg_dump`@18 -> age-encrypt -> **S3** `postgres/infisical/<date>/` via write-only key | **LIVE (S797)** — restore-drill verified, 1,209 tables / 6,994 entries |
 | **launchd `com.aimarket.qdrant-backup`** (`run_qdrant_backup.sh` -> `backup_qdrant.py`) | Titan-1 | 02:30/03:30 Europe/Berlin (per-UTC-day lock) | snapshot `knowledge_base` -> **S3** `qdrant/<date>/`; size-verified via ListBucket; health record to `backup-health/qdrant/last-run.json` | **LIVE (S794)** — ran via launchd path, verified |
 | **launchd `com.aimarket.s3-backup-watchdog`** (`runbooks/scripts/s3_backup_watchdog.sh`) | Titan-1 | every 6h + RunAtLoad | checks newest S3 **Postgres and Qdrant** objects; **Telegram alert if missing or > 26h** | **LIVE (S792, widened S794)** — see §F |
 | ~~Manual GCS->S3 copy~~ | — | — | — | **OBSOLETE (S795)** — GCS retired; nightly direct-to-S3 jobs supersede this |
@@ -52,7 +53,7 @@
 ## §E-R. Restore the market (ordered: secrets -> infra -> data -> code -> edge)
 - **R1 Pre-flight:** scope the failure (one component vs total loss). Retrieve the offline encryption + Infisical master key if online copies are gone.
 - **R2 ai.market PG:** provision Postgres -> `pg_restore` latest `postgres/ai-market/<date>/` -> point backend `DATABASE_URL` at it.
-- **R3 Infisical PG:** provision Postgres -> restore `postgres/infisical/<date>/` -> bring up Infisical with its master key -> all services can fetch secrets again.
+- **R3 Infisical PG (verified S797):** nightly Railway cron writes an **age-encrypted** custom-format dump to `postgres/infisical/<date>/railway-<ts>.dump.age`. Restore: (1) pull the latest `.age` from S3; (2) decrypt with the **OFFLINE age key** (1Password only; never on Titan-1/Railway/Infisical): `age -d -i <key> -o infisical.dump <obj>.age`; (3) restore with a **Postgres 18** client (secrets DB is PG18; Titan-1 local client is 14 -> use `docker run --rm -v "$PWD":/work postgres:18 pg_restore --clean --if-exists -d <new-db-url> /work/infisical.dump`, or `-l` to list); (4) bring Infisical up with its master key. NOTE: the dump is age-encrypted because it exposes secret paths / project+member structure / schema even without the master key — the age key is REQUIRED and there is **no recovery if it is lost**.
 - **R4 Source:** `git clone` from `git-mirrors/` (or GitHub) .
 - **R5 Railway infra:** recreate services from `railway-config/<date>/` -> set env from restored Infisical -> deploy restored code.
 - **R6 Cloudflare:** redeploy Workers -> restore KV from `cloudflare/<date>/` -> re-apply DNS.
@@ -117,7 +118,14 @@ Root-cause fix for the recurring Infisical login-expiry failures (job dead since
 - Verified 2026-06-07: produced `s3://aimarket-backups-prod/postgres/ai-market/20260607/railway-20260607T135444Z.dump` (2.41 GB, size+sha256 verified), health `status=ok`, watchdog healthy.
 
 ### Still open
-- Extend coverage to the Infisical secrets DB and the vectorAIz project; full scratch-restore drill. ~~Retire GCS~~ **DONE (S795):** GCS `aimarket-backups` deleted by Max after rows 1–2 verified live + restore-validated on S3.
+- ~~Extend coverage to the Infisical secrets DB; full restore drill.~~ **DONE (S797):** Infisical secrets DB backed up nightly (Railway cron, age-encrypted) + restore-drill verified. Still open: vectorAIz project coverage. Follow-up: merge `feat/bq-infisical-secrets-db-s3-backup-s795` -> main and repoint the Railway service to main (it currently builds from the branch). ~~Retire GCS~~ **DONE (S795):** GCS `aimarket-backups` deleted by Max after rows 1–2 verified live + restore-validated on S3.
 - ~~Rotate the machine-identity Client Secret (it transited chat during setup).~~ **DONE (S794):** recreating the Universal Auth method changed the Client ID; new Client ID `6673bf3a-3601-4df3-9e01-f7b5bb42e8e4` synced to `~/.config/infisical/backup-machine-identity.client-id`, secret rotated via the paste-once tool, old secret revoked. Verified: auth OK, 118 secrets injected, full PG backup ran.
 - Root-cause the secrets.ai.market reachability flap. **Mitigated (S794):** `tailscale set --accept-routes=false` on Titan-1 (it was pulling egress onto the tunnel); secrets.ai.market healthy over LAN. WATCH: a stale utun9 default route lingers and Tailscale CLI 1.94.2 lags daemon 1.98.5 — if the flap recurs, clear the version skew / bounce tailscaled.
 - Convert or retire other Infisical consumers (e.g. `com.koskadeux.infisical-token-refresh`) after review.
+
+### 2026-06-08 (S797): Infisical secrets DB backup — LIVE + restore-verified
+- New Railway cron `infisical-pg-backup` in the infisical secrets-management project (config `railway.infisical-backup.json`, branch `feat/bq-infisical-secrets-db-s3-backup-s795`): nightly 03:00 UTC, `pg_dump`@18 -> age-encrypt -> S3 `postgres/infisical/`, write-only key, restartPolicy NEVER.
+- Encrypts to an OFFLINE age recipient (private key in 1Password only); creds are STATIC Railway vars, never fetched from Infisical (no circular dependency on the thing being backed up).
+- Watchdog now monitors `postgres/infisical/` (>26h missing/stale).
+- Bugs fixed at source en route: Dockerfile `useradd` collided with the Debian `backup` user; root `.dockerignore` hid `scripts/` (added per-Dockerfile ignore); pg client 17 -> 18 (server 18.3); shared repo `railway.json` forced the backend build (added dedicated config file); creds now whitespace-trimmed (a paste newline caused SignatureDoesNotMatch).
+- Restore drill: decrypted with the offline key, `pg_restore -l` via a PG18 client listed 6,994 TOC entries / 1,209 tables, no corruption.
