@@ -17,7 +17,7 @@ You cannot read the backups without these, and they are deliberately NOT in S3 o
 | `railway-config/<date>/` | Railway topology map: services, source repo/branch, config-as-code path, cron, domains, variable NAMES — **no secret values** | script live; schedule pending | R3 |
 | `backup-health/` | Per-source last-run status JSON | per run | — |
 
-**Not yet in the bucket — rebuild by other means:** vectorAIz data (its own DB/Qdrant), Cloudflare (Worker KV + DNS), and an S3 git mirror. Application **code** for every system is in GitHub (`github.com/aidotmarket/*`) plus local clones, so it is rebuildable. Seller datasets are non-custodial (in sellers' own buckets), not ours to restore.
+**Intentionally not in this bucket:** our own AIM Data + vectorAIz data — it lives on Titan-1, covered by Titan-1's own local + physically-separate backup (owner decision); customer datasets are non-custodial (sellers' own buckets). **Still to add to S3:** Cloudflare (Worker KV + DNS) and an S3 git mirror. Application **code** for every system is in GitHub + local clones, so it is rebuildable.
 
 ## 2. Restore order — secrets, infra, data, code, edge
 - **R1 Infisical secrets DB.** Pull newest `postgres/infisical/<date>/*.dump.age`; `age -d -i <offline-key> -o infisical.dump <obj>`; restore with a **Postgres 18** client (`docker run --rm -v "$PWD":/work postgres:18 pg_restore --clean --if-exists -d <db-url> /work/infisical.dump`); bring Infisical up with its master key. Secrets come back first — everything else authenticates against them.
