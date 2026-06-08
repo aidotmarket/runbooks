@@ -21,7 +21,7 @@
 | 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **LIVE (S797)** — nightly Railway cron, age-encrypted to offline key; restore-drill verified (1,209 tables) | §E-R3 |
 | 4 | **vectorAIz Postgres + Qdrant** (separate Railway project) | Second data surface | nightly dump/snapshot -> S3 | NONE; PENDING | §E-R7 |
 | 5 | **Source code** (all `aidotmarket/*` repos) | The app, specs, handoff history | GitHub (durable) + Max Titan-1 clones; nightly `git --mirror` -> S3 `git-mirrors/` | Code SAFE (GitHub + local clones); S3 mirror PENDING | §E-R4 |
-| 6 | **Railway deploy config** (services, env, domains, cron) | How code is wired into infra | nightly Railway API export -> S3 `railway-config/<date>/` | PENDING | §E-R5 |
+| 6 | **Railway deploy config** (services, env, domains, cron) | How code is wired into infra | nightly Railway API export -> S3 `railway-config/<date>/` | PARTIAL (S799.w): exporter live, first snapshot in S3; nightly schedule + watchdog pending | §E-R5 |
 | 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | PENDING | §E-R6 |
 | 8 | **Failure alerting** | A backup must never fail silently again | S3-freshness watchdog -> Telegram; secondary GitHub issue | **LIVE (S792)** — see §F | §F-01 |
 
@@ -141,3 +141,9 @@ Investigating a "do-not-merge-blind" flag on the infisical backup branch surface
 - **Backup-target wiring.** `scripts/backup_pg.py` is unified by `BACKUP_TARGET`: `infisical` -> dumps `BACKUP_DATABASE_URL`, age-encrypts (`AGE_RECIPIENT`), uploads `postgres/infisical/<date>/...dump.age`; `ai-market` -> dumps `AUTHOR_DISPATCH_DATABASE_URL`, unencrypted, `postgres/ai-market/`. AWS creds `AWS_BACKUP_WRITER_ACCESS_KEY_ID` / `_SECRET` (write+list only).
 - **Alerting confirmed live.** The S3 dead-man's-switch watchdog DOES monitor `postgres/infisical/` (target `infisical-secrets`, >26h -> Telegram) and its launchd job is loaded — a missed secrets backup pages Max independent of Infisical/Living State.
 - **Minor open item.** The in-Railway job's heartbeat to Living State `infra:backup-health` is not landing for the `infisical` source (still under `pending_sources`) — likely the service lacks `INTERNAL_API_KEY` / `RAILWAY_BACKEND_URL`. Not safety-critical (the watchdog covers alerting); wiring it would move `infisical-pg` out of `pending_sources`.
+
+
+### 2026-06-08 (S799.w, cont.): Railway-config export + disaster-recovery map
+- **Railway topology export to S3.** New `scripts/railway_config_export.py` queries every Railway project -> service for source repo/branch, config-as-code path, cron, region, and variable NAMES (secret VALUES deliberately excluded — they live in Infisical, already backed up). First snapshot uploaded to `s3://aimarket-backups-prod/railway-config/<date>/`. **Still pending to call this recurring:** a nightly launchd job (mirror `com.aimarket.pg-backup` machine-identity injection) + add `railway-config/` to the watchdog TARGETS.
+- **Disaster-recovery map.** New `disaster-recovery.md` (the rebuild map: bucket layout, offline bootstrap items, restore order, monitoring). A copy is stored at `s3://aimarket-backups-prod/RESTORE-README.md` so the map survives even if GitHub + Titan-1 are gone.
+- **Honest coverage:** core data (main DB, allAI memory, secrets DB) is LIVE to immutable S3 + watchdog-alarmed. Still not in S3: vectorAIz data, Cloudflare (Worker KV/DNS), S3 git mirror. Code is safe via GitHub + local clones. "Rebuild entirely from S3 alone" remains PARTIAL until those land.
