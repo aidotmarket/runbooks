@@ -155,3 +155,22 @@ Our own AIM Data and vectorAIz data lives on Titan-1 and is covered by Titan-1's
 
 ### 2026-06-08 (S799.w): Cloudflare DR export LIVE
 Nightly Cloudflare export to S3 (`cloudflare/<date>/`): all DNS records (ai.market 30, vectoraiz.com 8) + zone settings, via `scripts/cloudflare_export.py` wrapped by `run_cloudflare_export.sh` (machine-identity) under launchd `com.aimarket.cloudflare-export` (04:30/05:30 local, per-UTC-day lock). Watchdog extended to `cloudflare/`. Worker SCRIPTS are not exported (source in GitHub). Worker KV is not captured — the current token lacks KV scope and KV holds only regenerable dead-man-switch counters; mint a KV-read token if KV capture is later wanted. This closes the last S3 coverage gap; the only item still not in S3 is an S3 git mirror (code is durable in GitHub + local clones).
+
+## Reading the Login Items "bash" list (Titan-1 launchd agents)
+
+macOS System Settings → General → Login Items & Extensions → "Allow in the Background" labels each job by the program it launches. Our scheduled jobs launch via `/bin/bash <script>`, so they ALL show as identical "bash — unidentified developer" rows. They are NOT duplicates — each runs a different script. The 10 bash background items on Titan-1 (`~/Library/LaunchAgents/`), oldest first:
+
+| launchd label | script | purpose | added |
+|---|---|---|---|
+| com.koskadeux.mcp | launch_mcp_server.sh | Koskadeux MCP gateway launcher | 2026-02-02 |
+| com.aimarket.daily-stats | run_daily_stats.sh | daily stats job | 2026-02-11 |
+| com.koskadeux.ag_server | launch_ag_server.sh | AG (Gemini) model server | 2026-03-04 |
+| com.koskadeux.deepseek_server | launch_deepseek_server.sh | DeepSeek model server | 2026-04-29 |
+| com.koskadeux.infisical-token-refresh | bash -lc | Infisical token refresh | 2026-06-03 |
+| com.aimarket.s3-backup-watchdog | s3_backup_watchdog.sh | S3 backup freshness alarm (Telegram) | 2026-06-07 |
+| com.aimarket.pg-backup | run_pg_backup.sh | nightly main-DB backup → S3 | 2026-06-07 |
+| com.aimarket.qdrant-backup | run_qdrant_backup.sh | nightly Qdrant backup → S3 | 2026-06-07 |
+| com.aimarket.railway-config-export | run_railway_config_export.sh | nightly Railway topology export → S3 | 2026-06-08 |
+| com.aimarket.cloudflare-export | run_cloudflare_export.sh | nightly Cloudflare DNS export → S3 | 2026-06-08 |
+
+Other background items (gateway, council-hall, cloudflared, lilly, etc.) launch via python/cloudflared and show under those names, not "bash". The macOS "App Background Activity: 'bash' can run in the background" notification fires when one of these is added or re-registered (and can lag by hours); the recent additions are the backup jobs above — the newest being the Cloudflare export (2026-06-08). The Background Task Management DB lists each of ours exactly once (no duplicates). Stale plist backups removed S799.w: `com.aimarket.pg-backup.plist.bak-preMI`, `com.koskadeux.council-hall.plist.pre-infisical-S546`, `com.koskadeux.gateway.plist.pre-infisical-S546`.
