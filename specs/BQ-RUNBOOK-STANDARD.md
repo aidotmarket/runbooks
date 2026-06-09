@@ -668,3 +668,11 @@ R8 received MP APPROVE_WITH_NITS (2 remaining micro-defects) + AG APPROVE. R9 cl
 **Review-round count:** 9 Vulcan-authored revisions, 8 MP rounds (R1 HIGH → R2 HIGH → R3 MEDIUM → R4 MEDIUM → R5 MEDIUM → R6 MEDIUM → R7 APPROVE_WITH_NITS → R8 APPROVE_WITH_NITS), 2 AG cross-votes (CONDITIONAL → APPROVE). No XAI review needed at Gate 1 (XAI's role begins at G4 per §7).
 **Gate 2 deferred nits:** None outstanding. All MP R7 + AG R7 nits resolved in R8/R9.
 **Proceeds to Gate 2:** See §9 migration plan for Gate 2 deliverable order (runbook-lint, harness, Infisical reference, etc.).
+
+## §L. Topic router & self-containment (S740)
+
+- **Registration:** Every runbook (and every major section worth finding) MUST be registered in `TOPIC-ROUTER.md` — the documented entry point mapping subject → owning runbook + section. A runbook absent from the router fails the drift guard.
+- **Section self-containment:** Each section MUST answer its question without a mandatory hop to another page. Cross-links are optional depth, never required reading. Optimize for the right page surfacing first and each section standing alone — an agent pays a fetch + context cost per hop that a human does not.
+- **M1 — Dependencies & Credentials / Source-of-Truth block (REQUIRED for every service/infra runbook):** a block naming (a) every broker / external resource the system depends on, (b) the exact path or vault where each credential lives (Infisical project+env+key, 1Password, Railway var, etc.), and (c) the owning service. High-traffic router entries point directly at the section containing the answer.
+- **M4 — same-session completeness rule:** When an agent hits a missing fact, it writes the fact into the owning runbook AND adds/fixes the `TOPIC-ROUTER.md` entry in the SAME session. No separate issue or reporting channel.
+- **Drift guard:** `scripts/router_drift_check.py` (run in pre-commit/CI) asserts coverage, that every router target file+anchor resolves, and that the router carries a Credentials / Source-of-Truth section. No graph validation, embeddings, or misroute heuristics (M3).
