@@ -101,6 +101,30 @@ NEW=$(launchctl list | awk '/com\.koskadeux\.mcp/{print $1}')
 echo "pid $OLD -> $NEW"   # MUST differ; if equal, the restart no-opped — re-run kickstart
 ```
 
+### Restarting/redeploying the handler FROM INSIDE a session (S807 pattern)
+
+A shell_request command executes inside the `com.koskadeux.mcp` process tree, so a deploy
+script that stops the handler will kill itself unless it is detached into a NEW process
+session. Two traps, both hit S807:
+
+1. **`setsid` does not exist on macOS.** A `nohup setsid script &` launcher dies instantly
+   and silently (no log file is ever created). Detach with Python instead:
+
+   ```bash
+   /usr/bin/python3 -c "import subprocess; subprocess.Popen(['/path/to/deploy.sh'], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)"
+   ```
+
+2. **`nohup ... &` alone is NOT enough** — it does not change the process group, and
+   `launchctl bootout` tears down the service's process group.
+
+Deploy script shape: log everything to a file under /var/tmp/koskadeux/, `sleep 3` first
+(lets the parent tool call return), `launchctl bootout` (real stop — `kickstart -k` is a
+restart and leaves no migration window), run migrations, `launchctl bootstrap` the plist
+back, then verify the PID changed and `curl :8765/health` (allow several seconds for the
+launcher's Infisical fetches before trusting a failed probe). After the handler returns,
+the live instance MUST re-run kd_session_open + kd_session_plan (in-memory session state
+is dropped). The gateway (:8767) does not need a restart for handler-code changes.
+
 **A handler restart drops BOTH instances' in-memory session state** → both Vulcan and Mars
 must re-open + re-plan. Never restart unilaterally while the peer is live — coordinate
 (via Max) when both reach a clean stop. (See "Known issues → restarts drop both sessions.")
