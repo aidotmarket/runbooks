@@ -11,7 +11,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 | Any secret value | Infisical (`secrets.ai.market`) — the ONLY secret store | [infisical-secrets.md](infisical-secrets.md#accessing-secrets) |
 | AWS backup-writer keys (S3 put/list, no delete) | Infisical project `ai-market-backend` / env `prod`: `AWS_BACKUP_WRITER_ACCESS_KEY_ID`, `AWS_BACKUP_WRITER_SECRET` | [aws-s3.md](aws-s3.md) |
 | AWS account / buckets / regions | account 948749907373; backups bucket `aimarket-backups-prod` (eu-north-1, Object Lock) | [aws.md](aws.md) |
-| Cloudflare API token | Infisical `ai-market-backend`/prod: `CLOUDFLARE_API_TOKEN` (zone read + Worker R/W; no KV scope) | [cloudflare-and-dns.md](cloudflare-and-dns.md) |
+| Cloudflare API token | Infisical `ai-market-backend`/prod: `CLOUDFLARE_API_TOKEN` (zone read + DNS edit + Worker R/W; no KV scope (DNS edit confirmed live S806: created TXT record via API)) | [cloudflare-and-dns.md](cloudflare-and-dns.md) |
 | Railway API token | Infisical `ai-market-backend`/prod: `RAILWAY_API_TOKEN` (account-scoped UUID) | [titan-1.md](titan-1.md) |
 | Backup/age encryption private key | 1Password only — never in S3 or on a server | [disaster-recovery.md](disaster-recovery.md) |
 | Internal API key (agent→backend) | Infisical `ai-market-backend`/prod: `INTERNAL_API_KEY` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
