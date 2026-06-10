@@ -327,3 +327,23 @@ via Max, not done unilaterally.
 - **S734** — Transport corrected to cloudflared throughout; `session-lifecycle.md`
   consolidated into this runbook; Unit D diagnosis recorded (dead local `role_locks` table;
   the response cross-talk known issue).
+
+## Deploying handler code that needs a true stop window (migrations)
+
+When a change requires a no-live-connections window (e.g. registry table rebuilds), a plain
+`kickstart -k` is wrong — it restarts immediately. Use bootout → migrate → bootstrap, and run
+the whole sequence as a script DETACHED INTO A NEW PROCESS SESSION, because the orchestrator
+executing it is itself a child of the service being stopped:
+
+```bash
+# WRONG on macOS: `setsid` does not exist (S807 lesson — the deploy silently never ran).
+# RIGHT: detach via Python start_new_session, then the script survives the bootout.
+/usr/bin/python3 -c "import subprocess; subprocess.Popen(['/var/tmp/koskadeux/deploy.sh'], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)"
+```
+
+The script should: sleep 3 (let the parent tool call return) → `launchctl bootout
+gui/$(id -u)/com.koskadeux.mcp` → run the migration with `venv/bin/python` (repo venv is
+`venv/`, NOT `.venv/`; bare python3 lacks deps) → `launchctl bootstrap gui/$(id -u)
+~/Library/LaunchAgents/com.koskadeux.mcp.plist` → verify the PID CHANGED and `curl
+localhost:8765/health` (allow ~10s startup for Infisical fetches before judging health) →
+log everything to a file. After the bounce, every live instance must re-open + re-plan.
