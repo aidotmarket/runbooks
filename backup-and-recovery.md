@@ -9,7 +9,7 @@
 - **escalation_contact:** Max (Telegram, primary)
 - **lifecycle_ref:** §J
 - **authoritative_scope:** Backup coverage, cadence, integrity verification, failure alerting, and per-component restore. Bucket lockdown + writer identity inherit from aws-s3.md.
-- **last_verified:** 2026-06-07 (S795 — Qdrant nightly to S3 LIVE; watchdog covers PG+Qdrant; backup machine-identity Client ID rotated)
+- **last_verified:** 2026-06-10 (S807 — PG nightly transient-failure incident diagnosed + manual run verified to S3; §F-02 added)
 
 ## §B. Coverage Matrix — what restoring the whole market requires
 > **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Both the main Postgres DB and the Qdrant knowledge_base back up nightly to S3 (recurring, machine-identity auth), and the latest Postgres dump has been restore-validated (archive TOC verified). The legacy GCS bucket was **deleted 2026-06-07 (S795)** — S3 is now the sole off-database backup destination. Remaining migration: rows 3–4 (Infisical secrets DB, vectorAIz) to S3.
@@ -61,6 +61,8 @@
 - **R8 Validate:** health green; a known listing + order present; Living State queryable; signed publish works.
 
 ## §F. Failure Alerting — Telegram (the dead-man's switch)
+
+**§F-02 — Known failure mode: transient mid-dump disconnect = up to ~23h exposure (incident 2026-06-10).** The two nightly launchd slots (01:00/02:00 Berlin = 23:00/00:00 UTC) are back-to-back and the job sets a per-UTC-day success lock. If the FIRST slot succeeds, the second skips; if the first is skipped (prior UTC day's lock) and the SECOND slot fails, there is no retry until the next night — one transient failure becomes ~23h of staleness and 3+ watchdog pages. Observed 2026-06-10: pg_dump ran 2h then `server closed the connection unexpectedly` (Railway side; normal run is ~15 min); next morning's watchdog paged at 29/35/41h. Response: §E-01 kickstart, verify §E-03. Diagnosis trail: `launchctl print gui/$(id -u)/com.aimarket.pg-backup` (last exit code), `~/Library/Logs/aimarket_pg_backup.log` (FATAL line + 'lock NOT set; later slot will retry'). Durable fix filed: watchdog self-heal (on staleness, kickstart the backup job once, then page) — build:bq-s3-backup-watchdog-self-heal-kickstart-s807.
 **This is the answer to "tell me when a backup does not run."**
 - **What:** `com.aimarket.s3-backup-watchdog` runs `runbooks/scripts/s3_backup_watchdog.sh` every 6 hours (and at load).
 - **Check:** newest object under `s3://aimarket-backups-prod/postgres/ai-market/` **and** under `s3://aimarket-backups-prod/qdrant/`. If either is missing, or older than **26h**, it fires.
