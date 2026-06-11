@@ -47,6 +47,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Session lifecycle / state** — where session state lives: [mcp-gateway.md](mcp-gateway.md). Task state: [task_state.md](task_state.md). Consolidated lifecycle: [session-lifecycle.md](session-lifecycle.md).
 
+**Website copy / marketing voice** — site copy standard (voice rules, claims discipline, machine-legibility): [website-copy-standard.md](website-copy-standard.md).
+
 **SEO / discoverability** — infra + seller validation: [seo-infrastructure.md](seo-infrastructure.md) · [seo-seller-validation.md](seo-seller-validation.md).
 
 **Data requests** — buyer-initiated request surface: [data-requests.md](data-requests.md).

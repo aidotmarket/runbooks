@@ -1,5 +1,7 @@
 # ai-market-frontend — Marketplace Web App
 
+> Content refresh S811 (PR #28): dual-audience homepage, buyer landing, Federate excised with permanent redirects, copy governed by [website-copy-standard.md](website-copy-standard.md).
+
 ## What it is
 
 Next.js frontend for ai.market — the customer-facing marketplace where buyers search/purchase datasets and sellers list/manage their offerings.
@@ -38,6 +40,13 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 | `/dashboard/inquiries` | `app/dashboard/inquiries/page.tsx` | allAI mediated inquiries |
 | `/dashboard/requests` | `app/dashboard/requests/page.tsx` | Data requests |
 | `/dashboard/settings` | `app/dashboard/settings/page.tsx` | Account settings, Stripe connect |
+| `/find-data` | `app/find-data/page.tsx` | Buyer landing (refreshed S811) |
+| `/sell-data` | `app/sell-data/page.tsx` | Seller landing (refreshed S811) |
+| `/protocol` | `app/protocol/page.tsx` | Protocol mechanics + security |
+| `/aim-data` `/aim-node` | `app/aim-data/` `app/aim-node/` | Product pages |
+| `/download` | `app/download/` | Install paths (incl. legacy /download/aim-channel route) |
+| `/requests` `/search` `/blog` `/partner` | respective `app/` dirs | Requests, search, blog (Keystatic), partner |
+| `/aim-federate` `/run-federated-learning` | permanent redirects to `/` | Federate deferred S811 - do not rebuild without Max decision |
 | `/dashboard/stripe-return` | `app/dashboard/stripe-return/page.tsx` | Stripe onboarding callback |
 | `/checkout/success` | `app/checkout/success/page.tsx` | Post-purchase confirmation |
 | `/checkout/cancel` | `app/checkout/cancel/page.tsx` | Checkout cancelled |
