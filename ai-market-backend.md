@@ -121,8 +121,21 @@ All customer and account data lives in the **PostgreSQL `Postgres` service** of 
 ```sh
 PUB=$(railway variables -s Postgres --json | python3 -c 'import json,sys;print(json.load(sys.stdin)["DATABASE_PUBLIC_URL"])')
 psql "$PUB" -c '\conninfo'
-# host: shuttle.proxy.rlwy.net   port: <project TCP-proxy port, currently 50727>   db: railway
 ```
+
+> **Known drift (observed 2026-06-11, S823):** the `DATABASE_PUBLIC_URL` variable on the Postgres service can carry a **stale password** after a credential rotation (URL password != current `POSTGRES_PASSWORD`), failing with `password authentication failed`. If that happens, compose the connection from parts instead:
+```bash
+eval $(railway variables -s Postgres --json | python3 -c '
+import json,sys,shlex
+v=json.load(sys.stdin)
+print("export PGPASSWORD="+shlex.quote(v["POSTGRES_PASSWORD"]))
+print("export PGHOST="+shlex.quote(v["RAILWAY_TCP_PROXY_DOMAIN"]))
+print("export PGPORT="+shlex.quote(str(v["RAILWAY_TCP_PROXY_PORT"])))
+print("export PGUSER="+shlex.quote(v["PGUSER"]))
+print("export PGDATABASE="+shlex.quote(v["POSTGRES_DB"]))
+')
+psql -c '\conninfo'
+
 
 Same credentials and database as the internal URL; only host and port differ. Never echo the full URL (it carries the password) — print host only when logging.
 
