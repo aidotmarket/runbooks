@@ -1,6 +1,6 @@
 # Council session gate, gateway deploy, and fold dispatch — operations
 
-Owner: Vulcan/Mars (either instance). Last verified live: 2026-06-11 (S816/S818). Covers the session arming lifecycle post-S812-fix, the gateway deploy/restart procedure, and how to run spec-fold dispatches through author-mode — including the credential mechanics and the known middleware gaps.
+Owner: Vulcan/Mars (either instance). Last verified live: 2026-06-12 (S830). Covers the session arming lifecycle post-S812-fix, the gateway deploy/restart procedure, and how to run spec-fold dispatches through author-mode — including the credential mechanics and the known middleware gaps.
 
 ## A. Session arming (kd_session_open → kd_session_plan)
 
@@ -39,11 +39,13 @@ Author-mode credentials:
 
 1. Binding rotation deadlock: once a gate has a persisted bound_dispatch_id (even lease-expired), no write can rotate it — the persisted-binding and intended-binding guards are mutually exclusive. WORKAROUND: direct-author the fold (§C sizing) — status-only writes citing the persisted binding still work, so the APPROVED flip is never blocked.
 2. Build-mode compliance gate does not recognize gate1 `APPROVED_WITH_MANDATES` as passed, and blocks incident/bug entities entirely ("No Gate 1 data found"). Spec folds route through author-mode instead; genuine incident hotfix builds dispatch via `dispatch_mp_build` WITHOUT bq_code (tested skip path) with tracking maintained manually on the entity and the BQ code in commit messages.
-3. `peer_msg_send` is absent from the MCP tool registry (only `peer_msg_ack` is exposed) — bus claims/sends are unreachable from chat instances. Until fixed (BQ-PEER-BUS-SEND-TOOL-GAP-S816): log claims as `decision` events in the Living State ledger and relay urgent peer signals via Max.
+3. `peer_msg_send` is absent from the MCP tool registry (only `peer_msg_ack` is exposed) — bus claims/sends are unreachable from chat instances. Until fixed (BQ-PEER-BUS-SEND-TOOL-GAP-S816): log claims as `decision` events in the Living State ledger and relay urgent peer signals via Max. Note (S830): `peer_msg_send` returns 500 when `ref_entity` is omitted — always pass it on the python-module workaround path.
+4. FIXED S830 (79fc0592, deployed + Gate-4 verified live): the drift classifier formerly returned AMBIGUOUS / error_code="unsupported" / empty divergences for any entity lacking `body.target_repos` (everything the lifecycle handler maintains), hard-blocking every build dispatch on those entities since S825 and forcing audited `bypass_reconcile=true`. Missing repo metadata now classifies NO_REPO_METADATA, non-blocking — `bypass_reconcile` is NO LONGER needed for that signature. The declared-but-unsupported-repo case (`unsupported_target_repo`) still blocks, correctly. Gap 2 above (compliance gate) is unchanged and still requires the no-bq_code path for gate-less entities.
 
 ## E. Reviewer quirk armor (quick reference; canonical roster in infra:council-comms)
 
 - DS: inline the FULL spec or diff (no filesystem access); demand raw JSON, no fences, first char `{`, explicit schema, ≤3 findings.
 - XAI: content-cited only — inline what it must judge; verify every citation; `cwd=/tmp` on deliberation tasks.
 - MP: 1200s hard cap — every build/fold prompt mandates commit+push per item.
+- AG review-mode PRELOAD dispatches are broken (S829): the structured-output schema builds union types [string,null] which Vertex Schema rejects — every preload review fails ValidationError. Use `mode=open_response` with content inlined (verified working; fix tracked with the middleware-gaps BQ).
 - Review-mode `verdict_target_branch` persistence currently returns `branch_missing` even when the branch exists — capture verdict text from the task record and persist to state/branch manually.
