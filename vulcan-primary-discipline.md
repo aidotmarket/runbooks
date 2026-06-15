@@ -1,5 +1,16 @@
 # Vulcan-Primary Discipline Runbook
 
+> **STALE FRAMING — the Primary/Worker model is retired; symmetric peers superseded it (CORE v9.2, S811).**
+> There is no longer a Primary or a Worker: `vulcan` and `mars` are equal peers with no lanes and no
+> pillar-based ownership split, sessions open and close independently, and coordination runs over the
+> **peer message bus** (`peer_msg_send`/`peer_msg_inbox`; kinds claim/status/request/response/alert),
+> NOT via "PASTE TO WORKER" relay through Max. The discipline rules below are still valid where they are
+> instance-agnostic — ground-truth verification (§V.2), multi-spot fold self-check (§V.3), shell/branch
+> hygiene (§V.4), and the no-new-process-BQ rule (§V.10) all still apply to either peer. But treat every
+> "Primary/Worker", "PASTE TO WORKER", and pillar-ownership statement as retired. Canonical model:
+> CORE §5 ("The Two Instances Are Peers") and session-open-protocol.md §O.3 / §O.3.5. A full rewrite/rename
+> to a peer-symmetric discipline runbook is a recommended follow-up (flagged to Max, S869).
+
 ## V.1 Purpose
 The operating manual for Vulcan-Primary: discipline rules, communication contracts, and self-checks that govern how the session orchestrator behaves. Owned by **BQ-PROCESS-VULCAN-PRIMARY-DISCIPLINE-S612** (P2). Filed S612 under the consolidation that collapsed ~59 process BQs into 5 survivors.
 

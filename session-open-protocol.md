@@ -20,6 +20,7 @@ The boot gate is instance-keyed in `registry.db`. `vulcan` open does not disturb
 - Each peer may open, plan, and operate concurrently. Each PLANNING→OPERATIONAL transition is independent.
 - If a peer sees a PLANNING_GATE error after a known gateway restart, re-open with `kd_session_open(instance=...)` then `kd_session_plan` and resume.
 - New opens pass `instance`, never `instance_role`, `parent_session_id`, or `.W` session ids.
+- **Missing-instance and agent-dispatch opens are namespaced to `scratch` (S858), not defaulted to `vulcan`.** An open with no `instance` arg, or an agent sub-session opened via `council_request`, lands in the non-human `scratch` row and skips the human boot payload. `_instance_liveness_collision` additionally refuses an open when the named `instance` already holds a live `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen is allowed; `scratch` is exempt). A live `scratch` row in the registry is normal, not a fault. See agent-dispatch.md §M.1 and session-registry-recovery.md §A.
 
 
 ## O.4 Primary work pickup priority order

@@ -87,6 +87,20 @@ state_request action=get key=infra:active-session-lock
 
 Record the `primary` and `worker` sub-objects, `version`, and `updated_at` before touching anything.
 
+> **HAZARD — the test suite mutates the LIVE registry.db.** Several boot/inventory tests open
+> `DEFAULT_DB_PATH` (`/var/tmp/koskadeux/registry.db`) directly instead of a tmp fixture, so a test
+> run can write rows, advance session numbers, or apply migrations against the real registry.
+> Unexpected `scratch` rows, surprising session numbers, or migration state on the live DB may be
+> **test residue, not real operational state** — confirm against actual peer activity before recovering.
+>
+> The `sessions` table is **instance-keyed** (`instance` is the PRIMARY KEY) with a `max(rows)+1`
+> session-number allocator and **no durable high-water mark**. Test mutation of the live DB has
+> regressed the allocator (observed: mars `930 -> 859 -> 866`) and left a zombie `S601` row that
+> blocked clean `vulcan` opens. Because the allocator reads `max()` off whatever rows exist, a
+> deleted/rewritten row silently rewinds the counter. The durable fix (persistent high-water mark +
+> test isolation from the live DB) is specced under **bq-session-registry-durable-hwm-and-test-isolation-s867**;
+> until it lands, treat live session-number anomalies as suspect and cross-check the peer bus / `peer_status`.
+
 ---
 
 ## §B Standard recovery: stale slot auto-release
@@ -437,6 +451,14 @@ sqlite3 /var/tmp/koskadeux/registry.db \
 |---------|------|-------|
 | 0001 | `create_initial_schema` | sessions, role_locks, close_transactions, schema_migrations tables |
 | 0002 | `hydrate_from_postgres` | One-shot Postgres→SQLite hydration from `infra:active-session-lock`; idempotent |
+| 0003 | `drop_role_locks` | Removes the legacy `role_locks` table |
+| 0004 | `s805_instance_registry` | Rebuild `sessions` to a `session_id`-aware instance registry (S805) |
+| 0005 | `null_instance_backfill_not_null` | Backfill + enforce `NOT NULL` on `instance` (rollback path re-allows nullable for tests) |
+| 0006 | `scratch_instance_namespace` | Rebuild the `sessions` instance PK CHECK to admit the non-human `scratch` row (S858 agent-session isolation) |
+
+> This table can drift behind reality. The **live `schema_migrations` table is authoritative** for
+> exactly which migrations are applied; as of S869 the live DB is at version `0006`. Verify with the
+> Direct schema inspection command above before assuming a version.
 
 **On `SQLITE_MIGRATION_ROLLBACK` in logs:** The migration failed mid-run; DB was preserved at
 pre-migration state; gateway entered memory-only mode. Steps:
@@ -449,6 +471,21 @@ pre-migration state; gateway entered memory-only mode. Steps:
 **Schema additions are append-only.** Existing column names and types are frozen for backward
 compatibility with Worker bootstrap logic reading the iCloud lock-pointer JSON (Gate 2 Q-B3
 resolution).
+
+**Back up the registry before any restart that may auto-run a new migration.** `--apply` also runs
+automatically on gateway boot, so a restart can apply a brand-new migration unattended. Snapshot first:
+
+```bash
+cp /var/tmp/koskadeux/registry.db \
+   /var/tmp/koskadeux/registry.db.$(date -u +%Y%m%dT%H%M%SZ).bak
+```
+
+**Idempotency is keyed on the actual table shape, not the `schema_migrations` version row.**
+`apply_*_migration` decides whether to run by inspecting the live DDL (for example, whether the
+`sessions` instance CHECK already contains `scratch`), NOT by reading the version number in
+`schema_migrations`. The version row can therefore disagree with the real applied schema (a known
+hazard after test mutation of the live DB, see the §A HAZARD). Always confirm applied state by
+inspecting the live schema (`sqlite3 .../registry.db ".schema sessions"`), not the version row alone.
 
 ---
 

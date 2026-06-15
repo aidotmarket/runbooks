@@ -63,6 +63,14 @@ Restart:
 launchctl kickstart -k gui/$UID/com.koskadeux.mcp
 sleep 6
 ```
+**Confirm the restart actually took (process identity) BEFORE trusting health:**
+```bash
+# The REAL handler is koskadeux_server.py on :8765. Confirm a FRESH pid + start time.
+ps -Ao pid,lstart,etime,command | grep -F 'koskadeux_server.py' | grep -v grep
+```
+- The `pid` and `lstart` MUST be newer than the kickstart you just issued. A stale pid/elapsed time means the restart did NOT replace the process.
+- Verify you are reading `koskadeux_server.py` (the `:8765` handler), NOT the launchd `infisical run` / `/bin/bash` wrapper pid, and NOT the separate `com.koskadeux.gateway` (`gateway_server.py` on `:8767`). Restarting the gateway does not restart the handler, and vice versa.
+- Do NOT judge freshness by `service_health.mcp.version` alone: that string is hardcoded in `tools/session.py` and can lag the server's real version (at S869 `koskadeux_server.py` reported `1.10` while the health helper still emitted `1.9`). Trust pid/start-time first, then the boot-payload code-path signature, over any single version field.
 Post-restart verification:
 - Call `kd_session_open({"session_id":"SXXX-VERIFY"})` from a fresh session
 - Confirm `service_health.mcp.healthy == true`

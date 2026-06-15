@@ -15,7 +15,7 @@ linter_version: v1
 YAML frontmatter above is authoritative for the §A header fields.
 
 **Repo:** aidotmarket/koskadeux-mcp · **Local path:** `/Users/max/koskadeux-mcp` · **Entry:** `gateway_server.py`
-**Public:** `https://koskadeux-10.tail30cd96.ts.net` (Tailscale Funnel) · **Local:** `:8767`
+**Public:** `https://mcp.ai.market`, fronted by Cloudflare via the `cloudflared` tunnel `koskadeux` (launchd `com.koskadeux.cloudflared`; MUST-KEEP, do not decommission). A parallel Tailscale Funnel surface exists at `https://koskadeux-10.tail30cd96.ts.net` (also proxies `:8767`) but no DNS record points to it; it is a documented fallback, not the live path for `mcp.ai.market`. See `cloudflare-and-dns.md` (transport source of truth) and `mcp-gateway.md`. · **Local:** `:8767`
 **Process mgmt:** launchd `com.koskadeux.gateway` (wrapped by `infisical run`). The upstream tool server is a SEPARATE service: launchd `com.koskadeux.mcp`, `koskadeux_server.py` on `:8765`. Restarting the gateway does NOT restart the upstream.
 
 ## §B. Capability Matrix

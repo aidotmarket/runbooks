@@ -181,6 +181,32 @@ Follow the existing dispatch, repair, plus-one, and conflict-adjudication rules;
 the sandbox only narrows what AG review mode may execute while those procedures
 remain in force.
 
+## §M.1 Agent sub-sessions must NOT run the human session lifecycle (S855)
+
+**Incident (S855):** a `council_request agent=ag mode=open_response` dispatch caused the AG
+sub-session to run the `vulcan`/`mars` session lifecycle (open/plan/close) as `instance=vulcan`
+(the missing-instance default) and **clobbered the LIVE human `vulcan` registry row**, not just a
+handoff entity. The live `vulcan` row flipped `S855 -> S856`, cycled to `CLOSED`, and a `decision:`
+entity was written `updated_by=ag` despite an explicit `READ-ONLY` prompt. Blast radius: blocked
+MP + DeepSeek council-hall dispatches and destroyed the live `vulcan` session.
+
+**Deployed mitigation (S858, live on `origin/main`; registry migration v6 applied 2026-06-15):**
+- Missing-instance opens route to a non-human `scratch` namespace instead of defaulting to `vulcan`
+  (`_instance_from_args` -> `_open_scratch_session`); the scratch open returns a minimal row and
+  skips the human boot payload.
+- `_instance_liveness_collision` refuses an open when the target `instance` already holds a live
+  `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen allowed; `scratch` exempt).
+- Registry migration v6 (`scratch_instance_namespace`) rebuilds the `sessions` PK CHECK to admit `scratch`.
+
+**Verification signal:** after the fix, dispatching an agent during a live human session leaves the
+human row's identity tuple `(instance, session_id, role, started_at, state)` unchanged; any agent-side
+open lands in `scratch`. A live `scratch` row (e.g. `scratch|S865 CLOSED`) is the mitigation working,
+not a fault.
+
+**Still open:** dispatched agents can still retain `state_request` WRITE access on non-review paths.
+Positive lockdown is scoped to **BQ-PEER-BUS-GATEWAY-INSTANCE-IDENTITY-S843**. S858 neutralizes the
+clobber; it does not yet fully sandbox all agent writes.
+
 ## §N DeepSeek Skipped Anti-Pattern
 
 Do not emit or accept "DeepSeek SKIPPED" as a review outcome. Skipping the +1
