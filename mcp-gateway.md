@@ -178,16 +178,21 @@ kd_session_close(session_id, instance_role, reason, summary, handoff_content)
    Managed by `tools/session_lock.py` (`open_session_namespace` / `resolve_active_session_slot`
    / `release_role_slot`).
 
-**The live open/close lifecycle (`tools/session.py`) uses ONLY the remote Living State lock
-as the slot authority.** The local registry's `role_locks` table is a **vestigial second
-authority**: nothing in the current lifecycle writes it, so it sits frozen (observed S734:
-`role_locks` still showed `primary=724` with no worker row — ~10 sessions stale — while the
-remote lock correctly showed `primary=734, worker=734.w`). It is read only by
-`tools/process_audit.py::audit_role_locks` and the admin `POST /api/admin/release_role_slot`
-endpoint, both of which therefore return wrong answers off the stale record. **Planned fix
-(gate-hardening Unit D): retire the local `role_locks` table + registry role-lock methods and
-repoint those two readers at the remote lock — single authority.** The registry `sessions`
-table (boot-gate persistence) is correct and stays.
+**The live open/close lifecycle (`tools/session.py`) resolves the active session from the
+local registry `sessions` table — NOT the remote `infra:active-session-lock`.** Open stopped
+claiming that lock (Ch5 allai-activation, commit 06e70975); the **S852 close-lock-retirement
+fix** then repointed close + the close-gate at the registry (`session_close_gate.py
+_resolve_session_id_fallback` reads the registry, not the lock), and `release_role_slot` now
+tolerates the retired lock as a no-op. The earlier model — remote lock as the sole
+active-session authority — is retired. The local registry `role_locks` table remains a
+**vestigial second authority** for the role *slot*: nothing in the lifecycle writes it, so it
+sits frozen (observed S734: `role_locks` showed `primary=724` with no worker row, ~10 sessions
+stale). It is read only by `tools/process_audit.py::audit_role_locks` and the admin
+`POST /api/admin/release_role_slot` endpoint, both of which therefore return wrong answers off
+the stale record. **Planned fix (gate-hardening Unit D): retire the local `role_locks` table +
+registry role-lock methods and repoint those two readers at the single authority — the
+registry (NOT the remote lock; S852 made the registry authoritative for active-session
+resolution).** The registry `sessions` table (boot-gate persistence) is correct and stays.
 
 **Per-instance handoff:** `HANDOFF.primary.md` and `HANDOFF.worker.md` (in the `koskadeux-mcp`
 repo). The legacy single-file `/var/tmp/koskadeux/HANDOFF.md` scheme was retired S733 (Unit B);
