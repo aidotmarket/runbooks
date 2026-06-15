@@ -93,7 +93,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Schema migrations (Alembic / backend)** — backend schema migration procedures: [schema-migration.md](schema-migration.md).
 
-**Vulcan / Mars operating discipline** — peer operating notes (under review for symmetric-peer framing): [vulcan-primary-discipline.md](vulcan-primary-discipline.md).
+**Vulcan / Mars operating discipline** — peer-symmetric claim-before-work, message-bus, and escalation rules: [peer-instance-discipline.md](peer-instance-discipline.md).
 
 ---
 Every runbook above is registered here; `scripts/router_drift_check.py` enforces coverage + that every link resolves. Add new runbooks to a subject line above in the same change that creates them.

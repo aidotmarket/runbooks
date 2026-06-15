@@ -66,12 +66,12 @@ After S612 consolidation, process work pickup is routed via the 5 survivors:
 - BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1)
 - BQ-PROCESS-VULCAN-PRIMARY-DISCIPLINE-S612 (P2)
 
-New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see vulcan-primary-discipline.md §V.10).
+New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see peer-instance-discipline.md §H / §G).
 
 ## O.11 Related runbooks
 - `runbooks/session-close-protocol.md` — close flow.
 - `runbooks/session-registry-recovery.md` — recovery when session registry desyncs.
-- `runbooks/vulcan-primary-discipline.md` — Vulcan operating discipline.
+- `runbooks/peer-instance-discipline.md` — Vulcan/Mars peer operating discipline.
 - `runbooks/build-queue-lifecycle.md` — BQ lifecycle and pickup semantics.
 
 ## O.12 Owner

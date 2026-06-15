@@ -124,7 +124,7 @@ If `kd_session_close` first attempt fails on branch check and retry after main c
 ## C.14 Related runbooks
 - `runbooks/session-open-protocol.md` — open flow (paired with close).
 - `runbooks/session-registry-recovery.md` — recovery when session registry desyncs.
-- `runbooks/vulcan-primary-discipline.md` — pre-close discipline checks.
+- `runbooks/peer-instance-discipline.md` — pre-close peer-bus and claim discipline checks.
 
 ## C.15 Owner
 This runbook is owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0).
