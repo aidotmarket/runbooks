@@ -3,7 +3,7 @@
 ## §A. Header
 **Owner surface:** ai.market support/trouble ticket engine (ai-market-backend `app/api/v1/endpoints/support.py`, `app/services/support_ticket_service.py`, `app/api/v1/dependencies/support_ticket_auth.py`, `app/tasks/scheduled.py`). One ticket system for dev, ops, and customer issues, operated by agents with human escalation on risk.
 **Spec source of truth:** `specs/BQ-SUPPORT-TICKET-SYSTEM-S811-GATE1.md` (Gate 1 design + Gate 2 R1 changelog + **Amendment A1 / S819** schema reconciliation). Do not relitigate the decision record in §2/§14 of that spec.
-**Last verified live:** 2026-06-11 (S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
+**Last verified live:** 2026-06-15 (S851 — added dev-ticket/BQ taxonomy + corrected console status; engine MVP verified 2026-06-11/S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
 
 ## §B. Capability Matrix
 **Live as of 2026-06-11:**
@@ -12,10 +12,11 @@
 - Email durability tables: `support_email_dlq`, `support_email_quarantine`.
 - Seven internal-only admin endpoints: metrics, DLQ list/retry/drop, quarantine list/release/drop.
 - Celery email-intake task with transient-retry backoff and per-message failure capture into the DLQ.
+- **Admin/ops ticket console (S851):** live ops console panel at `ops-ai-market/src/components/tickets/TicketsPanel.tsx` (C3c merge) — the operator surface for the seven admin endpoints.
 
 **NOT live (Phase 2+ / in flight):**
 - Agent skills (triage_ticket, suggest_resolution) — shadow-mode design only, not shipped.
-- Admin UI (`/admin/tickets` queue) — endpoints exist; no console.
+- ~~Admin UI — no console~~ **(corrected S851: the ops console ticket panel is now LIVE — see Capability Matrix “Live” list above).**
 - Customer surfaces — allAI ticket-status cards and in-app notifications not shipped.
 - Search upgrade — in flight as chunk **C3a**; MVP search is Postgres FTS only.
 - **Email polling is switched OFF** (`GMAIL_POLLING_ENABLED=False`); the poller is a break-glass fallback, not the canonical path.
@@ -89,11 +90,24 @@ Transient-retry mechanics: transient Gmail errors retry at ~60s / 300s / 900s (b
 ## §H. Evolve
 Schema changes to any support table require MP schema review before dispatch and a single Alembic head (`alembic heads`; merge first if multiple). The §4.1 authorization predicate is bound to the **real** `party_role_binding` schema via Amendment A1 — any future predicate change updates spec §A1.1, not just code. Phase 2 brings the Support Steward agent, automated low-risk resolution send, portal-pages decision, and `ticket_link`/audit tables if volume proves need. Dev-class tickets carry full payload detail and are searchable but **never** auto-create build-queue entities — promotion is an explicit human/Steward action.
 
+### Dev tickets vs the Build Queue — classification & batch triage (S851)
+
+The support engine's `issue_class='dev'` is the home for **trouble tickets**: small, reversible, localized work found during development. The Build Queue (Living State `build:` entities) is reserved for **true BQs**. Classify every new unit of work with this rule (decidable without Max):
+
+- **BQ** if it is costly-to-reverse or cross-cutting — production schema migration, auth/security predicate, secrets, money/billing, customer-data exposure, multi-domain/cross-system protocol change — **or** it introduces a genuinely new customer-visible capability. These earn full Council gate ceremony per the Design Charter.
+- **Dev trouble ticket** otherwise — bounded reversible fixes/modifications to existing behaviour, single-service patches, config-only changes. **Default to ticket;** a BQ must be justified against the criteria above.
+
+**Lifecycle / promotion / demotion.** Dev tickets ride the existing `SupportTicketStatus` flow (`new → triaged → in_progress → resolved → closed`); no new states. Promotion ticket→BQ is an explicit human/Steward act: mint a `build:` entity (`status=planned`, `business_summary` required) cross-referenced to the ticket; dev tickets NEVER auto-create BQ entities (unchanged from §H above). Demotion/retirement BQ→ticket: set the BQ `status=blocked` plus a `decision` event recording the reason (“reclassified as dev ticket” / “retired: obsolete | no owner | no longer reproduces”) — Living State has no `cancelled` status — and open/link a dev ticket. Preserve links both ways; never delete history.
+
+**Batch triage cadence.** The open dev-ticket queue (`issue_class=dev`, status `new|triaged`, not linked to an active BQ) surfaces at session open alongside aging obligations. When enough small tickets accumulate, either peer instance dispatches them as ONE batch build — a set of independently-small, collectively-reversible fixes — reviewed at Charter-light ceremony (one reviewer, one round). Keep the batch small enough to review cleanly.
+
+**Backlog reform guardrail.** When sweeping legacy BQs into this taxonomy, every retire/demote decision requires a second peer instance's confirmation and a documented `decision` event, to avoid burying a genuinely irreversible item among the small fixes. Target surviving true-BQ count: **≤25** (Max, S851). Tracked by `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`.
+
 ## §I. Acceptance Criteria
 This runbook is correct when: the three principal classes and their visibility rules match `support_ticket_auth.py`; the seven admin endpoints and their internal-only guard match `support.py`; DLQ/quarantine reasons match the strings emitted in `support_ticket_service.py` and `scheduled.py`; the rate limits read 30 tickets/hour and 120 messages/hour; `collapsed` is described as fold-into-existing with the cross-boundary race called an accepted residual; and the go-live section states that polling is Max-gated and currently off.
 
 ## §J. Lifecycle
-Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics.
+Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics. Updated S851 (2026-06-15): added the dev-ticket vs Build Queue taxonomy + batch-triage cadence (§H) and corrected the console capability (§B); see Living State `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`.
 
 ## §K. Conformance
 Registered in TOPIC-ROUTER.md under "Support tickets". `scripts/router_drift_check.py` enforces the link. Structurally complete to the §A–§K standard; lint pending the known linter date-field defect that is consistent across sibling §A–§K runbooks (shipped per sibling precedent).
