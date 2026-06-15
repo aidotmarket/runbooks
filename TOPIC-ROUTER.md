@@ -81,5 +81,19 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Retro verification (BQ-124)** — [bq-124-retro-verification.md](bq-124-retro-verification.md).
 
+**Session lifecycle — open / plan / close** — opening sequence, planning gate, close protocol, the scratch namespace + instance-liveness collision guard (S858): [session-open-protocol.md](session-open-protocol.md) · [session-close-protocol.md](session-close-protocol.md).
+
+**Session registry recovery & migrations** — registry.db desync/recovery, registry migration discipline, and the hazard that the test suite can mutate the live registry.db: [session-registry-recovery.md](session-registry-recovery.md).
+
+**Agent / Council dispatch** — dispatch paths, per-agent quirks, review-mode rules, and the open_response session-clobber warning: [agent-dispatch.md](agent-dispatch.md).
+
+**MCP transport / gateway processes** — the Cloudflare tunnel transport and the gateway-vs-server process split: [gateway-transport.md](gateway-transport.md). See also [mcp-gateway.md](mcp-gateway.md).
+
+**Tool-code activation / deploy verification** — confirm a koskadeux-mcp restart actually took (fresh pid, right service), proof-of-life checks: [activation-verification.md](activation-verification.md).
+
+**Schema migrations (Alembic / backend)** — backend schema migration procedures: [schema-migration.md](schema-migration.md).
+
+**Vulcan / Mars operating discipline** — peer operating notes (under review for symmetric-peer framing): [vulcan-primary-discipline.md](vulcan-primary-discipline.md).
+
 ---
 Every runbook above is registered here; `scripts/router_drift_check.py` enforces coverage + that every link resolves. Add new runbooks to a subject line above in the same change that creates them.
