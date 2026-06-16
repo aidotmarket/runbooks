@@ -164,7 +164,7 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   component_ref: Durable HWM Anchor
   root_cause: The local session_seq fell below the durable anchor, or a rebuild or restore did not re-seed from config:session-seq, so the max-based floor rewound.
   repair_entry_point: tools/session.py _session_seq_key plus the config:session-seq Living State entity
-  change_pattern: Determine the true high-water mark as the maximum of the anchor, the local session_seq, and the highest number ever issued per the peer bus. Re-seed by patching config:session-seq to that value and letting the next open re-establish session_seq from the anchor, or apply the session_seq migration which seeds from the computed max. Do not reset to 1.
+  change_pattern: The durable anchor config:session-seq stores next_value, the NEXT allocatable number (one greater than the highest issued), and session_seq.next_value uses the same next-value units. Re-seed by patching config:session-seq next_value to the maximum of the current anchor next_value, the local session_seq next_value, and the highest issued session number PLUS ONE. The plus-one matters because the peer bus reports the highest issued number (for example S873) while the anchor is in next-value units, so patching the raw issued number would let the next open reissue it. Then let the next open re-establish session_seq from the anchor, or apply the session_seq migration which seeds from the computed max. Never lower the anchor; never reset to 1.
   rollback_procedure: The anchor only ever increases; if an over-large value was written, leave it (a skipped number is harmless) rather than lowering the anchor.
   integrity_check: session_seq.next_value is at least the anchor and strictly greater than the max non-scratch row, and the next open issues a strictly higher number.
 - id: G-03
@@ -331,7 +331,7 @@ scenario_set:
     type: repair
     refs: [G-02, F-02]
     scenario: |
-      id: G-02. trigger: the local session_seq fell below the durable anchor after a rebuild. change_pattern: re-seed config:session-seq to the true high-water mark and let the next open re-establish session_seq, never reset to 1. expected_success: next_value at least the anchor and above the max row. next_step_failure: leave an over-large anchor rather than lowering it.
+      id: G-02. trigger: the local session_seq fell below the durable anchor after a rebuild. change_pattern: re-seed config:session-seq next_value to the max of the anchor next_value, the local session_seq next_value, and the highest issued number plus one, then let the next open re-establish session_seq, never reset to 1. expected_success: next_value at least the anchor and above the max row. next_step_failure: leave an over-large anchor rather than lowering it.
     expected_answers:
       - kind: human_action
         verb: reseed
