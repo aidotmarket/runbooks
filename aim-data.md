@@ -139,7 +139,7 @@ The end-to-end flow from "seller signs up on ai.market" to "buyer's purchase pay
 ### Install
 
 1. Seller visits ai.market/aim-data and clicks Install.
-2. Seller runs the one-liner appropriate for their OS. Currently broken at `get.ai.market` (502); fallback is the manual compose flow in `docs/INSTALL.md`.
+2. Seller runs the one-liner appropriate for their OS. Verified live at `get.ai.market` (HTTP 200) as of S900 (2026-06-16); the manual compose flow in `docs/INSTALL.md` remains the fallback for sellers behind restrictive setups.
 3. Seller creates a `.env` file per the values in `docs/INSTALL.md`. `POSTGRES_PASSWORD` is required (the compose fails fast without it). Other values either auto-generate to `/data` on first boot if not provided (HMAC secret, Fernet key) or come from me at activation time (serial + bootstrap token + keystore passphrase). AIM Data does NOT use the customer's own Anthropic API key — all allAI calls route through the ai.market `/agentic` proxy. INSTALL.md currently still lists `ANTHROPIC_API_KEY` as required; that's documentation drift from before the air-gap refactor and is flagged for correction.
 4. `docker compose -f docker-compose.aim-data.yml up -d` pulls about 5GB of images on first run and brings up the three containers.
 5. After roughly a minute, `curl http://localhost:8080/api/health` returns `status: ok`.
