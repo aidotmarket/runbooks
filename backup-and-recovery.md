@@ -9,14 +9,14 @@
 - **escalation_contact:** Max (Telegram, primary)
 - **lifecycle_ref:** §J
 - **authoritative_scope:** Backup coverage, cadence, integrity verification, failure alerting, and per-component restore. Bucket lockdown + writer identity inherit from aws-s3.md.
-- **last_verified:** 2026-06-10 (S807 — PG nightly transient-failure incident diagnosed + manual run verified to S3; §F-02 added)
+- **last_verified:** 2026-06-16 (S884 — main-DB nightly backup migrated off Titan-1 to Railway-native cron `ai-market-backup` @ 02:00 UTC; Titan-1 launchd `com.aimarket.pg-backup` disabled; §F-02 retired)
 
 ## §B. Coverage Matrix — what restoring the whole market requires
 > **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Both the main Postgres DB and the Qdrant knowledge_base back up nightly to S3 (recurring, machine-identity auth), and the latest Postgres dump has been restore-validated (archive TOC verified). The legacy GCS bucket was **deleted 2026-06-07 (S795)** — S3 is now the sole off-database backup destination. Remaining migration: rows 3–4 (Infisical secrets DB, vectorAIz) to S3.
 
 | # | Component | Why it matters | Backup method (target) | Status 2026-06-07 | Restore ref |
 |---|---|---|---|---|---|
-| 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **LIVE to S3 nightly (S793, machine identity)**; restore-validated 2026-06-07; GCS retired | §E-R2 |
+| 1 | **ai.market Postgres** (marketplace + Living State + dispatch ledger) | Core platform + dev/build state | nightly `pg_dump@17 -Fc` -> S3 `postgres/ai-market/<date>/` | **LIVE to S3 nightly (S884) — Railway-native cron `ai-market-backup` @ 02:00 UTC** (migrated off Titan-1); restore-validated 2026-06-07 | §E-R2 |
 | 2 | **ai.market Qdrant** (allAI knowledge_base) | allAI memory | nightly snapshot -> S3 `qdrant/<date>/` | **LIVE to S3 nightly (S794)**; GCS retired | §E-R7 |
 | 3 | **Infisical Postgres** (secrets, root of trust) | Without secrets nothing authenticates/deploys | in-Railway scheduled dump -> S3 `postgres/infisical/<date>/` | **LIVE (S797)** — nightly Railway cron, age-encrypted to offline key; restore-drill verified (1,209 tables) | §E-R3 |
 | 4 | **vectorAIz + AIM Data (our own)** | Our own second-surface data | n/a — on Titan-1 | **OUT OF SCOPE for S3 (owner decision S799):** our own AIM Data + vectorAIz data lives on Titan-1, covered by Titan-1 local + physically-separate backup; customer data is non-custodial (sellers' own buckets). Not in S3 by design. | Titan-1 backup |
@@ -38,17 +38,17 @@
 |---|---|---|---|---|
 | GitHub Actions `Automated Backups` (`backup.yml`) | aidotmarket/ai-market-backend | daily 03:00 UTC + dispatch | `pg_dump` + Qdrant snapshot -> **GCS**; opens a GitHub issue on failure | **DISABLED (S794)** — was the GCS writer; GCS bucket retired S795 |
 | GitHub Actions `Backup Staleness Check` (`backup-verify.yml`) | same | daily 06:00 UTC | hits `/api/v1/internal/backup-status`; opens a GitHub issue if PG/Qdrant > 6h stale | **DISABLED (S794)** — read GCS-fed events; superseded by the S3 watchdog (§F) |
-| launchd `com.aimarket.pg-backup` (`run_pg_backup.sh` -> `backup_pg.py`) | Titan-1 | 01:00/02:00 Europe/Berlin | direct `pg_dump` -> **S3** via machine-identity `infisical run` | **LIVE (S793)** — revived via Universal Auth machine identity; verified 2.41 GB dump to S3 |
+| Railway cron `ai-market-backup` (`backup_pg.py`, `Dockerfile.ai-market-backup`, config `railway.ai-market-backup.json`) | Railway (ai-market project) | 02:00 UTC nightly (restart NEVER) | `pg_dump@17 -Fc` -> **S3** `postgres/ai-market/<date>/` + health record; DB via `AUTHOR_DISPATCH_DATABASE_URL`, S3 via `${{ai-market-backend.AWS_BACKUP_WRITER_*}}` | **LIVE (S884)** — migrated off Titan-1 (launchd `com.aimarket.pg-backup` now disabled); manual run verified 3.31 GB dump, ~8 min |
 | Railway cron `infisical-pg-backup` (`backup_pg.py`, config `railway.infisical-backup.json`) | Railway (infisical secrets project) | 03:00 UTC nightly | `pg_dump`@18 -> age-encrypt -> **S3** `postgres/infisical/<date>/` via write-only key | **LIVE (S797)** — restore-drill verified, 1,209 tables / 6,994 entries |
 | **launchd `com.aimarket.qdrant-backup`** (`run_qdrant_backup.sh` -> `backup_qdrant.py`) | Titan-1 | 02:30/03:30 Europe/Berlin (per-UTC-day lock) | snapshot `knowledge_base` -> **S3** `qdrant/<date>/`; size-verified via ListBucket; health record to `backup-health/qdrant/last-run.json` | **LIVE (S794)** — ran via launchd path, verified |
 | **launchd `com.aimarket.s3-backup-watchdog`** (`runbooks/scripts/s3_backup_watchdog.sh`) | Titan-1 | every 6h + RunAtLoad | checks newest S3 **Postgres and Qdrant** objects; **Telegram alert if missing or > 26h** | **LIVE (S792, widened S794)** — see §F |
 | ~~Manual GCS->S3 copy~~ | — | — | — | **OBSOLETE (S795)** — GCS retired; nightly direct-to-S3 jobs supersede this |
 
 ## §E. Operate
-**E-01 — Take an immediate S3 backup of the main DB now.** Run the nightly direct-to-S3 job on demand: `launchctl kickstart -k gui/$(id -u)/com.aimarket.pg-backup`, then confirm a fresh object via §E-03. The job authenticates via the Infisical machine identity and writes straight to S3 (no GCS).
+**E-01 — Take an immediate S3 backup of the main DB now.** Trigger the Railway `ai-market-backup` cron service on demand: Railway dashboard -> ai-market project -> `ai-market-backup` -> **Run now** (API equiv: `deploymentInstanceExecutionCreate(serviceInstanceId)`), then confirm a fresh object via §E-03. It dumps over `AUTHOR_DISPATCH_DATABASE_URL` and writes straight to S3 with the backup-writer key. (Legacy Titan-1 `launchctl kickstart com.aimarket.pg-backup` is retired/disabled S884; plist preserved for emergency revert per §E-04.)
 **E-02 — (retired).** The GCS recurring workflow was disabled S794 and the bucket deleted S795. Recurring backups are now the Titan-1 launchd jobs (§D); trigger one on demand via §E-01.
 **E-03 — Verify a backup landed.** `aws s3 ls s3://aimarket-backups-prod/postgres/ai-market/ --recursive --profile aimarket | tail`; size > 0; optionally `pg_restore --list <dump>` returns a TOC.
-**E-04 — Revive the direct nightly S3 job** (after §H-1 machine identity exists): set the identity's client-id/secret where `run_pg_backup.sh` can read them non-interactively (NOT interactive `infisical login`), `launchctl kickstart -k gui/$(id -u)/com.aimarket.pg-backup`, confirm a fresh object lands + the watchdog logs OK.
+**E-04 — Emergency revert to the Titan-1 job** (only if the Railway `ai-market-backup` cron is broken): the launchd plist is preserved at `~/Library/LaunchAgents/com.aimarket.pg-backup.plist` (disabled S884). Re-enable: `launchctl enable gui/$(id -u)/com.aimarket.pg-backup && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.aimarket.pg-backup.plist`, then kickstart it. Prefer fixing the Railway service first.
 
 ## §E-R. Restore the market (ordered: secrets -> infra -> data -> code -> edge)
 - **R1 Pre-flight:** scope the failure (one component vs total loss). Retrieve the offline encryption + Infisical master key if online copies are gone.
@@ -62,7 +62,7 @@
 
 ## §F. Failure Alerting — Telegram (the dead-man's switch)
 
-**§F-02 — Known failure mode: transient mid-dump disconnect = up to ~23h exposure (incident 2026-06-10).** The two nightly launchd slots (01:00/02:00 Berlin = 23:00/00:00 UTC) are back-to-back and the job sets a per-UTC-day success lock. If the FIRST slot succeeds, the second skips; if the first is skipped (prior UTC day's lock) and the SECOND slot fails, there is no retry until the next night — one transient failure becomes ~23h of staleness and 3+ watchdog pages. Observed 2026-06-10: pg_dump ran 2h then `server closed the connection unexpectedly` (Railway side; normal run is ~15 min); next morning's watchdog paged at 29/35/41h. Response: §E-01 kickstart, verify §E-03. Diagnosis trail: `launchctl print gui/$(id -u)/com.aimarket.pg-backup` (last exit code), `~/Library/Logs/aimarket_pg_backup.log` (FATAL line + 'lock NOT set; later slot will retry'). Durable fix filed: watchdog self-heal (on staleness, kickstart the backup job once, then page) — build:bq-s3-backup-watchdog-self-heal-kickstart-s807.
+**§F-02 — (retired S884).** The dual-Berlin-slot launchd failure mode no longer applies: the main-DB backup is a single Railway cron at 02:00 UTC (restart NEVER), not the back-to-back 01:00/02:00 Berlin launchd slots. The 2026-06-10 transient mid-dump disconnect is mitigated by running inside Railway. CAVEAT: the Railway run still connects over the public proxy (`AUTHOR_DISPATCH_DATABASE_URL`); pointing it at the internal DB host would cut runtime/exposure further (optional). S884 FINDING: Railway's own `Postgres`-service and project-shared `DATABASE_URL` vars are STALE — they do not authenticate; the only working main-DB credential is Infisical `AUTHOR_DISPATCH_DATABASE_URL`. Do not trust the Railway-native DB URLs for restore/ops; separate cleanup advised.
 **This is the answer to "tell me when a backup does not run."**
 - **What:** `com.aimarket.s3-backup-watchdog` runs `runbooks/scripts/s3_backup_watchdog.sh` every 6 hours (and at load).
 - **Check:** newest object under `s3://aimarket-backups-prod/postgres/ai-market/` **and** under `s3://aimarket-backups-prod/qdrant/`. If either is missing, or older than **26h**, it fires.
@@ -170,7 +170,7 @@ macOS System Settings → General → Login Items & Extensions → "Allow in the
 | com.koskadeux.deepseek_server | launch_deepseek_server.sh | DeepSeek model server | 2026-04-29 |
 | com.koskadeux.infisical-token-refresh | bash -lc | Infisical token refresh | 2026-06-03 |
 | com.aimarket.s3-backup-watchdog | s3_backup_watchdog.sh | S3 backup freshness alarm (Telegram) | 2026-06-07 |
-| com.aimarket.pg-backup | run_pg_backup.sh | nightly main-DB backup → S3 | 2026-06-07 |
+| com.aimarket.pg-backup | run_pg_backup.sh | nightly main-DB backup → S3 — **DISABLED S884** (migrated to Railway cron `ai-market-backup`; plist kept for revert) | 2026-06-07 |
 | com.aimarket.qdrant-backup | run_qdrant_backup.sh | nightly Qdrant backup → S3 | 2026-06-07 |
 | com.aimarket.railway-config-export | run_railway_config_export.sh | nightly Railway topology export → S3 | 2026-06-08 |
 | com.aimarket.cloudflare-export | run_cloudflare_export.sh | nightly Cloudflare DNS export → S3 | 2026-06-08 |
