@@ -83,7 +83,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Session lifecycle — open / plan / close** — opening sequence, planning gate, close protocol, the scratch namespace + instance-liveness collision guard (S858): [session-open-protocol.md](session-open-protocol.md) · [session-close-protocol.md](session-close-protocol.md).
 
-**Session registry recovery & migrations** — registry.db desync/recovery, registry migration discipline, and the hazard that the test suite can mutate the live registry.db: [session-registry-recovery.md](session-registry-recovery.md).
+**Session registry recovery & migrations** — durable monotonic session-ID high-water mark (session_seq + config:session-seq anchor), the pytest isolation guard on the live registry.db, the two-signal stale-session self-heal, blocked session opens, regressed/reused session numbers, and registry migration discipline: [session-registry-recovery.md](session-registry-recovery.md).
 
 **Agent / Council dispatch** — dispatch paths, per-agent quirks, review-mode rules, and the open_response session-clobber warning: [agent-dispatch.md](agent-dispatch.md).
 

@@ -1,546 +1,411 @@
-> **S612 Process Consolidation Owner**: this runbook is part of the session lifecycle reliability runbook set after the S612 consolidation that collapsed ~15 process BQs into BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612 (P0). Paired with session-open-protocol.md and session-close-protocol.md.
->
-> Disk-backed session registry work (P0) is tracked under the survivor BQ; recurrence chain currently at 9 manual primary clears (S596 through S612). See session-close-protocol.md §C.7 for the recurrence audit pattern.
->
-> Revisions land as PRs; require MP+AG review-mode approval (registry criticality). Filed under S612.
-
+---
+system_name: session-registry-recovery
+purpose_sentence: Keep Koskadeux session-ID allocation monotonic and unblocked by documenting the durable high-water-mark registry, its test-isolation guard, the two-signal stale-session self-heal, and the recovery paths when session opens stall or numbers look wrong.
+owner_agent: vulcan
+escalation_contact: max
+lifecycle_ref: §J
+authoritative_scope: |
+  The Koskadeux session registry on Titan-1: the SQLite store at /var/tmp/koskadeux/registry.db (tables sessions, session_seq, schema_migrations, close_transactions), the durable monotonic allocator and its Living State anchor config:session-seq, the KOSKADEUX_REGISTRY_DB override, pytest isolation from the live DB, the last_seen + peer-bus stale-session self-heal, the append-only schema migrations, and the operator recovery paths. This runbook is the source of truth for diagnosing and repairing session-open blocks and session-number anomalies. It is NOT the source of truth for the boot-payload contents (session-open-protocol.md) or session close (session-close-protocol.md). The retired primary/worker lock-slot model is out of scope (symmetric peers, CORE v9.2 S811).
+linter_version: 1.0.0
 ---
 
-# Session Registry Recovery Runbook
+# Session Registry Recovery
 
-**BQ:** BQ-KOSKADEUX-SESSION-REGISTRY-DISK-BACKED-S594 · Gate 1 AC8  
-**Covers:** commit 10/10 — documentation deliverable  
-**Last updated:** 2026-05-11
+## §A. Header
 
----
+The YAML frontmatter above defines the §A header. §J is authoritative for lifecycle refresh tracking; this header is the display summary for stateless readers.
 
-## When to use this runbook
+> **Model note.** As of CORE v9.2 (S811) Koskadeux runs **symmetric peers** (vulcan, mars) with no primary/worker lock slots. The session registry is an **instance-keyed `sessions` table** (one row per instance, plus a non-human `scratch` row) carrying a **durable monotonic high-water mark** (`session_seq` + Living State anchor `config:session-seq`), shipped S867. The older `infra:active-session-lock` primary/worker slot model and the iCloud lock-pointer are retired; recovery procedures here target the current model.
 
-Use this runbook when `kd_session_open` cannot proceed because a lock slot appears occupied but
-no live session process exists. Concrete symptoms:
+## §B. Capability Matrix
 
-- `kd_session_open` returns `primary_lock_held` or `worker_lock_held` with no visible active session
-- `kd_session_open` enters the emergency-fallback path and returns an envelope that never contains a handoff (response-routing phantom — S599.W pattern)
-- `state_request action=get key=infra:active-session-lock` shows a `primary` or `worker` slot with `started_at` > 2 hours ago and no matching process
-- Orphaned `session-status:{id}:role=worker` entities remain open after the process died
-- Gateway restart did not clear the lock (disk-persistent slot survived pid change — S589.W pattern)
+| Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
+|---|---|---|---|---|
+| Durable monotonic session-ID high-water mark | SHIPPED | `koskadeux-mcp tools/registry.py session_seq table + apply_session_seq_migration` | Verified live: schema_migrations v7, session_seq.next_value=875, integrity_check ok | 2026-06-16 |
+| Anchor reserved before issuance (fail-closed on Living State) | SHIPPED | `koskadeux-mcp tools/registry.py Registry.register_allocated_session` | Verified by source read; reserve_anchor reserves config:session-seq before INSERT | 2026-06-16 |
+| Living State durable anchor config:session-seq | SHIPPED | `koskadeux-mcp tools/session.py _session_seq_key` | Verified live: anchor re-seeds session_seq on registry rebuild | 2026-06-16 |
+| KOSKADEUX_REGISTRY_DB path override | SHIPPED | `koskadeux-mcp tools/registry.py _resolve_db_path` | Read by registry, admin endpoints, and phantom-cleanup script | 2026-06-16 |
+| pytest isolation from the live registry.db | SHIPPED | `koskadeux-mcp conftest.py module-level env + tools/registry.py open_registry guard` | conftest sets KOSKADEUX_REGISTRY_DB at collection time; guard raises on prod path under PYTEST_CURRENT_TEST | 2026-06-16 |
+| Production-path hard guard | SHIPPED | `koskadeux-mcp tools/registry.py RegistryProductionPathError` | open_registry raises if PYTEST_CURRENT_TEST set and path is production | 2026-06-16 |
+| Two-signal stale-session self-heal (last_seen TTL + peer-bus) | SHIPPED | `koskadeux-mcp tools/session.py _auto_close_stale_instance_if_safe` | Auto-closes a stale row on open only when last_seen past TTL AND no recent peer-bus signal; fail-open on peer-check error | 2026-06-16 |
+| session_auto_closed_stale audit event | SHIPPED | `koskadeux-mcp tools/session.py _emit_session_auto_closed_stale` | Event type registered in tools/state.py; emitted on self-heal close | 2026-06-16 |
+| Transactional append-only schema migrations | SHIPPED | `koskadeux-mcp scripts/migrate_session_registry.py + tools/registry.py apply_session_seq_migration` | BEGIN IMMEDIATE; idempotency keyed on live DDL, not the version row | 2026-06-16 |
+| Phantom-session cleanup utility | SHIPPED | `koskadeux-mcp scripts/s852_phantom_session_cleanup.py` | Used S852 to clear inflated phantom rows; re-anchors rather than resetting to 1 | 2026-06-16 |
+| Admin recovery endpoints (boot-gate bypass) | SHIPPED | `koskadeux-mcp tools/admin_endpoints.py` | Reachable on gateway 8767 when no session is open | 2026-06-16 |
+| Legacy primary/worker lock slots + iCloud lock-pointer | DEPRECATED | `koskadeux-mcp tools/icloud_sync.py (legacy)` | Retired under symmetric peers (CORE v9.2 S811); not a recovery path | 2026-06-16 |
 
-**Recurrence chain** (S587–S599): Five documented cases drove this runbook:
+## §C. Architecture & Interactions
 
-| Case | Cleared at | Pattern | Cleared by |
-|------|-----------|---------|------------|
-| S589.W ghost | 2026-05-09T19:18Z | Disk-persistent ghost, survived gateway restart | Level 1 state_request |
-| S590.W stale | 2026-05-09T19:55Z | Slot never patched after prior clear narrative | Level 1 state_request |
-| S593+S592.W phantom | 2026-05-10T~06:54Z | Emergency-fallback phantom + 9h stale worker | Level 3 Railway psql |
-| S595 primary stale | 2026-05-10T16:00Z | allAI log timeout prevented close completion | Level 1 state_request |
-| S599.W routing phantom | 2026-05-10T22:07Z | Server-side success, response routed to wrong client | Level 1 state_request |
+The session registry is a SQLite database on Titan-1 at `/var/tmp/koskadeux/registry.db`, opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
 
-Do NOT use this runbook if you suspect a genuine in-flight session. Confirm with Vulcan-Primary first.
+| Component | Component Entry Point | State Stores | Integrates With | Notes |
+|---|---|---|---|---|
+| Session Registry | `tools/registry.py open_registry` | `registry.db (sessions, session_seq, schema_migrations, close_transactions)` | boot gate (session.py), peer bus, admin endpoints | Instance-keyed; resolves path from KOSKADEUX_REGISTRY_DB |
+| Allocator | `tools/registry.py Registry.register_allocated_session` | `session_seq + config:session-seq (Living State)` | session.py _allocate_session_in_registry | Reserves anchor before issuing; BEGIN IMMEDIATE; scratch excluded from max |
+| Durable HWM Anchor | `tools/session.py _session_seq_key` | `config:session-seq (Living State, Railway PG)` | Allocator, recovery re-seed | Re-seed source on registry rebuild; never decreases |
+| Self-Heal | `tools/session.py _auto_close_stale_instance_if_safe` | `sessions.last_seen_at + peer_messages` | any_session_live (registry.py), peer bus | Two-signal; CAS-guarded close; emits session_auto_closed_stale |
+| Migration Runner | `scripts/migrate_session_registry.py` | `schema_migrations` | registry.py apply_*_migration | Append-only; idempotency keyed on live DDL not version row |
+| Boot Gate | `tools/session.py _handle_kd_session_plan` | in-memory gate state (wiped on restart) | kd_session_open, kd_session_plan | PLANNING then OPERATIONAL; re-run open+plan after restart |
+| Admin Recovery | `tools/admin_endpoints.py` | `registry.db` | gateway 8767 | Bypasses the boot gate; reachable with no session open |
 
----
+### Canonical identifiers
 
-## §A Registry health quick-check
+| Resource | Value |
+|---|---|
+| Registry DB path | `/var/tmp/koskadeux/registry.db` |
+| Path override env | `KOSKADEUX_REGISTRY_DB` |
+| Durable anchor key | `config:session-seq` (Living State) |
+| Current schema version | `7` (`session_seq_durable_hwm`) |
+| Stale TTL | `SESSION_LIVE_TTL_SECONDS` default `1800` |
+| MCP restart | `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp` |
+| Backup dir | `/var/tmp/koskadeux/backups/` |
 
-Before any intervention, confirm the gateway stack is alive and identify the registry mode.
+## §D. Agent Capability Map
 
-**1. Confirm handler and proxy processes:**
+| Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
+|---|---|---|---|---|
+| Vulcan/Mars | inspect registry state, run migration status/apply, run phantom cleanup, restart MCP and verify | shell plus state_request | Titan-1 shell plus Living State | COMPLETE |
+| Vulcan/Mars | re-seed or re-affirm the durable anchor after a regression | state_request patch on config:session-seq | Living State | COMPLETE |
+| kd_session_open | auto self-heal a stale instance row on open | tools/session.py self-heal path | registry | COMPLETE |
+| Max | authorize or perform a physical host restart and resolve strategic forks | shell | host owner | COMPLETE |
 
-```bash
-ps -ef | grep -E 'koskadeux_server|gateway_server' | grep -v grep
+Both instances own the non-interactive recovery steps (inspect, migrate, cleanup, re-seed, restart-and-verify). The self-heal runs automatically inside `kd_session_open`. Max is the escalation contact for a host-level restart or a strategic decision (for example, deliberately re-anchoring the counter).
+
+## §E. Operate
+
+```yaml operate
+- id: E-01
+  trigger: Routine verification that the session registry is healthy before relying on session opens.
+  pre_conditions:
+    - registry.db exists at the production path or KOSKADEUX_REGISTRY_DB points at the intended DB
+    - sqlite3 available on Titan-1
+  tool_or_endpoint: "sqlite3 /var/tmp/koskadeux/registry.db on schema_migrations, session_seq, sessions, plus PRAGMA integrity_check"
+  argument_sourcing:
+    db_path: production path, or KOSKADEUX_REGISTRY_DB if overridden
+    expected_schema_version: 7 (session_seq_durable_hwm)
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: schema_migrations top version is 7, session_seq.next_value is greater than every live session number, integrity_check returns ok, and only vulcan, mars, and scratch rows exist
+    verification: confirm each query output matches the expected version, a monotonic next_value, and ok integrity
+  expected_failures:
+    - signature: "integrity_check_not_ok"
+      cause: SQLite corruption, repair via G-04
+    - signature: "schema_version_below_7"
+      cause: a pending migration has not applied, repair via G-04
+  next_step_success: No action; the registry is healthy.
+  next_step_failure: Isolate using F-04 for corruption or pending migration.
+- id: E-02
+  trigger: Confirm the monotonic counter has not regressed or reused a number after a suspicious event.
+  pre_conditions:
+    - registry readable
+    - Living State reachable for the anchor read
+  tool_or_endpoint: "compare session_seq.next_value, the Living State anchor config:session-seq, and the max non-scratch session number"
+  argument_sourcing:
+    local_next: session_seq.next_value from registry.db
+    anchor: config:session-seq next_value from Living State
+    max_row: highest numeric session id among vulcan and mars rows
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: session_seq.next_value is at least the anchor and strictly greater than the max non-scratch session number
+    verification: all three agree on a non-decreasing high-water mark
+  expected_failures:
+    - signature: "next_value_below_anchor"
+      cause: registry rebuilt or restored without re-seeding from the anchor, repair via G-02
+    - signature: "number_reused_or_regressed"
+      cause: live DB mutated by a test run or a rewritten row, repair via G-02
+  next_step_success: No action; the counter is monotonic.
+  next_step_failure: Isolate using F-02 and re-seed the anchor.
+- id: E-03
+  trigger: Restart the MCP server in a way that safely applies any pending registry migration.
+  pre_conditions:
+    - a registry backup can be written
+    - operator is ready to re-run kd_session_open and kd_session_plan after restart
+  tool_or_endpoint: "back up registry.db, then launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp in the FOREGROUND, then verify"
+  argument_sourcing:
+    backup_target: /var/tmp/koskadeux/backups/registry.db.<UTC>.bak
+    restart_label: com.koskadeux.mcp
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: the timestamped backup filename makes repeated backups distinct and safe
+  expected_success:
+    shape: a fresh server pid with a recent start time, schema version 7, session_seq present and monotonic, and integrity ok
+    verification: ps -o lstart on the new pid shows a recent start, and the §E-01 checks pass
+  expected_failures:
+    - signature: "restart_did_not_fire"
+      cause: a backgrounded or detached kickstart was killed by the shell sandbox before running, repair via G-04 restart guidance
+    - signature: "migration_rollback_in_logs"
+      cause: a migration failed mid-run and the server entered memory-only mode, repair via G-04
+  next_step_success: Re-run kd_session_open and kd_session_plan to re-establish the boot gate.
+  next_step_failure: Isolate using F-04.
 ```
 
-Expected: `koskadeux_server.py` (handler, port 8765) and `gateway_server.py` (proxy, port 8767).
-If either is missing, restart via launchctl before proceeding — a dead handler will make every
-`kd_session_open` appear to hang regardless of lock state.
+## §F. Isolate
 
-**2. Confirm ports are listening:**
+| ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
+|---|---|---|---|---|---|
+| F-01 | kd_session_open is blocked or hangs and a row appears occupied with no live process | A stale OPERATIONAL or PLANNING row whose instance is no longer running; self-heal did not fire because last_seen was recently bumped | Read the sessions table and compare last_seen_at age against the TTL; check peer_status and the peer bus for a real signal from that instance | §G-01 | CONFIRMED |
+| F-02 | A session number regressed, reused, or looks lower than expected | The live registry.db was mutated by a test run or a row was rewritten, rewinding the max-based floor; or a rebuild did not re-seed from the anchor | Compare session_seq.next_value, the config:session-seq anchor, and the max non-scratch row; cross-check the peer bus for the real latest number | §G-02 | CONFIRMED |
+| F-03 | The scratch row appears to drive the allocator or a surprising scratch number shows up | scratch rows are test or agent-isolation residue; the allocator must exclude scratch from its max | Read the sessions table for the scratch row and confirm the allocator floor uses only vulcan and mars rows | §G-03 | CONFIRMED |
+| F-04 | health reports registry_mode memory_only, or logs show a migration rollback, or integrity_check is not ok | SQLite corruption, a failed mid-run migration leaving memory-only mode, or a pending migration not yet applied | Run integrity_check and read schema_migrations; check the server logs for a rollback sentinel | §G-04 | CONFIRMED |
+| F-05 | The schema_migrations version row disagrees with the real table shape | Test mutation of the live DB advanced or rewound the version row independent of the actual DDL | Inspect the live schema with sqlite3 .schema sessions and compare against the version row; the live DDL is authoritative | §G-05 | CONFIRMED |
 
-```bash
-netstat -an | grep -E '8765|8767'
+## §G. Repair
+
+```yaml repair
+- id: G-01
+  symptom_ref: F-01
+  component_ref: Self-Heal
+  root_cause: A stale instance row is blocking opens; the two-signal self-heal did not auto-close it because last_seen_at was within the TTL or a peer-check error forced fail-open.
+  repair_entry_point: tools/session.py _auto_close_stale_instance_if_safe
+  change_pattern: First retry kd_session_open, which runs the self-heal and auto-closes a row that is past the TTL with no recent peer-bus signal, emitting session_auto_closed_stale. If the row is genuinely dead but still inside the TTL window, confirm via peer_status and the peer bus that the instance is not live, then run scripts/s852_phantom_session_cleanup.py against the registry to clear or re-anchor the phantom row. Never clear a row whose instance shows recent peer-bus activity.
+  rollback_procedure: The cleanup script backs up the registry first; restore the pre-cleanup backup from /var/tmp/koskadeux/backups/ if a row was cleared in error.
+  integrity_check: kd_session_open succeeds, the sessions table shows the stale row CLOSED, and a session_auto_closed_stale event is present.
+- id: G-02
+  symptom_ref: F-02
+  component_ref: Durable HWM Anchor
+  root_cause: The local session_seq fell below the durable anchor, or a rebuild or restore did not re-seed from config:session-seq, so the max-based floor rewound.
+  repair_entry_point: tools/session.py _session_seq_key plus the config:session-seq Living State entity
+  change_pattern: Determine the true high-water mark as the maximum of the anchor, the local session_seq, and the highest number ever issued per the peer bus. Re-seed by patching config:session-seq to that value and letting the next open re-establish session_seq from the anchor, or apply the session_seq migration which seeds from the computed max. Do not reset to 1.
+  rollback_procedure: The anchor only ever increases; if an over-large value was written, leave it (a skipped number is harmless) rather than lowering the anchor.
+  integrity_check: session_seq.next_value is at least the anchor and strictly greater than the max non-scratch row, and the next open issues a strictly higher number.
+- id: G-03
+  symptom_ref: F-03
+  component_ref: Allocator
+  root_cause: A scratch row is being treated as part of the allocation floor, or scratch residue from a test or agent-isolation run is confusing the operator.
+  repair_entry_point: tools/registry.py Registry.register_allocated_session
+  change_pattern: Confirm the allocator computes its floor from vulcan and mars rows only and excludes scratch (it raises if asked to allocate for scratch). Treat scratch rows as non-authoritative; if a scratch row is stale, close it via the self-heal path. No allocation logic change is needed unless the scratch row is provably included in the max.
+  rollback_procedure: None; this is a verification and cleanup, not a code change.
+  integrity_check: The next allocated number is one greater than the max vulcan/mars row regardless of any scratch row value.
+- id: G-04
+  symptom_ref: F-04
+  component_ref: Migration Runner
+  root_cause: SQLite corruption, a failed mid-run migration leaving memory-only mode, or a pending migration not applied on the running server.
+  repair_entry_point: scripts/migrate_session_registry.py
+  change_pattern: Back up registry.db first. Run the migration runner with status to see applied versions, then apply to bring the DB to version 7. On corruption, rebuild the DB and let the anchor re-seed session_seq. Restart the MCP via FOREGROUND launchctl kickstart (a backgrounded or detached restart is killed by the shell sandbox before it runs) and verify the new pid start time with ps -o lstart before declaring success.
+  rollback_procedure: Restore the pre-repair backup from /var/tmp/koskadeux/backups/ and restart if the migration or rebuild leaves the registry worse.
+  integrity_check: health reports registry_mode sqlite, schema_migrations top version is 7, integrity_check is ok, and a fresh server pid is serving tool calls.
+- id: G-05
+  symptom_ref: F-05
+  component_ref: Migration Runner
+  root_cause: The schema_migrations version row disagrees with the real table shape after test mutation of the live DB.
+  repair_entry_point: scripts/migrate_session_registry.py plus sqlite3 .schema
+  change_pattern: Treat the live DDL as authoritative, not the version row. Inspect the real schema, then re-run the migration runner, which decides what to apply by inspecting the live table shape and is idempotent, to reconcile the version row to reality. Do not hand-edit the version row.
+  rollback_procedure: Restore the pre-repair backup if reconciliation changes the table unexpectedly.
+  integrity_check: sqlite3 .schema sessions matches the expected version-7 shape and the version row reads 7.
 ```
 
-Expected: LISTEN on both ports. If 8765 is absent but 8767 is listening, the proxy is up but
-the handler crashed — restart handler: `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`
+## §H. Evolve
 
-**3. Check lock entity state via admin endpoint:**
+### §H.1 Invariants
 
-```bash
-curl -s http://localhost:8767/health | python3 -m json.tool
-curl -s http://localhost:8767/api/admin/gate_state | python3 -m json.tool
+- The session-number allocator MUST be monotonic: a newly issued number is never less than or equal to any previously issued number, even after a registry wipe, rebuild, or restore (it re-seeds from `config:session-seq`).
+- The durable anchor `config:session-seq` only ever increases; it is never lowered.
+- The anchor MUST be reserved to at least the candidate number BEFORE the registry row is written, and allocation MUST fail closed if Living State is unreachable.
+- Tests MUST NOT operate on the production `registry.db`: `conftest.py` sets `KOSKADEUX_REGISTRY_DB` at collection time and `open_registry` raises `RegistryProductionPathError` if `PYTEST_CURRENT_TEST` is set on the production path.
+- The `scratch` instance is excluded from the allocation floor and is never issued an allocated number.
+- A stale row is auto-closed only on TWO signals (last_seen past TTL AND no recent peer-bus signal); the peer check fails open on error so a live session is never killed.
+- Schema migrations are append-only; existing column names and types are frozen, and idempotency is keyed on the live table shape, not the `schema_migrations` version row.
+
+### §H.2 BREAKING predicates
+
+- Making the allocator able to issue a number less than or equal to a prior number (including resetting to 1, or lowering the anchor) is BREAKING; it violates the monotonic invariant.
+- Removing or weakening the pytest production-path guard, or the collection-time env override, is BREAKING; tests would corrupt live session state.
+- Changing allocation to issue before reserving the anchor, or to fail open when Living State is unreachable, is BREAKING; it reintroduces the regression vector.
+- Removing a column from `sessions`, `session_seq`, or `schema_migrations`, or changing a column type, is BREAKING; migrations are append-only.
+
+### §H.3 REVIEW predicates
+
+- Changing the stale TTL (`SESSION_LIVE_TTL_SECONDS`) or the second-signal source for self-heal requires REVIEW; it changes when a row is considered reapable.
+- Adding a new schema migration requires REVIEW; it must be append-only, transactional, and idempotent on the live DDL.
+- Changing how `scratch` is namespaced or admitted to the `sessions` table requires REVIEW.
+
+### §H.4 SAFE predicates
+
+- Read-only inspection of the registry, the anchor, and the migration state is SAFE.
+- Running the migration runner with status, or applying an already-defined append-only migration, is SAFE.
+- Re-seeding the anchor upward to the true high-water mark is SAFE (the anchor only increases).
+
+### §H.5 Boundary definitions
+
+#### module
+
+The module boundary is the Koskadeux session-registry surface: `tools/registry.py` (store, allocator, migrations), the registry-facing parts of `tools/session.py` (boot gate, self-heal, anchor), `scripts/migrate_session_registry.py`, and `tools/admin_endpoints.py`.
+
+#### public contract
+
+The public contract is the registry shape other code depends on: the `sessions`, `session_seq`, and `schema_migrations` table schemas, the `KOSKADEUX_REGISTRY_DB` env override, the `config:session-seq` anchor semantics, and the `session_auto_closed_stale` event type.
+
+#### runtime dependency
+
+A runtime dependency is any external system required at run time: SQLite for `registry.db`, Living State on Railway Postgres for the anchor, and the peer-message bus for the self-heal second signal.
+
+#### config default
+
+A config default is a shipped default value: the production `registry.db` path, `SESSION_LIVE_TTL_SECONDS` of 1800, and the current schema version 7.
+
+### §H.6 Adjudication
+
+When two instances classify a registry change differently, the more restrictive class wins and the dispute is recorded. Max resolves any classification dispute that touches the monotonic invariant, the test-isolation guard, or the anchor semantics; the ruling is added here as a §H.1 clarification.
+
+## §I. Acceptance Criteria
+
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01, §C]
+    scenario: |
+      id: E-01. trigger: routine verification the registry is healthy. tool_or_endpoint: sqlite3 against schema_migrations, session_seq, sessions, and PRAGMA integrity_check. expected_success: schema version 7, session_seq.next_value above every live number, integrity ok, only vulcan mars scratch rows. next_step_failure: isolate with F-04.
+    expected_answers:
+      - kind: human_action
+        verb: verify
+        object: registry schema version session_seq and integrity
+        target: sqlite3 on registry.db
+    weight: 0.08333333333333333
+  - id: I-02
+    type: operate
+    refs: [E-02, §C]
+    scenario: |
+      id: E-02. trigger: confirm the counter has not regressed. tool_or_endpoint: compare session_seq.next_value, the config:session-seq anchor, and the max non-scratch number. expected_success: next_value at least the anchor and above the max row. next_step_failure: isolate with F-02.
+    expected_answers:
+      - kind: human_action
+        verb: compare
+        object: session_seq anchor and max session number
+        target: confirm a non-decreasing high-water mark
+    weight: 0.08333333333333333
+  - id: I-03
+    type: operate
+    refs: [E-03, §C]
+    scenario: |
+      id: E-03. trigger: restart MCP and apply any pending migration safely. tool_or_endpoint: back up registry.db then FOREGROUND launchctl kickstart then verify. expected_success: fresh pid, schema 7, monotonic session_seq, integrity ok. next_step_failure: isolate with F-04.
+    expected_answers:
+      - kind: human_action
+        verb: restart
+        object: the MCP server in the foreground after a backup
+        target: launchctl kickstart then verify pid and schema
+    weight: 0.08333333333333333
+  - id: I-04
+    type: isolate
+    refs: [F-01, G-01]
+    scenario: |
+      id: F-01. trigger: kd_session_open hangs and a row looks occupied with no live process. verification: compare last_seen_at age to the TTL and check peer_status and the peer bus. expected_success: classify as a stale row the self-heal did not auto-close. next_step_success: apply G-01.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: a blocked session open with a stale row
+        target: F-01 then G-01
+    weight: 0.08333333333333333
+  - id: I-05
+    type: isolate
+    refs: [F-02, G-02]
+    scenario: |
+      id: F-02. trigger: a session number regressed or reused. verification: compare session_seq.next_value, the anchor, and the max non-scratch row, and cross-check the peer bus. expected_success: classify as a rewound floor from live-DB mutation or a non-reseeded rebuild. next_step_success: apply G-02.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: a regressed or reused session number
+        target: F-02 then G-02
+    weight: 0.08333333333333333
+  - id: I-06
+    type: isolate
+    refs: [F-04, G-04]
+    scenario: |
+      id: F-04. trigger: health reports registry_mode memory_only or logs show a migration rollback. verification: run integrity_check and read schema_migrations and the rollback sentinel. expected_success: classify as corruption, a failed migration, or a pending migration. next_step_success: apply G-04.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: a memory-only or rolled-back registry
+        target: F-04 then G-04
+    weight: 0.08333333333333333
+  - id: I-07
+    type: isolate
+    refs: [F-05, G-05]
+    scenario: |
+      id: F-05. trigger: the schema_migrations version row disagrees with the table shape. verification: inspect the live schema and compare to the version row, treating the live DDL as authoritative. expected_success: classify as a version-row drift from test mutation. next_step_success: apply G-05.
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: a schema version-row disagreement
+        target: F-05 then G-05
+    weight: 0.08333333333333333
+  - id: I-08
+    type: repair
+    refs: [G-02, F-02]
+    scenario: |
+      id: G-02. trigger: the local session_seq fell below the durable anchor after a rebuild. change_pattern: re-seed config:session-seq to the true high-water mark and let the next open re-establish session_seq, never reset to 1. expected_success: next_value at least the anchor and above the max row. next_step_failure: leave an over-large anchor rather than lowering it.
+    expected_answers:
+      - kind: human_action
+        verb: reseed
+        object: the durable anchor config:session-seq
+        target: the true high-water mark, never reset to 1
+    weight: 0.08333333333333333
+  - id: I-09
+    type: repair
+    refs: [G-04, F-04]
+    scenario: |
+      id: G-04. trigger: a failed mid-run migration left the registry in memory-only mode. change_pattern: back up, run the migration runner to apply to version 7, then FOREGROUND launchctl kickstart and verify the new pid start time. expected_success: registry_mode sqlite, schema 7, integrity ok, fresh pid. next_step_failure: restore the backup and restart.
+    expected_answers:
+      - kind: human_action
+        verb: apply
+        object: the pending registry migration then restart in foreground
+        target: migration runner then launchctl kickstart with verification
+    weight: 0.08333333333333333
+  - id: I-10
+    type: evolve
+    refs: [§H]
+    scenario: |
+      id: H-01. trigger: a proposal would let the allocator reset the counter to 1 on a fresh registry. expected_success: classify as BREAKING because it violates the monotonic invariant. next_step_success: block the change and re-seed from the anchor instead.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-11
+    type: evolve
+    refs: [§H]
+    scenario: |
+      id: H-02. trigger: a proposal would remove the pytest production-path guard so a fixture can write to the real registry.db. expected_success: classify as BREAKING because tests would corrupt live session state. next_step_success: keep the collection-time env override and the guard.
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [F-01, F-02]
+    scenario: |
+      id: AMB-01. trigger: on open the operator sees a surprising session number AND a row that looks stale, and asks whether to clear the row and reset the number. pre_conditions: both observations made before any peer-bus check. expected_success: do NOT clear or reset first; cross-check peer_status and the peer bus to decide whether the row is a live peer and whether the number is real or test residue, then isolate via F-01 for the row and F-02 for the number separately. expected_failures: clearing a live peer's row or lowering the counter on the assumption it is residue. next_step_success: run the peer-bus check, then F-01 and F-02 independently. next_step_failure: escalate to Max if a live peer cannot be confirmed either way.
+    expected_answers:
+      - kind: human_action
+        verb: check
+        object: peer_status and the peer bus before clearing or resetting
+        target: confirm live peer then isolate F-01 and F-02 separately
+    weight: 0.08333333333333333
 ```
 
-`/health` fields to note:
-- `registry_mode`: `sqlite` (normal) or `memory_only` (see §E)
-- `sqlite_db_path`: default `/var/tmp/koskadeux/registry.db`
-- `last_migration`: most recently applied schema migration
+## §J. Lifecycle
 
-`/api/admin/gate_state` fields:
-- `state`: boot gate state (`IDLE`, `PLANNING`, `OPERATIONAL`, etc.)
-- `active_session_id`: current holder (null if idle)
-- `registry_health`: sub-object with mode + last error
+Lifecycle metadata records the conformance refresh state for this runbook.
 
-**4. Read the live lock entity** (captures pre-clear state for the audit trail):
-
-```bash
-state_request action=get key=infra:active-session-lock
+```yaml lifecycle
+last_refresh_session: S873
+last_refresh_commit: 0767d248
+last_refresh_date: 2026-06-16T08:30:00Z
+owner_agent: vulcan
+refresh_triggers:
+  - registry schema or migration changes
+  - allocator or durable-anchor semantics change
+  - stale-session self-heal policy or TTL changes
+  - session lifecycle model changes (for example a peer-model change)
+scheduled_cadence: 90d
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: 2026-06-16T08:30:00Z
+first_staleness_detected_at: null
 ```
 
-Record the `primary` and `worker` sub-objects, `version`, and `updated_at` before touching anything.
+## §K. Conformance
 
-> **HAZARD — the test suite mutates the LIVE registry.db.** Several boot/inventory tests open
-> `DEFAULT_DB_PATH` (`/var/tmp/koskadeux/registry.db`) directly instead of a tmp fixture, so a test
-> run can write rows, advance session numbers, or apply migrations against the real registry.
-> Unexpected `scratch` rows, surprising session numbers, or migration state on the live DB may be
-> **test residue, not real operational state** — confirm against actual peer activity before recovering.
->
-> The `sessions` table is **instance-keyed** (`instance` is the PRIMARY KEY) with a `max(rows)+1`
-> session-number allocator and **no durable high-water mark**. Test mutation of the live DB has
-> regressed the allocator (observed: mars `930 -> 859 -> 866`) and left a zombie `S601` row that
-> blocked clean `vulcan` opens. Because the allocator reads `max()` off whatever rows exist, a
-> deleted/rewritten row silently rewinds the counter. The durable fix (persistent high-water mark +
-> test isolation from the live DB) is specced under **bq-session-registry-durable-hwm-and-test-isolation-s867**;
-> until it lands, treat live session-number anomalies as suspect and cross-check the peer bus / `peer_status`.
-
----
-
-## §B Standard recovery: stale slot auto-release
-
-**Post-Gate-2 behaviour:** The gateway runs a live-process audit on every `kd_session_open` call
-and auto-releases stale slots, emitting `role_slot_auto_released_stale_process` into the Event
-Ledger. For ~90% of cases, retry `kd_session_open` after confirming §A is green — no operator
-action needed.
-
-When the auto-release path did not fire (pre-Gate-2 code or audit negative on a genuine phantom),
-follow the diagnosis tree below.
-
-### Diagnosis tree
-
+```yaml conformance
+linter_version: 1.0.0
+last_lint_run: S873 / 2026-06-16T08:30:00Z
+last_lint_result: PASS
+trace_matrix_path: null
+word_count_delta: null
 ```
-kd_session_open returns *_lock_held
-         │
-         ▼
-Check: ps -ef | grep -iE '<slot_session_id>|kd_worker|antigravity.*worker'
-         │
-    match found        no match
-         │                  │
-         ▼                  ▼
-  Genuine in-flight     Is gateway healthy? (§A pass)
-  — do NOT clear.            │
-  Confirm with           yes │  no
-  Vulcan-Primary.            │   └──► Restart gateway → retry
-                             ▼
-                    Is started_at < 30 min ago AND
-                    client reported 300s timeout with no envelope?
-                             │
-                         yes │  no
-                             │   └──► Stale-ghost slot
-                             │        → Level 1 (§B.1)
-                             ▼
-                    Response-routing phantom (S599.W pattern):
-                    server-side success, envelope misrouted.
-                    Confirm with client actor, then → Level 1 (§B.1)
-```
-
-**Genuine in-flight vs. phantom**: if `worker_clear_audit_s{N-1}` already cleared this exact
-session_id in a prior session, it is not genuine — proceed with Level 1.
-
-### §B.1 Level 1: state_request patch
-
-Use when Primary gateway is reachable via MCP tools. This is the standard operating path.
-
-```bash
-# Worker slot clear — fill in S{N} with the current session number
-state_request action=patch key=infra:active-session-lock body='{
-  "worker": null,
-  "worker_clear_audit_s{N}": {
-    "cleared_at": "<ISO8601_NOW>",
-    "cleared_by": "vulcan-primary-S{N}",
-    "cleared_reason": "<one-line reason — pattern name + evidence>",
-    "pre_clear_state": {
-      "worker_session_id": "<value from §A read>",
-      "worker_started_at": "<value from §A read>",
-      "worker_parent_session_id": "<value from §A read>"
-    },
-    "live_process_audit_evidence": "<ps output or 'no matching processes'>"
-  }
-}' updated_by=vulcan source_ref=S{N}
-```
-
-```bash
-# Primary slot clear (same structure, different key names)
-state_request action=patch key=infra:active-session-lock body='{
-  "primary": null,
-  "primary_clear_audit_s{N}": {
-    "cleared_at": "<ISO8601_NOW>",
-    "cleared_by": "vulcan-primary-S{N}",
-    "cleared_reason": "<reason>",
-    "pre_clear_state": {
-      "primary_session_id": "<value from §A read>",
-      "primary_started_at": "<value from §A read>"
-    }
-  }
-}' updated_by=vulcan source_ref=S{N}
-```
-
-**Post-patch verification** — confirm both slots reflect intended state:
-
-```bash
-state_request action=get key=infra:active-session-lock
-# Expect: body.worker = null and/or body.primary = null
-# Expect: version incremented by 1
-```
-
-Also check for any orphaned session-status entity:
-
-```bash
-state_request action=get key=session-status:{cleared_session_id}:role=worker
-# If body.ended_at is null, patch it manually (see §H post-recovery checklist)
-```
-
----
-
-## §C Force-release procedure
-
-Use when Primary gateway is **unreachable via MCP** but `gateway_server.py` (proxy) is alive
-(§A step 1 confirms the process is running).
-
-The admin endpoint bypasses the boot gate entirely and is reachable even when no session is open.
-
-```bash
-# Dry run — returns 409 if session appears live, 200 if already clear or confirmed dead
-curl -X POST http://localhost:8767/api/admin/release_role_slot \
-  -H "Content-Type: application/json" \
-  -H "X-Internal-API-Key: $INTERNAL_API_KEY" \
-  -d '{"role": "worker", "session_id": "<session_id>", "force": false}'
-
-# If 409 and ps confirms zero matches, use force=true
-curl -X POST http://localhost:8767/api/admin/release_role_slot \
-  -H "Content-Type: application/json" \
-  -H "X-Internal-API-Key: $INTERNAL_API_KEY" \
-  -d '{"role": "worker", "session_id": "<session_id>", "force": true}'
-```
-
-`INTERNAL_API_KEY` is resolved via Infisical (`ai-market` project). The endpoint emits a
-`role_slot_force_released` audit event in the Living State Event Ledger automatically.
-
-**A 409 with `force=false` means the session appears live.** Do NOT escalate to `force=true`
-without running the ps audit in §B's diagnosis tree first.
-
-**Post-release check:**
-
-```bash
-curl -s http://localhost:8767/api/admin/gate_state | python3 -m json.tool
-# Expect: state=IDLE, active_session_id=null
-```
-
----
-
-## §D Emergency Railway psql procedure (last resort)
-
-Use **only** when both Level 1 (MCP tools) and Level 2 (admin endpoint) are unavailable — the
-gateway process is down and cannot be quickly restarted, or the SQLite registry is corrupt and
-Postgres is the only source of truth.
-
-**Warning:** This path writes directly to Postgres, bypassing the SQLite registry and the audit
-Event Ledger. On the next gateway boot, `session_boot_gate.py` will detect the SHA divergence and
-emit `emergency_psql_recovery_unrecorded` (Gate 1 AC8). That event is the automated paper trail.
-You must also back-fill a `*_clear_audit_s{N}` sub-section via Level 1 once the gateway is back.
-
-**This was the path used at S594** (~2026-05-10T06:54Z): primary slot held by phantom S593
-(emergency-fallback never returned handoff) plus worker slot held by stale S592.W
-(born 2026-05-09T22:29:03Z, 9+ hours old). Both cleared in a single Railway CLI session.
-
-```bash
-# Connect — unset RAILWAY_TOKEN to prevent stale env conflicts
-unset RAILWAY_TOKEN && railway run psql
-```
-
-```sql
--- Step 1: Inspect current state (copy output to your audit trail before touching anything)
-SELECT key,
-       body->'primary'  AS primary_slot,
-       body->'worker'   AS worker_slot,
-       version,
-       updated_at
-FROM living_state_entities
-WHERE key = 'infra:active-session-lock';
-
--- Step 2a: Clear worker slot and write inline audit sub-section
---   Replace S__N__ with the session number (e.g. S594)
-UPDATE living_state_entities
-SET body = jsonb_set(
-        jsonb_set(
-          body,
-          '{worker}',
-          'null'::jsonb
-        ),
-        '{worker_clear_audit_sN}',
-        json_build_object(
-          'cleared_at',     NOW()::text,
-          'cleared_by',     'vulcan-direct-psql',
-          'cleared_reason', 'Emergency psql clear — gateway down, Level 1+2 unavailable',
-          'pre_clear_state', body->'worker'
-        )::jsonb
-      ),
-    version    = version + 1,
-    updated_at = NOW(),
-    updated_by = 'vulcan-direct-psql'
-WHERE key = 'infra:active-session-lock'
-RETURNING key, version, updated_at;
-
--- Step 2b: Clear primary slot (run as a SEPARATE statement)
-UPDATE living_state_entities
-SET body = jsonb_set(
-        jsonb_set(
-          body,
-          '{primary}',
-          'null'::jsonb
-        ),
-        '{primary_clear_audit_sN}',
-        json_build_object(
-          'cleared_at',     NOW()::text,
-          'cleared_by',     'vulcan-direct-psql',
-          'cleared_reason', 'Emergency psql clear — gateway down, Level 1+2 unavailable',
-          'pre_clear_state', body->'primary'
-        )::jsonb
-      ),
-    version    = version + 1,
-    updated_at = NOW(),
-    updated_by = 'vulcan-direct-psql'
-WHERE key = 'infra:active-session-lock'
-RETURNING key, version, updated_at;
-
--- Step 3: Verify both slots are null
-SELECT key,
-       body->'primary' AS primary_slot,
-       body->'worker'  AS worker_slot,
-       version
-FROM living_state_entities
-WHERE key = 'infra:active-session-lock';
-
-\q
-```
-
-**Post-psql recovery steps:**
-
-1. Restart the gateway handler:
-   ```bash
-   launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
-   ```
-2. Wait 10 seconds, then verify `emergency_psql_recovery_unrecorded` appears in the Event Ledger:
-   ```bash
-   state_request action=list kind=infra updated_since=<boot_time>
-   # Look for event_type=emergency_psql_recovery_unrecorded
-   ```
-3. Back-fill the audit trail via Level 1 state_request patch (see §B.1 template), using
-   `cleared_by=vulcan-direct-psql` and the pre-clear state you recorded in Step 1.
-
----
-
-## §E SQLite fallback and corruption recovery
-
-**Symptom:** `/health` returns `registry_mode: memory_only`, or logs contain `SQLITE_FALLBACK`
-or `SQLITE_MIGRATION_ROLLBACK`.
-
-In memory-only mode the gateway is fully functional but lock state is not crash-persistent —
-any gateway restart will lose in-flight session state. Repair promptly.
-
-**Diagnose:**
-
-```bash
-ls -la /var/tmp/koskadeux/registry.db
-sqlite3 /var/tmp/koskadeux/registry.db "PRAGMA integrity_check;"
-sqlite3 /var/tmp/koskadeux/registry.db "SELECT version, name, applied_at FROM schema_migrations ORDER BY version;"
-```
-
-**Rebuild from Postgres mirror (idempotent):**
-
-```bash
-cd /Users/max/koskadeux-mcp
-
-# If DB is corrupt, rollback the hydration migration first
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --rollback 0002
-
-# Re-apply: re-hydrates role_locks + sessions from infra:active-session-lock
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --apply
-
-# Restart gateway to pick up the repaired DB
-launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
-
-# Confirm recovery
-curl -s http://localhost:8767/health | python3 -m json.tool
-# Expect: registry_mode=sqlite
-```
-
-If the `/var/tmp/koskadeux/` directory does not exist (first boot or tmpfs wipe):
-
-```bash
-mkdir -p /var/tmp/koskadeux
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --apply
-```
-
----
-
-## §F iCloud staleness symptom and self-heal
-
-**Symptom** (S596 live recurrence): Worker on laptop reports `parent_session_not_open` on boot
-because `~/Library/Mobile Documents/com~apple~CloudDocs/koskadeux-active-session.json` points to
-a session closed 8+ hours earlier (S594 while backend was at S596).
-
-**Diagnose:**
-
-```bash
-cat ~/Library/Mobile\ Documents/com~apple~CloudDocs/koskadeux-active-session.json \
-  | python3 -m json.tool | grep -E 'primary_session_id|lock_version|updated_at'
-```
-
-Compare `primary_session_id` against `body.primary.session_id` from
-`state_request action=get key=infra:active-session-lock`. If they diverge, the iCloud file is
-stale.
-
-**Post-Gate-2 self-heal:** `tools/icloud_sync.py` fires atomically on every lock UPDATE. Trigger
-a no-op patch to force a sync:
-
-```bash
-state_request action=patch key=infra:active-session-lock \
-  body='{"_icloud_sync_force": true}' \
-  updated_by=vulcan source_ref=manual-icloud-sync
-```
-
-Verify within 5 seconds:
-
-```bash
-cat ~/Library/Mobile\ Documents/com~apple~CloudDocs/koskadeux-active-session.json \
-  | python3 -m json.tool | grep lock_version
-# Expect: lock_version strictly greater than the stale value
-```
-
-**Note on propagation lag:** The local CloudDocs write completes in ≤50ms. Cloud-side propagation
-to other devices is OS-managed and can take 30+ seconds under network load. A >30s iCloud
-propagation delay is NOT a registry bug (Gate 2 RB10). The Worker bootstrap should retry with
-a 60s polling window before declaring staleness.
-
----
-
-## §G Migration runbook
-
-```bash
-# Check what migrations are applied
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --status
-
-# Apply all pending migrations (also runs automatically on gateway boot)
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --apply
-
-# Roll back to a specific version
-python3 scripts/migrate_session_registry.py \
-  --db /var/tmp/koskadeux/registry.db --rollback 0002
-
-# Direct schema inspection
-sqlite3 /var/tmp/koskadeux/registry.db \
-  "SELECT version, name, applied_at FROM schema_migrations ORDER BY version;"
-```
-
-**Registered migrations:**
-
-| Version | Name | Notes |
-|---------|------|-------|
-| 0001 | `create_initial_schema` | sessions, role_locks, close_transactions, schema_migrations tables |
-| 0002 | `hydrate_from_postgres` | One-shot Postgres→SQLite hydration from `infra:active-session-lock`; idempotent |
-| 0003 | `drop_role_locks` | Removes the legacy `role_locks` table |
-| 0004 | `s805_instance_registry` | Rebuild `sessions` to a `session_id`-aware instance registry (S805) |
-| 0005 | `null_instance_backfill_not_null` | Backfill + enforce `NOT NULL` on `instance` (rollback path re-allows nullable for tests) |
-| 0006 | `scratch_instance_namespace` | Rebuild the `sessions` instance PK CHECK to admit the non-human `scratch` row (S858 agent-session isolation) |
-
-> This table can drift behind reality. The **live `schema_migrations` table is authoritative** for
-> exactly which migrations are applied; as of S869 the live DB is at version `0006`. Verify with the
-> Direct schema inspection command above before assuming a version.
-
-**On `SQLITE_MIGRATION_ROLLBACK` in logs:** The migration failed mid-run; DB was preserved at
-pre-migration state; gateway entered memory-only mode. Steps:
-
-1. Check sentinel logs for the exception.
-2. Fix the root cause (usually a missing Postgres entity or schema mismatch).
-3. Re-run `--apply`. It will re-attempt only the failed migration (idempotent).
-4. Restart the gateway.
-
-**Schema additions are append-only.** Existing column names and types are frozen for backward
-compatibility with Worker bootstrap logic reading the iCloud lock-pointer JSON (Gate 2 Q-B3
-resolution).
-
-**Back up the registry before any restart that may auto-run a new migration.** `--apply` also runs
-automatically on gateway boot, so a restart can apply a brand-new migration unattended. Snapshot first:
-
-```bash
-cp /var/tmp/koskadeux/registry.db \
-   /var/tmp/koskadeux/registry.db.$(date -u +%Y%m%dT%H%M%SZ).bak
-```
-
-**Idempotency is keyed on the actual table shape, not the `schema_migrations` version row.**
-`apply_*_migration` decides whether to run by inspecting the live DDL (for example, whether the
-`sessions` instance CHECK already contains `scratch`), NOT by reading the version number in
-`schema_migrations`. The version row can therefore disagree with the real applied schema (a known
-hazard after test mutation of the live DB, see the §A HAZARD). Always confirm applied state by
-inspecting the live schema (`sqlite3 .../registry.db ".schema sessions"`), not the version row alone.
-
----
-
-## §H Operator escalation tree
-
-```
-Lock intervention needed?
-         │
-         ▼
-§A checks pass?
-    no ──► Restart handler/proxy; wait 15s; re-check §A
-    yes
-         │
-         ▼
-Is blocker a stale/phantom slot with zero ps evidence?
-    no  ──► Do NOT clear without Vulcan-Primary confirmation.
-            Surface evidence; wait for authorization.
-    yes
-         │
-         ▼
-Primary gateway MCP-reachable?
-    yes ──► Level 1: state_request patch (§B.1)
-    no
-         │
-         ▼
-Gateway HTTP process alive (gateway_server.py running)?
-    yes ──► Level 2: admin endpoint (§C)
-    no
-         │
-         ▼
-Level 3: Railway psql (§D) — last resort
-```
-
-**Post-recovery checklist** (required after any level):
-
-- [ ] `state_request get infra:active-session-lock` — cleared slots show `null`
-- [ ] `session-status:{cleared_id}:role=worker` entity has `body.ended_at` populated
-- [ ] iCloud file `lock_version` matches or exceeds entity version (§F)
-- [ ] `worker_clear_audit_s{N}` or `primary_clear_audit_s{N}` sub-section written to entity
-- [ ] If Level 3 used: `emergency_psql_recovery_unrecorded` event appears in Event Ledger post-boot
-
-**Escalate to Max (Vulcan-Primary) when:**
-- Two recovery attempts at the same level have failed
-- `force=true` would target a session_id you cannot confirm is dead
-- Railway psql connection fails or returns unexpected row counts
-- `emergency_psql_recovery_unrecorded` fires but you did not perform a psql session
-
-**Cross-references:**
-
-- Gate 1 AC2 (force-release endpoint design): `specs/BQ-KOSKADEUX-SESSION-REGISTRY-DISK-BACKED-S594.md` §AC2
-- Gate 1 AC6 (iCloud auto-sync hook): `specs/BQ-KOSKADEUX-SESSION-REGISTRY-DISK-BACKED-S594.md` §AC6
-- Gate 1 AC8 (`emergency_psql_recovery_unrecorded` server-side enforcement): `specs/BQ-KOSKADEUX-SESSION-REGISTRY-DISK-BACKED-S594.md` §AC8
-- Gate 2 build spec (this BQ): `specs/bq-koskadeux-session-registry-disk-backed-s594-gate2-build.md` §4.10, §9
-- Admin endpoint implementation: `tools/admin_endpoints.py`
-- iCloud sync hook: `tools/icloud_sync.py`
-- Live-process audit: `tools/process_audit.py`
-- SQLite registry + CAS: `tools/registry.py`
-- Migration runner: `scripts/migrate_session_registry.py`
