@@ -72,13 +72,15 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 
 ## API connection
 
-Backend URL configured via `NEXT_PUBLIC_API_URL` in `.env`. Points to `api.ai.market` (Railway internal URL in production). API rewrites configured in `next.config.ts` for AI discovery endpoints.
+Backend URL configured via `NEXT_PUBLIC_API_URL` (authoritative source is the **Railway `ai-market-frontend` service variable** — Next.js inlines `NEXT_PUBLIC_*` at build; the committed `.env` is gitignored and does NOT drive the Railway build).
+
+**MUST be `https://api.ai.market`, never the raw Railway host (`…up.railway.app`).** The refresh cookie is `SameSite=Lax`, so the API must be the same site as `ai.market` or the browser withholds the cookie and every reload logs the user out. Full reasoning + verification: [browser-session-auth.md](browser-session-auth.md). API rewrites configured in `next.config.ts` for AI discovery endpoints.
 
 ## Configuration
 
 | Variable | Purpose |
 |----------|--------|
-| `NEXT_PUBLIC_API_URL` | Backend API base URL |
+| `NEXT_PUBLIC_API_URL` | Backend API base URL — MUST be `https://api.ai.market` (same-site as the web app; see browser-session-auth.md). Set on the Railway frontend service. |
 | `API_URL` | Server-side API URL (same) |
 
 ## SEO

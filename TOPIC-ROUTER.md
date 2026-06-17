@@ -41,7 +41,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md).
 
-**Auth** — sign-up / login path: [auth-signup-flow.md](auth-signup-flow.md). 2FA: [two-factor-auth.md](two-factor-auth.md).
+**Auth** — sign-up / login path: [auth-signup-flow.md](auth-signup-flow.md). **Login sessions surviving reload (in-memory access token + httpOnly refresh cookie, the same-site invariant, browser verification discipline):** [browser-session-auth.md](browser-session-auth.md). 2FA: [two-factor-auth.md](two-factor-auth.md).
 
 **CRM** — architecture, pipeline, target state: [crm-architecture.md](crm-architecture.md) · [crm-pipeline.md](crm-pipeline.md) · [crm-target-state.md](crm-target-state.md).
 
