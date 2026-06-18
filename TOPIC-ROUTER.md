@@ -97,3 +97,5 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 ---
 Every runbook above is registered here; `scripts/router_drift_check.py` enforces coverage + that every link resolves. Add new runbooks to a subject line above in the same change that creates them.
+
+**GitHub reconciliation webhook** — single webhook + event routing, setting `GITHUB_WEBHOOK_SECRET` (Infisical record + Railway-env operational reality), activation + verification: [reconciliation-github-webhook.md](reconciliation-github-webhook.md).

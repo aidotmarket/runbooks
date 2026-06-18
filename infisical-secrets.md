@@ -130,3 +130,5 @@ As of S533, three Infisical secret names hold (or have held) the same Vertex Exp
 - `VERTEX_GEMINI_KEY` — canonical name targeted by `BQ-LLM-EMBEDDING-VERTEX-MIGRATION` Gate 2
 
 Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
+
+- **App-read secrets live in the Railway env, not loaded from Infisical at runtime (S942).** Infisical is wired only for the SysAdmin agent skill (`infisical_ops.py`); the FastAPI app reads secrets such as `GITHUB_WEBHOOK_SECRET` from its process env = a Railway variable on `ai-market-backend`. A value placed only in Infisical will NOT reach the app — also set the Railway variable, then redeploy. (BQ-RAILWAY-INFISICAL-SYNC manual-sync class.) See `reconciliation-github-webhook.md` §E.
