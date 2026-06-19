@@ -112,6 +112,24 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 | Stripe webhook failures | Check webhook signing secret | Verify `STRIPE_WEBHOOK_SECRET` in Infisical |
 | Customer sees `/login?error=oauth_failed` after Google/GitHub consent | Sign-up path failure — check `app/auth/oauth.py:408` `ensure_user_crm_identity` is NOT raising and rolling back the auth transaction | See `auth-signup-flow.md` for full architecture, known issues, diagnostic procedure, and backfill |
 
+## API error mapping — DB constraint violations → HTTP status
+
+**Principle:** a violated DB constraint is a client / business-rule error, not a server fault. Any endpoint that writes under constraints MUST translate the resulting SQLAlchemy `IntegrityError` into a 4xx with a clear `detail` — never let it bubble to a raw 500. Detect the specific constraint via the asyncpg structured attribute `exc.orig.constraint_name` (SQLAlchemy wraps asyncpg's `UniqueViolationError` / `CheckViolationError` as `IntegrityError`), with a substring fallback on `str(exc.orig)`.
+
+**Worked example — `POST /api/v1/allai/peer-messages`** (`app/api/v1/endpoints/peer_messages.py`, `send_peer_message`):
+
+| Constraint | Type | Meaning | HTTP status | Notes |
+|---|---|---|---|---|
+| `uq_peer_messages_claim_ref_entity_utc_day` | UNIQUE (partial) | one claim per (kind, ref_entity, UTC-day) | 200 idempotent (same-instance re-claim) / 409 conflict (cross-instance) | translated in the `IntegrityError` handler |
+| `ck_peer_messages_claim_ref_entity_required` | CHECK | `kind <> 'claim' OR ref_entity IS NOT NULL` — a claim must carry a ref_entity | 422 | reachable: a `claim` sent with null `ref_entity` |
+| `ck_peer_messages_ack_required_for_request_alert` | CHECK | `(kind NOT IN ('request','alert')) OR requires_ack` | 422 (generic) | UNREACHABLE via this handler — it forces `requires_ack=True` for request/alert kinds; mapped generically for future-proofing only |
+
+**Implementation rule:** match the `ck_peer_messages_` constraint-name prefix *generically* (one branch) so any future CHECK on this table returns 422, not 500. Only genuinely-unknown `IntegrityError`s re-raise.
+
+**Operator note:** the peer bus enforces these at the DB layer. If a `peer_msg_send` claim fails, the cause is almost always a missing `ref_entity` — always send claims WITH a `ref_entity` (see `peer-instance-discipline.md`).
+
+**History:** before the S960 fix the CHECK path surfaced as a raw 500 (the handler only translated the unique-index violation). The 422 mapping ships with `BQ-PEER-MESSAGES-CHECK-VIOLATION-422-S960` — _backend change in flight at time of writing; replace this line with the merge commit SHA once on main._
+
 ## Customer data: where it lives, and how to delete or reset an account
 
 All customer and account data lives in the **PostgreSQL `Postgres` service** of the `ai-market` Railway project (production environment). That is the single source of truth for customer identity. Qdrant and Redis hold only derived or transient data, and raw seller data never leaves the seller's own AIM Data install.
