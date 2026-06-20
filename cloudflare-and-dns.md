@@ -93,7 +93,7 @@ Source: `/Users/max/Projects/ai-market/cf-get-worker` (repo `aidotmarket/cf-get-
 
 Routes (from `wrangler.toml`):
 
-- `get.ai.market/aim-data*` — proxies from `aidotmarket/vectoraiz` repo (`installers/aim-data/install.sh`, `install.ps1`; `docker-compose.aim-data.yml`)
+- `get.ai.market/aim-data*` — proxies from `aidotmarket/aim-data` repo (`installers/aim-data/install.sh`, `install.ps1`; `docker-compose.aim-data.yml`)
 - `get.ai.market/aim-node*` — proxies from `aidotmarket/aim-node` repo
 - `get.ai.market/` — landing page
 
