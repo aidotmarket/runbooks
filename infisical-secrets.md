@@ -64,11 +64,33 @@ curl -s "https://secrets.ai.market/api/v3/secrets/raw?workspaceId=<PROJECT_ID>&e
 
 ## Machine Identities
 
+> Verified S964 (2026-06-20): headless chain confirmed live end-to-end; client secret is non-expiring; `CLOUDFLARE_API_TOKEN` resolves headlessly from `ai-market-backend`/prod.
+
 ### sysadmin-agent
-- **Purpose**: SysAdmin AI agent automated access
-- **Auth**: Token Auth (non-expiring)
-- **Scope**: Admin on all 3 projects
-- **Token location**: Titan-1 `/Users/max/.config/infisical/sysadmin-token`
+- **Identity ID**: `62f1bfac-3e07-4f4e-b15d-42f1bbcc9f5e`
+- **Purpose**: SysAdmin AI agent + unattended jobs on Titan-1 (gateway secret injection, agent skills)
+- **Org role**: Admin on all 3 projects (ai-market-backend, ai-market-frontend, koskadeux-mcp)
+- **Active auth method**: **Universal Auth** (client-id + client-secret). The identity also has a Token Auth method configured, but Universal Auth is the operative login path on Titan-1 (Last Login Method = Universal Auth). Do not assume the cached token file is a static Token-Auth token — it is a re-minted Universal-Auth JWT (below).
+- **Client ID** (non-secret): `b45b755e-455b-4b32-815c-274529edc04d`
+- **Client secret expiry**: **never** (EXPIRES = "-" in the UI; ~500+ uses). No rotation clock. If you ever rotate, add a new secret with TTL=0 / Max Uses=0, update the keychain (below), verify, then revoke the old one.
+
+#### Headless auth chain on Titan-1 (how the token file stays alive)
+The file `~/.config/infisical/sysadmin-token` is **not** a static token — it is a short-lived Universal-Auth JWT (Access Token TTL 86400s/24h) that is continuously re-minted. Do not treat it as permanent.
+
+1. Universal-auth creds live in the **macOS keychain** under account `infisical-sysadmin-agent`:
+   `security find-generic-password -a infisical-sysadmin-agent -s infisical-client-id` (and `-s infisical-client-secret`). Domain comes from `~/.config/infisical/api-domain` (= `https://secrets.ai.market/api`).
+2. `~/bin/infisical_auth_refresh.sh` reads those creds, runs `infisical login --method=universal-auth --silent --plain`, and writes the JWT to `~/.config/infisical/sysadmin-token` (chmod 600). Idempotent and **non-interactive — safe to run anytime to verify**.
+3. `com.koskadeux.infisical-token-refresh` LaunchAgent runs the refresh every 6h (RunAtLoad). Errors → `/var/tmp/koskadeux/token-refresh.err`.
+4. The gateway launches via `~/bin/launch_with_infisical.sh`, which refreshes the token first (S760) then `exec`s `infisical run --token=<jwt> --silent -- gateway_server.py`. The `--token` form is non-interactive and never triggers the login popup.
+
+**Failure mode (root trigger behind the lost-handoff incidents):** if the keychain creds go missing or the client secret expires, the refresh `login` fails, and an `infisical run` without a valid token falls back to interactive auth, which hangs/degrades the gateway on (re)start and can drop in-memory session state. Mitigated today because the client secret is non-expiring and S760 refreshes before launch — but a missing keychain entry would re-trigger it. To verify health: run `~/bin/infisical_auth_refresh.sh` and check the JWT `exp` on the token file.
+
+**Rotate keychain creds** (after creating a new non-expiring client secret in the UI):
+```bash
+security add-generic-password -U -a infisical-sysadmin-agent -s infisical-client-secret -w '<NEW_SECRET>'
+~/bin/infisical_auth_refresh.sh >/dev/null && echo OK   # mints a fresh JWT
+```
+No gateway restart needed — the next scheduled refresh / next launch picks it up. Coordinate on the peer bus before restarting `com.koskadeux.gateway` / `-infisical-token-refresh` / `-mcp`; a cycle blips any live MCP build.
 
 ## Secret Rotation
 
@@ -132,3 +154,11 @@ As of S533, three Infisical secret names hold (or have held) the same Vertex Exp
 Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
 
 - **App-read secrets live in the Railway env, not loaded from Infisical at runtime (S942).** Infisical is wired only for the SysAdmin agent skill (`infisical_ops.py`); the FastAPI app reads secrets such as `GITHUB_WEBHOOK_SECRET` from its process env = a Railway variable on `ai-market-backend`. A value placed only in Infisical will NOT reach the app — also set the Railway variable, then redeploy. (BQ-RAILWAY-INFISICAL-SYNC manual-sync class.) See `reconciliation-github-webhook.md` §E.
+
+### `INFISICAL_PROJECT_ID` on Titan-1 points at koskadeux-mcp, not the backend (S964)
+
+The shell env on Titan-1 exports `INFISICAL_PROJECT_ID` = the **koskadeux-mcp** project (`0943f641…`) — gateway/council secrets like `DEEPSEEK_API_KEY`. Backend secrets (`CLOUDFLARE_API_TOKEN`, `AWS_*`, billing, etc.) live in **ai-market-backend** (`bd272d48…`). If you run `infisical secrets get FOO` without `--projectId`, you query koskadeux-mcp and a backend-only secret comes back **empty** (rc=0, len 0) — not missing, just the wrong drawer. Always pass `--projectId` explicitly for cross-project reads.
+
+### `infisical secrets delete` defaults to `--type personal` (S964)
+
+A plain `infisical secrets delete NAME` under machine-identity auth returns `400 Bad Request — Must be user to delete personal secret`, because the CLI default is `--type personal` and machine identities have no personal secrets. To delete a normal (shared) secret, pass `--type shared` explicitly.
