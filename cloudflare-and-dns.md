@@ -20,7 +20,7 @@ Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.c
 | Active zones | `ai.market` (id `f82ac6762af544d71e8ad5eb3d7fca0c`), `vectoraiz.com` (id `401a4cf862898bc4dd6d03e2a0f50273`) |
 | API token | `CLOUDFLARE_API_TOKEN` in Infisical `ai-market-backend` project (id `bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod` |
 
-The API token in Infisical has zone read + Worker scripts read/write permissions but **does not** include Cloudflare Tunnel (`cfd_tunnel`) or Worker Routes scopes — both of those endpoints return `10000 Authentication error` with the current token. If you need to manage tunnels or routes via API, mint a new token with those scopes; otherwise use the dashboard or `cloudflared` CLI for tunnels and `wrangler` for routes.
+The API token in Infisical has zone read + DNS edit + Worker scripts read/write + **Workers-KV read/write** (KV write confirmed live S964 — created + deleted a temp namespace via API) but **does not** include Cloudflare Tunnel (`cfd_tunnel`) or Worker Routes scopes — both of those endpoints return `10000 Authentication error` with the current token. (Note: this is an account-scoped token, so `GET /user/tokens/verify` returns "Invalid API Token" even though the token works for resource operations — verify is user-level. Don't be alarmed by that endpoint.) If you need to manage tunnels or routes via API, mint a new token with those scopes; otherwise use the dashboard or `cloudflared` CLI for tunnels and `wrangler` for routes.
 
 ## DNS records (live inventory)
 
@@ -48,7 +48,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 |------|------|--------|
 | MX | `ai.market` | `aspmx.l.google.com`, `alt1` … `alt4.aspmx.l.google.com` (5 records, Google Workspace) |
 | MX | `send.ai.market` | `feedback-smtp.us-east-1.amazonses.com` (SES outbound subdomain) |
-| TXT | `ai.market` | `v=spf1 include:_spf.google.com … include:amazonses.com …` |
+| TXT | `ai.market` | `v=spf1 include:_spf.google.com ~all` — apex is Google-Workspace-only; **deduped S964** from a triplicate `include:_spf.google.com` that risked the RFC 7208 10-lookup permerror. SES/Resend mail aligns via the `send.ai.market` Return-Path subdomain (rows below), not the apex. |
 | TXT | `ai.market` | `google-site-verification=EUpRHpNxWk_…` |
 | TXT | `_dmarc.ai.market` | `v=DMARC1; p=none;` |
 | TXT | `resend._domainkey.ai.market` | `p=MIGfMA0GCSqGSIb3DQEBAQU…` (Resend DKIM) |
@@ -324,7 +324,7 @@ These are the gaps between documented state and live state, discovered during th
 
 5. **`com.koskadeux.cloudflared` LaunchAgent is NOT decommissioned.** The `config:resource-registry` description marks it as "stale/redundant — SysAdmin follow-up to decommission." It's currently the only thing keeping `mcp.ai.market` reachable. *Action:* before any decommission, complete drift item 1.
 
-A sixth, related item: **The Cloudflare API token in Infisical lacks Worker Routes + Cloudflare Tunnel scopes.** Both endpoints return `10000 Authentication error`. Not urgent — dashboard and `cloudflared` CLI cover those surfaces — but the token should be widened or split if we want Workers-routes verification fully API-driven.
+A sixth, related item: **The Cloudflare API token in Infisical lacks Worker Routes + Cloudflare Tunnel scopes.** Both endpoints return `10000 Authentication error`. Not urgent — dashboard and `cloudflared` CLI cover those surfaces — but the token should be widened or split if we want Workers-routes verification fully API-driven. (Workers-KV edit, by contrast, IS present — confirmed S964.)
 
 ## Verification quick reference
 
@@ -380,6 +380,7 @@ List active Workers:
 - **2026-04-09** — `get-ai-market` Worker shipped (repo `aidotmarket/cf-get-worker`); canonical installer hub for AIM Data + AIM Node.
 - **Pre-S572** — Resource registry + `mcp-gateway.md` claim Tailscale Funnel replaced Cloudflare Tunnel for `mcp.ai.market`. **Migration did not complete** — cloudflared remains the active transport (S688 verification).
 - **S688 (2026-05-22)** — Live audit; this runbook authored. Five drift items filed.
+- **S964 (2026-06-20)** — Apex `ai.market` SPF deduped: a triplicate `include:_spf.google.com` (≈10–12 nested lookups, at/over the RFC 7208 limit → permerror risk) collapsed to a single include (`v=spf1 include:_spf.google.com ~all`). Verified live at the authoritative NS. `send.ai.market` (amazonses) unchanged. Original backed up on Titan-1. Also confirmed the token carries Workers-KV edit scope.
 
 ## References
 
