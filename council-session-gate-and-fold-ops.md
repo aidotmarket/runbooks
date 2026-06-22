@@ -14,7 +14,7 @@ Owner: Vulcan/Mars (either instance). Last verified live: 2026-06-12 (S830). Cov
 
 1. Code reviewed BEFORE restart: builder ≠ reviewer; at minimum one instance reads the full production diff plus DS +1 on code changes.
 2. Merge to origin/main and verify with `git fetch && git log origin/main` (the pre-push hook emits spurious ref-lock errors — trust the fetch, not the push exit code).
-3. Safe point: MP/CC mutex idle (no builds in flight — a restart orphans them), XAI local processes collected, peer instance informed (it will need to re-arm).
+3. Safe point: MP/CC mutex idle (no builds in flight — a restart orphans them), peer instance informed (it will need to re-arm). (XAI grok bridge retired S994 — no local reviewer process to collect; GLM reviewers run remotely via OpenRouter.)
 4. Restart DETACHED so the kill doesn't sever the issuing call: `shell_request action=background: sleep 3 && launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`.
 5. NEVER touch `com.koskadeux.cloudflared` (load-bearing transport) or `com.koskadeux.gateway` (the :8767 proxy) unless that is explicitly the target.
 6. Verify: new pid in `launchctl list | grep com.koskadeux.mcp`, `curl localhost:8765/health` shows the expected version, checkout tip is the deployed SHA. Then re-arm (§A). Note: the :8767 proxy may report a stale version in boot payload service_health — the :8765 health endpoint is authoritative.
@@ -28,7 +28,7 @@ Canonical gate-status vocabulary the middleware recognizes (free-text statuses a
 - `AUTHORING_IN_FLIGHT` — a dispatch holds the lease (bound_dispatch_id + lease_expires_at).
 - `AUTHORED_PENDING_REVIEW` — authoring complete; NOT authorable until a review outcome is recorded.
 - `APPROVED` / `REJECTED` — terminal for authoring.
-Record review outcomes by transitioning the gate status to the canonical word (e.g. XAI verdict REQUEST_CHANGES → gate status REQUEST_CHANGES), preserving round detail in sibling fields.
+Record review outcomes by transitioning the gate status to the canonical word (e.g. GLM verdict REQUEST_CHANGES → gate status REQUEST_CHANGES), preserving round detail in sibling fields.
 
 Author-mode credentials:
 - Gate 1 only: dispatch `mode=author` with NO dispatch_id / dispatch_token / target_gate — the gateway auto-signs (passing ANY of the three disables auto-sign and demands a real token; target_gate then defaults to 1).
@@ -46,7 +46,7 @@ Author-mode credentials:
 ## E. Reviewer quirk armor (quick reference; canonical roster in infra:council-comms)
 
 - DS: inline the FULL spec or diff (no filesystem access); demand raw JSON, no fences, first char `{`, explicit schema, ≤3 findings.
-- XAI: content-cited only — inline what it must judge; verify every citation; `cwd=/tmp` on deliberation tasks.
+- GLM (z-ai/glm-5.2, `agent=glm`): content-cited only (file-reading not wired) — inline the diff/what it must judge; demand verbatim-quote citations and verify each against the diff; watch its nested-quote-garble quirk (cosmetic, not line-number fabrication). XAI RETIRED S994 (Max go) — grok bridge no longer a standard reviewer; see infra:council-comms.
 - MP: 1200s hard cap — every build/fold prompt mandates commit+push per item.
 - AG (Gemini/Vertex) review-mode WORKS as of S833: the preload union-type schema rejection (S829) is fixed (87b7a541, nullable form) and the post-Vertex telemetry NoneType crash is fixed (d4d4c3d4); both live (MCP 1.10). AG was `open_response`-only until this deploy. Still defaults to ACTION — include READ-ONLY for non-build tasks; inline the diff and keep prompts tight (turn-budget).
 - Review-mode `verdict_target_branch` persistence currently returns `branch_missing` even when the branch exists — capture verdict text from the task record and persist to state/branch manually.

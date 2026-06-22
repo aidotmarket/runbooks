@@ -12,6 +12,10 @@
 
 # Agent Dispatch Runbook
 
+## Council roster (current — canonical: infra:council-comms)
+
+Standard cross-vote reviewers are **MP + DeepSeek + GLM** (infra:council-comms v42, S994). **XAI is RETIRED** (Max go, S994 — supersedes the S786 comparison reactivation). **AG is optional-only** (retired from standard review S899) and is the file-reading third for security/auth/money 3/3 unanimous until GLM file-reading is wired. GLM dispatches via `agent=glm` (its own slot; the live server accepts it even if the client tool enum omits it), is content-cited only (file-reading not wired), and has a minor recurring quirk of garbling verbatim reproduction of string literals containing quotes — verify quoted code against the diff. Canonical roster + per-agent quirks live in `infra:council-comms`.
+
 ## §C Architecture
 
 MP build and review dispatches use the Codex CLI bridge. For
@@ -432,7 +436,7 @@ Dispatch contract:
   entry with `missing_verdict_target_branch`.
 - Verdict filenames are `specs/<bq_slug>-r<round>-<reviewer>.md`. Reviewer keys
   are `ag`, `mp`, and `ds`; `agent=deepseek` maps to `ds`. If round is absent,
-  the handler writes under `r1`.
+  the handler writes under `r1`. (GLM joined the standard roster S994 — confirm the handler's reviewer-key mapping for `agent=glm` before relying on GLM verdict-file persistence; the keys listed here predate the flip.)
 
 Failure modes:
 
