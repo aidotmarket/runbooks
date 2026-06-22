@@ -48,7 +48,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Ops dashboards / build queue** — ops.ai.market panels: [ops-ai-market.md](ops-ai-market.md). Build queue lifecycle: [build-queue-lifecycle.md](build-queue-lifecycle.md). Marketing tab: [marketing-tab.md](marketing-tab.md). Morning briefing: [morning-briefing.md](morning-briefing.md).
 
-**Support tickets** — the ai.market support/trouble ticket engine: live API surface, three-principal auth model, ticket-scoped role bindings, rate limits + duplicate-subject collapse, DLQ/quarantine admin triage, email intake go-live (Max-gated `GMAIL_POLLING_ENABLED`), and what is not yet live: [support-ticket-system.md](support-ticket-system.md).
+**Support tickets** — the ai.market support/trouble ticket engine: live API surface, three-principal auth model, ticket-scoped role bindings, rate limits + duplicate-subject collapse, DLQ/quarantine admin triage, the agent management MCP tools (`support_ticket_list/get/patch/message`), email intake go-live (Max-gated `GMAIL_POLLING_ENABLED`), and what is not yet live: [support-ticket-system.md](support-ticket-system.md).
 
 **Session lifecycle / state** — where session state lives: [mcp-gateway.md](mcp-gateway.md). Task state: [task_state.md](task_state.md). Consolidated lifecycle: [session-lifecycle.md](session-lifecycle.md).
 

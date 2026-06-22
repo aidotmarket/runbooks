@@ -3,7 +3,7 @@
 ## §A. Header
 **Owner surface:** ai.market support/trouble ticket engine (ai-market-backend `app/api/v1/endpoints/support.py`, `app/services/support_ticket_service.py`, `app/api/v1/dependencies/support_ticket_auth.py`, `app/tasks/scheduled.py`). One ticket system for dev, ops, and customer issues, operated by agents with human escalation on risk.
 **Spec source of truth:** `specs/BQ-SUPPORT-TICKET-SYSTEM-S811-GATE1.md` (Gate 1 design + Gate 2 R1 changelog + **Amendment A1 / S819** schema reconciliation). Do not relitigate the decision record in §2/§14 of that spec.
-**Last verified live:** 2026-06-15 (S851 — added dev-ticket/BQ taxonomy + corrected console status; engine MVP verified 2026-06-11/S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
+**Last verified live:** 2026-06-22 (S987 — added agent management MCP tools `support_ticket_list/get/patch/message`, backend-shape verified vs `support.py`; S851 added dev-ticket/BQ taxonomy; engine MVP verified 2026-06-11/S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
 
 ## §B. Capability Matrix
 **Live as of 2026-06-11:**
@@ -13,6 +13,7 @@
 - Seven internal-only admin endpoints: metrics, DLQ list/retry/drop, quarantine list/release/drop.
 - Celery email-intake task with transient-retry backoff and per-message failure capture into the DLQ.
 - **Admin/ops ticket console (S851):** live ops console panel at `ops-ai-market/src/components/tickets/TicketsPanel.tsx` (C3c merge) — the operator surface for the seven admin endpoints.
+- **Agent management MCP tools (S987):** `support_ticket_list / get / patch / message` in koskadeux-mcp `tools/support_ticket.py` — the agent interface for enumerating, reading, triaging, and replying to tickets under the internal principal. Require an MCP server reload to go live after merge.
 
 **NOT live (Phase 2+ / in flight):**
 - Agent skills (triage_ticket, suggest_resolution) — shadow-mode design only, not shipped.
@@ -25,7 +26,7 @@
 A ticket (`support_ticket`) holds a thread of `support_message` rows. Every requester is keyed by `requester_key` = `COALESCE(party_id, actor_type:actor_id)`; rate limits and duplicate collapse are enforced on that key. Email arriving at support@ai.market is parsed by `process_support_inbound_email`, which either attaches a message to an existing ticket, opens a new one, or — when intake is unsafe — writes a durable row to `support_email_dlq` (lost/unprocessable mail) or `support_email_quarantine` (sender/ticket mismatch) instead of silently dropping or mis-attaching. CRM/allAI surfaces read denormalized ticket metadata; they do not infer ticket state from message bodies. The customer-data surface (endpoints + email durability, chunks C2 + C2b) passed one unanimous Gate 3 over the combined diff.
 
 ## §D. Agent Capability Map
-Either Vulcan instance operates this runbook. Admin triage (DLQ/quarantine review) is internal-only — it requires the internal API key principal (§E auth model), never a customer or external-agent key. Schema changes to any support table require **MP schema review before dispatch** (schema gate, per Amendment A1) and must check `alembic heads` for multiple heads first. The `GMAIL_POLLING_ENABLED` flip is a **Max-gated** ops step, not an agent decision.
+Either Vulcan instance operates this runbook. Admin triage (DLQ/quarantine review) is internal-only — it requires the internal API key principal (§E auth model), never a customer or external-agent key. Schema changes to any support table require **MP schema review before dispatch** (schema gate, per Amendment A1) and must check `alembic heads` for multiple heads first. The `GMAIL_POLLING_ENABLED` flip is a **Max-gated** ops step, not an agent decision. Agents enumerate and work tickets through the `support_ticket_*` Koskadeux MCP tools (§E — Agent operate interface), not raw curl; ops-class tickets can be diagnosed with the SysAdmin `diagnose_ops_ticket` skill, which attaches an internal ops-diagnosis message to the ticket.
 
 ## §E. Operate
 
@@ -46,6 +47,16 @@ Visibility rules:
 - `GET /tickets` (filters: status, issue_class, party, q, limit/offset), `GET /tickets/{public_ref}`, `GET /tickets/mine` (customer-scoped; rejects internal/party-less callers).
 - `PATCH /tickets/{public_ref}` (status/assignee/priority) — **internal only**.
 - `GET /tickets/{public_ref}/messages`, `POST /tickets/{public_ref}/messages` — customers may only post `direction='inbound'`; `internal` direction requires the internal principal.
+
+### Agent operate interface — Koskadeux MCP tools (S987)
+Agents do not curl the API directly — they use `tools/support_ticket.py` in `koskadeux-mcp`, which wraps the `/api/v1/support` routes with the **internal** principal (`_get_internal_headers()`), so every call sees all tickets and may PATCH and post internal/outbound messages. The five tools:
+- `support_ticket_create` — open a dev/ops/customer ticket.
+- `support_ticket_list` — enumerate the queue (filters `status`, `issue_class`, `q`, `party`, `limit`, `offset`); returns `{tickets, count}`. Read-only.
+- `support_ticket_get` — one ticket by `public_ref`; `include_messages=true` also returns the thread. Read-only.
+- `support_ticket_patch` — set `status` / `priority` / `risk_score` (bounded 0.0-1.0) / `human_required`. Assignee fields exist on the backend but are intentionally not exposed yet.
+- `support_ticket_message` — `action="list"` reads the thread, `action="post"` appends a reply. **`direction` defaults to `outbound`** (agent to customer); pass `direction="internal"` for an internal-only note. The default exists because the backend `MessageCreateRequest` defaults to `inbound` — posting without it would mis-record agent replies as customer-origin.
+
+**Reload caveat:** a freshly merged or changed tool is not callable until the running koskadeux MCP server restarts.
 
 ### Rate limits & duplicate collapse
 - **30 tickets/hour and 120 messages/hour per `requester_key`.** Enforced inside the create transaction: a single `INSERT ... ON CONFLICT DO UPDATE ... RETURNING count` on `support_rate_counter`; if the returned count exceeds the limit the transaction is rolled back and the request gets **429**.
@@ -107,7 +118,7 @@ The support engine's `issue_class='dev'` is the home for **trouble tickets**: sm
 This runbook is correct when: the three principal classes and their visibility rules match `support_ticket_auth.py`; the seven admin endpoints and their internal-only guard match `support.py`; DLQ/quarantine reasons match the strings emitted in `support_ticket_service.py` and `scheduled.py`; the rate limits read 30 tickets/hour and 120 messages/hour; `collapsed` is described as fold-into-existing with the cross-boundary race called an accepted residual; and the go-live section states that polling is Max-gated and currently off.
 
 ## §J. Lifecycle
-Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics. Updated S851 (2026-06-15): added the dev-ticket vs Build Queue taxonomy + batch-triage cadence (§H) and corrected the console capability (§B); see Living State `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`.
+Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics. Updated S851 (2026-06-15): added the dev-ticket vs Build Queue taxonomy + batch-triage cadence (§H) and corrected the console capability (§B); see Living State `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`. Updated S987 (2026-06-22): added the agent management MCP tools (§B/§D/§E) — `support_ticket_list/get/patch/message` in koskadeux-mcp — plus the SysAdmin `diagnose_ops_ticket` reference; see Living State `build:bq-support-ticket-management-mcp-tooling-s986` (merged main e9007524).
 
 ## §K. Conformance
 Registered in TOPIC-ROUTER.md under "Support tickets". `scripts/router_drift_check.py` enforces the link. Structurally complete to the §A–§K standard; lint pending the known linter date-field defect that is consistent across sibling §A–§K runbooks (shipped per sibling precedent).
