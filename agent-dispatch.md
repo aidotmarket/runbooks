@@ -436,7 +436,7 @@ Dispatch contract:
   entry with `missing_verdict_target_branch`.
 - Verdict filenames are `specs/<bq_slug>-r<round>-<reviewer>.md`. Reviewer keys
   are `ag`, `mp`, and `ds`; `agent=deepseek` maps to `ds`. If round is absent,
-  the handler writes under `r1`. (GLM joined the standard roster S994 — confirm the handler's reviewer-key mapping for `agent=glm` before relying on GLM verdict-file persistence; the keys listed here predate the flip.)
+  the handler writes under `r1`. (GLM joined the standard roster S994; the handler maps `agent=glm` to key `glm` and persists verdicts via the same path — verified S994 in tools/agents.py.)
 
 Failure modes:
 
