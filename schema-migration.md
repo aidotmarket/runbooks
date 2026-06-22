@@ -36,6 +36,7 @@ When two branches each add a revision on top of the same parent:
 
 ## S.7 Common failure modes
 - **Multi-heads on main**: must merge before next revision lands.
+- **Hand-rolled head detection lies**: never infer the head set by grepping/parsing `revision`/`down_revision` out of the version files — merge revisions use a multi-line tuple `down_revision`, which single-line parsers miss, producing false multi-head counts (and false “all clear” single-head reads). Always run the real `alembic heads`. To run it locally without a DB (the `heads` command reads the script tree only, no connection needed) but past the app `Settings` import, export dummy env first: `export SECRET_KEY=$(openssl rand -hex 32) DATABASE_URL=postgresql+asyncpg://u:p@localhost:5432/dummy ENVIRONMENT=development`.
 - **Forward test passes but backward fails**: missing `downgrade()` coverage. Common with constraint additions where reverting requires explicit drop.
 - **Production diverged from local**: someone hand-applied schema. Pull latest, compare via `alembic current` on production, reconcile via merge revision.
 - **Long-running migrations on production**: Railway deploy timeouts. Pre-deploy the schema change in a separate maintenance-window PR; ship code that uses it in a follow-up PR.
