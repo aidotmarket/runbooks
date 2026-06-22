@@ -56,7 +56,7 @@ Agents do not curl the API directly — they use `tools/support_ticket.py` in `k
 - `support_ticket_patch` — set `status` / `priority` / `risk_score` (bounded 0.0-1.0) / `human_required`. Assignee fields exist on the backend but are intentionally not exposed yet.
 - `support_ticket_message` — `action="list"` reads the thread, `action="post"` appends a reply. **`direction` defaults to `outbound`** (agent to customer); pass `direction="internal"` for an internal-only note. The default exists because the backend `MessageCreateRequest` defaults to `inbound` — posting without it would mis-record agent replies as customer-origin.
 
-**Reload caveat:** a freshly merged or changed tool is not callable until the running koskadeux MCP server restarts.
+**Reload caveat:** a freshly merged or changed tool is not callable until the running koskadeux MCP server restarts (`koskadeux_server.py` on :8765 **and** the `gateway_server.py` proxy on :8767, which caches the upstream tool list on a ~60s TTL). Even after the restart, **an agent session that was already open holds a tool manifest cached at session start and will NOT see the new tool** — `tool_search` reads that cached list, not a live fetch. Only sessions opened *after* the restart pick it up. Verify a tooling change from a fresh session, not the one that shipped it (S987).
 
 ### Rate limits & duplicate collapse
 - **30 tickets/hour and 120 messages/hour per `requester_key`.** Enforced inside the create transaction: a single `INSERT ... ON CONFLICT DO UPDATE ... RETURNING count` on `support_rate_counter`; if the returned count exceeds the limit the transaction is rolled back and the request gets **429**.
