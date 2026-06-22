@@ -44,7 +44,7 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 | `/sell-data` | `app/sell-data/page.tsx` | Seller landing (refreshed S811) |
 | `/protocol` | `app/protocol/page.tsx` | Protocol mechanics + security |
 | `/aim-data` `/aim-node` | `app/aim-data/` `app/aim-node/` | Product pages |
-| `/download` | `app/download/` | Install paths (incl. legacy /download/aim-channel route) |
+| `/download` | `app/download/` | Install paths (incl. retired /download/aim-channel route) |
 | `/requests` `/search` `/blog` `/partner` | respective `app/` dirs | Requests, search, blog (Keystatic), partner |
 | `/aim-federate` `/run-federated-learning` | permanent redirects to `/` | Federate deferred S811 - do not rebuild without Max decision |
 | `/dashboard/stripe-return` | `app/dashboard/stripe-return/page.tsx` | Stripe onboarding callback |

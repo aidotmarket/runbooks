@@ -1,6 +1,8 @@
 ---
 # Runbook: Dual-Brand System — vectorAIz / AIM Channel
 
+> **RETIRED (S996):** AIM Channel has been retired and replaced by **AIM Data** (de-skinned S751; standalone `aidotmarket/aim-data` repo + `ghcr.io/aidotmarket/aim-data` image). vectorAIz remains a separate, active product. This runbook is kept for historical brand-system context only — do not treat AIM Channel as a live product.
+
 ## Product Taxonomy
 
 ai.market has four products:
