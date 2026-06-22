@@ -55,6 +55,17 @@ nightly main-DB backup, Qdrant backup, Railway-config export, Cloudflare export,
 ## CLI tooling (versions as of 2026-06-09)
 codex 0.138.0 · gemini 0.45.2 · claude 2.1.169 · gh 2.93.0 · grok 1.1.4 · infisical 0.43.91 · aws 2.34.62 · railway 4.30.3 · age 1.3.1 · python3 3.14.5
 
+## Railway auth / env (machine credential)
+Titan-1 reaches Railway (CLI, GraphQL, and the local CLI-backed Railway MCP) with **one account-scoped, non-expiring API token** — minted `titan-1-koskadeux` (Workspace = **No workspace**). It lives **only in Infisical**: project **`koskadeux-mcp`** (projectId `0943f641-faee-4324-b337-0d50c276e4a9`), env `prod`, path `/`, secret name `RAILWAY_API_TOKEN`. Nothing is written to disk. Migrated off Doppler in S993; project/env verified S994.
+
+- **Source it, don't exec it:** `source ~/bin/railway-env.sh`. It refreshes the Infisical machine identity (`infisical_auth_refresh.sh`), fetches `RAILWAY_API_TOKEN`, exports it, and **unsets `RAILWAY_TOKEN`**. `launch_mcp_server.sh` sources it via one guarded line; `railway_client._token()` prefers `RAILWAY_API_TOKEN`, then legacy `RAILWAY_TOKEN`, then `~/.railway/config.json`.
+- **Account-scope, NOT workspace-scope:** the token must be account-scoped. Workspace-scoped tokens **403 on CLI account operations** — that was the historical CLI flakiness, and the old workspace-scoped tokens were deleted in S993.
+- **`RAILWAY_TOKEN` conflict rule:** a stray `RAILWAY_TOKEN` in the environment overrides `RAILWAY_API_TOKEN` and breaks account ops. Always `unset RAILWAY_TOKEN` before CLI commands (railway-env.sh does this for you).
+- **Remote MCP is optional:** `mcp.railway.com` (browser OAuth) is **non-load-bearing** — CLI/GraphQL via the Infisical token is the load-bearing path.
+- **Gotcha:** bare `python`/urllib calls to `backboard.railway.app` 403 on a Cloudflare UA block — not an auth failure; `railway_client` uses `httpx`, which works.
+
+Live machine-readable source: `state_get("infra:railway")` → `management_tools.machine_identity`.
+
 ## Key paths
 `/Users/max/koskadeux-mcp` (MCP server/gateway, active) · `/Users/max/Projects/ai-market/{ai-market-backend,ai-market-frontend,aim-data,runbooks}` · `/Users/max/ops/aimarket-backend-main` (backup worktree). Canonical paths: `state_get("config:resource-registry")`.
 
