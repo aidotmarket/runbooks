@@ -30,6 +30,14 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 **PARTIAL note (Phase D enforce-flip):** code-complete and unit-tested but never executed against production; gated on (a) explicit Max direction, (b) the live write-path hook landing (Chunk 6, see PLANNED row), and (c) resolution of the precedence defect in §F-05. Operative mode for the whole subsystem today is WARN-only, and no live interception exists until the Chunk 6 hook ships.
 
+**WARN-mode rows + trigger added S1008 (s621_008 residue migration `20260622_002`):** four new `field_acl` rows shipped in `enforce_mode='warn'`, tagged `added_by_session_id='S998-s621_008-residue'`:
+- `build` / `queue_position` (exact) — role `queue_position_orchestrator`
+- `build` / `body.lifecycle.archived` (prefix) — role `archive_orchestrator`
+- `build` / `body.draft.drain_force_push_evidence` (prefix) — role `drain_handler`
+- `infra` / `body` under key `infra:migration-manifest:` (prefix) — role `migration_orchestrator`
+
+The same migration added a DB-side trigger `archive_sets_reconciliation_block` (function + `archive_sets_reconciliation_block_trg`) that writes `body.lifecycle.reconciliation_block` when an entity is archived. **Before any future Phase D enforce-flip:** seed these four roles into the writer-identity map and confirm the trigger's writes resolve to an authorized writer (or are exempted), otherwise the flip will 403-brick legitimate archive / drain / queue-position / migration-manifest writes. These rows are WARN-only today; listed here for flip-readiness, not a change to the subsystem's operative mode. (Rows seeded by the WS6/reform migration, which §A scopes out of this runbook; recorded here because the enforce-flip must account for them.)
+
 ## §C. Architecture & Interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
