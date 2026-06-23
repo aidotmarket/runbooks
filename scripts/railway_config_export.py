@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """Export Railway topology (NO secret VALUES) to S3 for disaster recovery.
 
-Captures every project -> service -> source repo/branch, config-as-code path,
-Dockerfile, cron schedule, region, and the *names* of its variables (never values).
-Secret VALUES are intentionally excluded -- they live in Infisical, which is itself
-backed up to S3; this export is the rebuild MAP, not a secret store.
+Captures every project -> service -> source repo/branch, config path, cron, and
+variable NAMES (never values). Secret VALUES live in Infisical (backed up separately).
 
-Env (inject via `infisical run` for scheduled use):
-  RAILWAY_API_TOKEN, AWS_BACKUP_WRITER_ACCESS_KEY_ID, AWS_BACKUP_WRITER_SECRET
+S1002 fix: Railway deprecated the account-level `{ projects }` field for these tokens
+(returns empty edges or Not Authorized). Enumerate via `me { workspaces { projects } }`.
 Uploads to s3://aimarket-backups-prod/railway-config/<YYYYMMDD>/railway-config-<ts>.json
 """
 import os, json, sys, time, datetime, tempfile, subprocess, urllib.request, urllib.error
-
 API="https://backboard.railway.app/graphql/v2"
 BUCKET="aimarket-backups-prod"; REGION="eu-north-1"
 TOK=os.environ.get("RAILWAY_API_TOKEN","").strip()
 H={"Authorization":"Bearer "+TOK,"Content-Type":"application/json",
    "User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36","Accept":"application/json"}
-
 def gql(q,v=None,tries=4):
     body=json.dumps({"query":q,"variables":v or {}}).encode(); last=None
     for t in range(tries):
@@ -29,18 +25,25 @@ def gql(q,v=None,tries=4):
         except Exception as e:
             last=e; time.sleep(3*(t+1))
     return {"errors":[{"net":str(last)}]}
-
 def main():
     if not TOK: sys.exit("missing RAILWAY_API_TOKEN")
     now=datetime.datetime.now(datetime.timezone.utc)
     out={"exported_at":now.isoformat(),
          "note":"Railway topology for DR rebuild. Secret VALUES excluded (live in Infisical, backed up separately). Variable NAMES only.",
          "projects":[]}
-    pr=gql('{ projects { edges { node { id name } } } }')
-    for pe in pr.get("data",{}).get("projects",{}).get("edges",[]):
+    pr=gql('{ me { workspaces { projects { edges { node { id name } } } } } }')
+    edges=[]
+    try:
+        for ws in pr["data"]["me"]["workspaces"]:
+            edges += ws.get("projects",{}).get("edges",[])
+    except Exception:
+        sys.exit("enumeration failed: "+json.dumps(pr)[:300])
+    if not edges:
+        sys.exit("enumeration returned zero projects: "+json.dumps(pr)[:300])
+    for pe in edges:
         pid=pe["node"]["id"]; pname=pe["node"]["name"]
         pd=gql('query($id:String!){ project(id:$id){ name environments{edges{node{id name}}} services{edges{node{id name}}} } }',{"id":pid})
-        proj=pd.get("data",{}).get("project")
+        proj=pd.get("data",{}).get("project") if pd.get("data") else None
         if not proj:
             out["projects"].append({"id":pid,"name":pname,"error":pd.get("errors")}); continue
         envs={e["node"]["name"]:e["node"]["id"] for e in proj["environments"]["edges"]}
@@ -58,7 +61,7 @@ def main():
             except Exception as e:
                 svc["meta_note"]="no deployment meta (e.g. database plugin) "+str(e)[:60]
             v=gql('query($p:String!,$e:String!,$s:String!){ variables(projectId:$p, environmentId:$e, serviceId:$s) }',{"p":pid,"e":eid,"s":sid})
-            vd=v.get("data",{}).get("variables")
+            vd=v.get("data",{}).get("variables") if v.get("data") else None
             svc["variable_names"]=sorted(vd.keys()) if isinstance(vd,dict) else {"error":v.get("errors")}
             pj["services"].append(svc)
         out["projects"].append(pj)
@@ -74,7 +77,6 @@ def main():
     if r.returncode!=0: sys.exit("UPLOAD FAILED: "+r.stderr[-300:])
     print(f"uploaded s3://{BUCKET}/{key} ({len(payload)} bytes; {len(out['projects'])} projects)")
     for p in out["projects"]:
-        print("  -", p["name"], "->", [s["name"] for s in p.get("services",[])])
-
+        print("  -", p.get("name"), "->", ([s["name"] for s in p.get("services",[])] if "services" in p else p.get("error")))
 if __name__=="__main__":
     main()
