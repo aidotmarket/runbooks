@@ -4,6 +4,8 @@
 
 > **Status**: R6 — 2026-04-24. R6 refresh (S500): integrated S499 emergency-data findings into a coherent known-bug surface. Changes: (a) Phase 3.5 added to §7 to track BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK; (b) §6 expanded with the user-scoping wipeout, steward dispatch gaps D10/D11/D12, and OPUS_CRM audit issues 1–7; (c) §2.3 and §2.10 mark voice memo ingest as Removed (S499 decision, C02); (d) §3 skill count corrected from 16→28 decorated skills in `crm_steward_skills.py` with public/internal re-audit pending under D07; (e) Appendix B retires `crm_agent_request.py` and redirects the natural-language agent surface to MCP `crm_remote.py`; (f) §7 Phase 4 BQ statuses refreshed (AGENT-COVERAGE → REDIRECT STUB to COMPOSITE-SKILLS per S474; SALES-SURFACE B2 shipped S481 `8315c11`). **S500 amendment (2026-04-24)**: C02 voice memo removal narrowed to CRM surface only; Telegram voice ingest (`voice_transcription_service.py`, `telegram_relay.py:185`, `webhooks.py:1816`) preserved per CC Gate 1 Q3 finding (validated by MP R1 task `80089f05`) — see BQ body.c02_narrowing_s500. Prior R5 (S469, 2026-04-18): marked **BQ-CRM-INTEGRATION-CONTRACTS** DONE after Gate 4 close in S469 (backend commit `1d27532`), updated §4.1 Accounting to shipped `/api/v1/accounting/crm` contracts and canonical Stripe Connect identity guidance, removed stale in-flight references, refreshed §7 to Tier 2 Gate 1 R1 parallel-lane reality, and added capability-horizon references for `BQ-MEET-RECORDS-CRM` and `BQ-CRM-REFERRAL-TRACKING`. BQ-CRM-RUNBOOK-STANDARD.
 
+> **Status R7 — 2026-06-26 (S1037)**: Added §7 Phase D (CRM V2 legacy read-elimination + table drop) documenting the program, the repeatable per-chunk procedure incl. the Gate-3 access-regression audit (Audit A/B) + conditional access-preserving backfill, and Chunk 1 (shipped S1025) + Chunk 2 (`app/api/deps.py` party-only ownership guards, shipped S1037 @28e4be14). Canonical status tracker: `config:crm-phase-d-tracker`.
+
 > Tier status is tracked in Living State entity `config:crm-operational-plan`. This runbook is the stable target-state; Living State is the dynamic status tracker.
 
 ---
@@ -417,6 +419,27 @@ domains/crm/
 - BQ-ALEMBIC-FILENAME-CONVENTION (P2)
 
 ---
+
+**Phase D — CRM V2 legacy read-elimination + table drop (ACTIVE; canonical tracker `config:crm-phase-d-tracker`)**:
+
+Phase D is the execution of the V1->V2 cutover named in §1 (V1/V2 Bridge State). Goal: eliminate every legacy `select(CRM*)` read so the legacy tables (`crm_entities`/`crm_people`/`crm_organizations`/`crm_tasks`/`crm_email_drafts`) can be dropped. Sequence: (1) eliminate legacy reads chunk-by-chunk (party model becomes the sole read path); (2) party-only write-cutover; (3) destructive legacy-table drop. The destructive drop is the ONLY step needing explicit Max GO + unanimous Council.
+
+Ground truth (S1035, backend main `bb44e8a7`): 118 legacy `select(CRM*)` reads across 23 non-test files. Per-chunk gate track inherits program Gate-1 (`specs/BQ-CRM-V2-PHASE-D-LEGACY-TABLE-DROP-GATE1.md` @973ca621); each chunk runs its own Gate-2 spec -> MP build -> Gate-3 audit -> deploy -> Gate-4.
+
+Per-chunk procedure (the repeatable pattern):
+1. Scope ONE file/area; trace the legacy reads and their consumers in current source.
+2. Gate-2 spec: convert legacy `select(CRM*)` to the party model. CRM ownership predicate moves from legacy `created_by_user_id` on the linked entity to the party predicate `crm_party_task.assigned_to_user_id` (admin/internal-api-key callers keep their owner-filter bypass). Auth surface -> unanimous Council.
+3. MP build (builder != reviewer) + tests (owner pass / non-owner 404 / NULL-assignee scoped 404 / admin+api-key access / soft-deleted 404 / grep-assertion zero legacy selects in the file).
+4. Gate-3 ACCESS-REGRESSION AUDIT (read-only prod, mandatory whenever the ownership predicate changes):
+   - Audit A: count non-deleted `crm_party_task` with `assigned_to_user_id IS NULL`.
+   - Audit B: non-deleted party tasks whose legacy owner (`COALESCE(crm_people.created_by_user_id, crm_organizations.created_by_user_id)` resolved via `crm_party_task.legacy_entity_id`) is a NON-admin user but `assigned_to_user_id` is NULL or different. PASS = Audit B returns 0.
+   - If Audit B > 0: run an access-preserving backfill (set `assigned_to_user_id` = legacy owner) for exactly those rows, NULL-only guard so an existing non-null assignee is never overwritten, transaction-wrapped with a POST recount that must reach 0 before COMMIT. A backfill is a production data change -> unanimous Council + surfaced to Max. Run the backfill BEFORE the code deploys (else those owners lose access). Audit/backfill scripts: `scripts/crm_phase_d_chunk2_access_audit.sql`, `scripts/crm_phase_d_chunk2_access_backfill.sql` (run read-only/write via `AUTHOR_DISPATCH_DATABASE_URL`, the prod `ai_market_pg` public proxy).
+5. Merge -> Railway deploy -> Gate-4 (health + the affected endpoints + grep-assertion zero legacy reads on main).
+
+Chunk status:
+- Chunk 1 (`app/domains/crm/operations/service.py` — `get_party_interactions`/`get_party_tasks`): SHIPPED S1025, merged `9a73de83`.
+- Chunk 2 (`app/api/deps.py` — `get_owned_task`, `get_owned_task_for_draft`, `get_owned_draft`): SHIPPED S1037, merged `28e4be14`. Three ownership guards now read party-only (`CrmPartyTask`/`CrmPartyEmailDraft`); the `get_owned_draft` legacy `CRMEmailDraft` fallback removed (prod had 0 legacy email drafts). Gate-3 Audit B found 7 access-loss rows (all `max@ai.market` NULL-assignee tasks); the access-preserving backfill set their assignee to Max (Audit B 7->0) before deploy. Note: 12 other non-deleted NULL-assignee tasks were intentionally left unassigned (their legacy owner is admin, so no scoped-user access loss — they remain admin/api-key reachable only).
+- Remaining (after Chunk 2): `crm_service.py` (28, likely wholesale-retire), `crm_steward_skills.py` (21), `endpoints/crm.py` (11), `mcp/crm_remote.py` (7), `outreach_*` (11), plus smaller files. Then the party-only write-cutover, then the destructive drop.
 
 ## Appendix A: Service File Map
 
