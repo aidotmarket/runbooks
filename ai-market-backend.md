@@ -59,6 +59,17 @@ curl -s https://api.ai.market/health
 | `/api/v1/search` | `search.py` | Listing search (Qdrant-backed) |
 | `/api/v1/mcp` | `mcp.py`, `mcp_server.py` | MCP protocol endpoints |
 
+## Seller onboarding enforcement & dashboard access
+
+Dashboard READ endpoints must load for a seller still mid-onboarding (`onboarding_completed=false`), while writes/payout stay gated. Two flexible-auth dependencies live in `listings.py`:
+
+- `get_current_user_flexible` — authenticates AND enforces onboarding (raises 403 `Onboarding required`). Use for writes, listing-create, payout, and gated actions.
+- `get_current_user_flexible_no_onboarding` — authenticates but skips the onboarding gate. Use for **owner-scoped dashboard READS only** — the handler still filters by the authenticated user's id, so there is no cross-account exposure.
+
+Owner-scoped dashboard reads currently on the non-enforcing dependency: seller `/stats /financials /orders /pending`; inquiries `/mine /stats`; conversations `/mine /stats`; orders `/mine /stats`; listings `/mine`. If a new "My X" dashboard list/stats read 403s for a partial-onboarding seller, switch that route's dependency to `get_current_user_flexible_no_onboarding` and add a test asserting 200-on-read plus still-403-on-write. Reviewer note: dropping the onboarding gate on these owner-scoped reads is auth-scope — it earns a unanimous Council Gate-3 (reviewer != builder).
+
+**Stripe Connect return URLs:** the hosted-onboarding AccountLink in `stripe_connect.py` must return to the real frontend route `/dashboard/stripe-return` (refresh → `/dashboard/stripe-return?abandoned=1`, which that page reads as the abandoned/incomplete case). Do NOT use bare `/settings` — there is no `/settings` route (settings lives at `/dashboard/settings`), so it 404s and dead-ends the seller right after connecting.
+
 ## Notable services (`app/services/`)
 
 | Service file | Class | Purpose |
