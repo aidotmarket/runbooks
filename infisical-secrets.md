@@ -94,9 +94,31 @@ No gateway restart needed — the next scheduled refresh / next launch picks it 
 
 ## Secret Rotation
 
-1. Update the secret in Infisical dashboard or API
-2. If the secret is also in Railway env vars, update there too: `railway variables set KEY=VALUE`
-3. Railway env vars remain the deploy-time injection source — Infisical is the source of truth for humans and agents
+**App-read secrets are NOT loaded from Infisical at runtime** (see Known Gotchas). The FastAPI app on `ai-market-backend` reads secrets from the **Railway variable store**. Updating Infisical alone does NOT reach production. For any app-read secret:
+
+1. Update the value in Infisical (dashboard or API). Env slug is `prod` (not "production"). Infisical stays the canonical record for humans/agents.
+2. Set the same value in Railway: `railway variables --service ai-market-backend --set "KEY=VALUE" --skip-deploys` (never echo the value).
+3. Redeploy so the new container boots with it: `railway redeploy --service ai-market-backend --yes`.
+4. Verify the service is healthy and, where possible, that the new value actually works (Stripe example below). Only THEN revoke the old credential.
+
+Until `BQ-RAILWAY-INFISICAL-SYNC` lands (tracked; ticket `T-2026-000048`), steps 2-4 are mandatory, not optional. A future auto-sync will collapse this to "update Infisical, redeploy."
+
+### Stripe API keys (`acct_1SuHQHRucxd97j0A`)
+
+What each key is: `STRIPE_SECRET_KEY` (sk_live, backend, full account access — the sensitive one); `STRIPE_PUBLISHABLE_KEY` (pk_live, public; currently NOT wired into the frontend, so rotating it cannot break the site); `STRIPE_WEBHOOK_SECRET` (whsec, verifies inbound webhooks — NOT an API key, separate rotation, unaffected by an API-key roll); `STRIPE_TEST_*` are sandbox-only (ignore for live work).
+
+On a Stripe-flagged compromise of the secret key:
+1. Stripe -> Developers -> API keys -> **Roll** the secret key with a short grace window (do NOT pick "now" until the new key is deployed, or the live backend errors). Optionally roll the publishable key too (hygiene; harmless, it's unused client-side). Copy the new value(s); never paste into chat.
+2. Save the new value(s) in Infisical `prod` (`STRIPE_SECRET_KEY`, and `STRIPE_PUBLISHABLE_KEY` if rolled).
+3. Apply to Railway + redeploy per the general procedure above.
+4. **Verify the new secret authenticates BEFORE revoking the old one:**
+   `railway run --service ai-market-backend -- .venv/bin/python -c "import os,stripe; stripe.api_key=os.environ['STRIPE_SECRET_KEY']; print(stripe.Account.retrieve().id)"`
+   Expect `acct_1SuHQHRucxd97j0A`; an invalid key raises `AuthenticationError`.
+5. Once verified, expire/revoke the old key in Stripe.
+
+Do NOT rotate `STRIPE_WEBHOOK_SECRET` for an API-key compromise — separate credential. If you ever do, use the graceful two-value swap (`STRIPE_WEBHOOK_SECRET`=new, `STRIPE_WEBHOOK_SECRET_PREVIOUS`=old; see backend `webhooks.py`).
+
+> S1039: live secret-key compromise rotation. Found `STRIPE_PUBLISHABLE_KEY` in Railway had drifted (matched neither the old nor new Stripe value) — reconciled during the same rotation. Confirms the manual-sync gap still bites; tracked in `T-2026-000048`.
 
 ## Emergency Recovery
 

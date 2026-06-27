@@ -29,7 +29,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **The host — Titan-1 / Mac Studio** — hardware, services + ports, tunnel, Docker dev stack, scheduled jobs: [titan-1.md](titan-1.md). Network topology & remote access: [connectivity.md](connectivity.md#remote-access-to-titan-1).
 
-**Secrets** — accessing, machine identities, rotation, emergency recovery: [infisical-secrets.md](infisical-secrets.md).
+**Secrets** — accessing, machine identities, rotation (incl. **Stripe API key rotation** — which keys, the mandatory Railway-set + redeploy + live-verify, webhook secret is separate), emergency recovery: [infisical-secrets.md](infisical-secrets.md).
 
 **AWS** — account / IAM / S3: [aws.md](aws.md) · [aws-s3.md](aws-s3.md).
 
