@@ -46,6 +46,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Auth** — sign-up / login path: [auth-signup-flow.md](auth-signup-flow.md). **Login sessions surviving reload (in-memory access token + httpOnly refresh cookie, the same-site invariant, browser verification discipline):** [browser-session-auth.md](browser-session-auth.md). 2FA: [two-factor-auth.md](two-factor-auth.md).
 
+**Account capabilities & seller onboarding** — the capability model (buyer default-on, seller additive), provisioning vs active, the four seller readiness steps (profile name, company name, 2FA, Stripe payouts-live via the durable `users.stripe_payouts_enabled` column), the `require_capability` / `assert_user_capability` guard, the 403 `CapabilityRequiredError` contract, and a seller's path to first sale (connect Stripe → seller goes active): [account-capability-onboarding.md](account-capability-onboarding.md).
+
 **CRM** — architecture, pipeline, target state: [crm-architecture.md](crm-architecture.md) · [crm-pipeline.md](crm-pipeline.md) · [crm-target-state.md](crm-target-state.md).
 
 **CRM V2 Phase D — legacy read-elimination + table drop** — the V1→V2 cutover: eliminating legacy `select(CRM*)` reads chunk-by-chunk (party model becomes sole read path), the per-chunk gate track, and the Gate-3 access-regression audit (Audit A/B) + conditional access-preserving backfill whenever the ownership predicate changes: [crm-target-state.md](crm-target-state.md#7-migration--consolidation-plan) §7 Phase D. New CRM read families default to `legacy` unless added to `GLOBAL_DEFAULT_FAMILIES` (deliberate global cutover only) — see the read-flag default invariant in §7 Phase D. Canonical status: `config:crm-phase-d-tracker`.
