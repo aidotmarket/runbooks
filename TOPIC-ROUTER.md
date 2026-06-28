@@ -102,6 +102,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Vulcan / Mars operating discipline** — peer-symmetric claim-before-work, message-bus, and escalation rules: [peer-instance-discipline.md](peer-instance-discipline.md).
 
+**Operator Telegram notifications** — which bot may message Max and what classes are allowed; @koskadeux_bot killed, only @allai_agent_bot, emergency/human-required only: [operator-telegram-notifications.md](operator-telegram-notifications.md).
+
 ---
 Every runbook above is registered here; `scripts/router_drift_check.py` enforces coverage + that every link resolves. Add new runbooks to a subject line above in the same change that creates them.
 
