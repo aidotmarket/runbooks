@@ -17,7 +17,7 @@ Both are distinct bot accounts (verified via `getMe`): the daemon token resolves
 ## §C. Architecture & Interactions
 - `@allai_agent_bot` sends via `telegram_service.send_message(text)` → operator admin chat. Internal callers reach it through the backend.
 - The daemon currently posts straight to `api.telegram.org/bot<koskadeux_token>/sendMessage`. `kd_notifier._send_telegram` is already gated to `level == CRITICAL`; `kd_sentinel` funnels its criticals through `kd_notifier.notify(BLOCKED)`.
-- **Target routing for human-required daemon alerts:** daemon POSTs to backend `POST /api/v1/allai/admin/operator-alert` (internal-key, `X-Internal-API-Key`) → `telegram_service.send_message` → `@allai_agent_bot` → operator chat.
+- **Target routing for human-required daemon alerts:** daemon POSTs to backend `POST /api/v1/allai/operator-alert` (internal-key, `X-Internal-API-Key`) → `telegram_service.send_message` → `@allai_agent_bot` → operator chat.
 
 ## §D. Agent Capability Map
 - Backend allai relay: owns the single operator Telegram channel.
@@ -33,13 +33,13 @@ Everything else (subtask progress, item-started, drift, budget warnings, worker 
 ## §F. Isolate — Diagnosing
 - Unexpected operator message: check the sending bot's username. `@koskadeux_bot` ⇒ a daemon path still has Telegram enabled (regression); `@allai_agent_bot` ⇒ a backend caller is over-notifying — audit its call site against §E.
 
-## §G. Repair / Implementation steps (status)
-1. **[DONE S1054]** Peer-message ACK escalations no longer DM the operator — gated behind `PEER_MSG_ACK_ESCALATION_TELEGRAM` (default off) in `app/services/reconciliation_job.py`.
-2. **[TODO]** Backend: add `POST /api/v1/allai/admin/operator-alert` (internal-key) → `telegram_service.send_message`.
-3. **[TODO]** `kd_notifier.py`: remove all `@koskadeux_bot` sends; for `REVIEW_READY`/`BLOCKED` POST the operator-alert endpoint; drop other types from Telegram (keep macOS).
-4. **[TODO]** Daemon `.env`: remove `@koskadeux_bot` `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` (belt-and-braces kill).
-5. **[TODO]** Allai-side audit: confirm `@allai_agent_bot` only emits §E classes (keep HITL; review CRM-playbook `notify_channels: [telegram]`).
-6. **[TODO]** Coordinated **daemon restart** to activate (peer-coordinated; restart of the dispatch daemon).
+## §G. Implementation steps (status — S1054)
+1. **[DONE]** Peer-message ACK escalations no longer DM the operator — gated behind `PEER_MSG_ACK_ESCALATION_TELEGRAM` (default off) in `app/services/reconciliation_job.py` (backend main `a8296a7a`).
+2. **[DONE]** Backend: `POST /api/v1/allai/operator-alert` (internal-key, header `X-Internal-API-Key`) → `telegram_service.send_message` → `@allai_agent_bot`. Backend main `c07983e7`, deployed; auth verified (no-key→401, key+empty-text→422, no send).
+3. **[DONE]** `kd_notifier.py`: `@koskadeux_bot` sender removed entirely; `_send_operator_alert` forwards only `REVIEW_READY`/`BLOCKED` to the backend operator-alert endpoint; all other types stay macOS/log only. koskadeux-mcp main `19667c49`.
+4. **[SKIPPED]** Daemon `.env` token removal — unnecessary; the code-level kill is complete, and leaving the env avoids breaking the (dormant, read-only) `@koskadeux_bot` command-polling. No sends occur from the daemon regardless.
+5. **[TODO — low priority]** Allai-side audit: confirm `@allai_agent_bot` only emits §E classes (keep HITL; review CRM-playbook `notify_channels: [telegram]`).
+6. **[NOT NEEDED]** No coordinated daemon restart required: the MCP gateway does not import `kd_notifier`, and the dispatcher/sentinel are transient (not LaunchAgents, not running). The change activates on the next dispatch cycle; the `@koskadeux_bot` send path is effectively dead now.
 
 ## §H. Evolve — Invariants
 - Exactly one operator Telegram bot: `@allai_agent_bot`.
