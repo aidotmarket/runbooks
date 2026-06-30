@@ -513,3 +513,16 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
   - [morning-briefing.md](morning-briefing.md) — the morning briefing where stale-item escalations (§D) appear.
   - [runbooks/activation-verification.md](activation-verification.md) — proof-of-life checks for shipped work.
 - **CORE.md cross-reference:** this runbook should be linked from CORE.md under the Build Queue section. That edit is not part of this commit; file a follow-up if it has not been added by the time you read this.
+
+## Push guardrail — automated builds cannot reach main (S1077)
+
+A `pre-push` hook is installed in every Titan-1 repo clone (and seeded into future clones via `git config --global init.templateDir /Users/max/.koskadeux/git-template`). It **refuses any push to `main`/`master`/`production`** unless the environment variable `KD_ALLOW_MAIN_PUSH=1` is set for that push.
+
+- **Automated builds (Codex/CC) never set the sentinel**, so they can only push `build/*` branches. They physically cannot land a change on a protected branch on their own. This closes the S1077 gap where a structural build pushed a destructive change straight to main before review.
+- **Deliberate, reviewed merges by an instance** run the push with the sentinel:
+
+      KD_ALLOW_MAIN_PUSH=1 git push origin main
+
+  A plain `git push origin main` is refused with a message pointing here. The merge flow is unchanged otherwise: build on `build/*`, Gate-3, verify on Titan-1, then the gated merge.
+- **Scope:** `main`, `master`, `production`. `build/*` and all other branches are unaffected.
+- **Reverting the guardrail** (if ever needed): delete `.git/hooks/pre-push` in the repo (or unset `init.templateDir`). The hook source of truth is `/Users/max/.koskadeux/git-template/hooks/pre-push`.
