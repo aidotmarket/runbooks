@@ -3,3 +3,6 @@
 __pycache__/
 runbook_tools.egg-info/
 harness/results/conformant/
+
+# local runbook-tools venv (S1081 — koskadeux-mcp venv python@3.13 went missing)
+.venv/
