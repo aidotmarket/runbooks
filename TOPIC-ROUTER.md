@@ -25,6 +25,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Reform WS11 — queue-overlay archival cutover** — retiring the 8 sub-surfaces on `config:parallel-worker-queue.body`; build complete (chunks 1–5 on main, S992), Phase-D production cutover gated/pending, per-sub-surface rollback + forward-replay re-cutover, feature-flag surfaces (`config:queue-overlay-feature-flags`), and the WS9 ACL warn→enforce tie-in: [queue-overlay-archival-cutover.md](queue-overlay-archival-cutover.md).
 
+**Qdrant / vector database** — hosting, API-key authentication + lockdown, key locations (Infisical + both Railway services), per-collection S3 backup coverage: [qdrant.md](qdrant.md).
+
 **Backups & disaster recovery** — what's backed up, where, restore steps: [backup-and-recovery.md](backup-and-recovery.md). Rebuild map (offline bootstrap items, bucket layout, restore order): [disaster-recovery.md](disaster-recovery.md). The "bash" Login Items list explained: [backup-and-recovery.md](backup-and-recovery.md).
 
 **The host — Titan-1 / Mac Studio** — hardware, services + ports, tunnel, Docker dev stack, scheduled jobs: [titan-1.md](titan-1.md). Network topology & remote access: [connectivity.md](connectivity.md#remote-access-to-titan-1).
