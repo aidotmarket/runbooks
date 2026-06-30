@@ -21,7 +21,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Qdrant hosting (Railway service in ai-market project) | SHIPPED | `railway://ai-market/Qdrant` | manual curl | 2026-06-30 |
 | API-key authentication (REST/gRPC require api-key header) | SHIPPED | `QDRANT__SERVICE__API_KEY` | unauth /collections returns 401; with-key returns 200 | 2026-06-30 |
 | Backend authenticates with the key | SHIPPED | `app/core/qdrant_client.py` | backend /backup-status qdrant collection_source=qdrant_api | 2026-06-30 |
-| Per-collection S3 snapshot backups (only knowledge_base covered) | PARTIAL | `scripts/backup_qdrant_s3.py` | watchdog + /backup-status; S1081 gap: action_logs, knowledge_base_v2, listings UNBACKED | 2026-06-30 |
+| Per-collection S3 snapshot backups (all live collections) | SHIPPED | `scripts/backup_qdrant.py` | watchdog + /backup-status; S1081: all 4 collections verified backed up (action_logs, knowledge_base, knowledge_base_v2, listings) | 2026-06-30 |
 
 ## §C. Architecture & Interactions
 
@@ -37,7 +37,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | report backup freshness | backup_status / backup_verify skills | internal API key | COMPLETE |
-| SysAdmin | run qdrant snapshot | scripts/backup_qdrant_s3.py (Titan-1) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per §G G-02 |
+| SysAdmin | run qdrant snapshot | runbooks/scripts/backup_qdrant.py (Titan-1) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per §G G-02 |
 
 ## §E. Operate
 
