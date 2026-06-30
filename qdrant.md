@@ -1,6 +1,6 @@
 ---
 system_name: qdrant
-purpose_sentence: Qdrant is the vector database that stores ai.market embeddings (listings, knowledge base, action logs); this runbook covers its hosting, its API-key authentication, and its S3 backup coverage.
+purpose_sentence: Qdrant holds DERIVED vector indexes (semantic-search/matchmaking embeddings) rebuilt from Postgres, which is the source of truth; this runbook covers its hosting, API-key authentication, and S3 backup coverage.
 owner_agent: sysadmin
 escalation_contact: Max (human operator)
 lifecycle_ref: §J
@@ -31,6 +31,15 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Backend Qdrant client | app/core/qdrant_client.py | n/a | Qdrant | reads QDRANT_HOST, QDRANT_API_KEY from env |
 | Backup watchdog | runbooks/scripts/s3_backup_watchdog.sh (Titan-1 launchd com.aimarket.s3-backup-watchdog) | S3 aimarket-backups-prod/qdrant/ | Telegram alert | checks qdrant/ prefix freshness |
 | SysAdmin backup monitor | app/allai/agents/sysadmin/backup_monitor.py _evaluate_s3_qdrant_collections | Redis history; S3 | /backup-status endpoint | cross-checks live collection list vs S3 snapshots |
+
+### §C.1 Source of truth vs derived index (READ FIRST)
+
+Qdrant stores **derived** data only. It is NOT a system of record. Every collection is an embedding index rebuilt from Postgres:
+
+- `listings` — semantic-search + matchmaking index of marketplace listings. Source of truth is the Postgres `listings` table (`app/models/marketplace.py` -> `class Listing`). Rebuilt by `POST /api/v1/search/reindex` (admin/system; `listing_search_service.reindex_all()` re-embeds every published listing).
+- `knowledge_base`, `knowledge_base_v2`, `action_logs` — likewise re-ingestable from their Postgres / source data.
+
+**Implication for backups and DR:** losing a Qdrant collection is a *reindex/re-embed window*, not data loss. The S3 snapshots here are a recovery-time **convenience** (they skip the re-embedding cost and the rebuild window), NOT source-of-truth protection. The data that MUST be backed up is Postgres (priority-1; see `backup-and-recovery.md`). This matches the canonical backup-scope rule "Qdrant excluded (re-ingestable)" in `config:resource-registry`. Treat the Qdrant backup-coverage monitor as a convenience signal, not a data-loss alarm.
 
 ## §D. Agent Capability Map
 
@@ -114,10 +123,10 @@ YAML frontmatter above is authoritative for the §A header fields.
 - id: G-02
   symptom_ref: F-02
   component_ref: SysAdmin backup monitor
-  root_cause: the qdrant snapshot job does not enumerate all live collections (only knowledge_base as of S1081)
-  repair_entry_point: scripts/backup_qdrant_s3.py collection list
-  change_pattern: enumerate live collections from the Qdrant API (with api-key) and snapshot each to s3://aimarket-backups-prod/qdrant/{collection}/
-  rollback_procedure: n/a (additive)
+  root_cause: RESOLVED S1081 — the live job (runbooks/scripts/backup_qdrant.py) now enumerates all live collections; previously knowledge_base-only
+  repair_entry_point: runbooks/scripts/backup_qdrant.py list_collections()
+  change_pattern: enumerate live collections from the Qdrant API (with api-key) and snapshot each to s3 under qdrant/{collection}/
+  rollback_procedure: n/a (additive). If a collection is lost entirely, canonical recovery is a REBUILD FROM POSTGRES, not the S3 snapshot — listings rebuild via POST /api/v1/search/reindex (reindex_all). The S3 snapshot only saves the re-embed window.
   integrity_check: /backup-status qdrant aggregate=ok (every live collection has a fresh prefix)
 ```
 
@@ -125,6 +134,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 ### §H.1 Invariants
 
+- Qdrant is a DERIVED index; Postgres is the source of truth. Never treat a Qdrant collection as primary data; any collection can be rebuilt (listings via POST /api/v1/search/reindex).
 - Qdrant MUST require an API key (no anonymous access). The key lives in Infisical (canonical) and is mirrored to the backend service env and the Qdrant service env.
 - The backend's key and the Qdrant service's key MUST be identical, or the backend cannot connect.
 - Rotation order is ALWAYS backend-first, Qdrant-second.
@@ -156,7 +166,7 @@ Qdrant REST/gRPC require the api-key header. Backend reads QDRANT_API_KEY from e
 
 #### runtime dependency
 
-Railway Qdrant service + volume; AWS S3 aimarket-backups-prod for snapshots; Infisical for the key.
+Upstream source of truth: Postgres (listings table etc.) — Qdrant is rebuilt from it. Infra: Railway Qdrant service + volume; AWS S3 aimarket-backups-prod for snapshots; Infisical for the key.
 
 #### config default
 
