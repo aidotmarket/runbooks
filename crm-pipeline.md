@@ -1,6 +1,6 @@
 # CRM Pipeline
 
-> **Status:** S500 rewrite (2026-04-24). Prior revision was pre-S400 and referenced MCP tool names (`crm_create_contact`, `crm_upsert_contact`, `crm_get_contact_360`, `crm_log_interaction`, `crm_create_task`, `crm_cancel_task`, `crm_update_task`, `crm_search_interactions`) that no longer exist in the current surface. The current agent surface is a single natural-language `crm_request` MCP tool routed through `app/mcp/crm_remote.py`. This rewrite aligns with `crm-target-state.md` R6 and `crm-architecture.md` S500.
+> **Status:** S500 rewrite (2026-04-24). Prior revision was pre-S400 and referenced MCP tool names (`crm_create_contact`, `crm_upsert_contact`, `crm_get_contact_360`, `crm_log_interaction`, `crm_create_task`, `crm_cancel_task`, `crm_update_task`, `crm_search_interactions`) that no longer exist in the current surface. The current agent surface is the Koskadeux gateway CRM tool family (`crm_request` plus `crm_log_interaction` / `crm_search_interactions`), thin REST wrappers in `koskadeux-mcp/tools/crm.py`; the former `app/mcp/crm_remote.py` `/mcp/crm` endpoint was removed at S1099 (BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098). Aligns with `crm-target-state.md` R6 and `crm-architecture.md` S1099.
 
 ## What it does
 
@@ -10,7 +10,7 @@ Manages all contacts, organizations, relationships, interactions, tasks, pipelin
 
 ### 1. Primary: natural-language via `crm_request`
 
-Max (via Claude.ai Connector or MP Mac Codex CLI) and Vulcan (via Koskadeux MCP) call a single `crm_request` tool routed through `app/mcp/crm_remote.py` (mounted at `/mcp/crm`, authless or bearer-authed via `CRM_MCP_TOKEN`). The CRM steward classifies intent and dispatches to one of **28 `@skill`-decorated functions** in `app/services/crm_steward_skills.py` (public/internal classification pending re-audit under **BQ-CRM-USER-SCOPING D07**). Each skill calls a service-layer method that writes through domain-scoped services in `app/domains/crm/**`.
+Max and both instances (via Koskadeux MCP at mcp.ai.market) call the `crm_request` tool family in `koskadeux-mcp/tools/crm.py`, which wraps the backend REST API (`/api/v1/crm/agent-request` and friends) with the internal key. There is no external `/mcp/crm` endpoint and no `CRM_MCP_TOKEN` (removed S1099). The CRM steward classifies intent and dispatches to one of **28 `@skill`-decorated functions** in `app/services/crm_steward_skills.py` (public/internal classification pending re-audit under **BQ-CRM-USER-SCOPING D07**). Each skill calls a service-layer method that writes through domain-scoped services in `app/domains/crm/**`.
 
 **Verified end-to-end (S458 allAI-first design)**: live read trace `754792b8-efd8-4270-8415-96d916e40fa2` (find_contact), live write trace `dffad565-0cf8-4014-910d-6ed2b1fb7f3a` (create_task via 2-turn tool use).
 
@@ -47,7 +47,7 @@ Runs at **07:00 UTC daily** via APScheduler (`app/core/scheduler.py:214 send_mor
 | `app/services/crm_briefing_service_gmail.py` | Active briefing renderer (07:00 UTC) |
 | `app/services/briefing_delivery.py` | Delivery: Telegram + Postmark + HMAC links |
 | `app/services/briefing_data_service.py` | Async data assembly (audit pending per C04) |
-| `app/mcp/crm_remote.py` (~23 kB) | **Primary NL agent surface** — MCP `crm_request` tool family |
+| `koskadeux-mcp/tools/crm.py` | **Primary NL agent surface** — gateway `crm_request` tool family over REST (`app/mcp/crm_remote.py` removed S1099) |
 | `app/models/crm.py` | V1 database models |
 | `app/domains/crm/**` | V2 domain layer (party, identity, trust, commercial, revenue) |
 
@@ -80,7 +80,7 @@ See the troubleshooting table in `crm-architecture.md` "When it breaks". Quick r
 |---------|-------------|--------------|
 | Briefing email empty | Simulate scoped query against Max's `user_id` (`0a3eb2e1-8cc1-4ea9-84ce-542491784be3`); post-D05: check `crm_briefing_contact_count` metric | User-scoping columns null — see Track 1 (done) / Track 2 (pending) |
 | Briefing not arriving at 07:00 UTC | `gateway.log` + Railway logs for `send_morning_briefing_job`; scheduler registry in Redis | Scheduler down, Gmail OAuth expired, service crash |
-| `crm_request` from Claude/MP returns empty | Verify bearer token via `CRM_MCP_TOKEN`; check `app/mcp/crm_remote.py` routing; user lookup on recipient email | Possibly steward dispatch gap (D10/D11/D12) for intent-routed flows |
+| `crm_request` from Claude/MP returns empty | Verify the gateway can reach `/api/v1/crm/agent-request` (internal key, `AI_MARKET_URL`); check `koskadeux-mcp/tools/crm.py`; user lookup on recipient email | Possibly steward dispatch gap (D10/D11/D12) for intent-routed flows |
 | Duplicate contacts | Email not matching on upsert | Ask: "upsert contact with email X" rather than "create contact" |
 | Stale 360 view | Redis cache TTL | Wait for TTL or flush manually |
 

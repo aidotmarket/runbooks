@@ -72,7 +72,7 @@ All under `app/services/`:
 
 ## API layer
 
-> **HISTORICAL NOTE (updated S500):** `crm_agent_request.py` was retired. The natural-language agent surface is now the MCP `crm_request` tool routed through `app/mcp/crm_remote.py` mounted at `/mcp/crm`. The S364 "DO NOT DELETE" warning from the previous HTTP endpoint now applies to `app/mcp/crm_remote.py` — deleting it breaks ALL natural-language CRM operations from Claude.ai + Koskadeux. Historical commit reference for the prior endpoint: `7c51e21`.
+> **HISTORICAL NOTE (updated S1099, supersedes S500):** `crm_agent_request.py` was retired at S499, and `app/mcp/crm_remote.py` (the external `/mcp/crm` FastMCP endpoint) was deleted at S1099 under BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098 (Max decision: no direct claude.ai connector to the CRM). The natural-language agent surface is the Koskadeux gateway tool family (`crm_request`, `crm_log_interaction`, `crm_search_interactions` in `koskadeux-mcp/tools/crm.py`), thin wrappers over the backend REST API (`/api/v1/crm/agent-request`, `/api/v1/crm/interactions`, `/api/v1/crm/search`). The old S500 "DO NOT DELETE crm_remote.py" warning is obsolete: the gateway path never used `/mcp/crm`. Historical commits: prior HTTP endpoint `7c51e21`; removal merge `1a514583` (backend).
 
 | File | Routes | Purpose |
 |------|--------|---------|
@@ -84,7 +84,7 @@ All under `app/services/`:
 | `api/v1/endpoints/accounting_crm.py` | `/api/v1/accounting/crm/*` | Read-only contracts for accounting (`require_accounting_scope`). Shipped S469. |
 | `api/v1/endpoints/briefing.py` | `/api/v1/briefing/*` | Briefing view with HMAC auth |
 | `api/routers/email_drafts.py` | `/api/v1/drafts/*` | Standalone draft CRUD |
-| `app/mcp/crm_remote.py` (mounted `/mcp/crm`) | MCP protocol | **Primary NL agent surface** — `crm_request` tool family. Replaces retired `crm_agent_request.py`. |
+| Koskadeux gateway `tools/crm.py` (mcp.ai.market) | MCP tools over REST | **Primary NL agent surface** — `crm_request` / `crm_log_interaction` / `crm_search_interactions` calling `/api/v1/crm/*`. The former `app/mcp/crm_remote.py` `/mcp/crm` endpoint was removed at S1099. |
 
 ## Agent layer
 
@@ -92,7 +92,7 @@ All under `app/services/`:
 |------|------|
 | `allai/agents/crm_steward.py` | CRM steward agent: processes events, manages Telegram interactions, exposes skills |
 | `allai/agents/sysadmin/briefing_monitor.py` | Monitors briefing delivery health |
-| `mcp/crm_remote.py` | **Primary natural-language CRM surface**. Remote MCP server (~23 kB) mounted at `/mcp/crm`. Exposes `crm_request` tool family for Claude.ai Connectors + Koskadeux. Replaces retired `crm_agent_request.py`. |
+| Koskadeux gateway `tools/crm.py` | **Primary natural-language CRM surface**. MCP tools on mcp.ai.market wrapping backend REST (`/api/v1/crm/*`) with the internal key; the CRM Steward handles intent server-side. `app/mcp/crm_remote.py` removed at S1099 (BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098). |
 
 ## Known issues (S500 audit — supersedes S364)
 
@@ -209,14 +209,16 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 - S499 — Track 1 emergency data restoration (550 rows backfilled across 4 tables); OPUS_CRM code audit (7 issues) committed as `OPUS_CRM_FIX_SCHEDULE.md` at `65f61d3`; **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK** filed P0; voice-memo removal decision (C02); `crm_agent_request.py` retirement confirmed.
 - S500 — R6 runbook refresh: S499 findings integrated; stale file references corrected; steward dispatch/command layer gaps documented (D10/D11/D12); skill count corrected to 28 decorated. Updated: `crm-target-state.md`, `crm-architecture.md`, `crm-pipeline.md` (full rewrite).
 
-## CRM Remote MCP Connector (Claude.ai) — Auth (S1096)
+## CRM Access And Auth (S1099 — external MCP endpoint removed)
 
-**What:** `app/mcp/crm_remote.py` (FastMCP "ai.market CRM") is mounted at public `https://api.ai.market/mcp/crm/mcp`. Since S1096 it is protected by a static bearer token, **enforced** (`CRM_MCP_AUTH_ENFORCED=true`): requests without `Authorization: Bearer <CRM_MCP_TOKEN>` get a sanitized 401. Public `/health/mcp-crm` reports only `auth: configured|not_configured`. NOTE: as of 2026-07-02 **no Claude.ai connector is actually configured** — the endpoint was built S138 for that purpose but the connector-add step was never completed; enforcement was flipped with zero client impact. Internal CRM access (Koskadeux gateway `crm_request`, REST `/api/v1/crm` with internal key) does NOT use this path and is unaffected.
+**Current state:** there is NO external CRM MCP endpoint on the backend. `https://api.ai.market/mcp/crm/mcp`, `/health/mcp-crm`, and the root MCP OAuth connector routes (`/.well-known/oauth-*`, `/authorize`, `/token`, `/register`) intentionally return 404. `app/mcp/crm_remote.py`, `app/mcp/auth.py`, and `app/mcp/oauth.py` were deleted under BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098 (Gate-3 unanimous DS+GLM+AG, merged S1099 at backend `1a514583`). Max decision (S1098, ledger event b2d6c05d): all CRM access from Claude goes through the Koskadeux gateway (`mcp.ai.market`); there is deliberately no separate claude.ai connector door and none should be reintroduced.
 
-**Token location:** Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod`, key `CRM_MCP_TOKEN`; mirrored in the Railway env of `ai-market-backend` (app reads Railway env — see infisical-secrets.md Known Gotchas).
+**How CRM is accessed now:**
+- Claude / agents: Koskadeux gateway tools (`crm_request`, `crm_log_interaction`, `crm_search_interactions` in `koskadeux-mcp/tools/crm.py`) → backend REST `/api/v1/crm/*` with the internal key → CRM Steward.
+- Backend integrations: REST `/api/v1/crm/*` directly (internal key or JWT per endpoint deps).
 
-**Add the connector (Max, Claude.ai):** Settings → Connectors → Add custom connector → URL `https://api.ai.market/mcp/crm/mcp` → auth: Bearer token = the Infisical value (fetch on Titan-1: `INFISICAL_TOKEN=$(cat ~/.config/infisical/sysadmin-token) INFISICAL_API_URL=$(cat ~/.config/infisical/api-domain) infisical secrets get CRM_MCP_TOKEN --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=prod --path=/ --plain | tr -d '\n' | pbcopy`). Syncs to iOS automatically. Verify with a contact lookup.
+**Retired configuration:** `CRM_MCP_TOKEN` and `CRM_MCP_AUTH_ENFORCED` are no longer read by any code. Railway env entries removed at S1099 after prod 404 verification. The Infisical `CRM_MCP_TOKEN` value (project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, env `prod`) is retained for the rollback window, then archived per token policy.
 
-**Rotate:** new random ≥32-byte value → Infisical `CRM_MCP_TOKEN` → `railway variables --service ai-market-backend --set "CRM_MCP_TOKEN=<new>" --skip-deploys` → update the Claude.ai connector token → `railway redeploy --service ai-market-backend --yes` → verify old token 401s, new token passes, connector reads work. **Revoke/emergency:** replace the token and redeploy (old token dies at cutover); the middleware fails closed if the token is unset while enforced.
-
-**Toggle:** `CRM_MCP_AUTH_ENFORCED` (Railway env). `true` = enforced (canonical). `false` = grace: unauthenticated requests pass and emit one `event=crm_mcp_unauth_passthrough` WARNING per request (countable in Railway logs). Grace is for cutovers only and is capped at 24h per Council mandate; a follow-up BQ retires the grace path and defaults enforcement in code.
+**Rollback** (single revert of the removal merge) constraints:
+- Set `CRM_MCP_AUTH_ENFORCED=true` and restore `CRM_MCP_TOKEN` in Railway env BEFORE redeploying rollback code; never redeploy the endpoint authless.
+- If the follow-up migration dropping `mcp_auth_codes` + `mcp_refresh_tokens` has already run, restoring `app/mcp/oauth.py` will DB-error on the root OAuth routes: either skip restoring `app/mcp/oauth.py` (static-bearer endpoint only) or restore the two tables from migration downgrade / DB backup first. Do not touch `oauth_clients` in either direction.
