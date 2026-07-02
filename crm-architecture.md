@@ -208,3 +208,15 @@ The "456d overdue" display uses `(now - worst_due_date).days` for the oldest ove
 - S481 — **BQ-CRM-SALES-SURFACE** Chunk B2 complete (`8315c11`): public v2 PATCH/DELETE for persons + organizations.
 - S499 — Track 1 emergency data restoration (550 rows backfilled across 4 tables); OPUS_CRM code audit (7 issues) committed as `OPUS_CRM_FIX_SCHEDULE.md` at `65f61d3`; **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK** filed P0; voice-memo removal decision (C02); `crm_agent_request.py` retirement confirmed.
 - S500 — R6 runbook refresh: S499 findings integrated; stale file references corrected; steward dispatch/command layer gaps documented (D10/D11/D12); skill count corrected to 28 decorated. Updated: `crm-target-state.md`, `crm-architecture.md`, `crm-pipeline.md` (full rewrite).
+
+## CRM Remote MCP Connector (Claude.ai) — Auth (S1096)
+
+**What:** `app/mcp/crm_remote.py` (FastMCP "ai.market CRM") is mounted at public `https://api.ai.market/mcp/crm/mcp`. Since S1096 it is protected by a static bearer token, **enforced** (`CRM_MCP_AUTH_ENFORCED=true`): requests without `Authorization: Bearer <CRM_MCP_TOKEN>` get a sanitized 401. Public `/health/mcp-crm` reports only `auth: configured|not_configured`. NOTE: as of 2026-07-02 **no Claude.ai connector is actually configured** — the endpoint was built S138 for that purpose but the connector-add step was never completed; enforcement was flipped with zero client impact. Internal CRM access (Koskadeux gateway `crm_request`, REST `/api/v1/crm` with internal key) does NOT use this path and is unaffected.
+
+**Token location:** Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod`, key `CRM_MCP_TOKEN`; mirrored in the Railway env of `ai-market-backend` (app reads Railway env — see infisical-secrets.md Known Gotchas).
+
+**Add the connector (Max, Claude.ai):** Settings → Connectors → Add custom connector → URL `https://api.ai.market/mcp/crm/mcp` → auth: Bearer token = the Infisical value (fetch on Titan-1: `INFISICAL_TOKEN=$(cat ~/.config/infisical/sysadmin-token) INFISICAL_API_URL=$(cat ~/.config/infisical/api-domain) infisical secrets get CRM_MCP_TOKEN --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=prod --path=/ --plain | tr -d '\n' | pbcopy`). Syncs to iOS automatically. Verify with a contact lookup.
+
+**Rotate:** new random ≥32-byte value → Infisical `CRM_MCP_TOKEN` → `railway variables --service ai-market-backend --set "CRM_MCP_TOKEN=<new>" --skip-deploys` → update the Claude.ai connector token → `railway redeploy --service ai-market-backend --yes` → verify old token 401s, new token passes, connector reads work. **Revoke/emergency:** replace the token and redeploy (old token dies at cutover); the middleware fails closed if the token is unset while enforced.
+
+**Toggle:** `CRM_MCP_AUTH_ENFORCED` (Railway env). `true` = enforced (canonical). `false` = grace: unauthenticated requests pass and emit one `event=crm_mcp_unauth_passthrough` WARNING per request (countable in Railway logs). Grace is for cutovers only and is capped at 24h per Council mandate; a follow-up BQ retires the grace path and defaults enforcement in code.
