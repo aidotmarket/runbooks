@@ -11,7 +11,7 @@
 - **owner_agent:** Vulcan / Mars (ai.market backend peers)
 - **escalation_contact:** Max
 - **lifecycle_ref:** see §J (authoritative for refresh tracking)
-- **authoritative_scope:** This runbook is the source of truth for the capability model (buyer default-on, seller additive), the provisioning→active readiness rules, the `require_capability` / `assert_user_capability` guard, the 403 `CapabilityRequiredError` body, the `GET /api/v1/auth/capabilities` read contract, the `POST /api/v1/auth/capabilities/seller/request` self-serve request contract, and the `next_action` field. It describes the capability-aware dashboard + floating setup bar (`ai-market-frontend`) as a downstream CONSUMER of these contracts, not as their source of truth. It is NOT the source of truth for sign-up/login (see `auth-signup-flow.md`), 2FA setup (see `two-factor-auth.md`), or Stripe Connect onboarding mechanics (see `infisical-secrets.md` for Stripe keys).
+- **authoritative_scope:** This runbook is the source of truth for the capability model (buyer default-on, seller additive), the provisioning→active readiness rules, the `require_capability` / `assert_user_capability` guard, the 403 `CapabilityRequiredError` body, the `GET /api/v1/auth/capabilities` read contract, the `POST /api/v1/auth/capabilities/seller/request` self-serve request contract, and the `next_action` field. It describes the capability-aware dashboard + floating setup bar (`ai-market-frontend`) as a downstream CONSUMER of these contracts, not as their source of truth. It is NOT the source of truth for sign-up/login (see `auth-signup-flow.md`) or 2FA setup (see `two-factor-auth.md`). It IS the home of the Stripe Connect ACTIVATION CHAIN procedure (E-06) — the click → hosted onboarding → return-sync → webhook → durable-write path that flips a seller active — added S1097 after both legs of that chain failed for the first live seller with no runbook owning them (Stripe keys themselves: `infisical-secrets.md`; session/cookie behavior on the Stripe round-trip: `browser-session-auth.md`).
 - **linter_version:** 1.0.0
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
@@ -145,6 +145,20 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 - **next_step_success:** the dashboard shows the floating setup bar; user works the four steps.
 - **next_step_failure:** on 409 suspended, do NOT auto-clear — route per §F-06 (escalation, not a code repair).
 
+### E-06 — Stripe Connect activation chain (click → active)
+- **id:** E-06
+- **trigger:** A provisioning seller clicks Connect Stripe (dashboard card, floating bar, or stripe-return retry).
+- **pre_conditions:** `user_authenticated`, seller `provisioning`, 2FA complete (endpoint enforces 403 otherwise).
+- **chain (each link verified live S1097):**
+  1. Frontend calls `POST /connect/onboarding`; backend reuses `users.stripe_account_id` or creates a Standard account, returns `{onboarding_url, account_id, type}`. Frontend parsing is centralized in `api/connect.ts` (`onboarding_url` with legacy `url` fallback, `connect.stripe.com/` prefix guard) — the S468/S1097 field-mismatch bug lives here if it ever regresses.
+  2. Browser goes to Stripe-hosted onboarding; seller completes; Stripe returns the browser to `/dashboard/stripe-return`.
+  3. **Return leg:** stripe-return polls `GET /connect/status`, which fetches the live account from Stripe and writes the durable columns (`users.stripe_payouts_enabled/stripe_details_submitted/stripe_onboarding_complete`) plus the `party_identity` bridge. Requires the session to survive the cross-site round-trip (auth `hydrated` gate, S1097; cookie contract in `browser-session-auth.md`).
+  4. **Webhook leg (independent of the browser):** Stripe delivers `account.updated` / `capability.updated` / `account.application.deauthorized` for CONNECTED accounts ONLY to a **Connect-enabled** webhook endpoint. Live endpoint: `we_1TojkMRucxd97j0A9bMsZv1f` → `https://api.ai.market/api/v1/webhooks/stripe`, created S1097 (the original endpoint was account-level, so seller events were silently undeliverable). Its signing secret sits in the `STRIPE_WEBHOOK_SECRET_PREVIOUS` slot; the handler verifies against both secrets (`webhooks.py` two-secret try).
+  5. Either leg flips the durable signal; the resolver's all-steps-done fall-through makes the seller `active`; the publish gate opens.
+- **idempotency:** IDEMPOTENT end-to-end (account reuse; durable writes keyed by user; either leg may fire first or twice).
+- **expected_failures:** login bounce on return (fixed S1097, `hydrated` gate — see BQ-FE-STRIPE-RETURN-LOGIN-BOUNCE-S1097); webhook silently undelivered (check the endpoint is Connect-enabled: `GET /v1/webhook_endpoints`, the connect flag, NOT just the event list — the S1097 lesson).
+- **operator resync (no user JWT needed):** when Stripe says done but the platform disagrees (F-02), read ground truth from Stripe (`GET /v1/accounts/{acct}` → `details_submitted`/`payouts_enabled`), then mirror it: `UPDATE users SET stripe_payouts_enabled='true', stripe_details_submitted='true', stripe_onboarding_complete='complete' WHERE id=…` and patch the `party_identity` metadata (`onboarding_status`,`payouts_enabled`,`details_submitted`). Always read Stripe FIRST; never set the column ahead of provider truth. Used live for the first seller, S1097.
+
 ### Customer-facing copy (seller readiness, Max voice)
 - `profile_name`: "Add your name so buyers know who they are dealing with."
 - `company_name`: "Add your company name. Buyers want to know who is behind the data."
@@ -251,9 +265,9 @@ Pass threshold: weighted score ≥ 0.80.
 
 ## §J. Lifecycle
 
-- **last_refresh_session:** S1054
-- **last_refresh_commit:** 839eef35 (backend deployed main, slice-2 ship) / 4932ecd (frontend deployed main)
-- **last_refresh_date:** 2026-06-29
+- **last_refresh_session:** S1097
+- **last_refresh_commit:** 8ac99a03 (backend deployed main) / 41a75d3 (frontend deployed main, hydration-gate fix)
+- **last_refresh_date:** 2026-07-02
 - **owner_agent:** Vulcan / Mars (ai.market backend peers)
 - **refresh_triggers:** capability/onboarding BQ completion, Gate approval on the onboarding redesign, any incident touching seller readiness, scheduled cadence
 - **scheduled_cadence:** 90 days
@@ -262,6 +276,7 @@ Pass threshold: weighted score ≥ 0.80.
 - **first_staleness_detected_at:** null
 - **refresh_log:**
   - S1051 (2026-06-28): first authoring — slice-1 capability model, guard, 403 contract, readiness signals.
+  - S1097 (2026-07-02): first-seller incident refresh — added E-06 (Stripe Connect activation chain) after BOTH activation legs failed live for seller #1: the return-leg sync was killed by a login bounce (pristine-store guard race, fixed with the auth `hydrated` gate, frontend 41a75d3) and the webhook leg was undeliverable because the Stripe endpoint was never Connect-enabled (fixed: `we_1TojkMRucxd97j0A9bMsZv1f` + second-secret slot, backend env deploy 12:29Z). Documented the operator resync procedure (used live). Lesson recorded: verifying a webhook means verifying the CONNECT flag, not just existence + event list.
   - S1054 (2026-06-29): slice-2 refresh — added `GET /api/v1/auth/capabilities`, `POST /api/v1/auth/capabilities/seller/request`, `next_action`, capability-aware dashboard + floating setup bar (frontend consumers), and the §2.0.1 provisioning→active fall-through fix. Slice-2 shipped to prod 2026-06-28 (backend `839eef35`, frontend `4932ecd`).
 
 ---
