@@ -60,9 +60,20 @@ source). **WS3 dashboard is the replacement read path** — the sharpest depende
 The four programme-level preconditions before Phase D may run at all (tracker `wip_order`):
 1. **WS7 Phase D** landed (sibling stash-collapse cutover).
 2. **S757** reconciler-git fix in prod.
-3. **WS3 dashboard production-stable** — 72h clean validation telemetry, then Primary flips
-   `ws3_dashboard_production_stable=True` (Gate 0 §8 Step 1).
-4. **Chunk-2 F1** read-volume telemetry confirmed.
+3. **WS3 dashboard production-stable** — 72h clean validation telemetry, then the operating instance flips
+   `ws3_dashboard_production_stable=True` (Gate 0 §8 Step 1). *S1097: the hourly comparator is now
+   genuinely scheduled — Titan-1 launchd `com.koskadeux.ws3-comparator` runs
+   `tools/dashboard/comparator_job.py` hourly; run evidence accrues on Living State entity
+   `infra:heartbeat:ws3-dual-read-comparator` plus `mismatch_log` rows on divergence. Clean clock
+   started 2026-07-02; earliest honest flip ≈ 2026-07-05. Both mirror SQL predicates were corrected
+   S1097 to the canonical unified predicate (`ai-market-backend tools/lifecycle/eligibility.py
+   to_sql_where_clause`); the G1 §4.4 inline SQL is stale (ownership retired with S811).*
+4. **Chunk-2 F1** read-volume telemetry confirmed. *S1097 disposition: SATISFIED-BY-ZERO-READERS —
+   cross-repo AG-M4 inventory found zero production readers of the 8 retired sub-surfaces
+   (`config:parallel-worker-queue` archived since S803, zero writes since). No conversion build;
+   the shim stays as the mandated surface for future consumers. DeepSeek-checked; full record at
+   `config:queue-overlay-feature-flags.body.s1097_p4_disposition`, incl. the deferred reader_mode
+   global-vs-per-ss defect that MUST be fixed inside the Phase-D build.*
 
 Until then Phase D returns `FlipResult(executed=False, reason='ws3_dashboard_not_production_stable')`
 (the one expected xfail in the suite). **Do not force the flag without the 72h validation.**
@@ -134,6 +145,8 @@ WS9 ACL enforce-flip. Tracker: `config:reform-completion-tracker` (v13, S992).
 
 - Last verified: **S992** — chunk 5 merged + suite green on main (34/1xfail, 91%); Gate-3 PASS
   (DeepSeek + XAI APPROVE; MP excluded as builder).
+- **S1097 conformance:** comparator scheduler live-verified (first run 0/0 divergences, heartbeat v1);
+  P4 resolved by zero-reader evidence; P1 (WS7 Phase D) remains outstanding alongside the 72h P3 clock.
 - Phase-D dry-run / execution: **NOT yet performed** (gated). This runbook documents the designed
   procedure; update §E/§G with live observations when Phase D is executed.
 
