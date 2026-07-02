@@ -46,6 +46,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md).
 
+**SysAdmin operating model** — bounded Observe→Decide→Act→Verify→(Fix|Escalate) loop, verified capability set, LOUD-DEGRADED bind failures, singleton-owned probes/compliance/scheduler, `/agent-compliance`, typed health contracts, and Railway project-token recovery: [sysadmin.md](sysadmin.md).
+
 **Auth** — sign-up / login path: [auth-signup-flow.md](auth-signup-flow.md). **Login sessions surviving reload (in-memory access token + httpOnly refresh cookie, the same-site invariant, browser verification discipline):** [browser-session-auth.md](browser-session-auth.md). 2FA: [two-factor-auth.md](two-factor-auth.md).
 
 **Account capabilities & seller onboarding** — the capability model (buyer default-on, seller additive), provisioning vs active, the four seller readiness steps (profile name, company name, 2FA, Stripe payouts-live via the durable `users.stripe_payouts_enabled` column), the `require_capability` / `assert_user_capability` guard, the 403 `CapabilityRequiredError` contract, and a seller's path to first sale (connect Stripe → seller goes active): [account-capability-onboarding.md](account-capability-onboarding.md).
