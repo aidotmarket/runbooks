@@ -37,7 +37,8 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
 | Living State write path | `state_request` (koskadeux-mcp) | Railway Postgres via ai-market-backend `/api/v1/allai/state` | dashboard proxy, morning briefing, reconciler | All mutations route through `_persist_with_lifecycle_invariants`; never write the DB directly |
 | Atomic write endpoint | POST `/api/v1/allai/state/atomic_write` | same | token consumption, event ledger | Single AsyncSession, flush-only services, one commit; SELECT FOR UPDATE on singleton tokens entity |
 | Dashboard read proxy | ops.ai.market/build-queue | Living State (read) | Max | Read projection only; if a panel is wrong, the underlying entity is wrong |
-| Reconciler | lifecycle_eligibility_handler (scheduled) | Living State | session-open standup | Auto-recomputes eligibility + drift; emits drift report into the boot standup |
+| Reconciler | lifecycle_eligibility_handler (scheduled) | Living State | session-open standup | Auto-recomputes eligibility + drift; emits drift report into the boot standup. Since S1103 this is the SWEEP/backstop only — the primary eligibility-column refresh happens synchronously in the write path (next row) |
+| Write-path eligibility refresh (S1103) | `StateService.put_entity` / `patch_entity` → `_refresh_build_eligibility_columns` (ai-market-backend `app/services/state_service.py`) | Living State | dual-read comparator, pickup/assignment queries | Every ordinary state write on a `build` entity re-derives `lifecycle_pickup_eligible` / `lifecycle_primary_eligible` via the canonical `tools/lifecycle/eligibility.py pickup_ready` in the SAME write. Guards: skips `updated_by=lifecycle_eligibility_handler` (avoids recursion; that actor owns its own column writes) and non-build kinds. TRAP: the `state_entities_mirror_columns_trg` DB trigger overwrites the `last_eligibility_computed_at` COLUMN from `body.lifecycle` on every row write, so the timestamp must be written into `body.lifecycle` too (the helper does; a column-only write gets nulled back). Fixed the WS3 dual-read comparator's stale-window divergences (columns lagged up to ~1h between reconciler passes after status/lease/mandate writes) |
 | Morning briefing | APScheduler `app/core/scheduler.py` | Living State | max@ai.market | Surfaces the >14-session escalation row (AC5.1) |
 
 **Lifecycle transition triggers (AC1.9).** Transitions are explicit, never inferred from CI/deploy/webhook signals:
@@ -56,7 +57,8 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
 |---|---|---|---|---|
 | Vulcan / Mars | file / patch / transition / complete / cancel | `state_request` (put/patch/bq_update/bq_complete/bq_bulk_update) | full write via persistence helper | LIVE |
 | Vulcan / Mars | run cleanup adjudication pre-flight | Chunk-4 cleanup manifest (see §F) | token-scoped | LIVE |
-| Reconciler | recompute eligibility + drift | lifecycle_eligibility_handler | system | LIVE |
+| Reconciler | recompute eligibility + drift (sweep/backstop since S1103) | lifecycle_eligibility_handler | system | LIVE |
+| State write path | synchronous eligibility-column refresh on every build-entity write | `StateService._refresh_build_eligibility_columns` | system | LIVE (S1103, backend main 85958681; Gate-4 liveness-proven by prod probe) |
 | Dispatch wrapper | reject dispatches lacking a valid active build-queue reference | dispatch enforcement gate | system | see §H.1 |
 | Max | priority reorder, batch cleanup sign-off | dashboard | actor=max ledgered | LIVE |
 
