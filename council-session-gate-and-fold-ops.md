@@ -32,6 +32,7 @@ Record review outcomes by transitioning the gate status to the canonical word (e
 
 Author-mode credentials:
 - Gate 1 only: dispatch `mode=author` with NO dispatch_id / dispatch_token / target_gate — the gateway auto-signs (passing ANY of the three disables auto-sign and demands a real token; target_gate then defaults to 1).
+- `bq_code` argument form (S1112): pass the code WITHOUT the `build:` entity-key prefix (e.g. `bq-crm-v2-phase-d-fk-rewires-meet-notes-bridge-s1112`; leading `bq-` optional). The state layer builds the entity key as `build:bq-<code>`, so passing the full `build:bq-...` key double-prefixes it, the gate read 404s, and the dispatch fails with a bare `author_mode_transition_rejected`. Also: the target gate's status must already be one of the canonical authorable states above (a fresh Gate-1 entity needs `gate1.status="AUTHORING"`; free-text like `authoring` is not recognized). Diagnose rejections in `/tmp/koskadeux_mcp.log` (`author_mode_state:` warnings).
 - Gate ≥2: mint explicitly on Titan-1 — `tools/author_dispatch/signer.auto_sign_for_vulcan(target_gate=N)` (key path in koskadeux-mcp/.env: AUTHOR_DISPATCH_VULCAN_PRIVATE_KEY_PATH). Token TTL is 300s — dispatch immediately. Pass dispatch_id + dispatch_token + target_gate.
 - Gate-status writes on a gate that has author-lifecycle fields require `request_dispatch_id` = the PERSISTED bound_dispatch_id (status-only writes). Writes that also SET bound_dispatch_id require request = the INTENDED id — and the persisted check still fires, which deadlocks rotation (§D).
 
