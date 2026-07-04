@@ -70,3 +70,27 @@ Live machine-readable source: `state_get("infra:railway")` → `management_tools
 `/Users/max/koskadeux-mcp` (MCP server/gateway, active) · `/Users/max/Projects/ai-market/{ai-market-backend,ai-market-frontend,aim-data,runbooks}` · `/Users/max/ops/aimarket-backend-main` (backup worktree). Canonical paths: `state_get("config:resource-registry")`.
 
 _Maintained alongside `infra:titan-1` in Living State. Last live inventory: 2026-06-09 (S799.w)._
+
+
+## Incident record — 2026-07-04 reboot outage (S1118) + cold-start canary rule
+
+**What happened:** Apple OS patch rebooted Titan-1. All com.koskadeux.* LaunchAgents are
+correctly RunAtLoad+KeepAlive and restarted — but the gateway crash-looped (exit 1):
+`gateway_server.py` imports `ContentBlock`/`Icon` from `mcp.types`, and the venv held
+`mcp==1.8.1` (silently downgraded/reinstalled ~Jul 3 12:36 local, source unattributed;
+`requirements.txt` had an unpinned `mcp` line). The old process had the newer SDK in
+memory, so nothing failed until the cold start. Public symptom: Cloudflare 502 on
+mcp.ai.market (tunnel up, origin :8767 down). Fix: `venv/bin/pip install -U mcp`
+(→1.28.1) + kickstart; floor now pinned in requirements.txt (commit d92a15b1).
+
+**Rule — cold-start import canary:** after ANY dependency change in the koskadeux venv
+(pip install/upgrade/downgrade, requirements edit, venv rebuild), run:
+`for m in koskadeux_server gateway_server ag_server deepseek_server; do venv/bin/python -c "import $m" || echo "$m FAILS COLD-START"; done`
+A running process proves nothing about the next reboot. Note: importing koskadeux_server
+applies pending registry migrations (side effect; idempotent).
+
+**Fast triage for "MCP unreachable after reboot":** probe `https://mcp.ai.market/health`
+from anywhere — 530/1033 = tunnel down (cloudflared, system daemon); 502 = tunnel up,
+gateway :8767 down (check `/var/tmp/koskadeux/gateway.err`); 200 = path fine, look
+higher. Local: `curl 127.0.0.1:{8765,8767}/health`; kickstart:
+`launchctl kickstart -k gui/$(id -u)/com.koskadeux.<svc>`.
