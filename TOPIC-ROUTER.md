@@ -16,6 +16,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 | Backup/age encryption private key | 1Password only — never in S3 or on a server | [disaster-recovery.md](disaster-recovery.md) |
 | Internal API key (agent→backend) | Infisical `ai-market-backend`/prod: `INTERNAL_API_KEY` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
 | Machine-identity creds (unattended jobs) | `~/.config/infisical/` on Titan-1; project `ai-market-backend` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
+| Rotate/expire/generate a secret WE own, without typing it (local model) | Titan-1 `/Users/max/local-secops/` (Ollama `llama3.3:70b`; propose→review→execute; allow-listed) | [local-secops.md](local-secops.md) |
 | GCP / Vertex (AG / Gemini) auth | service account + Vertex config | [gcp-auth.md](gcp-auth.md) |
 | 2FA / TOTP encryption key | backend env | [two-factor-auth.md](two-factor-auth.md) |
 
@@ -31,7 +32,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **The host — Titan-1 / Mac Studio** — hardware, services + ports, tunnel, Docker dev stack, scheduled jobs: [titan-1.md](titan-1.md). Network topology & remote access: [connectivity.md](connectivity.md#remote-access-to-titan-1).
 
-**Secrets** — accessing, machine identities, rotation (incl. **Stripe API key rotation** — which keys, the mandatory Railway-set + redeploy + live-verify, webhook secret is separate), emergency recovery: [infisical-secrets.md](infisical-secrets.md).
+**Secrets** — accessing, machine identities, rotation (incl. **Stripe API key rotation** — which keys, the mandatory Railway-set + redeploy + live-verify, webhook secret is separate), emergency recovery: [infisical-secrets.md](infisical-secrets.md). **Local SecOps assistant** — supervised local-model credential rotation/movement/generation on Titan-1 (values never leave the host, no typing): [local-secops.md](local-secops.md).
 
 **AWS** — account / IAM / S3: [aws.md](aws.md) · [aws-s3.md](aws-s3.md).
 
