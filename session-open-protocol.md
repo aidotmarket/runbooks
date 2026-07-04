@@ -41,13 +41,23 @@ If `kd_session_open` returns evidence of a stale prior instance row:
 ## O.6 Retired lock entity
 `infra:active-session-lock`, parent ids, and role-keyed status are retired from the open protocol. Do not recreate them for reconciliation.
 
-## O.7 Memory #29 ground-truth verification at open
-Before acting on anything in the handoff or queue body:
-1. GET the referenced entity.
-2. Verify against `origin/main` via shell.
-3. Reconcile if drift detected.
+## O.7 Memory #29 — RETIRED (2026-07-04, S1117)
+The Memory #29 defensive ground-truth protocol is formally retired: the S621 reform
+replaced every drift surface it defended with the single reconciled database, the
+continuous reconciler, and the boot tripwire standup. Retirement was unanimously
+Council-ratified with Max signoff; the full 11-criterion evaluation and evidence
+live on the event ledger (pending event `ddca7b6a`, entity
+`build:bq-reform-memory-29-protocol-retirement-s621`).
 
-Common drift signals at open: queue body addenda 1+ rounds stale, ships listed in handoff not visible on origin/main, BQ gate status patched in handoff but not in entity.
+**Reactivation window: until 2026-08-03.** Trigger signals — boot tripwire blocking
+drift, reconciler drift reports, or ACL warn/403 telemetry on
+`config:parallel-worker-queue` — mandate a reactivation evaluation: revert this
+commit and emit a `memory_29_protocol_reactivated` event referencing the ledger
+record. Beyond the window, reactivation requires a fresh BQ.
+
+Ordinary engineering judgment still applies: verify load-bearing claims against
+ground truth before acting on them. That is standing practice, not a numbered
+protocol.
 
 ## O.8 Canonical peer prompt
 Use `docs/instance-opening-prompt.md` for either peer.
