@@ -5,6 +5,14 @@
 > **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326`
 > **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 
+## Source of Truth & Propagation (READ FIRST)
+
+**Infisical is the single source of truth for backend secrets.** As of S1125 the native **Infisical→Railway sync is LIVE** (sync `railway-backend-prod`, auto-sync ON, **disable-deletion ON**, initial behaviour "prioritize Infisical"). A change to a secret in Infisical `ai-market-backend`/`prod` now mirrors to the Railway `ai-market-backend` service automatically — no manual Railway set + redeploy for routine changes.
+
+**How secrets are moved / rotated / generated: the local AI.** Day-to-day credential work runs through the **Local SecOps assistant** on Titan-1 (local model + guardrailed executor; values never leave the host, no human types them). See **[local-secops.md](local-secops.md)** for full operation. It can generate/rotate owned secrets, and copy an existing value **Railway → Infisical** (`reconcile-from-railway`) when Railway has drifted ahead.
+
+**CAUTION (why this matters):** because the sync prioritizes Infisical, a **stale** value in Infisical for a shared key will be pushed over a good Railway value on the next sync. This took prod down once (S1125: stale `GITHUB_TOKEN` + `GCP_SERVICE_ACCOUNT_JSON` clobbered working Railway creds). Before enabling/triggering a sync, ensure Infisical is not stale for shared keys — use `reconcile-from-railway`. Railway-managed vars (e.g. `DATABASE_URL`, `REDIS_URL`, `RAILWAY_*`) must NOT live in Infisical.
+
 ## Quick Reference
 
 | Resource | ID |
@@ -118,7 +126,7 @@ On a Stripe-flagged compromise of the secret key:
 
 Do NOT rotate `STRIPE_WEBHOOK_SECRET` for an API-key compromise — separate credential. If you ever do, use the graceful two-value swap (`STRIPE_WEBHOOK_SECRET`=new, `STRIPE_WEBHOOK_SECRET_PREVIOUS`=old; see backend `webhooks.py`).
 
-> S1039: live secret-key compromise rotation. Found `STRIPE_PUBLISHABLE_KEY` in Railway had drifted (matched neither the old nor new Stripe value) — reconciled during the same rotation. Confirms the manual-sync gap still bites; tracked in `T-2026-000048`.
+> S1039: live secret-key compromise rotation. Found `STRIPE_PUBLISHABLE_KEY` in Railway had drifted (matched neither the old nor new Stripe value) — reconciled during the same rotation. Confirms the manual-sync gap (now CLOSED S1125 — native Infisical→Railway sync is live; see Source of Truth section above). `T-2026-000048`.
 
 ## Emergency Recovery
 

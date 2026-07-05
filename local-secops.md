@@ -14,7 +14,7 @@ The Local SecOps assistant is a supervised, local-only helper for credential ope
 
 It exists because secret rotation/movement was previously a manual, error-prone, type-the-value-by-hand process. It removes the human from touching secret values while keeping the human (Max/Vulcan) in the approval loop.
 
-**Deployed state at build:** proposer and executor both present and verified; write/get/delete proven end-to-end on the `koskadeux-mcp` Infisical project (see §K). Write on the `ai-market-backend` project is allow-listed but not yet exercised.
+**Deployed state at build:** proposer and executor both present and verified; write/get/delete proven end-to-end on the `koskadeux-mcp` Infisical project (see §K). Write on the `ai-market-backend` project is now exercised (S1125: reconciled 4 keys, round-trip verified). The Infisical→Railway native sync is LIVE.
 
 ---
 
@@ -24,11 +24,12 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 |---|---|---|
 | Draft a credential-op plan from a natural-language task | Yes | `secops_propose.py`; propose-only, never executes |
 | Rotate/update a secret we own | Yes | `set` upsert; value self-generated (`secrets.token_urlsafe(48)`) |
+| Copy an EXISTING value Railway → Infisical (reconcile) | Yes | `reconcile-from-railway`; host-side, value never printed/never on disk; round-trip hash-verify. Use to fix Infisical when Railway drifted ahead |
 | Read/verify a secret | Yes | `get`; value not printed to chat, only round-trip proof |
 | Expire/delete a secret | Yes | `delete` via raw REST API (curl `-K` stdin), because CLI delete is unreliable under this machine identity |
 | Restart a dependent LOCAL service after rotation | Yes | `launchctl kickstart -k` of 3 known labels only |
 | Rotate a THIRD-PARTY key (Stripe, DeepSeek, etc.) | No (partial) | Provider-issued value must arrive via a secure channel; **not wired**. The model must never invent a third-party value |
-| Trigger a Railway redeploy to pick up a backend secret | No | Out of scope; backend secrets reach prod via Railway redeploy — do that separately |
+| Push a backend secret to prod | No (automatic) | The native Infisical→Railway sync (LIVE since S1125) mirrors Infisical→Railway on its own; this tool writes the Infisical catalog only |
 | Autonomous/scheduled rotation | No | Operator/Vulcan-invoked only; no timer, no daemon |
 | Run arbitrary shell | No | Executor rebuilds argv from vetted templates; raw model string is never run |
 
@@ -52,7 +53,7 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 - `koskadeux-mcp` = `0943f641-faee-4324-b337-0d50c276e4a9`
 - `ai-market-backend` = `bd272d48-c5a1-4b52-9d24-12066ae4403c`
 
-**Boundary with the rest of the system.** This tool writes the catalog (Infisical). It does **not** push to Railway. Backend production picks up a changed backend secret via a Railway redeploy (or, once live, the native Infisical→Railway sync — see `infisical-secrets.md` and BQ-RAILWAY-INFISICAL-SYNC). Local Council/agent services pick up a rotated key via `launchctl kickstart`.
+**Boundary with the rest of the system.** This tool writes the catalog (Infisical). It does **not** push to Railway. Backend production picks up a changed backend secret via the native Infisical→Railway sync, which is now LIVE (S1125) and mirrors Infisical→Railway automatically (see `infisical-secrets.md`). Local Council/agent services pick up a rotated key via `launchctl kickstart`.
 
 ---
 
@@ -61,15 +62,16 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 | Actor | May do | May NOT do |
 |---|---|---|
 | Proposer (`llama3.3:70b`) | Draft a plan grounded on PLAYBOOK.md | Execute anything; print a real secret value; invent flags/subcommands |
-| Executor (`secops_execute.py`) | Run the 4 allow-listed command classes on approved plans | Run any off-list command, touch a non-allow-listed project, run a shell |
+| Executor (`secops_execute.py`) | Run the allow-listed actions on approved plans | Run any off-list command, touch a non-allow-listed project, run a shell |
 | Vulcan/Mars (operator) | Review a proposed plan; invoke the executor; provide provider-issued third-party values through a secure channel | Bypass review; paste secret values into chat |
 | Max | Approve/authorize a rotation; supply third-party provider values | — |
 
-**Allow-listed command classes (only these four):**
+**Allow-listed actions (only these):**
 1. `infisical secrets set NAME=VALUE` (upsert; value self-generated when placeholder + `--gen-value`)
 2. `infisical secrets get NAME` (verify; `--plain`)
 3. `infisical secrets delete NAME` (via raw REST API)
 4. `launchctl kickstart -k gui/<uid>/<LABEL>` where LABEL ∈ {`com.koskadeux.deepseek_server`, `com.koskadeux.ag_server`, `com.koskadeux.mcp`}
+5. `reconcile-from-railway NAME` — copy NAME's CURRENT value from the fixed Railway `ai-market-backend`/`production` service into the Infisical backend project. Host-side; value never printed / never on disk; round-trip hash-verify. Source service/env and target project are HARDCODED, not operator-selectable. (Write goes via the Infisical CLI — `INFISICAL_TOKEN` in env, off argv — because the raw REST write returns 403 for this identity; value is passed `NAME=VALUE` on argv, single-host posture.)
 
 Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be `prod`. `domain` must be `secrets.ai.market`. `projectId` must be allow-listed. Any shell metacharacter → refuse.
 
@@ -97,6 +99,18 @@ Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be `prod`. `domain` must 
 6. Verify from the consumer's side (service health / endpoint), not just the vault.
 
 **Restart-only (a service needs to re-read an already-rotated key):** a one-step plan with just the `launchctl kickstart` command.
+
+**Reconcile an existing value Railway → Infisical (when Infisical has drifted stale):**
+
+1. Dry-run (reads Railway, writes nothing):
+   ```bash
+   cd /Users/max/local-secops && ./secops_execute.py --reconcile KEY [KEY ...]
+   ```
+2. Execute + verify (each key is round-trip hash-verified; MATCH required):
+   ```bash
+   ./secops_execute.py --reconcile KEY [KEY ...] --execute
+   ```
+   Use this when the native sync's “prioritize Infisical” would otherwise push a **stale** Infisical value over a good Railway one. S1125 used it to correct `GITHUB_TOKEN`, `GCP_SERVICE_ACCOUNT_JSON`, `CORS_ORIGINS_EXTRA`, `GMAIL_TOPIC_NAME`.
 
 **Secret → dependent-service restart map** (from PLAYBOOK.md):
 - `DEEPSEEK_API_KEY` (koskadeux-mcp) → restart `com.koskadeux.deepseek_server`
@@ -133,12 +147,12 @@ Every run and refusal is in `audit.log` (JSONL, values redacted) — read it fir
 
 ## §H. Evolve — Extending the System
 
-**Guardrail-first rule:** any capability that lets the executor do something new (a new command class, a new project, a new service label) is a change to the allow-list in `secops_execute.py` and MUST be reviewed as security-class work (Council per CORE §3). Do not widen the allow-list casually.
+**Guardrail-first rule:** any capability that lets the executor do something new (a new command class, a new project, a new service label) is a change to the allow-list in `secops_execute.py` and MUST be reviewed as security-class work (Council per CORE §3). Do not widen the allow-list casually. (Applied S1125: the `reconcile-from-railway` action was reviewed by DeepSeek + GLM — both APPROVE_WITH_MANDATES — before first prod use; mandates addressed: no secret on disk, verify reads back from explicit project/env.)
 
 Planned/known extension points:
 - **Third-party key rotation (Stripe, DeepSeek, etc.):** blocked by design — the provider issues the value, which must reach the executor through a secure channel (never chat). Wiring a secure-channel intake is the main open extension; until then, third-party rotation stays manual per `infisical-secrets.md`.
-- **`ai-market-backend` project writes:** allow-listed but not yet exercised. First real backend write should be a low-blast-radius key with a Railway-redeploy verify, reviewed before running.
-- **Backend propagation:** this tool stops at the catalog. Once BQ-RAILWAY-INFISICAL-SYNC (native Infisical→Railway sync) is live, a backend-secret `set` propagates automatically; until then, redeploy Railway by hand.
+- **`ai-market-backend` project writes:** exercised S1125 (reconcile of 4 keys, round-trip MATCH). Write goes via the Infisical CLI (raw REST write 403s for this identity).
+- **Backend propagation:** this tool stops at the catalog. The native Infisical→Railway sync is now LIVE (S1125, auto-sync on, disable-deletion on), so a backend-secret write in Infisical propagates to Railway automatically. CAUTION: because the sync prioritizes Infisical, never leave a **stale** value in Infisical for a shared key — use `reconcile-from-railway` if Railway is ahead.
 
 ---
 
@@ -164,7 +178,7 @@ Planned/known extension points:
 ## §K. Conformance
 
 - **Proven live (S1115):** disposable-key set→get→delete on `koskadeux-mcp` (`0943f641…`), value self-generated and redacted, no residue (audit.log 2026-07-04T14:21). Refusal paths proven: placeholder-without-gen, off-list command, non-allow-listed projectId, HALT-present.
-- **Not yet exercised:** any write on `ai-market-backend` (`bd272d48…`); third-party-key intake (unwired).
+- **Exercised S1125:** `reconcile-from-railway` on `ai-market-backend` (`bd272d48…`) for 4 keys, all round-trip MATCH; reviewed DeepSeek + GLM APPROVE_WITH_MANDATES (mandates addressed). **Still unwired:** third-party-key intake.
 - **Grounding source of truth:** `PLAYBOOK.md` in the tool directory — keep it in sync with Infisical/service reality.
 
 ## §L. Topic router & self-containment
