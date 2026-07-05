@@ -47,6 +47,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md).
 
+**Ticket-probe auto-close — self-closing support tickets** — support tickets close on the production symptom, not the delivery path: each ticket carries a machine still-broken probe (kinds http/db_query/log_grep/flag_state/config_key), and a reconciler runs open-ticket probes on every prod deploy plus an hourly heartbeat, auto-resolving a ticket (with evidence, `resolution_source=probe`) once its probe reports not-broken twice consecutively; an unreachable/probe-rot probe ALARMS and never closes. Feature flag `TICKET_PROBE_RECONCILER_ENABLED` (live on Titan-1 since S1128); http probes require the backend `TICKET_PROBE_HTTP_ALLOWLIST`: [ticket-probe-autoclose.md](ticket-probe-autoclose.md). Canonical status: `build:bq-two-track-ticket-probe-autoclose-s1126`.
+
 **SysAdmin operating model** — bounded Observe→Decide→Act→Verify→(Fix|Escalate) loop, verified capability set, LOUD-DEGRADED bind failures, singleton-owned probes/compliance/scheduler, `/agent-compliance`, typed health contracts, and Railway project-token recovery: [sysadmin.md](sysadmin.md).
 
 **Auth** — sign-up / login path: [auth-signup-flow.md](auth-signup-flow.md). **Login sessions surviving reload (in-memory access token + httpOnly refresh cookie, the same-site invariant, browser verification discipline):** [browser-session-auth.md](browser-session-auth.md). 2FA: [two-factor-auth.md](two-factor-auth.md).
