@@ -153,7 +153,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   component_ref: Vertex AI Gemini
   root_cause: A non-Vertex key (OAuth token or legacy Developer API key) is stored for Gemini auth.
   repair_entry_point: GCP Console Credentials API Keys, scoped to the Vertex AI API
-  change_pattern: Re-create the API key scoped to the Vertex AI API so the prefix is AQ., store it as VERTEX_GEMINI_KEY in Infisical. If AG dispatches 401, sync VERTEX_API_KEY to match and restart ag_server.
+  change_pattern: Re-create the API key scoped to the Vertex AI API so the prefix is AQ., store it as VERTEX_GEMINI_KEY in Infisical. If AG dispatches 401, sync VERTEX_API_KEY to match and restart ag_server. As of S1132, `ag_adapter._select_genai_client_kwargs` PREFERS `VERTEX_API_KEY` (exported into the MCP process env by `scripts/launch_mcp_server.sh` from Infisical project bd272d48) over user OAuth/ADC; project ADC is a fallback only. This reverts the S805 ADC-first ordering, which broke all AG reviews when the local ADC token expired (`RefreshError: Reauthentication is needed`). If AG auth fails, verify `VERTEX_API_KEY` is present in the MCP env (`ps eww` on the com.koskadeux.mcp pid) and AQ.-prefixed in Infisical, then restart com.koskadeux.mcp.
   rollback_procedure: Restore the previous working key value from Infisical history if the new key fails validation.
   integrity_check: head -c 4 of the stored key returns AQ.A and a test embed/chat call succeeds.
 - id: G-05
