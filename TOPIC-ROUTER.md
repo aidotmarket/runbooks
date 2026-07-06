@@ -2,6 +2,17 @@
 
 The **documented entry point** for ai.market runbooks. Find your subject, go straight to the owning runbook (and section). Sections are **self-contained** — you should not need to hop between pages for one answer. If you hit a fact that isn't written down, write it into the owning runbook AND fix the entry here in the **same session** (standard §L).
 
+## On any error, read the runbook FIRST
+
+**Before diagnosing any error, failure, or surprising symptom from code or logs, grep this router and the owning runbook's §F failure table on the error string.** Recurring incidents get misdiagnosed repeatedly because code gets read before the runbook that already documents the fix. Known recurring symptoms:
+
+| Symptom / error string | Read this first |
+|---|---|
+| `RefreshError: Reauthentication is needed` · AG council reviews fail on auth | [gcp-auth.md §F-04](gcp-auth.md) — Vertex Gemini uses the **API key**, not OAuth/ADC |
+| AG review `ValidationError: additionalProperties` / union-type schema | [agent-dispatch.md §C.0](agent-dispatch.md) — Gemini `Schema` subset; sanitize at the adapter |
+| Council review returns no verdict / `RepairExhaustedError` | [agent-dispatch.md §O](agent-dispatch.md) — structural-output repair, distinct from input-schema |
+
+
 ## Credentials & source-of-truth (where things live)
 
 The most common miss is "what is X and where does its credential live." Answers first:
@@ -17,7 +28,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 | Internal API key (agent→backend) | Infisical `ai-market-backend`/prod: `INTERNAL_API_KEY` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
 | Machine-identity creds (unattended jobs) | `~/.config/infisical/` on Titan-1; project `ai-market-backend` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
 | Rotate/expire/generate a secret WE own, without typing it (local model) | Titan-1 `/Users/max/local-secops/` (Ollama `llama3.3:70b`; propose→review→execute; allow-listed) | [local-secops.md](local-secops.md) |
-| GCP / Vertex (AG / Gemini) auth | service account + Vertex config | [gcp-auth.md](gcp-auth.md) |
+| GCP / Vertex (AG / Gemini) auth | Vertex Gemini uses the **API key** `VERTEX_API_KEY` (AQ., Infisical bd272d48) — NOT OAuth/ADC; Gmail = OAuth; gcloud = interactive-only | [gcp-auth.md](gcp-auth.md) |
 | 2FA / TOTP encryption key | backend env | [two-factor-auth.md](two-factor-auth.md) |
 
 ## By subject
