@@ -16,6 +16,30 @@
 
 Standard cross-vote reviewers are **MP + DeepSeek + GLM** (infra:council-comms v42, S994). **XAI is RETIRED** (Max go, S994 — supersedes the S786 comparison reactivation). **AG is optional-only** (retired from standard review S899) and is the file-reading third for security/auth/money 3/3 unanimous until GLM file-reading is wired. GLM dispatches via `agent=glm` (its own slot; the live server accepts it even if the client tool enum omits it), is content-cited only (file-reading not wired), and has a minor recurring quirk of garbling verbatim reproduction of string literals containing quotes — verify quoted code against the diff. Canonical roster + per-agent quirks live in `infra:council-comms`.
 
+## §C.0 AG / Gemini response-schema constraints (Vertex google-genai Schema subset)
+
+AG runs on Gemini via the Vertex google-genai SDK, whose `Schema` type accepts only a
+subset of JSON Schema. A `response_schema` (e.g. `AG_REVIEW_RESPONSE_FORMAT` in
+`tools/agents.py`) must avoid keywords the SDK rejects, or EVERY AG review-mode dispatch
+fails with a pydantic `ValidationError` ("Extra inputs are not permitted") *before Vertex
+ever runs*. Known incompatibilities, each of which took down all AG reviews until fixed:
+
+- **Union type arrays** like `["string","null"]` — express nullability as
+  `{"type":"string","nullable":true}` instead. (S831; regression
+  `tests/test_ag_review_schema_vertex.py`.)
+- **`additionalProperties`** (any value, `true` or `false`) — Gemini does not support the
+  keyword at all. `AGAdapter._sanitize_gemini_schema` strips it (and any key in
+  `GEMINI_UNSUPPORTED_SCHEMA_KEYS`) recursively at the adapter boundary before the schema
+  reaches `GenerateContentConfig`, so shared review schemas may still carry it for other
+  providers. (S1132; regression `tests/test_ag_review_schema_additionalproperties_s1132.py`.)
+
+Fix new incompatibilities at the **adapter boundary** (`council_dispatch_middleware/adapters/
+ag_adapter.py`), not by hand-editing every schema — Gemini's subset is the tightest, and
+cross-provider schemas must stay valid for MP/DS/GLM. This is distinct from
+`RepairExhaustedError` (§O), which is a *structural output* repair failure, not an
+input-schema rejection. It is also distinct from the AG review **ref-resolution** path
+(`dispatch_sha`/`base`/`head` preload) — a separate fix in the same S1132 session.
+
 ## §C Architecture
 
 MP build and review dispatches use the Codex CLI bridge. For
