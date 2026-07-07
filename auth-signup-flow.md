@@ -23,7 +23,7 @@ The auth flow must commit the user FIRST. Side effects run in isolated transacti
 | Google OAuth callback | `app/api/v1/endpoints/auth.py:710` (`POST /auth/oauth/google/callback`) | Customer login flow. Calls `OAuthService.authenticate_callback("google", ...)` then `_build_auth_success_response`. |
 | GitHub OAuth callback | `app/api/v1/endpoints/auth.py:737` (`POST /auth/oauth/github/callback`) | Same pattern as Google. |
 | Magic-link redeem | `app/api/v1/endpoints/auth.py` (around line 670) | Email magic-link flow. |
-| Password registration | `app/api/v1/endpoints/auth.py` register endpoint | Email + password + verification. |
+| Password registration | `app/api/v1/endpoints/auth.py:432` (`POST /auth/register`) | Email + password. Creates the user `status=active` immediately. **No email verification is sent or enforced today** — see the Email Verification section. |
 | OAuth identity creation | `app/auth/oauth.py:377` (`OAuthService._link_or_create_user`) | The user-or-link decision logic. **Currently calls `ensure_user_crm_identity` inline — see Known Issues.** |
 | CRM provisioning helper | `app/domains/crm/core/sync_helpers.py:18` (`ensure_user_crm_identity`) | Creates `Party`, `PartyIdentity`, optional `PartyRoleBinding`. Documented as safe to call repeatedly. |
 
@@ -144,3 +144,33 @@ Re-provisioning is done by calling `ensure_user_crm_identity(db, user.id, email=
 
 *Created: S574 (2026-05-06) — captures architectural principle + active P0 incident `BQ-AUTH-OAUTH-CRM-PROVISIONING-BLOCKS-SIGNUP-S574`.*
 *To be updated when the fix lands: chosen isolation strategy, commit/PR refs, regression test path, backfill verification.*
+
+
+---
+
+## Email verification (current state + policy) — updated 2026-07-07 (S1139)
+
+### Current reality (as shipped)
+There are three customer sign-up paths, and email is validated on only two of them:
+
+| Path | Endpoint | Email validated? |
+| --- | --- | --- |
+| Google / GitHub OAuth | `POST /auth/oauth/{provider}/callback` | **Yes, indirectly.** `app/auth/oauth.py` trusts the provider `email_verified` claim and rejects the sign-up if the provider reports the address unverified. Sets `email_verified=true`. |
+| Magic link | `POST /auth/magic-link/request` + `/magic-link/verify` | **Yes, by construction.** The user must click a link sent to their inbox. `/magic-link/verify` sets `email_verified=true`. |
+| Email + password | `POST /auth/register` → `POST /auth/login` | **No.** `/register` creates the account `status=active` with `email_verified=false` and does not send a verification email (`/auth/send-verification-email` docstring: "actual email sending is Phase 2"). `/auth/login` only checks the password and `status=active`; it never checks `email_verified`. |
+
+Result: a password user can register and use the platform without ever confirming their address. Snapshot 2026-07-07: **31 of 39 active users have `email_verified=false`, all password sign-ups.**
+
+The verification primitives already exist and work: `_create_email_verify_token` / `_verify_email_token` (HMAC-SHA256, `EMAIL_VERIFY_TTL`), `POST /auth/verify-email?token=...` (flips `email_verified=true`), and `POST /auth/send-verification-email` (mints a token but does **not** send). The email transport is live and proven by magic-link: `app/services/email_service.py` `get_email_service()` (provider Resend via `RESEND_API_KEY`, gmail fallback), `send_magic_link_email` / `send_password_reset_email`.
+
+### Policy change in progress: require email verification on all NEW sign-ups
+Tracked under `BQ-REQUIRE-EMAIL-VERIFICATION-S1139` (auth-critical → Council-gated + Max GO before the enforcement deploys).
+
+Design (phased, so no current customer is locked out):
+1. **Send** — `/auth/register` sends the verification email through the existing `email_service` (same transport as magic-link); wire `/auth/send-verification-email` to actually send (resend path). Additive, non-blocking.
+2. **Enforce for NEW accounts only** — `/auth/login` (and the flexible auth dependency) rejects password users with `email_verified=false` whose `created_at` is on/after the enforcement cutoff, returning a clear `403` the frontend renders as a "check your email / resend" state (not a raw error). OAuth and magic-link already satisfy the requirement and are unaffected.
+3. **Grandfather** — every account created before the cutoff (the 31 existing unverified password users) stays usable; they are prompted to verify but not blocked.
+4. **Frontend** — a `/auth/verify-email` landing page that calls `/auth/verify-email`, plus a post-register "we sent you a link / resend" screen.
+
+### Related gate (do not confuse with email verification)
+After sign-up, a separate **onboarding gate** blocks most endpoints until `users.onboarding_completed=true` (`_enforce_onboarding` in `app/api/deps.py`; introduced by BQ-AUTH-MODERNIZE). Email verification and onboarding completion are independent. See `account-capability-onboarding.md`. A stuck onboarding flag (all steps done but the final flip never fired) caused the S1139 Sergey edit-crash incident (`bug:sergey-onboarding-gate-edit-crash-s1139`).
