@@ -163,8 +163,8 @@ Result: a password user can register and use the platform without ever confirmin
 
 The verification primitives already exist and work: `_create_email_verify_token` / `_verify_email_token` (HMAC-SHA256, `EMAIL_VERIFY_TTL`), `POST /auth/verify-email?token=...` (flips `email_verified=true`), and `POST /auth/send-verification-email` (mints a token but does **not** send). The email transport is live and proven by magic-link: `app/services/email_service.py` `get_email_service()` (provider Resend via `RESEND_API_KEY`, gmail fallback), `send_magic_link_email` / `send_password_reset_email`.
 
-### Policy change in progress: require email verification on all NEW sign-ups
-Tracked under `BQ-REQUIRE-EMAIL-VERIFICATION-S1139` (auth-critical → Council-gated + Max GO before the enforcement deploys).
+### Email verification required on all NEW sign-ups — SHIPPED 2026-07-07 (S1139, BQ-REQUIRE-EMAIL-VERIFICATION-S1139)
+Backend 812d0c14 + frontend baf704c. GLM APPROVE_WITH_NITS. A new email+password account must verify before it can log in; existing accounts are grandfathered by `EMAIL_VERIFICATION_ENFORCE_AFTER` (=2026-07-07T16:30:00Z), OAuth/magic-link unaffected. Endpoints: /auth/register now sends the verification email; /auth/send-verification-email actually sends; new unauthenticated /auth/resend-verification (rate-limited) for users blocked at login; /auth/login raises 403 {email_verification_required:true} for enforced-unverified accounts. Frontend: /auth/verify-email page + login verify/resend state. Kill switch: REQUIRE_EMAIL_VERIFICATION.
 
 Design (phased, so no current customer is locked out):
 1. **Send** — `/auth/register` sends the verification email through the existing `email_service` (same transport as magic-link); wire `/auth/send-verification-email` to actually send (resend path). Additive, non-blocking.
