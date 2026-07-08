@@ -13,6 +13,8 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | Council review returns no verdict / `RepairExhaustedError` | [agent-dispatch.md §O](agent-dispatch.md) — structural-output repair, distinct from input-schema |
 | MP review/build fails to read a pinned SHA: `object/path is not available locally`, `git cat-file -t <sha>` fails | [agent-dispatch.md §T](agent-dispatch.md) — the SHA was committed via the GitHub API and the local Titan-1 clone is behind; `git fetch origin main` in the target repo, then redispatch |
 | Structural MP build returns `RepairExhaustedError` but `git log` shows the builder commit landed locally | [agent-dispatch.md §U](agent-dispatch.md) — do NOT rebuild; complete the wrapper gates manually (tests + CI paths + cross-review + deliberate instance push) |
+| MP build/review dispatch rejected `RUNBOOK_REF_MISSING` / `RUNBOOK_REF_UNRESOLVED` (failed_check path or section) | [codex-mp.md §F-08/§G-08](codex-mp.md) — BLOCK-mode runbook gate; pass structured refs with an exact existing heading, or an Attestation (creates dischargeable debt) |
+| MP build killed at exactly 600s / task silent past 300s but commit landed | [codex-mp.md §F](codex-mp.md) — timeout backstop + silent-delivery ground-truth check before any redispatch |
 
 
 ## Credentials & source-of-truth (where things live)
@@ -59,6 +61,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 **AIM Data / AIM Node / vectorAIz** — seller conduit + dev conduit: [aim-data.md](aim-data.md) · [aim-node.md](aim-node.md). vectorAIz brand context (AIM Channel retired, superseded by AIM Data): [dual-brand-vectoraiz-aim-channel.md](dual-brand-vectoraiz-aim-channel.md). Releases: [aim-data-release-process.md](aim-data-release-process.md) · [aim-node-release-process.md](aim-node-release-process.md) · [vz-release-process.md](vz-release-process.md).
 
 **allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md).
+
+**Codex / MP — Council primary builder** — MP dispatch mechanics (build/review/author, background polling, structural vs legacy paths), Codex CLI config + OAuth, timeout and mutex behavior, the MP failure/symptom table (silent-delivery, RepairExhaustedError, 600s kills, READ-ONLY violations, runbook-gate rejections, push_failed guardrail), and the model-swap procedure (gpt-5.6 and successors, T-2026-000197): [codex-mp.md](codex-mp.md). Roster + per-agent quirks remain canonical in `infra:council-comms`; gate semantics in [agent-dispatch.md](agent-dispatch.md).
 
 **Ticket-probe auto-close — self-closing support tickets** — support tickets close on the production symptom, not the delivery path: each ticket carries a machine still-broken probe (kinds http/db_query/log_grep/flag_state/config_key), and a reconciler runs open-ticket probes on every prod deploy plus an hourly heartbeat, auto-resolving a ticket (with evidence, `resolution_source=probe`) once its probe reports not-broken twice consecutively; an unreachable/probe-rot probe ALARMS and never closes. Feature flag `TICKET_PROBE_RECONCILER_ENABLED` (live on Titan-1 since S1128); http probes require the backend `TICKET_PROBE_HTTP_ALLOWLIST`: [ticket-probe-autoclose.md](ticket-probe-autoclose.md). Canonical status: `build:bq-two-track-ticket-probe-autoclose-s1126`.
 
