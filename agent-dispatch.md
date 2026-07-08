@@ -515,3 +515,18 @@ Reference the COMMITTED spec path at a pinned commit SHA — never a bare path, 
 /goal prefix is optional: the goals feature is stable+enabled on Titan-1 Codex 0.139.0 and /goal-prefixed prompts are accepted via `codex exec`, but goal-LOOP engagement (multi-turn autonomy to a stop condition) in non-interactive exec is UNVERIFIED on long builds. Do not rely on loop autonomy until a long-build dispatch demonstrates it; the load-bearing, proven element is path@SHA + wrapper.
 
 Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cfec6 via git show, exact first+last lines verbatim, accurate §-citations, zero file modifications, 66s.
+
+## §U — Post-build wrapper failure with a delivered commit (RepairExhaustedError recovery, S1147)
+
+**Symptom:** a structural MP build dispatch returns `RepairExhaustedError: schema repair exhausted` (builder-output-manifest could not be repaired into a valid structural response), but `git log` in the build cwd shows MP's commit landed and `git status` is clean. Observed S1147 on BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146 C1 (task d8f1c473, commit c710ed75). This is the §B "MP delivered even though the envelope says failed" family (S451 quirk), surfacing on the §O structural path at the output-validation stage — the failure is in manifest parsing/repair, NOT in the build.
+
+**Procedure (do NOT redispatch a rebuild):**
+1. Confirm delivery: `git log --oneline -3`, `git status --short`, and inspect the commit diff against the chunk's spec scope.
+2. Complete the wrapper's pre-push gates manually: run the chunk's new tests plus `ci_verification.py:CI_WORKFLOW_TEST_PATHS` locally; all green or stop.
+3. Run the chunk's Gate 3 cross-review with builder excluded (MP built it → DS + GLM review).
+4. On pass, push as a deliberate instance merge: `KD_ALLOW_MAIN_PUSH=1 git push origin main` (fast-forward only).
+5. Record the workaround: patch the BQ entity (chunk verdicts + `wrapper_incident`) and emit a `decision` event.
+
+**Escalation:** if this recurs, file a BQ against the SchemaRepair/manifest-parser stage of the §O middleware rather than repeating manual recovery.
+
+**Related:** before ANY MP dispatch pinned to a SHA that was committed via the GitHub API, `git fetch origin main` in the target repo first — the local clone will not have the object and the dispatch fails with `object/path is not available locally` (observed twice S1147; see §T and the TOPIC-ROUTER symptom table).

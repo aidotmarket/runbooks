@@ -11,6 +11,8 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | `RefreshError: Reauthentication is needed` · AG council reviews fail on auth | [gcp-auth.md §F-04](gcp-auth.md) — Vertex Gemini uses the **API key**, not OAuth/ADC |
 | AG review `ValidationError: additionalProperties` / union-type schema | [agent-dispatch.md §C.0](agent-dispatch.md) — Gemini `Schema` subset; sanitize at the adapter |
 | Council review returns no verdict / `RepairExhaustedError` | [agent-dispatch.md §O](agent-dispatch.md) — structural-output repair, distinct from input-schema |
+| MP review/build fails to read a pinned SHA: `object/path is not available locally`, `git cat-file -t <sha>` fails | [agent-dispatch.md §T](agent-dispatch.md) — the SHA was committed via the GitHub API and the local Titan-1 clone is behind; `git fetch origin main` in the target repo, then redispatch |
+| Structural MP build returns `RepairExhaustedError` but `git log` shows the builder commit landed locally | [agent-dispatch.md §U](agent-dispatch.md) — do NOT rebuild; complete the wrapper gates manually (tests + CI paths + cross-review + deliberate instance push) |
 
 
 ## Credentials & source-of-truth (where things live)
