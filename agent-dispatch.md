@@ -530,3 +530,10 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 **Escalation:** if this recurs, file a BQ against the SchemaRepair/manifest-parser stage of the §O middleware rather than repeating manual recovery.
 
 **Related:** before ANY MP dispatch pinned to a SHA that was committed via the GitHub API, `git fetch origin main` in the target repo first — the local clone will not have the object and the dispatch fails with `object/path is not available locally` (observed twice S1147; see §T and the TOPIC-ROUTER symptom table).
+
+### §U addenda (S1147, activation session)
+
+- The RepairExhaustedError-with-delivered-commit pattern hit **4/4 structural MP builds** in S1147. §U recovery worked every time with zero rebuilds. A BQ against the SchemaRepair/manifest-parser stage is now warranted (see BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146 follow-ups).
+- **Check for shadowing after every MP session.py build:** one S1147 chunk added a module-level helper duplicating a pre-existing function name (`_read_state_entity`), silently shadowing the original for all earlier call sites. Grep `grep -n "def <name>(" <file>` for duplicate defs before review; the introduced-failure baseline diff (worktree at parent commit, identical pytest selection, `comm -13`) catches the symptom.
+- **GLM inline reviews: inline VERBATIM code for anything GLM must judge.** An orchestrator-condensed summary produced two false REQUEST_CHANGES findings in S1147 (an "undefined variable" and a "missing guard" that existed only in the summary). Condense context, never the code under audit.
+- **DeepSeek review degradation (empty responses, raw_response_length 0):** after 2 strikes on the same subtask, substitute AG as cross-reviewer (tight DO-ONLY checklist prompt, verify its citations by grep) rather than stalling the gate.
