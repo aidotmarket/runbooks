@@ -85,3 +85,21 @@ Service account must be **Owner** (not just User) in Search Console. Verify at S
 
 ### GCP credentials not loading
 Check Railway logs for `GCP_SERVICE_ACCOUNT_JSON not set`. Verify in Infisical: `infisical secrets get GCP_SERVICE_ACCOUNT_JSON --env prod --domain https://secrets.ai.market`
+
+## HuggingFace Dataset-Card Publishing (BQ-SEO-HF-PUBLISH-S804, shipped S1142)
+
+Flag-gated push channel: every published/updated listing with a disclosure snapshot gets a HF dataset repo + README card. **`HUGGINGFACE_SUBMISSION_ENABLED` defaults to `False` (app/core/config.py) and is NOT set in Railway env — enabling it is a Max-only production action.** While off, no HF jobs are created.
+
+How it works (all in ai-market-backend, merged main 7370d023):
+- Orchestrator: `SearchSubmissionService._append_huggingface_job_if_needed` enqueues `huggingface/dataset_card` jobs for listing `published` + `updated` events (flag + disclosure_version required). Dispatch routes through `HuggingFaceSubmissionProvider.publish_dataset_card` → `HuggingFaceService.publish_dataset_card_for_search_submission`.
+- Snapshot source: `DisclosureSnapshotService.get_snapshot_for_hf_card` (returns metadata-only snapshots too); the strict `get_snapshot_for_hf` keeps its 409 for no-row snapshots.
+- Row-backed publish pushes ONLY seller-approved sample rows for the exact disclosure version. Metadata-only publish uploads README only AND deletes any previously published data files (`_remove_stale_hf_data_files`) — customer-data safety requirement, unanimous Council mandate.
+- Idle-republish guard: an `updated` event is skipped only when BOTH disclosure_version AND rendered card hash match the last succeeded HF job (hashes stored as JSON in that job's `last_error` — known semantic wrinkle, GLM LOW finding).
+- Backlink: `https://ai.market/listings/{slug}` (id fallback); card frontmatter carries license/tags/source_url/citation. On success, `Listing.source_delivery.huggingface_url` is persisted and listing JSON-LD `sameAs` regenerated via `generate_listing_jsonld`. JSON-LD-only regen failure logs an error but does not fail the job.
+- Retry: HF 429/5xx retry; 400/401/403/404 terminal (`PERMANENT_FAILURE_CODES` now includes 404).
+
+### Troubleshooting
+- No HF jobs appearing → expected while `HUGGINGFACE_SUBMISSION_ENABLED` is unset/false. Check Railway variables (`railway variables --json | grep -i huggingface`).
+- HF job dead with 401/403 → check `HUGGINGFACE_TOKEN` / `HUGGINGFACE_HUB_TOKEN` in prod secrets.
+- Stale rows visible on HF after a seller withdraws sample approval → republish with the metadata-only snapshot; the publish path deletes non-README files. If `list_repo_files` is unavailable the fallback only sweeps data/train/test/validation folders (GLM LOW finding — stray root files could survive; escalate if seen).
+- Card out of date after listing edit → confirm an `updated` submission event fired; the guard republishes whenever the rendered card hash differs.
