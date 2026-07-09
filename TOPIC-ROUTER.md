@@ -60,7 +60,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **AIM Data / AIM Node / vectorAIz** — seller conduit + dev conduit: [aim-data.md](aim-data.md) · [aim-node.md](aim-node.md). vectorAIz brand context (AIM Channel retired, superseded by AIM Data): [dual-brand-vectoraiz-aim-channel.md](dual-brand-vectoraiz-aim-channel.md). Releases: [aim-data-release-process.md](aim-data-release-process.md) · [aim-node-release-process.md](aim-node-release-process.md) · [vz-release-process.md](vz-release-process.md).
 
-**allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md).
+**allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md). Agent write-approval (HITL) queue — persistence, atomic approve claim, post-approval execution: see the "HITL authorization queue" section of [allai-agents.md](allai-agents.md).
 
 **Codex / MP — Council primary builder** — MP dispatch mechanics (build/review/author, background polling, structural vs legacy paths), Codex CLI config + OAuth, timeout and mutex behavior, the MP failure/symptom table (silent-delivery, RepairExhaustedError, 600s kills, READ-ONLY violations, runbook-gate rejections, push_failed guardrail), and the model-swap procedure (gpt-5.6 and successors, T-2026-000197): [codex-mp.md](codex-mp.md). Roster + per-agent quirks remain canonical in `infra:council-comms`; gate semantics in [agent-dispatch.md](agent-dispatch.md).
 

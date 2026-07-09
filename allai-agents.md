@@ -110,3 +110,16 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 ---
 
 *Created: S363 (2026-04-01)*
+
+## HITL authorization queue (agent write approvals)
+
+Skills flagged `requires_authorization` in their `_skill_meta` (e.g. CRM `upsert_contact`) are gated at dispatch time: the HITL gate in `app/allai/agent_request_factory.py:_dispatch_with_policy` persists an `AgentHITLRequest` row (table `agent_hitl_request`, fields incl. `skill_name`, `context={tool_name, tool_input, trace_id}`, `urgency` as a `UrgencyLevel` ENUM — never a bare string) and returns `pending_hitl` to the caller. A persistence failure is a HARD error (`_hitl_error` → `status=error` envelope), never a fake pending (T-2026-000184).
+
+Operators approve/deny via `app/api/v1/endpoints/ops_agents.py` (superuser only). Approve/deny CLAIM the row with an atomic conditional `UPDATE … WHERE status='pending'` (rowcount-guarded — at-most-once under concurrent clicks; loser gets 409). Only the claim winner executes: `_execute_approved_hitl` runs the stored skill via `execute_skill` — deliberately bypassing the request-time gate (approval IS the authorization) — but ONLY for the row's approved `skill_name`; a context/skill_name mismatch refuses execution. Execution failures never crash the approval (row stays approved; recovery path tracked in T-2026-000198).
+
+Symptoms → first actions:
+- Approval queue always empty while agents report pending writes → check backend logs for `HITL request persistence failed` (post-fix this surfaces loudly); pre-fix root cause was the string-vs-enum crash swallowed as a warning (fixed PR #213, c83bd25b).
+- Approved but nothing happened → read the approve response's `execution` field; `executed: false` with "Agent … not registered" means the agent host lost the agent (see "Agent host lifecycle" above); "skill mismatch" means a malformed/tampered row — investigate, do not force.
+- Duplicate approve returns 409 → by design (atomic claim), not an error.
+
+Invariant: the fix surface is persistence + execution ONLY. Which skills require authorization (`meta.requires_authorization`), who approves (superuser dep), and the pending-status claim are the authorization boundary — changes there are BREAKING and need unanimous Council.
