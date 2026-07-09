@@ -88,7 +88,7 @@ Check Railway logs for `GCP_SERVICE_ACCOUNT_JSON not set`. Verify in Infisical: 
 
 ## HuggingFace Dataset-Card Publishing (BQ-SEO-HF-PUBLISH-S804, shipped S1142)
 
-Flag-gated push channel: every published/updated listing with a disclosure snapshot gets a HF dataset repo + README card. **`HUGGINGFACE_SUBMISSION_ENABLED` defaults to `False` (app/core/config.py) and is NOT set in Railway env — enabling it is a Max-only production action.** While off, no HF jobs are created.
+Flag-gated push channel: every published/updated listing with a disclosure snapshot gets a HF dataset repo + README card. `HUGGINGFACE_SUBMISSION_ENABLED` defaults to `False` (app/core/config.py); **as of S1164 (2026-07-09) it is SET to `true` in Railway prod alongside `HUGGINGFACE_TOKEN` — the channel is LIVE.** Flipping it remains a Max-only production action. A listing still publishes to HF only once it has a disclosure snapshot (seller approval via AIM Data ≥ v1.22.2 publish/disclosure flow); with zero snapshots no jobs are created even with the flag on.
 
 How it works (all in ai-market-backend, merged main 7370d023):
 - Orchestrator: `SearchSubmissionService._append_huggingface_job_if_needed` enqueues `huggingface/dataset_card` jobs for listing `published` + `updated` events (flag + disclosure_version required). Dispatch routes through `HuggingFaceSubmissionProvider.publish_dataset_card` → `HuggingFaceService.publish_dataset_card_for_search_submission`.
@@ -103,3 +103,6 @@ How it works (all in ai-market-backend, merged main 7370d023):
 - HF job dead with 401/403 → check `HUGGINGFACE_TOKEN` / `HUGGINGFACE_HUB_TOKEN` in prod secrets.
 - Stale rows visible on HF after a seller withdraws sample approval → republish with the metadata-only snapshot; the publish path deletes non-README files. If `list_repo_files` is unavailable the fallback only sweeps data/train/test/validation folders (GLM LOW finding — stray root files could survive; escalate if seen).
 - Card out of date after listing edit → confirm an `updated` submission event fired; the guard republishes whenever the rendered card hash differs.
+
+### Troubleshooting (cont.)
+- llms.txt shows an error or missing listings → as of S1164 the endpoint never renders exception text (neutral fallback + per-section catch, backend f1fbda17). If "Public discovery metadata is temporarily limited." or "Featured listings are temporarily unavailable." appears, read backend logs (logger "Error generating llms.txt" / "Failed generating featured listings section"). Historical cause (T-2026-000204): featured_service recent_sales queried a non-existent transactions table; now reads purchases.
