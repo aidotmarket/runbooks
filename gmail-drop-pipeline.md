@@ -1,8 +1,10 @@
 # Gmail Drop Pipeline
 
+> **Doc status:** content current as of S1162 (party model + T-2026-000200 restore). Full §A–K structural retrofit (BQ-RUNBOOK-STANDARD.md) still pending.
+
 ## What it does
 
-Emails cc'd or sent to `drop@ai.market` are automatically ingested into the CRM. A new contact is created (or matched to existing), the email is logged as an interaction, and an LLM generates a summary.
+Emails cc'd or sent to `drop@ai.market` are automatically ingested into the CRM. Each sender/CC address is resolved to a CRM **party** (created if new, matched if existing), the email is logged as an interaction against each party, and an LLM generates a summary. Ingestion is **idempotent per Gmail `message_id`** via the `email_ingest_receipt` table, so redeliveries and retries never double-log.
 
 ## Gmail Filter (in max@ai.market settings)
 
@@ -30,10 +32,11 @@ Email arrives at drop@ai.market (cc or direct)
     3. Skips messages with DRAFT label (Apple Mail IMAP auto-saves)
     4. Checks if drop@ai.market is in To/CC addresses
     5. Routes to EmailIngestService for CRM processing
-    6. CRM upsert: creates contact if new, matches if existing
-    7. Logs interaction (type: email) against ALL contacts (primary + CC'd)
-    8. LLM summarizes the email content
-    9. Stores summary in interaction record
+    6. Idempotency check: if this Gmail message_id already has an email_ingest_receipt, no-op (exactly-once; does NOT roll back the session)
+    7. Resolve-or-create a party for the sender + each CC'd address (race-safe PartyIdentity on provider + external id)
+    8. Log ONE interaction (type: email) per distinct email against each resolved party (force_create bypasses the time-window dedup so each real email is recorded once)
+    9. LLM summarizes the email content (computed outside the DB transaction)
+    10. Store summary + write email_ingest_receipt(message_id) to mark processed
 ```
 
 ## Key files
@@ -43,8 +46,11 @@ Email arrives at drop@ai.market (cc or direct)
 | `app/api/v1/endpoints/gmail_webhook.py` | Webhook endpoint |
 | `app/services/gmail_watch_service.py` | Gmail watch setup, renewal, and notification processing |
 | `app/services/gmail_service.py` | Gmail API client (auth, fetch, send) |
-| `app/services/email_ingest_service.py` | CRM contact upsert + interaction logging (all contacts incl. CC) |
-| `app/services/crm_service.py` | Interaction logging + `last_interaction_at` update |
+| `app/services/email_ingest_service.py` | Party resolve + interaction logging (sender + all CC) with per-`message_id` idempotency receipt |
+| `app/models/email_ingest_receipt.py` + `alembic/versions/20260709_001_email_ingest_receipt.py` | Idempotency receipt table (unique `message_id`); migration is `has_table`-guarded (idempotent) |
+| `app/domains/crm/core/service.py` | `resolve_or_create_party()` — race-safe party identity (ON CONFLICT DO NOTHING on `ix_party_identity_provider_ext`) |
+| `app/domains/crm/operations/service.py` | `create_interaction(..., force_create)` — forwards the dedup-bypass flag |
+| `app/services/crm_service.py` | Interaction logging + `last_interaction_at` update; `log_interaction(..., force_create)` honors the dedup bypass |
 | `app/services/draft_service.py` | Email draft CRUD (uses `reviewed_at`, `sent_at`, `reviewer_notes`) |
 | `app/api/webhooks.py` | Webhook routing |
 | `app/core/config.py` | `GMAIL_TOPIC_NAME`, `GCP_PROJECT_ID` |
@@ -106,6 +112,20 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 **Code:** `app/services/crm_service.py` → `_create_new_contact_follow_up()`  
 **Shipped:** S364 — commit `ce36fb8`
 
+## Party model, idempotency & the T-2026-000200 restore
+
+The pipeline uses the CRM **party** model, not the legacy contact model. Each participant (sender + every CC) is resolved via `resolve_or_create_party()`, keyed on a `PartyIdentity` (provider + external id). It is **race-safe**: concurrent arrivals for the same address use `INSERT ... ON CONFLICT DO NOTHING` on `ix_party_identity_provider_ext`, then re-resolve the winning party and delete any orphan party created on the losing branch. Interactions are `CrmPartyInteraction` rows.
+
+**Exactly-once ingestion.** Every processed Gmail message writes an `email_ingest_receipt(message_id UNIQUE)`. On (re)delivery the service checks for an existing receipt and no-ops if present — it does NOT roll back the session, so the no-op path stays idempotent. The LLM summary is computed outside the DB transaction.
+
+**One interaction per real email.** `log_interaction()` normally applies a short time-window dedup. The drop pipeline passes `force_create=True` (plumbed `email_ingest_service → operations.create_interaction → crm_service.log_interaction`) so each distinct inbound email is recorded exactly once, without the window collapsing two genuinely-separate emails into one.
+
+**T-2026-000200 (restore).** The drop pipeline had regressed (emails silently not landing). Restored S1160, Gate-3 closed S1162. Two HIGH fixes: HIGH-1 = the `force_create` dedup bypass above; HIGH-2 = the race-safe party identity above.
+
+### Migration idempotency lesson (S1162 incident)
+
+The first prod deploy of this work FAILED with `asyncpg DuplicateTableError: relation "email_ingest_receipt" already exists`. Root cause: an earlier partial deploy of the same revision created the table (and processed a few real emails) in prod but never stamped `alembic_version`, so every later deploy re-ran `CREATE TABLE` and died. **Prod stayed up the whole time on the prior build.** Fix: the migration's `upgrade()`/`downgrade()` are now guarded with `sa.inspect(bind).has_table(...)`, so the revision stamps cleanly when the table already exists. General rule: on a `DuplicateTableError` during deploy, compare the physical schema against `alembic_version` before touching anything — the object may exist from a partial run while alembic has no record of the revision. Do NOT drop the table; it may hold real rows.
+
 ## How to verify
 
 1. **Check Pub/Sub subscription exists:**
@@ -143,6 +163,9 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 | Duplicate PROCESSED drafts in Gmail | Apple Mail IMAP auto-saves trigger messageAdded events for drafts | Fixed in S372 (`eb26181`). `_process_single_message` and `_reprocess_for_crm` now skip messages with DRAFT label |
 | `last_interaction_at` always null | `crm_service.py` not updating entity after interaction insert | Fixed in S364 (`aee7796`). Check `CRMInteractionService.log_interaction()` |
 | `column "reviewed_at" does not exist` | `email_drafts` table missing columns | Run pending migration or: `ALTER TABLE email_drafts ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ` (also `sent_at`, `reviewer_notes`) |
+| Same email logged as duplicate interactions, or two different emails collapsed into one | Time-window dedup applied to ingest | `force_create=True` must flow email_ingest_service → operations.create_interaction → crm_service.log_interaction (T-200 HIGH-1) |
+| Party/interaction lost when the same address arrives on concurrent emails | Party-identity race | `resolve_or_create_party()` must use ON CONFLICT DO NOTHING on `ix_party_identity_provider_ext` + orphan cleanup (T-200 HIGH-2) |
+| Deploy fails: `DuplicateTableError: relation "email_ingest_receipt" already exists` | Table created by an earlier partial deploy; `alembic_version` never stamped | Migration is `has_table`-guarded (idempotent) — redeploy self-heals. If it recurs, compare physical schema vs `alembic_version`; do NOT drop the table (holds real receipts) |
 
 ## History of breakage
 
@@ -150,6 +173,7 @@ This applies to ALL contact creation paths: email drop pipeline, CRM steward man
 - **S341:** Pipeline down for days. Root cause: GCP OAuth refresh token expired (app in Testing mode). Fixed by re-running setup_gmail_auth.py and pushing token to Railway DB. Runbook updated to document Gmail filter, OAuth expiry, and manual token refresh procedure.
 - **S361:** Topic renamed from `gmail-push` to `gmail-crm-drop`. GMAIL_TOPIC_NAME set in Railway. Watch activated S360.
 - **S372:** Apple Mail IMAP draft auto-saves creating duplicate PROCESSED drafts. Root cause: `_process_single_message` processed all messageAdded events including drafts. Fix: DRAFT label check added to skip draft messages in both `_process_single_message` and `_reprocess_for_crm`.
+- **T-2026-000200 (S1160/S1162):** Drop pipeline regressed (emails not landing). Restored on the party model with a per-`message_id` idempotency receipt. Gate-3 closed S1162 (HIGH-1 `force_create` dedup bypass, HIGH-2 race-safe party identity). First prod deploy failed on `DuplicateTableError` (receipt table existed from an earlier partial deploy, alembic unstamped); resolved by making the migration idempotent (`has_table` guard). Live in prod S1162 (merge `ccaf91a3`); prod alembic head advanced to `t200_email_ingest_receipt`, existing 4 receipt rows preserved.
 
 ## Built
 
@@ -159,3 +183,4 @@ Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) 
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
 Updated S370 — Fixed 2 bugs: (1) `db.begin()` inside active transaction silently killed all CRM ingest (`ef36f82`, `begin_nested()` fix), (2) Gmail `labelAdded` events not handled (`8bf4b87`). Verified E2E: email → contact created + interaction logged.
 Updated S372 — Fixed DRAFT duplication bug: Apple Mail IMAP auto-saves triggered messageAdded events, handler processed drafts as real emails. DRAFT label check added (`eb26181`).
+Updated S1162 — T-2026-000200 restore: party-model ingest + `email_ingest_receipt` idempotency. Gate-3 closed; deploy-drift incident (`DuplicateTableError`) fixed via an idempotent `has_table`-guarded migration. Merges: `9515df7f` (restore) + `ccaf91a3` (idempotent migration). Verified: prod deploy SUCCESS, `/health` 200, alembic head = `t200_email_ingest_receipt`, receipt data preserved, 10/10 real-PG integration suite. NOTE: content-accuracy update only — full §A–K structural retrofit still pending.
