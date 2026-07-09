@@ -80,6 +80,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Ops dashboards / build queue** — ops.ai.market panels: [ops-ai-market.md](ops-ai-market.md). Build queue lifecycle: [build-queue-lifecycle.md](build-queue-lifecycle.md). Marketing tab: [marketing-tab.md](marketing-tab.md). Morning briefing: [morning-briefing.md](morning-briefing.md).
 
+**Staging environment (E2E browser-testing)** — Railway `staging` environment: backend/frontend staging services + dedicated staging Postgres, Stripe TEST config (webhook secret = operator step), deterministic seed, golden-snapshot dump→restore (primary reset path), staging-vs-production parity check (M1). Canonical doc lives in the backend repo: `ai-market-backend/docs/staging-environment.md` (service IDs, URLs, commands, safety guards). Never point staging tooling at production; `scripts/staging_safety.py` enforces. Owner BQ: BQ-E2E-TESTING-FRAMEWORK-S1152 c1 (S1158).
+
 **Push guardrail / merging to main** — automated builds (Codex/CC) cannot push to `main`/`master`/`production`; a `pre-push` hook refuses it unless `KD_ALLOW_MAIN_PUSH=1` is set, so only a deliberate reviewed instance merge lands on a protected branch: [build-queue-lifecycle.md](build-queue-lifecycle.md#push-guardrail--automated-builds-cannot-reach-main-s1077).
 
 **Support tickets** — the ai.market support/trouble ticket engine: live API surface, three-principal auth model, ticket-scoped role bindings, rate limits + duplicate-subject collapse, DLQ/quarantine admin triage, the agent management MCP tools (`support_ticket_list/get/patch/message`), email intake go-live (Max-gated `GMAIL_POLLING_ENABLED`), and what is not yet live: [support-ticket-system.md](support-ticket-system.md).
