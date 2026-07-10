@@ -94,6 +94,12 @@ All under `app/services/`:
 | `allai/agents/sysadmin/briefing_monitor.py` | Monitors briefing delivery health |
 | Koskadeux gateway `tools/crm.py` | **Primary natural-language CRM surface**. MCP tools on mcp.ai.market wrapping backend REST (`/api/v1/crm/*`) with the internal key; the CRM Steward handles intent server-side. `app/mcp/crm_remote.py` removed at S1099 (BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098). |
 
+### Steward skill exposure & the HITL gate (S1173, T-2026-000217 / T-2026-000219)
+
+- A steward skill is only reachable via `crm_request` if it has an `@skill` wrapper on `CRMStewardAgent` in `app/allai/agents/crm_steward.py`. The handlers in `app/services/crm_steward_skills.py` are NOT auto-exposed — if the agent replies "that skill does not exist in my skill set" but the handler exists, check the wrapper wiring first (that was T-2026-000219).
+- `delete_entity` and `delete_task` are wired with `requires_authorization=True`. The `AgentRequestFactory` HITL gate (`app/allai/agent_request_factory.py`, "HITL gate" section) hard-blocks any skill whose `_skill_meta.requires_authorization` is true: it persists a pending row in `agent_hitl_request` and returns `status=pending_hitl` without executing. Approval via `POST /api/v1/agents/ops/hitl-queue/{id}/approve` (superuser) executes the stored call; deny discards it. Regression guard: `tests/test_crm_steward_delete_skill_exposure_t219.py` (also asserts no other steward skill silently gains the gate).
+- Post-cutover dedup (T-2026-000217): `CRMEntityService.find_existing_person/organization/person_by_name` run ONLY the party-native queries; the legacy `crm_people`/`crm_organizations` SELECTs are gated behind `legacy_fallback_enabled()` (hard-False since the S1113 table drop). Steward responses key `contact_id`/`entity.id`/audit on `party_id` via `_party_id_str()`. Symptom of regression: upsert returns empty `contact_id` + output-validation failure + no row in `party_person` (an `UndefinedTable` rollback upstream).
+
 ## Known issues (S500 audit — supersedes S364)
 
 ### Bugs fixed S364
