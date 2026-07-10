@@ -24,7 +24,7 @@ Every published or updated ai.market listing gets a metadata dataset card pushed
 | HF row-backed sample publish (seller-approved snapshot, exact version) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 | HF stale-data-file sweep on metadata-only republish | SHIPPED | `app/services/huggingface_service.py:_remove_stale_hf_data_files` | unit tests | 2026-07-09 |
 | Kaggle metadata card publish (blob-token contract) | SHIPPED | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | 16 unit tests (full flow, version path, body-Error, title-collision) | 2026-07-10 |
-| data.world metadata card publish | PARTIAL | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | unit tests only; never live-verified (no DATAWORLD_API_TOKEN) | 2026-07-10 |
+| data.world metadata card publish | DEPRECATED | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | never enabled; code removal tracked T-2026-000210 | 2026-07-10 |
 | Job enqueue on listing published/updated events | SHIPPED | `app/services/search_submission_service.py:_append_metadata_card_job_if_needed` | unit tests | 2026-07-09 |
 | Idle-republish guard (card-hash + disclosure_version match) | SHIPPED | `app/services/search_submission_service.py:_append_huggingface_job_if_needed` | unit tests | 2026-07-09 |
 | source_delivery URL persistence + JSON-LD sameAs regen | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
@@ -38,7 +38,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
 | Submission orchestrator | `app/services/search_submission_service.py:handle_listing_event` | search_submission_jobs table (provider, event_type, status, disclosure_version, dedup_hour_utc, last_error) | listing published/updated events; scheduler drains pending jobs ~2 min | Enqueues one job per enabled provider per event; idle guard skips updated events when disclosure_version AND rendered card hash match the last succeeded job for that provider (hashes live as JSON in that job's last_error — known semantic wrinkle, GLM LOW) |
 | HuggingFace channel | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.huggingface_url; HF repo ai-market/{slug}-sample | HF Hub API (HUGGINGFACE_TOKEN); DisclosureSnapshotService.get_snapshot_for_hf_card | Metadata-only branch is structurally README-only and sweeps stale data files; row branch pushes only seller-approved rows for the exact disclosure version; on success persists URL and regenerates JSON-LD sameAs (regen failure logs, does not fail job); 429/5xx retried, 400/401/403/404 terminal |
 | Kaggle channel | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | Listing.source_delivery.kaggle_url | kaggle.com/api/v1 (KAGGLE_USERNAME + KAGGLE_API_TOKEN, Bearer-only) | Metadata-only PERIOD — no row path exists in code. Proven contract: POST /blobs/upload (Bearer, JSON) → PUT bytes to createUrl (no auth) → POST /datasets/create/new or /datasets/create/version/{owner}/{slug} (Bearer, JSON, title ≤50 chars); HTTP 200 with body.status=="Error" is a FAILURE |
-| data.world channel | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.dataworld_url | api.data.world/v0 (DATAWORLD_API_TOKEN); GET /v0/user resolves owner slug | Metadata-only PERIOD. Creates/updates an OPEN dataset with the card as summary. Token does not exist yet — flag off; expect contract surprises, verify with curl incrementally before enabling |
+| data.world channel | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.dataworld_url | api.data.world/v0 | DEPRECATED 2026-07-10: data.world is retiring its Open Data Community on July 13, 2026 (docs.data.world/en/408855), which is the exact surface this channel publishes to. Never enabled, never had a token, zero jobs/URLs ever. Do NOT enable; code removal tracked in T-2026-000210 |
 | Disclosure snapshots | `app/services/disclosure_snapshot_service.py:get_snapshot_for_hf_card` | disclosure snapshot tables | HF channel only | Returns metadata-only snapshots too; strict get_snapshot_for_hf keeps its 409 for no-row snapshots |
 | Config flags | `app/core/config.py` | HUGGINGFACE_SUBMISSION_ENABLED, KAGGLE_SUBMISSION_ENABLED, DATAWORLD_SUBMISSION_ENABLED (all default False) | Railway prod env; Infisical prod | Flipping a flag in prod is a Max-only action |
 
@@ -99,7 +99,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
   next_step_success: confirm source_delivery URL and JSON-LD sameAs persisted (E-01 verification)
   next_step_failure: §F, matching on the last_error signature
 - id: E-03
-  trigger: Bring a new provider channel live (e.g. data.world when the token arrives)
+  trigger: Bring a new provider channel live
   pre_conditions:
     - provider_token_exists
     - max_approval_for_flag_flip
@@ -113,7 +113,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
     verification: fetch card URL; psql check per E-01
   expected_failures:
     - signature: first job dead with 4xx
-      cause: untested provider contract — verify each API step incrementally with curl BEFORE re-enqueueing (Kaggle precedent — the documented contract was wrong)
+      cause: untested provider contract — verify each API step incrementally with curl BEFORE re-enqueueing (Kaggle precedent — the documented contract was wrong). Also verify the platform surface itself is alive and staying alive (data.world precedent — the whole Open Data Community was retired before our channel ever launched)
   next_step_success: update §B row status and Last Verified; refresh §J
   next_step_failure: disable flag, fix contract per §G-01 pattern, retry
 ```
@@ -356,12 +356,12 @@ scenario_set:
 ```yaml lifecycle
 last_refresh_session: S1167
 last_refresh_commit: 0e49b1b9
-last_refresh_date: 2026-07-10T10:00:00Z
+last_refresh_date: 2026-07-10T10:15:00Z
 owner_agent: vulcan
 refresh_triggers:
-  - T-2026-000207 fix deployed (update §B Kaggle row to SHIPPED)
-  - data.world channel goes live (update §B row, §D, §E-03 Last Verified)
+  - T-2026-000210 data.world code removal merged (drop §B/§C data.world rows)
   - any provider contract change merged
+  - a new provider channel is added
   - incident touching card publishing
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
@@ -373,7 +373,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1167 / 2026-07-10T10:00:00Z
+last_lint_run: S1167 / 2026-07-10T10:15:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
