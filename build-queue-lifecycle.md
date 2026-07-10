@@ -113,6 +113,7 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
 | F4 | Lifecycle write returns 409/423 freeze_active | soft-freeze window active | GET config:build-queue-freeze | G4 | HIGH |
 | F5 | Cleanup sign-off rejected token_not_active | token already consumed/revoked or race | GET config:build-queue-tokens for token state | G5 | HIGH |
 | F6 | Cleanup intent unclear / which items | reading stale manifest or none | locate latest Chunk-4 cleanup manifest (do NOT re-adjudicate here) | G6 | MED |
+| F7 | Creating a NEW build entity fails with `state_put failed: JSONDecodeError` (gateway) / bare HTTP 500 (backend) | body.priority missing on create: the `mirror_column_recompute_fn` trigger derives `priority_tier` from `body.priority` (P0–P3) with NO default, and `entities_build_promoted_required_chk` requires it NOT NULL for kind=build; the gateway masks the empty 500 body as JSONDecodeError | railway logs show `CheckViolationError ... entities_build_promoted_required_chk`; reproduce with curl on `/api/v1/allai/state/atomic_write` | G7 | HIGH (verified S1170) |
 
 ## §G. Repair
 
@@ -141,6 +142,14 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
   change_pattern: re-issue scoped token; re-run atomic sign-off
   rollback_procedure: revoke the new token if sign-off aborted
   integrity_check: token state transitions active->used exactly once
+- id: G7
+  symptom_ref: F7
+  component_ref: state_entities mirror_column_recompute_fn trigger + koskadeux-mcp tools/state.py error formatter
+  root_cause: new build-kind row without body.priority -> priority_tier NULL -> check constraint violation; gateway resp.json() on empty 500 body masks the real error
+  repair_entry_point: include "priority" (P0-P3) in body on every NEW build-entity create (workaround, in force since S1170)
+  change_pattern: proper fix tracked as T-2026-000212 (default priority_tier in trigger or 422 from put_entity; gateway error formatter tolerates non-JSON bodies)
+  rollback_procedure: none (workaround is additive)
+  integrity_check: state put with body.priority set returns {key, version} instead of JSONDecodeError
 ```
 
 ## §H. Evolve
