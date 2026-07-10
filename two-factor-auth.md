@@ -22,6 +22,8 @@ The user's TOTP secret is **encrypted at rest**. It is never stored in plaintext
 | Encrypt helper | `TOTPService._encrypt_secret` + `TOTPService._decoded_encryption_key` | Reads `settings.TOTP_ENCRYPTION_KEY`, decodes it, builds the Fernet cipher. This is where both 500s below originate. |
 | Disable | `TOTPService` disable path | Clears `users.totp_secret_enc` and `totp_enabled`. |
 | Login challenge | `app/api/v1/endpoints/auth.py` (totp checks gate the login/pre-auth flow) | If `totp_enabled` and a secret exist, login requires a current code; uses a one-time `PreAuthSession`. |
+| OIDC SSO login challenge | `app/api/v1/endpoints/sso.py` `oidc_callback` | Same gate since S1175 (T-2026-000115, unanimous Council): a totp-enabled user gets the pre-auth challenge instead of a session; `POST /auth/2fa/verify` completes the OIDC login. Previously OIDC minted a session with no code prompt (the 2FA bypass). |
+| SSO-originated verify | `app/services/totp_service.py` | The challenge stores the initiating method in `purpose` (`2fa:oidc` / `2fa:saml`, String(20), no migration); `verify_2fa` mints the final session with that `auth_method` so SSO refresh enforcement (`sso.py`, accepts only oidc/saml) doesn't kill the session at first refresh. All non-SSO flows keep `purpose='2fa'`, method `'2fa'`. NOTE: there is no frontend SSO callback page yet — when one is built it must handle the `PreAuthRequiredResponse` shape (reuse `<TwoFactorChallenge>`). |
 | Column | `users.totp_secret_enc` (String 512), added by migration `alembic/versions/20260321_001_auth_phase3_totp.py` | Nullable; null = not enrolled. |
 | Setting | `TOTP_ENCRYPTION_KEY` in `app/core/config.py` (`Optional[str] = None`) | Read from the process environment by pydantic settings. |
 
