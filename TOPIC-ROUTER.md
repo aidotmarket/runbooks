@@ -92,6 +92,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Website copy / marketing voice** — site copy standard (voice rules, claims discipline, machine-legibility): [website-copy-standard.md](website-copy-standard.md).
 
+**Dev trouble tickets** — triage, ground-truth verification, fix routing, status/closure: [dev-tickets.md](dev-tickets.md).
+
 **SEO / discoverability** — infra + seller validation: [seo-infrastructure.md](seo-infrastructure.md) · [seo-seller-validation.md](seo-seller-validation.md).
 
 **Data requests** — buyer-initiated request surface: [data-requests.md](data-requests.md).
