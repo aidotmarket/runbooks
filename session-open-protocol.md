@@ -10,6 +10,15 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 4. Verify the DB-owned pickup source points at a real not-yet-shipped target. If stale, advance the queue before any other work.
 5. Pick up the highest-leverage work from §O.4 priority order.
 
+### O.2.1 kd_session_plan runbook_consultation schema
+
+Every plan and amendment MUST pass `runbook_consultation`, a list whose entries are one of:
+
+- **RunbookRef** `{path, section, synthesis?, covers?}` — `path` is a basename resolvable under the runbooks repo; `section` must resolve in that file: an exact heading (text or anchor form) or a §-style token (e.g. `F-08`, `§G.2`) appearing in the text.
+- **Attestation** `{no_entry_found: true, subject, reason, covers?}` — the sanctioned "no runbook exists" path; each attestation creates dischargeable session debt (a runbooks commit before close).
+
+`covers` lists **1-based objective numbers** (a plan with 3 objectives accepts values 1–3; on an amendment, numbers index the amendment's own objectives list). An entry **without** `covers` defaults to covering the objective at its own list position. Out-of-range values are ignored and reported. Every objective must be covered, and the consultation must include at least one resolved RunbookRef or attestations covering every objective. In `block` enforce mode any violation rejects the plan; the rejection detail states this schema.
+
 ## O.3 Peer open sequence
 Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
 
