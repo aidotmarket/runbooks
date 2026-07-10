@@ -32,7 +32,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Verified erasure footprint: FK closure + delete-rule inventory + weak-link scan, with re-derivation queries (this runbook §C/§E-01; evidence trail in backend specs/evidence/schema-classification-s1163/) | SHIPPED | `account-teardown.md:§E-01 queries against pg_constraint / information_schema.columns` | Re-run live S1165 against prod; §C numbers are from that run | 2026-07-09 |
 | Manual operator teardown of a known-test account (ordered, single-transaction, dry-run-first) | PARTIAL | `account-teardown.md:§G-01 operator psql procedure (no backend code path exists)` | None automated (manual procedure; mandatory dry-run SELECT phase per §G-01) | 2026-07-09 |
-| Automated first-class teardown feature (allowlist + hard is_test flag, API-driven, unanimous-Council-gated) | PLANNED | — | n/a (owner BQ `BQ-E2E-TESTING-FRAMEWORK-S1152`; §H.1 invariants here are binding inputs to its spec) | 2026-07-09 |
+| Automated first-class teardown feature (allowlist + hard is_test flag, API-driven, unanimous-Council-gated; DORMANT until Max go-live: routes flag-gated off, token secret unset) | SHIPPED | `ai-market-backend app/e2e/teardown.py + teardown_guard.py + teardown_inventory.py; routes /api/v1/e2e/{teardown,reset,preflight} gated by E2E_TEST_ROUTES_ENABLED; migration 20260710_003 (append-only e2e_teardown_audit + extended users.is_test trigger); e2e-harness src/e2e_harness/preflight.py prod opt-in` | 41 backend tests (t1 migration + t2 unit + real-PG matrix + preflight) + 18 harness tests; Gate 3 UNANIMOUS t1/t2/t3; Gate 4 prod-verified t1/t2 (route absence, live tamper-trigger proofs); full live run pends Max go-live | 2026-07-10 |
 | Right-to-erasure for a real customer end-to-end (DB + Stripe + CRM + tokens + backup-retention handling) | PLANNED | — | n/a (intake procedure §E-03 exists; execution is Max-gated per §H.1) | 2026-07-09 |
 
 ## §C. Architecture & Interactions
@@ -52,10 +52,10 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan/Mars | Derive/refresh the footprint (read-only catalog queries) | shell_request → psql $AUTHOR_DISPATCH_DATABASE_URL | Infisical machine identity (sysadmin token) | COMPLETE |
-| Vulcan/Mars | Manual guarded teardown of a test account | shell_request → §G-01 procedure | same; plus Max GO for any non-test account | PARTIAL — manual SQL only; gap closes with the S1152 automated teardown feature |
+| Vulcan/Mars | Manual guarded teardown of a test account | shell_request → §G-01 procedure | same; plus Max GO for any non-test account | COMPLETE — manual §G-01 remains valid; the automated API path (BQ-ACCOUNT-TEARDOWN-S1165 t1–t3, shipped 2026-07-10) supersedes it for allowlisted is_test accounts once Max flips E2E_TEST_ROUTES_ENABLED |
 | CRM Steward | Locate/remove person records by email | crm_request / crm_search_interactions | internal agent auth | PARTIAL — search COMPLETE; hard-delete flow unverified — verify and document in a CRM runbook refresh before the first real erasure |
 | SysAdmin agent | Backup-health precondition check | state_request get infra:backup-health | Living State | COMPLETE |
-| (future) teardown feature | API-driven erasure with allowlist + is_test guard | — | unanimous Council + Max | GAP — closed by the BQ-E2E-TESTING-FRAMEWORK-S1152 feature spec; §H.1 here is binding input |
+| teardown feature (shipped, dormant) | API-driven erasure with allowlist + is_test guard | POST /api/v1/e2e/teardown/account (signed token, dry-run-first) + GET /api/v1/e2e/preflight/{id}; e2e-harness prod opt-in preflight | unanimous Council (held t1–t3) + Max go-live flag | COMPLETE — shipped under BQ-ACCOUNT-TEARDOWN-S1165 (backend 096ac580/e9c0495c/38c9453d, harness 408ac96); dormant until E2E_TEST_ROUTES_ENABLED + E2E_TEARDOWN_TOKEN_SECRET are set by Max |
 
 ## §E. Operate
 
@@ -326,9 +326,9 @@ Pass threshold: weighted score ≥ 0.80. Equal weights (1/12); no §I.1 justific
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1165
-last_refresh_commit: abb5b55d
-last_refresh_date: 2026-07-09T23:30:00Z
+last_refresh_session: S1168
+last_refresh_commit: 80708fd1
+last_refresh_date: 2026-07-10T11:05:00Z
 owner_agent: vulcan
 refresh_triggers:
   - BQ-DB-SCHEMA-RATIONALIZATION-S1163 P3 drop landing (MANDATORY footprint re-derivation)
@@ -342,6 +342,7 @@ first_staleness_detected_at: null
 ```
 
 Refresh log:
+- S1168 (2026-07-10): §B/§D PLANNED→SHIPPED for the automated teardown feature (BQ-ACCOUNT-TEARDOWN-S1165 t1–t3 merged: backend 096ac580/e9c0495c/38c9453d, harness 408ac96; Gate 3 UNANIMOUS each chunk, builder excluded; Gate 4 prod-verified t1/t2). Feature is DORMANT: routes flag-gated off, token secret unset on Railway. §C inventory NOT re-derived — the S1163 P3-drop trigger has not fired yet; re-derivation stays mandatory when it lands. Go-live = spec GATE2-T3 deliverable 4 (Max: flip E2E_TEST_ROUTES_ENABLED, set E2E_TEARDOWN_TOKEN_SECRET on Railway backend from Infisical, then ordered create→reset→teardown→footprint-clean verification). last_refresh_commit references the pre-refresh main head (80708fd1); this entry lands in its child commit.
 - S1165 (2026-07-09): first committed authoring. Re-derived the full footprint live against prod (closure 121 tables vs 116 at the S1163 measurement — the schema grew with the HF-metadata merge, adding `disclosure_snapshots` RESTRICT); direct-FK inventory 63 distinct tables (43 NO ACTION / 17 CASCADE / 4 SET NULL / 2 RESTRICT by distinct table); broadened the weak-link scan beyond the S1163 list and classified PII-bearing vs non-personal vs orchestration. Replaces the S1161 draft, which was written in a chat container and lost uncommitted — the direct cause of the commit-and-register-same-session discipline this authoring follows.
 
 ## §K. Conformance
