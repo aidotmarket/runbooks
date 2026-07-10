@@ -148,6 +148,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | F-09 | Structural build ends in push_failed though everything green | DESIGNED guardrail terminal state — verified commit preserved for instance review | inspect preserved commit | §G-09 | CONFIRMED |
 | F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | §G-05 | CONFIRMED |
 | F-11 | MP verdict/manifest claims don't match reality (files, line numbers, test counts) | Builder messages over-claim; also spec-over-prompt: MP follows the committed spec over a diverging dispatch prompt (S530 — usually MP is RIGHT) | manual diff inspection at file:line (mandatory on every fold); compare prompt vs spec text |  | CONFIRMED |
+| F-12 | Canonical repo checkout found on detached HEAD after an MP review; a peer-held branch checkout silently abandoned | Review dispatched WITHOUT cwd: MP falls back to the canonical checkout and `git checkout <dispatch_sha>` moves its HEAD (S1175: Mars's spec branch checkout detached during vulcan's T-115 review; no data lost — branch was committed+pushed) | `git worktree list` + `git reflog -3` in the canonical checkout ("checkout: moving from <branch> to <sha>") | §G-10 | CONFIRMED |
 
 ## §G. Repair
 
@@ -224,6 +225,14 @@ YAML frontmatter above is authoritative for the §A header fields.
   change_pattern: review the preserved verified commit, then KD_ALLOW_MAIN_PUSH=1 git push origin main (fast-forward only)
   rollback_procedure: git revert
   integrity_check: origin/main fast-forwarded to the verified commit
+- id: G-10
+  symptom_ref: F-12
+  component_ref: review dispatch arguments (cwd)
+  root_cause: cwd omitted on a review dispatch — MP defaults to the canonical checkout and moves its HEAD to the dispatch SHA
+  repair_entry_point: canonical checkout HEAD + dispatch discipline
+  change_pattern: 'restore: git checkout <held-branch> in the canonical checkout after verifying `git status` clean and the branch tip is pushed (reflog shows what was abandoned); prevent: ALWAYS pass cwd on MP review dispatches, pointing at the branch worktree — never dispatch a repo review bare while any instance holds the canonical checkout'
+  rollback_procedure: n/a
+  integrity_check: canonical checkout back on the held branch, `git status -sb` clean, peer notified
 ```
 
 ## §H. Evolve
