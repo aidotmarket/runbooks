@@ -23,13 +23,13 @@ Every published or updated ai.market listing gets a metadata dataset card pushed
 | HF metadata-only card publish (no snapshot required) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests (backend 26ac843e) | 2026-07-09 |
 | HF row-backed sample publish (seller-approved snapshot, exact version) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 | HF stale-data-file sweep on metadata-only republish | SHIPPED | `app/services/huggingface_service.py:_remove_stale_hf_data_files` | unit tests | 2026-07-09 |
-| Kaggle metadata card publish (blob-token contract) | BROKEN | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | tests target old multipart contract | 2026-07-10 |
+| Kaggle metadata card publish (blob-token contract) | SHIPPED | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | 16 unit tests (full flow, version path, body-Error, title-collision) | 2026-07-10 |
 | data.world metadata card publish | PARTIAL | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | unit tests only; never live-verified (no DATAWORLD_API_TOKEN) | 2026-07-10 |
 | Job enqueue on listing published/updated events | SHIPPED | `app/services/search_submission_service.py:_append_metadata_card_job_if_needed` | unit tests | 2026-07-09 |
 | Idle-republish guard (card-hash + disclosure_version match) | SHIPPED | `app/services/search_submission_service.py:_append_huggingface_job_if_needed` | unit tests | 2026-07-09 |
 | source_delivery URL persistence + JSON-LD sameAs regen | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 
-Kaggle row: BROKEN is ticket T-2026-000207 — shipped code posts multipart form-data; the live Kaggle API requires the blob-token JSON flow (§G-01). The canonical eolymp card was published manually via the proven contract and is live; the app path 400s until the fix deploys.
+Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd78d + b0562cc4). One contract subtlety beyond the ticket: Kaggle rejects duplicate TITLES with 'already in use' (not 'already exists') — the existing-dataset router matches 'already' + ('exist'|'in use') and takes the version path. First app-published version of the eolymp card verified end to end (job succeeded, card-hash match, kaggle_url + JSON-LD sameAs persisted). Note the website page embeds JSON-LD via a 1h ISR cache (frontend lib/api.ts fetchPublicListing revalidate: 3600) — API is instantly correct, the page self-heals within the hour.
 
 ## §C. Architecture & Interactions
 
@@ -46,7 +46,7 @@ Kaggle row: BROKEN is ticket T-2026-000207 — shipped code posts multipart form
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| vulcan/mars | Manually enqueue a card job | psql via scripts/test-db-dsn.sh (INSERT into search_submission_jobs, see §E-02) | prod DB DSN | COMPLETE |
+| vulcan/mars | Manually enqueue a card job | psql via /Users/max/Projects/ai-market/scripts/test-db-dsn.sh (INSERT into search_submission_jobs, see §E-02) | prod DB DSN | COMPLETE |
 | vulcan/mars | Verify a live card / read job errors | curl or web fetch of card URL; psql SELECT on search_submission_jobs | prod DB DSN (read) | COMPLETE |
 | vulcan/mars | Check channel env vars and flags | railway variables --json (source ~/bin/railway-env.sh) | RAILWAY_API_TOKEN | COMPLETE |
 | MP (Codex) | Fix provider contract code | council_request mode=build (per CORE §4 build routing) | repo write via worktree branch | COMPLETE |
@@ -82,7 +82,7 @@ Kaggle row: BROKEN is ticket T-2026-000207 — shipped code posts multipart form
   pre_conditions:
     - provider_flag_enabled_in_railway_prod
     - listing_exists_and_published
-  tool_or_endpoint: "psql via scripts/test-db-dsn.sh: INSERT INTO search_submission_jobs (provider, dataset_card payload, event_type, status, disclosure_version, dedup_hour_utc) VALUES ('<provider>', ..., 'updated', 'pending', NULL, date_trunc('hour', now() at time zone 'utc'))"
+  tool_or_endpoint: "psql via /Users/max/Projects/ai-market/scripts/test-db-dsn.sh: INSERT INTO search_submission_jobs (provider, dataset_card payload, event_type, status, disclosure_version, dedup_hour_utc) VALUES ('<provider>', ..., 'updated', 'pending', NULL, date_trunc('hour', now() at time zone 'utc'))"
   argument_sourcing:
     provider: one of huggingface | kaggle | dataworld
     listing_id: psql SELECT id FROM listings WHERE slug or title matches
@@ -356,7 +356,7 @@ scenario_set:
 ```yaml lifecycle
 last_refresh_session: S1167
 last_refresh_commit: 0e49b1b9
-last_refresh_date: 2026-07-10T09:30:00Z
+last_refresh_date: 2026-07-10T10:00:00Z
 owner_agent: vulcan
 refresh_triggers:
   - T-2026-000207 fix deployed (update §B Kaggle row to SHIPPED)
@@ -373,7 +373,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1167 / 2026-07-10T09:35:00Z
+last_lint_run: S1167 / 2026-07-10T10:00:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
