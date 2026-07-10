@@ -227,7 +227,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   integrity_check: origin/main fast-forwarded to the verified commit
 - id: G-10
   symptom_ref: F-12
-  component_ref: review dispatch arguments (cwd)
+  component_ref: Council dispatch handler
   root_cause: cwd omitted on a review dispatch — MP defaults to the canonical checkout and moves its HEAD to the dispatch SHA
   repair_entry_point: canonical checkout HEAD + dispatch discipline
   change_pattern: 'restore: git checkout <held-branch> in the canonical checkout after verifying `git status` clean and the branch tip is pushed (reflog shows what was abandoned); prevent: ALWAYS pass cwd on MP review dispatches, pointing at the branch worktree — never dispatch a repo review bare while any instance holds the canonical checkout'
