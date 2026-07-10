@@ -24,7 +24,7 @@ Every published or updated ai.market listing gets a metadata dataset card pushed
 | HF row-backed sample publish (seller-approved snapshot, exact version) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 | HF stale-data-file sweep on metadata-only republish | SHIPPED | `app/services/huggingface_service.py:_remove_stale_hf_data_files` | unit tests | 2026-07-09 |
 | Kaggle metadata card publish (blob-token contract) | SHIPPED | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | 16 unit tests (full flow, version path, body-Error, title-collision) | 2026-07-10 |
-| data.world metadata card publish | DEPRECATED | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | never enabled; code removal tracked T-2026-000210 | 2026-07-10 |
+| data.world metadata card publish | DEPRECATED | — | never enabled; channel code removed T-2026-000210 | 2026-07-10 |
 | Job enqueue on listing published/updated events | SHIPPED | `app/services/search_submission_service.py:_append_metadata_card_job_if_needed` | unit tests | 2026-07-09 |
 | Idle-republish guard (card-hash + disclosure_version match) | SHIPPED | `app/services/search_submission_service.py:_append_huggingface_job_if_needed` | unit tests | 2026-07-09 |
 | source_delivery URL persistence + JSON-LD sameAs regen | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
