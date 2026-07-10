@@ -49,7 +49,7 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 
 **Vault auth.** The executor reads the SysAdmin machine-identity token from `~/.config/infisical/sysadmin-token` and passes it to the child process via ENV (for `set`/`get`) or curl stdin config (for `delete` via raw API). The token is never placed on the command line / argv.
 
-**Infisical target.** Domain `https://secrets.ai.market`, env slug always `prod` (never "production"). Allow-listed projects only:
+**Infisical target.** Domain `https://secrets.ai.market`. Env slugs are allow-listed PER PROJECT (S1176 unanimous widening: MP+AG+DS+GLM all approve; Living State event on `build:bq-e2e-prod-arming-s1174`): koskadeux-mcp is `prod` only; ai-market-backend is `prod` or `staging` — `staging` is the Infisical E2E test space (Stripe TEST keys + `E2E_SYNTHETIC_*` pool secrets) per BQ-E2E-PROD-ARMING-S1174 spec §4. Never "production", never any other slug. Allow-listed projects only:
 - `koskadeux-mcp` = `0943f641-faee-4324-b337-0d50c276e4a9`
 - `ai-market-backend` = `bd272d48-c5a1-4b52-9d24-12066ae4403c`
 
@@ -73,7 +73,7 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 4. `launchctl kickstart -k gui/<uid>/<LABEL>` where LABEL ∈ {`com.koskadeux.deepseek_server`, `com.koskadeux.ag_server`, `com.koskadeux.mcp`}
 5. `reconcile-from-railway NAME` — copy NAME's CURRENT value from the fixed Railway `ai-market-backend`/`production` service into the Infisical backend project. Host-side; value never printed / never on disk; round-trip hash-verify. Source service/env and target project are HARDCODED, not operator-selectable. (Write goes via the Infisical CLI — `INFISICAL_TOKEN` in env, off argv — because the raw REST write returns 403 for this identity; value is passed `NAME=VALUE` on argv, single-host posture.)
 
-Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be `prod`. `domain` must be `secrets.ai.market`. `projectId` must be allow-listed. Any shell metacharacter → refuse.
+Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be in the per-project allow-list (`ALLOWED_ENVS`: koskadeux-mcp -> prod only; ai-market-backend -> prod or staging). `domain` must be `secrets.ai.market`. `projectId` must be allow-listed. Any shell metacharacter → refuse.
 
 ---
 
@@ -147,7 +147,7 @@ Every run and refusal is in `audit.log` (JSONL, values redacted) — read it fir
 
 ## §H. Evolve — Extending the System
 
-**Guardrail-first rule:** any capability that lets the executor do something new (a new command class, a new project, a new service label) is a change to the allow-list in `secops_execute.py` and MUST be reviewed as security-class work (Council per CORE §3). Do not widen the allow-list casually. (Applied S1125: the `reconcile-from-railway` action was reviewed by DeepSeek + GLM — both APPROVE_WITH_MANDATES — before first prod use; mandates addressed: no secret on disk, verify reads back from explicit project/env.)
+**Guardrail-first rule:** any capability that lets the executor do something new (a new command class, a new project, a new service label) is a change to the allow-list in `secops_execute.py` and MUST be reviewed as security-class work (Council per CORE §3). Do not widen the allow-list casually. (Applied S1176: the per-project env-slug widening — ai-market-backend gains `staging`, the E2E test space — was reviewed UNANIMOUSLY by MP + AG + DeepSeek + GLM before first use; verified by prod selftest, staging round-trip on a disposable key, and negative probes. Applied S1125: the `reconcile-from-railway` action was reviewed by DeepSeek + GLM — both APPROVE_WITH_MANDATES — before first prod use; mandates addressed: no secret on disk, verify reads back from explicit project/env.)
 
 Planned/known extension points:
 - **Third-party key rotation (Stripe, DeepSeek, etc.):** blocked by design — the provider issues the value, which must reach the executor through a secure channel (never chat). Wiring a secure-channel intake is the main open extension; until then, third-party rotation stays manual per `infisical-secrets.md`.
@@ -178,6 +178,7 @@ Planned/known extension points:
 ## §K. Conformance
 
 - **Proven live (S1115):** disposable-key set→get→delete on `koskadeux-mcp` (`0943f641…`), value self-generated and redacted, no residue (audit.log 2026-07-04T14:21). Refusal paths proven: placeholder-without-gen, off-list command, non-allow-listed projectId, HALT-present.
+- **Exercised S1176:** staging-env set/get/delete round-trip on `ai-market-backend` (disposable key, no residue); negative probes REFUSED (staging on koskadeux-mcp; dev on backend); 20 `E2E_SYNTHETIC_*` pool secrets provisioned via propose-review-execute.
 - **Exercised S1125:** `reconcile-from-railway` on `ai-market-backend` (`bd272d48…`) for 4 keys, all round-trip MATCH; reviewed DeepSeek + GLM APPROVE_WITH_MANDATES (mandates addressed). **Still unwired:** third-party-key intake.
 - **Grounding source of truth:** `PLAYBOOK.md` in the tool directory — keep it in sync with Infisical/service reality.
 
