@@ -88,6 +88,8 @@ Check Railway logs for `GCP_SERVICE_ACCOUNT_JSON not set`. Verify in Infisical: 
 
 ## HuggingFace Dataset-Card Publishing (BQ-SEO-HF-PUBLISH-S804, shipped S1142)
 
+> **Owning runbook moved:** dataset-card-publishing.md is now the §A–K source of truth for HF/Kaggle/data.world card publishing (created S1167). The sections below are retained as narrative history; consult the owning runbook first.
+
 Flag-gated push channel: every published/updated listing with a disclosure snapshot gets a HF dataset repo + README card. `HUGGINGFACE_SUBMISSION_ENABLED` defaults to `False` (app/core/config.py); **as of S1164 (2026-07-09) it is SET to `true` in Railway prod alongside `HUGGINGFACE_TOKEN` — the channel is LIVE.** Flipping it remains a Max-only production action. As of S1164 (Council unanimous + Max directive, backend 26ac843e): METADATA-ONLY cards publish for EVERY published/updated listing with NO disclosure snapshot required — the card is rendered from public listing fields only (title/description/tags/price/backlink), carries a metadata-only directory-listing disclaimer, license falls back to `other` (normalized: URLs/free-text never enter the YAML license field), and the no-snapshot branch is structurally README-only (stale data files swept). Actual data/sample rows still publish ONLY with a seller-approved disclosure snapshot (sample_decision=approved_rows, exact version) — seller consent remains mandatory beyond public metadata. First live card: huggingface.co/datasets/ai-market/eolymp-problem-dataset-5ab53e16-sample.
 
 How it works (all in ai-market-backend, merged main 7370d023):

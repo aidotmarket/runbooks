@@ -96,6 +96,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **SEO / discoverability** — infra + seller validation: [seo-infrastructure.md](seo-infrastructure.md) · [seo-seller-validation.md](seo-seller-validation.md).
 
+**Dataset-card publishing (HuggingFace / Kaggle / data.world)** — card channels, provider API contracts, job enqueue, URL persistence, token/flag ops: [dataset-card-publishing.md](dataset-card-publishing.md) (§A–K conformant; supersedes the card-publishing material in seo-infrastructure.md).
+
 **Data requests** — buyer-initiated request surface: [data-requests.md](data-requests.md).
 
 **Email / pipelines** — drafting: [email-drafting.md](email-drafting.md). Gmail drop: [gmail-drop-pipeline.md](gmail-drop-pipeline.md). Meet records → CRM: [meet-records-pipeline.md](meet-records-pipeline.md).
