@@ -14,10 +14,10 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 
 Every plan and amendment MUST pass `runbook_consultation`, a list whose entries are one of:
 
-- **RunbookRef** `{path, section, synthesis?, covers?}` — `path` is a basename resolvable under the runbooks repo; `section` must resolve in that file: an exact heading (text or anchor form) or a §-style token (e.g. `F-08`, `§G.2`) appearing in the text.
+- **RunbookRef** `{path, section, synthesis?, covers?}` — `path` must resolve to a file under the runbooks repo (a bare basename like `codex-mp.md` works); `section` must resolve in that file: an exact heading (text or anchor form) or a §-style token (e.g. `F-08`, `§G.2`) appearing in the text.
 - **Attestation** `{no_entry_found: true, subject, reason, covers?}` — the sanctioned "no runbook exists" path; each attestation creates dischargeable session debt (a runbooks commit before close).
 
-`covers` lists **1-based objective numbers** (a plan with 3 objectives accepts values 1–3; on an amendment, numbers index the amendment's own objectives list). An entry **without** `covers` defaults to covering the objective at its own list position. Out-of-range values are ignored and reported. Every objective must be covered, and the consultation must include at least one resolved RunbookRef or attestations covering every objective. In `block` enforce mode any violation rejects the plan; the rejection detail states this schema.
+`covers` lists **1-based objective numbers** (a plan with 3 objectives accepts values 1–3; on an amendment, numbers index the amendment's own objectives list). An entry **without** `covers` defaults to covering the objective at its own list position. A value of `0` is coerced to `1`; other out-of-range values are silently ignored and are reported only when the plan is rejected for uncovered objectives. Every objective must be covered, and the consultation must include at least one resolved RunbookRef or attestations covering every objective. In `block` enforce mode any violation rejects the plan; the rejection detail states this schema.
 
 ## O.3 Peer open sequence
 Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
