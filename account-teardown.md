@@ -157,6 +157,16 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
   integrity_check: runbook-lint PASS and §C matches a same-day §E-01 run
 ```
 
+### G-05. Rehearsal gotchas (S1168 go-live, T-2026-000214)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Entire backend API unresponsive (health curl 000) while a teardown run is in flight; pg_stat_activity shows engine connection idle-in-transaction on the catalog query and scheduler connections frozen at the same instant | Blocked asyncio event loop: in-memory FK predicate builder enumerates graph PATHS combinatorially (121-table closure), pure CPU, zero awaits | IMMEDIATE: Railway deploymentRestart on the backend deployment, then disarm (E2E_TEST_ROUTES_ENABLED=false + FULL redeploy). Engine fix tracked in T-2026-000214 (DAG-memoized predicates + cooperative yields + wall-clock budget) |
+| Setting flip appears applied but old behavior persists after restart | Railway deploymentRestart does NOT apply variable changes — restarts reuse the deployment's baked env | Any env change (esp. E2E_TEST_ROUTES_ENABLED) requires serviceInstanceDeployV2 (full redeploy); verify by probing the route (armed=422/200, disarmed=404) |
+| POST /e2e/reset/account returns 500 on first prod use | Default jsonl audit path var/e2e/ is unwritable in the container; audit fails closed | Set E2E_RESET_AUDIT_LOG_PATH=/tmp/e2e/reset-audit.jsonl on the backend service env |
+| Teardown 400 "new unlisted identifier columns require inventory refresh" | M-F drift guard: prod schema has identifier-pattern columns unknown to the weak-link inventory (fires on any schema drift; WORKING AS DESIGNED) | Read the refusal audit row's details.unknown list; classify each column (real identifier -> inventory; attribute of the matched row -> EXCLUDED_COLUMNS); unanimous-gated code change (precedent: 1dfe816b) |
+| Teardown 502 at ~75s (pre-async builds only) | Run wall-clock exceeded the Railway edge HTTP timeout; uvicorn cancelled the handler on disconnect (rollback, no audit) | Fixed by the async-accept endpoint (922ed87c): 202 + run_id, poll GET /e2e/teardown/status/{run_id}; audit row is the completion signal |
+
 ## §H. Evolve
 
 ### §H.1 Invariants
