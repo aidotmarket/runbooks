@@ -17,6 +17,7 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | `kd_session_plan` rejected `RUNBOOK_REF_MISSING` / `RUNBOOK_REF_UNRESOLVED` / `RUNBOOK_ROUTINE_CLASS_UNKNOWN`, or "subject … has N accumulated runbook waivers" | [runbook-first-gates.md §F](runbook-first-gates.md) — plan-gate schema/coverage, section resolution, routine allowlist, waiver bite |
 | `kd_session_close` rejected `RUNBOOK_EXIT_MISSING` / `RUNBOOK_DEBT_OPEN` (incl. "SHA was not verified") | [runbook-first-gates.md §F-03/§F-04](runbook-first-gates.md) — runbook_exit kinds, bare-SHA verbatim rule, debt discharge |
 | MP build killed at exactly 600s / task silent past 300s but commit landed | [codex-mp.md §F](codex-mp.md) — timeout backstop + silent-delivery ground-truth check before any redispatch |
+| MP dispatches all 400 `invalid_request_error` on an unintended model, or all 401 Unauthorized / `codex login status` Not logged in | [codex-mp.md §F-13/§F-14, §G-11/§G-12](codex-mp.md) — handler restart after config rollback (env loads at process start) and ChatGPT OAuth loss (Max interactive re-login only; stale auth.json backups do not work) |
 | GLM review dispatch fails `review_preload_unresolved: fatal: bad object <sha>` | [agent-dispatch.md §T](agent-dispatch.md) — same class as the MP pinned-SHA miss, plus GLM (like DeepSeek) needs `cwd` set to the target repo checkout or its preloader diffs in the wrong repo (observed S1182) |
 
 

@@ -149,6 +149,8 @@ YAML frontmatter above is authoritative for the §A header fields.
 | F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | §G-05 | CONFIRMED |
 | F-11 | MP verdict/manifest claims don't match reality (files, line numbers, test counts) | Builder messages over-claim; also spec-over-prompt: MP follows the committed spec over a diverging dispatch prompt (S530 — usually MP is RIGHT) | manual diff inspection at file:line (mandatory on every fold); compare prompt vs spec text |  | CONFIRMED |
 | F-12 | Canonical repo checkout found on detached HEAD after an MP review; a peer-held branch checkout silently abandoned | Review dispatched WITHOUT cwd: MP falls back to the canonical checkout and `git checkout <dispatch_sha>` moves its HEAD (S1175: Mars's spec branch checkout detached during vulcan's T-115 review; no data lost — branch was committed+pushed) | `git worktree list` + `git reflog -3` in the canonical checkout ("checkout: moving from <branch> to <sha>") | §G-10 | CONFIRMED |
+| F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (§G-11 step 1); compare handler `ps lstart` (LOCAL time — Titan-1 is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | §G-11 | CONFIRMED |
+| F-14 | All Codex sessions 401 Unauthorized on wss endpoints; `codex login status` = Not logged in | `~/.codex/auth.json` missing or its refresh-token chain burned ("refresh token was already used") — stale backups do NOT recover it because refresh tokens rotate | `ls ~/.codex/auth.json` + `codex login status` | §G-12 | CONFIRMED (S1185) |
 
 ## §G. Repair
 
@@ -233,6 +235,22 @@ YAML frontmatter above is authoritative for the §A header fields.
   change_pattern: 'restore: git checkout <held-branch> in the canonical checkout after verifying `git status` clean and the branch tip is pushed (reflog shows what was abandoned); prevent: ALWAYS pass cwd on MP review dispatches, pointing at the branch worktree — never dispatch a repo review bare while any instance holds the canonical checkout'
   rollback_procedure: n/a
   integrity_check: canonical checkout back on the held branch, `git status -sb` clean, peer notified
+- id: G-11
+  symptom_ref: F-13
+  component_ref: Koskadeux handler process (koskadeux_server.py) + Codex model config
+  root_cause: model env/config loaded at handler start; a disk rollback does not reach a running process
+  repair_entry_point: operator restart, then smoke
+  change_pattern: '1) Model identity smoke: council_request(agent=mp, mode=open_response, task="Reply with exactly one line MODEL_ACTUAL=<model>"); assert raw_completion.model_requested AND model_actual equal the intended model (currently gpt-5.5; ignore the model prose self-description). 2) If wrong model, verify disk truth (grep model ~/.codex/config.toml; grep MP_MODEL koskadeux-mcp/.env; code fallbacks in tools/agents.py, mp_adapter.py, cost_estimator.py must agree), then restart the handler: launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp. Restart rule: peer must be idle/closed (check /var/tmp/koskadeux/registry.db sessions.state); kickstart is safe mid-OWN-session (tools reconnect; expect one brief EMERGENCY LOCAL FALLBACK shell response during the bounce). 3) Re-run the smoke before dispatching real work.'
+  rollback_procedure: n/a (restart + config alignment)
+  integrity_check: smoke returns success=true, model_requested=model_actual=intended, model_matched=true
+- id: G-12
+  symptom_ref: F-14
+  component_ref: Codex CLI ChatGPT OAuth credential (~/.codex/auth.json)
+  root_cause: credential file lost or refresh-token rotation chain broken; deletion vector undetermined S1185 (no koskadeux code touches the file)
+  repair_entry_point: Max interactive re-login (AI instances CANNOT do this - browser OAuth on Max ChatGPT account)
+  change_pattern: '1) Do NOT restore old auth.json backups as a fix: rotated refresh tokens fail with "refresh token was already used", and a stale file makes codex login status lie - remove any stale copy so status honestly reads Not logged in. 2) Ask Max to run on Titan-1: codex logout, then codex login, completing the browser sign-in. 3) Verify: codex login status = Logged in using ChatGPT; direct smoke: cd ai-market-backend && echo "Reply with exactly: SMOKE_OK" | codex exec --model gpt-5.5 -; then the G-11 handler smoke.'
+  rollback_procedure: n/a
+  integrity_check: direct smoke returns SMOKE_OK on the intended model AND handler smoke shows model_matched=true
 ```
 
 ## §H. Evolve
