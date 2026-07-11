@@ -41,6 +41,23 @@ When two branches each add a revision on top of the same parent:
 - **Production diverged from local**: someone hand-applied schema. Pull latest, compare via `alembic current` on production, reconcile via merge revision.
 - **Long-running migrations on production**: Railway deploy timeouts. Pre-deploy the schema change in a separate maintenance-window PR; ship code that uses it in a follow-up PR.
 
+## S.7a S1163 schema-classification tooling (operator reference)
+
+The BQ-DB-SCHEMA-RATIONALIZATION-S1163 classifier lives at `ai-market-backend/scripts/schema_classification_s1163.py` and feeds the pre-migration evidence chain for the quarantine/drop migrations. Operator commands (run from the backend repo root; `.venv/bin/python` has psycopg2):
+
+```bash
+export INFISICAL_API_URL=$(cat ~/.config/infisical/api-domain)
+export INFISICAL_TOKEN=$(cat ~/.config/infisical/sysadmin-token)
+DSN=$(infisical secrets get AUTHOR_DISPATCH_DATABASE_URL --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c --env prod --plain | grep "^postgres" | tail -1)
+AUTHOR_DISPATCH_DATABASE_URL="$DSN" .venv/bin/python scripts/schema_classification_s1163.py snapshot
+AUTHOR_DISPATCH_DATABASE_URL="$DSN" SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS=<days> .venv/bin/python scripts/schema_classification_s1163.py classify
+```
+
+- Connections are session read-only with statement timeouts (`connect_readonly`); never pass the DSN on the command line.
+- `SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS` (added S1184, merged f1d875a9 under Max waiver 66cb2134) overrides the default 14-day minimum write-delta window; invalid or non-positive values fail loudly. The manifest records the effective `minimum_days`; classify emits `FINAL_ELIGIBLE` only when the snapshot window meets it and `pg_stat_database.stats_reset` is unchanged between snapshots.
+- Evidence outputs: `specs/evidence/schema-classification-s1163/snapshot-N.json` and `specs/evidence/schema-classification-s1163.{json,md}` — commit them to backend main.
+- The full worker-runnable operator runbook for the S1163 quarantine/drop remainder is a queued deliverable that will absorb this section; until it lands, this plus the Gate-1 spec (`specs/BQ-DB-SCHEMA-RATIONALIZATION-S1163-GATE1.md`) are the operating references.
+
 ## S.8 Related runbooks
 - `runbooks/activation-verification.md` — Railway deploy verification path.
 - `runbooks/build-queue-lifecycle.md` — BQ entity lifecycle around schema changes.
