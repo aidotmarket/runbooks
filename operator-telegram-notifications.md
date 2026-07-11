@@ -16,6 +16,7 @@ Both are distinct bot accounts (verified via `getMe`): the daemon token resolves
 
 ## §C. Architecture & Interactions
 - `@allai_agent_bot` sends via `telegram_service.send_message(text)` → operator admin chat. Internal callers reach it through the backend.
+- **HITL approval requests (S1177):** `AllAIOrchestrationService.request_hitl` notifies the operator for BOTH `CRITICAL` (inline approve/deny buttons, legacy callback path) and `HIGH` (plain message, no buttons — approve/deny happens only in the ops console at `ops.ai.market/approvals`). `HIGH` is the urgency the agent-dispatch HITL gate always uses, so every agent write-approval now reaches Telegram. `LOW` stays console-only. The former `HIGH` "daily digest" branch was a dead no-op (no digest ever existed) — fixed under T-2026-000221, backend main `41a2a1a7`. Message fields are `html.escape`d; notification failure is swallowed and never fails HITL persistence.
 - The daemon currently posts straight to `api.telegram.org/bot<koskadeux_token>/sendMessage`. `kd_notifier._send_telegram` is already gated to `level == CRITICAL`; `kd_sentinel` funnels its criticals through `kd_notifier.notify(BLOCKED)`.
 - **Target routing for human-required daemon alerts:** daemon POSTs to backend `POST /api/v1/allai/operator-alert` (internal-key, `X-Internal-API-Key`) → `telegram_service.send_message` → `@allai_agent_bot` → operator chat.
 
