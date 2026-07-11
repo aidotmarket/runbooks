@@ -17,6 +17,7 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | `kd_session_plan` rejected `RUNBOOK_REF_MISSING` / `RUNBOOK_REF_UNRESOLVED` / `RUNBOOK_ROUTINE_CLASS_UNKNOWN`, or "subject … has N accumulated runbook waivers" | [runbook-first-gates.md §F](runbook-first-gates.md) — plan-gate schema/coverage, section resolution, routine allowlist, waiver bite |
 | `kd_session_close` rejected `RUNBOOK_EXIT_MISSING` / `RUNBOOK_DEBT_OPEN` (incl. "SHA was not verified") | [runbook-first-gates.md §F-03/§F-04](runbook-first-gates.md) — runbook_exit kinds, bare-SHA verbatim rule, debt discharge |
 | MP build killed at exactly 600s / task silent past 300s but commit landed | [codex-mp.md §F](codex-mp.md) — timeout backstop + silent-delivery ground-truth check before any redispatch |
+| GLM review dispatch fails `review_preload_unresolved: fatal: bad object <sha>` | [agent-dispatch.md §T](agent-dispatch.md) — same class as the MP pinned-SHA miss, plus GLM (like DeepSeek) needs `cwd` set to the target repo checkout or its preloader diffs in the wrong repo (observed S1182) |
 
 
 ## Credentials & source-of-truth (where things live)
@@ -38,6 +39,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 | 2FA / TOTP encryption key | backend env | [two-factor-auth.md](two-factor-auth.md) |
 
 ## By subject
+
+**E2E production arming / synthetic test accounts (Option B)** — arming and disarming the production E2E reset/teardown routes (dormant-by-default `E2E_TEST_ROUTES_ENABLED`, per-run full redeploy, `E2E_ARMED_AT` + fail-closed armed-window monitor), the purpose-scoped allowlists, review-bound apply tokens, the ten synthetic `is_test` pool accounts and their public-surface invisibility guarantees (listings, search, SEO, LLM, seller profiles, ratings), test-bucket object-store deletion, and the seeded-artifact invisibility probe: operator procedure lives in the backend repo at `ai-market-backend/docs/runbooks/sysadmin/e2e-prod-arming.md` (regression matrix included); erasure footprint + teardown guardrails: [account-teardown.md](account-teardown.md) §E. Canonical status: `build:bq-e2e-prod-arming-s1174`.
 
 **Council session gate, gateway restart/deploy, fold dispatch** — arming sequence, auto-numbering, collision/truthful errors, restart procedure, author-mode credentials, canonical gate vocabulary, middleware gaps + workarounds: [council-session-gate-and-fold-ops.md](council-session-gate-and-fold-ops.md).
 
