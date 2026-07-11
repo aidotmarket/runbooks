@@ -118,6 +118,8 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
   next_step_failure: n/a (intake step)
 ```
 
+**E2E prod-arming updates (S1179, backend main 9102569f).** The reset and teardown routes now enforce purpose-scoped allowlists: reset reads `E2E_RESET_ALLOWED_ACCOUNT_IDS`, teardown reads `E2E_TEARDOWN_ALLOWED_ACCOUNT_IDS`, unknown purposes refuse fail-closed. Apply reset additionally requires a review-confirmation token minted only after the dry-run hitlist is reviewed, carrying the dry run's run_id and hitlist hash verified against the append-only audit record; dry-run tokens cannot carry the review claim. Arming now also requires setting `E2E_ARMED_AT` at the arming redeploy: a SysAdmin monitor alerts fail-closed when `E2E_TEST_ROUTES_ENABLED=true` and the armed age exceeds `E2E_MAX_ARMED_WINDOW_MINUTES` (default 15) or the timestamp is missing/unparsable. Detailed operator procedure: `ai-market-backend/docs/runbooks/sysadmin/e2e-prod-arming.md`.
+
 ## §F. Isolate
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
