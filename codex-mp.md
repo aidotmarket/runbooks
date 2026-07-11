@@ -10,7 +10,7 @@ linter_version: 1.0.0
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model `gpt-5.5`, ChatGPT OAuth). It is the **mandatory primary builder for all BQ/development code builds** and a standard cross-vote reviewer. Per Max ruling S1148: MP/Codex codes development projects; Claude Code (CC) handles trouble-ticket fixes only. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6`, ChatGPT OAuth). It is the **mandatory primary builder for all BQ/development code builds** and a standard cross-vote reviewer. Per Max ruling S1148: MP/Codex codes development projects; Claude Code (CC) handles trouble-ticket fixes only. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## §A. Header
 
@@ -39,7 +39,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Council dispatch handler | tools/agents.py:_handle_call_mp | task meta/output files under /var/tmp/koskadeux/; Event Ledger (review verdicts per agent-dispatch.md §S) | Koskadeux gateway (council_request tool), runbook gate (tools/runbook_ref.py), structural middleware | Routes mode=build/review/author/open_response; applies runbook-refs gate before dispatch (BLOCK mode since S1150). |
 | Codex CLI bridge | codex_cli_bridge.py:run_codex_cli | CODEX_LOCK_FILE /var/tmp/koskadeux/codex_cli.lock (fcntl) | Codex CLI binary (codex exec) | Streaming path dispatch_codex_cli_streaming is production; nonstreaming legacy retained. OS-level timeout backstop from MP_HARD_UPPER_BOUND_S; progress-stall abort at MP_PROGRESS_WINDOW_S. Legacy dispatch_codex_cli (~L899) still contains a dead hardcoded `timeout 600` wrapper — zero live callers, remove on next bridge cleanup. |
-| Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.5" (frontier-only policy). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.143.0. |
+| Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.6" (frontier-only policy; swapped from gpt-5.5 at S1181 per Max directive, T-2026-000197). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.1. |
 | Structural middleware (§O) | council_dispatch_middleware/ | builder-output manifests | ci_verification.py pre-push gate, SchemaRepair | Fires only when caller passes dispatch_class=structural. Terminal state push_failed is a DESIGNED guardrail: verified commit preserved, instance reviews then merges with KD_ALLOW_MAIN_PUSH=1 (S1150). |
 | Runbook-refs gate | tools/runbook_ref.py:RunbookRefResolver | config:resource-registry (runbooks repo path); runbook_gate ledger events; config:runbook-gate-config | aidotmarket/runbooks checkout | BLOCK mode: mode=build/author REQUIRES runbook_refs (RunbookRef {path, section, synthesis} or Attestation {no_entry_found, subject, reason} — attestation creates dischargeable session debt). |
 | Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see §G-05). |
@@ -116,7 +116,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   next_step_success: record verdict per agent-dispatch.md §S (gate-level fields, not per-chunk)
   next_step_failure: §F-02 ground-truth check
 - id: E-04
-  trigger: Codex model swap (e.g., gpt-5.5 → gpt-5.6 on release, T-2026-000197)
+  trigger: Codex model swap (e.g., gpt-5.6 → successor on release; gpt-5.5→gpt-5.6 executed S1181, T-2026-000197)
   pre_conditions:
     - availability VERIFIED on our Codex CLI auth tier (smoke dispatch) — a config pointing at an unserved model breaks the mandatory primary builder
   tool_or_endpoint: manual per §G-05
@@ -190,7 +190,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   component_ref: Codex CLI + auth
   root_cause: model swap is multi-surface; partial swaps break dispatch or cost accounting
   repair_entry_point: ~/.codex/config.toml (model line) + full-tree grep of koskadeux-mcp
-  change_pattern: 'ORDER MATTERS (S673 lesson): (1) verify availability with a smoke dispatch; (2) FULL-TREE grep for the old model string FIRST — live code, adapters (council_config, ag/mp adapters, EXPECTED_MODELS in council_gate_runner), cost_estimator DEFAULT_MODEL_RATES/AGENT_DEFAULT_MODELS, kd_finance MODEL_PRICING, council_orchestrator MEMBERS, test fixtures; (3) swap config.toml + every live surface; ADD new pricing rows, keep historical rows; (4) update infra:council-comms agent_frontier_models.mp + mp_provider_status with evidence; (5) smoke build asserting model_actual + one cross-review leg; (6) refresh this runbook. Tracked precedent: T-2026-000197 (gpt-5.6).'
+  change_pattern: 'ORDER MATTERS (S673 lesson): (1) verify availability with a smoke dispatch; (2) FULL-TREE grep for the old model string FIRST — live code, adapters (council_config, ag/mp adapters, EXPECTED_MODELS in council_gate_runner), cost_estimator DEFAULT_MODEL_RATES/AGENT_DEFAULT_MODELS, kd_finance MODEL_PRICING, council_orchestrator MEMBERS, test fixtures; (3) swap config.toml + every live surface; ADD new pricing rows, keep historical rows; (4) update infra:council-comms agent_frontier_models.mp + mp_provider_status with evidence; (5) smoke build asserting model_actual + one cross-review leg; (6) refresh this runbook. Tracked precedent: T-2026-000197 (gpt-5.5→gpt-5.6, EXECUTED S1181 — config.toml + .env MP_MODEL + koskadeux-mcp defaults/pricing + infra:council-comms + this runbook; activation on next gateway idle reload).'
   rollback_procedure: revert the config.toml model line (env/config precedence makes this sufficient for immediate fallback); revert PR for code surfaces
   integrity_check: model_actual == intended on smoke dispatch; grep finds old string only in historical/pricing rows
 - id: G-06
@@ -384,9 +384,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1148
-last_refresh_commit: cab33ba
-last_refresh_date: 2026-07-08T23:45:00Z
+last_refresh_session: S1181
+last_refresh_commit: d03c704
+last_refresh_date: 2026-07-11T12:40:00Z
 owner_agent: vulcan
 refresh_triggers:
   - model swap (T-2026-000197 gpt-5.6 and any successor)
@@ -403,7 +403,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1148 / 2026-07-08T23:45:00Z
+last_lint_run: S1181 / 2026-07-11T12:40:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
