@@ -18,6 +18,7 @@ Each tab in the dashboard pulls from specific backend endpoints. All backend end
 
 | Tab | Component | Purpose | Backend endpoints | Supporting repos |
 |-----|-----------|---------|-------------------|-----------------|
+| FOR MAX | `formax/ForMaxPanel.tsx` | Unified decision surface — one ranked list of everything awaiting Max: pending HITL approvals, human-required unresolved tickets, and submitted agent proposals. Registered FIRST in nav. Rows deep-link to APPROVALS/TICKETS/AGENTS; APPROVALS rows offer inline Approve/Deny reusing the HITL panel actions. Global nav badge + document-title show the total count from every tab. Empty state: "Nothing needs you." | `GET /api/v1/ops/needs-max` (read-only aggregation; dual-auth via `get_admin_or_internal_key`) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | OPS | `OpsPanel.tsx` | Railway health, AI Context Console | `/health`, `/api/v1/ops/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | MONITOR | `MonitorPanel.tsx` | Comms feed, Council Hall, command console | `/api/v1/allai/*`, `/api/v1/comms` (SSE) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | BUILD QUEUE | `BuildQueuePanel.tsx` | BQ board: list, sort, drag-reorder, status, lifecycle | Reads: `GET /api/v2/build-queue` (list; `?show_completed` / `?show_cancelled`) and `GET /api/v2/build-queue/{code}` (detail). Writes: `POST /api/v2/build-queue/reorder` and `POST /api/v2/build-queue/{code}/{cancel\|affirm\|priority\|complete}`. Gate edits: `/api/v1/build-queue/{code}/gates[/{n}]`. Auth via `X-Internal-API-Key`. | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
@@ -26,6 +27,14 @@ Each tab in the dashboard pulls from specific backend endpoints. All backend end
 | MARKETING | `MarketingPanel.tsx` | Task queue, campaigns, brand voice | `/api/v1/marketing/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | FINANCE | `FinancePanel.tsx` | Revenue, transactions, invoices, payouts | `/api/v1/finance/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | APPROVALS | `HitlApprovalsPanel.tsx` | Agent HITL approval queue — pending agent actions with Approve/Deny; nothing runs until approved. Nav badge shows pending count. Approve/deny send `{resolver_email}` (the ops-login email) so the decision is attributed to the human who clicked. 409 = another operator already claimed the row (informational, panel refetches). | `GET /api/v1/ops/agents/hitl-queue`, `POST /api/v1/ops/agents/hitl-queue/{id}/approve\|deny` — internal-key-enabled (dual-auth) since backend `6a9c35f7`, unanimous Council S1175 (T-2026-000220) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
+
+## FOR MAX tab — unified decision surface (S1181)
+
+`formax/ForMaxPanel.tsx` is the single place showing everything that currently needs Max's decision, so nothing has to be hunted across tabs. It reads `GET /api/v1/ops/needs-max` (`BQ-NEEDS-MAX-UNIFIED-SURFACE-S1180`), a read-only backend aggregation of three sources: pending HITL approvals (→ APPROVALS), support tickets with `human_required=true` and status not in (resolved, closed) (→ TICKETS), and agent proposals in `submitted` state (→ AGENTS). The backend returns `{ total, items[] }` already sorted by urgency then age; each item carries `{source, id, title, urgency_or_priority, created_at, age_seconds, deep_link_tab}`.
+
+The panel is registered first in `TopNav`. Each row deep-links to its owning tab; APPROVALS rows offer inline Approve/Deny that reuse the existing `HitlApprovalsPanel` approve/deny helpers (no duplicated resolution logic). A global nav badge and the browser document title both show the live total from the same endpoint, alongside the preserved APPROVALS pending badge. Empty state text is exactly "Nothing needs you."
+
+**Gate-4 lesson (proposal_status_enum):** the native Postgres `proposal_status_enum` labels are the lowercase enum *values* (`draft`, `submitted`, ...). Filtering `AgentProposal.status == ProposalStatus.SUBMITTED` binds the member *name* (`SUBMITTED`) and 500s with asyncpg `InvalidTextRepresentationError`. Use the codebase cast pattern instead: `cast(AgentProposal.status, String) == ProposalStatus.SUBMITTED.value` (same pattern used for `User.status` in `app/api/deps.py`). Backend endpoint: `app/api/v1/endpoints/ops_needs_max.py`.
 
 ## Agents tab — unified fleet view (S363)
 
@@ -93,6 +102,7 @@ Backend at `api.ai.market` — CORS configured, no local override needed.
 | `src/hooks/useApiConfig.ts` | Backend URL config |
 | `src/hooks/useOpsAuth.ts` | Google OAuth flow |
 | `src/types/index.ts` | TypeScript type definitions |
+| `src/components/formax/ForMaxPanel.tsx` | FOR MAX unified decision surface (needs-max feed) |
 | `src/components/agents/AgentsPanel.tsx` | Unified agent fleet view |
 | `src/components/agents/AgentDetailDrawer.tsx` | Agent detail slide-out |
 | `src/components/runbooks/RunbooksPanel.tsx` | Runbooks browser + repos list |
