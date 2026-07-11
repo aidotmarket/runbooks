@@ -14,6 +14,8 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | MP review/build fails to read a pinned SHA: `object/path is not available locally`, `git cat-file -t <sha>` fails | [agent-dispatch.md §T](agent-dispatch.md) — the SHA was committed via the GitHub API and the local Titan-1 clone is behind; `git fetch origin main` in the target repo, then redispatch |
 | Structural MP build returns `RepairExhaustedError` but `git log` shows the builder commit landed locally | [agent-dispatch.md §U](agent-dispatch.md) — do NOT rebuild; complete the wrapper gates manually (tests + CI paths + cross-review + deliberate instance push) |
 | MP build/review dispatch rejected `RUNBOOK_REF_MISSING` / `RUNBOOK_REF_UNRESOLVED` (failed_check path or section) | [codex-mp.md §F-08/§G-08](codex-mp.md) — BLOCK-mode runbook gate; pass structured refs with an exact existing heading, or an Attestation (creates dischargeable debt) |
+| `kd_session_plan` rejected `RUNBOOK_REF_MISSING` / `RUNBOOK_REF_UNRESOLVED` / `RUNBOOK_ROUTINE_CLASS_UNKNOWN`, or "subject … has N accumulated runbook waivers" | [runbook-first-gates.md §F](runbook-first-gates.md) — plan-gate schema/coverage, section resolution, routine allowlist, waiver bite |
+| `kd_session_close` rejected `RUNBOOK_EXIT_MISSING` / `RUNBOOK_DEBT_OPEN` (incl. "SHA was not verified") | [runbook-first-gates.md §F-03/§F-04](runbook-first-gates.md) — runbook_exit kinds, bare-SHA verbatim rule, debt discharge |
 | MP build killed at exactly 600s / task silent past 300s but commit landed | [codex-mp.md §F](codex-mp.md) — timeout backstop + silent-delivery ground-truth check before any redispatch |
 
 
@@ -125,6 +127,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 **Retro verification (BQ-124)** — [bq-124-retro-verification.md](bq-124-retro-verification.md).
 
 **Session lifecycle — open / plan / close** — opening sequence, planning gate, close protocol, the scratch namespace + instance-liveness collision guard (S858): [session-open-protocol.md](session-open-protocol.md) · [session-close-protocol.md](session-close-protocol.md).
+
+**Runbook-first gates — plan / dispatch / close enforcement** — the BLOCK-mode gates on `kd_session_plan` (runbook_consultation, coverage, incident synthesis, routine fast path, waiver bite), `council_request` (runbook_refs on build/author + incident review, cited-section injection, attestation debt), and `kd_session_close` (runbook_exit kinds, bare-SHA verification, debt discharge, waiver append), plus the RUNBOOK_* error contract, `config:runbook-gate-config`, `config:runbook-waivers`, and cross-session debt discharge: [runbook-first-gates.md](runbook-first-gates.md).
 
 **Session registry recovery & migrations** — durable monotonic session-ID high-water mark (session_seq + config:session-seq anchor), the pytest isolation guard on the live registry.db, the two-signal stale-session self-heal, blocked session opens, regressed/reused session numbers, and registry migration discipline: [session-registry-recovery.md](session-registry-recovery.md).
 
