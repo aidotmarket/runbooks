@@ -71,6 +71,12 @@ ps -Ao pid,lstart,etime,command | grep -F 'koskadeux_server.py' | grep -v grep
 - The `pid` and `lstart` MUST be newer than the kickstart you just issued. A stale pid/elapsed time means the restart did NOT replace the process.
 - Verify you are reading `koskadeux_server.py` (the `:8765` handler), NOT the launchd `infisical run` / `/bin/bash` wrapper pid, and NOT the separate `com.koskadeux.gateway` (`gateway_server.py` on `:8767`). Restarting the gateway does not restart the handler, and vice versa.
 - Do NOT judge freshness by `service_health.mcp.version` alone: that string is hardcoded in `tools/session.py` and can lag the server's real version (at S869 `koskadeux_server.py` reported `1.10` while the health helper still emitted `1.9`). Trust pid/start-time first, then the boot-payload code-path signature, over any single version field.
+- **The DEPLOYED checkout is `/Users/max/koskadeux-mcp`** (the `ps` command line shows it) — NOT the `~/Projects/ai-market` working tree. Verify the fix is actually in the running code by checking commit ancestry against the deployed checkout, not the dev repo:
+```bash
+git -C /Users/max/koskadeux-mcp rev-parse --short HEAD
+git -C /Users/max/koskadeux-mcp merge-base --is-ancestor <fix_sha> HEAD && echo "fix is in deployed HEAD" || echo "fix NOT deployed"
+```
+A fresh pid running a checkout that lacks the fix commit is a failed activation, whatever the health endpoint says. (Fact recorded S1184 during the T-2026-000203 post-kickstart verification: pid 63096 fresh 2026-07-11, `d9f4509d` confirmed ancestor of deployed HEAD `57a70487`.)
 Post-restart verification:
 - Call `kd_session_open({"session_id":"SXXX-VERIFY"})` from a fresh session
 - Confirm `service_health.mcp.healthy == true`
