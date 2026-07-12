@@ -1,7 +1,7 @@
 ---
 system_name: max-reporting
 purpose_sentence: Operate, diagnose, and evolve the Communicating-with-Max discipline that limits Max-facing output to one end-of-round summary with exactly two carve-outs.
-owner_agent: vulcan
+owner_agent: mars
 escalation_contact: Max (rule changes); either instance (Vulcan/Mars) operates this runbook
 lifecycle_ref: §J
 authoritative_scope: The per-round Max-facing output contract (CORE §3 "Execution Philosophy — Communicating with Max"), the summary's required structure and voice, the two carve-outs (hard stop, blocking question), the timestamp header and round-end markers, and the boot-contract marker test that guards the rule. NOT authoritative for session open/close mechanics (session-open-protocol.md, session-close-protocol.md), the write-like-max skill content itself (skill source is canonical), business_summary field rules (CORE §8), or peer-to-peer messaging (peer-instance-discipline.md).
@@ -348,7 +348,7 @@ scenario_set:
 last_refresh_session: S1189
 last_refresh_commit: d4dd366
 last_refresh_date: 2026-07-12T09:00:00Z
-owner_agent: vulcan
+owner_agent: mars
 refresh_triggers:
   - any CORE §3 amendment
   - any change to the boot-contract marker assertion
@@ -361,7 +361,8 @@ first_staleness_detected_at: null
 ```
 
 Refresh log:
-- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum predates the S811 symmetric-peer model and lacks 'mars' — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload), `infra:opening-prompt` (same payload), and the runbook-first-gates.md §E-05/§G-07 discharge procedure. Written to clear the two accumulated waivers on subject "End-of-round summary / Max reporting".
+- S1192 (2026-07-12): owner_agent corrected to mars — empirical lint run confirmed the current linter has no owner enum restriction (the S1189 'enum lacks mars' claim was stale for this linter); either instance still operates this page.
+- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum was believed to predate the S811 symmetric-peer model — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload), `infra:opening-prompt` (same payload), and the runbook-first-gates.md §E-05/§G-07 discharge procedure. Written to clear the two accumulated waivers on subject "End-of-round summary / Max reporting".
 
 ## §K. Conformance
 
