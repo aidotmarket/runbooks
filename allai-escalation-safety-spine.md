@@ -1,10 +1,10 @@
 ---
 system_name: allai-escalation-safety-spine
-purpose_sentence: "The allAI escalation safety spine preserves human-required pages through a structured always-page allowlist, an independent fail-open watchdog, dead-lettered delivery failures, and the single @allai_agent_bot Telegram sink."
+purpose_sentence: "The allAI escalation safety spine preserves human-required pages through a structured always-page allowlist, an independent fail-open watchdog, dead-lettered delivery failures, monitor-unavailable surfacing, and the single @allai_agent_bot Telegram sink."
 owner_agent: vulcan
 escalation_contact: max@ai.market
 lifecycle_ref: §J
-authoritative_scope: "BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 safety-spine chunk only: the shipped allAI always-page allowlist, structured escalation-class extraction, fail-open watchdog, escalation pipeline settlement/dead-letter behavior, scheduler sweep, and Telegram relay configuration in ai-market-backend main bd1f0dd8. Explicitly out of scope: later C2 dedupe/coalesce, C3 sustained-window gate, C4 CI-to-ticket-to-MP auto-fix, C5 remediation library expansion, and C6 FOR MAX surfacing except as evolution constraints."
+authoritative_scope: "BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 safety-spine chunk plus monitor-binding false-alarm fix: the shipped allAI always-page allowlist, structured escalation-class extraction, fail-open watchdog, escalation pipeline settlement/dead-letter behavior, scheduler sweep, Telegram relay configuration in ai-market-backend main bd1f0dd8, and SysAdmin monitor_unavailable behavior in ai-market-backend main 02e3830f. Explicitly out of scope: later C2 dedupe/coalesce, C3 sustained-window gate, C4 CI-to-ticket-to-MP auto-fix, C5 remediation library expansion, and C6 FOR MAX surfacing except as evolution constraints."
 linter_version: 1.0.0
 ---
 
@@ -12,7 +12,7 @@ linter_version: 1.0.0
 
 ## §A. Header
 
-YAML frontmatter above is authoritative for the §A header fields. This runbook documents the shipped safety spine for BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 as deployed from ai-market-backend main `bd1f0dd875b44fc89b8128a96532b2905829c8d0` via Railway deployment `2f9e7faf`.
+YAML frontmatter above is authoritative for the §A header fields. This runbook documents the shipped safety spine for BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 as deployed from ai-market-backend main `bd1f0dd875b44fc89b8128a96532b2905829c8d0` via Railway deployment `2f9e7faf`, plus the S1165 monitor-binding false-alarm fix at ai-market-backend main `02e3830f638a8aadf6ed863c82149ea2e6be1d96`.
 
 Core invariant: silence is the only unacceptable outcome; over-paging is fine. `escalation_watchdog.ack(request)` means "the watchdog need not fail open for this request" - it does not mean "delivered." Delivery is proven by a successful Telegram send, a fallback send, or a confirmed dead-letter record that keeps the incident visible.
 
@@ -36,6 +36,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 | Telegram DISABLED result records dead-letter instead of silently dropping | SHIPPED | `app/allai/escalation_pipeline.py:478` | tests/test_escalation_pipeline.py (49 tests passing) | 2026-07-12 |
 | Dead-letter list and escalation-path-failed alerting | SHIPPED | `app/allai/escalation_pipeline.py:596` | tests/test_escalation_pipeline.py (49 tests passing) | 2026-07-12 |
 | Telegram relay configured as the @allai_agent_bot page sink | SHIPPED | `app/services/telegram_relay.py:41` | tests/test_escalation_pipeline.py (49 tests passing) | 2026-07-12 |
+| SysAdmin `monitor_unavailable` is P1/HITL and deliberately outside the always-page allowlist | SHIPPED | `app/allai/agents/sysadmin/agent.py:828` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 
 ## §C. Architecture & Interactions
 
@@ -162,6 +163,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 | F-05 | Watchdog is paging repeatedly or alert storm mentions watchdog | allAI heartbeat stale, quarantine key stuck, primary delivery failing so watchdog retries, or ack never reached settled state | Inspect Redis `allai:brain:heartbeat`, `allai:brain:quarantined`, `allai:escalation:watchdog:pending`, and pending records; grep `Running scheduled job: allai_escalation_watchdog_sweep`, `allAI escalation watchdog sweep delivered`, and `escalation_watchdog: fail-open page failed; retained for retry` | G-03 | CONFIRMED |
 | F-06 | Telegram disabled messages appear but no operator page appears | `TelegramRelay.is_configured` is false because token or admin chat id is missing; pipeline correctly dead-lettered instead of dropping | Check backend env for `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ADMIN_CHAT_ID`; grep `TelegramRelay: Cannot send - missing token or chat_id` and `Telegram disabled/unconfigured`; inspect `allai:escalation:dead_letter` | G-01 | CONFIRMED |
 | F-07 | Safety flag is explicitly off | Operator or deploy changed `ALLAI_ALWAYS_PAGE_ALLOWLIST_ENABLED` or `ALLAI_ESCALATION_WATCHDOG_ENABLED` to false | Inspect Railway env; grep deploy logs for missing scheduler registration when watchdog off; remember unset means ON for both flags | G-04 | CONFIRMED |
+| F-08 | Escalation class is `monitor_unavailable` or summary says the check could not run | SysAdmin health-contract runner raised, timed out, failed `CapabilityOutput` validation, or invoked a disabled capability; the monitored condition is UNKNOWN | Inspect structured context for `failure_class=monitor_unavailable`, `condition_status=unknown`, `contract_id`, `runner_name`, `error_type`, `error`, and `monitored_failure_class`; do not infer the domain condition from summary text; confirm `monitor_unavailable` is absent from `ALWAYS_PAGE_ALLOWLIST` in `app/allai/escalation_policy.py:9` |  | CONFIRMED |
 
 ## §G. Repair
 
@@ -215,6 +217,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 - Silence is the only unacceptable outcome; over-paging is fine.
 - `escalation_watchdog.ack(request)` means "the watchdog need not fail open for this request"; it never means "Telegram delivered."
 - The first human-required page for any class in `ALWAYS_PAGE_ALLOWLIST` must never be suppressible by dedupe, coalesce, sustained-window gating, model triage, batching, rate limiting, or disabled Telegram state. If delivery cannot happen, the request must dead-letter or remain pending for fail-open.
+- `monitor_unavailable` exists to surface broken checks as P1/HITL, not P0 always-page. It is deliberately absent from `ALWAYS_PAGE_ALLOWLIST`; diagnose the monitor failure and treat the preserved `monitored_failure_class` only as context.
 - `extract_escalation_class()` may read `request.escalation_class`, `context.failure_class`, or `context.incident_class`; it must never infer class from free text.
 - Both `ALLAI_ALWAYS_PAGE_ALLOWLIST_ENABLED` and `ALLAI_ESCALATION_WATCHDOG_ENABLED` default true when unset. Disabling either is a Max-gated incident action because it reintroduces silence.
 - Operator Telegram has one sink: `@allai_agent_bot` through the backend Telegram relay. No new bot, chat path, or direct daemon Telegram path is allowed.
@@ -228,6 +231,7 @@ Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C
 - Moving allowlist evaluation after dedupe, batch, sustained-window, allAI triage, or any future suppression mechanism.
 - Treating `ack()` as proof of Telegram delivery or deleting pending watchdog state before submit is settled or dead-lettered.
 - Changing either safety flag default from true to false.
+- Adding `monitor_unavailable` to `ALWAYS_PAGE_ALLOWLIST`, routing it as a hard-down P0 class, or treating it as the preserved domain class.
 - Adding a second operator Telegram bot or bypassing `@allai_agent_bot`.
 - Changing payment, auth, security, payout, or webhook-signature alert routing without unanimous 4/4 Council approval.
 
@@ -416,9 +420,14 @@ scenario_set:
 
 ## §J. Lifecycle
 
+2026-07-12 (`02e3830f`): S1165 monitor-binding false-alarm fix. SysAdmin now escalates
+check-execution failures as `monitor_unavailable` P1/HITL with condition UNKNOWN and preserved
+`monitored_failure_class`; the class remains off the always-page allowlist so it surfaces the broken
+check without asserting the domain condition.
+
 ```yaml lifecycle
 last_refresh_session: S1165
-last_refresh_commit: bd1f0dd875b44fc89b8128a96532b2905829c8d0
+last_refresh_commit: 02e3830f638a8aadf6ed863c82149ea2e6be1d96
 last_refresh_date: "2026-07-12T00:00:00Z"
 owner_agent: vulcan
 refresh_triggers:
@@ -435,7 +444,7 @@ first_staleness_detected_at: null
 
 ## §K. Conformance
 
-Source citations in this runbook were verified against the ai-market-backend checkout at `/Users/max/Projects/ai-market/ai-market-backend`, branch `main`, commit `bd1f0dd875b44fc89b8128a96532b2905829c8d0`. The test file contains 49 test functions. I did not create a live production Telegram test page; that remains pending an operator decision because it would alert Max's phone.
+Source citations in this runbook were verified against the ai-market-backend checkout at `/Users/max/Projects/ai-market/ai-market-backend`, branch `main`, commit `02e3830f638a8aadf6ed863c82149ea2e6be1d96` for the SysAdmin monitor-binding lines and commit `bd1f0dd875b44fc89b8128a96532b2905829c8d0` for the original safety-spine lines. The escalation test file contains 49 test functions. I did not create a live production Telegram test page; that remains pending an operator decision because it would alert Max's phone.
 
 ```yaml conformance
 linter_version: 1.0.0
