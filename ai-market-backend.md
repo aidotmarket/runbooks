@@ -107,6 +107,24 @@ Secrets in Infisical (`secrets.ai.market`, prod env). Key variables:
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth |
 | `GEMINI_API_KEY` | LLM calls (allAI brain) |
 
+## Rate limiting and the caller's IP address (trust boundary)
+
+`app/core/rate_limiter.py` (`AuthRateLimiter`, `LoginRateLimiter`) throttles by caller. Endpoints using it include the E2E preflight route, beta signup, partner inquiry, serial generation, login and magic-link.
+
+**The caller's address must come from `app/core/request_ip.py` (`resolve_client_ip`). Never use `request.client.host` directly.** Behind Railway's proxy that value is an internal CGNAT address that CHANGES on every request (observed: 100.64.0.3, .4, .8, .11, .13, .16). Keying a rate limit on it gives every request a fresh bucket, so the limit never binds. That is not theory: on 2026-07-12 the limits on all of the endpoints above were confirmed to have never been throttling in production.
+
+The trust rule, established by probing production on 2026-07-12 (do not re-derive it from documentation — Railway's behaviour is not what the header names imply):
+
+| Signal | Trust | Evidence |
+|--------|-------|----------|
+| `X-Forwarded-For`, RIGHTMOST non-internal hop | TRUSTED | Railway appends the address it observed to the RIGHT of whatever the caller sent. 90 requests each carrying a different forged XFF still landed in one bucket and were throttled. |
+| `X-Forwarded-For`, leftmost entry | ATTACKER-CONTROLLED | Caller-supplied. Never use it. |
+| `X-Envoy-External-Address` | ATTACKER-CONTROLLED | Railway's edge passes a caller-supplied copy through UNMODIFIED. Trusting it let 90 requests each mint a fresh bucket: zero throttled. Do not consult this header. |
+| `request.client.host` when it is PUBLIC | TRUSTED | The caller reached the app directly, bypassing the proxy; forwarding headers are then their own fabrication and are discarded. |
+| `request.client.host` when it is INTERNAL/CGNAT | NOT USABLE | Rotates per request. When no trusted forwarded value resolves, traffic buckets under a shared per-limiter `unknown` key so it is throttled together rather than each request getting a free pass. |
+
+Verify a limit actually binds by measuring, not by reading the code: fire more than the budget in one window from one caller and confirm 429s appear. The preflight access log records `ip_source` (`xff` / `client` / `unknown`) and `xff_hops` for exactly this purpose.
+
 ## Scheduled jobs (APScheduler)
 
 Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cleanup, briefing generation, Gmail watch renewal, deploy monitoring.
