@@ -49,7 +49,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 ## §E. Operate - Serving Customers
 
-Production deploy sequence for S1194 P1: merge the feature branch, deploy the backend, let Alembic run the online migration at container start, and let the new claimed consumer start draining. The S1194 pending-entity dedup script is optional afterwards; it is Max-gated maintenance to accelerate backlog catch-up, not a deploy prerequisite.
+Production deploy sequence for S1194 P1: merge the feature branch, deploy the backend, let Alembic run the online migration at container start, and let the new claimed consumer start draining. The migration adds only nullable/defaulted columns and no CHECK/NOT NULL constraint, so old containers can continue writing `qdrant_sync_outbox` rows during Railway rolling deploy overlap. The S1194 pending-entity dedup script is optional afterwards; it is Max-gated maintenance to accelerate backlog catch-up, not a deploy prerequisite.
 
 ```yaml operate
 - id: E-01
@@ -162,7 +162,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Backlog grows or freshness lag rises | consumer stopped, empty-loop sleep only, external failure, old code deployed | `SELECT status,lane,count(*),min(created_at) FROM qdrant_sync_outbox GROUP BY status,lane` plus SysAdmin freshness status | §G G-04 | CONFIRMED |
+| F-01 | Backlog grows or freshness lag rises | consumer stopped, empty-loop sleep only, external failure, old code deployed | `SELECT status,target_type,count(*),min(created_at) FROM qdrant_sync_outbox GROUP BY status,target_type` plus SysAdmin freshness status | §G G-04 | CONFIRMED |
 | F-02 | Rows stuck in `processing` | worker killed after claim before ack | `SELECT id,claimed_at,claimed_by FROM qdrant_sync_outbox WHERE status='processing' ORDER BY claimed_at LIMIT 20` | §G G-01 | CONFIRMED |
 | F-03 | DLQ grows | repeated Vertex/Qdrant failures, invalid event payload, bug in canonical entity read | `SELECT id,target_type,target_id,last_error FROM qdrant_sync_outbox WHERE status='dead_letter' ORDER BY processed_at DESC LIMIT 20` | §G G-02 | CONFIRMED |
 | F-04 | Integrity check reports missing points | Qdrant data loss, failed upsert not retried, payload version mismatch | run E-04 and inspect missing sample | §G G-03 | CONFIRMED |
@@ -222,6 +222,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - No silent exclusion. A row may stop contributing to freshness only through a shipped, monitored admission decision; P2 owns that.
 - Batch first. Upserts should use `embed_batch()` and batched Qdrant writes unless a documented external limit forces smaller batches.
 - Claims must commit before any Vertex or Qdrant call.
+- Entity/event work is split by existing `target_type`; do not add a second routing column that old producers must populate during rolling deploy overlap.
 - Outbox `done`/`failed` transitions must be conditional on `status='processing'` and the same `claimed_by` worker that claimed the row.
 - Entity producer coalescing must not depend on a unique constraint. It updates one pending survivor, marks duplicate pending losers superseded on a successful coalesce, and inserts only when no pending row exists.
 - Pending delete rows win over pending upsert rows for the same entity target. Otherwise the survivor is the highest `source_version`, tie-broken by `created_at DESC, id DESC`.
