@@ -94,6 +94,54 @@ draft response, but disk state still needs customer-perspective verification.
 `error_type=timeout` is a deprecated compatibility alias for old fixed-deadline
 callers. New streaming paths should report `hard_timeout` instead.
 
+### §G.1 Reviewer returns an EMPTY completion (DS / GLM) — T-2026-000232
+
+Symptom: a review dispatch to DeepSeek or GLM fails immediately with a parse
+error and `raw_response_length=0`, e.g. `DeepSeekResponseParseError: ...
+(candidate_count=0, ..., raw_response_length=0)`, or a blank GLM verdict. A
+trivial `mode=open_response` probe to the same provider succeeds, which proves
+the provider is up and misleads you into hunting a prompt or parser defect.
+
+Cause: DS and GLM are REASONING models. The reasoning trace and the visible
+content share ONE output budget. With a small `max_tokens`, a substantive review
+spends the whole budget thinking and returns zero content tokens -> empty
+completion -> parse failure. This is already written down in
+`config:resource-registry` -> `secrets.OPENROUTER_API_KEY.notes`. Read the
+registry and TOPIC-ROUTER on the error string BEFORE reading code.
+
+Repair:
+
+1. Read `finish_reason` and the token telemetry now returned in the review
+   envelope (`prompt_tokens`, `completion_tokens`, `reasoning_tokens`,
+   `max_tokens`, `prompt_chars`, `empty_content_retries`). `finish_reason=length`
+   with `reasoning_tokens` at or near `max_tokens` is the signature.
+2. Budget content separately from reasoning. Review budget is 32000 tokens with a
+   separate 8000-token reasoning cap (`reasoning.max_tokens` on OpenRouter), plus
+   retry-once-on-empty at double budget. Landed in koskadeux-mcp `f1aa7d19`.
+3. Scope the review; do not truncate it. `council_request mode=review` accepts
+   `review_paths` (a git pathspec list). The inlined diff is capped at
+   `_REVIEW_DIFF_INLINE_CAP_CHARS = 40_000` (`tools/agents.py`); anything above
+   that is silently truncated and the reviewer audits half the code. Split a
+   large branch into two or more scoped reviews, each under the cap.
+
+Deploy note: the review budget lives in `openrouter_glm_client.py`,
+`deepseek_client.py`, `deepseek_server.py` and `tools/agents.py`. A merge to main
+is NOT live until the owning process restarts. `com.koskadeux.mcp` carries the
+GLM client in-process; DeepSeek runs as its own long-lived service. Bouncing only
+the MCP server leaves DeepSeek on stale code and it keeps returning empty
+completions. Restart BOTH:
+
+```
+launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
+launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server
+```
+
+The MCP bounce wipes boot state; re-run `kd_session_open` + `kd_session_plan`
+after. Verify with a real review dispatch against a large diff, not a probe: a
+trivial probe passes even when the bug is fully present (verified live S1190 —
+GLM 39.5k-char prompt, 24,790 reasoning tokens, `finish_reason=stop`, full
+verdict envelope).
+
 ## §I Scenarios
 
 Scenario: MP build reports `stuck_no_progress`.
