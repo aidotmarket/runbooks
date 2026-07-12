@@ -146,6 +146,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Vulcan / Mars operating discipline** — peer-symmetric claim-before-work, message-bus, and escalation rules: [peer-instance-discipline.md](peer-instance-discipline.md).
 
+**Reporting to Max / end-of-round summary** — the one-summary-per-round contract (CORE §3), the two carve-outs (hard stop, blocking question), summary structure/voice/timestamp/markers, the boot-contract marker guard, and waiver discharge for this subject: [max-reporting.md](max-reporting.md).
+
 **Operator Telegram notifications** — which bot may message Max and what classes are allowed; @koskadeux_bot killed, only @allai_agent_bot, emergency/human-required only: [operator-telegram-notifications.md](operator-telegram-notifications.md).
 
 ---
