@@ -64,6 +64,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 **ai.market backend / frontend** — API service, DB, deploy, customer-data location: [ai-market-backend.md](ai-market-backend.md). Web app: [ai-market-frontend.md](ai-market-frontend.md).
 **API error contract — DB constraint → HTTP status** — when a database constraint violation should surface as a 4xx not a raw 500 (constraint-name detection; peer-messages `ck_*` CHECK → 422 worked example): see the "API error mapping" section of [ai-market-backend.md](ai-market-backend.md).
 
+**Schema rationalization / quarantine / drop** — S1163 classify → quarantine → drop procedure for pruning empty unused production Postgres tables, including classification evidence refresh, one-shot P2/P3 migration gates, 3-day quarantine monitoring, false-alarm handling, and move-back repair: [schema-rationalization.md](schema-rationalization.md).
+
 **AIM Data / AIM Node / vectorAIz** — seller conduit + dev conduit: [aim-data.md](aim-data.md) · [aim-node.md](aim-node.md). vectorAIz brand context (AIM Channel retired, superseded by AIM Data): [dual-brand-vectoraiz-aim-channel.md](dual-brand-vectoraiz-aim-channel.md). Releases: [aim-data-release-process.md](aim-data-release-process.md) · [aim-node-release-process.md](aim-node-release-process.md) · [vz-release-process.md](vz-release-process.md).
 
 **allAI / agents** — agent intelligence layer + roster: [allai-agents.md](allai-agents.md). Agent write-approval (HITL) queue — persistence, atomic approve claim, post-approval execution: see the "HITL authorization queue" section of [allai-agents.md](allai-agents.md).
