@@ -30,7 +30,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Entity producer | `app/services/state_service.py:StateService._enqueue_outbox` | `state_entities`, `qdrant_sync_outbox` | FastAPI/allAI state writers | Writes one pending entity notification per target through `uq_qdrant_outbox_pending_entity`; Postgres remains canonical. |
+| Entity producer | `app/services/state_service.py:StateService._enqueue_outbox` | `state_entities`, `qdrant_sync_outbox` | FastAPI/allAI state writers | Coalesces pending entity notifications with update-then-insert SQL and no unique-index dependency; rare duplicate pending rows are tolerated and collapsed by the producer on a later write. |
 | Event producer | `app/services/state_service.py:StateService.record_event` | `state_events`, `qdrant_sync_outbox` | allAI event writers | P1 keeps event `embed_text`; P2 owns admission/quarantine. |
 | Consumer | `app/services/qdrant_sync_worker.py:start_qdrant_sync_worker` | `qdrant_sync_outbox`, `state_entities`, `state_events` | Vertex Gemini `embed_batch`, Qdrant `knowledge_base_v2` | Claims rows with `FOR UPDATE SKIP LOCKED`, commits, then embeds/upserts. |
 | Freshness monitors | `app/allai/agents/sysadmin/monitors.py` | `state_entities`, `state_events` | SysAdmin escalation pipeline | Measures stale canonical rows, not Qdrant as source of truth. |
@@ -45,9 +45,11 @@ YAML frontmatter above is authoritative for the §A header fields.
 | SysAdmin | Raise `EMBED_CONCURRENCY` | Railway env var edit on backend service | Railway backend deploy scope | COMPLETE |
 | SysAdmin | Run integrity check | `qdrant_index_integrity_status()` | DB read plus Qdrant API key | COMPLETE |
 | SysAdmin | Stop/start consumer | Railway env/deploy controls or app startup/shutdown hooks | backend deploy scope | PARTIAL - no standalone worker service yet |
-| Vulcan/Max | Run dedup | `scripts/s1194_dedup_qdrant_pending_entities.py` | production writer pause plus DB write | COMPLETE, Max-gated |
+| Vulcan/Max | Run optional dedup | `scripts/s1194_dedup_qdrant_pending_entities.py` | production DB write with explicit Max GO | COMPLETE, optional Max-gated maintenance |
 
 ## §E. Operate - Serving Customers
+
+Production deploy sequence for S1194 P1: merge the feature branch, deploy the backend, let Alembic run the online migration at container start, and let the new claimed consumer start draining. The S1194 pending-entity dedup script is optional afterwards; it is Max-gated maintenance to accelerate backlog catch-up, not a deploy prerequisite.
 
 ```yaml operate
 - id: E-01
@@ -120,7 +122,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   next_step_success: done
   next_step_failure: §F F-04
 - id: E-05
-  trigger: Stop/start the consumer during a migration or writer pause
+  trigger: Stop/start the consumer during deploy or incident handling
   pre_conditions:
     - active incident owner
     - deployment plan written in ticket
@@ -137,23 +139,23 @@ YAML frontmatter above is authoritative for the §A header fields.
   next_step_success: E-01
   next_step_failure: §G G-01
 - id: E-06
-  trigger: Run S1194 pending entity dedup before creating the partial unique index
+  trigger: Optionally run S1194 pending entity dedup after deploy
   pre_conditions:
     - explicit Max GO
-    - entity outbox writers paused
-    - consumers paused
+    - production deploy is complete
+    - no active incident on qdrant_sync_outbox
   tool_or_endpoint: `.venv/bin/python scripts/s1194_dedup_qdrant_pending_entities.py --dry-run`, then without `--dry-run`
   argument_sourcing:
     DATABASE_URL: production database URL from backend runtime context
   idempotency: IDEMPOTENT
   expected_success:
     shape: before/after duplicate_targets and duplicate_rows; after duplicate_rows=0
-    verification: duplicate query returns zero rows
+    verification: duplicate query returns zero rows; queue head advances faster
   expected_failures:
     - signature: duplicate_rows remains nonzero
-      cause: writers were not paused or batch failed
-  next_step_success: run Alembic P1 migration
-  next_step_failure: keep writers paused; escalate to Max
+      cause: live producer race or batch failed
+  next_step_success: done
+  next_step_failure: wait and retry only with Max GO; deploy is not blocked
 ```
 
 ## §F. Isolate - Diagnosing Deviations
@@ -220,11 +222,14 @@ YAML frontmatter above is authoritative for the §A header fields.
 - No silent exclusion. A row may stop contributing to freshness only through a shipped, monitored admission decision; P2 owns that.
 - Batch first. Upserts should use `embed_batch()` and batched Qdrant writes unless a documented external limit forces smaller batches.
 - Claims must commit before any Vertex or Qdrant call.
-- `uq_qdrant_outbox_pending_entity` must exist while P1 producer or M7 re-enqueue code is deployed.
+- Outbox `done`/`failed` transitions must be conditional on `status='processing'` and the same `claimed_by` worker that claimed the row.
+- Entity producer coalescing must not depend on a unique constraint. It updates one pending survivor, marks duplicate pending losers superseded on a successful coalesce, and inserts only when no pending row exists.
+- Pending delete rows win over pending upsert rows for the same entity target. Otherwise the survivor is the highest `source_version`, tie-broken by `created_at DESC, id DESC`.
+- Rare duplicate pending rows are tolerated by design: they can cause at most redundant canonical re-reads/embeds, and guarded version acks prevent stale Qdrant freshness from being recorded.
 
 ### §H.2 Change-class predicate tree
 
-BREAKING if any change removes the partial unique index while P1 code is live, trusts entity `embed_text` for version ack, drops `qdrant_indexed_version`, changes `source_version` payload semantics, or disables the freshness alarm.
+BREAKING if any change reintroduces a required partial unique index or writer pause for P1 deploy, trusts entity `embed_text` for version ack, drops `qdrant_indexed_version`, weakens claimed-worker ack/fail guards, changes `source_version` payload semantics, or disables the freshness alarm.
 
 REVIEW if any change changes config defaults (`EMBED_BATCH_SIZE`, `EMBED_CONCURRENCY`, `QDRANT_CLAIM_STALE_AFTER_SECONDS`), adds event admission/quarantine, adds retention, or changes the cutover flow.
 
@@ -295,7 +300,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs: [§H]
-    scenario: Propose dropping uq_qdrant_outbox_pending_entity while P1 code is live.
+    scenario: Propose requiring uq_qdrant_outbox_pending_entity and a writer pause for P1 deploy.
     expected_answers: [{kind: classification, verdict: BREAKING}]
     weight: 0.1
   - id: I-10
