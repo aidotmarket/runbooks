@@ -38,9 +38,10 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Fail-closed param handling: malformed charter reports without opening a browser | SHIPPED | `browser.py:_harness_error` | `tests/test_runtime.py` | 2026-07-12 |
 | Config-only production URL, fail-closed when unset | SHIPPED | `src/e2e_harness/runtime.py` (`browser_journey` dispatch branch) | `tests/test_runtime.py` | 2026-07-12 |
 | Narrow production-guard exemption (no accounts AND `requires_mutation` falsy AND `anonymous: true`) | SHIPPED | `runtime.py:_is_anonymous_browser_preflight_exempt` | `tests/test_runtime.py` | 2026-07-12 |
-| Artifact policy: redacted step transcript persisted; trace zip and screenshots WITHHELD | SHIPPED | `browser.py:_redact_and_cleanup`, `src/e2e_harness/redaction.py:redact_artifact` | `tests/test_redaction_retention.py` | 2026-07-12 |
+| Artifact policy: redacted step transcript AND redacted trace zip persisted; screenshots still WITHHELD (no pixel masking exists) | SHIPPED (S1197: zip-aware redaction) | `browser.py:_redact_and_cleanup`, `src/e2e_harness/redaction.py:redact_zip` | `tests/test_redaction_retention.py` | 2026-07-12 |
+| Zip-aware trace redaction: NDJSON entries redacted line-by-line, `resources/` response bodies and all binary/non-UTF-8 entries WITHHELD, `redaction-manifest.json` records every entry, any failure raises (harness_error, no artifacts) | SHIPPED | `redaction.py:redact_zip`, `_redact_zip_entry` | `tests/test_redaction_retention.py` | 2026-07-12 |
 | Zip-aware trace redaction (unpack, redact, repack) | PLANNED — prerequisite for Phase 2 persisting any trace | n/a | n/a | n/a |
-| Phase 2: authenticated buyer read-only journey to the pay boundary | PLANNED — needs the backend `E2E_PREFLIGHT_ROUTES_ENABLED` split | n/a | n/a | n/a |
+| Phase 2: authenticated buyer read-only journey to the pay boundary | PLANNED — both prerequisites SHIPPED S1197 (zip-aware trace redaction; backend `E2E_PREFLIGHT_ROUTES_ENABLED` split with internal-key auth). One open prerequisite remains: the per-run Chromium PROFILE DIRECTORY (cookie store) is not swept after a run, so an authenticated journey would leave live session cookies at rest on Titan-1 | n/a | n/a | n/a |
 | Phase 3: mutating seller journey (publish a listing); pay step blocked on the Stripe sandbox order router | PLANNED — `build:bq-stripe-sandbox-order-router-s1196` gates the pay step | n/a | n/a | n/a |
 | Phase 4: recorded/deterministic nightly replay, agentic re-walk policy | PLANNED | n/a | n/a | n/a |
 
@@ -84,7 +85,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   idempotency: IDEMPOTENT
   expected_success:
     shape: 'report under $E2E_HARNESS_ROOT/reports with status passed; charter outcome status passed; artifacts list contains the redacted step transcript ONLY'
-    verification: 'cat the newest report json; find $E2E_ARTIFACTS_DIR -type f - there must be no trace zip and no screenshot'
+    verification: 'cat the newest report json; find $E2E_ARTIFACTS_DIR -type f - the redacted step transcript and the redacted trace.zip are expected; there must be no screenshot'
   expected_failures:
     - signature: 'browser_journey refused: E2E_PROD_FRONTEND_URL is required'
       cause: production frontend URL not configured (§F-01)
@@ -97,7 +98,8 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   pre_conditions:
     - the charter declares account ids from the synthetic is_test pool
     - E2E_PROD_TARGETING_ENABLED is set
-    - the backend read-only preflight route is enabled and reachable
+    - the backend read-only preflight route is enabled (E2E_PREFLIGHT_ROUTES_ENABLED=true on ai-market-backend; it is DORMANT by default and is independent of E2E_TEST_ROUTES_ENABLED, which still gates the reset/teardown mutation routes)
+    - E2E_INTERNAL_API_KEY is set in the harness environment (the preflight route requires the X-Internal-API-Key header since S1197; the harness refuses the run locally, before any network call, when the key is absent)
   tool_or_endpoint: "e2e-harness run (the runtime calls GET /api/v1/e2e/preflight/{account_id} before any browser opens)"
   argument_sourcing:
     account_ids: the allowlisted is_test pool accounts only - never a real customer account
@@ -106,8 +108,10 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     shape: preflight returns allowed=true for every declared account, then the browser opens
     verification: report shows the charter ran; preflight refusals appear before any browser artifact exists
   expected_failures:
-    - signature: preflight refusal (404, 403, non-200, allowed=false, timeout)
-      cause: route disabled, account not allowlisted, or not an is_test account (§F-03)
+    - signature: preflight refusal (404, 403, 401, non-200, allowed=false, timeout)
+      cause: route disabled (404), missing or wrong internal API key (401/403), rate limited (429 - the route is throttled 30/60s and fails closed if Redis is unreachable), account not allowlisted, or not an is_test account (§F-03)
+    - signature: 'Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight'
+      cause: the harness has no internal key; it refuses before opening a browser and before any network call (§F-03)
   next_step_success: proceed; remember that a mutating journey writes real rows and must tag/manifest them (§H.1)
   next_step_failure: do NOT relax the guard; fix the account or the route (§G-03)
 - id: E-03
@@ -122,8 +126,8 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     shape: the transcript lists each step - timestamp, step number, action, target, result, current URL
     verification: the transcript contains no credentials, cookies, headers or DOM dumps by construction
   expected_failures:
-    - signature: no trace zip present
-      cause: BY DESIGN - traces are withheld until zip-aware redaction exists (§F-04)
+    - signature: no screenshot present
+      cause: BY DESIGN - screenshots stay withheld until pixel masking exists (§F-04)
   next_step_success: file or update a ticket only for a product failure, never for a harness_error
   next_step_failure: see §G-04
 ```
@@ -135,7 +139,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 | F-01 | `browser_journey refused: E2E_PROD_FRONTEND_URL is required` | The sanctioned production frontend URL is not configured. There is deliberately NO hardcoded fallback — a hardcoded `https://ai.market` default was removed at S1196 | `echo $E2E_PROD_FRONTEND_URL` in the harness environment; check the launchd plist | §G-01 | CONFIRMED |
 | F-02 | Outcome `harness_error` with a params message; no browser opened | Charter missing `params.mode`, missing `params.goal` for agentic mode, an unsupported mode (recorded mode is not built yet), or a `start_url` that is not `frontend` or a sanctioned production URL | read the outcome summary in the report; check the charter JSON | §G-02 | CONFIRMED |
 | F-03 | Run refused before the browser opened, citing production targeting or preflight | `E2E_PROD_TARGETING_ENABLED` unset, account ids not declared, backend preflight route disabled or returning `allowed=false` | curl the preflight route for the account id; check the flag | §G-03 | CONFIRMED |
-| F-04 | No trace zip in the artifacts, only a step transcript | BY DESIGN. `redact_artifact` is a text/JSON redactor; a `.zip` is withheld with a placeholder because a compressed archive cannot be scanned by regex. Persisting it through the text path produced a mangled blob that had never actually been scanned | `find $E2E_ARTIFACTS_DIR -name '*.zip'` returns nothing; the placeholder text appears where a trace would be | §G-04 | CONFIRMED |
+| F-04 | No screenshot in the artifacts | BY DESIGN. Screenshots are replaced by a text placeholder because no deterministic pixel masking exists yet; a screenshot can show a token, an email or customer data. Traces ARE now persisted, redacted (S1197): NDJSON entries are redacted line-by-line, `resources/` response bodies and every binary or non-UTF-8 entry are withheld, and `redaction-manifest.json` records what happened to each entry | `find $E2E_ARTIFACTS_DIR -name '*.zip'` returns the redacted trace; no image files appear | §G-04 | CONFIRMED |
 | F-05 | Playwright cannot launch: executable missing | The Chromium binary was never installed for this virtualenv (the pip dependency does not install the browser) | run `playwright install chromium` in the harness venv and retry | §G-05 | CONFIRMED |
 | F-06 | A browser journey targeted production without the targeting flag | The charter set `anonymous: true` with no accounts and `requires_mutation` falsy, which is the sanctioned exemption — or a charter is abusing that exemption while actually mutating | read the charter params; a journey that authenticates or writes MUST NOT set `anonymous: true` | §G-06 | CONFIRMED |
 | F-07 | A harness problem raised a support ticket | Should not happen: only `failed` outcomes become findings/tickets; `harness_error` never does | grep the run report for the outcome status; check `tickets.py` dedup | §G-07 | CONFIRMED |
@@ -170,9 +174,9 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - id: G-04
   symptom_ref: F-04
   component_ref: Artifact redaction
-  root_cause: zip-aware redaction is not implemented
+  root_cause: zip-aware redaction was not implemented (RESOLVED S1197)
   repair_entry_point: src/e2e_harness/redaction.py
-  change_pattern: to persist traces, implement zip-aware redaction - unpack the archive, redact each text/JSON entry, withhold binary resources, repack - with a test asserting no artifact contains a password, session cookie or Authorization header. This is a prerequisite for Phase 2 (authenticated journeys) persisting any trace. Until then, withholding is the correct behaviour, not a bug
+  change_pattern: RESOLVED S1197. `redact_zip` unpacks the archive, redacts each text/JSON entry line-by-line, withholds every binary/`resources/` entry, repacks, and writes a redaction manifest; any failure raises and the run is harness_error with no artifacts. Sensitive JSON keys are matched by exact name plus segment (so `x-auth-token` is caught while Playwright's structural `sessionId`/`address`/`downloadPath` keys survive), and sensitive URL query values (verification, reset, presigned-download tokens) are redacted while the path and benign params survive. Screenshots stay withheld - that rule is unchanged
   rollback_procedure: revert to withholding
   integrity_check: a test proves a redacted trace contains none of the seeded secrets
 - id: G-05
@@ -277,7 +281,7 @@ scenario_set:
     scenario: The run passed. Which artifacts should exist?
     expected_answers:
       - kind: human_action
-        action: the redacted step transcript only - no trace zip and no screenshots, both are withheld by policy
+        action: the redacted step transcript and the redacted trace zip; screenshots are still withheld by policy
     weight: 0.1
   - id: I-03
     type: operate
@@ -301,7 +305,7 @@ scenario_set:
     scenario: A colleague reports the trace zip is missing from the artifacts and wants it restored by passing it through redact_artifact. Response?
     expected_answers:
       - kind: human_action
-        action: refuse - the text redactor cannot scan a compressed archive, so that would persist an unscanned artifact while labelling it redacted; implement zip-aware redaction first
+        action: as of S1197 the trace IS persisted, redacted, by `redact_zip`. If it is missing, do NOT reach for `redact_artifact`'s text path - find out why redaction raised, because a raise means the run was classified harness_error and nothing was persisted, which is the intended fail-closed behaviour
     weight: 0.1
   - id: I-06
     type: isolate
