@@ -51,6 +51,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Qdrant / vector database** — hosting, API-key authentication + lockdown, key locations (Infisical + both Railway services), per-collection S3 backup coverage: [qdrant.md](qdrant.md).
 
+**Qdrant sync outbox / allAI memory indexing** — Postgres `qdrant_sync_outbox` producer/consumer, entity freshness lag, DLQ drain, `EMBED_CONCURRENCY`, S1194 pending-entity dedup, integrity check, and cutover procedure: [qdrant-sync-outbox.md](qdrant-sync-outbox.md).
+
 **Backups & disaster recovery** — what's backed up, where, restore steps: [backup-and-recovery.md](backup-and-recovery.md). Rebuild map (offline bootstrap items, bucket layout, restore order): [disaster-recovery.md](disaster-recovery.md). The "bash" Login Items list explained: [backup-and-recovery.md](backup-and-recovery.md).
 
 **The host — Titan-1 / Mac Studio** — hardware, services + ports, tunnel, Docker dev stack, scheduled jobs: [titan-1.md](titan-1.md). Network topology & remote access: [connectivity.md](connectivity.md#remote-access-to-titan-1).
