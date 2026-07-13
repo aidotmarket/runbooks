@@ -65,6 +65,50 @@ irm https://get.ai.market/aim-data/windows | iex            # Windows
 
 **Status:** CF Worker routes — see [cloudflare-worker.md](cloudflare-worker.md) for current state.
 
+### The version customers actually get is a PINNED DEFAULT — verify it after every release
+
+`docker-compose.aim-data.yml` pins the image as `ghcr.io/aidotmarket/aim-data:${AIM_DATA_VERSION:-vX.Y.Z}`.
+That literal default is what a fresh customer install pulls. It is **hand-maintained**, and it is the
+single thing most likely to be left behind by a release.
+
+`scripts/release-aim-data.sh` does bump it (`update_compose`, called by BOTH `cmd_rc` and `cmd_promote`).
+**So the script is safe. Tagging by hand is not.** A tag pushed outside the script builds and publishes the
+image, cuts the GitHub Release, and leaves the pinned default pointing at the PREVIOUS version. Nothing fails.
+Nothing warns. Every new customer silently installs the old build.
+
+**This has already happened.** Observed live S1207 (2026-07-13):
+
+| Where | Version |
+|---|---|
+| Latest GitHub release | `aim-data-v1.22.2` |
+| GHCR (image exists) | `v1.22.2` |
+| Compose on `main` = what customers pull | `v1.22.1` |
+| Installer served at get.ai.market | `v1.22.1` |
+| Compose in the local product checkout | `v1.21.1` |
+
+Three different versions in three places, and every fresh install for five days got a stale build.
+
+**MANDATORY post-release check.** After any release, run this and confirm the served default matches the tag:
+
+```bash
+# what customers actually get, straight from the wire
+curl -fsSL https://raw.githubusercontent.com/aidotmarket/aim-data/main/docker-compose.aim-data.yml \
+  | grep -oE 'AIM_DATA_VERSION:-[^}]*'
+# what the latest release actually is
+curl -s https://api.github.com/repos/aidotmarket/aim-data/releases/latest \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["tag_name"])'
+```
+
+They must agree. If they do not, the release did not reach customers — bump the compose default, commit, push.
+
+**Rules:**
+- **Always release via `scripts/release-aim-data.sh`.** Never `git tag` an `aim-data-v*` release by hand.
+- Never hand-edit the compose pin as a one-off "fix" — it drifts straight back. Fix the release path.
+- **Preferred permanent fix (not yet built):** stop hand-maintaining the pin. Have the installer resolve the
+  latest published release at install time, so a forgotten bump cannot ship a stale product. Until that exists,
+  the check above is the guard.
+
+
 ## Repos
 
 The AIM Data product split off from the vectoraiz monorepo. Release machinery now lives in the product repo itself — decoupled from the vectoraiz repo (S751). Product code, customer-facing installers, and the published Docker image live in the standalone repo.
