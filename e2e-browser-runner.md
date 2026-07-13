@@ -22,11 +22,12 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|
 | `aidotmarket/e2e-harness` | The harness itself: queue, runtime dispatch, `browser.py` runner, redaction, retention, tickets | Titan-1 clone `~/Projects/ai-market/e2e-harness`; main at `9d38d2e` (S1196) | GitHub `aidotmarket/e2e-harness` |
 | Playwright + Chromium | The browser substrate. Declared in `pyproject.toml`; the browser binary is installed separately (`playwright install chromium`) | Titan-1, inside the harness virtualenv | Playwright |
-| `E2E_PROD_FRONTEND_URL` | The ONLY source of the sanctioned production frontend URL. No hardcoded fallback exists; a `browser_journey` refuses to run when it is unset | harness environment / launchd plist | e2e-harness config |
-| `E2E_PROD_TARGETING_ENABLED` | Harness-side opt-in for production targeting. Required for every browser journey EXCEPT the anonymous exemption (§C) | harness environment | e2e-harness config |
+| `E2E_PROD_FRONTEND_URL` | The ONLY source of the sanctioned production frontend URL. No hardcoded fallback exists; a `browser_journey` refuses to run when it is unset | set by `scripts/harness-env.sh` (S1201); the launchd plist no longer carries it | e2e-harness config |
+| `E2E_PROD_TARGETING_ENABLED` | Harness-side opt-in for production targeting. Required for every browser journey EXCEPT the anonymous exemption (§C) | set by `scripts/harness-env.sh` (S1201) | e2e-harness config |
+| `scripts/harness-env.sh` | The ONE place the harness gets its production environment. Exports the targeting opt-in and the two sanctioned URLs, and fetches `INTERNAL_API_KEY` from Infisical **at runtime** into `E2E_INTERNAL_API_KEY`. No secret is written to the plist, a dotenv file or the repo. The Infisical bearer token reaches curl on stdin via a `-K` config block, never on argv | `e2e-harness/scripts/harness-env.sh`; sourced by `scripts/run-nightly.sh`, which is what the launchd plist runs | e2e-harness (S1201, main `f8c7ba2`) |
 | `E2E_HARNESS_ROOT` | Root for queue, reports, artifacts, profiles, auth-states | harness environment; launchd sets it | e2e-harness config |
 | `GET /api/v1/e2e/preflight/{account_id}` | Per-account production preflight; proves an account is an allowlisted `is_test` pool account before a browser opens | ai.market backend (production) | ai-market-backend |
-| Synthetic `is_test` pool accounts | The ten `seller-01..05@e2e-test.ai.market` / `buyer-01..05@e2e-test.ai.market` production accounts used by authenticated journeys (Phase 2+) | production `users` table | ai-market-backend (see account-teardown.md) |
+| Synthetic `is_test` pool accounts | The ten `seller-01..05@e2e-test.ai.market` / `buyer-01..05@e2e-test.ai.market` production accounts used by authenticated journeys (Phase 2+). They EXIST (created 2026-07-11) but **cannot log in** — see §B and T-2026-000241 | production `users` table; ids in `ai-market-backend/e2e/account_pool.json` | ai-market-backend (see account-teardown.md) |
 
 ## §B. Capability Matrix
 
@@ -40,8 +41,9 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Narrow production-guard exemption (no accounts AND `requires_mutation` falsy AND `anonymous: true`) | SHIPPED | `runtime.py:_is_anonymous_browser_preflight_exempt` | `tests/test_runtime.py` | 2026-07-12 |
 | Artifact policy: redacted step transcript AND redacted trace zip persisted; screenshots still WITHHELD (no pixel masking exists) | SHIPPED (S1197: zip-aware redaction) | `browser.py:_redact_and_cleanup`, `src/e2e_harness/redaction.py:redact_zip` | `tests/test_redaction_retention.py` | 2026-07-12 |
 | Zip-aware trace redaction: NDJSON entries redacted line-by-line, `resources/` response bodies and all binary/non-UTF-8 entries WITHHELD, `redaction-manifest.json` records every entry, any failure raises (harness_error, no artifacts) | SHIPPED | `redaction.py:redact_zip`, `_redact_zip_entry` | `tests/test_redaction_retention.py` | 2026-07-12 |
-| Zip-aware trace redaction (unpack, redact, repack) | PLANNED — prerequisite for Phase 2 persisting any trace | n/a | n/a | n/a |
-| Phase 2: authenticated buyer read-only journey to the pay boundary | PLANNED — both prerequisites SHIPPED S1197 (zip-aware trace redaction; backend `E2E_PREFLIGHT_ROUTES_ENABLED` split with internal-key auth). One open prerequisite remains: the per-run Chromium PROFILE DIRECTORY (cookie store) is not swept after a run, so an authenticated journey would leave live session cookies at rest on Titan-1 | n/a | n/a | n/a |
+| Harness production environment, S1201: the targeting opt-in, the two sanctioned URLs and the backend internal API key, loaded from one place; the key is fetched from Infisical at runtime and never written to the plist or the repo | SHIPPED | `scripts/harness-env.sh` | live production verification, §E-02 | 2026-07-13 |
+| Preflight arming for the Phase 2 buyer, S1201: `E2E_RESET_ALLOWED_ACCOUNT_IDS` on the production backend holds buyer-01 and nothing else, so preflight allows that one account and refuses every other. Reset and teardown routes remain 404 because `E2E_TEST_ROUTES_ENABLED` is false — nothing is armed | SHIPPED | — | live production verification, §E-02 | 2026-07-13 |
+| Phase 2: authenticated buyer read-only journey to the pay boundary. BLOCKED, not merely unbuilt — the pool accounts cannot log in. Every build prerequisite has shipped and the environment and arming are done, but the pool rows carry a null password hash and an `e2e` auth method that nothing in the backend implements, and the login route rejects any user without a password hash. The browser has an account it may touch and no way to sign in as it. Needs a Max decision, then unanimous Council — see T-2026-000241 | BROKEN | `app/e2e/synthetic_accounts.py` | — | 2026-07-13 |
 | Phase 3: mutating seller journey (publish a listing); pay step blocked on the Stripe sandbox order router | PLANNED — `build:bq-stripe-sandbox-order-router-s1196` gates the pay step | n/a | n/a | n/a |
 | Phase 4: recorded/deterministic nightly replay, agentic re-walk policy | PLANNED | n/a | n/a | n/a |
 
@@ -99,7 +101,9 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     - the charter declares account ids from the synthetic is_test pool
     - E2E_PROD_TARGETING_ENABLED is set
     - the backend read-only preflight route is enabled (E2E_PREFLIGHT_ROUTES_ENABLED=true on ai-market-backend; it is DORMANT by default and is independent of E2E_TEST_ROUTES_ENABLED, which still gates the reset/teardown mutation routes)
-    - E2E_INTERNAL_API_KEY is set in the harness environment (the preflight route requires the X-Internal-API-Key header since S1197; the harness refuses the run locally, before any network call, when the key is absent)
+    - E2E_INTERNAL_API_KEY is set in the harness environment (the preflight route requires the X-Internal-API-Key header since S1197; the harness refuses the run locally, before any network call, when the key is absent). Do NOT set it by hand and do NOT put it in the plist - source scripts/harness-env.sh, which fetches it from Infisical at runtime (S1201)
+    - the account id is in E2E_RESET_ALLOWED_ACCOUNT_IDS on the production backend. Preflight reads the RESET allowlist; an account that is not in it is refused with 403 not_allowlisted even though it is a real is_test pool account. Adding an id to that allowlist does NOT arm anything: the reset and teardown routes stay absent while E2E_TEST_ROUTES_ENABLED is false
+    - the account can actually LOG IN. As of S1201 no pool account can (password_hash is NULL, auth_methods={e2e}, nothing consumes that method). Until T-2026-000241 is resolved, preflight will pass and the browser will then fail at the sign-in step
   tool_or_endpoint: "e2e-harness run (the runtime calls GET /api/v1/e2e/preflight/{account_id} before any browser opens)"
   argument_sourcing:
     account_ids: the allowlisted is_test pool accounts only - never a real customer account
@@ -143,6 +147,9 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 | F-05 | Playwright cannot launch: executable missing | The Chromium binary was never installed for this virtualenv (the pip dependency does not install the browser) | run `playwright install chromium` in the harness venv and retry | §G-05 | CONFIRMED |
 | F-06 | A browser journey targeted production without the targeting flag | The charter set `anonymous: true` with no accounts and `requires_mutation` falsy, which is the sanctioned exemption — or a charter is abusing that exemption while actually mutating | read the charter params; a journey that authenticates or writes MUST NOT set `anonymous: true` | §G-06 | CONFIRMED |
 | F-07 | A harness problem raised a support ticket | Should not happen: only `failed` outcomes become findings/tickets; `harness_error` never does | grep the run report for the outcome status; check `tickets.py` dedup | §G-07 | CONFIRMED |
+| F-08 | `Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight`, or preflight returns 401 | The harness environment was never loaded — the run did not go through `scripts/run-nightly.sh` / `scripts/harness-env.sh`, or the Infisical token at `~/.config/infisical/sysadmin-token` is dead | `env -i HOME=$HOME PATH=/usr/local/bin:/usr/bin:/bin /bin/bash -c 'source scripts/harness-env.sh && echo ${#E2E_INTERNAL_API_KEY}'` — expect 64 | §G-08 | CONFIRMED |
+| F-09 | Preflight returns 403 `not_allowlisted` for a genuine `is_test` pool account | Preflight consults `E2E_RESET_ALLOWED_ACCOUNT_IDS`. Being an `is_test` pool account is necessary but NOT sufficient — the id must also be on that allowlist | read the variable on the production backend service; compare with the charter's declared account ids | §G-09 | CONFIRMED |
+| F-10 | Preflight passes, then the browser cannot sign in as the synthetic account | The pool accounts have NO login path: `password_hash` is NULL and `auth_methods` is `{e2e}`, an auth method nothing in the backend implements | query the production `users` row; grep `app/` for a consumer of the `e2e` auth method — there is none | §G-10 | CONFIRMED |
 
 ## §G. Repair
 
@@ -195,6 +202,30 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   change_pattern: 'remove anonymous: true from any journey that signs in, declares an account, or writes; that journey must take the full production guard. The exemption requires all three conditions - no account ids AND requires_mutation falsy AND anonymous true'
   rollback_procedure: n/a
   integrity_check: the journey now runs the preflight path before the browser opens
+- id: G-08
+  symptom_ref: F-08
+  component_ref: Production guard
+  root_cause: 'the harness environment was not loaded, or the Infisical token is dead'
+  repair_entry_point: scripts/harness-env.sh on Titan-1
+  change_pattern: 'source scripts/harness-env.sh, or run scripts/run-nightly.sh which does it for you. If the key still does not resolve, the Infisical token is the fault - fix the token. NEVER paste the key into the plist, a dotenv file or a charter - the whole point of the loader is that no production secret is at rest on disk'
+  rollback_procedure: 'n/a - the refusal is the safety property, not the bug'
+  integrity_check: 'the loader prints a 64-character key length under a launchd-minimal env, and preflight returns 200 for the allowlisted account'
+- id: G-09
+  symptom_ref: F-09
+  component_ref: Production guard
+  root_cause: the account id is not in E2E_RESET_ALLOWED_ACCOUNT_IDS
+  repair_entry_point: the E2E_RESET_ALLOWED_ACCOUNT_IDS variable on the ai-market-backend production service
+  change_pattern: 'add ONLY the pool account ids the journey actually needs, as a JSON array; the backend redeploys and picks it up in about a minute. Keep the list as short as the work requires - it is the list of accounts the future reset route would be permitted to destroy. Removing an id is a one-variable revert'
+  rollback_procedure: 'set the variable back to an empty list and redeploy; preflight refuses every account again'
+  integrity_check: 'preflight returns allowed=true for the intended account and 403 not_allowlisted for a pool account that was left off; reset and teardown still return 404'
+- id: G-10
+  symptom_ref: F-10
+  component_ref: Production guard
+  root_cause: 'the synthetic pool was created without any usable credential, so the guard passes and the sign-in step then fails'
+  repair_entry_point: BLOCKED - do not fix this ad hoc
+  change_pattern: 'this is an auth and production-data change: it needs an explicit Max decision, then unanimous Council, before any write. Do NOT set a password on a production row, and do NOT add a session-mint route, on your own authority. The options and the standing recommendation are in T-2026-000241'
+  rollback_procedure: n/a
+  integrity_check: 'the harness signs in as the pool buyer through the same login endpoint a customer uses, and the journey reaches the pay boundary'
 - id: G-07
   symptom_ref: F-07
   component_ref: Failure classification
