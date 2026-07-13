@@ -20,6 +20,7 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | MP build killed at exactly 600s / task silent past 300s but commit landed | [codex-mp.md §F](codex-mp.md) — timeout backstop + silent-delivery ground-truth check before any redispatch |
 | MP dispatches all 400 `invalid_request_error` on an unintended model, or all 401 Unauthorized / `codex login status` Not logged in | [codex-mp.md §F-13/§F-14, §G-11/§G-12](codex-mp.md) — handler restart after config rollback (env loads at process start) and ChatGPT OAuth loss (Max interactive re-login only; stale auth.json backups do not work) |
 | GLM review dispatch fails `review_preload_unresolved: fatal: bad object <sha>` | [agent-dispatch.md §T](agent-dispatch.md) — same class as the MP pinned-SHA miss, plus GLM (like DeepSeek) needs `cwd` set to the target repo checkout or its preloader diffs in the wrong repo (observed S1182) |
+| Trust Channel log says `Revocation check failed` or `Session validity check failed`, or a revoked socket remains connected | [trust-channel.md §F](trust-channel.md) — classify DB/registry uncertainty as indeterminate and fail closed for only the affected connection; never treat the exception as valid |
 
 
 ## Credentials & source-of-truth (where things live)
@@ -68,6 +69,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **ai.market backend / frontend** — API service, DB, deploy, customer-data location: [ai-market-backend.md](ai-market-backend.md). Web app: [ai-market-frontend.md](ai-market-frontend.md).
 **API error contract — DB constraint → HTTP status** — when a database constraint violation should surface as a 4xx not a raw 500 (constraint-name detection; peer-messages `ck_*` CHECK → 422 worked example): see the "API error mapping" section of [ai-market-backend.md](ai-market-backend.md).
+
+**Trust Channel control plane** — device registration, standard and VC WebSockets, process-local connection/session registration, 50-frame revocation checks, valid/revoked/indeterminate outcome semantics, affected-connection isolation/repair, and S1210 directional production verification: [trust-channel.md](trust-channel.md). Security provenance: T-2026-000245 finding B; remediation: `build:bq-trust-websocket-revocation-fail-closed-s1210`.
 
 **Schema rationalization / quarantine / drop** — S1163 classify → quarantine → drop procedure for pruning empty unused production Postgres tables, including classification evidence refresh, one-shot P2/P3 migration gates, 3-day quarantine monitoring, false-alarm handling, and move-back repair: [schema-rationalization.md](schema-rationalization.md).
 
