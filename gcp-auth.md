@@ -122,6 +122,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 | F-05 | Gemini embed upserts fail / qdrant dimension mismatch | An embed call omitted `output_dimensionality` and defaulted to 3072, exceeding the qdrant collection dimension | Check the embed call passes `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS` | §G-05 | CONFIRMED |
 | F-04 | `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED` on Gemini calls | Wrong key type passed (an OAuth token or a legacy Developer API key instead of a Vertex Express key) | Check the stored VERTEX_GEMINI_KEY prefix; a valid key starts with AQ. | §G-04 | CONFIRMED |
 | F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | §G-05 | CONFIRMED |
+| F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | §G-06 | CONFIRMED (S1200, T-2026-000239) |
 
 ## §G. Repair
 
@@ -166,6 +167,14 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   change_pattern: Pass EmbedContentConfig(output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS) on every embed_content call.
   rollback_procedure: None; adding the mandatory parameter is the fix.
   integrity_check: Embeddings return the configured dimension and qdrant upserts succeed.
+- id: G-06
+  symptom_ref: F-06
+  component_ref: Vertex AI Gemini (embeddings)
+  root_cause: The embedding client is pointed at the GLOBAL Vertex endpoint (aiplatform.googleapis.com), where gemini-embedding-001 costs ~10.4s per call. The same model on any regional endpoint returns in ~0.3s. This was the entirety of the ~11s marketplace search (T-2026-000239) and the ~14k rows/hour ceiling on the qdrant sync outbox. It is NOT a slow model, a bad supplier, or a network problem - DNS/TCP/TLS complete in ~50ms and TTFB is the whole 10.4s.
+  repair_entry_point: settings.VERTEX_EMBEDDING_LOCATION (app/core/config.py) and _get_gemini_embedding_client (app/core/llm.py)
+  change_pattern: Set VERTEX_EMBEDDING_LOCATION to a region (default us-west1, the closest Vertex region to Railway us-west2) and redeploy; the client is cached for the process lifetime so the value only takes effect on restart. Do NOT point the COMPLETION client at a region - APPROVED_GEMINI_MODEL (gemini-3.1-pro-preview) returns HTTP 404 on us-west1/us-west4/us-central1/us-east4 and is served only from global, where it carries no latency penalty (~2.7s). The two clients must stay separate. Google's published model-location table claims regional availability for the completion model and is wrong; measure from the production container (railway ssh) and treat the container as ground truth.
+  rollback_procedure: Set VERTEX_EMBEDDING_LOCATION=global. No re-embedding is needed in either direction - embedding vectors are bit-identical across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so the Qdrant corpus stays valid whichever endpoint is in use.
+  integrity_check: GET /api/v1/search/listings?q=<term> returns in <1s with `fallback` absent from the response. A `fallback_reason` of "embedding_failed", or a SEARCH_DEGRADED_NON_SEMANTIC warning in the logs, means search is silently serving keyword-matched, non-semantic results.
 ```
 
 ## §H. Evolve
@@ -176,6 +185,8 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
 - Every Gemini embed call MUST pass `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS`.
 - The gcloud interactive login can only be performed by Max in a browser; it is never headless.
+- **Embeddings MUST use a REGIONAL Vertex endpoint; completions MUST use the GLOBAL one.** These are two separate clients in `app/core/llm.py` (`_get_gemini_embedding_client()` regional, `_get_gemini_client()` global) and MUST NOT be merged. `gemini-embedding-001` is ~10.4s on global and ~0.3s regionally; the approved completion model (`APPROVED_GEMINI_MODEL`, currently `gemini-3.1-pro-preview`) returns **HTTP 404 on every regional endpoint** and is served only from global. Google's published model-location table claims otherwise and is wrong — MP cited it and approved a change that would have 404'd every allAI completion. Measure from the production container; the container is ground truth. The region is `VERTEX_EMBEDDING_LOCATION` (default `us-west1`, matching Railway `us-west2`); setting it to `global` is the rollback and costs the 10.4s back.
+- Embedding vectors are **bit-identical** across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so changing `VERTEX_EMBEDDING_LOCATION` never requires re-embedding the Qdrant corpus.
 
 ### §H.2 BREAKING predicates
 

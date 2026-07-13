@@ -9,6 +9,7 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 | Symptom / error string | Read this first |
 |---|---|
 | `RefreshError: Reauthentication is needed` · AG council reviews fail on auth | [gcp-auth.md §F-04](gcp-auth.md) — Vertex Gemini uses the **API key**, not OAuth/ADC |
+| Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · outbox throughput stuck ~14k rows/hr | [gcp-auth.md §F-06](gcp-auth.md) — the embedding client is on the **global** Vertex endpoint. Embeddings go REGIONAL (`VERTEX_EMBEDDING_LOCATION`), completions stay GLOBAL. Not a model, supplier, or network problem. |
 | AG review `ValidationError: additionalProperties` / union-type schema | [agent-dispatch.md §C.0](agent-dispatch.md) — Gemini `Schema` subset; sanitize at the adapter |
 | Council review returns no verdict / `RepairExhaustedError` | [agent-dispatch.md §O](agent-dispatch.md) — structural-output repair, distinct from input-schema |
 | MP review/build fails to read a pinned SHA: `object/path is not available locally`, `git cat-file -t <sha>` fails | [agent-dispatch.md §T](agent-dispatch.md) — the SHA was committed via the GitHub API and the local Titan-1 clone is behind; `git fetch origin main` in the target repo, then redispatch |
