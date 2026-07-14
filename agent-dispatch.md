@@ -14,7 +14,20 @@
 
 ## Council roster (current — canonical: infra:council-comms)
 
-Standard cross-vote reviewers are **MP + DeepSeek + GLM** (infra:council-comms v42, S994). **XAI is RETIRED** (Max go, S994 — supersedes the S786 comparison reactivation). **AG is optional-only** (retired from standard review S899) and is the file-reading third for security/auth/money 3/3 unanimous until GLM file-reading is wired. GLM dispatches via `agent=glm` (its own slot; the live server accepts it even if the client tool enum omits it), is content-cited only (file-reading not wired), and has a minor recurring quirk of garbling verbatim reproduction of string literals containing quotes — verify quoted code against the diff. Canonical roster + per-agent quirks live in `infra:council-comms`.
+**Gate voter panel: CC + DeepSeek + GLM — exactly three** (Max-approved S1213; CORE 9.8; BQ-COUNCIL-ROSTER-CC-REVIEW-GLM-VOTER-S1213). ACTIVATION STATUS: code shipped and Gate-3-approved on branch feat/council-roster-chunk1-2-cc-review-path-s1221 (head 49739a44, S1222); the deployed gateway enforces the previous panel until the Chunk 5 activation freeze completes (merge + gateway restart + live per-voter proof). Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
+
+Per-agent:
+- **MP**: mandatory builder for both instances; never substituted; never votes on its own work; explicit review dispatch remains available but MP is NOT a gate voter.
+- **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
+- **DeepSeek**: gate voter, review + spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings.
+- **GLM**: gate voter, review-only, content-cited/diff-inlined (no filesystem access); verify quoted code against the diff (nested-quote garble quirk).
+- **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
+- **XAI is RETIRED** (Max go, S994).
+- **Vulcan/Mars are never gate voters** (instance non-voter rule). Reversal condition: if Vulcan's model returns to any Anthropic model, the change is blocked until CC panel independence is re-reviewed (CORE 9.8).
+
+Historical rounds with vulcan/ag/mp voter keys remain readable (schema legacy keys); write-path member validation rejects retired members. Canonical roster + per-agent quirks live in `infra:council-comms` (model_policy patched v58, S1222: cc=claude-opus-4-8, vulcan=gpt-5.6-sol).
+
+This section documents the S1213 roster change and discharges the S1221 waived roster-change runbook attestations (S1221-D1..D7).
 
 ## §C.0 AG / Gemini response-schema constraints (Vertex google-genai Schema subset)
 

@@ -1,6 +1,6 @@
 ---
 system_name: codex-mp
-purpose_sentence: Operating manual for MP (Codex), the mandatory primary builder and reviewer of the Council — dispatch mechanics, configuration, timeouts, failure recovery, and the model-swap procedure.
+purpose_sentence: Operating manual for MP (Codex), the Council's mandatory builder (not a gate voter since the S1213 roster change) — dispatch mechanics, configuration, timeouts, failure recovery, and the model-swap procedure.
 owner_agent: vulcan
 escalation_contact: Max (strategic forks, model-tier changes); Mars (structural middleware / runbook-gate internals)
 lifecycle_ref: §J
@@ -10,7 +10,7 @@ linter_version: 1.0.0
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory primary builder for all BQ/development code builds** and a standard cross-vote reviewer. Per Max ruling S1148: MP/Codex codes development projects; Claude Code (CC) handles trouble-ticket fixes only. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/DeepSeek/GLM — though explicit MP review dispatch remains available outside gate voting. Per Max ruling S1148: MP/Codex codes development projects; Claude Code (CC) handles trouble-ticket fixes only. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## §A. Header
 
