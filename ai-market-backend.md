@@ -111,19 +111,22 @@ Secrets in Infisical (`secrets.ai.market`, prod env). Key variables:
 
 `app/core/rate_limiter.py` (`AuthRateLimiter`, `LoginRateLimiter`) throttles by caller. Endpoints using it include the E2E preflight route, beta signup, partner inquiry, serial generation, login and magic-link.
 
-**The caller's address must come from `app/core/request_ip.py` (`resolve_client_ip`). Never use `request.client.host` directly.** Behind Railway's proxy that value is an internal CGNAT address that CHANGES on every request (observed: 100.64.0.3, .4, .8, .11, .13, .16). Keying a rate limit on it gives every request a fresh bucket, so the limit never binds. That is not theory: on 2026-07-12 the limits on all of the endpoints above were confirmed to have never been throttling in production.
+**`app/core/request_ip.py` (`resolve_client_ip`) is the only caller-IP source for backend consumers. Never parse `request.client.host` or forwarding headers directly in a consumer.**
 
-The trust rule, established by probing production on 2026-07-12 (do not re-derive it from documentation — Railway's behaviour is not what the header names imply):
+The trust rule, established by direct raw-chain observation and a two-caller production proof in T-2026-000244 on 2026-07-13 (do not re-derive it from documentation — Railway's behaviour is not what the header names imply):
 
-| Signal | Trust | Evidence |
-|--------|-------|----------|
-| `X-Forwarded-For`, RIGHTMOST non-internal hop | TRUSTED | Railway appends the address it observed to the RIGHT of whatever the caller sent. 90 requests each carrying a different forged XFF still landed in one bucket and were throttled. |
-| `X-Forwarded-For`, leftmost entry | ATTACKER-CONTROLLED | Caller-supplied. Never use it. |
-| `X-Envoy-External-Address` | ATTACKER-CONTROLLED | Railway's edge passes a caller-supplied copy through UNMODIFIED. Trusting it let 90 requests each mint a fresh bucket: zero throttled. Do not consult this header. |
-| `request.client.host` when it is PUBLIC | TRUSTED | The caller reached the app directly, bypassing the proxy; forwarding headers are then their own fabrication and are discarded. |
-| `request.client.host` when it is INTERNAL/CGNAT | NOT USABLE | Rotates per request. When no trusted forwarded value resolves, traffic buckets under a shared per-limiter `unknown` key so it is throttled together rather than each request getting a free pass. |
+| Signal | Trust | Rule |
+|--------|-------|------|
+| Socket peer (`request.client.host`) is INTERNAL/CGNAT | Trusted proxy present | Parse `X-Forwarded-For` under strict bounds, then take the LEFTMOST entry as the actual caller. Production chain observed 2026-07-13: `[actual caller, Railway public edge]`. |
+| Socket peer (`request.client.host`) is PUBLIC | Direct connection | The caller bypassed the trusted proxy; ignore all forwarding headers and use the public peer directly. |
+| Chain missing, malformed, overlong, or otherwise fails strict parsing | Invalid | Fall back to the explicit `"unknown"` key. Rate-limit/security keys share that bucket; source-IP allowlists fail closed; nullable audit/legal persistence stores NULL where the consumer documents that behavior. |
+| `X-Envoy-External-Address` | Untrusted, unused | Caller-supplied and passed through unmodified by Railway's edge; never consulted. |
 
-Verify a limit actually binds by measuring, not by reading the code: fire more than the budget in one window from one caller and confirm 429s appear. The preflight access log records `ip_source` (`xff` / `client` / `unknown`) and `xff_hops` for exactly this purpose.
+History: probing production on 2026-07-12 inferred the RIGHTMOST `X-Forwarded-For` hop as trusted and the leftmost entry as attacker-controlled. T-2026-000244 (2026-07-13) superseded that inference with direct observation of the raw header chain plus a two-caller production test, establishing leftmost-after-strict-parsing as the correct rule instead.
+
+Verification standard: for a configured limit N, caller A must 429 on request N+1 (accounting for endpoint-specific semantics), and — once A is exhausted — an unrelated caller B must still retain its own full budget. A single observed 429 is not sufficient proof that a limit binds correctly.
+
+T-2026-000240 centralized all active consumers on this contract; it did not change any numeric thresholds, since current telemetry did not justify tuning them.
 
 ## Scheduled jobs (APScheduler)
 
