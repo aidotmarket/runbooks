@@ -39,6 +39,7 @@
         "listing_enricher",
         "allai_brain",
         "agent_log",
+        "mars",
         "max"
       ]
     },
