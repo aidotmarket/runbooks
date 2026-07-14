@@ -21,7 +21,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Dependency | What it provides | Where it lives | Owning service |
 |---|---|---|---|
 | `kdbrowser` local macOS account (uid 502) | The isolated GUI session that hosts the browser | Titan-1 local directory service (`dscl . -read /Users/kdbrowser`) | macOS / Max (creation needs sudo) |
-| `kdbrowser` account password | Needed to (a) log the session in at the console, (b) run commands as that user via `su` without root | Infisical `TITAN_KDBROWSER_PASSWORD` (prod) — see §G-04 if absent; never in the repo | Infisical (`secrets.ai.market`) |
+| `kdbrowser` account password | Needed to (a) log the session in at the console, (b) run commands as that user via `su` without root | Infisical `TITAN_KDBROWSER_PASSWORD`, project **koskadeux-mcp**, env **prod**, root path (`secrets.ai.market`). Set + verified S1213 (rotated off the `something` placeholder). Fetch: `infisical secrets get TITAN_KDBROWSER_PASSWORD --projectId 0943f641-faee-4324-b337-0d50c276e4a9 --env prod --plain --silent --domain https://secrets.ai.market`, or the API at `/api/v3/secrets/raw` with the sysadmin token. Never in the repo, a plist, or a dotenv. See §G-04 if absent | Infisical (`secrets.ai.market`) |
 | `com.koskadeux.browser-runner` LaunchAgent | Starts the job runner automatically whenever the `kdbrowser` session logs in | `/Users/kdbrowser/Library/LaunchAgents/com.koskadeux.browser-runner.plist` | this runbook |
 | Job runner | HTTP job surface on `127.0.0.1:8790` | `/Users/kdbrowser/kd-browser-runner/runner.py` | this runbook |
 | Jobs directory | The only path the runner will execute scripts from | `/tmp/kd-browser-jobs` (mode 777; scripts world-readable) | this runbook |
@@ -198,7 +198,7 @@ Two facts drive every design choice here, both established empirically in S1211:
   component_ref: '`su` bridge'
   root_cause: the account password is not in Infisical, or was rotated
   repair_entry_point: Infisical TITAN_KDBROWSER_PASSWORD (prod)
-  change_pattern: ask Max for the password (or a rotation), store it in Infisical, and never write it to the repo, a plist, or a dotenv. su needs the target user's password — it does not need sudo, which is why no root is required for day-to-day operation
+  change_pattern: ask Max for the password (or a rotation), store it in Infisical (project koskadeux-mcp, env prod, key TITAN_KDBROWSER_PASSWORD), and never write it to the repo, a plist, or a dotenv. su needs the target user's password — it does not need sudo, which is why no root is required for day-to-day operation. ROTATION (S1213 lesson): only Max can reset this account's password — no instance holds sudo, and the runner itself runs as uid 502 without admin, so `dscl . -passwd` needs the OLD password. Never rotate it from a shell unless the new value is written to Infisical in the SAME command; a rotation whose new value is lost cannot be undone by any instance. Always verify after a rotation with BOTH `dscl . -authonly kdbrowser <pw>` and an `su` login — a Settings-side change that does not take will still read back cleanly from the vault
   rollback_procedure: n/a (credential retrieval only)
   integrity_check: su - kdbrowser -c whoami prints kdbrowser
 - id: G-05
