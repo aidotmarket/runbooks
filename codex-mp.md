@@ -10,7 +10,7 @@ linter_version: 1.0.0
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/DeepSeek/GLM — though explicit MP review dispatch remains available outside gate voting. Per Max ruling S1148: MP/Codex codes development projects; Claude Code (CC) handles trouble-ticket fixes only. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/DeepSeek/GLM — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path (S1213/CORE 9.8 supersedes the S1148 MP-vs-CC build split for code work; CC's role is gate voting via its read-only review path). MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## §A. Header
 
@@ -79,7 +79,7 @@ YAML frontmatter above is authoritative for the §A header fields.
       cause: missing/unresolvable runbook_refs (see §F-08)
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (§F-01)
-  next_step_success: cross-review with builder excluded (DS/GLM standard; AG file-reading third for security 3/3), then merge; patch entity verdicts; same-session spec commit if gated
+  next_step_success: gated cross-review by the voter panel CC+DeepSeek+GLM with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult §F symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required
