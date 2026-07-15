@@ -8,6 +8,8 @@ The **documented entry point** for ai.market runbooks. Find your subject, go str
 
 | Symptom / error string | Read this first |
 |---|---|
+| `owner_conflict` 409 naming YOUR OWN instance under a prior session · `release` succeeds but ownership persists | [work-checkout.md §F-02/§G-01](work-checkout.md) — T-2026-000258 release no-op; ledgered atomic_write repair |
+| `peer_claim_conflict` / `caller_instance_required` on a dispatch | [work-checkout.md §F-04/§F-05](work-checkout.md) — the item is peer-owned, or caller identity is missing at the tool boundary |
 | `RefreshError: Reauthentication is needed` · AG council reviews fail on auth | [gcp-auth.md §F-04](gcp-auth.md) — Vertex Gemini uses the **API key**, not OAuth/ADC |
 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · outbox throughput stuck ~14k rows/hr | [gcp-auth.md §F-06](gcp-auth.md) — the embedding client is on the **global** Vertex endpoint. Embeddings go REGIONAL (`VERTEX_EMBEDDING_LOCATION`), completions stay GLOBAL. Not a model, supplier, or network problem. |
 | AG review `ValidationError: additionalProperties` / union-type schema | [agent-dispatch.md §C.0](agent-dispatch.md) — Gemini `Schema` subset; sanitize at the adapter |
@@ -157,6 +159,8 @@ The most common miss is "what is X and where does its credential live." Answers 
 **Schema migrations (Alembic / backend)** — backend schema migration procedures: [schema-migration.md](schema-migration.md).
 
 **Vulcan / Mars operating discipline** — peer-symmetric claim-before-work, message-bus, and escalation rules: [peer-instance-discipline.md](peer-instance-discipline.md).
+
+**Work checkout / queue ownership** — enforced one-item-one-owner on Build Queue rows and tickets: claim/release semantics, staleness, assignment_query owner filtering, dispatch-gate refusals, and the stuck-ownership repair (T-2026-000258): [work-checkout.md](work-checkout.md).
 
 **Reporting to Max / end-of-round summary** — the one-summary-per-round contract (CORE §3), the two carve-outs (hard stop, blocking question), summary structure/voice/timestamp/markers, the boot-contract marker guard, and waiver discharge for this subject: [max-reporting.md](max-reporting.md).
 
