@@ -115,6 +115,7 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
 | F-03 | `invalid_ownership` refusal on put/patch touching pickup_ownership | Deliberate guard: ownership is writable only by claim/release | Reproduce with a minimal patch; the refusal names the rule | §G-01 | CONFIRMED |
 | F-04 | `peer_claim_conflict` on council_request or dispatch_mp_build | The item is live-owned by the peer | The refusal names the holder and the next unowned item | §G-02 | CONFIRMED |
 | F-05 | `caller_instance_required` on a build/review dispatch | Missing explicit caller identity at the tool boundary (M4) | Inspect the dispatch args for caller_instance | §G-03 | CONFIRMED |
+| F-06 | `author-mode dispatch rejected before MP launch` on a row the CALLER itself claimed; details show `identity_required_for_owned_row` | Pre-fix gateway: author-mode gate writes carried no instance (T-2026-000262; fixed at koskadeux-mcp `e124a764`, activates at gateway reload) | Check `transition_details` in the rejection payload (post-fix) or run `transition_to_authoring_in_flight(return_details=True)` locally; confirm the running server predates `e124a764` | §G-04 | CONFIRMED |
 
 ## §G. Repair
 
@@ -143,6 +144,14 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
   change_pattern: re-dispatch with caller_instance set to the active instance (or system for genuine non-instance callers); never route around the gate by writing state directly
   rollback_procedure: n/a
   integrity_check: dispatch proceeds and the event records the caller
+- id: G-04
+  symptom_ref: F-06
+  component_ref: Author-mode gate writes
+  root_cause: 'T-2026-000262: author_mode_state transitions issued bq_update gate writes without instance, so C4 owned-row enforcement refused them on rows the dispatching instance had itself claimed; the dispatch path swallowed the detail'
+  repair_entry_point: koskadeux-mcp main e124a764 (fix 6fe22c65) - caller_instance threads through all five author transitions into the bq_update instance arg; rejection payload now carries transition_details
+  change_pattern: 'Post-reload: nothing to do - author-mode dispatch on a self-claimed row just works, and peer-owned rows are still refused. Pre-reload (gateway older than e124a764): release the claim via the post-C4 LOCAL release path, bind the authoring lease locally with transition_to_authoring_in_flight(return_details=True), dispatch with the SAME dispatch_id/token (gateway takes the idempotent branch), re-claim after authoring completes (the completion write hits the same refusal on an owned row). Evented S1229 dedupe s1229-authoring-claim-release-workaround.'
+  rollback_procedure: revert e124a764 on main; unowned/legacy behavior is unchanged by the fix (instance key omitted when absent)
+  integrity_check: author-mode dispatch succeeds on a self-claimed row; peer-owned dispatch still refuses with owner_conflict
 ```
 
 ## §H. Evolve
