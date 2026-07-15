@@ -31,7 +31,7 @@ The YAML frontmatter above is authoritative for the §A header fields. §J is au
 | Canonical listing record | `listings` row keyed for this flow by `(seller_id, source_dataset_id=vz_raw_listing_id)` | `publish-paths.md`; ai-market-backend `app/services/vz_publish_service.py:create_or_update_listing` | Stores the published listing and returns `listing_id` plus `marketplace_url`. |
 | Browser verification | kd-browser runner at `127.0.0.1:8790`, driven by checked job scripts; both operating instances invoke jobs through `shell_request` | `e2e-browser-runner.md` operating pattern; the journey job script under the operator's browser-job workspace | Verifies the real customer sequence in Chrome. Never put credentials in the script; use the approved authenticated profile. Max approval is required for a production customer account or money-path mutation. |
 
-Verified source baselines for this edition: AIM Data `origin/main` `2430bb9`; ai-market-backend `main` `dfd926ec`; runbooks `main` `5f968f1`.
+Verified source baselines for this edition: AIM Data `main` `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`; ai-market-backend `main` `dfd926ec`; runbooks `origin/main` `9e2c542`.
 
 ## §B. Capability Matrix
 
@@ -54,6 +54,7 @@ Verified source baselines for this edition: AIM Data `origin/main` `2430bb9`; ai
 | AIM Data install registration client | `aim-data/app/services/registration_service.py:ensure_vz_install_registered` | `serial.json.vz_install_id`; `serial.json.vz_install_token`; local Ed25519 public key | ai.market `POST /api/v1/vz/register` | Returns a cached install id when present; otherwise sends the public key under the seller bearer token and persists the returned id. It never sends the private key. |
 | ai.market registration receiver | `ai-market-backend/app/routers/vz_publish.py:register_install` | `users`; `vz_installs`; optional `serials` binding | AIM Data registration client; `vz_publish_service.register_install` | Promotes a non-seller/non-admin caller using explicit `userrole` casts, completes onboarding fields, then registers the install. Seller role provisioning and seller readiness are distinct states. |
 | AIM Data listing preparation | `aim-data/frontend/src/pages/DatasetDetail.tsx:ListingPreparation` | Dataset processing record; `record.metadata.listing_metadata`; PII actions/attestation; component approval and disclosure state | `POST /api/datasets/{dataset_id}/listing-metadata`; disclosure sample endpoints; allAI review when a draft id exists | The pre-publish draft is locally persisted metadata plus UI approval state. The journey does not require a local RawListing or remote ai.market Listing before Publish. Accept all transitions Step 2 to Step 3 when title and description exist. |
+| AIM Data readiness services | `aim-data/app/services/sketch_service.py:SketchService.generate_profile`; `aim-data/app/services/quality_contract_service.py:QualityContractService.validate_dataset` | Canonical `ProcessingService` dataset record and its `processed_path`; generated `sketch_profile.json` and `quality_scorecard.json` | Readiness-tab Statistical Profile and Quality Scorecard endpoints; DuckDB | On-demand readiness inputs resolve by dataset id through `ProcessingService`, then read the recorded processed artifact. These diagnostics enrich the Readiness tab but do not gate metadata approval or canonical publish. |
 | AIM Data dataset publish adapter | `aim-data/app/routers/datasets.py:publish_to_marketplace` | Local dataset `listing_id`; processed metadata, compliance, attestation | `marketplace_publish.publish_via_signed_proxy` | Requires `preview_ready`, builds the canonical payload from approved overrides/local outputs, invokes the signer/proxy, and persists the returned marketplace listing id. |
 | AIM Data signed publish proxy | `aim-data/app/routers/marketplace_publish.py:publish_via_signed_proxy` | Local keystore; `serial.json`; source provenance | ai.market `POST /api/v1/vz/publish` | Resolves seller and install ids, validates source provenance, hashes the exact body, signs a short-lived EdDSA JWT, and forwards backend errors verbatim. |
 | ai.market canonical publish receiver | `ai-market-backend/app/routers/vz_publish.py:publish_listing` | Redis replay/rate-limit state; `users`; capabilities | JWT validator; active-seller capability resolver; canonical listing writer | Fails closed when security services are unavailable, validates the signed body, enforces seller `active`, then calls the one listing writer. |
@@ -195,6 +196,7 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
 | F-04 | Canonical publish returns 403 with `detail.error=capability_required`, `capability=seller`, and one or more `missing_steps` | Registration provisioned seller role, but effective seller readiness is not active. Common missing steps are `profile_name`, `company_name`, `totp_enabled`, and `stripe_payouts_live`; suspended/not-requested states also fail closed. | Read the structured 403 detail and `missing_steps`; follow `account-capability-onboarding.md`. Verify the durable `users.stripe_payouts_enabled` signal rather than inferring readiness from role or a transient Stripe response. | §G-03 | CONFIRMED |
 | F-05 | Registration/publish returns 401/403, or publish returns 503 `security services offline` | Expired/missing seller bearer for registration; invalid EdDSA publish JWT/body hash; revoked install; or Redis replay/rate-limit service unavailable. | Separate the hop: inspect AIM Data register status, then signed `/api/v1/vz/publish` status. For 503, verify backend Redis health; for auth failures, inspect token expiry/install active state without printing secrets. | §G-04 | CONFIRMED |
 | F-06 | The listing URL exists but AIM Data shows `Listing published, disclosure snapshot pending` or `Disclosure status unknown` | Canonical publish succeeded; the distinct follow-up disclosure-snapshot request failed, or ai.market accepted it but AIM Data failed to persist the local audit record. | Preserve `publishedListingId` and `retrySnapshotPayload`; open the listing URL to prove publish succeeded; inspect only the disclosure-snapshot response. Do not call Publish again. | §G-05 | CONFIRMED |
+| F-07 | A UUID dataset is `preview_ready` and its artifact exists at `/data/processed/<id>.parquet`, but the on-demand sketch or quality request reports `Dataset not found` | **FIXED IN AIM DATA MAIN, T-2026-000249; release/customer-path verification pending.** The old readiness code asked DuckDB to discover the UUID by scanning only direct files under `/data`, so it missed the canonical processed artifact. The customer effect is a missing Statistical Profile and Quality Scorecard on the Readiness tab; this is not a listing approval or publish blocker. | Read the canonical `ProcessingService` record for the UUID and confirm `record.processed_path` points to the existing processed Parquet file. Confirm the deployed sketch and quality services resolve that record instead of calling `DuckDBService.get_dataset_by_id`; then exercise both Readiness-tab panels. Do not diagnose the absence of these panels as a publish-path failure. | §G-06 | CONFIRMED |
 
 Read the exact first failing hop. A UI failure before `/api/marketplace/publish`, an AIM Data registration failure, a signed-receiver failure, and a post-publish disclosure failure have different owners and must not be collapsed into “publish broken.”
 
@@ -241,6 +243,14 @@ Read the exact first failing hop. A UI failure before `/api/marketplace/publish`
   change_pattern: "Use Retry disclosure snapshot with the stored publishedListingId and retrySnapshotPayload. This calls only the disclosure endpoint. Do not invoke marketplaceApi.publish again and do not create a second listing. If status is unknown, reconcile the server snapshot before another retry."
   rollback_procedure: "No listing rollback is implied; leave the live listing intact. If disclosure must be withdrawn, use the authoritative disclosure/listing management procedure with Max when customer-visible or money-adjacent."
   integrity_check: "A retry returns disclosure_version, local publishStatus becomes complete, and the marketplace listing id remains unchanged. tests/test_s804_disclosure_dataset_detail.py must prove retry does not call marketplaceApi.publish."
+- id: G-06
+  symptom_ref: F-07
+  component_ref: AIM Data readiness services
+  root_cause: "The on-demand sketch and quality services used DuckDBService.get_dataset_by_id, whose legacy discovery scanned only direct files under /data; UUID processed artifacts stored at /data/processed/<id>.parquet were therefore invisible even though their canonical processing records were preview_ready."
+  repair_entry_point: aim-data/app/services/sketch_service.py:SketchService.generate_profile; aim-data/app/services/quality_contract_service.py:QualityContractService.validate_dataset
+  change_pattern: "Preserve AIM Data main 56a3371d1f806d02e1c9eb7ac1bac8c1ee788303: resolve the canonical dataset record with get_processing_service().get_dataset(dataset_id), require record.processed_path, and read that exact existing file. Do not restore directory scanning or add this optional Readiness-tab enrichment to listing approval or publish gates."
+  rollback_procedure: "If the release regresses readiness generation, roll back only the sketch/quality lookup change to the last known-good AIM Data image while preserving processing records and artifacts. A readiness-panel failure does not require listing rollback, republish, or seller-readiness mutation."
+  integrity_check: "Code review is DeepSeek APPROVE and the full tests/test_data_readiness.py suite passed 18 tests for 56a3371d1f806d02e1c9eb7ac1bac8c1ee788303. Before resolving T-2026-000249, release that fix and verify through the customer path that a preview_ready UUID dataset loads both Statistical Profile and Quality Scorecard from its canonical processed_path."
 ```
 
 ## §H. Evolve
@@ -441,9 +451,9 @@ The scenario set uses equal weights (1/11 each, within linter tolerance) and pas
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1220
-last_refresh_commit: 5f968f1
-last_refresh_date: 2026-07-14T19:17:29Z
+last_refresh_session: S1229
+last_refresh_commit: 9e2c542
+last_refresh_date: 2026-07-15T15:45:03Z
 owner_agent: mars
 refresh_triggers:
   - any AIM Data sign-in, registration, listing-preparation, disclosure, or publish contract change
@@ -457,13 +467,13 @@ last_harness_date: 2026-07-14T19:17:29Z
 first_staleness_detected_at: null
 ```
 
-Source commits captured by this lifecycle refresh: AIM Data `2430bb9`, ai-market-backend `dfd926ec`, and runbooks base `5f968f1`. §B evidence is current to 2026-07-14, so no row carries the `UNVERIFIED` overlay.
+Source commits captured by this lifecycle refresh: AIM Data `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`, ai-market-backend `dfd926ec`, and runbooks base `9e2c542`. The T-2026-000249 code fix has `tests/test_data_readiness.py` 18/18 passing and DeepSeek APPROVE; release and customer-path verification of both Readiness-tab panels remain before ticket closure. §B evidence is current to 2026-07-14, so no row carries the `UNVERIFIED` overlay.
 
 ## §K. Conformance
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1220 / 2026-07-14T19:24:21Z
+last_lint_run: S1229 / 2026-07-15T15:45:03Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
