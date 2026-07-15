@@ -14,7 +14,7 @@
 
 ## Council roster (current — canonical: infra:council-comms)
 
-**Gate voter panel: CC + DeepSeek + GLM — exactly three** (Max-approved S1213; CORE 9.8; BQ-COUNCIL-ROSTER-CC-REVIEW-GLM-VOTER-S1213). ACTIVATION STATUS: code shipped and Gate-3-approved on branch feat/council-roster-chunk1-2-cc-review-path-s1221 (head 49739a44, S1222); the deployed gateway enforces the previous panel until the Chunk 5 activation freeze completes (merge + gateway restart + live per-voter proof). Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
+**Gate voter panel: CC + DeepSeek + GLM — exactly three** (Max-approved S1213; CORE 9.8; BQ-COUNCIL-ROSTER-CC-REVIEW-GLM-VOTER-S1213). ACTIVATION STATUS: ACTIVE (S1223 - 49739a44 merged to koskadeux-mcp main as d370d65c, gateway restarted on the merged SHA, live per-voter proof CC/DeepSeek/GLM all APPROVE + fail-closed quorum verification completed inside the Chunk 5 freeze; Vulcan ratification peer msg #1178). The deployed gateway enforces this panel. Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
 
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never votes on its own work; explicit review dispatch remains available but MP is NOT a gate voter.
