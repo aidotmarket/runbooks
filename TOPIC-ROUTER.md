@@ -55,7 +55,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Qdrant / vector database** — hosting, API-key authentication + lockdown, key locations (Infisical + both Railway services), per-collection S3 backup coverage: [qdrant.md](qdrant.md).
 
-**Qdrant sync outbox / allAI memory indexing** — Postgres `qdrant_sync_outbox` producer/consumer, entity freshness lag, DLQ drain, `EMBED_CONCURRENCY`, S1194 pending-entity dedup, integrity check, and cutover procedure: [qdrant-sync-outbox.md](qdrant-sync-outbox.md).
+**Qdrant sync outbox / allAI memory indexing** — Postgres `qdrant_sync_outbox` producer/consumer, `entity_memory_freshness_lag_seconds`, huge-lag-with-healthy-outbox diagnosis, legacy `qdrant_indexed_version IS NULL` repair, DLQ drain, `EMBED_CONCURRENCY`, S1194 pending-entity dedup, integrity check, and cutover procedure: [qdrant-sync-outbox.md](qdrant-sync-outbox.md).
 
 **Backups & disaster recovery** — what's backed up, where, restore steps: [backup-and-recovery.md](backup-and-recovery.md). Rebuild map (offline bootstrap items, bucket layout, restore order): [disaster-recovery.md](disaster-recovery.md). The "bash" Login Items list explained: [backup-and-recovery.md](backup-and-recovery.md).
 

@@ -168,6 +168,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 | F-04 | Integrity check reports missing points | Qdrant data loss, failed upsert not retried, payload version mismatch | run E-04 and inspect missing sample | §G G-03 | CONFIRMED |
 | F-05 | Event freshness stays `pre_admission` | P2 event admission has not shipped | read event monitor evidence; `indexing_disposition` still NULL |  | CONFIRMED |
 | F-06 | Alarm is silent while consumer is disabled | monitor registration, scheduler, or escalation pipeline failure | check scheduler has `qdrant_memory_freshness_monitors`; run E-01 manually | §G G-05 | HYPOTHESIZED |
+| F-07 | `entity_memory_freshness_lag_seconds` is enormous while the outbox is healthy or nearly empty | a new freshness-tracking column or predicate shipped without a legacy-row admission/backfill decision; S1194 example confirmed by T-2026-000260 / S1226: already-synced rows retained `qdrant_indexed_version IS NULL` forever | count stale rows and the NULL subset: `SELECT count(*), count(*) FILTER (WHERE qdrant_indexed_version IS NULL), min(updated_at) FROM state_entities WHERE deleted=false AND (qdrant_synced_at IS NULL OR qdrant_synced_at < updated_at OR qdrant_indexed_version IS DISTINCT FROM version)`; separately confirm pending/processing/DLQ health before blaming the consumer | §G G-03 | CONFIRMED |
 
 ## §G. Repair - Fixing Problems
 
@@ -191,11 +192,11 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - id: G-03
   symptom_ref: F-04
   component_ref: Integrity monitor
-  root_cause: Qdrant point missing or stale relative to Postgres
+  root_cause: Qdrant point missing or stale relative to Postgres, including legacy rows made permanently stale by a new predicate whose tracking column was left NULL
   repair_entry_point: future scripts/s1194_qdrant_cutover.py or targeted outbox enqueue
-  change_pattern: enqueue canonical entity upserts/deletes from Postgres, then let P1 consumer write payload source_version
+  change_pattern: enqueue canonical entity upserts/deletes from Postgres with a NOT EXISTS pending/processing coalesce guard, then let the consumer re-read canonical state, write payload source_version, and acknowledge qdrant_indexed_version; never set qdrant_indexed_version merely to silence the alarm
   rollback_procedure: stop consumer; do not restore stale outbox rows as source of truth
-  integrity_check: E-04 returns missing_count=0 and orphan_count within threshold
+  integrity_check: E-01 returns non-stale, the F-07 predicate returns zero rows, and E-04 returns missing_count=0 with orphan_count within threshold
 - id: G-04
   symptom_ref: F-01
   component_ref: Consumer
@@ -227,6 +228,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - Entity producer coalescing must not depend on a unique constraint. It updates one pending survivor, marks duplicate pending losers superseded on a successful coalesce, and inserts only when no pending row exists.
 - Pending delete rows win over pending upsert rows for the same entity target. Otherwise the survivor is the highest `source_version`, tie-broken by `created_at DESC, id DESC`.
 - Rare duplicate pending rows are tolerated by design: they can cause at most redundant canonical re-reads/embeds, and guarded version acks prevent stale Qdrant freshness from being recorded.
+- Any migration or code change that adds a freshness predicate or tracking column must include an explicit admission/backfill decision for pre-existing rows in the same reviewed change. The regression test must execute the legacy-row transition against Postgres; SQL-string or schema-shape assertions alone do not prove the data invariant.
 
 ### §H.2 Change-class predicate tree
 
@@ -315,12 +317,18 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: BQ-QDRANT-OUTBOX-THROUGHPUT-RETENTION-S1194-P1
-last_refresh_commit: pending
-last_refresh_date: 2026-07-12T19:53:25Z
+last_refresh_session: S1227
+last_refresh_commit: 5227dc8
+last_refresh_date: 2026-07-15T11:01:00Z
 owner_agent: sysadmin
-refresh_cadence: after each S1194 phase or any production incident touching qdrant_sync_outbox
-grace_until: 2026-10-10T00:00:00Z
+refresh_triggers:
+  - each S1194 phase
+  - any production incident touching qdrant_sync_outbox
+  - any freshness predicate or tracking-column change
+scheduled_cadence: 90d
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: 2026-07-15T11:01:00Z
+first_staleness_detected_at: null
 ```
 
 ## §K. Linter / Compliance Metadata
