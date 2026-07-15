@@ -529,13 +529,22 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
 
 ## Push guardrail — automated builds cannot reach main (S1077)
 
-A `pre-push` hook is installed in every Titan-1 repo clone (and seeded into future clones via `git config --global init.templateDir /Users/max/.koskadeux/git-template`). It **refuses any push to `main`/`master`/`production`** unless the environment variable `KD_ALLOW_MAIN_PUSH=1` is set for that push.
+The tracked source of truth is `koskadeux-mcp/scripts/pre-push`; installed hooks and `/Users/max/.koskadeux/git-template/hooks/pre-push` are copies. The hook protects `main`, `master`, and `production` on every network or unknown remote unless `KD_ALLOW_MAIN_PUSH=1` is set. Automated builds (Codex/CC) never set that sentinel, so they push only `build/*`; a deliberate reviewed merge uses, for example, `KD_ALLOW_MAIN_PUSH=1 git push origin main` after Gate-3 and Titan-1 verification.
 
-- **Automated builds (Codex/CC) never set the sentinel**, so they can only push `build/*` branches. They physically cannot land a change on a protected branch on their own. This closes the S1077 gap where a structural build pushed a destructive change straight to main before review.
-- **Deliberate, reviewed merges by an instance** run the push with the sentinel:
+T-2026-000259 narrowed the guardrail without weakening that trust boundary. A remote is recognized as local only when its location is an absolute path, begins with `./` or `../`, or uses `file://`; protected refs are allowed for those filesystem remotes so throwaway Git fixtures work normally. Network remotes and all unrecognized remote-location forms remain blocked on protected refs without the sentinel. Unknown forms fail closed. Non-protected refs, including `build/*`, remain unaffected.
 
-      KD_ALLOW_MAIN_PUSH=1 git push origin main
+`git config --global init.templateDir /Users/max/.koskadeux/git-template` seeds the hook into **future clones only**. Existing repositories must be named explicitly when the tracked installer is run:
 
-  A plain `git push origin main` is refused with a message pointing here. The merge flow is unchanged otherwise: build on `build/*`, Gate-3, verify on Titan-1, then the gated merge.
-- **Scope:** `main`, `master`, `production`. `build/*` and all other branches are unaffected.
-- **Reverting the guardrail** (if ever needed): delete `.git/hooks/pre-push` in the repo (or unset `init.templateDir`). The hook source of truth is `/Users/max/.koskadeux/git-template/hooks/pre-push`.
+```sh
+cd /Users/max/koskadeux-mcp
+scripts/install_pre_push_hook.sh \
+  --repo /Users/max/koskadeux-mcp \
+  --repo /Users/max/Projects/ai-market/ai-market-backend \
+  --repo /Users/max/Projects/ai-market/runbooks
+```
+
+The installer validates every supplied repository before mutating the template or any repository. It refuses global or per-repository `core.hooksPath` overrides, preserves at most one existing `pre-push.backup`, installs mode `0755`, and byte-verifies every installed hook against `scripts/pre-push`.
+
+**Live verification:** from `/Users/max/koskadeux-mcp`, run `venv/bin/pytest tests/unit/test_pre_push_hook.py -q`; the suite proves protected network/unknown remotes fail closed, the sentinel permits reviewed pushes, and all four recognized local forms pass. Then compare each template/repository hook with `scripts/pre-push` using `cmp -s` and confirm `stat -f '%Lp' HOOK` reports `755`.
+
+**Rollback:** revert the guardrail commit in `koskadeux-mcp` for a durable rollback. For immediate host rollback, remove the installed `pre-push` from each affected repository and the template, restore `pre-push.backup` where present, and unset `init.templateDir` only if future clones must stop receiving the entire template. Re-run the installer after restoring the tracked source to reactivate and byte-verify the guardrail.
