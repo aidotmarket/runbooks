@@ -3,8 +3,11 @@
 CLI proxy that reduces LLM token consumption by 60-90% on common dev commands. Intercepts shell commands from Council agents (CC, AG, MP) and compresses output before it hits their context windows.
 
 **Repo:** https://github.com/rtk-ai/rtk
-**Installed:** v0.34.3 via Homebrew on Titan-1
-**Session:** S388
+**Installed:** v0.43.0 via Homebrew on maxbookpro
+**Last verified:** 2026-07-15 (S1227)
+
+The Titan-1 v0.34.3 installation recorded in S388 is historical and was not
+reverified during S1227.
 
 ## What It Does
 
@@ -30,11 +33,17 @@ Biggest wins for our workflow:
 - Restart Gemini CLI after any changes
 
 ### MP (Codex CLI) — AGENTS.md instructions
-- Config: `~/.codex/RTK.md`, `@RTK.md` ref in `~/.codex/AGENTS.md`
+- Inline rule: `~/.codex/AGENTS.md` contains the RTK instructions directly
+- Canonical global reference copy: `~/.codex/RTK.md`
+- Both files are home-directory global configuration, not repository files.
+  Agents must not search for `RTK.md` in the current repository.
 - Note: Codex integration is instruction-based (not hook-based). MP reads AGENTS.md and prefixes commands with `rtk` when appropriate. Less reliable than CC/AG hooks.
 
-### Vulcan — Not applicable
-Vulcan operates via MCP tool calls. shell_request output comes through the MCP gateway as JSON. RTK does not intercept this path.
+### Vulcan — Path-dependent
+- Direct Codex Desktop shell commands use RTK through the global Codex
+  instructions.
+- ai.market `shell_request` output comes through the MCP gateway as JSON, so
+  RTK does not intercept that path.
 
 ## Configuration
 
@@ -44,7 +53,7 @@ Vulcan operates via MCP tool calls. shell_request output comes through the MCP g
 [telemetry]
 enabled = false
 ```
-Also set in `~/.zshrc`: `export RTK_TELEMETRY_DISABLED=1`
+No separate `~/.zshrc` override is used on maxbookpro.
 
 ### Tee (full output recovery)
 ```toml
@@ -60,6 +69,7 @@ When a command fails, RTK saves unfiltered output to `~/.local/share/rtk/tee/`. 
 ### Check savings
 ```bash
 rtk gain              # summary stats
+rtk gain --history    # recent command savings history
 rtk gain --graph      # ASCII graph (last 30 days)
 rtk gain --daily      # day-by-day breakdown
 ```
@@ -109,11 +119,27 @@ exclude_commands = ["curl", "some-other-command"]
 3. Use `rtk proxy <command>` for passthrough with tracking only
 
 ### MP (Codex) not prefixing with rtk
-MP's integration is instruction-based via AGENTS.md. If MP isn't using RTK:
-1. Check `~/.codex/AGENTS.md` contains `@RTK.md`
-2. Check `~/.codex/RTK.md` exists
-3. MP compliance depends on the model following instructions — not guaranteed
+MP's integration is instruction-based via the global AGENTS.md. If MP isn't
+using RTK:
+1. Check `~/.codex/AGENTS.md` contains the RTK rule inline, including the
+   instruction to prefix shell commands with `rtk`.
+2. Check the canonical global reference copy exists at `~/.codex/RTK.md` and
+   agrees with the inline rule.
+3. Treat both paths as home-directory global configuration. Do not search for
+   `RTK.md` in the current repository and do not rely on an unresolved
+   `@RTK.md` include.
+4. Restart Codex after correcting the global configuration.
+5. MP compliance depends on the model following instructions — not guaranteed.
 
 ## Decision Log
 
-- **S388:** Installed RTK v0.34.3 on Titan-1. Enabled for CC, AG, MP. Telemetry disabled. Tee enabled for failure output recovery. Rationale: 60-90% token savings on agent shell commands, especially pytest and git operations during AIM-NODE-CORE builds.
+- **S1227 (2026-07-15):** Verified RTK v0.43.0 on maxbookpro. Replaced the
+  Codex `@RTK.md` include with the inline rule in the home-directory global
+  `~/.codex/AGENTS.md`; retained `~/.codex/RTK.md` as the canonical global
+  reference copy. Verification covered `rtk --version`, `rtk git status`, the
+  global reference file, and `rtk gain --history`. Confirmed telemetry is
+  disabled in RTK config without a separate zshrc override.
+- **S388 (historical; not reverified in S1227):** Recorded RTK v0.34.3 on
+  Titan-1, enabled for CC, AG, and MP, with telemetry disabled and tee enabled
+  for failure output recovery. Rationale: 60-90% token savings on agent shell
+  commands, especially pytest and git operations during AIM-NODE-CORE builds.
