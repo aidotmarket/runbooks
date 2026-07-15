@@ -3,11 +3,18 @@
 CLI proxy that reduces LLM token consumption by 60-90% on common dev commands. Intercepts shell commands from Council agents (CC, AG, MP) and compresses output before it hits their context windows.
 
 **Repo:** https://github.com/rtk-ai/rtk
-**Installed:** v0.43.0 via Homebrew on maxbookpro
 **Last verified:** 2026-07-15 (S1227)
 
-The Titan-1 v0.34.3 installation recorded in S388 is historical and was not
-reverified during S1227.
+## Host Observations
+
+| Host | S1227 observation | Codex global configuration | Telemetry configuration |
+|---|---|---|---|
+| maxbookpro | Verified RTK v0.43.0, installed via Homebrew | `~/.codex/AGENTS.md` contains the RTK rule inline; `~/.codex/RTK.md` is the canonical global reference | Disabled in `~/Library/Application Support/rtk/config.toml`; no `~/.zshrc` override |
+| Titan-1 | Observed RTK v0.34.3 by the S1227 builder | `~/.codex/AGENTS.md` still uses the legacy `@RTK.md` include | A `~/.zshrc` telemetry override exists |
+
+These paths are host-local. For Codex configuration on either host, inspect
+that host's home directory; do not look for the global `AGENTS.md` or `RTK.md`
+in the current project repository.
 
 ## What It Does
 
@@ -33,10 +40,12 @@ Biggest wins for our workflow:
 - Restart Gemini CLI after any changes
 
 ### MP (Codex CLI) — AGENTS.md instructions
-- Inline rule: `~/.codex/AGENTS.md` contains the RTK instructions directly
-- Canonical global reference copy: `~/.codex/RTK.md`
-- Both files are home-directory global configuration, not repository files.
-  Agents must not search for `RTK.md` in the current repository.
+- maxbookpro: `~/.codex/AGENTS.md` contains the RTK instructions directly;
+  `~/.codex/RTK.md` is the canonical global reference copy.
+- Titan-1: `~/.codex/AGENTS.md` still uses `@RTK.md`. This legacy include is
+  known configuration debt and is not changed by this docs-only fold.
+- These are home-directory global configuration paths on each host. Inspect
+  the active host's home directory, not the current project repository.
 - Note: Codex integration is instruction-based (not hook-based). MP reads AGENTS.md and prefixes commands with `rtk` when appropriate. Less reliable than CC/AG hooks.
 
 ### Vulcan — Path-dependent
@@ -47,13 +56,19 @@ Biggest wins for our workflow:
 
 ## Configuration
 
-### Telemetry (disabled)
+### Telemetry
+
+On maxbookpro, telemetry is disabled in RTK config:
+
 ```toml
 # ~/Library/Application Support/rtk/config.toml
 [telemetry]
 enabled = false
 ```
-No separate `~/.zshrc` override is used on maxbookpro.
+
+No separate `~/.zshrc` override is used on maxbookpro. Titan-1 has a
+`~/.zshrc` telemetry override; inspect it on Titan-1 when troubleshooting that
+host.
 
 ### Tee (full output recovery)
 ```toml
@@ -119,17 +134,32 @@ exclude_commands = ["curl", "some-other-command"]
 3. Use `rtk proxy <command>` for passthrough with tracking only
 
 ### MP (Codex) not prefixing with rtk
-MP's integration is instruction-based via the global AGENTS.md. If MP isn't
-using RTK:
+MP's integration is instruction-based via the host's global AGENTS.md. Always
+inspect the active host's home directory, not the current project repository.
+
+#### maxbookpro
+
 1. Check `~/.codex/AGENTS.md` contains the RTK rule inline, including the
    instruction to prefix shell commands with `rtk`.
-2. Check the canonical global reference copy exists at `~/.codex/RTK.md` and
-   agrees with the inline rule.
-3. Treat both paths as home-directory global configuration. Do not search for
-   `RTK.md` in the current repository and do not rely on an unresolved
-   `@RTK.md` include.
+2. Check the canonical global reference at `~/.codex/RTK.md` agrees with the
+   inline rule.
+3. Check telemetry is disabled in
+   `~/Library/Application Support/rtk/config.toml` and that no `~/.zshrc`
+   override has been introduced.
 4. Restart Codex after correcting the global configuration.
-5. MP compliance depends on the model following instructions — not guaranteed.
+
+#### Titan-1
+
+1. Check `~/.codex/AGENTS.md` and its legacy `@RTK.md` include from Titan-1's
+   home directory. Do not search for the include in the project repository.
+2. Check the existing `~/.zshrc` telemetry override alongside Titan-1's RTK
+   config.
+3. Treat the legacy include as remaining configuration debt; this docs-only
+   fold does not authorize changing Titan-1 configuration.
+4. Restart Codex only after a separately authorized configuration correction.
+
+On both hosts, MP compliance depends on the model following instructions and
+is not guaranteed.
 
 ## Decision Log
 
@@ -138,8 +168,11 @@ using RTK:
   `~/.codex/AGENTS.md`; retained `~/.codex/RTK.md` as the canonical global
   reference copy. Verification covered `rtk --version`, `rtk git status`, the
   global reference file, and `rtk gain --history`. Confirmed telemetry is
-  disabled in RTK config without a separate zshrc override.
-- **S388 (historical; not reverified in S1227):** Recorded RTK v0.34.3 on
+  disabled in RTK config without a separate zshrc override. The S1227 builder
+  also observed RTK v0.34.3 on Titan-1, where `~/.codex/AGENTS.md` still uses
+  `@RTK.md` and a `~/.zshrc` telemetry override exists. Titan-1's legacy include
+  remains configuration debt; this docs-only fold did not change Titan-1.
+- **S388 (original Titan-1 rollout):** Recorded RTK v0.34.3 on
   Titan-1, enabled for CC, AG, and MP, with telemetry disabled and tee enabled
   for failure output recovery. Rationale: 60-90% token savings on agent shell
   commands, especially pytest and git operations during AIM-NODE-CORE builds.
