@@ -336,6 +336,7 @@ The known failure modes a seller or operator hits, ranked by likelihood. This ta
 | F-12 | After `AIM_DATA_KEYSTORE_PASSPHRASE` rotation, marketplace publish fails with signature error; existing listings orphan | Wallet identity is bound to passphrase via KDF; `/data/keystore/keystore.json` was generated with old passphrase. | Compare current `AIM_DATA_KEYSTORE_PASSPHRASE` in `.env` against backup. | Restore old passphrase from backup if available. If not, delete `/data/keystore/`, restart container, accept that existing listings orphan under fresh seller identity. Document the trade-off to customer up front. |
 | F-13 | After `/data` volume wipe, install loses all API keys, keystore identity, and HMAC secret; encrypted-at-rest data unrecoverable | Customer wiped `/data` thinking it was scratch, or `docker compose down -v` recreated the volume. | `docker volume ls \| grep aim-data-data` — if missing, wipe happened. Check `/data/.vectoraiz_secret_key` and `/data/.vectoraiz_hmac_secret` on next boot — if regenerated, old keys lost. | Restore `/data` from backup. Without backup, all encrypted-at-rest data is unrecoverable; customer regenerates everything. |
 | F-14 | `docker pull ghcr.io/aidotmarket/aim-data:latest` fails with `toomanyrequests` or 429 | GHCR rate limit per IP, or customer behind shared NAT with other GHCR users. | Error message includes "toomanyrequests" or "rate limit." | `docker login ghcr.io` with a GitHub personal access token (`read:packages` scope). Retry pull. |
+| F-15 | Fresh install: `GET /api/datasets/import/browse` returns 403 with `Not a directory: /imports/` even though `HOST_IMPORT_DIR` is mounted. | `docker-compose.aim-data.yml` mounted the host directory only at `/data/import`, while the seller-facing API contract and `app/services/import_service.py` are jailed to `/imports`. | Inspect the container mounts, then invoke `ImportService().browse('/imports/')`; the broken compose has `/data/import` but no `/imports`. | Shipped on AIM Data `main` at `e3db42bb748919601291c88f877248ff79594696`: mount the same host source read-only at both `/imports` and `/data/import`, preserving both route families. |
 
 ## Repair Patterns
 
@@ -357,7 +358,7 @@ These patterns assume the customer is technical enough to read a log file. For n
 
 **Adjacent paths to verify on every Worker change:** `/aim-data`, `/aim-data/install.sh`, `/aim-data/install.ps1`, `/aim-data/docker-compose.yml`, `/aim-data/windows`, `/aim-data/` (landing), and the peer `/aim-node` set. The Worker handles both products.
 
-### G-02 to G-14 — Per the F-table
+### G-02 to G-15 — Per the F-table
 
 For now, the Verify and Repair columns in §F are the operational guidance. When this section is enriched in a follow-up session, each F-row gets a matching G-row with code-level entry points and rollback procedures.
 
@@ -365,7 +366,7 @@ For now, the Verify and Repair columns in §F are the operational guidance. When
 
 This runbook is acceptable when:
 
-- A stateless operator (human or agent) given only this document and no prior context can: install AIM Data from scratch, diagnose any of the F-01 through F-14 failure modes, and execute the matching repair.
+- A stateless operator (human or agent) given only this document and no prior context can: install AIM Data from scratch, diagnose any of the F-01 through F-15 failure modes, and execute the matching repair.
 - Every status in the Capability Matrix matches reality on the day of last verification.
 - Every BROKEN or PARTIAL item has a backing BQ or a flagged follow-up.
 - The Invariants section reflects the current CORE.md product description for AIM Data.
@@ -380,6 +381,8 @@ This runbook is acceptable when:
 | Refresh trigger | Any BREAKING change per §H, any new BROKEN status in the Capability Matrix, or 90 days since last verified |
 | Owner | Vulcan (orchestration) for content sync, Max for product decisions |
 | Escalation | Max directly |
+
+**Decision note — T-2026-000250 (2026-07-15): PARTIALLY VALID.** The registration 500 was superseded by T-2026-000256. The residual import 403 was fixed at AIM Data `e3db42b` and live-proved on RC2: both `/imports` and `/data/import` were mounted with `rw=false`, legacy sample browse succeeded, the newer path was available, and `/api/health` returned 200.
 
 ## Conformance
 
