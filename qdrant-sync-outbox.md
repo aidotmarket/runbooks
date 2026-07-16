@@ -32,7 +32,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Entity producer | `app/services/state_service.py:StateService._enqueue_outbox` | `state_entities`, `qdrant_sync_outbox` | FastAPI/allAI state writers | Coalesces pending entity notifications with update-then-insert SQL and no unique-index dependency; rare duplicate pending rows are tolerated and collapsed by the producer on a later write. |
 | Event producer | `app/services/state_service.py:StateService.record_event` | `state_events`, `qdrant_sync_outbox` | allAI event writers | P1 keeps event `embed_text`; P2 owns admission/quarantine. |
-| Consumer | `app/services/qdrant_sync_worker.py:start_qdrant_sync_worker` | `qdrant_sync_outbox`, `state_entities`, `state_events` | Vertex Gemini `embed_batch`, Qdrant `knowledge_base_v2` | Claims rows with `FOR UPDATE SKIP LOCKED`, commits, then embeds/upserts. |
+| Consumer | `app/services/qdrant_sync_worker.py:start_qdrant_sync_worker` | `qdrant_sync_outbox`, `state_entities`, `state_events` | Vertex Gemini `embed_batch`, Qdrant `knowledge_base_v2` | Claims rows with `FOR UPDATE SKIP LOCKED`, commits, then embeds/upserts. After a successful entity-point delete, the guarded `done` transaction clears the canonical deleted row's `qdrant_point_id`. |
 | Freshness monitors | `app/allai/agents/sysadmin/monitors.py` | `state_entities`, `state_events` | SysAdmin escalation pipeline | Measures stale canonical rows, not Qdrant as source of truth. |
 | Integrity monitor | `app/allai/agents/sysadmin/monitors.py:qdrant_index_integrity_status` | `state_entities`, Qdrant payloads | Qdrant REST | Verifies point existence and `source_version`; legacy unknown rows are degraded, not green. An initially critical result waits `QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS`, then re-reads only implicated keys, re-fetches only their current points, and re-counts orphans only when the first orphan count breached. A confirmation error returns the original critical result. |
 
@@ -228,6 +228,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - Claims must commit before any Vertex or Qdrant call.
 - Entity/event work is split by existing `target_type`; do not add a second routing column that old producers must populate during rolling deploy overlap.
 - Outbox `done`/`failed` transitions must be conditional on `status='processing'` and the same `claimed_by` worker that claimed the row.
+- A successful entity delete clears `state_entities.qdrant_point_id` in the same transaction as its claimed-worker-guarded outbox `done` transition, only while the canonical row remains deleted; it does not change `qdrant_indexed_version` or clear a live/recreated entity routed to upsert.
 - Entity producer coalescing must not depend on a unique constraint. It updates one pending survivor, marks duplicate pending losers superseded on a successful coalesce, and inserts only when no pending row exists.
 - Pending delete rows win over pending upsert rows for the same entity target. Otherwise the survivor is the highest `source_version`, tie-broken by `created_at DESC, id DESC`.
 - Rare duplicate pending rows are tolerated by design: they can cause at most redundant canonical re-reads/embeds, and guarded version acks prevent stale Qdrant freshness from being recorded.
