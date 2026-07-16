@@ -164,7 +164,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Reporting to Max / end-of-round summary** — the one-summary-per-round contract (CORE §3), the two carve-outs (hard stop, blocking question), summary structure/voice/timestamp/markers, the boot-contract marker guard, and waiver discharge for this subject: [max-reporting.md](max-reporting.md).
 
-**Operator Telegram notifications** — which bot may message Max and what classes are allowed; @koskadeux_bot killed, only @allai_agent_bot, emergency/human-required only: [operator-telegram-notifications.md](operator-telegram-notifications.md).
+**Operator Telegram notifications** — which bot may message Max and what classes are allowed; @koskadeux_bot killed, only @allai_agent_bot, emergency/human-required only: [operator-telegram-notifications.md](operator-telegram-notifications.md) **Telegram token in logs / log redaction / httpx request-URL leak** — token-never-in-logs invariant, RedactingFormatter, verification grep: [operator-telegram-notifications.md](operator-telegram-notifications.md#h-evolve--invariants).
 
 ---
 Every runbook above is registered here; `scripts/router_drift_check.py` enforces coverage + that every link resolves. Add new runbooks to a subject line above in the same change that creates them.
