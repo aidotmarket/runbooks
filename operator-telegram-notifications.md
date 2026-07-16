@@ -32,6 +32,7 @@ Operator Telegram is reserved for **emergency or human-required** only:
 Everything else (subtask progress, item-started, drift, budget warnings, worker timeouts, daemon start/stop, routine CRM/ops) stays off Telegram — local logs / macOS only.
 
 ## §F. Isolate — Diagnosing
+- Suspected credential in logs: pull raw Railway deploymentLogs for the backend and grep `api.telegram.org/bot` plus `bot\d+:` — a match means the §H redaction layer regressed. Fix at the logging layer (see §H), then ROTATE the token via BotFather (Max is the bot owner) since a logged token is a compromised token.
 - Unexpected operator message: check the sending bot's username. `@koskadeux_bot` ⇒ a daemon path still has Telegram enabled (regression); `@allai_agent_bot` ⇒ a backend caller is over-notifying — audit its call site against §E.
 
 ## §G. Implementation steps (status — S1054)
@@ -45,6 +46,7 @@ Everything else (subtask progress, item-started, drift, budget warnings, worker 
 ## §H. Evolve — Invariants
 - Exactly one operator Telegram bot: `@allai_agent_bot`.
 - Any new code path that would DM the operator must route through the backend relay and satisfy §E; no new bot tokens.
+- **Token never in logs (T-2026-000266, S1239):** the Telegram bot token lives in the request URL, so any logging of Telegram request URLs or raw httpx exceptions leaks the live credential. Backend enforcement (main `52cb1469`): `httpx`/`httpcore` loggers pinned to WARNING in `app/main.py`, and `app/core/log_redaction.py:RedactingFormatter` scrubs `bot<id>:<secret>` and bare `<id>:<secret>` patterns from ALL rendered log output (messages, %s args, exception tracebacks, stack info) on root and uvicorn handlers. Unanimous Council (CC/DeepSeek/GLM). Do not remove or downgrade these without an equivalent redaction layer; verify any Telegram-client change against raw Railway runtime logs (grep for `api.telegram.org/bot` and the token pattern) before calling it done.
 
 ## §I. Acceptance Criteria
 - After activation: zero messages from `@koskadeux_bot`.
