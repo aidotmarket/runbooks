@@ -20,6 +20,8 @@ Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.c
 | Active zones | `ai.market` (id `f82ac6762af544d71e8ad5eb3d7fca0c`), `vectoraiz.com` (id `401a4cf862898bc4dd6d03e2a0f50273`) |
 | API token | `CLOUDFLARE_API_TOKEN` in Infisical `ai-market-backend` project (id `bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod` |
 
+> **S1253 DRIFT — TOKEN DEAD:** as of 2026-07-16 this token returns `9109 Invalid access token` on `/zones` and `10000` on Workers scripts — ALL Cloudflare API access from Titan-1 is down, superseding the scope notes below. Re-mint tracked in T-2026-000273 (Max dashboard action; add Worker Routes + Tunnel scopes while at it). Until rotated, no wrangler deploys or DNS edits are possible.
+
 The API token in Infisical has zone read + DNS edit + Worker scripts read/write + **Workers-KV read/write** (KV write confirmed live S964 — created + deleted a temp namespace via API) but **does not** include Cloudflare Tunnel (`cfd_tunnel`) or Worker Routes scopes — both of those endpoints return `10000 Authentication error` with the current token. (Note: this is an account-scoped token, so `GET /user/tokens/verify` returns "Invalid API Token" even though the token works for resource operations — verify is user-level. Don't be alarmed by that endpoint.) If you need to manage tunnels or routes via API, mint a new token with those scopes; otherwise use the dashboard or `cloudflared` CLI for tunnels and `wrangler` for routes.
 
 ## DNS records (live inventory)
