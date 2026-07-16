@@ -34,7 +34,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Event producer | `app/services/state_service.py:StateService.record_event` | `state_events`, `qdrant_sync_outbox` | allAI event writers | P1 keeps event `embed_text`; P2 owns admission/quarantine. |
 | Consumer | `app/services/qdrant_sync_worker.py:start_qdrant_sync_worker` | `qdrant_sync_outbox`, `state_entities`, `state_events` | Vertex Gemini `embed_batch`, Qdrant `knowledge_base_v2` | Claims rows with `FOR UPDATE SKIP LOCKED`, commits, then embeds/upserts. |
 | Freshness monitors | `app/allai/agents/sysadmin/monitors.py` | `state_entities`, `state_events` | SysAdmin escalation pipeline | Measures stale canonical rows, not Qdrant as source of truth. |
-| Integrity monitor | `app/allai/agents/sysadmin/monitors.py:qdrant_index_integrity_status` | `state_entities`, Qdrant payloads | Qdrant REST | Verifies point existence and `source_version`; legacy unknown rows are degraded, not green. |
+| Integrity monitor | `app/allai/agents/sysadmin/monitors.py:qdrant_index_integrity_status` | `state_entities`, Qdrant payloads | Qdrant REST | Verifies point existence and `source_version`; legacy unknown rows are degraded, not green. An initially critical result waits `QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS`, then re-reads only implicated keys, re-fetches only their current points, and re-counts orphans only when the first orphan count breached. A confirmation error returns the original critical result. |
 
 ## §D. Agent Capability Map
 
@@ -112,13 +112,16 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
   tool_or_endpoint: qdrant_index_integrity_status(session_factory=AsyncSessionLocal)
   argument_sourcing:
     sample_size: settings.QDRANT_INTEGRITY_SAMPLE_SIZE
+    confirm_delay_seconds: settings.QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS (default 30; values <=0 bypass confirmation)
   idempotency: IDEMPOTENT
   expected_success:
-    shape: ok=true or degraded legacy evidence with counts
-    verification: missing_count=0 and orphan_count within threshold
+    shape: ok=true or degraded legacy evidence; a recovered first-pass breach has evidence.first_pass and evidence.confirmed
+    verification: confirmed failing rows are consistent, deleted, or no longer verifiable, and any confirmed orphan recount is within threshold
   expected_failures:
-    - signature: missing_count or orphan_count above threshold
-      cause: Qdrant point loss, stale payload, delete failure
+    - signature: confirmed missing point, source_version mismatch, or orphan count above threshold
+      cause: persistent Qdrant point loss, stale payload, or delete failure after the confirmation delay
+    - signature: confirmation query or Qdrant retrieval raises
+      cause: the monitor returns the original first-pass critical result so a failed confirmation cannot suppress the page
   next_step_success: done
   next_step_failure: §F F-04
 - id: E-05
@@ -228,6 +231,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - Entity producer coalescing must not depend on a unique constraint. It updates one pending survivor, marks duplicate pending losers superseded on a successful coalesce, and inserts only when no pending row exists.
 - Pending delete rows win over pending upsert rows for the same entity target. Otherwise the survivor is the highest `source_version`, tie-broken by `created_at DESC, id DESC`.
 - Rare duplicate pending rows are tolerated by design: they can cause at most redundant canonical re-reads/embeds, and guarded version acks prevent stale Qdrant freshness from being recorded.
+- Transient Postgres/Qdrant version disagreement during an active outbox flush is expected. The integrity monitor confirms only first-pass failing keys against fresh Postgres expectations and freshly fetched current points; rows now consistent, deleted, or no longer verifiable drop out. A first-pass missing-ratio breach uses the same row confirmation, an orphan breach reuses the existing orphan-count SQL, and any confirmation exception preserves the original critical page. Failing rows that become unverifiable between passes yield a degraded P3/unknown result, never healthy.
 - Any migration or code change that adds a freshness predicate or tracking column must include an explicit admission/backfill decision for pre-existing rows in the same reviewed change. The regression test must execute the legacy-row transition against Postgres; SQL-string or schema-shape assertions alone do not prove the data invariant.
 
 ### §H.2 Change-class predicate tree
@@ -246,7 +250,7 @@ SAFE if the change is a focused bugfix preserving the invariants above, adds tes
 
 `runtime dependency`: Postgres, Vertex Gemini embeddings, Qdrant, Railway runtime, SysAdmin scheduler.
 
-`config default`: `EMBED_BATCH_SIZE=50`, `EMBED_CONCURRENCY=1`, `QDRANT_SYNC_EMPTY_POLL_INTERVAL_SECONDS=5`, `QDRANT_CLAIM_STALE_AFTER_SECONDS=900`.
+`config default`: `EMBED_BATCH_SIZE=50`, `EMBED_CONCURRENCY=1`, `QDRANT_SYNC_EMPTY_POLL_INTERVAL_SECONDS=5`, `QDRANT_CLAIM_STALE_AFTER_SECONDS=900`, `QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS=30`. Setting the confirmation delay to `<=0` bypasses the confirm pass and restores immediate first-pass critical behavior.
 
 ## §I. Acceptance Criteria
 
