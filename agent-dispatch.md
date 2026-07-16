@@ -65,9 +65,10 @@ The streaming bridge launches Codex CLI with `subprocess.Popen`,
 from three signals: the final output file, the stdout transcript, and
 `cwd/task_state.md` when present. Any mtime or size growth counts as progress.
 
-`council_request agent=mp mode=open_response` keeps the legacy synchronous
-`run_codex_cli` path because it is intended for fast text-only voter responses.
-Direct `run_codex_cli` callers also retain fixed-deadline semantics for backward
+`council_request agent=mp mode=open_response` now returns immediately with a
+`dispatch_async` task ID. The background closure still calls `run_codex_cli`
+and preserves the shaped envelope; callers poll `council_request action=check_build`.
+Direct `run_codex_cli` callers retain fixed-deadline semantics for backward
 compatibility.
 
 Timeout knobs:
