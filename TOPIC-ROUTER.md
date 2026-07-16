@@ -67,7 +67,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 
 **Cloudflare / DNS / Workers / tunnel** — DNS records, Workers, the mcp.ai.market tunnel: [cloudflare-and-dns.md](cloudflare-and-dns.md). The get.vectoraiz.com Worker: [cloudflare-worker.md](cloudflare-worker.md).
 
-**MCP gateway / Koskadeux** — gateway, server, transport (why cloudflared not Tailscale), session lifecycle: [mcp-gateway.md](mcp-gateway.md).
+**MCP gateway / Koskadeux** — gateway, server, transport (why cloudflared not Tailscale), session lifecycle: [mcp-gateway.md](mcp-gateway.md). Client-side tool-approval delivery failures (`No approval received` on approval-gated tools — claude.ai prompt never delivered, NOT local code): see the "Known issues" section of [mcp-gateway.md](mcp-gateway.md).
 
 **ai.market backend / frontend** — API service, DB, deploy, customer-data location: [ai-market-backend.md](ai-market-backend.md). Web app: [ai-market-frontend.md](ai-market-frontend.md).
 **API error contract — DB constraint → HTTP status** — when a database constraint violation should surface as a 4xx not a raw 500 (constraint-name detection; peer-messages `ck_*` CHECK → 422 worked example): see the "API error mapping" section of [ai-market-backend.md](ai-market-backend.md).

@@ -272,6 +272,17 @@ A path failure localises by which step first stops returning 200 / active.
 - **MCP transport reconnection latency.** After a restart, claude.ai takes ~5–15 min from the
   user's perspective to fully resync the tool listing — hosted-browser MCP behaviour, not a
   local fault.
+- **Client-side tool-approval delivery is intermittent (S1236/S1237).** Approval-gated tool
+  calls (e.g. `support_ticket_patch`, `kd_session_close`) sometimes fail immediately with
+  `No approval received` because the claude.ai approval prompt is never rendered/delivered to
+  the user. Confirmed NOT ours: the string does not originate in koskadeux-mcp or
+  ai-market-backend source; grep both repos before suspecting local code. Observed failing at
+  2026-07-16 ~00:00Z and working at ~09:44Z within the same session with no local change.
+  Symptom check: if the user reports no approval dialog appeared, it is this. Workarounds:
+  retry the call later in the turn/session; record intent on the peer bus or a ticket message
+  (non-approval-gated) so state can be reconciled once the path recovers; for cross-instance
+  ownership fields, have the peer holding ownership perform the write. No local fix exists;
+  if persistent, restart the claude.ai client session before restarting local processes.
 
 ## Backup admin path
 
