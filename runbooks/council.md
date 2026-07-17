@@ -1,7 +1,7 @@
 ---
 system_name: council
-purpose_sentence: A multi-agent review and build system that produces production-quality code via gated cross-review across MP (primary), AG (secondary), DeepSeek (full voter), and CC (fallback).
-owner_agent: vulcan
+purpose_sentence: A multi-agent build and review system with MP as mandatory builder and CC, DeepSeek, and GLM as the gate voter panel.
+owner_agent: vulcan-and-mars
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
@@ -32,39 +32,49 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 
 `council_request` is the canonical code entry point for Council operations. The Council is documented here as one system: agent rosters, `review_order`, and `dispatch_patterns` belong to the same operating model, while live participant config remains authoritative in `infra:council-comms`.
 
+The current gate voter panel is CC + DeepSeek + GLM exactly. MP is the mandatory builder and
+is not a gate voter. AG is PAUSED, and XAI is RETIRED. Model assignments, dispatch caps,
+quirks, and any later roster change are live configuration and must be read from
+`infra:council-comms`, not inferred from this prose.
+
+<!-- catalog:historical -->
 Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring-gap detection per S526 Chunk 3B precedent. AG is cross-vote and secondary because Gemini 3.1 Pro is a frontier reviewer, but line-number fabrication risk on code audits per S499 excludes AG from `gate3_post_build_audit` since S342. DeepSeek is a full voter after graduating S528 with 94 dispatches, `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. CC is fallback builder because it gives a 300s MP Codex CLI timeout safety net, Opus-tier reasoning for complex multi-file builds, and a 600s default timeout.
+<!-- /catalog:historical -->
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Council Dispatch | `koskadeux-mcp/tools/agents.py:_handle_call_*` | `infra:council-comms`, dispatch task records | Codex CLI, Gemini/AG server, DeepSeek API/server, Claude Code | Routes build, review, and fallback work to the configured agent roster. |
+| Council Dispatch | `koskadeux-mcp/tools/agents.py:_handle_call_*` | `infra:council-comms`, dispatch task records | Configured builder and voter backends | Routes build and review work to the live configured roster. |
 | Gate Review Flow | `build:bq-* Living State entities` | build entities, gate status fields, review verdicts | Council dispatch, author-mode tokens, runbook specs | Implements the BQ 4-gate flow and binds authoring/review mode to dispatch provenance. |
-| Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | MP, AG, DeepSeek, Vulcan synthesis | Runs multi-agent deliberation when independent reviews are insufficient. |
-| Agent Roster | `infra:council-comms` | active agents, retired agents, quirks, model frontier notes | dispatch gateway, runbooks, memory references | Live config source for MP, AG, DeepSeek, CC, Vulcan, and retired XAI cold storage. |
-| Review Order | `infra:council-comms.review_order` | ordered voter list, fallback policy | Gate Review Flow, Council Hall | Defines primary, secondary, full-voter, and fallback sequencing. |
+| Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | Configured voter panel and synthesis | Runs multi-agent deliberation when independent reviews are insufficient. |
+| Agent Roster | `infra:council-comms` | active agents, paused/retired agents, quirks, model frontier notes | dispatch gateway, runbooks, memory references | Sole live config source for roster and roles. |
+| Review Order | `infra:council-comms.review_order` | ordered voter list and policy | Gate Review Flow, Council Hall | Resolves the configured CC + DeepSeek + GLM voter panel without promoting MP to voter. |
 | Dispatch Patterns | `infra:council-comms.dispatch_patterns` | mode templates, timeout caps, cost caps | Council Dispatch, gateway tokens | Encodes review-only, author-mode, fallback-build, and deliberation routing constraints. |
 
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | build, primary review, spec authoring | Codex CLI / GPT-5.5 | full repo write | COMPLETE |
-| AG | cross-vote review, secondary | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
-| DeepSeek | full voter (review-only, $1/dispatch cap) | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | fallback builder | Claude Code / Opus | full repo write, 600s timeout | COMPLETE |
-| Vulcan | orchestrator (Vulcan-direct authoring + state management) | Anthropic API | gateway, Living State, all repos | COMPLETE |
-| XAI | DEPRECATED retired S528; architecture-only niche superseded | Grok CLI | retired | PARTIAL — retired; cold-storage details move to `runbooks/agent-dispatch.md` appendix in C2 |
+| MP | mandatory build author; not a gate voter | Builder backend from `infra:council-comms` | repo write when author-mode is explicit | ACTIVE |
+| CC | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
+| DeepSeek | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
+| GLM | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
+| AG | no active gate role | Paused backend metadata in `infra:council-comms` | none for current gates | PAUSED |
+| XAI | no active gate role | Retirement metadata in `infra:council-comms` | none | RETIRED |
+| Vulcan + Mars | equal-authority peer orchestration and state management | Koskadeux MCP | gateway, Living State, repos | ACTIVE |
 
+<!-- catalog:historical -->
 MP owns primary review because the Codex CLI path is automated and has shown deeper wiring-gap detection per S526 Chunk 3B. AG remains valuable as a Gemini 3.1 Pro frontier cross-vote, but S499 line-number fabrication risk means code-audit line claims must be verified before use. DeepSeek is a full voter because S528 graduation produced 94 dispatches with `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. XAI is retired because line-number fabrication exclusion has applied since S342 and DeepSeek superseded the architecture-only niche; see the retired-agents appendix planned for `runbooks/agent-dispatch.md`.
+<!-- /catalog:historical -->
 
 ## §E. Operate
 
 ```yaml operate
 - id: E-01
-  trigger: A build or audit needs a Council review dispatch.
+  trigger: A gate audit needs a Council review dispatch.
   pre_conditions: [target_repo_available, dispatch_mode_selected, Living State build entity exists when tied to a BQ]
-  tool_or_endpoint: council_request(action=review, agent=<mp|ag|deepseek>, prompt=<task>, context_refs=<refs>)
+  tool_or_endpoint: council_request(action=review, agent=<cc|deepseek|glm>, prompt=<task>, context_refs=<refs>)
   argument_sourcing:
-    agent: choose from §D based on requested role and auth scope
+    agent: select each required voter from the exact CC + DeepSeek + GLM panel, confirmed against infra:council-comms
     prompt: derive from BQ gate task or operator request
     context_refs: include spec paths, branch name, commit SHA, and relevant Living State entity
   idempotency: IDEMPOTENT_WITH_KEY
@@ -74,7 +84,7 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
     - {signature: "timeout", cause: agent process exceeded configured timeout or progress guard}
     - {signature: "read-only agent attempted write", cause: dispatch role/auth boundary mismatch}
   next_step_success: Attach the verdict or artifact to the BQ review record
-  next_step_failure: Isolate using §F-01, §F-02, or §F-03 depending on signature
+  next_step_failure: Preserve the transcript and isolate through agent-dispatch using the live infra:council-comms backend state
 - id: E-02
   trigger: A BQ chunk needs gate review before promotion.
   pre_conditions: [build entity status is in_progress, branch and commit SHA are known, required specs are readable]
@@ -85,12 +95,12 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
     commit: read from git rev-parse HEAD on the feature branch
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: build_id + gate + commit
-  expected_success: {shape: Gate verdict set with primary and cross-vote results, verification: Confirm MP primary review and required secondary/full-voter participation are recorded}
   expected_failures:
     - {signature: "missing dispatch token", cause: author-mode or review-mode gateway token not bound}
     - {signature: "stale review_order", cause: dispatcher read old infra:council-comms config}
+  expected_success: {shape: Three gate verdicts, verification: Confirm CC, DeepSeek, and GLM each returned one read-only verdict and MP is recorded only as builder}
   next_step_success: Patch the BQ entity with the gate verdict and next gate status
-  next_step_failure: Escalate to §G-03 or Council Hall if verdicts conflict
+  next_step_failure: Preserve all verdicts and use Council Hall or current infra:council-comms backend state to resolve the conflict
 - id: E-03
   trigger: Independent reviews disagree or a Council policy question blocks the next action.
   pre_conditions: [at least two independent reviews exist or the operator has a policy question, disagreement or ambiguity is explicitly stated]
@@ -110,6 +120,10 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
 ```
 
 ## §F. Isolate
+
+<!-- catalog:historical -->
+The §F and §G entries preserve incident-era MP-primary/AG-secondary operations and their
+repairs. They are historical evidence only, not current dispatch instructions.
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -146,6 +160,8 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
   integrity_check: Confirm git HEAD, dispatcher result, and Living State build summary all name the same artifact.
 ```
 
+<!-- /catalog:historical -->
+
 ## §H. Evolve
 
 ### §H.1 Invariants
@@ -163,7 +179,7 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
 ### §H.3 REVIEW predicates
 
 - Adding a Council member requires REVIEW.
-- Changing model frontiers, such as Gemini 3.1 to 4.0, requires REVIEW.
+- Changing any configured model frontier requires REVIEW.
 - Changing dispatch participants or Council Hall participant defaults requires REVIEW.
 
 ### §H.4 SAFE predicates
@@ -195,6 +211,10 @@ A config default is any default model frontier, review order, dispatch timeout, 
 When two agents classify a Council change differently, use the more restrictive class and record the dispute in the BQ review record. Max resolves classification disputes that alter auth scope, membership, or gate policy.
 
 ## §I. Acceptance Criteria
+
+<!-- catalog:historical -->
+The S529/S530 conformance scenarios below are retained as historical fixtures. Their
+MP/AG/DeepSeek panel and role expectations are not the current gate contract.
 
 ```yaml acceptance
 scenario_set:
@@ -336,6 +356,8 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
+<!-- /catalog:historical -->
+
 ## §J. Lifecycle
 
 Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
@@ -344,7 +366,7 @@ Lifecycle metadata records the final Gate 2 conformance refresh state. Harness s
 last_refresh_session: S529
 last_refresh_commit: 8929cbf
 last_refresh_date: 2026-04-29T00:00:00Z
-owner_agent: vulcan
+owner_agent: vulcan-and-mars
 refresh_triggers:
   - council_request interface or roster semantics change
   - active or retired Council member capability/status changes
