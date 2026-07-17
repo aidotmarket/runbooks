@@ -7,11 +7,18 @@
 
 | Topic | Runbook | Section |
 |---|---|---|
+| `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture--interactions) |
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
+| `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
+| `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) |
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) |
+| `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture--interactions) |
+| `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture--interactions) |
+| `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture--interactions) |
+| `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture--interactions) |
 
 ## Error signatures
 
@@ -23,14 +30,18 @@
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F. Isolate](runbooks/constitution-history.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F. Isolate](runbooks/gate-procedure.md#f-isolate) |
 | `gateway_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F. Isolate](runbooks/agent-completeness.md#f-isolate) |
+| `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
 | `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `missing dispatch token` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -38,10 +49,13 @@
 | `open_response_schema_mismatch` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `premature_cross_poll` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `product_boundary_conflict` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§F. Isolate](runbooks/product-elaboration.md#f-isolate) |
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F. Isolate](runbooks/aging-policy.md#f-isolate) |
 | `stale_review_order` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
+| `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |

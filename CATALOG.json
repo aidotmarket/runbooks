@@ -5,6 +5,29 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "agent-completeness"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "incomplete_agent_surface"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "vulcan",
+      "path": "runbooks/agent-completeness.md",
+      "runbook_id": "agent-completeness",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "agent-dispatch"
         }
       ],
@@ -64,6 +87,29 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "aging-policy"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "stale_queue_undispatched"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "vulcan",
+      "path": "runbooks/aging-policy.md",
+      "runbook_id": "aging-policy",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "build-queue-reconciliation"
         }
       ],
@@ -78,6 +124,29 @@
       "owner": "vulcan",
       "path": "runbooks/build-queue-reconciliation.md",
       "runbook_id": "build-queue-reconciliation",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "constitution-history"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "constitution_source_drift"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "max",
+      "path": "runbooks/constitution-history.md",
+      "runbook_id": "constitution-history",
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -218,6 +287,98 @@
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-roster-quirks"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "stale_roster_snapshot"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "vulcan",
+      "path": "runbooks/council-roster-quirks.md",
+      "runbook_id": "council-roster-quirks",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "gate-procedure"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "gate_eligibility_unknown"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "vulcan",
+      "path": "runbooks/gate-procedure.md",
+      "runbook_id": "gate-procedure",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "infrastructure-discovery"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "infrastructure_locator_guessed"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "sysadmin",
+      "path": "runbooks/infrastructure-discovery.md",
+      "runbook_id": "infrastructure-discovery",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "product-elaboration"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "product_boundary_conflict"
+        }
+      ],
+      "last_verified_at": "2026-07-17",
+      "owner": "max",
+      "path": "runbooks/product-elaboration.md",
+      "runbook_id": "product-elaboration",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
     }
   ],
   "indexes": {
@@ -247,6 +408,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "constitution_source_drift": {
+        "runbook_id": "constitution-history",
+        "section": "\u00a7F. Isolate"
+      },
       "cross_review_block": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -271,6 +436,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "gate_eligibility_unknown": {
+        "runbook_id": "gate-procedure",
+        "section": "\u00a7F. Isolate"
+      },
       "gateway_timeout": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
@@ -278,6 +447,14 @@
       "health_failure": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
+      },
+      "incomplete_agent_surface": {
+        "runbook_id": "agent-completeness",
+        "section": "\u00a7F. Isolate"
+      },
+      "infrastructure_locator_guessed": {
+        "runbook_id": "infrastructure-discovery",
+        "section": "\u00a7F. Isolate"
       },
       "late_arriver": {
         "runbook_id": "council-hall-deliberation",
@@ -307,6 +484,10 @@
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
       },
+      "product_boundary_conflict": {
+        "runbook_id": "product-elaboration",
+        "section": "\u00a7F. Isolate"
+      },
       "progress_guard_timeout": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
@@ -319,9 +500,17 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "stale_queue_undispatched": {
+        "runbook_id": "aging-policy",
+        "section": "\u00a7F. Isolate"
+      },
       "stale_review_order": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
+      },
+      "stale_roster_snapshot": {
+        "runbook_id": "council-roster-quirks",
+        "section": "\u00a7F. Isolate"
       },
       "stale_task_state": {
         "runbook_id": "agent-dispatch",
@@ -349,12 +538,24 @@
       }
     },
     "topics": {
+      "agent-completeness": {
+        "runbook_id": "agent-completeness",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
       "agent-dispatch": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "aging-policy": {
+        "runbook_id": "aging-policy",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "constitution-history": {
+        "runbook_id": "constitution-history",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "council-gate-process": {
@@ -367,6 +568,22 @@
       },
       "council-operations": {
         "runbook_id": "council",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-roster-quirks": {
+        "runbook_id": "council-roster-quirks",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "gate-procedure": {
+        "runbook_id": "gate-procedure",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "infrastructure-discovery": {
+        "runbook_id": "infrastructure-discovery",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "product-elaboration": {
+        "runbook_id": "product-elaboration",
         "section": "\u00a7C. Architecture & Interactions"
       }
     }

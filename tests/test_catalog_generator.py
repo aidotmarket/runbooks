@@ -85,18 +85,27 @@ def _digest_outputs(root: Path) -> dict[str, str]:
     }
 
 
-def test_live_seed_has_exactly_five_active_members() -> None:
+def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None:
     catalog, grandfathered = build_catalog(REPO_ROOT)
 
-    assert [entry["runbook_id"] for entry in catalog["entries"]] == SEED_IDS
+    assert [entry["runbook_id"] for entry in catalog["entries"]] == sorted(
+        SEED_IDS + KERNEL_IDS
+    )
     assert {entry["path"] for entry in catalog["entries"]} == {
+        "runbooks/agent-completeness.md",
         "runbooks/agent-dispatch.md",
+        "runbooks/aging-policy.md",
         "runbooks/build-queue-reconciliation.md",
+        "runbooks/constitution-history.md",
         "runbooks/council-gate-process.md",
         "runbooks/council-hall-deliberation.md",
+        "runbooks/council-roster-quirks.md",
         "runbooks/council.md",
+        "runbooks/gate-procedure.md",
+        "runbooks/infrastructure-discovery.md",
+        "runbooks/product-elaboration.md",
     }
-    assert grandfathered == 82
+    assert grandfathered == 83
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
 
@@ -233,6 +242,14 @@ def test_conflicting_topic_fails_generation(tmp_path: Path) -> None:
     _write_doc(tmp_path, "runbooks/b.md", _metadata("beta", topic="shared-topic"))
 
     with pytest.raises(CatalogError, match="duplicate topic"):
+        build_catalog(tmp_path)
+
+
+def test_duplicate_runbook_id_fails_generation(tmp_path: Path) -> None:
+    _write_doc(tmp_path, "runbooks/first.md", _metadata("duplicate-member"))
+    _write_doc(tmp_path, "runbooks/second.md", _metadata("duplicate-member"))
+
+    with pytest.raises(CatalogError, match="duplicate runbook_id"):
         build_catalog(tmp_path)
 
 
