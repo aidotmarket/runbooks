@@ -74,6 +74,8 @@ Diagnosis pattern (verified S1255):
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | `gh` not found | PATH not set | Add `export PATH="/opt/homebrew/bin:$PATH"` |
+| RC cut with wrong version (e.g. `v0.0.1-rc.1`) | Local clone missing stable tags: `release.sh` resolves latest stable from local `git tag` only, so a tag-less clone yields current=0.0.0 (S1263 incident: bogus v0.0.1-rc.1 tag+prerelease+run, fully cleaned up) | ALWAYS run `git fetch origin --tags` before `release.sh rc`; verify the "Current stable" line the script prints before it pushes. If it already fired: cancel the tag's workflow run, `gh release delete <tag> --yes`, `git push origin :refs/tags/<tag>`, reset local main to origin |
+| Compose bump commit not on remote main after release | KD pre-push guard blocks direct main pushes; `release.sh` swallows the failure (`|| true`) | The tag still drives the release, so the run is fine; push the release script's version-bump commit with `KD_ALLOW_MAIN_PUSH=1 git push origin main` (established release-process commit class, same as prior rc bumps) |
 | GHCR build fails | ARM64 QEMU issue | Re-run GitHub Actions workflow |
 | Accidental stable release | Used old release.sh | Ensure release.sh creates RC by default (fixed S222) |
 | Docker pull fails | Image not built yet | Wait for GHA to complete (45-60 min) |
