@@ -15,6 +15,9 @@ import click
 import yaml
 
 from runbook_tools.catalog import CatalogError, check_catalog, generate_catalog
+from runbook_tools.catalog.resolver import resolve_catalog_key
+from runbook_tools.catalog.validator import active_catalog_paths, validate_catalog_ref
+from runbook_tools.catalog.model import REQUIRED_ACTIVE_FIELDS
 from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
@@ -77,6 +80,44 @@ def catalog_check_cmd() -> None:
     click.echo("catalog outputs are current")
 
 
+@catalog_cmd.command(name="validate")
+@click.option("--catalog-ref", required=True)
+def catalog_validate_cmd(catalog_ref: str) -> None:
+    try:
+        report = validate_catalog_ref(Path.cwd(), catalog_ref)
+    except (CatalogError, OSError) as exc:
+        click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
+        raise SystemExit(1)
+    click.echo(json.dumps(report.as_dict(), sort_keys=True))
+
+
+@catalog_cmd.command(name="resolve")
+@click.option("--catalog-ref", required=True)
+@click.argument("query")
+def catalog_resolve_cmd(catalog_ref: str, query: str) -> None:
+    try:
+        resolved = resolve_catalog_key(Path.cwd(), catalog_ref, query)
+    except (CatalogError, OSError) as exc:
+        click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
+        raise SystemExit(1)
+    click.echo(json.dumps(resolved, sort_keys=True))
+
+
+@catalog_cmd.command(name="select")
+@click.option(
+    "--mode",
+    type=click.Choice(["lint-selection", "harness-selection"]),
+    required=True,
+)
+def catalog_select_cmd(mode: str) -> None:
+    try:
+        targets = active_catalog_paths(Path.cwd())
+    except (CatalogError, OSError) as exc:
+        click.echo(f"catalog selection failed: {exc}", err=True)
+        raise SystemExit(1)
+    _emit_catalog_selection(mode, targets, Path.cwd())
+
+
 @click.command()
 @click.argument("paths", nargs=-1, type=click.Path(exists=False))
 @click.option("--version", is_flag=True)
@@ -98,8 +139,10 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
         resolved_readme = Path(readme) if readme else repo_root / "README.md"
         if not resolved_schemas_dir.exists():
             raise click.UsageError(f"schemas directory not found: {resolved_schemas_dir}")
+        if readme is not None and not resolved_readme.exists():
+            raise click.UsageError(f"README not found: {resolved_readme}")
 
-        target_paths = _resolve_lint_targets(paths, mode, resolved_readme)
+        target_paths = _resolve_lint_targets(paths, mode, resolved_readme, repo_root)
         findings_by_path: dict[Path, list[Finding]] = {}
         had_fail = False
 
@@ -108,6 +151,12 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
             markdown = path.read_text()
             sections = extract_sections(markdown)
             frontmatter = extract_yaml_frontmatter(markdown)
+            if frontmatter is not None:
+                frontmatter = {
+                    key: value
+                    for key, value in frontmatter.items()
+                    if key not in REQUIRED_ACTIVE_FIELDS
+                }
             ctx = CheckContext(
                 schemas_dir=resolved_schemas_dir.resolve(),
                 readme_path=path,
@@ -126,6 +175,9 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
         _emit_findings(findings_by_path, output_format=output_format, summary=summary, fix_hints=fix_hints)
     except click.ClickException as exc:
         raise SystemExit(exc.exit_code)
+    except CatalogError as exc:
+        click.echo(f"catalog selection failed: {exc}", err=True)
+        raise SystemExit(1)
     except OSError as exc:
         click.echo(f"usage error: {exc}", err=True)
         raise SystemExit(2)
@@ -185,15 +237,17 @@ def harness_cmd(mode, session, runbook, external_scenario_set, external_scenario
         )
         raise SystemExit(2)
 
-    repo_root = Path.cwd()
-    session_id = session or f"LOCAL-{datetime.now(timezone.utc):%Y%m%d%H%M%S}"
-    run_started_at = datetime.now(timezone.utc)
-    runbook_paths = [Path(runbook)] if runbook else _resolve_harness_targets(mode, repo_root / "README.md")
-
-    dispatch_fn = make_council_request_fn()
-    external_mode = external_scenario_set is not None or external_scenarios_from_state is not None
-
     try:
+        repo_root = Path.cwd()
+        session_id = session or f"LOCAL-{datetime.now(timezone.utc):%Y%m%d%H%M%S}"
+        run_started_at = datetime.now(timezone.utc)
+        runbook_paths = (
+            [Path(runbook)]
+            if runbook
+            else _resolve_harness_targets(mode, repo_root / "README.md", repo_root)
+        )
+        dispatch_fn = make_council_request_fn()
+        external_mode = external_scenario_set is not None or external_scenarios_from_state is not None
         with ExitStack() as stack:
             external_path = _resolve_external_source(
                 external_scenario_set,
@@ -212,6 +266,9 @@ def harness_cmd(mode, session, runbook, external_scenario_set, external_scenario
     except click.UsageError as exc:
         click.echo(str(exc), err=True)
         raise SystemExit(2)
+    except (CatalogError, OSError) as exc:
+        click.echo(f"catalog selection failed: {exc}", err=True)
+        raise SystemExit(1)
 
     raise SystemExit(exit_code)
 
@@ -417,7 +474,12 @@ def _materialize_state_scenarios(
     return tempdir_path
 
 
-def _resolve_lint_targets(paths: tuple[str, ...], mode: str | None, readme_path: Path) -> list[Path]:
+def _resolve_lint_targets(
+    paths: tuple[str, ...],
+    mode: str | None,
+    readme_path: Path,
+    repo_root: Path | None = None,
+) -> list[Path]:
     if paths:
         expanded: list[Path] = []
         for raw in paths:
@@ -428,12 +490,45 @@ def _resolve_lint_targets(paths: tuple[str, ...], mode: str | None, readme_path:
                 expanded.append(candidate)
         return expanded
     selected_mode = mode or "strict"
+    if selected_mode == "strict":
+        root = (repo_root or readme_path.parent).resolve()
+        targets = active_catalog_paths(root)
+        _emit_catalog_selection("lint-selection", targets, root, selected_to_stderr=True)
+        return targets
     return _runbooks_for_mode(readme_path, selected_mode)
 
 
-def _resolve_harness_targets(mode: str, readme_path: Path) -> list[Path]:
-    selected_mode = "strict" if mode == "conformant" else "probationary"
-    return _runbooks_for_mode(readme_path, selected_mode)
+def _resolve_harness_targets(
+    mode: str,
+    readme_path: Path,
+    repo_root: Path | None = None,
+) -> list[Path]:
+    if mode == "conformant":
+        root = (repo_root or readme_path.parent).resolve()
+        targets = active_catalog_paths(root)
+        _emit_catalog_selection("harness-selection", targets, root, selected_to_stderr=True)
+        return targets
+    return _runbooks_for_mode(readme_path, "probationary")
+
+
+def _emit_catalog_selection(
+    mode: str,
+    targets: list[Path],
+    repo_root: Path,
+    *,
+    selected_to_stderr: bool = False,
+) -> None:
+    if not targets:
+        click.echo("ZERO_TARGETS_SELECTED")
+        raise SystemExit(1)
+    click.echo(f"SELECTED_TARGET_MODE={mode}", err=selected_to_stderr)
+    click.echo(f"SELECTED_TARGET_COUNT={len(targets)}", err=selected_to_stderr)
+    for target in targets:
+        try:
+            display = target.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            display = str(target)
+        click.echo(f"SELECTED_TARGET_PATH={display}", err=selected_to_stderr)
 
 
 def _default_scenarios_dir(repo_root: Path) -> Path:

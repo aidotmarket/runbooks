@@ -12,10 +12,12 @@ jobs:
       - name: Install
         run: pip install -e .
       - name: Check generated catalog outputs
-        run: |
-          runbook-catalog check
-          git diff --exit-code -- CATALOG.json TOPIC-ROUTER.md README.md
+        run: runbook-catalog check
+      - name: Validate catalog at checked-out commit
+        run: runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
       - name: Lint conformant runbooks (strict)
-        run: runbook-lint --mode strict --format github
+        run: |
+          runbook-catalog select --mode lint-selection
+          runbook-lint --mode strict --format github
       - name: Lint in-progress runbooks (probationary)
         run: runbook-lint --mode probationary --format github || true

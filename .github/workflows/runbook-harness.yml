@@ -15,16 +15,18 @@ jobs:
         with: {python-version: '3.11'}
       - run: pip install -e .
       - name: Check generated catalog outputs
-        run: |
-          runbook-catalog check
-          git diff --exit-code -- CATALOG.json TOPIC-ROUTER.md README.md
+        run: runbook-catalog check
+      - name: Validate catalog at checked-out commit
+        run: runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
       - name: Update §J grace-clock (persists stale predicates from Gate 1 §J)
         run: runbook-lint --mode strict --update-lifecycle
       - name: Run harness against all conformant runbooks
         env:
           KOSKADEUX_MCP_URL: ${{ secrets.KOSKADEUX_MCP_URL }}
           KOSKADEUX_MCP_TOKEN: ${{ secrets.KOSKADEUX_MCP_TOKEN }}
-        run: runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
+        run: |
+          runbook-catalog select --mode harness-selection
+          runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
       - name: Commit updates
         run: |
           git config user.name "runbook-harness"
