@@ -1,0 +1,26 @@
+id: I-03
+runbook: council-gate-process.md
+type: operate
+refs:
+- E-03
+- F-04
+- agent-dispatch:E-03
+scenario: 'id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, and reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=mp, task=<audit_prompt>, allowed_tools=[Read,Grep,Glob,LS]). argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: PASS, PASS_WITH_MANDATES, or FAIL verdict tied to the audited commit, with line claims verified before attachment. expected_failures: review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification.
+  next_step_failure: redispatch a strict read-only review or return the chunk to build repair.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - agent
+  - task
+  - allowed_tools
+  argument_values:
+    agent: mp
+    allowed_tools:
+    - Read
+    - Grep
+    - Glob
+    - LS
+weight: 0.08333333333333333

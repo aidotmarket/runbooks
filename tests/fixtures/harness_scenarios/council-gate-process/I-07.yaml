@@ -1,0 +1,16 @@
+id: I-07
+runbook: council-gate-process.md
+type: isolate
+refs:
+- F-01
+- G-01
+- E-04
+scenario: 'id: F-01. trigger: bq_complete refuses a BQ because the only non-builder Gate 4 verdict is REQUEST_CHANGES. pre_conditions: builders list, reviewers list, gate4.<agent>_verdict fields, and completion error are available. tool_or_endpoint: cross_review_gate.py evaluation or manual approved_reviewers - builders computation. argument_sourcing: builder and reviewer sets from BQ entity; approval semantics from verdict strings; failing verdict from Gate 4 field. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as a cross-review gate block because REQUEST_CHANGES is reviewer evidence but not approving evidence. expected_failures: counting a builder PASS as independent review, regex-forcing the verdict text, or using break_glass without emergency authorization. next_step_success: get a real non-builder PASS or address requested changes. next_step_failure: leave the BQ open.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: compute
+  object: approved_reviewers minus builders
+  target: F-01 cross-review block
+weight: 0.08333333333333333

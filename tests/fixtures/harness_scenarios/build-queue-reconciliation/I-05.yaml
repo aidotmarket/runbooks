@@ -1,0 +1,13 @@
+id: I-05
+runbook: build-queue-reconciliation.md
+type: isolate
+refs:
+- F-02
+- G-02
+scenario: The git push poller logs that its poll was skipped and repository evidence is missing.
+expected_answers:
+- kind: human_action
+  verb: run
+  object: git fetch origin
+  target: every declared target repository
+weight: 0.08333333333333333

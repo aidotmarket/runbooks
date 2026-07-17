@@ -1,0 +1,20 @@
+id: I-12
+runbook: build-queue-reconciliation.md
+type: ambiguous
+refs:
+- E-01
+- F-01
+- F-05
+scenario: Build Queue is down but a human has manually verified git evidence and wants dispatch to continue.
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - mode
+  - bq_code
+  - bypass_reconcile
+  - reconcile_justification
+  argument_values:
+    mode: build
+    bypass_reconcile: true
+weight: 0.08333333333333333

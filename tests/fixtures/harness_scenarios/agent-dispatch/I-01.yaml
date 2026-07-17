@@ -1,0 +1,22 @@
+id: I-01
+runbook: agent-dispatch.md
+type: operate
+refs:
+- E-02
+- §D
+- council:I-02
+scenario: 'id: E-02. trigger: A completed dispatch-gateway patch needs independent AG review before Gate 3 closes. pre_conditions: commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: agent and mode from §D auth map; task from gate ACs plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns a read-only verdict with no file writes, and cited lines are verified before attachment. expected_failures: AG progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, or unhealthy AG backend. next_step_success: attach the verified verdict to the gate record. next_step_failure: isolate with F-02 and repair with G-02 or cover the review with another voter.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - agent
+  - mode
+  - task
+  - cwd
+  argument_values:
+    agent: ag
+    mode: review
+weight: 0.08333333333333333

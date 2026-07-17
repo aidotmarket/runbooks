@@ -1,0 +1,18 @@
+id: I-12
+runbook: council.md
+type: ambiguous
+refs:
+- E-03
+- §H
+- council-hall-deliberation:F-04
+- council-hall-deliberation:G-04
+scenario: 'id: AMB-01. trigger: A Gate 2 chunking spec gets conflicting MP and AG decomposition recommendations. pre_conditions: both verdicts, original spec, chunk-risk rationale, and BQ state are available. tool_or_endpoint: compare verdicts, then repair through Vulcan-direct fold or Council Hall only if evidence remains insufficient. argument_sourcing: claims from MP/AG transcripts; chunk boundaries from the spec; precedent from the S529 R2 Vulcan-direct fold pattern. idempotency: READ_ONLY_DIAGNOSTIC until a new spec patch is intentionally authored. expected_success: classify first as §F cross-vote divergence, not immediate §H evolution; redirect to §G repair by folding mandates into the spec or escalating to council-hall-deliberation:G-04 if the conflict is substantive. expected_failures: changing chunking rules prematurely, or picking one reviewer without preserving the dissent. next_step_success: produce a revised Gate 2 spec with both concerns resolved. next_step_failure: open Council
+  Hall/Max adjudication.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: MP/AG chunk decomposition disagreement
+  target: cross-vote divergence then council-hall-deliberation:G-04 before §H evolution
+weight: 0.08333333333333333

@@ -1,0 +1,14 @@
+id: I-12
+runbook: council-hall-deliberation.md
+type: evolve
+refs:
+- §H
+- §H.2
+- §H.3
+scenario: 'id: H-01. trigger: A proposal changes the normal Hall pattern from three voters to four by adding CC as a default voter, not just a fallback perspective. pre_conditions: proposed participant list, quorum math, cost cap, auth scope, and infra:council-comms patch are available. tool_or_endpoint: infra:council-comms participant-set patch plus runbook update. argument_sourcing: current defaults from Living State; new role from proposal; quorum and escalation effects from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because the default deliberation participant set and consensus math change. expected_failures: calling it SAFE because CC already appears in the capability map. next_step_success: open a Council config change review before using the four-voter pattern. next_step_failure: continue using MP, AG, and DeepSeek defaults.
+
+  '
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.06666666666666667

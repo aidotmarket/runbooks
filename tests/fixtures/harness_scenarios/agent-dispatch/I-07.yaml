@@ -1,0 +1,22 @@
+id: I-07
+runbook: agent-dispatch.md
+type: repair
+refs:
+- G-02
+- F-02
+- council:I-08
+scenario: 'id: G-02. trigger: AG MAX_TURNS exhaustion leaves a dispatch-gateway review without a usable verdict. pre_conditions: failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from §E. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns a focused read-only verdict over only the dispatch diff. expected_failures: second timeout, broad architecture critique, or fabricated file:line claim. next_step_success: attach replacement verdict and mark the failed task superseded. next_step_failure: use MP/DeepSeek coverage and record AG non-response.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - agent
+  - mode
+  - task
+  - cwd
+  argument_values:
+    agent: ag
+    mode: review
+weight: 0.08333333333333333

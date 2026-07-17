@@ -1,0 +1,14 @@
+id: I-10
+runbook: council-gate-process.md
+type: evolve
+refs:
+- §H
+- E-01
+- E-04
+scenario: 'id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from §H.5; invariants from §H.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before bq_complete. expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
+
+  '
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.08333333333333333

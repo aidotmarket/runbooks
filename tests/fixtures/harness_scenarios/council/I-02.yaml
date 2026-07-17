@@ -1,0 +1,26 @@
+id: I-02
+runbook: council.md
+type: operate
+refs:
+- E-02
+- §D
+- agent-dispatch:E-03
+scenario: 'id: E-02. trigger: A Gate 3 post-build audit is ready after a code chunk lands. pre_conditions: feature branch HEAD, committed diff, build entity, and security-sensitive scope are known. tool_or_endpoint: council_request(action=gate_review, agents=[mp, ag, deepseek], dispatch_pattern=gate3_post_build_audit, commit=<sha>). argument_sourcing: agents from the security rule in infra:council-comms; commit from git rev-parse HEAD; evidence refs from spec and diff. idempotency: IDEMPOTENT_WITH_KEY on build_id + gate3 + commit + agent. expected_success: MP, AG, and DeepSeek deliver read-only audit verdicts with no write side effects. expected_failures: AG line-number risk, backend timeout, stale review_order, or missing dispatch token. next_step_success: attach verdict set and promote or remediate. next_step_failure: isolate with F-01/F-03 and verify any file:line claims before accepting them.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - action
+  - agents
+  - dispatch_pattern
+  - commit
+  argument_values:
+    action: gate_review
+    agents:
+    - mp
+    - ag
+    - deepseek
+    dispatch_pattern: gate3_post_build_audit
+weight: 0.08333333333333333

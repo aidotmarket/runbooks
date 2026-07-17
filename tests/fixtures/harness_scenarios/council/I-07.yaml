@@ -1,0 +1,16 @@
+id: I-07
+runbook: council.md
+type: isolate
+refs:
+- §D
+- G-01
+scenario: 'id: F-04. trigger: AG verdict cites exact file:line findings that look plausible but do not match the diff. pre_conditions: AG verdict text, affected file paths, and repository checkout are available. tool_or_endpoint: nl -ba FILE | sed -n ''Np''. argument_sourcing: FILE and N from the AG verdict; repo path from the checked-out branch. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG line-number fabrication risk per BQ-COUNCIL-AG-LINE-NUMBER-VERIFICATION and verify every cited line before promoting the verdict. expected_failures: treating fabricated lines as confirmed audit evidence. next_step_success: accept only verified claims and record unverified ones as unsupported. next_step_failure: request a corrected review without line-number dependence.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: nl -ba FILE | sed -n 'Np'
+  argument_keys:
+  - FILE
+  - N
+weight: 0.08333333333333333

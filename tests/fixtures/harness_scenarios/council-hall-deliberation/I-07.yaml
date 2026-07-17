@@ -1,0 +1,16 @@
+id: I-07
+runbook: council-hall-deliberation.md
+type: isolate
+refs:
+- F-01
+- G-01
+- agent-dispatch:F-01
+scenario: 'id: F-01. trigger: A Hall remains stuck in phase=independent because DeepSeek has no recorded response while MP and AG have answered. pre_conditions: participant list, response slots, dispatch task ids, timeout policy, and backend health are available. tool_or_endpoint: council_hall(action=status, deliberation_id=<id>). argument_sourcing: response counts from Hall state; missing agent from empty slots; dispatch state from council_request records; timeout from infra:council-comms. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as no quorum or missing participant response, not a deliberation disagreement. expected_failures: generating cross-poll early or diagnosing a policy deadlock before quorum. next_step_success: use G-01 to verify health, redispatch once, or record a quorum exception. next_step_failure: keep independent phase blocked until the absent participant decision is explicit.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: inspect
+  object: independent phase response slots
+  target: F-01 then G-01
+weight: 0.06666666666666667

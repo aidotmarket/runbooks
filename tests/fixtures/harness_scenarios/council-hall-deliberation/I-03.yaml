@@ -1,0 +1,22 @@
+id: I-03
+runbook: council-hall-deliberation.md
+type: operate
+refs:
+- E-03
+- F-03
+- G-03
+scenario: 'id: E-03. trigger: MP, AG, and DeepSeek have all recorded independent assessments and material disagreement remains. pre_conditions: quorum is met, independent responses are recorded exactly once, synthesis has identified disagreement questions, and no cross-poll bundle exists yet. tool_or_endpoint: council_hall(action=get_cross_poll_bundle, deliberation_id=<id>, phase=cross_poll). argument_sourcing: deliberation_id from Hall session; phase from current state; disagreement_set from synthesis notes; included assessments from response slots. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + cross_poll_bundle_version. expected_success: bundle contains original prompt, all three independent assessments, and targeted instructions for cross-poll response. expected_failures: premature_cross_poll, missing eligible response, or biased synthesis. next_step_success: dispatch the bundle to participants for Phase 3. next_step_failure: apply G-03 and regenerate the bundle only after phase
+  state is repaired.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - deliberation_id
+  - phase
+  argument_values:
+    action: get_cross_poll_bundle
+    phase: cross_poll
+weight: 0.06666666666666667

@@ -1,0 +1,22 @@
+id: I-03
+runbook: council.md
+type: operate
+refs:
+- E-01
+- §D
+- agent-dispatch:E-01
+scenario: 'id: E-03. trigger: A code chunk has an approved Gate 2 spec and needs an implementation author. pre_conditions: branch target, spec excerpt, acceptance criteria, and write-mode authorization are explicit. tool_or_endpoint: council_request(action=build, agent=mp, prompt=<code chunk>, context_refs=<spec, branch, files>). argument_sourcing: agent from §D primary-builder policy; prompt from chunk spec; branch from git; auth mode from gate record. idempotency: IDEMPOTENT_WITH_KEY on build_id + chunk_id + branch + prompt_digest. expected_success: MP returns a commit SHA and implementation summary. expected_failures: Codex CLI timeout, missing repo context, or accidental review-mode token. next_step_success: send the commit to Gate 3 review. next_step_failure: reconcile dispatcher state with git or use CC fallback if MP times out.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - action
+  - agent
+  - prompt
+  - context_refs
+  argument_values:
+    action: build
+    agent: mp
+weight: 0.08333333333333333

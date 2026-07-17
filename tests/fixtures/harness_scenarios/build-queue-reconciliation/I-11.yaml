@@ -1,0 +1,13 @@
+id: I-11
+runbook: build-queue-reconciliation.md
+type: ambiguous
+refs:
+- F-05
+- G-05
+scenario: Living State says a later chunk is built while Build Queue and git support only an earlier chunk.
+expected_answers:
+- kind: human_action
+  verb: audit
+  object: recent Living State writes
+  target: BQ chunks against Build Queue history, commits, and reverts
+weight: 0.08333333333333333

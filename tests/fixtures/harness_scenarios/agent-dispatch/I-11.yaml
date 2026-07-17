@@ -1,0 +1,20 @@
+id: I-11
+runbook: agent-dispatch.md
+type: ambiguous
+refs:
+- F-01
+- F-03
+- F-05
+- G-01
+- G-03
+- G-05
+scenario: 'id: AMB-01. trigger: A dispatch failed silently and the operator cannot tell whether the cause is auth, gateway timeout, mutex contention, or malformed task/cwd. pre_conditions: submitted payload, auth context, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available. tool_or_endpoint: compare gateway logs, auth/token state, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: token source from launch env; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: branch the ambiguity into concrete §F symptoms: auth/token outside this runbook''s provider setup, F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, assuming auth without timing evidence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching
+  §G repair and preserve the failed transcript. next_step_failure: escalate with payload and log excerpts.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: triage
+  object: silent dispatch failure
+  target: auth versus F-01/F-03/F-05 versus malformed task or cwd
+weight: 0.08333333333333333

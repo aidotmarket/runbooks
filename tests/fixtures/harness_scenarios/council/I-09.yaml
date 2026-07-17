@@ -1,0 +1,16 @@
+id: I-09
+runbook: council.md
+type: repair
+refs:
+- G-01
+- §D
+scenario: 'id: G-02. trigger: A Council verdict contains file:line claims from AG and the operator must decide whether they are reliable. pre_conditions: verdict, file path, line numbers, and checked-out commit are available. tool_or_endpoint: nl -ba FILE | sed -n ''Np''. argument_sourcing: FILE and N from each verdict citation; commit from the review record. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: every cited line is checked against the reviewed commit and the accepted finding text matches the actual line. expected_failures: wrong checkout, off-by-one citation, or fabricated line. next_step_success: keep verified claims and annotate unsupported claims. next_step_failure: reject the line-specific finding and request evidence-backed restatement.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: nl -ba FILE | sed -n 'Np'
+  argument_keys:
+  - FILE
+  - N
+weight: 0.08333333333333333

@@ -1,0 +1,23 @@
+id: I-09
+runbook: council-hall-deliberation.md
+type: repair
+refs:
+- G-01
+- F-01
+- agent-dispatch:F-01
+scenario: 'id: G-01. trigger: DeepSeek is the only missing Hall participant after the independent-response timeout. pre_conditions: original neutral prompt, evidence refs, missing dispatch task id, and changed-file diff are available. tool_or_endpoint: council_request(agent=deepseek, mode=open_response, task=<diff_only_retry_prompt>, context_refs=<changed_files>). argument_sourcing: changed_files from git diff --name-only or the BQ evidence list; retry prompt from the original neutral prompt plus "answer only for these diffs"; dispatch cap from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + retry_prompt_digest. expected_success: missing reviewer returns a bounded independent assessment suitable for record_response. expected_failures: retry prompt exposes peer answers, uses strict review schema, or expands beyond the diff-only scope. next_step_success: record_response for DeepSeek and resume synthesis. next_step_failure: record a named quorum exception
+  and proceed only if policy allows.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - agent
+  - mode
+  - task
+  - context_refs
+  argument_values:
+    agent: deepseek
+    mode: open_response
+weight: 0.06666666666666667

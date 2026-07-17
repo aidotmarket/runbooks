@@ -1,0 +1,21 @@
+id: I-02
+runbook: council-gate-process.md
+type: operate
+refs:
+- E-02
+- F-02
+- G-02
+scenario: 'id: E-02. trigger: Gate 1 has passed and the BQ needs a bounded Gate 2 implementation spec before chunk build dispatch. pre_conditions: gate1.status is APPROVED or mandate-resolution evidence exists, spec path is selected, files touched and test plan are known, and compliance gate state is readable. tool_or_endpoint: specs/BQ-*-GATE2.md plus bq_update(entity=build:bq-*, gate=gate2, status=<status>). argument_sourcing: spec_path from BQ slug; files_touched from repository survey and approved design; status from implementation-spec review. idempotency: IDEMPOTENT_WITH_KEY on entity + spec_path + spec_commit. expected_success: reviewed Gate 2 spec names chunk ACs, file scope, risks, and tests, and BQ gate2 state matches the spec commit. expected_failures: Gate 1 still says APPROVED_WITH_MANDATES after mandates were satisfied, chunk scope omits affected files, or dispatch proceeds with no reviewed spec. next_step_success: dispatch the approved chunk build through the builder path.
+  next_step_failure: apply G-02 or revise the Gate 2 spec before dispatch.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: bq_update
+  argument_keys:
+  - entity
+  - gate
+  - status
+  argument_values:
+    gate: gate2
+weight: 0.08333333333333333

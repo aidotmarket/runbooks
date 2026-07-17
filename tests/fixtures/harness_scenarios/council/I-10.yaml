@@ -1,0 +1,12 @@
+id: I-10
+runbook: council.md
+type: evolve
+refs:
+- §H
+scenario: 'id: H-01. trigger: A proposal adds a new Council agent to active review rotation. pre_conditions: proposed agent role, auth scope, model frontier, and dispatch backend are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; dispatch patterns from infra:council-comms; security rule from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes dispatch_patterns, review_order, and 3-of-3 security rule math. expected_failures: calling it SAFE because code entry points stay the same. next_step_success: open a Gate 1/Gate 2 change with Council review. next_step_failure: block active dispatch until the policy is adjudicated.
+
+  '
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.08333333333333333

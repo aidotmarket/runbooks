@@ -1,0 +1,17 @@
+id: I-08
+runbook: agent-dispatch.md
+type: repair
+refs:
+- G-02
+- E-02
+- council:I-09
+scenario: 'id: G-02. trigger: A Council review contains AG file:line claims and the operator must validate them before promoting the verdict. pre_conditions: verdict text, file path, line number, and reviewed commit checkout are available. tool_or_endpoint: nl -ba FILE | sed -n ''Np''. argument_sourcing: FILE and N from each AG citation; commit from the gate review record; repo path from cwd. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: every cited line is checked against the reviewed commit and only matching claims are accepted. expected_failures: wrong checkout, off-by-one line, fabricated line, or accepting unverified evidence. next_step_success: keep verified findings and annotate unsupported claims. next_step_failure: reject line-specific claim and request evidence-backed restatement.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: nl -ba FILE | sed -n 'Np'
+  argument_keys:
+  - FILE
+  - N
+weight: 0.08333333333333333

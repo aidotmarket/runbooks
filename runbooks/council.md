@@ -22,10 +22,10 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-04-29
+last_verified_at: 2026-07-17
 system_name: council
 purpose_sentence: A multi-agent build and review system with MP as mandatory builder and CC, DeepSeek, and GLM as the gate voter panel.
-owner_agent: vulcan-and-mars
+owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
@@ -39,7 +39,7 @@ linter_version: 1.0.0
 
 ## §A. Header
 
-The YAML frontmatter above defines the §A header. §J is authoritative for lifecycle refresh tracking; this header is the display summary for stateless readers.
+The YAML frontmatter above defines the §A header. §J is authoritative for lifecycle refresh tracking; this header is the display summary for stateless readers. Vulcan is the single schema-valid lifecycle owner, while Vulcan and Mars retain equal-authority peer co-ownership of Council orchestration and state management.
 
 ## §B. Capability Matrix
 
@@ -78,13 +78,13 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | mandatory build author; not a gate voter | Builder backend from `infra:council-comms` | repo write when author-mode is explicit | ACTIVE |
-| CC | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
-| DeepSeek | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
-| GLM | gate voter | Voter backend from `infra:council-comms` | repo read | ACTIVE |
-| AG | no active gate role | Paused backend metadata in `infra:council-comms` | none for current gates | PAUSED |
-| XAI | no active gate role | Retirement metadata in `infra:council-comms` | none | RETIRED |
-| Vulcan + Mars | equal-authority peer orchestration and state management | Koskadeux MCP | gateway, Living State, repos | ACTIVE |
+| MP | Roster status ACTIVE: mandatory build author; not a gate voter | Builder backend from `infra:council-comms` | repo write when author-mode is explicit | COMPLETE |
+| CC | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
+| DeepSeek | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
+| GLM | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
+| AG | Roster status PAUSED: no active gate role | Paused backend metadata in `infra:council-comms` | none for current gates | COMPLETE |
+| XAI | Roster status RETIRED: no active gate role | Retirement metadata in `infra:council-comms` | none | PARTIAL — retired; see `infra:council-comms.retired_agents.xai` for cold storage and reactivation procedure |
+| Vulcan + Mars | Roster status ACTIVE: equal-authority peer orchestration and state management | Koskadeux MCP | gateway, Living State, repos | COMPLETE |
 
 <!-- catalog:historical -->
 MP owns primary review because the Codex CLI path is automated and has shown deeper wiring-gap detection per S526 Chunk 3B. AG remains valuable as a Gemini 3.1 Pro frontier cross-vote, but S499 line-number fabrication risk means code-audit line claims must be verified before use. DeepSeek is a full voter because S528 graduation produced 94 dispatches with `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. XAI is retired because line-number fabrication exclusion has applied since S342 and DeepSeek superseded the architecture-only niche; see the retired-agents appendix planned for `runbooks/agent-dispatch.md`.
@@ -384,36 +384,36 @@ scenario_set:
 
 ## §J. Lifecycle
 
-Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
+Lifecycle metadata records the S1265 content-conformance refresh and registered scenario-harness pass.
 
 ```yaml lifecycle
-last_refresh_session: S529
-last_refresh_commit: 8929cbf
-last_refresh_date: 2026-04-29T00:00:00Z
-owner_agent: vulcan-and-mars
+last_refresh_session: S1265
+last_refresh_commit: 03cd4c0
+last_refresh_date: 2026-07-17T20:00:00Z
+owner_agent: vulcan
 refresh_triggers:
   - council_request interface or roster semantics change
   - active or retired Council member capability/status changes
   - cross-runbook reference convention changes
   - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-04-29T00:00:00Z
+last_harness_pass_rate: 1.0
+last_harness_date: 2026-07-17T20:00:00Z
 first_staleness_detected_at: null
 ```
 
-The Council runbook family conformance status is `provisional` per Gate 1 §10 and Max's locked Option B decision (S530). The Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across all four family files, but final CONFORMANT is gated on AC14 — the §I scenario-scoring harness step (weighted score ≥0.80 per runbook) — which is blocked pending BQ-RUNBOOK-HARNESS-COMPACT-IO. Per Max Option B, AC14 stays a hard gate; the family is not certified on structure-and-lint alone.
+The Council runbook scenario set is registered under `tests/fixtures/harness_scenarios/council/` and passed the S1265 conformant harness.
 
 ## §K. Conformance
 
-Final AC12 conformance fields for Gate 2 Chunk C5c.
+Conformance fields for the S1265 content refresh.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S530 / 2026-04-29T21:30:45Z
+last_lint_run: S1265 / 2026-07-17T20:00:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: provisional` is the intended C5c value under Gate 1 §10; it stays documented in prose because the current linter schema does not yet accept that key in the §K YAML block (machine field deferred to BQ-RUNBOOK-LINT-FRESHNESS-FIELDS / v1.1.0).
+The §K block records the strict-lint result; harness state is authoritative in §J.

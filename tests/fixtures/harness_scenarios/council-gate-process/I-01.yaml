@@ -1,0 +1,22 @@
+id: I-01
+runbook: council-gate-process.md
+type: operate
+refs:
+- E-01
+- §C
+- agent-dispatch:E-02
+scenario: 'id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, reviewer is available, and no chunk spec has been promoted. tool_or_endpoint: bq_update(entity=build:bq-*, gate=gate1, status=<status>, reviewer_verdict=<verdict>). argument_sourcing: entity from Living State; reviewer from current Council review availability; status from verdict using APPROVED, APPROVED_WITH_MANDATES, or REJECTED. idempotency: IDEMPOTENT_WITH_KEY on entity + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and mandate text are attached to the BQ entity with design evidence. expected_failures: missing problem statement, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure:
+  return to design authoring or escalate ambiguous scope to Vulcan.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: bq_update
+  argument_keys:
+  - entity
+  - gate
+  - status
+  - reviewer_verdict
+  argument_values:
+    gate: gate1
+weight: 0.08333333333333333

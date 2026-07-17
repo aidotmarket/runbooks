@@ -1,0 +1,24 @@
+id: I-02
+runbook: council-hall-deliberation.md
+type: operate
+refs:
+- E-02
+- §D
+scenario: 'id: E-02. trigger: MP returns the first independent assessment for an active Hall. pre_conditions: deliberation_id exists, phase=independent, MP was dispatched with the frozen neutral prompt, and the answer includes verdict, confidence, claims, objections, and caveats. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=mp, phase=independent, response=<structured_answer>). argument_sourcing: deliberation_id from Hall start; agent from response owner; key_claims, objections, verdict, confidence, and caveats from the raw answer. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase. expected_success: MP slot is populated without advancing to cross-poll and without exposing the answer to AG or DeepSeek. expected_failures: duplicate response, missing required fields, or answer references another participant. next_step_success: continue collecting AG and DeepSeek independent responses. next_step_failure: isolate parser or phase issues before
+  synthesis.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - deliberation_id
+  - agent
+  - phase
+  - response
+  argument_values:
+    action: record_response
+    agent: mp
+    phase: independent
+weight: 0.06666666666666667

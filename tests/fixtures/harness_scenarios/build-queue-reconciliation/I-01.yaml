@@ -1,0 +1,17 @@
+id: I-01
+runbook: build-queue-reconciliation.md
+type: operate
+refs:
+- E-01
+scenario: A build dispatch finds high-confidence git-ahead drift that cleanly appends the next chunk.
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - mode
+  - bq_code
+  - auto_reconcile
+  argument_values:
+    mode: build
+    auto_reconcile: true
+weight: 0.08333333333333333

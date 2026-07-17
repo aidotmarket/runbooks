@@ -1,0 +1,13 @@
+id: I-07
+runbook: build-queue-reconciliation.md
+type: repair
+refs:
+- G-03
+- F-03
+scenario: The reconciler cannot read the chunk sequence because the gate spec path is wrong.
+expected_answers:
+- kind: human_action
+  verb: correct
+  object: gate spec path
+  target: gate{N}.spec_path and local specs file
+weight: 0.08333333333333333

@@ -1,0 +1,26 @@
+id: I-01
+runbook: council.md
+type: operate
+refs:
+- E-01
+- §D
+- agent-dispatch:E-02
+scenario: 'id: E-01. trigger: A Gate 2 chunking spec needs full Council review before the build plan closes. pre_conditions: feature branch, Gate 2 spec path, BQ entity, and current infra:council-comms.dispatch_patterns.gate2_spec_review are available. tool_or_endpoint: council_request(action=review, agents=[mp, ag, deepseek], dispatch_pattern=gate2_spec_review, context_refs=<spec, branch, build_id>). argument_sourcing: agents and pattern from infra:council-comms; branch from git; build_id from Living State. idempotency: IDEMPOTENT_WITH_KEY on build_id + gate + spec_sha + agent. expected_success: three read-only verdicts attached to the BQ record. expected_failures: timeout, missing agent backend, stale dispatch pattern, or auth-mode mismatch. next_step_success: close Gate 2 review or fold mandates into the spec. next_step_failure: isolate with F-01/F-03 or dispatch mechanics via agent-dispatch:F-02.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - action
+  - agents
+  - dispatch_pattern
+  - context_refs
+  argument_values:
+    action: review
+    agents:
+    - mp
+    - ag
+    - deepseek
+    dispatch_pattern: gate2_spec_review
+weight: 0.08333333333333333

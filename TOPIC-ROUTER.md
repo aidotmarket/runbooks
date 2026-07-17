@@ -8,7 +8,7 @@
 | Topic | Runbook | Section |
 |---|---|---|
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
-| `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [Architecture overview](runbooks/build-queue-reconciliation.md#architecture-overview) |
+| `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) |
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) |
@@ -47,7 +47,7 @@
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `unsupported_line_claim` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [Failure-mode runbook](runbooks/build-queue-reconciliation.md#failure-mode-runbook) |
+| `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§F. Isolate](runbooks/build-queue-reconciliation.md#f-isolate) |
 
 ## Aliases
 

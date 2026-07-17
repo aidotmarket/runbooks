@@ -1,0 +1,13 @@
+id: I-04
+runbook: build-queue-reconciliation.md
+type: isolate
+refs:
+- F-01
+- G-01
+scenario: Reconciliation reports build_queue_unreachable before a proposed automatic patch.
+expected_answers:
+- kind: human_action
+  verb: verify
+  object: Build Queue backend health
+  target: Build Queue dependency before reconciliation retry
+weight: 0.08333333333333333

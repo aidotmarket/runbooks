@@ -1,0 +1,19 @@
+id: I-04
+runbook: council-hall-deliberation.md
+type: operate
+refs:
+- E-03
+- G-04
+- G-06
+scenario: 'id: E-04. trigger: Cross-poll responses have been recorded and Vulcan needs a final synthesis for the decision record. pre_conditions: independent and cross-poll response sets are available, synthesis notes preserve claim-level attribution, and unresolved evidence gaps are named. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>). argument_sourcing: consensus candidates from cross-poll answers; dissent from remaining objections; evidence gaps from raw responses; escalation owner from policy boundary. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + final_response_set_hash. expected_success: summary classifies consensus, majority-plus-dissent, or no-consensus and names the next action. expected_failures: synthesis misrepresents a claim, hides dissent, or treats a policy choice as agent-resolvable. next_step_success: attach the final decision or escalation record to the BQ. next_step_failure: repair with G-04 or G-06 before closing the Hall.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - deliberation_id
+  argument_values:
+    action: summarize
+weight: 0.06666666666666667

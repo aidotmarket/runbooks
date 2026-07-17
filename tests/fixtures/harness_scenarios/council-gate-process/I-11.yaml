@@ -1,0 +1,14 @@
+id: I-11
+runbook: council-gate-process.md
+type: evolve
+refs:
+- §H
+- F-01
+- G-01
+scenario: 'id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from §C and §E-04; review predicates from §H.3; invariants from §H.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
+
+  '
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.08333333333333333

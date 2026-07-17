@@ -1,0 +1,18 @@
+id: I-04
+runbook: council-gate-process.md
+type: operate
+refs:
+- E-04
+- F-01
+- agent-dispatch:E-02
+scenario: 'id: E-04. trigger: Gate 3 has passed and the BQ is ready for Gate 4 production verification plus bq_complete. pre_conditions: gate3 passed, customer-perspective check is defined, reviewers and builders are readable, non-builder reviewer is available, and break_glass sentinel is absent. tool_or_endpoint: bq_complete(entity=build:bq-*, verification=<customer_perspective_evidence>). argument_sourcing: verification from endpoint checks, UI behavior, logs, or data validation; reviewers from BQ reviewers and gate4.<agent>_verdict fields; builders from BQ builders. idempotency: IDEMPOTENT_WITH_KEY on entity + gate4 + verification_digest + reviewer. expected_success: BQ completes only when Gate 4 PASS evidence exists and approved_reviewers - builders is non-empty. expected_failures: only builders approved, non-builder verdict says REQUEST_CHANGES, approval wording misses the accepted regex, or break_glass remains enabled. next_step_success: close handoff with entity key, commit, verification,
+  and reviewer summary. next_step_failure: obtain valid non-builder verification before retrying bq_complete.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: bq_complete
+  argument_keys:
+  - entity
+  - verification
+weight: 0.08333333333333333

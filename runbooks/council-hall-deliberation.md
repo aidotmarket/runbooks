@@ -22,7 +22,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-05-29
+last_verified_at: 2026-07-17
 system_name: council-hall-deliberation
 purpose_sentence: Council Hall deliberation process for unbiased multi-agent assessment, synthesis, and cross-pollination across MP, AG, DeepSeek, CC, and Vulcan.
 owner_agent: vulcan
@@ -443,12 +443,12 @@ scenario_set:
 
 ## §J. Lifecycle
 
-Lifecycle metadata records the final Gate 2 conformance refresh state. Harness scoring remains pending on compact-form §I loader support tracked by `BQ-RUNBOOK-HARNESS-COMPACT-IO`.
+Lifecycle metadata records the S1265 content-conformance refresh and registered scenario-harness pass.
 
 ```yaml lifecycle
-last_refresh_session: S726
-last_refresh_commit: 8929cbf
-last_refresh_date: 2026-05-29T00:00:00Z
+last_refresh_session: S1265
+last_refresh_commit: 03cd4c0
+last_refresh_date: 2026-07-17T20:00:00Z
 owner_agent: vulcan
 refresh_triggers:
   - Council hall phase flow or synthesis policy changes
@@ -456,26 +456,26 @@ refresh_triggers:
   - participating agent capability or availability changes
   - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-04-29T00:00:00Z
+last_harness_pass_rate: 1.0
+last_harness_date: 2026-07-17T20:00:00Z
 first_staleness_detected_at: null
 ```
 
-Conformance status is `provisional` per Gate 1 §10 and Max's locked Option B decision (S530). The Infisical cutover constraint is cleared and the runbook-lint sweep passes (fail=0) across the family, but final CONFORMANT is gated on AC14 — the §I scenario-scoring harness step (weighted score ≥0.80 per runbook) — which is blocked pending BQ-RUNBOOK-HARNESS-COMPACT-IO. Per Max Option B, AC14 stays a hard gate. This status is documented in prose only because runbook-lint v1.0.0 rejects `conformance_status` inside §K YAML.
+The Council Hall scenario set is registered under `tests/fixtures/harness_scenarios/council-hall-deliberation/` and passed the S1265 conformant harness.
 
 ## §K. Conformance
 
-Final AC12 conformance fields for Gate 2 Chunk C5c.
+Conformance fields for the S1265 content refresh.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S530 / 2026-04-29T21:30:45Z
+last_lint_run: S1265 / 2026-07-17T20:00:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
 ```
 
-`conformance_status: provisional` is the intended C5c state under Gate 1 §10; the runbook-lint v1.0.0 §K YAML schema rejects that additional key, so it remains prose-only until BQ-RUNBOOK-LINT-FRESHNESS-FIELDS v1.1.0 accepts freshness fields.
+The §K block records the strict-lint result; harness state is authoritative in §J.
 
 
 ## §M — S533 Operational Updates

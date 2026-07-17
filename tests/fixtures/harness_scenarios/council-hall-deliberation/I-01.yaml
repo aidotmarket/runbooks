@@ -1,0 +1,25 @@
+id: I-01
+runbook: council-hall-deliberation.md
+type: operate
+refs:
+- E-01
+- §D
+- council:I-12
+scenario: 'id: E-01. trigger: A BQ architecture choice has conflicting ordinary review advice and needs unbiased Hall deliberation. pre_conditions: neutral decision question, evidence refs, branch, BQ entity, and infra:council-comms Hall participant defaults are available; no participant has seen peer answers. tool_or_endpoint: council_hall(action=start, topic=<topic>, prompt=<neutral_prompt>, agents=[mp, ag, deepseek]). argument_sourcing: topic from the blocking decision; neutral_prompt from shared evidence and decision dimensions; agents from Hall defaults. idempotency: IDEMPOTENT_WITH_KEY on topic + prompt_digest + sorted(evidence_refs). expected_success: deliberation_id with phase=independent and empty mp/ag/deepseek response slots. expected_failures: duplicate_deliberation, participant_config_missing, or biased prompt. next_step_success: dispatch the identical neutral prompt to each participant. next_step_failure: repair participant or prompt state before any answer is collected.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - topic
+  - prompt
+  - agents
+  argument_values:
+    action: start
+    agents:
+    - mp
+    - ag
+    - deepseek
+weight: 0.06666666666666667

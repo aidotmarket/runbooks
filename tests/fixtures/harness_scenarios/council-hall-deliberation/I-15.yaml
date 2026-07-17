@@ -1,0 +1,18 @@
+id: I-15
+runbook: council-hall-deliberation.md
+type: ambiguous
+refs:
+- F-04
+- G-04
+- council-gate-process:F-04
+- council:I-12
+scenario: 'id: AMB-01. trigger: AG returns verdict=conditional while MP and DeepSeek return approve, and the operator asks whether the Hall has concurrence. pre_conditions: AG condition text, MP and DeepSeek approvals, gate status, and cross-poll responses are available. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>) followed by council-gate-process repair if the condition blocks gate promotion. argument_sourcing: conditional predicate from AG response; concurrence requirement from gate process; dissent and evidence gaps from Hall synthesis. idempotency: READ_ONLY_DIAGNOSTIC until gate repair is selected. expected_success: classify as ambiguous Hall concurrence, not automatic approval; summarize as majority-plus-condition or no-consensus depending on whether the condition is satisfied, then redirect gate-blocking repair to council-gate-process:F-04. expected_failures: counting conditional as unconditional concurrence, or changing the Hall verdict enum ad hoc. next_step_success:
+  either prove the condition satisfied and record it, or route through the cross-review gate repair pattern. next_step_failure: escalate to Max when the condition is a policy judgment.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: conditional Hall verdict
+  target: ambiguous concurrence then council-gate-process:F-04 repair
+weight: 0.06666666666666667

@@ -12,11 +12,11 @@ Grandfathered source documents (readable by explicit Git path, absent from catal
 
 | Runbook ID | Domain | Path | Authoritative topics and sections | Owner | Last verified |
 |---|---|---|---|---|---|
-| `agent-dispatch` | `council-operations` | [`runbooks/agent-dispatch.md`](runbooks/agent-dispatch.md) | `agent-dispatch` → [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) | vulcan | 2026-04-29 |
-| `build-queue-reconciliation` | `build-queue` | [`runbooks/build-queue-reconciliation.md`](runbooks/build-queue-reconciliation.md) | `build-queue-reconciliation` → [Architecture overview](runbooks/build-queue-reconciliation.md#architecture-overview) | vulcan | 2026-04-29 |
-| `council` | `council-operations` | [`runbooks/council.md`](runbooks/council.md) | `council-operations` → [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) | vulcan | 2026-04-29 |
-| `council-gate-process` | `council-operations` | [`runbooks/council-gate-process.md`](runbooks/council-gate-process.md) | `council-gate-process` → [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) | mp | 2026-04-29 |
-| `council-hall-deliberation` | `council-operations` | [`runbooks/council-hall-deliberation.md`](runbooks/council-hall-deliberation.md) | `council-hall-deliberation` → [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) | vulcan | 2026-05-29 |
+| `agent-dispatch` | `council-operations` | [`runbooks/agent-dispatch.md`](runbooks/agent-dispatch.md) | `agent-dispatch` → [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) | vulcan | 2026-07-17 |
+| `build-queue-reconciliation` | `build-queue` | [`runbooks/build-queue-reconciliation.md`](runbooks/build-queue-reconciliation.md) | `build-queue-reconciliation` → [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) | vulcan | 2026-07-17 |
+| `council` | `council-operations` | [`runbooks/council.md`](runbooks/council.md) | `council-operations` → [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) | vulcan | 2026-07-17 |
+| `council-gate-process` | `council-operations` | [`runbooks/council-gate-process.md`](runbooks/council-gate-process.md) | `council-gate-process` → [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) | mp | 2026-07-17 |
+| `council-hall-deliberation` | `council-operations` | [`runbooks/council-hall-deliberation.md`](runbooks/council-hall-deliberation.md) | `council-hall-deliberation` → [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) | vulcan | 2026-07-17 |
 <!-- runbook-catalog:end -->
 
 ## Status values

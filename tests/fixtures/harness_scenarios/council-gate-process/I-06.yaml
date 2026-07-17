@@ -1,0 +1,15 @@
+id: I-06
+runbook: council-gate-process.md
+type: isolate
+refs:
+- F-03
+- G-03
+scenario: 'id: F-03. trigger: Promotion shows a ghost entity from a BQ-code commit, such as the S407 fix path, and the visible BQ state does not match branch evidence. pre_conditions: target build:bq-* key, recent event history, git branch, commit SHA, and handoff text are available. tool_or_endpoint: state_get("build:bq-*") plus git log --oneline. argument_sourcing: entity key from promotion command; commit from git; slug and branch from handoff. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as stale or wrong Living State targeting before promoting, and identify the correct entity, branch HEAD, spec path, and commit. expected_failures: completing the ghost entity, reverting code to make state match, or patching multiple entities without a supersedes note. next_step_success: apply G-03 to reconcile the intended entity. next_step_failure: pause promotion for Vulcan state adjudication.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: reconcile
+  object: ghost BQ entity against branch and commit evidence
+  target: G-03 correct entity patch
+weight: 0.08333333333333333

@@ -1,0 +1,19 @@
+id: I-09
+runbook: council-gate-process.md
+type: repair
+refs:
+- G-03
+- F-03
+scenario: 'id: G-03. trigger: Promotion found ghost BQ entities or stale keys whose state diverges from the branch, and the operator must clean them without touching code commits. pre_conditions: wrong entity key, correct entity key, branch HEAD, affected commit, and evidence trail are known. tool_or_endpoint: bq_bulk_update(action=cancel, entities=<ghost_keys>, reason=<superseded_by_correct_entity>). argument_sourcing: ghost_keys from state search; correct entity and commit from git and handoff; reason from reconciliation notes. idempotency: IDEMPOTENT_WITH_KEY on sorted(ghost_keys) + correct_entity + commit. expected_success: ghost entities are canceled or annotated as superseded, correct entity remains promoted, and branch evidence is unchanged. expected_failures: canceling the live BQ, reverting code, or hiding stale history. next_step_success: retry promotion against the correct BQ. next_step_failure: escalate Living State repair to Vulcan.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: bq_bulk_update
+  argument_keys:
+  - action
+  - entities
+  - reason
+  argument_values:
+    action: cancel
+weight: 0.08333333333333333

@@ -1,0 +1,12 @@
+id: I-11
+runbook: council.md
+type: evolve
+refs:
+- §H
+scenario: 'id: H-02. trigger: A proposal changes the frontier model for an existing Council agent. pre_conditions: prior model, proposed model, role, measured review quality, and cost/timeout implications are known. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from §D. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model performs at or above the prior bar. expected_failures: treating the swap as documentation-only or ignoring role-specific quirks. next_step_success: update model_policy and runbooks after review. next_step_failure: keep the prior model frontier.
+
+  '
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.08333333333333333

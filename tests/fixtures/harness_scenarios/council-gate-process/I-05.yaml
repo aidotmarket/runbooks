@@ -1,0 +1,16 @@
+id: I-05
+runbook: council-gate-process.md
+type: isolate
+refs:
+- F-02
+- G-02
+- E-02
+scenario: 'id: F-02. trigger: Gate 2 build dispatch is blocked even though mandate-resolution notes say Gate 1 work was satisfied. pre_conditions: BQ entity, Gate 1 verdict, mandate-resolution evidence, and dispatch block message are available. tool_or_endpoint: state_get("build:bq-*"). argument_sourcing: entity from blocked dispatch; mandate evidence from BQ body and spec; status from gate1.status. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify the block as the Gate 1 APPROVED_WITH_MANDATES compliance trap when prose is resolved but status still blocks downstream dispatch. expected_failures: bypassing the compliance gate, creating a new BQ, or editing Gate 2 before fixing the stale Gate 1 status. next_step_success: apply G-02 and read the entity back. next_step_failure: keep dispatch blocked and return to mandate resolution.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: Gate 1 APPROVED_WITH_MANDATES trap
+  target: G-02 status patch
+weight: 0.08333333333333333

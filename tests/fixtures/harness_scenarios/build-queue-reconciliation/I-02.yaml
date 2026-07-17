@@ -1,0 +1,11 @@
+id: I-02
+runbook: build-queue-reconciliation.md
+type: operate
+refs:
+- E-02
+scenario: A session opener needs a read-only report of drift across in-progress Build Queue entities.
+expected_answers:
+- kind: tool_call
+  tool: kd_session_open
+  argument_keys: []
+weight: 0.08333333333333333

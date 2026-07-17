@@ -1,0 +1,17 @@
+id: I-05
+runbook: council-hall-deliberation.md
+type: isolate
+refs:
+- F-04
+- G-04
+- council:I-12
+scenario: 'id: F-04. trigger: Final Hall positions are split 2-1, with MP and DeepSeek accepting the architecture while AG rejects it on maintainability risk. pre_conditions: all independent and cross-poll responses are recorded, each verdict has confidence and objections, and Vulcan synthesis shows a real value judgment rather than missing evidence. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>). argument_sourcing: majority view from MP/DeepSeek; dissent from AG; unresolved predicates from synthesis; owner from escalation policy. idempotency: READ_ONLY_DIAGNOSTIC until a final decision owner acts. expected_success: classify as agent-disagreement deadlock or majority-plus-dissent, preserve AG dissent, and escalate to Max if the value judgment blocks the BQ. expected_failures: calling it full concurrence, dropping dissent, or rerunning agents indefinitely. next_step_success: use G-04 to record majority, dissent, evidence gap, and decision owner. next_step_failure:
+  keep the Hall open with no promotion.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: 2-1 Hall verdict divergence
+  target: F-04 then G-04
+weight: 0.06666666666666667

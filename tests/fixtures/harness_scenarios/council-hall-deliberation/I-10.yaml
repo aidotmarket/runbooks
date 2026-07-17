@@ -1,0 +1,24 @@
+id: I-10
+runbook: council-hall-deliberation.md
+type: repair
+refs:
+- G-02
+- F-02
+scenario: 'id: G-02. trigger: A late AG independent response should be included because it raises a material evidence gap before cross-poll dispatch. pre_conditions: late response, prior synthesis note, current phase, and dispatch timestamps are preserved. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=ag, phase=independent, response=<late_answer>, transition=synthesis_restart). argument_sourcing: response from AG transcript; transition reason from Vulcan materiality check; timestamps from Hall state. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase + dispatch_task_id. expected_success: the late response is added as late-arriver evidence and phase is manually returned to synthesis before a new cross-poll bundle is generated. expected_failures: overwriting the prior synthesis without trace or advancing directly to cross-poll. next_step_success: rebuild synthesis with the AG claim included and preserve the original synthesis timestamp.
+  next_step_failure: exclude duplicate late evidence and document why.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - deliberation_id
+  - agent
+  - phase
+  - response
+  argument_values:
+    action: record_response
+    agent: ag
+    phase: independent
+weight: 0.06666666666666667

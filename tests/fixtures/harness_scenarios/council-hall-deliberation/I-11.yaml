@@ -1,0 +1,22 @@
+id: I-11
+runbook: council-hall-deliberation.md
+type: repair
+refs:
+- G-04
+- F-01
+- council-gate-process:F-04
+scenario: 'id: G-04. trigger: MP and DeepSeek responded, AG is absent, and the gate owner asks for an explicit partial-response summary instead of waiting another cycle. pre_conditions: quorum exception is allowed, absent agent is named, MP and DeepSeek raw responses are available, and the BQ risk of delay is recorded. tool_or_endpoint: council_hall(action=summarize, deliberation_id=<id>, include_partial=true). argument_sourcing: participating agents from response slots; absent agent from Hall participant list; quorum exception from operator or gate owner; risk note from BQ state. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + partial_response_set_hash. expected_success: summary names the partial response set, absent AG, confidence reduction, dissent status, and whether council-gate-process repair is needed. expected_failures: presenting partial concurrence as full Hall consensus or hiding the missing reviewer. next_step_success: attach partial summary to the gate record and route
+  any gate-blocking issue through council-gate-process:F-04. next_step_failure: keep the Hall open and redispatch the missing reviewer.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: council_hall
+  argument_keys:
+  - action
+  - deliberation_id
+  - include_partial
+  argument_values:
+    action: summarize
+    include_partial: true
+weight: 0.06666666666666667

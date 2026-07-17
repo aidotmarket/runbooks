@@ -1,0 +1,14 @@
+id: I-14
+runbook: council-hall-deliberation.md
+type: evolve
+refs:
+- §H
+- §H.3
+- E-03
+scenario: 'id: H-03. trigger: A proposal changes the cross-poll bundle from one prompt plus all independent assessments to per-agent customized bundles that omit each agent''s original answer. pre_conditions: proposed bundle schema, anchoring analysis, transcript storage, and compatibility with get_cross_poll_bundle are available. tool_or_endpoint: council_hall(action=get_cross_poll_bundle) schema change. argument_sourcing: current bundle contract from E-03; proposed fields from design patch; integrity requirements from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the public cross-poll contract changes and must prove it still preserves eligible assessments exactly once. expected_failures: calling it SAFE formatting or losing auditability of what each agent saw. next_step_success: require schema review and transcript tests before rollout. next_step_failure: keep the existing bundle structure.
+
+  '
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.06666666666666667

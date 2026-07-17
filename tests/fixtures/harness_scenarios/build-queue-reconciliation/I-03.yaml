@@ -1,0 +1,11 @@
+id: I-03
+runbook: build-queue-reconciliation.md
+type: operate
+refs:
+- E-05
+scenario: The weekly operator needs the rolling seven-day audit of reconciliation bypasses.
+expected_answers:
+- kind: tool_call
+  tool: python3 scripts/bypass_audit_report.py --days 7
+  argument_keys: []
+weight: 0.08333333333333333

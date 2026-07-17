@@ -1,0 +1,16 @@
+id: I-05
+runbook: agent-dispatch.md
+type: isolate
+refs:
+- F-02
+- G-02
+- council:I-05
+scenario: 'id: F-02. trigger: AG returns no verdict because review-mode MAX_TURNS=25 is exhausted on a broad dispatch diff. pre_conditions: AG transcript, max-turn marker, diff size, prompt body, and review_order are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; changed files from git diff; role expectation from infra:council-comms review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: accepting a partial non-verdict, widening timeout without narrowing scope, or confusing it with gateway outage. next_step_success: redispatch with G-02 using an ultra-tight diff-only prompt. next_step_failure: preserve AG non-response and use MP/DeepSeek verdicts for coverage.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: AG MAX_TURNS=25 review-mode exhaustion
+  target: BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE then G-02
+weight: 0.08333333333333333

@@ -1,0 +1,17 @@
+id: I-12
+runbook: council-gate-process.md
+type: ambiguous
+refs:
+- E-02
+- F-03
+- G-03
+scenario: 'id: AMB-01. trigger: A build''s chunks_complete count drifts from main after a merge, and Gate 2 status, reconciler output, and Living State do not agree. pre_conditions: main branch BQ state, feature branch BQ state, Gate 2 spec, reconciler transcript, and current commit are available. tool_or_endpoint: compare Gate 2 spec, state_get("build:bq-*"), and git diff origin/main...HEAD. argument_sourcing: chunks_complete from Living State; expected chunks from the spec; branch drift from git; reconciler limitations from recent state notes. idempotency: READ_ONLY_DIAGNOSTIC until the root cause is identified. expected_success: hold three hypotheses open: Gate 2 may be incomplete, reconciler may be unable to infer unsupported chunk_plan_unavailable schemas such as BQ-LS-BUILD-QUEUE-AUTORECONCILE-CHUNK-PLAN-SCHEMA/S530, or Living State may be stale. expected_failures: marking Gate 2 complete from a count alone, bypassing reconcile without audit justification, or rewriting the spec to
+  match stale state. next_step_success: pick the evidence-backed repair path, using bypass_reconcile only with an audit-justified note for unsupported BQ schemas. next_step_failure: leave completion blocked pending Vulcan adjudication.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: triage
+  object: chunks_complete drift across spec, git, reconciler, and Living State
+  target: evidence-backed repair path
+weight: 0.08333333333333333

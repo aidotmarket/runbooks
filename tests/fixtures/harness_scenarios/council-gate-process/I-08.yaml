@@ -1,0 +1,21 @@
+id: I-08
+runbook: council-gate-process.md
+type: repair
+refs:
+- G-02
+- F-02
+- E-02
+scenario: 'id: G-02. trigger: Gate 1 mandates are demonstrably resolved, but gate1.status still blocks Gate 2 chunk build dispatch. pre_conditions: original Gate 1 mandate text, resolution evidence, BQ entity version, and intended Gate 2 spec are present. tool_or_endpoint: bq_update(entity=build:bq-*, gate=gate1, status=APPROVED). argument_sourcing: entity from blocked build; resolution evidence from entity or spec; status from the compliance gate contract. idempotency: IDEMPOTENT_WITH_KEY on entity + gate1 + approved_patch + evidence_digest. expected_success: gate1.status changes from APPROVED_WITH_MANDATES to APPROVED, the resolution note remains auditable, and only the intended chunk is unblocked. expected_failures: approving without evidence, deleting mandate history, or patching the wrong BQ key. next_step_success: rerun the Gate 2 dispatch precheck. next_step_failure: restore APPROVED_WITH_MANDATES and finish mandate work.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: bq_update
+  argument_keys:
+  - entity
+  - gate
+  - status
+  argument_values:
+    gate: gate1
+    status: APPROVED
+weight: 0.08333333333333333

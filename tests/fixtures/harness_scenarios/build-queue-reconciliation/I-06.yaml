@@ -1,0 +1,13 @@
+id: I-06
+runbook: build-queue-reconciliation.md
+type: isolate
+refs:
+- F-04
+- G-04
+scenario: A BQ cannot reconcile because body.target_repos is missing or unsupported.
+expected_answers:
+- kind: human_action
+  verb: confirm
+  object: repository ownership
+  target: body.target_repos before dry-run backfill
+weight: 0.08333333333333333

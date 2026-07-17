@@ -1,0 +1,13 @@
+id: I-13
+runbook: council-hall-deliberation.md
+type: evolve
+refs:
+- §H
+- §H.3
+scenario: 'id: H-02. trigger: A proposal changes Hall verdict values from free-form approve/reject style labels to approve, reject, and conditional. pre_conditions: current response contract, parser behavior, summarize logic, and gate concurrence expectations are known. tool_or_endpoint: council_hall response contract update plus runbook update. argument_sourcing: current output fields from E-02; summary classifications from E-04; gate expectations from council-gate-process. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the response contract changes while preserving the three-phase Hall invariant. expected_failures: treating the enum change as prompt wording only or deploying it without summary/gate interpretation. next_step_success: review parser, summary, and gate mapping before accepting conditional as a new value. next_step_failure: keep the prior verdict contract.
+
+  '
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.06666666666666667

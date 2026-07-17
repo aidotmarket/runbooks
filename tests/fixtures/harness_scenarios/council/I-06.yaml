@@ -1,0 +1,16 @@
+id: I-06
+runbook: council.md
+type: isolate
+refs:
+- F-02
+- G-02
+- agent-dispatch:F-02
+scenario: 'id: F-03. trigger: MP was dispatched for review but produced a commit. pre_conditions: dispatch mode, task prompt, git log, and branch status are available. tool_or_endpoint: git log plus council_request dispatch record. argument_sourcing: token mode from gateway record; commits from git; prompt role from task payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as MP READ-ONLY violation, cite the S452 quirk, and quarantine the commit before accepting any review result. expected_failures: silently keeping the commit, or rerunning from the dirty branch. next_step_success: apply G-02 and rerun the review from clean read-only state. next_step_failure: escalate auth-boundary mismatch to Vulcan/Max.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: quarantine
+  object: MP review-mode commit
+  target: F-02 then G-02
+weight: 0.08333333333333333

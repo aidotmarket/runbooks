@@ -1,0 +1,15 @@
+id: I-08
+runbook: council-hall-deliberation.md
+type: isolate
+refs:
+- F-03
+- G-03
+scenario: 'id: F-03. trigger: get_cross_poll_bundle returns an empty bundle for a Hall that was just started. pre_conditions: deliberation_id exists, phase is independent, and no agent response slots are populated. tool_or_endpoint: council_hall(action=get_cross_poll_bundle, deliberation_id=<id>). argument_sourcing: phase and response slots from Hall state; bundle transcript from the attempted call. idempotency: READ_ONLY_DIAGNOSTIC for diagnosis; do not dispatch the empty bundle. expected_success: classify as premature cross-pollination caused by no recorded independent responses. expected_failures: treating the empty bundle as valid or filling it manually from memory. next_step_success: cancel the bundle, restore independent phase, and collect responses through E-02. next_step_failure: invalidate any cross-poll dispatch that used the empty bundle.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: reject
+  object: empty cross-poll bundle
+  target: F-03 then G-03
+weight: 0.06666666666666667

@@ -1,0 +1,17 @@
+id: I-06
+runbook: agent-dispatch.md
+type: isolate
+refs:
+- F-01
+- G-01
+- F-05
+- G-05
+scenario: 'id: F-01. trigger: MP dispatch appears to fail silently after a cwd shorthand is used, and a later retry returns a gateway timeout after more than 30 seconds. pre_conditions: submitted prompt, cwd argument, gateway response, backend logs, and MCP tool-call trace are available. tool_or_endpoint: gateway logs plus dispatch_mp_build transcript. argument_sourcing: cwd from the failed payload; duration from gateway logs; S347 evidence from incident notes; tool prefix from transcript. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify cwd shorthand silent failure as the first defect, cite S347, and separately identify the >30s gateway timeout path as F-01 if the retry reached the backend. expected_failures: collapsing both symptoms into auth failure, or retrying without converting cwd to an absolute path. next_step_success: rerun with absolute cwd and background dispatch if the task exceeds sync tolerance. next_step_failure: escalate gateway logs with transcript evidence.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: MP cwd shorthand silent failure plus gateway timeout
+  target: S347, F-01, and G-01
+weight: 0.08333333333333333

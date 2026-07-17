@@ -1,0 +1,23 @@
+id: I-02
+runbook: agent-dispatch.md
+type: operate
+refs:
+- E-01
+- F-04
+- G-04
+scenario: 'id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, and intentional bypass_reconcile rationale are available. tool_or_endpoint: dispatch_mp_build(task=<prompt>, cwd=<repo>, branch=<branch>, timeout=300, bypass_reconcile=true). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; branch from git status; bypass_reconcile from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on branch + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to
+  reconcile before retrying or escalating.
+
+  '
+expected_answers:
+- kind: tool_call
+  tool: dispatch_mp_build
+  argument_keys:
+  - task
+  - cwd
+  - branch
+  - timeout
+  - bypass_reconcile
+  argument_values:
+    bypass_reconcile: true
+weight: 0.08333333333333333

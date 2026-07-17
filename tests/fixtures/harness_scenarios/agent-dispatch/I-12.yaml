@@ -1,0 +1,18 @@
+id: I-12
+runbook: agent-dispatch.md
+type: ambiguous
+refs:
+- F-04
+- G-04
+- F-01
+- G-01
+scenario: 'id: AMB-02. trigger: MP says a build completed, but the gateway task still looks stale and the branch may or may not contain the commit. pre_conditions: MP transcript, gateway task id, git log, git status, BQ build summary, and branch name are available. tool_or_endpoint: compare git HEAD, dispatcher task record, and Living State build entity. argument_sourcing: commit SHA from MP transcript and git log; task status from gateway; build summary from BQ entity; branch from git status. idempotency: READ_ONLY_DIAGNOSTIC until state reconciliation is intentionally patched. expected_success: distinguish dispatcher-stale-but-files-committed F-04 from a real gateway timeout F-01, and do not launch duplicate build work until git HEAD is checked. expected_failures: accepting stale state as failure without checking git, or patching Living State to a commit that is not on the branch. next_step_success: use G-04 to reconcile state if the commit exists, or G-01 to retry narrowly if it does
+  not. next_step_failure: escalate with transcript, task id, and git evidence.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: distinguish
+  object: stale dispatcher state versus failed MP build
+  target: F-04/G-04 before F-01/G-01 retry
+weight: 0.08333333333333333

@@ -1,0 +1,16 @@
+id: I-04
+runbook: council.md
+type: isolate
+refs:
+- F-01
+- G-01
+- agent-dispatch:F-02
+scenario: 'id: F-01. trigger: AG review-mode dispatch stops with a progress-guard timeout while reviewing a Council spec. pre_conditions: dispatch transcript and timeout policy are available. tool_or_endpoint: dispatcher transcript plus infra:council-comms.dispatch_patterns. argument_sourcing: task id from council_request response; timeout cap from Living State; prompt size from dispatch payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX C1-C4 as the relevant defect/fix history. expected_failures: confusing backend outage with prompt-budget exhaustion, or redispatching before preserving transcript evidence. next_step_success: apply G-01 with a narrower review prompt. next_step_failure: escalate backend health to dispatch maintainers.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: inspect
+  object: AG progress-guard timeout transcript
+  target: F-01 then G-01
+weight: 0.08333333333333333

@@ -1,0 +1,16 @@
+id: I-04
+runbook: agent-dispatch.md
+type: isolate
+refs:
+- F-02
+- G-02
+- council:I-04
+scenario: 'id: F-02. trigger: AG review dispatch stalls with a progress-guard timeout while checking a dispatch patch. pre_conditions: AG transcript, last progress marker, original prompt, repo cwd, and AG server health are available. tool_or_endpoint: AG transcript plus council_request task record. argument_sourcing: task id from gateway response; timeout marker from transcript; prompt size from payload; health from AG server check. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX before any redispatch. expected_failures: treating it as a policy disagreement, losing the transcript, or rerunning the same broad prompt. next_step_success: use G-02 with a narrower read-only prompt. next_step_failure: escalate backend health and cover with MP/DeepSeek if gate timing requires.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: AG progress-guard timeout
+  target: F-02 then G-02
+weight: 0.08333333333333333

@@ -1,0 +1,16 @@
+id: I-06
+runbook: council-hall-deliberation.md
+type: isolate
+refs:
+- F-02
+- G-02
+scenario: 'id: F-02. trigger: AG returns an independent answer after Vulcan has already begun synthesis from MP and DeepSeek. pre_conditions: AG dispatch task, synthesis timestamp, response timestamp, and current Hall phase are available. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=ag, phase=independent, response=<late_answer>). argument_sourcing: agent and response from AG task; phase from Hall state; timestamps from dispatch and synthesis records. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase + dispatch_task_id. expected_success: classify as late_arriver phase desync and record whether the late answer is included, excluded, or triggers synthesis restart. expected_failures: silently overwriting synthesis or pretending the response arrived on time. next_step_success: apply G-02 and preserve both original synthesis and late-arriver handling. next_step_failure: escalate only if inclusion materially changes the decision and no owner
+  is defined.
+
+  '
+expected_answers:
+- kind: human_action
+  verb: classify
+  object: late-arriver phase desync
+  target: F-02 then G-02
+weight: 0.06666666666666667

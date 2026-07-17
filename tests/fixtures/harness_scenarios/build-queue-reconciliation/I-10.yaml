@@ -1,0 +1,10 @@
+id: I-10
+runbook: build-queue-reconciliation.md
+type: evolve
+refs:
+- §H
+scenario: A proposal changes the default Build Queue poll cadence without changing public signatures.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.08333333333333333
