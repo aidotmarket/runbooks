@@ -30,7 +30,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 3 and 5.
+**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, section 5.
 
 ## §B. Capability Matrix
 
@@ -94,6 +94,8 @@ The selection and eligibility bullets are companion synthesis of the approved ke
 ### Author token, lease, and syntax
 
 Author mode binds a UUIDv7 `dispatch_id`, signed `dispatch_token`, `target_gate`, and `bound_dispatch_id` to the intended BQ/gate. The gate lease records `lease_started_at`, `lease_expires_at`, `extension_count`, and `extended_at`; extensions update optimistic state rather than silently renewing. Review uses `mode=review` and explicit read-only scope. Build uses `mode=build`, `agent=mp`, BQ code, branch/worktree, approved spec reference, and acceptance manifest. These mechanics cannot relax gate approval or reviewer independence.
+
+The §B author-dispatch-token-and-lease row and this machinery are companion synthesis of the shipped live gate tooling fields exposed by the koskadeux-mcp `state_request` and `council_request` author-mode parameters, not CORE-derived rules. If this description diverges from the live tool schema, the live tool schema prevails.
 
 ## §D. Agent Capability Map
 
