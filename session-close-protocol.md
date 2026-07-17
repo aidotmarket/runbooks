@@ -1,5 +1,31 @@
 # Session Close Protocol
 
+## Current equal-peer close contract
+
+Vulcan and Mars are equal-authority peers. Each session is keyed by instance and opens,
+plans, operates, and closes independently; there are no role-based lanes, lifecycle
+slots, parent-session dependency, or peer close ordering.
+
+Close a peer's session only when Max explicitly requests it, that peer approaches its
+context limit, or that peer has no eligible work and is intentionally stopping. One peer's
+close never waits for, forces, or implies the other peer's close.
+
+Before `kd_session_close`, the closing peer must drain its peer inbox, leave its owned repos
+clean or intentionally committed, and prepare its own handoff. The close result must mark
+only the named instance closed and must leave the other peer's registry row, boot-gate state,
+work claims, and handoff untouched. Verify those instance-scoped effects before declaring
+close complete. Use `session-registry-recovery.md` if the instance row is stale or a close
+partially completes.
+
+MP is the mandatory builder, not a gate voter; the current gate voter panel is CC +
+DeepSeek + GLM. `infra:council-comms` is canonical for the live roster and dispatch config.
+
+<!-- catalog:historical -->
+## Historical S607-S630 role-slot close record (retired)
+
+The sections below preserve the former Primary/Worker implementation and its incident
+recovery guidance as historical fact. They are not current operating instructions.
+
 ## C.1 Purpose
 The Koskadeux session close flow for Primary and Worker instances: gates, lock release, handoff write, and recovery procedures when close partial-completes. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Major rewrite from 35-line stub during S612 process consolidation.
 
@@ -129,3 +155,4 @@ If `kd_session_close` first attempt fails on branch check and retry after main c
 ## C.15 Owner
 This runbook is owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0).
 Revisions land as PRs against koskadeux-mcp main; require MP+AG review-mode approval (close-path criticality).
+<!-- /catalog:historical -->

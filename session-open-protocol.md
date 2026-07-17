@@ -32,8 +32,8 @@ The boot gate is instance-keyed in `registry.db`. `vulcan` open does not disturb
 - **Missing-instance and agent-dispatch opens are namespaced to `scratch` (S858), not defaulted to `vulcan`.** An open with no `instance` arg, or an agent sub-session opened via `council_request`, lands in the non-human `scratch` row and skips the human boot payload. `_instance_liveness_collision` additionally refuses an open when the named `instance` already holds a live `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen is allowed; `scratch` is exempt). A live `scratch` row in the registry is normal, not a fault. See agent-dispatch.md §M.1 and session-registry-recovery.md §A.
 
 
-## O.4 Primary work pickup priority order
-After open, Primary works the highest-leverage item:
+## O.4 Peer work pickup priority order
+After open, each peer independently works the highest-leverage item it can claim:
 1. Pending reviewer verdicts on open PRs (check; merge if clean).
 2. R2/R3 folds needed on PRs with mandates.
 3. New builds from the queue (highest priority first).
@@ -72,13 +72,15 @@ protocol.
 Use `docs/instance-opening-prompt.md` for either peer.
 
 ## O.9 Business briefing review at open
-`kd_session_open` returns a `business_briefing` with the top BQs in business English. Vulcan-Primary uses this for:
+`kd_session_open` returns a `business_briefing` with the top BQs in business English. Either peer uses this for:
 - Stale-priority signals (any item over 10 days untouched warrants a check).
 - Pending Max input items (one-line decisions blocking Federate or other P0 work).
 - Backfill count (any items missing business summary).
 
 ## O.10 The 5 surviving process BQs at open
 After S612 consolidation, process work pickup is routed via the 5 survivors:
+
+The names below are historical S612 work-item identifiers retained verbatim; they do not assign current instance roles or authority:
 - BQ-PROCESS-AGENT-DISPATCH-RELIABILITY-S612 (P0)
 - BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612 (P0)
 - BQ-PROCESS-BUILD-QUEUE-INTEGRITY-S612 (P1)
@@ -104,4 +106,4 @@ The `kd_session_open` boot payload has a hard wire budget of 64,000 JSON charact
 
 ## O.12 Owner
 This runbook is owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0).
-Revisions land as PRs against koskadeux-mcp main; require MP+AG review-mode approval (open-path criticality).
+Revisions land as PRs against koskadeux-mcp main. MP is the mandatory builder, not a gate voter; the current gate voter panel is CC + DeepSeek + GLM, with live roster/config authority in `infra:council-comms`.

@@ -14,7 +14,7 @@
 ## What it is
 
 Exposes the Koskadeux MCP server on Titan-1 at `https://mcp.ai.market` so the hosted Claude
-instances (Vulcan = primary slot, Mars = worker slot) can call MCP tools from a hosted
+instances (Vulcan and Mars, equal-authority peers) can call MCP tools from a hosted
 browser session. All tool calls (`council_request`, `state_request`, `kd_session_*`,
 `shell_request`, `dispatch_mp_build`, etc.) execute locally on Titan-1 against the
 filesystem, agents, Council infrastructure, and Living State.
@@ -26,7 +26,7 @@ filesystem, agents, Council infrastructure, and Living State.
 ## Architecture
 
 ```
-Claude.ai (hosted browser — Vulcan primary + Mars worker)
+Claude.ai (hosted browser — Vulcan + Mars, equal-authority peers)
   → https://mcp.ai.market           [Cloudflare Tunnel — public surface]
   → cloudflared on Titan-1          [com.koskadeux.cloudflared: `cloudflared tunnel run koskadeux`]
   → gateway_server.py :8767         [thin MCP-protocol proxy + OAuth]
@@ -48,10 +48,14 @@ handlers require restarting `koskadeux_server.py` (`com.koskadeux.mcp`), not the
 | `koskadeux_server.py` | 8765 | `com.koskadeux.mcp` | REAL HANDLER — imports `tools/agents.py`; all tool implementations execute here. |
 | `gateway_server.py` | 8767 | `com.koskadeux.gateway` | MCP-protocol proxy → `:8765` via HTTP (`KOSKADEUX_URL=http://localhost:8765`). |
 | `cloudflared` | — | `com.koskadeux.cloudflared` | **Public transport for `mcp.ai.market`** (`cloudflared tunnel run koskadeux`). LOAD-BEARING — do not remove. |
-| `ag_server` | 8766 | `com.koskadeux.ag_server` | Council voter — Gemini (Vertex). Loopback only. |
+| `ag_server` | 8766 | `com.koskadeux.ag_server` | Legacy AG backend — AG is PAUSED and is not a current gate voter. Loopback only. |
 | `deepseek_server` | 8768 | `com.koskadeux.deepseek_server` | Council voter — DeepSeek. Loopback only. |
 | `lilly_server.py` | — | `com.koskadeux.lilly` | Companion service. |
 | `council-hall` | — | `com.koskadeux.council-hall` | Council hall service. |
+
+The current gate voter panel is CC + DeepSeek + GLM exactly. MP is the mandatory builder,
+not a gate voter; AG is PAUSED; XAI is RETIRED. `infra:council-comms` is canonical for the
+live roster, model assignments, and dispatch configuration.
 
 ## Transport: why cloudflared (not Tailscale Funnel)
 
@@ -81,7 +85,7 @@ launchctl kickstart -k gui/$(id -u)/com.koskadeux.gateway
 # Public transport (if mcp.ai.market is unreachable but :8767 is healthy)
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.cloudflared
 
-# Council voters
+# Council-related backends (AG paused; DeepSeek is a current voter)
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.ag_server
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server
 ```
@@ -130,6 +134,31 @@ must re-open + re-plan. Never restart unilaterally while the peer is live — co
 (via Max) when both reach a clean stop. (See "Known issues → restarts drop both sessions.")
 
 ## Session lifecycle (consolidated from the former `session-lifecycle.md`)
+
+Vulcan and Mars are equal-authority peers. Session lifecycle state is keyed by instance:
+either peer may open first, and each opens, plans, operates, and closes independently. There
+are no role-based lanes, lifecycle slots, parent-session dependency, or close ordering.
+
+```
+kd_session_open(session_id, instance=vulcan|mars)
+  → returns CORE.md + that instance's handoff + BQ status + service health
+  → registers only the named instance's session
+kd_session_plan(session_id, tool_budget, objectives, delegation_strategy)
+  → transitions that session's boot gate PLANNING → OPERATIONAL
+kd_session_close(session_id, instance=vulcan|mars, reason, summary, handoff_content)
+  → closes only the named instance and preserves the peer's session and handoff
+```
+
+The local registry `sessions` table is authoritative for active-session resolution. A peer
+open or close must not mutate the other peer's registry row or boot-gate state. Coordinate a
+handler restart because it affects both live connections, but after restart each peer
+re-opens and re-plans independently.
+
+<!-- catalog:historical -->
+### Historical S733-S852 role-slot implementation record (retired)
+
+The material below preserves the former role-slot and ordered-close implementation as a
+historical record. It is not current operating guidance.
 
 The MCP hosts the session lifecycle for the two cooperating Claude instances. They are
 **peers** — one holds the "primary" lifecycle slot, one the "worker" slot; that decides
@@ -197,6 +226,7 @@ resolution).** The registry `sessions` table (boot-gate persistence) is correct 
 **Per-instance handoff:** `HANDOFF.primary.md` and `HANDOFF.worker.md` (in the `koskadeux-mcp`
 repo). The legacy single-file `/var/tmp/koskadeux/HANDOFF.md` scheme was retired S733 (Unit B);
 a worker boot reads `HANDOFF.worker.md` regardless of how it was written.
+<!-- /catalog:historical -->
 
 ## Infisical token & auth refresh (S760)
 
@@ -252,10 +282,10 @@ A path failure localises by which step first stops returning 200 / active.
 ## Known issues
 
 - **Restarts drop both instances' in-memory session.** A handler restart re-instantiates the
-  server; both primary + worker must re-open + re-plan. The disk-backed registry preserves
+  server; both peers must re-open + re-plan independently. The disk-backed registry preserves
   PLANNING/OPERATIONAL + session rows, but the gate still requires a fresh open+plan.
   Coordinate restarts — never restart unilaterally while the peer is live.
-- **Response cross-talk under concurrent primary+worker.** Observed S734 ~15:00 UTC: a
+- **Response cross-talk under concurrent peer calls.** Observed S734 ~15:00 UTC: a
   `state_request` PATCH executed correctly server-side (the write landed) but the response
   handed back to the caller was a *different* concurrent command's output; the next call
   returned correctly. Server effect applies; the client gets the wrong response body;
@@ -301,6 +331,7 @@ itself is degraded.
   respawn instantly after `pkill`, making `pkill` unreliable (S520).
 - **cloudflared, not Tailscale:** the Tailscale migration was attempted pre-S572 and recorded
   as done but never completed; cloudflared is the live tunnel (S688 verified).
+<!-- catalog:historical -->
 - **Two lock records (local registry + remote Living State):** historical — the lifecycle
   moved to the remote Living State lock as the single authority; the local `role_locks` table
   was left behind and is now dead/stale, slated for retirement (Unit D). Boot-gate/session
@@ -308,8 +339,13 @@ itself is degraded.
   PLANNING/OPERATIONAL.
 - **Peer model (no primary-over-worker authority):** the two slots only order close (worker
   first); both instances have equal authority over shell, git, dispatch, and Living State.
+<!-- /catalog:historical -->
 
 ## In-flight: gate-hardening reform (seam-hardening, not a rewrite)
+
+<!-- catalog:historical -->
+The ownership/status list below is a historical S731-S734 change record, not current peer
+lane assignment or current delivery status.
 
 Tracked in `config:gate-hardening-reform-plan`. Decision (S731): harden the failing seams,
 not rewrite. Units + ownership:
@@ -327,6 +363,7 @@ not rewrite. Units + ownership:
 **Caution:** the `session.py` fixes for Unit B are merged to `main` but are **NOT live until
 the next coordinated MCP restart** — and a restart drops both sessions, so it is coordinated
 via Max, not done unilaterally.
+<!-- /catalog:historical -->
 
 ## History
 
