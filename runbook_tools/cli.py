@@ -14,6 +14,7 @@ from typing import Any, Callable
 import click
 import yaml
 
+from runbook_tools.catalog import CatalogError, check_catalog, generate_catalog
 from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
@@ -44,6 +45,36 @@ VALID_README_STATUSES = {
     "LEGACY_NOT_UNDER_STANDARD",
     "DEPRECATED",
 }
+
+
+@click.group(name="runbook-catalog")
+def catalog_cmd() -> None:
+    """Generate or byte-check the ACTIVE runbook catalog outputs."""
+
+
+@catalog_cmd.command(name="generate")
+def catalog_generate_cmd() -> None:
+    try:
+        outputs = generate_catalog(Path.cwd())
+    except (CatalogError, OSError) as exc:
+        click.echo(f"catalog generation failed: {exc}", err=True)
+        raise SystemExit(1)
+    for path in outputs:
+        click.echo(path)
+
+
+@catalog_cmd.command(name="check")
+def catalog_check_cmd() -> None:
+    try:
+        drifted = check_catalog(Path.cwd())
+    except (CatalogError, OSError) as exc:
+        click.echo(f"catalog check failed: {exc}", err=True)
+        raise SystemExit(1)
+    if drifted:
+        for path in drifted:
+            click.echo(f"catalog drift: {path}", err=True)
+        raise SystemExit(1)
+    click.echo("catalog outputs are current")
 
 
 @click.command()

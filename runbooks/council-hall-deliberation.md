@@ -1,4 +1,28 @@
 ---
+runbook_id: council-hall-deliberation
+domain: council-operations
+status: ACTIVE
+authoritative_for:
+  - topic: council-hall-deliberation
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures:
+  - signature: duplicate_deliberation
+    section: §E. Operate
+  - signature: participant_config_missing
+    section: §E. Operate
+  - signature: late_arriver
+    section: §E. Operate
+  - signature: open_response_schema_mismatch
+    section: §E. Operate
+  - signature: premature_cross_poll
+    section: §E. Operate
+  - signature: biased_synthesis
+    section: §E. Operate
+supersedes: []
+superseded_by: []
+owner: vulcan
+last_verified_at: 2026-05-29
 system_name: council-hall-deliberation
 purpose_sentence: Council Hall deliberation process for unbiased multi-agent assessment, synthesis, and cross-pollination across MP, AG, DeepSeek, CC, and Vulcan.
 owner_agent: vulcan

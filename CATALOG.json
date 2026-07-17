@@ -1,0 +1,375 @@
+{
+  "entries": [
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "agent-dispatch"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "bootout_without_plist_patch"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "default_cwd_false_positive"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "env_var_in_inherited_only"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "gateway_timeout"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "health_failure"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "progress_guard_timeout"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "schema_validation_failure"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "stale_task_state"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "tr_truncation_false_negative"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "unsupported_line_claim"
+        }
+      ],
+      "last_verified_at": "2026-04-29",
+      "owner": "vulcan",
+      "path": "runbooks/agent-dispatch.md",
+      "runbook_id": "agent-dispatch",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "Architecture overview",
+          "topic": "build-queue-reconciliation"
+        }
+      ],
+      "domain": "build-queue",
+      "error_signatures": [
+        {
+          "section": "Failure-mode runbook",
+          "signature": "unsupported_target_repo"
+        }
+      ],
+      "last_verified_at": "2026-04-29",
+      "owner": "vulcan",
+      "path": "runbooks/build-queue-reconciliation.md",
+      "runbook_id": "build-queue-reconciliation",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-operations"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "agent silence"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "missing dispatch token"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "no resolution"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "read-only agent attempted write"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "stale_review_order"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "timeout"
+        }
+      ],
+      "last_verified_at": "2026-04-29",
+      "owner": "vulcan",
+      "path": "runbooks/council.md",
+      "runbook_id": "council",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-gate-process"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "authoring_distinction_trap"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "break_glass_left_enabled"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "chunk_scope_gap"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "cross_review_block"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "fabricated_line_reference"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "gate1_status_trap"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "missing_design_artifact"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "unresolved_mandates"
+        }
+      ],
+      "last_verified_at": "2026-04-29",
+      "owner": "mp",
+      "path": "runbooks/council-gate-process.md",
+      "runbook_id": "council-gate-process",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-hall-deliberation"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "biased_synthesis"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "duplicate_deliberation"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "late_arriver"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "open_response_schema_mismatch"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "participant_config_missing"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "premature_cross_poll"
+        }
+      ],
+      "last_verified_at": "2026-05-29",
+      "owner": "vulcan",
+      "path": "runbooks/council-hall-deliberation.md",
+      "runbook_id": "council-hall-deliberation",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    }
+  ],
+  "indexes": {
+    "aliases": {},
+    "error_signatures": {
+      "agent silence": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "authoring_distinction_trap": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "biased_synthesis": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "bootout_without_plist_patch": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "break_glass_left_enabled": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "chunk_scope_gap": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "cross_review_block": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "default_cwd_false_positive": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "duplicate_deliberation": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "env_var_in_inherited_only": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "fabricated_line_reference": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "gate1_status_trap": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "gateway_timeout": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "health_failure": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "late_arriver": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "missing dispatch token": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "missing_design_artifact": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "no resolution": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "open_response_schema_mismatch": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "participant_config_missing": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "premature_cross_poll": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "progress_guard_timeout": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "read-only agent attempted write": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "schema_validation_failure": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "stale_review_order": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "stale_task_state": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "timeout": {
+        "runbook_id": "council",
+        "section": "\u00a7E. Operate"
+      },
+      "tr_truncation_false_negative": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "unresolved_mandates": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "unsupported_line_claim": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "unsupported_target_repo": {
+        "runbook_id": "build-queue-reconciliation",
+        "section": "Failure-mode runbook"
+      }
+    },
+    "topics": {
+      "agent-dispatch": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "build-queue-reconciliation": {
+        "runbook_id": "build-queue-reconciliation",
+        "section": "Architecture overview"
+      },
+      "council-gate-process": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-hall-deliberation": {
+        "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-operations": {
+        "runbook_id": "council",
+        "section": "\u00a7C. Architecture & Interactions"
+      }
+    }
+  },
+  "schema_version": 1
+}

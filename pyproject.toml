@@ -17,6 +17,7 @@ dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.2"]
 runbook-lint     = "runbook_tools.cli:lint_cmd"
 runbook-new      = "runbook_tools.cli:new_cmd"
 runbook-harness  = "runbook_tools.cli:harness_cmd"
+runbook-catalog  = "runbook_tools.cli:catalog_cmd"
 
 [build-system]
 requires = ["setuptools>=68"]

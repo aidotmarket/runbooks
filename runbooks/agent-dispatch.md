@@ -1,4 +1,36 @@
 ---
+runbook_id: agent-dispatch
+domain: council-operations
+status: ACTIVE
+authoritative_for:
+  - topic: agent-dispatch
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures:
+  - signature: gateway_timeout
+    section: §E. Operate
+  - signature: stale_task_state
+    section: §E. Operate
+  - signature: progress_guard_timeout
+    section: §E. Operate
+  - signature: unsupported_line_claim
+    section: §E. Operate
+  - signature: health_failure
+    section: §E. Operate
+  - signature: schema_validation_failure
+    section: §E. Operate
+  - signature: env_var_in_inherited_only
+    section: §E. Operate
+  - signature: default_cwd_false_positive
+    section: §E. Operate
+  - signature: bootout_without_plist_patch
+    section: §E. Operate
+  - signature: tr_truncation_false_negative
+    section: §E. Operate
+supersedes: []
+superseded_by: []
+owner: vulcan
+last_verified_at: 2026-04-29
 system_name: agent-dispatch
 purpose_sentence: Council dispatch mechanics for delegating tasks to agents (MP, AG, DeepSeek, CC) and managing dispatch surfaces (council_request, dispatch_mp_build, council_hall).
 owner_agent: vulcan

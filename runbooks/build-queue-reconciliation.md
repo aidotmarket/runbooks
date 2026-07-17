@@ -1,3 +1,20 @@
+---
+runbook_id: build-queue-reconciliation
+domain: build-queue
+status: ACTIVE
+authoritative_for:
+  - topic: build-queue-reconciliation
+    section: Architecture overview
+aliases: []
+error_signatures:
+  - signature: unsupported_target_repo
+    section: Failure-mode runbook
+supersedes: []
+superseded_by: []
+owner: vulcan
+last_verified_at: 2026-04-29
+---
+
 # Build Queue Reconciliation
 
 ## Architecture overview

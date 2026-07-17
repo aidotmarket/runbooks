@@ -1,4 +1,32 @@
 ---
+runbook_id: council-gate-process
+domain: council-operations
+status: ACTIVE
+authoritative_for:
+  - topic: council-gate-process
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures:
+  - signature: missing_design_artifact
+    section: §E. Operate
+  - signature: unresolved_mandates
+    section: §E. Operate
+  - signature: gate1_status_trap
+    section: §E. Operate
+  - signature: chunk_scope_gap
+    section: §E. Operate
+  - signature: authoring_distinction_trap
+    section: §E. Operate
+  - signature: fabricated_line_reference
+    section: §E. Operate
+  - signature: cross_review_block
+    section: §E. Operate
+  - signature: break_glass_left_enabled
+    section: §E. Operate
+supersedes: []
+superseded_by: []
+owner: mp
+last_verified_at: 2026-04-29
 system_name: council-gate-process
 purpose_sentence: Council Build Queue gate-process runbook for operating the BQ four-gate flow and enforcing non-builder cross-review before completion.
 owner_agent: mp

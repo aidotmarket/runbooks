@@ -1,4 +1,28 @@
 ---
+runbook_id: council
+domain: council-operations
+status: ACTIVE
+authoritative_for:
+  - topic: council-operations
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures:
+  - signature: timeout
+    section: §E. Operate
+  - signature: read-only agent attempted write
+    section: §E. Operate
+  - signature: missing dispatch token
+    section: §E. Operate
+  - signature: stale_review_order
+    section: §E. Operate
+  - signature: agent silence
+    section: §E. Operate
+  - signature: no resolution
+    section: §E. Operate
+supersedes: []
+superseded_by: []
+owner: vulcan
+last_verified_at: 2026-04-29
 system_name: council
 purpose_sentence: A multi-agent review and build system that produces production-quality code via gated cross-review across MP (primary), AG (secondary), DeepSeek (full voter), and CC (fallback).
 owner_agent: vulcan
