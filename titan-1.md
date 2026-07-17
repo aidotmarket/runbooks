@@ -20,7 +20,7 @@ Canonical map of the physical machine the whole operation runs from. Live source
 | `max` | Primary operator account; all agent sessions, Homebrew, repos | Max personal — not stored |
 | `kdbrowser` | Isolated test account for human-fidelity browser testing (kd-browser runner, Codex-driven walks; home carries `kd-browser-runner/`) | Infisical `koskadeux-mcp`/prod, path `/`, secret `TITAN_KDBROWSER_PASSWORD` (verified present S1260; value never read out) |
 
-Codex CLI is installed system-wide via Homebrew (`/opt/homebrew/bin/codex`, on PATH for all accounts via `/etc/paths.d/homebrew`); OpenAI login state is per-account under `~/.codex/`.
+Codex CLI is installed system-wide via Homebrew (`/opt/homebrew/bin/codex`, on PATH for all accounts via `/etc/paths.d/homebrew`); OpenAI login state is per-account under `~/.codex/`. Verified S1260: `kdbrowser` Codex is logged in (ChatGPT auth, `~kdbrowser/.codex/auth.json`). CAVEAT: the kd-browser runner (`127.0.0.1:8790`) launches jobs with a minimal launchd env - job requests must pass `env.PATH` including `/opt/homebrew/bin` or `codex` fails with `env: node: No such file or directory`.
 
 ## Role in the ecosystem
 Titan-1 is where **the company is actually built and operated**:
