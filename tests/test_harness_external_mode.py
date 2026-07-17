@@ -376,8 +376,9 @@ def test_default_state_reader_calls_mcp_gateway(
             return None
 
         def read(self) -> bytes:
+            entity = json.dumps({"body": {"scenarios": [{"id": "I-01"}]}})
             return json.dumps(
-                {"body": {"scenarios": [{"id": "I-01"}]}}
+                {"success": True, "result": entity, "error": None}
             ).encode("utf-8")
 
     def fake_urlopen(req: Any) -> FakeResponse:
@@ -392,10 +393,62 @@ def test_default_state_reader_calls_mcp_gateway(
 
     assert captured["url"] == "https://example.invalid/mcp"
     assert captured["auth"] == "Bearer state-token"
-    assert captured["body"]["tool"] == "state_request"
-    assert captured["body"]["arguments"]["op"] == "read"
+    assert captured["body"]["name"] == "state_request"
+    assert captured["body"]["arguments"]["action"] == "get"
     assert captured["body"]["arguments"]["key"] == "state:answer-key"
     assert entity == {"body": {"scenarios": [{"id": "I-01"}]}}
+
+
+def test_default_state_reader_surfaces_unsuccessful_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click import UsageError
+    from runbook_tools.cli import _default_state_reader
+
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"success": False, "result": "", "error": "entity not found"}
+            ).encode("utf-8")
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda req: FakeResponse())
+
+    with pytest.raises(UsageError, match="entity not found"):
+        _default_state_reader("state:missing")
+
+
+def test_default_state_reader_rejects_non_json_envelope_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from click import UsageError
+    from runbook_tools.cli import _default_state_reader
+
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {"success": True, "result": "not-json", "error": None}
+            ).encode("utf-8")
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda req: FakeResponse())
+
+    with pytest.raises(UsageError, match="returned non-JSON"):
+        _default_state_reader("state:malformed")
 
 
 @pytest.mark.integration

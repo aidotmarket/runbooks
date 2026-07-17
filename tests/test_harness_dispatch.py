@@ -61,6 +61,28 @@ def test_dispatch_happy_path_returns_json_verdict() -> None:
     assert result.response == payload
 
 
+def test_dispatch_unwraps_successful_api_call_envelope() -> None:
+    payload = {"kind": "classification", "verdict": "SAFE"}
+    raw = {"success": True, "result": json.dumps(payload), "error": None}
+    dispatch_fn = make_council_request_fn(council_request=lambda **kwargs: raw)
+
+    result = dispatch_fn("prompt", _metadata())
+
+    assert result.status == "ok"
+    assert result.response == payload
+    assert result.tool_use_trace == []
+
+
+def test_dispatch_surfaces_unsuccessful_api_call_envelope() -> None:
+    raw = {"success": False, "result": "", "error": "agent unavailable"}
+    dispatch_fn = make_council_request_fn(council_request=lambda **kwargs: raw)
+
+    result = dispatch_fn("prompt", _metadata())
+
+    assert result.status == "dispatch_failure"
+    assert result.error == "agent unavailable"
+
+
 def test_dispatch_timeout_returns_status_timeout() -> None:
     def slow_request(**kwargs: Any) -> Any:
         time.sleep(0.5)
@@ -214,7 +236,8 @@ def test_dispatch_default_council_request_posts_to_configured_url(
         captured["url"] = req.full_url
         captured["body"] = json.loads(req.data.decode("utf-8"))
         captured["auth"] = req.headers.get("Authorization")
-        return FakeResponse(json.dumps({"response": {"kind": "classification", "verdict": "SAFE"}}))
+        result = json.dumps({"kind": "classification", "verdict": "SAFE"})
+        return FakeResponse(json.dumps({"success": True, "result": result, "error": None}))
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
 
@@ -224,6 +247,7 @@ def test_dispatch_default_council_request_posts_to_configured_url(
     assert result.status == "ok"
     assert captured["url"] == "https://example.invalid/mcp"
     assert captured["auth"] == "Bearer token-xyz"
+    assert captured["body"]["name"] == "council_request"
     assert captured["body"]["arguments"]["agent"] == "mp"
 
 

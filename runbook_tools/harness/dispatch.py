@@ -32,6 +32,10 @@ WRITE_CAPABLE_TOOLS: frozenset[str] = frozenset(
 )
 
 
+class _CouncilDispatchError(RuntimeError):
+    """The external council endpoint reported an unsuccessful dispatch."""
+
+
 @dataclass(slots=True)
 class DispatchResult:
     status: DispatchStatus
@@ -63,7 +67,14 @@ def make_council_request_fn(
                 error=f"{type(exc).__name__}: {exc}",
             )
 
-        payload, trace = _normalize_council_response(raw)
+        try:
+            payload, trace = _normalize_council_response(raw)
+        except _CouncilDispatchError as exc:
+            return DispatchResult(
+                status="dispatch_failure",
+                raw_response=raw,
+                error=str(exc),
+            )
         violation = _detect_off_path(trace, metadata)
         if violation is not None:
             return DispatchResult(
@@ -126,7 +137,7 @@ def _default_council_request(*, agent: str, task: str, allowed_tools: list[str])
 
     body = json.dumps(
         {
-            "tool": "council_request",
+            "name": "council_request",
             "arguments": {"agent": agent, "task": task, "allowed_tools": allowed_tools},
         }
     ).encode("utf-8")
@@ -149,7 +160,14 @@ def _normalize_council_response(raw: Any) -> tuple[Any, list[dict[str, Any]]]:
     payload: Any = raw
 
     if isinstance(raw, dict):
-        payload = raw.get("response", raw.get("output", raw.get("text", raw)))
+        if "success" in raw:
+            if not raw.get("success"):
+                raise _CouncilDispatchError(
+                    str(raw.get("error") or "council_request dispatch failed")
+                )
+            payload = raw.get("result")
+        else:
+            payload = raw.get("response", raw.get("output", raw.get("text", raw)))
         candidate = raw.get("tool_use_trace")
         if isinstance(candidate, list):
             trace = [event for event in candidate if isinstance(event, dict)]

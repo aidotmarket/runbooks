@@ -403,8 +403,8 @@ def _default_state_reader(entity_key: str) -> dict[str, Any]:
 
     body = json.dumps(
         {
-            "tool": "state_request",
-            "arguments": {"op": "read", "key": entity_key},
+            "name": "state_request",
+            "arguments": {"action": "get", "key": entity_key},
         }
     ).encode("utf-8")
     headers = {"Content-Type": "application/json"}
@@ -426,6 +426,18 @@ def _default_state_reader(entity_key: str) -> dict[str, Any]:
         raise click.UsageError(
             f"state_request returned non-JSON for {entity_key}: {exc}"
         )
+    if isinstance(parsed, dict) and "success" in parsed:
+        if not parsed.get("success"):
+            raise click.UsageError(
+                f"state_request for {entity_key} failed: "
+                f"{parsed.get('error') or 'unknown error'}"
+            )
+        try:
+            parsed = json.loads(parsed.get("result"))
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise click.UsageError(
+                f"state_request returned non-JSON for {entity_key}: {exc}"
+            )
     if not isinstance(parsed, dict):
         raise click.UsageError(
             f"state_request returned non-object payload for {entity_key}"
