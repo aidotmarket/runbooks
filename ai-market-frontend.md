@@ -1,6 +1,6 @@
 # ai-market-frontend — Marketplace Web App
 
-> Content refresh S811 (PR #28): dual-audience homepage, buyer landing, Federate excised with permanent redirects, copy governed by [website-copy-standard.md](website-copy-standard.md).
+> Content refresh S811 (PR #28): dual-audience homepage and buyer landing. AIM Federate is retired, with no current public surface, route, redirect, or asset; reintroduction requires explicit Max decision. Copy is governed by [website-copy-standard.md](website-copy-standard.md).
 
 ## What it is
 
@@ -46,7 +46,7 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 | `/aim-data` `/aim-node` | `app/aim-data/` `app/aim-node/` | Product pages |
 | `/download` | `app/download/` | Install paths (incl. retired /download/aim-channel route) |
 | `/requests` `/search` `/blog` `/partner` | respective `app/` dirs | Requests, search, blog (Keystatic), partner |
-| `/aim-federate` `/run-federated-learning` | permanent redirects to `/` | Federate deferred S811 - do not rebuild without Max decision |
+| `/aim-federate` `/run-federated-learning` (retired) | No route, redirect, or asset | No current public surface; reintroduction requires explicit Max decision |
 | `/dashboard/stripe-return` | `app/dashboard/stripe-return/page.tsx` | Stripe onboarding callback |
 | `/checkout/success` | `app/checkout/success/page.tsx` | Post-purchase confirmation |
 | `/checkout/cancel` | `app/checkout/cancel/page.tsx` | Checkout cancelled |
