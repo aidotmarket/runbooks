@@ -87,6 +87,15 @@ After S612 consolidation, process work pickup is routed via the 5 survivors:
 
 New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see peer-instance-discipline.md §H / §G).
 
+## O.10.5 Boot wire budget and the boot-size bake (T-2026-000271, S1256)
+
+The `kd_session_open` boot payload has a hard wire budget of 64,000 JSON characters (`BOOT_WIRE_BUDGET_CHARS` in `koskadeux-mcp tools/session.py`; raised from 46,000 by Max decision, 2026-07-17). Non-truncatable content (constitution, opening prompt, plan contract, handoff or its durable spillover digest) is never cut; advisory content (business briefing items, aging lists, standup extras) is trimmed with every cut recorded in the payload's `truncated` ledger and `boot_payload_fit`.
+
+- `BOOT_NON_TRUNCATABLE_OVER_BUDGET` at open means the protected floor alone exceeds the budget. Do not bypass the spillover stash, manually digest a handoff, or trim the constitution (constitution changes need a unanimous Council gate plus Max). Diagnose which component grew (fetch `infra:constitution`, `infra:opening-prompt`, `infra:handoff:instance=...` sizes; wire size is the JSON-escaped length), then escalate to Max for a budget or content decision. Reference diagnosis: T-2026-000271.
+- Boot truth telemetry: every open publishes a v2 context profile (per-component chars, wire total, truncated ledger) to the backend `/api/v1/internal/context-profile`; the ops console renders it verbatim. Verify a boot by checking delivered profile == stored profile on chars and the truncated ledger (per-component token estimates are intentionally omitted server-side).
+- Bake acceptance (Phase 0, `build:bq-session-boot-footprint-phase0-s1229`): at least 10 successful boots across both instances with zero BOOT_* inconsistencies, `truncated==[]` on qualifying boots, and console/profile equality. The original 24-hour floor was waived by Max (decision event 954f509f, 2026-07-17). Boots that trim advisory content are recorded as advisory evidence, not counted toward the qualifying total.
+- Keeping boots clean: the biggest instance-controlled lever is the handoff — write lean handoffs (aim well under ~2k chars; durable detail belongs in Living State entities, not the handoff). Instance-to-instance close/reopen cycling for bake evidence requires Max's consent per the close protocol.
+
 ## O.11 Related runbooks
 - `runbooks/session-close-protocol.md` — close flow.
 - `runbooks/session-registry-recovery.md` — recovery when session registry desyncs.
