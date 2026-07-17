@@ -36,6 +36,7 @@ The most common miss is "what is X and where does its credential live." Answers 
 | AWS account / buckets / regions | account 948749907373; backups bucket `aimarket-backups-prod` (eu-north-1, Object Lock) | [aws.md](aws.md) |
 | Cloudflare API token | Infisical `ai-market-backend`/prod: `CLOUDFLARE_API_TOKEN` (zone read + DNS edit + Worker R/W + Workers-KV edit; KV write confirmed live S964 — created+deleted a temp namespace via API; DNS edit confirmed live S806. Still lacks Worker Routes + Cloudflare Tunnel scopes — see cloudflare-and-dns.md §Drift item 6) | [cloudflare-and-dns.md](cloudflare-and-dns.md) |
 | Railway API token (Titan-1 host) | Infisical `koskadeux-mcp`/prod: `RAILWAY_API_TOKEN` (account-scoped, non-expiring; projectId `0943f641-faee-4324-b337-0d50c276e4a9`) | [titan-1.md](titan-1.md) |
+| Titan-1 `kdbrowser` test-account (macOS login) password | Infisical `koskadeux-mcp`/prod: `TITAN_KDBROWSER_PASSWORD` | [titan-1.md](titan-1.md#macos-user-accounts) |
 | Backup/age encryption private key | 1Password only — never in S3 or on a server | [disaster-recovery.md](disaster-recovery.md) |
 | Internal API key (agent→backend) | Infisical `ai-market-backend`/prod: `INTERNAL_API_KEY` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |
 | Machine-identity creds (unattended jobs) | `~/.config/infisical/` on Titan-1; project `ai-market-backend` | [infisical-secrets.md](infisical-secrets.md#machine-identities) |

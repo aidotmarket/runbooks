@@ -13,6 +13,15 @@ Canonical map of the physical machine the whole operation runs from. Live source
 | OS | macOS 26.5.1 (build 25F80) |
 | LAN | 192.168.1.192 · Tailscale node `koskadeux-10` = 100.95.61.121 |
 
+## macOS user accounts
+
+| Account | Purpose | Credential |
+|---|---|---|
+| `max` | Primary operator account; all agent sessions, Homebrew, repos | Max personal — not stored |
+| `kdbrowser` | Isolated test account for human-fidelity browser testing (kd-browser runner, Codex-driven walks; home carries `kd-browser-runner/`) | Infisical `koskadeux-mcp`/prod, path `/`, secret `TITAN_KDBROWSER_PASSWORD` (verified present S1260; value never read out) |
+
+Codex CLI is installed system-wide via Homebrew (`/opt/homebrew/bin/codex`, on PATH for all accounts via `/etc/paths.d/homebrew`); OpenAI login state is per-account under `~/.codex/`.
+
 ## Role in the ecosystem
 Titan-1 is where **the company is actually built and operated**:
 - **Local AI council** — the model servers Vulcan/Mars dispatch to (AG/Gemini, DeepSeek, XAI/Grok bridge) run here.
