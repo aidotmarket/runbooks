@@ -4,7 +4,7 @@
 
 Builds and publishes new vectorAIz versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds. Also covers the Railway `vectoraiz-backend` production service deploy (auto-deploys from `aidotmarket/vectoraiz` main).
 
-> **PROMOTE BLOCKED (S1255, resolved by Max ruling A — block lifts when the corrective fold merges).** Since the S1253 hard-rename chunk (BQ-AIM-DATA-RENAME-UMBRELLA-S684 G2-C2), `scripts/release.sh` publishes every version tag to BOTH `ghcr.io/aidotmarket/vectoraiz` and `ghcr.io/aidotmarket/aim-data`, and a stable promote moves BOTH `:latest` aliases. The standalone `aidotmarket/aim-data` repo is a live second release train that owns `ghcr.io/aidotmarket/aim-data:latest` (v1.22.x line; the customer installer and compose pin it — see [aim-data-release-process.md](aim-data-release-process.md)). Promoting from this repo would overwrite the customer-facing `:latest` with an older-line (v1.20.x) image and downgrade fresh installs. **Max ruled A (S1255, decision event b65ee94d): the standalone `aidotmarket/aim-data` repo is canonical for the aim-data image; this repo's release lane publishes `ghcr.io/aidotmarket/vectoraiz` ONLY.** A corrective fold (MP task 21e26408, branch `build/bq-rename-c2-corrective-fold-s1255`) removes the aim-data targets from `release.yml`, `release.sh`, and `ci-release-integrity.yml`. Do NOT run `release.sh promote` until that fold is merged; after merge, remove this block note and promote normally. RC releases are safe either way (version tags only, no `:latest` movement). Canonical status: `build:bq-aim-data-rename-umbrella-s684` body.ghcr_trains_conflict_s1255.
+> **Release ownership (S1255/S1256, Max ruling A, decision event b65ee94d).** This repo's release lane publishes `ghcr.io/aidotmarket/vectoraiz` ONLY. The canonical `ghcr.io/aidotmarket/aim-data` image ships exclusively from the standalone `aidotmarket/aim-data` repo's own release train (see [aim-data-release-process.md](aim-data-release-process.md)); `docker-compose.aim-data.yml` here merely consumes it. Enforced by `ci-release-integrity.yml` (fails on any aim-data reference in workflows) and `tests/test_release_contract.py` (pins vectoraiz-only publishing in `release.yml` and `release.sh`). The corrective fold merged to main at `d8d8127` (S1256, GLM-approved); `release.sh promote` is unblocked. Known LOW gap: CI no longer scans `scripts/` for stray aim-data release scripts — the contract test covers `scripts/release.sh` only.
 
 ## How it works
 
@@ -13,8 +13,7 @@ scripts/release.sh [patch|minor|major|promote]
   → patch/minor/major: creates RC (release candidate) tag
   → promote: promotes latest RC to stable release
   → GitHub Actions: builds Docker multi-arch images (AMD64 + ARM64)
-  → Pushes to ghcr.io/aidotmarket/vectoraiz
-  → Until the S1255 corrective fold merges, also pushes the same digest to ghcr.io/aidotmarket/aim-data (see PROMOTE BLOCKED note above)
+  → Pushes to ghcr.io/aidotmarket/vectoraiz (vectorAIz only; aim-data ships from its own repo)
   → Takes 45-60 min due to QEMU/ARM64 emulation
 ```
 
@@ -45,7 +44,7 @@ Note the v2 script syntax is `release.sh rc [patch|minor|major]` and `release.sh
    ```bash
    docker pull ghcr.io/aidotmarket/vectoraiz:v1.20.33-rc.1
    ```
-3. If good, promote: `release.sh promote` — **currently blocked until the S1255 corrective fold merges, see PROMOTE BLOCKED note above**
+3. If good, promote: `release.sh promote`
 
 ## Railway vectoraiz-backend service deploys (S1255)
 
@@ -61,7 +60,7 @@ Diagnosis pattern (verified S1255):
 |---------|-------------|-----|
 | Railway build FAILED, zero build logs, ~15-30 min duration | Railway builder/runner death (transient) | `serviceInstanceDeployV2` rebuild of the same commit; verify SUCCESS + `/api/health` 200 |
 | `/health` returns 404 on vectoraiz-backend | Wrong path | Use `/api/health` |
-| GHA release run FAILED with build-push step left `in_progress` and no step conclusion | GHA runner death mid-build (same transient class) | Re-run the workflow (but see PROMOTE BLOCKED note before re-running the pre-fold dual-target workflow) |
+| GHA release run FAILED with build-push step left `in_progress` and no step conclusion | GHA runner death mid-build (same transient class) | Re-run the workflow (post-fold the workflow is vectoraiz-only; safe to re-run) |
 
 ## Cloudflare installer proxy
 
@@ -78,5 +77,5 @@ Diagnosis pattern (verified S1255):
 | GHCR build fails | ARM64 QEMU issue | Re-run GitHub Actions workflow |
 | Accidental stable release | Used old release.sh | Ensure release.sh creates RC by default (fixed S222) |
 | Docker pull fails | Image not built yet | Wait for GHA to complete (45-60 min) |
-| `aim-data:latest` unexpectedly changed / customer installs pull an older AIM Data | A vectoraiz promote overwrote the standalone aim-data train's `:latest` | Re-promote the latest stable from `aidotmarket/aim-data` (`scripts/release-aim-data.sh promote`) to restore `:latest`, then escalate per the PROMOTE BLOCKED note |
+| `aim-data:latest` unexpectedly changed / customer installs pull an older AIM Data | A vectoraiz promote overwrote the standalone aim-data train's `:latest` | Re-promote the latest stable from `aidotmarket/aim-data` (`scripts/release-aim-data.sh promote`) to restore `:latest`; since the S1256 fold, a vectoraiz promote cannot touch aim-data (release ownership note above) |
 | Railway `vectoraiz-backend` build failure email | See "Railway vectoraiz-backend service deploys" section above | Diagnose via GraphQL deployments + build logs; transient runner deaths get a `serviceInstanceDeployV2` rebuild |
