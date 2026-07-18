@@ -1,0 +1,12 @@
+id: I-11
+runbook: product-elaboration.md
+type: ambiguous
+refs:
+- §H.6
+scenario: Historical product prose conflicts with current CORE.
+expected_answers:
+- kind: human_action
+  verb: prefer
+  object: current CORE invariant
+  target: product decision
+weight: 0.090909091

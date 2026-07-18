@@ -1,0 +1,14 @@
+id: I-03
+runbook: council-roster-quirks.md
+type: operate
+refs:
+- E-03
+scenario: A provider quirk changes the safe prompt shape for a review.
+expected_answers:
+- kind: tool_call
+  tool: council_request
+  argument_keys:
+  - agent
+  - mode
+  - task
+weight: 0.0909090909

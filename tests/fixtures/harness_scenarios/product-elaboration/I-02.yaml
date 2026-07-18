@@ -1,0 +1,10 @@
+id: I-02
+runbook: product-elaboration.md
+type: operate
+refs:
+- E-02
+scenario: A public listing page needs agent-readable metadata.
+expected_answers:
+- kind: classification
+  label: AI_DISCOVERABLE_REQUIRED
+weight: 0.0909090909

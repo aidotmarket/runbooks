@@ -1,0 +1,10 @@
+id: I-11
+runbook: gate-procedure.md
+type: ambiguous
+refs:
+- §H.6
+scenario: Gate 3 rejects implementation without changing design authority.
+expected_answers:
+- kind: classification
+  label: RETURN_TO_GATE_2
+weight: 0.090909091

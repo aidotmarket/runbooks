@@ -1,0 +1,10 @@
+id: I-09
+runbook: product-elaboration.md
+type: evolve
+refs:
+- §H
+scenario: A proposal raises commission above five percent.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0909090909

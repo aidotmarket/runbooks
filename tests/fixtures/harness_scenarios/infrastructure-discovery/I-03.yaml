@@ -1,0 +1,13 @@
+id: I-03
+runbook: infrastructure-discovery.md
+type: operate
+refs:
+- E-03
+scenario: SysAdmin must correct a verified stale registry locator.
+expected_answers:
+- kind: tool_call
+  tool: state_patch
+  argument_keys:
+  - key
+  - expected_version
+weight: 0.0909090909

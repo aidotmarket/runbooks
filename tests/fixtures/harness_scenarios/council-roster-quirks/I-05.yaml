@@ -1,0 +1,10 @@
+id: I-05
+runbook: council-roster-quirks.md
+type: isolate
+refs:
+- F-02
+scenario: A builder appears in the reviewer set for its own commit.
+expected_answers:
+- kind: classification
+  label: INVALID_INDEPENDENCE
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-07
+runbook: infrastructure-discovery.md
+type: repair
+refs:
+- G-01
+scenario: A caller guessed a repository path that no longer exists.
+expected_answers:
+- kind: human_action
+  verb: replace
+  object: guessed locator
+  target: registry-resolved locator
+weight: 0.0909090909

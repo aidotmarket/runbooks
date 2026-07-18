@@ -1,0 +1,10 @@
+id: I-04
+runbook: product-elaboration.md
+type: isolate
+refs:
+- F-01
+scenario: A proposal stores raw buyer data in ai.market.
+expected_answers:
+- kind: classification
+  label: NON_CUSTODIAL_VIOLATION
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-11
+runbook: infrastructure-discovery.md
+type: ambiguous
+refs:
+- §H.6
+scenario: A runbook example conflicts with the current resource registry.
+expected_answers:
+- kind: human_action
+  verb: prefer
+  object: current registry locator
+  target: bounded operation
+weight: 0.090909091

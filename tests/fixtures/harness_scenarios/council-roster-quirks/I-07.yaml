@@ -1,0 +1,12 @@
+id: I-07
+runbook: council-roster-quirks.md
+type: repair
+refs:
+- G-01
+scenario: A copied model string disagrees with the model registry.
+expected_answers:
+- kind: human_action
+  verb: refresh
+  object: live roster
+  target: infra:council-comms
+weight: 0.0909090909

@@ -1,0 +1,10 @@
+id: I-05
+runbook: infrastructure-discovery.md
+type: isolate
+refs:
+- F-02
+scenario: The inward endpoint and registry show different service URLs.
+expected_answers:
+- kind: classification
+  label: DERIVED_SURFACE_DRIFT
+weight: 0.0909090909

@@ -1,0 +1,10 @@
+id: I-01
+runbook: aging-policy.md
+type: operate
+refs:
+- E-01
+scenario: An approved undispatched item reaches eight days old.
+expected_answers:
+- kind: classification
+  label: STALE
+weight: 0.0909090909

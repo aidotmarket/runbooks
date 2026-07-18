@@ -1,0 +1,12 @@
+id: I-08
+runbook: gate-procedure.md
+type: repair
+refs:
+- G-02
+scenario: A review dispatch wrote a verdict file and source changes.
+expected_answers:
+- kind: human_action
+  verb: replace
+  object: tainted review
+  target: clean read-only review
+weight: 0.0909090909

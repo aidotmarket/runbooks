@@ -1,0 +1,10 @@
+id: I-06
+runbook: product-elaboration.md
+type: isolate
+refs:
+- F-02
+scenario: A retired AIM-Node claim appears as a current standalone product.
+expected_answers:
+- kind: classification
+  label: HISTORICAL_SCOPE_LEAK
+weight: 0.0909090909

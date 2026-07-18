@@ -1,0 +1,12 @@
+id: I-01
+runbook: agent-completeness.md
+type: operate
+refs:
+- E-01
+scenario: A new agent is ready for its Gate 3 compliance audit.
+expected_answers:
+- kind: tool_call
+  tool: GET /api/v1/internal/agent-compliance
+  argument_keys:
+  - agent_key
+weight: 0.0909090909

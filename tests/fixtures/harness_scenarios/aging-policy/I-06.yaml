@@ -1,0 +1,10 @@
+id: I-06
+runbook: aging-policy.md
+type: isolate
+refs:
+- F-02
+scenario: A new spec covers the same problem as an approved BQ.
+expected_answers:
+- kind: classification
+  label: DUPLICATE_SUCCESSOR
+weight: 0.0909090909

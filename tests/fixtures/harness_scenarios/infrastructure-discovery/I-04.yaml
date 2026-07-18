@@ -1,0 +1,10 @@
+id: I-04
+runbook: infrastructure-discovery.md
+type: isolate
+refs:
+- F-01
+scenario: A deploy script uses a checkout-specific absolute path.
+expected_answers:
+- kind: classification
+  label: GUESSED_LOCATOR
+weight: 0.0909090909

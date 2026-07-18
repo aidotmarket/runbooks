@@ -1,0 +1,12 @@
+id: I-08
+runbook: aging-policy.md
+type: repair
+refs:
+- G-02
+scenario: Duplicate successor authoring has begun.
+expected_answers:
+- kind: human_action
+  verb: stop
+  object: duplicate spec
+  target: existing approved BQ
+weight: 0.0909090909

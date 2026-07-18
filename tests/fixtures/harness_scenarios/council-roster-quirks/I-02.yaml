@@ -1,0 +1,10 @@
+id: I-02
+runbook: council-roster-quirks.md
+type: operate
+refs:
+- E-02
+scenario: A completed vote must be validated against its dispatch envelope.
+expected_answers:
+- kind: classification
+  label: VALIDATE_VOTER_ENVELOPE
+weight: 0.0909090909

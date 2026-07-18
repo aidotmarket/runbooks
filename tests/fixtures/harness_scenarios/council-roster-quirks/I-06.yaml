@@ -1,0 +1,10 @@
+id: I-06
+runbook: council-roster-quirks.md
+type: isolate
+refs:
+- F-02
+scenario: A vote cites a different target SHA from the gate record.
+expected_answers:
+- kind: classification
+  label: INVALID_TARGET
+weight: 0.0909090909

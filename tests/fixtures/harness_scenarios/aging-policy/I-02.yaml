@@ -1,0 +1,10 @@
+id: I-02
+runbook: aging-policy.md
+type: operate
+refs:
+- E-01
+scenario: An approved undispatched item reaches fifteen days old.
+expected_answers:
+- kind: classification
+  label: CRITICAL_STALE
+weight: 0.0909090909

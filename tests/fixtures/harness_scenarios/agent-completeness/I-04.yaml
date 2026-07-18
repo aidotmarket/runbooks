@@ -1,0 +1,10 @@
+id: I-04
+runbook: agent-completeness.md
+type: isolate
+refs:
+- F-01
+scenario: Compliance reports no MetricDeclaration for the agent.
+expected_answers:
+- kind: classification
+  label: INCOMPLETE_AGENT
+weight: 0.0909090909

@@ -1,0 +1,10 @@
+id: I-10
+runbook: council-roster-quirks.md
+type: evolve
+refs:
+- §H
+scenario: A role description changes while preserving CORE and live authority.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

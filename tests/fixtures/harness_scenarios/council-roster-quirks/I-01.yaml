@@ -1,0 +1,14 @@
+id: I-01
+runbook: council-roster-quirks.md
+type: operate
+refs:
+- E-01
+scenario: A reviewer dispatch needs the current Council member and model.
+expected_answers:
+- kind: tool_call
+  tool: state_get
+  argument_keys:
+  - key
+  argument_values:
+    key: infra:council-comms
+weight: 0.0909090909

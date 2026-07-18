@@ -1,0 +1,10 @@
+id: I-09
+runbook: gate-procedure.md
+type: evolve
+refs:
+- §H
+scenario: A proposal lets two of three returned votes count when one voter failed.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0909090909

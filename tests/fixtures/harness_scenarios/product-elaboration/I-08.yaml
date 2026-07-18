@@ -1,0 +1,12 @@
+id: I-08
+runbook: product-elaboration.md
+type: repair
+refs:
+- G-02
+scenario: Deferred scope appears in website copy.
+expected_answers:
+- kind: human_action
+  verb: remove
+  object: deferred claim
+  target: current customer surface
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-01
+runbook: constitution-history.md
+type: operate
+refs:
+- E-01
+scenario: A kernel projection needs the current constitution hash.
+expected_answers:
+- kind: human_action
+  verb: hash
+  object: byte-identical current CORE content
+  target: dependent manifest
+weight: 0.0909090909

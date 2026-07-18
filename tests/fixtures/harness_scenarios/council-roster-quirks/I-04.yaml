@@ -1,0 +1,10 @@
+id: I-04
+runbook: council-roster-quirks.md
+type: isolate
+refs:
+- F-01
+scenario: A dispatch names a member that live state marks paused.
+expected_answers:
+- kind: classification
+  label: STALE_ROSTER
+weight: 0.0909090909

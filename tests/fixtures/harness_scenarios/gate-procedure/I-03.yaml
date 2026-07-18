@@ -1,0 +1,10 @@
+id: I-03
+runbook: gate-procedure.md
+type: operate
+refs:
+- E-03
+scenario: A committed build is ready for independent audit.
+expected_answers:
+- kind: classification
+  label: SELECT_GATE_3
+weight: 0.0909090909

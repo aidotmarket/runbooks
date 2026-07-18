@@ -1,0 +1,10 @@
+id: I-04
+runbook: constitution-history.md
+type: isolate
+refs:
+- F-01
+scenario: A 970-byte moved stub was hashed as current CORE.
+expected_answers:
+- kind: classification
+  label: WRONG_SOURCE
+weight: 0.0909090909

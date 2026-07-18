@@ -1,0 +1,12 @@
+id: I-08
+runbook: constitution-history.md
+type: repair
+refs:
+- G-02
+scenario: Historical text leaked into current instructions.
+expected_answers:
+- kind: human_action
+  verb: restore
+  object: current CORE authority
+  target: operational instructions
+weight: 0.0909090909

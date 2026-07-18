@@ -1,0 +1,10 @@
+id: I-01
+runbook: product-elaboration.md
+type: operate
+refs:
+- E-01
+scenario: A design assigns metadata generation to AIM Data itself.
+expected_answers:
+- kind: classification
+  label: PRODUCT_BOUNDARY_CONFLICT
+weight: 0.0909090909

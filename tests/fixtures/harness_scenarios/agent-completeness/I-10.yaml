@@ -1,0 +1,10 @@
+id: I-10
+runbook: agent-completeness.md
+type: evolve
+refs:
+- §H
+scenario: A manifest gains an additive usage example field.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

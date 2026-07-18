@@ -1,0 +1,10 @@
+id: I-02
+runbook: gate-procedure.md
+type: operate
+refs:
+- E-02
+scenario: Approved design requires a bounded implementation spec.
+expected_answers:
+- kind: classification
+  label: SELECT_GATE_2
+weight: 0.0909090909

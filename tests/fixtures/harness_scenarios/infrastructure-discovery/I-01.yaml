@@ -1,0 +1,14 @@
+id: I-01
+runbook: infrastructure-discovery.md
+type: operate
+refs:
+- E-01
+scenario: An operator needs the current path of a repository.
+expected_answers:
+- kind: tool_call
+  tool: state_get
+  argument_keys:
+  - key
+  argument_values:
+    key: config:resource-registry
+weight: 0.0909090909

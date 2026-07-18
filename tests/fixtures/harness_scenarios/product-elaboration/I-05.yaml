@@ -1,0 +1,10 @@
+id: I-05
+runbook: product-elaboration.md
+type: isolate
+refs:
+- F-01
+scenario: A flow lets buyers contact sellers without allAI mediation.
+expected_answers:
+- kind: classification
+  label: MEDIATION_VIOLATION
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-07
+runbook: gate-procedure.md
+type: repair
+refs:
+- G-01
+scenario: A claim blocker makes build eligibility unknown.
+expected_answers:
+- kind: human_action
+  verb: resolve
+  object: claim evidence
+  target: dispatch preflight
+weight: 0.0909090909

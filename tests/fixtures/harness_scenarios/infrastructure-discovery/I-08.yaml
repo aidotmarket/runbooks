@@ -1,0 +1,12 @@
+id: I-08
+runbook: infrastructure-discovery.md
+type: repair
+refs:
+- G-02
+scenario: Generated inward discovery data is stale.
+expected_answers:
+- kind: human_action
+  verb: regenerate
+  object: inward discovery surface
+  target: current registry data
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-07
+runbook: aging-policy.md
+type: repair
+refs:
+- G-01
+scenario: An old approved item was omitted from standup.
+expected_answers:
+- kind: human_action
+  verb: recompute
+  object: aging list
+  target: live BQ state
+weight: 0.0909090909

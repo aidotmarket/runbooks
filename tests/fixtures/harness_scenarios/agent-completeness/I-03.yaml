@@ -1,0 +1,10 @@
+id: I-03
+runbook: agent-completeness.md
+type: operate
+refs:
+- E-03
+scenario: Gate 3 must prove request and health endpoints respond.
+expected_answers:
+- kind: classification
+  label: VERIFY_BOTH_ENDPOINTS
+weight: 0.0909090909

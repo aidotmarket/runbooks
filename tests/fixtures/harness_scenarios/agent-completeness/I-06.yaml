@@ -1,0 +1,10 @@
+id: I-06
+runbook: agent-completeness.md
+type: isolate
+refs:
+- F-02
+scenario: Discovery and MCP use different keys for the same agent.
+expected_answers:
+- kind: classification
+  label: IDENTITY_MISMATCH
+weight: 0.0909090909

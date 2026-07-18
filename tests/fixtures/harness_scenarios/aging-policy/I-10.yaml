@@ -1,0 +1,10 @@
+id: I-10
+runbook: aging-policy.md
+type: evolve
+refs:
+- §H
+scenario: Standup adds a clearer age display without changing classification.
+expected_answers:
+- kind: classification
+  label: SAFE
+weight: 0.0909090909

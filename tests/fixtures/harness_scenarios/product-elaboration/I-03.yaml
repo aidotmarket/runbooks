@@ -1,0 +1,10 @@
+id: I-03
+runbook: product-elaboration.md
+type: operate
+refs:
+- E-03
+scenario: Federated learning is proposed for a current marketing page.
+expected_answers:
+- kind: classification
+  label: MAX_DECISION_REQUIRED
+weight: 0.0909090909

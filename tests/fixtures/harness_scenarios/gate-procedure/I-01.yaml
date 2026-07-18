@@ -1,0 +1,10 @@
+id: I-01
+runbook: gate-procedure.md
+type: operate
+refs:
+- E-01
+scenario: A new BQ has no approved design authority.
+expected_answers:
+- kind: classification
+  label: SELECT_GATE_1
+weight: 0.0909090909

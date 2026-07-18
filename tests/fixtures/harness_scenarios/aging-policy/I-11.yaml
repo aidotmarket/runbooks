@@ -1,0 +1,12 @@
+id: I-11
+runbook: aging-policy.md
+type: ambiguous
+refs:
+- §H.6
+scenario: Approval timestamp is missing for an undispatched item.
+expected_answers:
+- kind: human_action
+  verb: surface
+  object: unknown age evidence
+  target: queue decision
+weight: 0.090909091

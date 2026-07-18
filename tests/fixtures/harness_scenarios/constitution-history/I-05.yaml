@@ -1,0 +1,10 @@
+id: I-05
+runbook: constitution-history.md
+type: isolate
+refs:
+- F-01
+scenario: Living State and a Git mirror have different bytes.
+expected_answers:
+- kind: classification
+  label: SOURCE_DRIFT
+weight: 0.0909090909

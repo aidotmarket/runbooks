@@ -1,0 +1,10 @@
+id: I-10
+runbook: product-elaboration.md
+type: evolve
+refs:
+- §H
+scenario: AIM Data gains a new approved metadata review screen.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

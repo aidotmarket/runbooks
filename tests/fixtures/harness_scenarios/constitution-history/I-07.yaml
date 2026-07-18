@@ -1,0 +1,12 @@
+id: I-07
+runbook: constitution-history.md
+type: repair
+refs:
+- G-01
+scenario: A companion carries a stale source SHA.
+expected_answers:
+- kind: human_action
+  verb: regenerate
+  object: source-linked artifact
+  target: verified current CORE hash
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-08
+runbook: agent-completeness.md
+type: repair
+refs:
+- G-02
+scenario: The corresponding Koskadeux request tool is missing.
+expected_answers:
+- kind: human_action
+  verb: add
+  object: canonical request tool
+  target: tools/agent_request.py
+weight: 0.0909090909

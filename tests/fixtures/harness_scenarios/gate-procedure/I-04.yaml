@@ -1,0 +1,10 @@
+id: I-04
+runbook: gate-procedure.md
+type: isolate
+refs:
+- F-01
+scenario: Gate 2 status is missing before a required build dispatch.
+expected_answers:
+- kind: classification
+  label: INELIGIBLE
+weight: 0.0909090909

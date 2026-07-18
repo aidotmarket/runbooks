@@ -1,0 +1,10 @@
+id: I-10
+runbook: constitution-history.md
+type: evolve
+refs:
+- §H
+scenario: A verified new version row is added after an amendment.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

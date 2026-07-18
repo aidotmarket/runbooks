@@ -1,0 +1,10 @@
+id: I-10
+runbook: infrastructure-discovery.md
+type: evolve
+refs:
+- §H
+scenario: A registry schema adds an owner field for each resource.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

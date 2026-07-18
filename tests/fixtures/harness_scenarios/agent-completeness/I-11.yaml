@@ -1,0 +1,12 @@
+id: I-11
+runbook: agent-completeness.md
+type: ambiguous
+refs:
+- §H.6
+scenario: Live compliance passes but source lacks a required declaration.
+expected_answers:
+- kind: human_action
+  verb: fail
+  object: compliance review
+  target: conflicting evidence until resolved
+weight: 0.090909091

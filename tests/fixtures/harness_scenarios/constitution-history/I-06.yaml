@@ -1,0 +1,10 @@
+id: I-06
+runbook: constitution-history.md
+type: isolate
+refs:
+- F-02
+scenario: A version 7 rule is cited as current behavior.
+expected_answers:
+- kind: classification
+  label: HISTORICAL_NOT_NORMATIVE
+weight: 0.0909090909

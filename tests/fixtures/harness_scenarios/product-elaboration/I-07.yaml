@@ -1,0 +1,12 @@
+id: I-07
+runbook: product-elaboration.md
+type: repair
+refs:
+- G-01
+scenario: A conduit was incorrectly described as the worker.
+expected_answers:
+- kind: human_action
+  verb: restore
+  object: allAI worker boundary
+  target: product design
+weight: 0.0909090909

@@ -1,0 +1,10 @@
+id: I-06
+runbook: gate-procedure.md
+type: isolate
+refs:
+- F-01
+scenario: A gate lease expired before author-mode completion.
+expected_answers:
+- kind: classification
+  label: LEASE_NOT_VALID
+weight: 0.0909090909

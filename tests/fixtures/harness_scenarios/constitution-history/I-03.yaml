@@ -1,0 +1,10 @@
+id: I-03
+runbook: constitution-history.md
+type: operate
+refs:
+- E-03
+scenario: A semantic constitution change has an exact diff.
+expected_answers:
+- kind: classification
+  label: REQUIRE_UNANIMOUS_COUNCIL_AND_MAX
+weight: 0.0909090909

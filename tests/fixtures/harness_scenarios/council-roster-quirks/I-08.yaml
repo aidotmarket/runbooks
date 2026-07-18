@@ -1,0 +1,12 @@
+id: I-08
+runbook: council-roster-quirks.md
+type: repair
+refs:
+- G-02
+scenario: A write-capable review result was mistakenly recorded as valid.
+expected_answers:
+- kind: human_action
+  verb: replace
+  object: invalid vote
+  target: read-only eligible voter result
+weight: 0.0909090909

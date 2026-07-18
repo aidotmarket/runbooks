@@ -1,0 +1,12 @@
+id: I-02
+runbook: agent-completeness.md
+type: operate
+refs:
+- E-02
+scenario: An orchestrator must discover an internal agent manifest.
+expected_answers:
+- kind: tool_call
+  tool: GET /api/v1/agents/discover
+  argument_keys:
+  - tier
+weight: 0.0909090909

@@ -1,0 +1,10 @@
+id: I-04
+runbook: aging-policy.md
+type: isolate
+refs:
+- F-01
+scenario: A second incident recurs while its approved fix remains unbuilt.
+expected_answers:
+- kind: classification
+  label: PROMOTE_P0
+weight: 0.0909090909

@@ -1,0 +1,12 @@
+id: I-07
+runbook: agent-completeness.md
+type: repair
+refs:
+- G-01
+scenario: A ValidationRule is absent from MonitoringPolicy.
+expected_answers:
+- kind: human_action
+  verb: add
+  object: missing validation rule
+  target: code-first MonitoringPolicy
+weight: 0.0909090909

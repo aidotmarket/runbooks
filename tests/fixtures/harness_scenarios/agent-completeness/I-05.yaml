@@ -1,0 +1,10 @@
+id: I-05
+runbook: agent-completeness.md
+type: isolate
+refs:
+- F-01
+scenario: The agent has a request route but no typed skill.
+expected_answers:
+- kind: classification
+  label: INCOMPLETE_AGENT
+weight: 0.0909090909

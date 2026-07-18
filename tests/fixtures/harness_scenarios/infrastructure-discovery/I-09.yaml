@@ -1,0 +1,10 @@
+id: I-09
+runbook: infrastructure-discovery.md
+type: evolve
+refs:
+- §H
+scenario: A proposal embeds all live repository paths in this runbook.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0909090909

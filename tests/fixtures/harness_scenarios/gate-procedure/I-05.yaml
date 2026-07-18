@@ -1,0 +1,10 @@
+id: I-05
+runbook: gate-procedure.md
+type: isolate
+refs:
+- F-02
+scenario: The builder appears among its own Gate 3 reviewers.
+expected_answers:
+- kind: classification
+  label: TAINTED_REVIEW
+weight: 0.0909090909

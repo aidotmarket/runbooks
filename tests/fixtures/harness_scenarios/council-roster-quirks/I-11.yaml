@@ -1,0 +1,12 @@
+id: I-11
+runbook: council-roster-quirks.md
+type: ambiguous
+refs:
+- §H.6
+scenario: CORE and live state appear to disagree on a Council role.
+expected_answers:
+- kind: human_action
+  verb: separate
+  object: stable and volatile claims
+  target: CORE and live roster authorities
+weight: 0.090909091

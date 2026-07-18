@@ -1,0 +1,12 @@
+id: I-11
+runbook: constitution-history.md
+type: ambiguous
+refs:
+- §H.6
+scenario: Git history and an amendment summary use different wording.
+expected_answers:
+- kind: human_action
+  verb: compare
+  object: exact current and historical bytes
+  target: provenance record
+weight: 0.090909091

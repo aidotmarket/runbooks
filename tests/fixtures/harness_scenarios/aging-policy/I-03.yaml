@@ -1,0 +1,12 @@
+id: I-03
+runbook: aging-policy.md
+type: operate
+refs:
+- E-03
+scenario: Session close carries approved undispatched work.
+expected_answers:
+- kind: human_action
+  verb: record
+  object: aging obligations
+  target: top of database handoff
+weight: 0.0909090909
