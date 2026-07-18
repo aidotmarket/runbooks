@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
+from functools import partial
 import json
 import os
+import time
 from typing import Any, Callable, Literal
 
 from runbook_tools.harness.prompts import ALLOWED_TOOLS
@@ -31,6 +33,15 @@ WRITE_CAPABLE_TOOLS: frozenset[str] = frozenset(
     }
 )
 
+DEFAULT_SCENARIO_TIMEOUT_S = 600.0
+COUNCIL_POLL_INTERVAL_S = 10.0
+_PENDING_DISPATCH_STATUSES = frozenset(
+    {"dispatched", "running", "queued", "pending", "in_progress"}
+)
+_FAILED_DISPATCH_STATUSES = frozenset(
+    {"failed", "error", "timeout", "cancelled", "canceled", "not_found"}
+)
+
 
 class _CouncilDispatchError(RuntimeError):
     """The external council endpoint reported an unsuccessful dispatch."""
@@ -47,10 +58,15 @@ class DispatchResult:
 
 def make_council_request_fn(
     *,
-    timeout_s: float = 180.0,
+    timeout_s: float | None = None,
     council_request: Callable[..., Any] | None = None,
 ) -> Callable[[str, dict[str, Any]], DispatchResult]:
-    request = council_request if council_request is not None else _default_council_request
+    timeout_s = scenario_timeout_s(timeout_s)
+    request = (
+        council_request
+        if council_request is not None
+        else partial(_default_council_request, timeout_s=timeout_s)
+    )
 
     def dispatch(prompt: str, metadata: dict[str, Any] | None = None) -> DispatchResult:
         metadata = metadata or {}
@@ -103,6 +119,20 @@ def make_council_request_fn(
     return dispatch
 
 
+def scenario_timeout_s(explicit_timeout_s: float | None = None) -> float:
+    if explicit_timeout_s is not None:
+        return explicit_timeout_s
+
+    configured = os.environ.get("HARNESS_SCENARIO_TIMEOUT_S")
+    if configured is None:
+        return DEFAULT_SCENARIO_TIMEOUT_S
+    try:
+        timeout_s = float(configured)
+    except ValueError:
+        return DEFAULT_SCENARIO_TIMEOUT_S
+    return timeout_s if timeout_s > 0 else DEFAULT_SCENARIO_TIMEOUT_S
+
+
 def _call_with_timeout(
     request: Callable[..., Any],
     prompt: str,
@@ -125,7 +155,13 @@ def _call_with_timeout(
         executor.shutdown(wait=False, cancel_futures=True)
 
 
-def _default_council_request(*, agent: str, task: str, allowed_tools: list[str]) -> Any:
+def _default_council_request(
+    *,
+    agent: str,
+    task: str,
+    allowed_tools: list[str],
+    timeout_s: float,
+) -> Any:
     url = os.environ.get("KOSKADEUX_MCP_URL")
     token = os.environ.get("KOSKADEUX_MCP_TOKEN")
     if not url:
@@ -133,26 +169,85 @@ def _default_council_request(*, agent: str, task: str, allowed_tools: list[str])
             "KOSKADEUX_MCP_URL is not set; inject council_request for tests or configure the env var"
         )
 
-    import urllib.request
-
-    body = json.dumps(
+    deadline = time.monotonic() + timeout_s
+    raw = _post_council_request(
+        url,
+        token,
         {
             "name": "council_request",
             "arguments": {"agent": agent, "task": task, "allowed_tools": allowed_tools},
-        }
-    ).encode("utf-8")
+        },
+    )
+    receipt = _parsed_council_payload(raw)
+    if not _is_dispatch_receipt(receipt):
+        return raw
+
+    task_id = str(receipt["task_id"])
+    while True:
+        remaining_s = deadline - time.monotonic()
+        if remaining_s <= 0:
+            raise FuturesTimeoutError()
+        time.sleep(min(COUNCIL_POLL_INTERVAL_S, remaining_s))
+
+        polled_raw = _post_council_request(
+            url,
+            token,
+            {
+                "name": "council_request",
+                "arguments": {"action": "check_build", "task_id": task_id},
+            },
+        )
+        polled = _parsed_council_payload(polled_raw)
+        if polled is None:
+            raise _CouncilDispatchError("check_build returned a malformed response")
+
+        status = str(polled.get("status", "")).strip().lower()
+        if status == "completed":
+            payload, inner_trace = _normalize_council_response(polled)
+            _, outer_trace = _normalize_council_response(polled_raw)
+            completed: dict[str, Any] = {"success": True, "result": payload}
+            trace = [*outer_trace, *inner_trace]
+            if trace:
+                completed["tool_use_trace"] = trace
+            return completed
+        if status in _PENDING_DISPATCH_STATUSES:
+            continue
+        if status in _FAILED_DISPATCH_STATUSES:
+            error = polled.get("error") or polled.get("message") or f"task {task_id} {status}"
+            raise _CouncilDispatchError(str(error))
+        raise _CouncilDispatchError(
+            f"check_build returned unexpected status {status!r} for task {task_id}"
+        )
+
+
+def _post_council_request(url: str, token: str | None, body: dict[str, Any]) -> Any:
+    import urllib.request
+
+    encoded_body = json.dumps(body).encode("utf-8")
 
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    req = urllib.request.Request(url, data=encoded_body, headers=headers, method="POST")
     with urllib.request.urlopen(req) as resp:
         raw = resp.read().decode("utf-8", errors="replace")
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
         return raw
+
+
+def _parsed_council_payload(raw: Any) -> dict[str, Any] | None:
+    payload, _ = _normalize_council_response(raw)
+    return _parse_json_payload(payload)
+
+
+def _is_dispatch_receipt(payload: dict[str, Any] | None) -> bool:
+    if payload is None or not payload.get("task_id"):
+        return False
+    status = str(payload.get("status", "")).strip().lower()
+    return status in _PENDING_DISPATCH_STATUSES
 
 
 def _normalize_council_response(raw: Any) -> tuple[Any, list[dict[str, Any]]]:

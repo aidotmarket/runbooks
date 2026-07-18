@@ -60,8 +60,12 @@ def test_dispatch_for_scenario_invalid_json() -> None:
 
 
 def test_dispatch_for_scenario_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HARNESS_SCENARIO_TIMEOUT_S", "37.5")
+    captured: dict[str, float] = {}
+
     class FakeFuture:
         def result(self, timeout):
+            captured["timeout"] = timeout
             raise FuturesTimeoutError()
 
     class FakeExecutor:
@@ -79,6 +83,8 @@ def test_dispatch_for_scenario_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     response = dispatch_for_scenario(_scenario(), Path("tests/fixtures/conformant.md"), lambda **kwargs: None)
 
     assert response.kind == "SCENARIO_TIMEOUT"
+    assert response.error == "scenario I-01 exceeded 37.5s"
+    assert captured["timeout"] == 37.5
 
 
 def test_has_off_path_tool_use_false_when_same_runbook() -> None:
@@ -157,4 +163,3 @@ def test_write_result_falls_back_for_bad_timestamp(tmp_path: Path) -> None:
 
     assert output.exists()
     assert output.name.startswith("S999-")
-

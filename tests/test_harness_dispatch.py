@@ -10,6 +10,7 @@ import pytest
 from runbook_tools.harness.dispatch import (
     DispatchResult,
     make_council_request_fn,
+    scenario_timeout_s,
 )
 from runbook_tools.harness.prompts import (
     ALLOWED_TOOLS_PREAMBLE,
@@ -249,6 +250,199 @@ def test_dispatch_default_council_request_posts_to_configured_url(
     assert captured["auth"] == "Bearer token-xyz"
     assert captured["body"]["name"] == "council_request"
     assert captured["body"]["arguments"]["agent"] == "mp"
+
+
+def test_dispatch_default_council_request_polls_receipt_to_completed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
+    payload = {"kind": "classification", "verdict": "SAFE"}
+    trace = [{"tool": "Read", "arguments": {"path": str(RUNBOOK_PATH.resolve())}}]
+    gateway_responses = iter(
+        [
+            {"success": True, "result": json.dumps({"task_id": "task-123", "status": "dispatched"})},
+            {"success": True, "result": json.dumps({"task_id": "task-123", "status": "running"})},
+            {
+                "success": True,
+                "result": json.dumps(
+                    {
+                        "task_id": "task-123",
+                        "status": "completed",
+                        "response": json.dumps(payload),
+                        "tool_use_trace": trace,
+                    }
+                ),
+            },
+        ]
+    )
+    posted: list[dict[str, Any]] = []
+
+    class FakeResponse:
+        def __init__(self, response: dict[str, Any]) -> None:
+            self._response = response
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(self._response).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        posted.append(json.loads(req.data.decode("utf-8")))
+        return FakeResponse(next(gateway_responses))
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result = make_council_request_fn()("prompt", _metadata())
+
+    assert result.status == "ok"
+    assert result.response == payload
+    assert result.tool_use_trace == trace
+    assert posted[0]["arguments"]["agent"] == "mp"
+    assert posted[1]["arguments"] == {"action": "check_build", "task_id": "task-123"}
+    assert posted[2]["arguments"] == {"action": "check_build", "task_id": "task-123"}
+
+
+def test_dispatch_default_council_request_maps_failed_poll_to_dispatch_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
+    gateway_responses = iter(
+        [
+            {"success": True, "result": json.dumps({"task_id": "task-456", "status": "queued"})},
+            {
+                "success": True,
+                "result": json.dumps(
+                    {"task_id": "task-456", "status": "failed", "error": "MP crashed"}
+                ),
+            },
+        ]
+    )
+
+    class FakeResponse:
+        def __init__(self, response: dict[str, Any]) -> None:
+            self._response = response
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(self._response).encode("utf-8")
+
+    monkeypatch.setattr(
+        "urllib.request.urlopen", lambda req: FakeResponse(next(gateway_responses))
+    )
+
+    result = make_council_request_fn()("prompt", _metadata())
+
+    assert result.status == "dispatch_failure"
+    assert "MP crashed" in (result.error or "")
+
+
+def test_dispatch_default_council_request_poll_guard_returns_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.001)
+    calls = 0
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            status = "dispatched" if calls == 1 else "running"
+            envelope = {
+                "success": True,
+                "result": json.dumps({"task_id": "task-789", "status": status}),
+            }
+            return json.dumps(envelope).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        nonlocal calls
+        calls += 1
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result = make_council_request_fn(timeout_s=0.03)("prompt", _metadata())
+
+    assert result.status == "timeout"
+    assert calls > 1
+
+
+def test_dispatch_default_council_request_keeps_inline_response_synchronous(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    calls = 0
+    payload = {"kind": "classification", "verdict": "REVIEW"}
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            envelope = {"success": True, "result": json.dumps(payload)}
+            return json.dumps(envelope).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        nonlocal calls
+        calls += 1
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result = make_council_request_fn()("prompt", _metadata())
+
+    assert result.status == "ok"
+    assert result.response == payload
+    assert calls == 1
+
+
+def test_scenario_timeout_is_configurable_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("HARNESS_SCENARIO_TIMEOUT_S", "42.5")
+    captured: dict[str, float] = {}
+
+    def fake_call_with_timeout(request: Any, prompt: str, timeout_s: float) -> str:
+        captured["timeout_s"] = timeout_s
+        return json.dumps({"kind": "classification", "verdict": "SAFE"})
+
+    monkeypatch.setattr(
+        "runbook_tools.harness.dispatch._call_with_timeout", fake_call_with_timeout
+    )
+
+    result = make_council_request_fn(council_request=lambda **kwargs: None)(
+        "prompt", _metadata()
+    )
+
+    assert scenario_timeout_s() == 42.5
+    assert captured["timeout_s"] == 42.5
+    assert result.status == "ok"
+
+
+def test_scenario_timeout_defaults_to_600_seconds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("HARNESS_SCENARIO_TIMEOUT_S", raising=False)
+
+    assert scenario_timeout_s() == 600.0
 
 
 def test_dispatch_default_council_request_returns_text_when_not_json(
