@@ -1,0 +1,154 @@
+{
+  "aggregate_score": 0.0,
+  "external_mode": false,
+  "linter_version": "1.0.0",
+  "pass_threshold": 0.8,
+  "result": "FAIL",
+  "run_finished_at": "2026-07-18T08:41:21.047942Z",
+  "run_started_at": "2026-07-18T08:36:20.840312Z",
+  "runbook": "agent-dispatch.md",
+  "scenarios": [
+    {
+      "id": "I-01",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "arguments": {
+          "file_path": "/Users/max/Projects/ai-market/runbooks/runbooks/agent-dispatch.md"
+        },
+        "kind": "tool_call",
+        "tool": "Read"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-02",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-03",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-04",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-05",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-06",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "arguments": {
+          "file_path": "/Users/max/Projects/ai-market/runbooks/runbooks/agent-dispatch.md"
+        },
+        "kind": "tool_call",
+        "tool": "Read"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-07",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-08",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-09",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-10",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-11",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "arguments": {
+          "file_path": "/Users/max/Projects/ai-market/runbooks/runbooks/agent-dispatch.md"
+        },
+        "kind": "tool_call",
+        "tool": "Read"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    },
+    {
+      "id": "I-12",
+      "matched_answer_index": null,
+      "reason": "no_match",
+      "response": {
+        "error": "response is not a JSON object matching the harness output schema",
+        "kind": "INVALID_RESPONSE"
+      },
+      "score": 0.0,
+      "weight": 0.08333333333333333
+    }
+  ],
+  "session_id": "S1270-G4"
+}
