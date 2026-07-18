@@ -26,7 +26,11 @@ jobs:
           KOSKADEUX_MCP_TOKEN: ${{ secrets.KOSKADEUX_MCP_TOKEN }}
         run: |
           runbook-catalog select --mode harness-selection
-          runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
+          if [ -z "$KOSKADEUX_MCP_URL" ]; then
+            echo "::notice::Scenario EXECUTION skipped: KOSKADEUX_MCP_URL secret not configured (gateway is Titan-1-local). Selection, drift, and schema checks above are authoritative for CI; scenario execution runs on Titan-1 (see runbook-catalog BQ gate 4)."
+          else
+            runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
+          fi
       - name: Commit updates
         run: |
           git config user.name "runbook-harness"
