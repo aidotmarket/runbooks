@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from runbook_tools.harness.dispatch import DispatchResult
+from runbook_tools.harness.dispatch import DispatchResult, scenario_timeout_s
 from runbook_tools.harness.loader import Scenario
 from runbook_tools.harness.prompts import SYSTEM_PROMPT, build_harness_prompt
 
@@ -28,6 +28,7 @@ class Response:
 
 def dispatch_for_scenario(scenario: Scenario, runbook_path: Path, council_request_fn) -> Response:
     prompt = _build_scenario_prompt(scenario, runbook_path)
+    timeout_s = scenario_timeout_s()
     with ThreadPoolExecutor(max_workers=1) as executor:
         future = executor.submit(
             council_request_fn,
@@ -36,9 +37,12 @@ def dispatch_for_scenario(scenario: Scenario, runbook_path: Path, council_reques
             allowed_tools=["Read", "Grep", "Glob", "LS"],
         )
         try:
-            raw = future.result(timeout=180)
+            raw = future.result(timeout=timeout_s)
         except FuturesTimeoutError:
-            return Response(kind="SCENARIO_TIMEOUT", error=f"scenario {scenario.id} exceeded 180s")
+            return Response(
+                kind="SCENARIO_TIMEOUT",
+                error=f"scenario {scenario.id} exceeded {timeout_s:g}s",
+            )
 
     payload, tool_use_trace = _normalize_council_response(raw)
     try:
@@ -180,4 +184,3 @@ def _iter_paths(value: Any) -> list[str]:
             collected.extend(_iter_paths(item))
         return collected
     return []
-
