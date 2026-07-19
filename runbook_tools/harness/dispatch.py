@@ -186,6 +186,8 @@ def _default_council_request(
         },
     )
     receipt = _parsed_council_payload(raw)
+    if _is_completed_response(receipt):
+        return _completed_council_result(raw, receipt)
     if not _is_dispatch_receipt(receipt):
         return raw
 
@@ -210,18 +212,7 @@ def _default_council_request(
 
         status = str(polled.get("status", "")).strip().lower()
         if status == "completed":
-            payload = _extract_structured_answer(polled)
-            if payload is None:
-                raise _CouncilDispatchError(
-                    f"completed task {task_id} did not contain a structured harness answer"
-                )
-            _, inner_trace = _normalize_council_response(polled)
-            _, outer_trace = _normalize_council_response(polled_raw)
-            completed: dict[str, Any] = {"success": True, "result": payload}
-            trace = [*outer_trace, *inner_trace]
-            if trace:
-                completed["tool_use_trace"] = trace
-            return completed
+            return _completed_council_result(polled_raw, polled)
         if status in _PENDING_DISPATCH_STATUSES:
             continue
         if status in _FAILED_DISPATCH_STATUSES:
@@ -285,6 +276,29 @@ def _is_dispatch_receipt(payload: dict[str, Any] | None) -> bool:
         return False
     status = str(payload.get("status", "")).strip().lower()
     return status in _PENDING_DISPATCH_STATUSES
+
+
+def _is_completed_response(payload: dict[str, Any] | None) -> bool:
+    if payload is None:
+        return False
+    status = str(payload.get("status", "")).strip().lower()
+    return status == "completed" or payload.get("cache_hit") is True
+
+
+def _completed_council_result(raw: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    answer = _extract_structured_answer(payload)
+    task_id = str(payload.get("task_id") or "unknown")
+    if answer is None:
+        raise _CouncilDispatchError(
+            f"completed task {task_id} did not contain a structured harness answer"
+        )
+    _, inner_trace = _normalize_council_response(payload)
+    _, outer_trace = _normalize_council_response(raw)
+    completed: dict[str, Any] = {"success": True, "result": answer}
+    trace = [*outer_trace, *inner_trace]
+    if trace:
+        completed["tool_use_trace"] = trace
+    return completed
 
 
 def _normalize_council_response(raw: Any) -> tuple[Any, list[dict[str, Any]]]:

@@ -370,6 +370,86 @@ def test_dispatch_default_council_request_polls_receipt_to_completed(
     assert posted[2]["arguments"] == {"action": "check_build", "task_id": "task-123"}
 
 
+def test_dispatch_default_council_request_scores_live_immediately_completed_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
+    payload = {
+        "kind": "tool_call",
+        "tool": "Read",
+        "arguments": {"file_path": "/workspace/runbooks/boot-kernel-v2.md"},
+    }
+    scenario = Scenario(
+        id="I-01",
+        type="operate",
+        refs=["E-01"],
+        scenario_prose="Confirm this session booted on the kernel rather than full CORE.",
+        expected_answers=[
+            {
+                "kind": "tool_call",
+                "tool": "Read",
+                "argument_keys": ["file_path"],
+                "argument_values": {
+                    "file_path": "/workspace/runbooks/boot-kernel-v2.md"
+                },
+            }
+        ],
+        weight=1.0,
+        runbook=RUNBOOK_PATH,
+    )
+    agent_response = json.dumps({"response": json.dumps(payload)})
+    raw = {
+        "success": True,
+        "result": json.dumps(
+            {
+                "task_id": "task-cache-123",
+                "status": "completed",
+                "response": agent_response,
+                "result": agent_response,
+                "success": True,
+                "builder": "mp",
+                "model": "gpt-5.6-sol",
+                "model_requested": "gpt-5.6-sol",
+                "model_actual": "gpt-5.6-sol",
+                "model_matched": True,
+                "provider": "openai",
+            }
+        ),
+        "error": None,
+    }
+    posted: list[dict[str, Any]] = []
+
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return json.dumps(raw).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        posted.append(json.loads(req.data.decode("utf-8")))
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    from runbook_tools.harness.runner import run_dispatch_for_scenario
+    from runbook_tools.harness.scorer import score_response
+
+    response = run_dispatch_for_scenario(
+        scenario, RUNBOOK_PATH, make_council_request_fn()
+    )
+    score, matched_answer_index, reason = score_response(response, scenario)
+
+    assert response.kind == "tool_call"
+    assert response.tool == "Read"
+    assert response.arguments == {"file_path": "/workspace/runbooks/boot-kernel-v2.md"}
+    assert (score, matched_answer_index, reason) == (1.0, 0, "exact_match")
+    assert len(posted) == 1
+
+
 @pytest.mark.parametrize(
     "bad_url",
     ["https://mcp.ai.market", "https://example.invalid/mcp"],
