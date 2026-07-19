@@ -278,22 +278,38 @@ def test_dispatch_default_council_request_polls_receipt_to_completed(
     monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
     payload = {"kind": "tool_call", "tool": "x", "arguments": {}}
     trace = [{"tool": "Read", "arguments": {"path": str(RUNBOOK_PATH.resolve())}}]
-    agent_response = json.dumps({"response": json.dumps(payload)})
+    agent_response = json.dumps(payload)
     gateway_responses = iter(
         [
             {
                 "success": True,
-                "result": "DISPATCH RECEIPT\n"
-                + json.dumps(
+                "result": json.dumps(
                     {
                         "task_id": "task-123",
                         "agent": "mp",
                         "status": "dispatched",
-                        "message": "Use check_build to poll results.",
+                        "message": (
+                            "Task dispatched to mp in background. "
+                            "Use check_build(task_id='task-123') to poll results."
+                        ),
                     }
                 ),
+                "error": None,
             },
-            {"success": True, "result": json.dumps({"task_id": "task-123", "status": "running"})},
+            {
+                "success": True,
+                "result": json.dumps(
+                    {
+                        "task_id": "task-123",
+                        "status": "running",
+                        "elapsed_ms": 1000,
+                        "elapsed_human": "1s",
+                        "task": "prompt",
+                        "agent": "mp",
+                    }
+                ),
+                "error": None,
+            },
             {
                 "success": True,
                 "result": json.dumps(
@@ -304,9 +320,11 @@ def test_dispatch_default_council_request_polls_receipt_to_completed(
                         "result": agent_response,
                         "success": True,
                         "builder": "mp",
+                        "model": "gpt-5.6-sol",
                         "tool_use_trace": trace,
                     }
                 ),
+                "error": None,
             },
         ]
     )
