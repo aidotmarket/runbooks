@@ -1,0 +1,10 @@
+id: I-05
+runbook: boot-kernel-v2.md
+type: isolate
+refs:
+- F-02
+scenario: Boot aborts because the constitution hash does not match the manifest.
+expected_answers:
+- kind: classification
+  label: BOOT_KERNEL_SOURCE_DRIFT
+weight: 0.0909090909

@@ -1,0 +1,11 @@
+id: I-09
+runbook: boot-kernel-v2.md
+type: evolve
+refs:
+- §H
+scenario: A proposal rewords a kernel clause so it weakens a CORE obligation without
+  the amendment gate.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0909090909

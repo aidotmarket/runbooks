@@ -1,0 +1,10 @@
+id: I-04
+runbook: boot-kernel-v2.md
+type: isolate
+refs:
+- F-01
+scenario: Boot aborts citing the kernel character limit.
+expected_answers:
+- kind: classification
+  label: BOOT_KERNEL_LIMIT_EXCEEDED
+weight: 0.0909090909

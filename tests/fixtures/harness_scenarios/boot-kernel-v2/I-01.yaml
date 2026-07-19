@@ -1,0 +1,13 @@
+id: I-01
+runbook: boot-kernel-v2.md
+type: operate
+refs:
+- E-01
+scenario: An operator must confirm this session booted on the kernel rather than full
+  CORE.
+expected_answers:
+- kind: human_action
+  verb: compare
+  object: deployed_sha and origin main and the boot payload
+  target: on-mode delivery
+weight: 0.0909090909

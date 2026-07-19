@@ -1,0 +1,10 @@
+id: I-10
+runbook: boot-kernel-v2.md
+type: evolve
+refs:
+- §H
+scenario: A proposal raises enforced_kernel_max_chars from 16000 to 18000.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0909090909

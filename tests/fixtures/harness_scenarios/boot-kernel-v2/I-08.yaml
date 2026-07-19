@@ -1,0 +1,12 @@
+id: I-08
+runbook: boot-kernel-v2.md
+type: repair
+refs:
+- G-02
+scenario: The manifest source SHA points at a different CORE than the live constitution.
+expected_answers:
+- kind: human_action
+  verb: reconcile
+  object: manifest source_constitution_sha256
+  target: live infra:constitution
+weight: 0.0909090909

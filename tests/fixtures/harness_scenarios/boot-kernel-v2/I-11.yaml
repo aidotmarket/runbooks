@@ -1,0 +1,15 @@
+id: I-11
+runbook: boot-kernel-v2.md
+type: ambiguous
+refs:
+- §H.6
+- F-03
+scenario: A session boots on full CORE though the cutover flag is committed to main.
+expected_answers:
+- kind: human_action
+  verb: compare
+  object: deployed_sha and working-tree HEAD
+  target: reloader idle state
+- kind: classification
+  label: kernel_cutover_not_live
+weight: 0.090909091

@@ -1,0 +1,12 @@
+id: I-03
+runbook: boot-kernel-v2.md
+type: operate
+refs:
+- E-03
+scenario: The on-mode cutover must be rolled back.
+expected_answers:
+- kind: human_action
+  verb: revert
+  object: commit b13d63c3
+  target: launch_mcp_server.sh
+weight: 0.0909090909

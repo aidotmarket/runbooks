@@ -1,0 +1,12 @@
+id: I-07
+runbook: boot-kernel-v2.md
+type: repair
+refs:
+- G-01
+scenario: The kernel has grown past its enforced ceiling.
+expected_answers:
+- kind: human_action
+  verb: trim
+  object: KERNEL.md content
+  target: under enforced_kernel_max_chars
+weight: 0.0909090909

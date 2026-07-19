@@ -1,0 +1,12 @@
+id: I-02
+runbook: boot-kernel-v2.md
+type: operate
+refs:
+- E-02
+scenario: The mode must move from off to on.
+expected_answers:
+- kind: human_action
+  verb: set
+  object: BOOT_KERNEL_V2_MODE
+  target: scripts/launch_mcp_server.sh
+weight: 0.0909090909
