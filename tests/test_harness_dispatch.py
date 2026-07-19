@@ -202,20 +202,39 @@ def test_dispatch_failure_when_underlying_call_raises() -> None:
     assert "gateway unreachable" in (result.error or "")
 
 
-def test_dispatch_default_council_request_requires_mcp_url(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dispatch_default_council_request_uses_local_api_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.delenv("KOSKADEUX_MCP_URL", raising=False)
-    dispatch_fn = make_council_request_fn()
+    captured: dict[str, Any] = {}
 
-    result = dispatch_fn("prompt", _metadata())
+    class FakeResponse:
+        def __enter__(self) -> "FakeResponse":
+            return self
 
-    assert result.status == "dispatch_failure"
-    assert "KOSKADEUX_MCP_URL" in (result.error or "")
+        def __exit__(self, *_: Any) -> None:
+            return None
+
+        def read(self) -> bytes:
+            result = json.dumps({"kind": "classification", "verdict": "SAFE"})
+            return json.dumps({"success": True, "result": result}).encode("utf-8")
+
+    def fake_urlopen(req: Any) -> FakeResponse:
+        captured["url"] = req.full_url
+        return FakeResponse()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    result = make_council_request_fn()("prompt", _metadata())
+
+    assert result.status == "ok"
+    assert captured["url"] == "http://localhost:8765/api/call"
 
 
 def test_dispatch_default_council_request_posts_to_configured_url(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.setenv("KOSKADEUX_MCP_TOKEN", "token-xyz")
 
     captured: dict[str, Any] = {}
@@ -246,7 +265,7 @@ def test_dispatch_default_council_request_posts_to_configured_url(
     result = dispatch_fn("prompt", _metadata())
 
     assert result.status == "ok"
-    assert captured["url"] == "https://example.invalid/mcp"
+    assert captured["url"] == "https://example.invalid/api/call"
     assert captured["auth"] == "Bearer token-xyz"
     assert captured["body"]["name"] == "council_request"
     assert captured["body"]["arguments"]["agent"] == "mp"
@@ -255,13 +274,25 @@ def test_dispatch_default_council_request_posts_to_configured_url(
 def test_dispatch_default_council_request_polls_receipt_to_completed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
-    payload = {"kind": "classification", "verdict": "SAFE"}
+    payload = {"kind": "tool_call", "tool": "x", "arguments": {}}
     trace = [{"tool": "Read", "arguments": {"path": str(RUNBOOK_PATH.resolve())}}]
+    agent_response = json.dumps({"response": json.dumps(payload)})
     gateway_responses = iter(
         [
-            {"success": True, "result": json.dumps({"task_id": "task-123", "status": "dispatched"})},
+            {
+                "success": True,
+                "result": "DISPATCH RECEIPT\n"
+                + json.dumps(
+                    {
+                        "task_id": "task-123",
+                        "agent": "mp",
+                        "status": "dispatched",
+                        "message": "Use check_build to poll results.",
+                    }
+                ),
+            },
             {"success": True, "result": json.dumps({"task_id": "task-123", "status": "running"})},
             {
                 "success": True,
@@ -269,7 +300,10 @@ def test_dispatch_default_council_request_polls_receipt_to_completed(
                     {
                         "task_id": "task-123",
                         "status": "completed",
-                        "response": json.dumps(payload),
+                        "response": agent_response,
+                        "result": agent_response,
+                        "success": True,
+                        "builder": "mp",
                         "tool_use_trace": trace,
                     }
                 ),
@@ -297,20 +331,44 @@ def test_dispatch_default_council_request_polls_receipt_to_completed(
 
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
 
-    result = make_council_request_fn()("prompt", _metadata())
+    from runbook_tools.harness.runner import run_dispatch_for_scenario
+    from runbook_tools.harness.scorer import score_response
 
-    assert result.status == "ok"
-    assert result.response == payload
-    assert result.tool_use_trace == trace
+    response = run_dispatch_for_scenario(
+        _scenario(), RUNBOOK_PATH, make_council_request_fn()
+    )
+    score, matched_answer_index, reason = score_response(response, _scenario())
+
+    assert response.kind == "tool_call"
+    assert response.tool == "x"
+    assert response.tool_use_trace == trace
+    assert (score, matched_answer_index, reason) == (1.0, 0, "exact_match")
     assert posted[0]["arguments"]["agent"] == "mp"
     assert posted[1]["arguments"] == {"action": "check_build", "task_id": "task-123"}
     assert posted[2]["arguments"] == {"action": "check_build", "task_id": "task-123"}
 
 
+@pytest.mark.parametrize(
+    "bad_url",
+    ["https://mcp.ai.market", "https://example.invalid/mcp"],
+)
+def test_dispatch_default_council_request_rejects_streamable_http_url(
+    monkeypatch: pytest.MonkeyPatch,
+    bad_url: str,
+) -> None:
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", bad_url)
+
+    result = make_council_request_fn()("prompt", _metadata())
+
+    assert result.status == "dispatch_failure"
+    assert "http://localhost:8765/api/call" in (result.error or "")
+    assert "streamable-HTTP" in (result.error or "")
+
+
 def test_dispatch_default_council_request_maps_failed_poll_to_dispatch_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
     gateway_responses = iter(
         [
@@ -350,7 +408,7 @@ def test_dispatch_default_council_request_maps_failed_poll_to_dispatch_failure(
 def test_dispatch_default_council_request_poll_guard_returns_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.001)
     calls = 0
 
@@ -385,7 +443,7 @@ def test_dispatch_default_council_request_poll_guard_returns_timeout(
 def test_dispatch_default_council_request_keeps_inline_response_synchronous(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     calls = 0
     payload = {"kind": "classification", "verdict": "REVIEW"}
 
@@ -448,7 +506,7 @@ def test_scenario_timeout_defaults_to_600_seconds(
 def test_dispatch_default_council_request_returns_text_when_not_json(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
+    monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.delenv("KOSKADEUX_MCP_TOKEN", raising=False)
 
     class FakeResponse:

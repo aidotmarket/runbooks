@@ -7,6 +7,7 @@ import json
 import os
 import time
 from typing import Any, Callable, Literal
+from urllib.parse import urlparse
 
 from runbook_tools.harness.prompts import ALLOWED_TOOLS
 
@@ -35,8 +36,18 @@ WRITE_CAPABLE_TOOLS: frozenset[str] = frozenset(
 
 DEFAULT_SCENARIO_TIMEOUT_S = 600.0
 COUNCIL_POLL_INTERVAL_S = 10.0
+DEFAULT_KOSKADEUX_API_CALL_URL = "http://localhost:8765/api/call"
 _PENDING_DISPATCH_STATUSES = frozenset(
     {"dispatched", "running", "queued", "pending", "in_progress"}
+)
+_COUNCIL_RESPONSE_KEYS = (
+    "response",
+    "result",
+    "output",
+    "text",
+    "result_text",
+    "structured_payload",
+    "legacy_payload",
 )
 _FAILED_DISPATCH_STATUSES = frozenset(
     {"failed", "error", "timeout", "cancelled", "canceled", "not_found"}
@@ -162,12 +173,8 @@ def _default_council_request(
     allowed_tools: list[str],
     timeout_s: float,
 ) -> Any:
-    url = os.environ.get("KOSKADEUX_MCP_URL")
+    url = _council_api_call_url()
     token = os.environ.get("KOSKADEUX_MCP_TOKEN")
-    if not url:
-        raise RuntimeError(
-            "KOSKADEUX_MCP_URL is not set; inject council_request for tests or configure the env var"
-        )
 
     deadline = time.monotonic() + timeout_s
     raw = _post_council_request(
@@ -203,7 +210,12 @@ def _default_council_request(
 
         status = str(polled.get("status", "")).strip().lower()
         if status == "completed":
-            payload, inner_trace = _normalize_council_response(polled)
+            payload = _extract_structured_answer(polled)
+            if payload is None:
+                raise _CouncilDispatchError(
+                    f"completed task {task_id} did not contain a structured harness answer"
+                )
+            _, inner_trace = _normalize_council_response(polled)
             _, outer_trace = _normalize_council_response(polled_raw)
             completed: dict[str, Any] = {"success": True, "result": payload}
             trace = [*outer_trace, *inner_trace]
@@ -218,6 +230,27 @@ def _default_council_request(
         raise _CouncilDispatchError(
             f"check_build returned unexpected status {status!r} for task {task_id}"
         )
+
+
+def _council_api_call_url() -> str:
+    configured = os.environ.get("KOSKADEUX_MCP_URL")
+    url = (configured or DEFAULT_KOSKADEUX_API_CALL_URL).strip()
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").rstrip(".").lower()
+    path = parsed.path.rstrip("/")
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not host
+        or host == "mcp.ai.market"
+        or path != "/api/call"
+    ):
+        raise RuntimeError(
+            "KOSKADEUX_MCP_URL must target the koskadeux_server REST route; "
+            f"set it to {DEFAULT_KOSKADEUX_API_CALL_URL}. MCP streamable-HTTP "
+            "roots such as https://mcp.ai.market are not supported by the "
+            "harness fallback."
+        )
+    return url
 
 
 def _post_council_request(url: str, token: str | None, body: dict[str, Any]) -> Any:
@@ -240,7 +273,11 @@ def _post_council_request(url: str, token: str | None, body: dict[str, Any]) -> 
 
 def _parsed_council_payload(raw: Any) -> dict[str, Any] | None:
     payload, _ = _normalize_council_response(raw)
-    return _parse_json_payload(payload)
+    candidates = list(_iter_json_objects(payload))
+    for candidate in candidates:
+        if candidate.get("task_id") and candidate.get("status"):
+            return candidate
+    return candidates[0] if candidates else None
 
 
 def _is_dispatch_receipt(payload: dict[str, Any] | None) -> bool:
@@ -343,17 +380,51 @@ def _iter_event_paths(value: Any) -> list[str]:
 
 
 def _parse_json_payload(payload: Any) -> dict[str, Any] | None:
+    return next(_iter_json_objects(payload), None)
+
+
+def _iter_json_objects(payload: Any):
     if isinstance(payload, dict):
-        return payload
+        yield payload
+        return
     if payload is None:
-        return None
+        return
+
+    text = str(payload).strip()
     try:
-        parsed = json.loads(str(payload))
+        parsed = json.loads(text)
     except (TypeError, ValueError, json.JSONDecodeError):
+        parsed = None
+    if isinstance(parsed, dict):
+        yield parsed
+        return
+
+    decoder = json.JSONDecoder()
+    for index, character in enumerate(text):
+        if character != "{":
+            continue
+        try:
+            candidate, _ = decoder.raw_decode(text[index:])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if isinstance(candidate, dict):
+            yield candidate
+
+
+def _extract_structured_answer(value: Any, *, depth: int = 0) -> dict[str, Any] | None:
+    if depth > 10:
         return None
-    if not isinstance(parsed, dict):
-        return None
-    return parsed
+
+    for candidate in _iter_json_objects(value):
+        if _matches_output_schema(candidate):
+            return candidate
+        for key in _COUNCIL_RESPONSE_KEYS:
+            if key not in candidate:
+                continue
+            answer = _extract_structured_answer(candidate[key], depth=depth + 1)
+            if answer is not None:
+                return answer
+    return None
 
 
 def _matches_output_schema(parsed: dict[str, Any]) -> bool:

@@ -39,9 +39,16 @@ def test_new_cmd_creates_file(tmp_path: Path) -> None:
     assert "infisical-secrets" in result.output
 
 
-def test_harness_cmd_reports_dispatch_failure_when_unconfigured(monkeypatch) -> None:
+def test_harness_cmd_reports_dispatch_failure_when_local_server_unavailable(
+    monkeypatch,
+) -> None:
     monkeypatch.delenv("KOSKADEUX_MCP_URL", raising=False)
     monkeypatch.delenv("KOSKADEUX_MCP_TOKEN", raising=False)
+
+    def unavailable(*args, **kwargs):
+        raise OSError("local koskadeux unavailable")
+
+    monkeypatch.setattr("urllib.request.urlopen", unavailable)
     runner = CliRunner()
 
     result = runner.invoke(
@@ -50,7 +57,7 @@ def test_harness_cmd_reports_dispatch_failure_when_unconfigured(monkeypatch) -> 
     )
 
     assert result.exit_code != 0
-    assert "KOSKADEUX_MCP_URL is not set" in result.output
+    assert "local koskadeux unavailable" in result.output
 
 
 def test_harness_cmd_rejects_both_external_flags() -> None:
@@ -70,4 +77,3 @@ def test_harness_cmd_rejects_both_external_flags() -> None:
 
     assert result.exit_code == 2
     assert "mutually exclusive" in result.output
-
