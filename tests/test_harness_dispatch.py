@@ -271,14 +271,18 @@ def test_dispatch_default_council_request_posts_to_configured_url(
     assert captured["body"]["arguments"]["agent"] == "mp"
 
 
+@pytest.mark.parametrize("nested_response", [False, True])
 def test_dispatch_default_council_request_polls_receipt_to_completed(
     monkeypatch: pytest.MonkeyPatch,
+    nested_response: bool,
 ) -> None:
     monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/api/call")
     monkeypatch.setattr("runbook_tools.harness.dispatch.COUNCIL_POLL_INTERVAL_S", 0.0)
     payload = {"kind": "tool_call", "tool": "x", "arguments": {}}
     trace = [{"tool": "Read", "arguments": {"path": str(RUNBOOK_PATH.resolve())}}]
-    agent_response = json.dumps(payload)
+    agent_response = json.dumps(
+        {"response": json.dumps(payload)} if nested_response else payload
+    )
     gateway_responses = iter(
         [
             {
