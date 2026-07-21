@@ -55,6 +55,10 @@
         },
         {
           "section": "\u00a7E. Operate",
+          "signature": "mp_busy"
+        },
+        {
+          "section": "\u00a7E. Operate",
           "signature": "progress_guard_timeout"
         },
         {
@@ -466,6 +470,10 @@
       },
       "missing_design_artifact": {
         "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "mp_busy": {
+        "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
       "no resolution": {

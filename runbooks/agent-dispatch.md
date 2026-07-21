@@ -27,6 +27,8 @@ error_signatures:
     section: §E. Operate
   - signature: tr_truncation_false_negative
     section: §E. Operate
+  - signature: mp_busy
+    section: §E. Operate
 supersedes: []
 superseded_by: []
 owner: vulcan
@@ -165,6 +167,20 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: tr_truncation_false_negative, cause: env verification pipe `ps -E | tr ' ' '\n' | grep VAR` splits env entries containing spaces; var appears missing when actually present; use `ps -E -p PID | grep VAR` directly without tr}
   next_step_success: Patch the relevant BQ body.s<session>_durability_fix_resolution with smoke evidence (new PID, response time, hostname, env var presence in both bash wrapper and python child); record plist backup path for rollback.
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
+- id: E-05
+  trigger: Any MP dispatch (dispatch_mp_build or council_request agent=mp) while Vulcan and Mars share the single Codex CLI lane.
+  pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus]
+  tool_or_endpoint: peer_msg_send(kind=status, to=<peer>, ref_entity=<build_ref>) then dispatch_mp_build(...) or council_request(agent=mp, ...)
+  argument_sourcing:
+    lane_claim: announce BEFORE dispatch, naming the ref_entity, the work item, and the queued items behind it (established S1303, peer-bus msgs #1524-#1526)
+    dispatch_order: strictly one MP task at a time across BOTH instances; queue everything else behind the active task
+    release: announce lane release on the peer bus when the active task reaches a terminal state
+  idempotency: NOT_IDEMPOTENT
+  expected_success: {shape: exactly one MP task active system-wide with a matching prior bus claim, verification: "check_build shows a single in-flight MP task; peer bus shows claim before dispatch timestamp"}
+  expected_failures:
+    - {signature: mp_busy, cause: a second MP dispatch entered the shared Codex CLI lane while a task was in flight; the harness progress guard kills a task at ~900s, losing whichever build it lands on}
+  next_step_success: Dispatch the next queued lane item and announce the new claim.
+  next_step_failure: check_build both task_ids to establish which survived; after the lane clears, re-dispatch the killed task; never retry into an occupied lane.
 ```
 
 ## §F. Isolate
