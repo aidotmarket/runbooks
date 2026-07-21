@@ -181,6 +181,20 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: mp_busy, cause: a second MP dispatch entered the shared Codex CLI lane while a task was in flight; the harness progress guard kills a task at ~900s, losing whichever build it lands on}
   next_step_success: Dispatch the next queued lane item and announce the new claim.
   next_step_failure: check_build both task_ids to establish which survived; after the lane clears, re-dispatch the killed task; never retry into an occupied lane.
+- id: E-06
+  trigger: A Vulcan/Mars session opens, or is about to dispatch, merge, or close, and must synchronize with its peer before acting.
+  pre_conditions: [session_registered_in_registry, peer_bus_reachable]
+  tool_or_endpoint: peer_msg_inbox(instance=<self>) then peer_status(); verify boot payload claims (BQ tips, worktree SHAs, owned items) against git and Living State before relying on them
+  argument_sourcing:
+    drain_points: at session open, before any dispatch or merge, and before close (CORE S14); a drain marks non-ack messages consumed, so read everything returned
+    ack_rule: kind=request and kind=alert require peer_msg_ack; pending unacked high-priority messages fail-close peer dispatch gates
+    boot_verification: handoff and boot payload are advisory; origin branch tips and Living State are ground truth (background MP tasks can land pushes after a handoff is written)
+  idempotency: NOT_IDEMPOTENT
+  expected_success: {shape: empty or fully read inbox with all request/alert messages acked and boot claims verified against git/Living State, verification: "peer_msg_inbox returns no unconsumed rows; no pending_ack rows remain for self; verified SHAs match origin"}
+  expected_failures:
+    - {signature: stale_task_state, cause: handoff-listed work already landed on origin via a late-finishing background task; re-dispatching it duplicates a completed fold}
+  next_step_success: Proceed with claim/dispatch/close; announce lane claims per E-05.
+  next_step_failure: Reconcile drift in the same session (update Living State/BQ note to the verified origin state) before dispatching anything that depends on it.
 ```
 
 ## §F. Isolate
