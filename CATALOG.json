@@ -226,11 +226,19 @@
         },
         {
           "section": "\u00a7E. Operate",
+          "signature": "directional_evidence_missing"
+        },
+        {
+          "section": "\u00a7E. Operate",
           "signature": "fabricated_line_reference"
         },
         {
           "section": "\u00a7E. Operate",
           "signature": "gate1_status_trap"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "harness_bound_to_stale_code"
         },
         {
           "section": "\u00a7E. Operate",
@@ -424,6 +432,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "directional_evidence_missing": {
+        "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
       "duplicate_deliberation": {
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
@@ -446,6 +458,10 @@
       },
       "gateway_timeout": {
         "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "harness_bound_to_stale_code": {
+        "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
       "health_failure": {

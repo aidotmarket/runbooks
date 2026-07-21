@@ -33,12 +33,14 @@
 | `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F. Isolate](runbooks/constitution-history.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F. Isolate](runbooks/gate-procedure.md#f-isolate) |
 | `gateway_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `harness_bound_to_stale_code` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F. Isolate](runbooks/agent-completeness.md#f-isolate) |
 | `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |

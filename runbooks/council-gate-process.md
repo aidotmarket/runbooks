@@ -23,6 +23,10 @@ error_signatures:
     section: §E. Operate
   - signature: break_glass_left_enabled
     section: §E. Operate
+  - signature: directional_evidence_missing
+    section: §E. Operate
+  - signature: harness_bound_to_stale_code
+    section: §E. Operate
 supersedes: []
 superseded_by: []
 owner: mp
@@ -156,6 +160,24 @@ MP is primary because Codex CLI automation gives it reliable repo interaction an
     - {signature: break_glass_left_enabled, cause: emergency sentinel was used and not removed}
   next_step_success: Close the session handoff with entity key, commit, and verification summary.
   next_step_failure: Use F-01, F-04, or agent-dispatch:E-02 to obtain valid non-builder review evidence.
+- id: E-05
+  trigger: A guard-class (decides-something) change reaches Gate 4 and bq_complete requires directional evidence, not prose, that the guard works in the deployed direction.
+  pre_conditions: [gate3_passed, merge_sha_pinned, real_gate_implementation_importable, bq_entity_live, evidence_path_writable]
+  tool_or_endpoint: pinned-worktree harness driving the REAL BuildCompletionGate.check with production-shaped bq_complete payloads (pattern origin /tmp/kd-wt-guard-g4-s1305/.g4/harness.py, S1305, BQ-GUARD-DIRECTION-EVIDENCE-GATE-S1206 @ 4a29b132)
+  argument_sourcing:
+    merge_sha: pin a worktree at the exact merged SHA and sys.path the harness to it so the proof binds to shipped code, not a stale import
+    bq_entity: use the real Living State BQ entity via live lookup; never a fixture entity
+    git_range: derive the persisted branch range live from git, never hardcode
+    verification_payload: construct the full directional-evidence dict (schema_version, guard_class, environment, refusal{input_variant, stimulus, expected_decision, observed_decision, observation_ref}, separation{principal_a, principal_b, binding_a, binding_b, observation_ref})
+    cases: run all six directions - (A) prose-only verification must BLOCK, (B) spoofed observed_decision=allowed must BLOCK, (C) same-principal separation must BLOCK, (D) honest well-formed evidence must PASS, (E) override self-ack must stay INERT, (F) peer-ack must ACTIVATE
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: hash(entity + gate4 + pinned_sha + case_set_digest)
+  expected_success: {shape: exit 0 with per-case evidence.json (label, ok, gate outcome excerpt) at the pinned SHA, verification: every blocked case shows the gate refusal string and every accepted case shows the gate returning None; evidence.json referenced from gate4.evidence on the BQ entity}
+  expected_failures:
+    - {signature: directional_evidence_missing, cause: verification is prose or lacks the required refusal/separation structure, so the gate blocks an honest completion attempt}
+    - {signature: harness_bound_to_stale_code, cause: harness imported the long-running service or an unpinned checkout instead of the pinned merge-SHA worktree, proving the wrong code}
+  next_step_success: Attach evidence.json to gate4.evidence, run the live post-restart probes per activation-verification, then bq_complete.
+  next_step_failure: Rebuild the harness against the pinned SHA or repair the directional-evidence payload; do not weaken the gate to admit prose.
 ```
 
 ## §F. Isolate
