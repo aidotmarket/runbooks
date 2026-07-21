@@ -481,3 +481,15 @@ Precedent S691 (first complete codified application; predecessor durability gap 
 9. Cross-check `launchctl print gui/$(id -u)/<service>` shows the env var in the canonical 'environment' Dict, NOT only 'inherited environment'.
 10. Smoke dispatch: `council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'`; verify hostname=Koskadeux.local, env=1, no node-path error.
 11. Optional: mode=review smoke with a real BQ context (implicitly covered by any subsequent reviewer dispatch in the same session).
+
+### T-2026-000300 harness semantics (shipped 2026-07-21, koskadeux-mcp @ 57590559)
+
+The enforcing code ships an atomically-versioned §E supplement at `koskadeux-mcp/runbooks/agent-dispatch.md` (rows E-T300-01/02); that file is a narrow supplement and THIS runbook remains canonical. Summary of the shipped semantics:
+
+| Signature / procedure | Meaning | Operator action |
+|---|---|---|
+| `pre_build_branch_ahead` | Branch genuinely ahead of ITS OWN origin ref (never compared against origin/HEAD since 57590559). Payload carries repo_root/branch/upstream_ref/head_sha. | Push the branch or reconcile; do not force-dispatch. |
+| `pre_build_detached_unpushed` | Detached HEAD not contained in any origin ref after fetch --prune. | Push or attach the intended branch, re-dispatch. |
+| `pre_build_git_probe_failed` | git itself failed (missing binary, timeout, no-origin named distinctly). Fails closed, nothing discarded. | Fix the environment; work untouched. |
+| Stacked-build pre-position | For builds atop an unmerged reviewed commit: check out the target branch at its PUSHED head, set upstream to the branch's own origin ref, pass explicit `cwd` on dispatch. | Required before any stacked structural dispatch. |
+| Failure/timeout preservation | Builder commits are pinned to `refs/koskadeux-build/<sha>` before any teardown; timeout payloads report worktree_path + preserved ref; retained worktrees carry a TTL marker and are reaped after expiry. | Recover via the pinned ref; never assume a failed verdict means lost work. |
