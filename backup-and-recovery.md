@@ -9,7 +9,23 @@
 - **escalation_contact:** Max (Telegram, primary)
 - **lifecycle_ref:** §J
 - **authoritative_scope:** Backup coverage, cadence, integrity verification, failure alerting, and per-component restore. Bucket lockdown + writer identity inherit from aws-s3.md.
-- **last_verified:** 2026-06-16 (S884 — main-DB nightly backup migrated off Titan-1 to Railway-native cron `ai-market-backup` @ 02:00 UTC; Titan-1 launchd `com.aimarket.pg-backup` disabled; §F-02 retired)
+- **last_verified:** 2026-07-24 (S1322 — live Railway, S3, restore, retention, and alert-path audit)
+
+### Current authoritative status — 2026-07-24 (S1322)
+
+This block supersedes older status claims in the dated history below. Historical incident notes remain for context.
+
+- **Core backup jobs are currently producing usable artifacts.** The latest main-Postgres dump (`20260723`) passed SHA-256 verification and a full restore into disposable Postgres 17. The latest `knowledge_base_v2` Qdrant snapshot passed SHA-256 verification and restored green into the production Qdrant image.
+- **2026-07-19 incident:** Railway deployment `0103b798-f0e3-4592-b601-ace99f0b7b86` lost its Postgres connection during `COPY public.qdrant_sync_outbox` and exited failed. No successful main-DB dump exists for 19 or 20 July, producing about a **72-hour gap** between successful snapshots (18 July to 21 July).
+- **Primary independent notification is currently BROKEN.** The Titan-1 watchdog detects stale objects and logged the July 19–20 failure, but its configured Telegram bot token returned HTTP 401 in an end-to-end S1322 test. Detection logs are not proof of delivery, and the script currently ignores Telegram responses and exits successfully.
+- **Secondary notification is noisy and unreliable.** GitHub `backup-verify.yml` uses a six-hour freshness threshold that is incompatible with nightly completion times plus GitHub scheduler delay. It has opened an urgent issue every day through issue #230, including on healthy days. The workflow must be corrected before it is treated as a dead-man's switch.
+- **Backend SysAdmin polling is not active.** `poll_backup_watchdog` exists, but `backup-watchdog-hourly` remains commented out in the Celery beat schedule. The current Living State monitoring contract must not claim that this poller runs automatically.
+- **Cloudflare export is partial.** Current exports contain DNS and KV data, while both zone-settings requests contain HTTP 403 errors. The export still uploads and appears fresh, so freshness alone masks the partial failure.
+- **S3 inventory:** 469 object versions, 250,751,581,295 bytes (about 233.5 GiB). Main Postgres accounts for about 174.5 GiB and Qdrant about 58.9 GiB. Versioning, Block Public Access, SSE-S3, and Object Lock COMPLIANCE/35 days are live. **No lifecycle policy exists**, so objects are retained indefinitely; at least about 46.7 GiB is already older than 35 days.
+- **Current restore-proof gap:** the latest age-encrypted Infisical artifact passed object hash/size/TOC metadata checks, but a current decrypt-and-restore drill was not run because it requires the offline private key. The last documented drill is from 2026-06-08.
+- **Coverage gaps:** `git-mirrors/` is empty; Cloudflare settings are incomplete; the S3 `RESTORE-README.md` has not been refreshed since 2026-06-08; the Infisical backup Railway service remains pinned to its feature branch; and the small AIM Data Railway Postgres instance is not represented in this matrix.
+
+Until the alert paths and partial-export handling are repaired, the system is **recoverable for the two live-tested core data stores but does not meet a fail-loud, production-ready recovery standard**.
 
 ## §B. Coverage Matrix — what restoring the whole market requires
 > **A row is DR-complete only when its backup is LIVE *and to S3*.** Honest status as of 2026-06-07 (S792). The migration target is: **everything to S3 `aimarket-backups-prod`; GCS retired.** Both the main Postgres DB and the Qdrant knowledge_base back up nightly to S3 (recurring, machine-identity auth), and the latest Postgres dump has been restore-validated (archive TOC verified). The legacy GCS bucket was **deleted 2026-06-07 (S795)** — S3 is now the sole off-database backup destination. Remaining migration: rows 3–4 (Infisical secrets DB, vectorAIz) to S3.
@@ -25,7 +41,7 @@
 | 7 | **Cloudflare** (Worker KV data, DNS/zone) | Edge routing, KV state | Worker code in repos; nightly KV + zone export -> S3 `cloudflare/<date>/` | **LIVE (S799.w):** nightly DNS records + zone settings to `cloudflare/<date>/` (04:30/05:30 local, machine-identity) + watchdog; Worker scripts in GitHub; KV not captured (token scope; regenerable DMS counters) | §E-R6 |
 | 8 | **Failure alerting** | A backup must never fail silently again | S3-freshness watchdog -> Telegram; secondary GitHub issue | **LIVE (S792)** — see §F | §F-01 |
 
-**Restore-from-S3-alone today:** PARTIAL. S3 now holds nightly main-DB dumps (row 1, restore-validated 2026-06-07) and Qdrant snapshots (row 2). Rows 3–7 still live only in their primary homes (GitHub, Railway, Infisical, Cloudflare), so nothing is at imminent risk of permanent loss; a true "rebuild the market from S3" posture still needs rows 3–4 LIVE to S3.
+**Restore-from-S3-alone today (S1322): PARTIAL.** S3 holds current main-DB, Infisical, Qdrant, Railway-topology, and Cloudflare artifacts. It is not a complete standalone rebuild source because `git-mirrors/` is empty, Cloudflare settings are failing with 403, the offline Infisical keys remain external bootstrap dependencies, and AIM Data coverage requires an owner decision.
 
 ## §C. Architecture & Interactions
 - **Primary destination (target):** S3 `aimarket-backups-prod` — eu-north-1, acct `948749907373`. Versioning + **Object Lock COMPLIANCE / 35-day** + SSE-S3 + Block-Public-Access. A locked object cannot be deleted or overwritten by anyone (incl. root) for 35 days — survives a stolen credential. Layout `postgres/ai-market/<date>/`, `postgres/infisical/<date>/`, `qdrant/`.
@@ -72,6 +88,7 @@
 - **Secondary alert:** the GitHub `Backup Staleness Check` (`backup-verify.yml`) opens an urgent GitHub issue (email) if the backend-reported PG/Qdrant backups go > 6h stale. As of S1081 it reads the **S3-canonical** status from `GET /backup-status` (not the now-defunct Redis `backup:last` events that the deleted `backup.yml` used to write), so its June-2026 false-positive class is closed.
 - **Log:** `~/Library/Logs/aimarket_s3_backup_watchdog.log` (one `OK`/`ALERT` line per run).
 - **Test it:** `bash /Users/max/Projects/ai-market/runbooks/scripts/s3_backup_watchdog.sh` (logs OK when fresh); to force-test the channel, temporarily lower `MAX_AGE_H` or send a manual `sendMessage` curl.
+- **S1322 correction (2026-07-24):** do not rely on the June message-delivery proof. A live Telegram API test returned HTTP 401. Repair the bot token, make `tg()` fail on non-2xx/`ok=false`, log the returned message ID, and add a periodic delivery canary. Separately, change the GitHub threshold/schedule and deduplicate issues before treating it as a secondary alert.
 
 | ID | Symptom | Cause | Verify | Repair |
 |---|---|---|---|---|
