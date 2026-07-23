@@ -1,4 +1,16 @@
 ---
+runbook_id: e2e-programme-integrity
+domain: e2e-testing
+status: ACTIVE
+authoritative_for:
+  - topic: e2e-programme-integrity
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-07-23
 system_name: e2e-programme-integrity
 purpose_sentence: Prove that the automated testing programme is telling the truth - that its tests actually run, actually exercise the product, honestly claim only what they proved, and surface what they find - because every failure this system has had looked exactly like success.
 owner_agent: mars

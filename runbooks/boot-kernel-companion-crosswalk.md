@@ -1,3 +1,18 @@
+---
+runbook_id: boot-kernel-companion-crosswalk
+domain: boot-kernel
+status: ACTIVE
+authoritative_for:
+  - topic: boot-kernel-companion-crosswalk
+    section: Verification rules
+aliases: []
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-07-23
+---
+
 # Boot Kernel v2 Companion Source Cross-walk
 
 **Authority:** evidence-only cross-walk for the seven versioned delivery companions. It is not a catalog authority and cannot override CORE, the Boot Kernel, or any companion's explicit authority boundary.

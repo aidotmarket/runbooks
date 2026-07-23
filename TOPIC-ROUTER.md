@@ -10,12 +10,16 @@
 | `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture--interactions) |
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
+| `boot-kernel-companion-crosswalk` | `boot-kernel-companion-crosswalk` (`runbooks/boot-kernel-companion-crosswalk.md`) | [Verification rules](runbooks/boot-kernel-companion-crosswalk.md#verification-rules) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) |
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) |
 | `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture--interactions) |
+| `e2e-programme-integrity` | `e2e-programme-integrity` (`e2e-programme-integrity.md`) | [§C. Architecture & Interactions](e2e-programme-integrity.md#c-architecture--interactions) |
+| `e2e-test-status-publisher` | `e2e-test-status-publisher` (`e2e-test-status-publisher.md`) | [§C. Architecture & Interactions](e2e-test-status-publisher.md#c-architecture--interactions) |
+| `e2e-video-review` | `e2e-video-review` (`e2e-video-review.md`) | [§C. Architecture & Interactions](e2e-video-review.md#c-architecture--interactions) |
 | `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture--interactions) |
 | `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture--interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture--interactions) |

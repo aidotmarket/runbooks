@@ -1,4 +1,16 @@
 ---
+runbook_id: e2e-video-review
+domain: e2e-testing
+status: ACTIVE
+authoritative_for:
+  - topic: e2e-video-review
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-07-23
 system_name: e2e-video-review
 purpose_sentence: Hold the design reasoning for the video-and-Gemini review of test runs - what we chose, what we rejected and why, and what is still open - so that a future instance improving this process starts from the argument rather than repeating it.
 owner_agent: mars

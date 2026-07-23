@@ -113,6 +113,24 @@
       "aliases": [],
       "authoritative_for": [
         {
+          "section": "Verification rules",
+          "topic": "boot-kernel-companion-crosswalk"
+        }
+      ],
+      "domain": "boot-kernel",
+      "error_signatures": [],
+      "last_verified_at": "2026-07-23",
+      "owner": "mars",
+      "path": "runbooks/boot-kernel-companion-crosswalk.md",
+      "runbook_id": "boot-kernel-companion-crosswalk",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
           "section": "\u00a7C. Architecture & Interactions",
           "topic": "build-queue-reconciliation"
         }
@@ -319,6 +337,60 @@
       "owner": "vulcan",
       "path": "runbooks/council-roster-quirks.md",
       "runbook_id": "council-roster-quirks",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "e2e-programme-integrity"
+        }
+      ],
+      "domain": "e2e-testing",
+      "error_signatures": [],
+      "last_verified_at": "2026-07-23",
+      "owner": "mars",
+      "path": "e2e-programme-integrity.md",
+      "runbook_id": "e2e-programme-integrity",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "e2e-test-status-publisher"
+        }
+      ],
+      "domain": "e2e-testing",
+      "error_signatures": [],
+      "last_verified_at": "2026-07-23",
+      "owner": "mars",
+      "path": "e2e-test-status-publisher.md",
+      "runbook_id": "e2e-test-status-publisher",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "e2e-video-review"
+        }
+      ],
+      "domain": "e2e-testing",
+      "error_signatures": [],
+      "last_verified_at": "2026-07-23",
+      "owner": "mars",
+      "path": "e2e-video-review.md",
+      "runbook_id": "e2e-video-review",
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -574,6 +646,10 @@
         "runbook_id": "aging-policy",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "boot-kernel-companion-crosswalk": {
+        "runbook_id": "boot-kernel-companion-crosswalk",
+        "section": "Verification rules"
+      },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
         "section": "\u00a7C. Architecture & Interactions"
@@ -596,6 +672,18 @@
       },
       "council-roster-quirks": {
         "runbook_id": "council-roster-quirks",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "e2e-programme-integrity": {
+        "runbook_id": "e2e-programme-integrity",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "e2e-test-status-publisher": {
+        "runbook_id": "e2e-test-status-publisher",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "e2e-video-review": {
+        "runbook_id": "e2e-video-review",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "gate-procedure": {

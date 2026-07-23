@@ -1,4 +1,16 @@
 ---
+runbook_id: e2e-test-status-publisher
+domain: e2e-testing
+status: ACTIVE
+authoritative_for:
+  - topic: e2e-test-status-publisher
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-07-23
 system_name: e2e-test-status-publisher
 purpose_sentence: Operate, diagnose and evolve the harness-side test-status publisher and coverage manifest - the fail-soft path that turns each e2e-harness run into the redacted, bounded coverage record at Living State key infra:e2e-test-status that the ops.ai.market Test page reads.
 owner_agent: mars
