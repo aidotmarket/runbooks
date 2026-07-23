@@ -8,7 +8,7 @@ Catalog authority is opt-in; ACTIVE members conform to the catalog contract whil
 ## Catalog inventory
 
 ACTIVE catalog members: **12**  
-Grandfathered source documents (readable by explicit Git path, absent from catalog authority): **83**
+Grandfathered source documents (readable by explicit Git path, absent from catalog authority): **85**
 
 | Runbook ID | Domain | Path | Authoritative topics and sections | Owner | Last verified |
 |---|---|---|---|---|---|
