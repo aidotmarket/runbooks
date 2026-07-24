@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R6_AUTHORED_PENDING_REVIEW
+Status: R7_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -17,6 +17,8 @@ R3 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two mi
 R4 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two minor findings but its response envelope contained an extra key and is therefore nonapproval. The MP review against the prior R2 head ended in `RepairExhaustedError`; this is a tooling failure and nonapproval, not a substantive objection, and cannot be folded as review feedback. R5 folds the substantive GLM/CC findings: every retention mutator shares one concrete lease, baseline-reset receipts are fully specified, Telegram canaries have a fixed operator-safe label, and the post-24-hour Keychain rollback boundary is explicit.
 
 R5 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content required one lease/apply-protocol correction and two Keychain clarifications, but its fenced response was malformed and is therefore nonapproval. R6 folds all substantive feedback: the canary prefix is ASCII, the conditional weekly Qdrant RPO is explicit, lease renewal is scheduled, read-only manifest approval is separated from the leased mutating phase with mandatory revalidation, and Keychain retention/deletion/recovery preconditions are deterministic.
+
+R6 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` with two minor documentation findings. R7 folds every GLM nit and the actionable CC hash-provenance finding: Keychain cleanup uses an auditable one-shot LaunchAgent and a fully defined receipt, the approved manifest hash has a durable non-secret approval receipt, and partial retention applies stop safely and resume only from fresh inventory under a new lease. The full artifact contains section 13, so CC's conditional cross-reference observation required verification but no content change.
 
 ## 1. Outcome
 
@@ -135,7 +137,9 @@ The existing rotated token is retained. Before installation, Max confirms the sa
 6. It restarts no unrelated services. The watchdog resolves the versioned Keychain service names from the pointer file on every invocation.
 7. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
 
-Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. The installer schedules deletion of the prior Keychain items no later than 24 hours after the second canary and records the deletion receipt; the watchdog alerts if superseded items outlive that window. After deletion, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from the confirmed approved secure source. That accepted boundary does not require or authorize provider-side rotation. No plaintext rollback file, token value or token hash is created or logged.
+Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. After the second canary, the installer registers a mode-0600, one-shot per-user LaunchAgent whose `ProgramArguments` contain only the reviewed cleanup helper path and non-secret versioned Keychain service/account names. Its calendar trigger is no later than 24 hours after that canary. The helper deletes only the named superseded items, records success or failure, disables the job after success, and leaves its non-secret plist for audit until the next reviewed cleanup. The watchdog alerts if the job is missing, fails, or any superseded item outlives the deadline.
+
+The deletion receipt records scheduled time, actual attempt and completion times, local UID, versioned service/account names, second-canary message ID, outcome, and LaunchAgent label; it contains no token value or token-derived hash. After deletion, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from the confirmed approved secure source. That accepted boundary does not require or authorize provider-side rotation. No plaintext rollback file, token value or token hash is created or logged.
 
 The watchdog's `tg()` function must:
 
@@ -204,7 +208,7 @@ The noncurrent-version actions use the same tag filters as their current-version
 
 ### 6.3 Apply protocol
 
-The retention tool defaults to plan-only and requires `--apply` plus the SHA-256 of the generated plan. Plan generation and human approval are read-only and do not acquire or hold the mutator lease.
+The retention tool defaults to plan-only. Plan generation and human approval are read-only and do not acquire or hold the mutator lease. Max's exact approval writes a non-secret, immutable approval receipt in Living State and the versioned runbook audit directory containing the plan SHA-256, imminent-deletion-manifest SHA-256, approval timestamp, approver, and manifest summary totals. `--apply` requires the plan SHA-256 and that approval-receipt ID; it refuses a missing, mutable, mismatched, or differently approved receipt.
 
 Apply order:
 
@@ -223,6 +227,8 @@ Apply order:
 13. record a redacted apply receipt, including the lease and both approved hashes, in the runbooks audit directory and Living State, then release the lease by CAS.
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
+
+All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE extension is never shortened, and tags are reconciled from fresh inventory. If lease renewal or any write/readback fails, the process stops before its next mutation, records the completed steps and exact object versions in a partial-apply receipt, releases the lease if still owned, and alerts. It performs no compensating lock/tag mutation. A retry must acquire a new lease, reread all state, revalidate both approved hashes, and resume idempotently. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback; failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
 
 ### 6.4 Qdrant growth decision
 
@@ -356,14 +362,14 @@ Required before production:
 
 1. unit tests for classification across month boundaries, failed first-day backup, unknown prefix, versioned objects and idempotent rerun;
 2. tests that an unverified/corrupt first object is never made monthly, day-3 absence alerts, and a later verified object is promoted without shortening the corrupt object's lock;
-3. shared-lease tests proving the controller, reconciliation, promotion, and operator apply paths cannot write concurrently or bypass the 15-minute lease; tests also cover renewal by minute 10, lease-free read-only planning, fresh under-lease inventory, and exact revalidation of both approved hashes before the first write;
+3. shared-lease tests proving the controller, reconciliation, promotion, and operator apply paths cannot write concurrently or bypass the 15-minute lease; tests also cover renewal by minute 10, lease-free read-only planning, approval-receipt persistence, fresh under-lease inventory, exact revalidation of both approved hashes before the first write, partial-apply receipts, stop-before-next-write behavior, and idempotent resume under a new lease;
 4. lifecycle policy snapshot test and AWS readback parser test;
 5. mocked Object Lock refusal and no-delete invariant tests;
 6. Postgres retry classification tests and clean temporary-file cleanup;
 7. size-baseline reset and anomaly tests covering every receipt field, the one-run default, the 72-hour maximum, expiry alerting, and restoration of normal enforcement;
 8. Qdrant per-collection masking regression test;
 9. Cloudflare 403/missing-section regression tests;
-10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, and proof that `.env` lines remain until all live consumers are inventoried/migrated;
+10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, deterministic one-shot LaunchAgent scheduling, deletion-receipt fields, missed-cleanup alerting, and proof that `.env` lines remain until all live consumers are inventoried/migrated;
 11. watchdog non-zero exit on Telegram failure;
 12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including proof that no plaintext file is created and partial-pipe writes fail closed;
 13. GitHub workflow threshold, deduplication and recovery-close tests;
