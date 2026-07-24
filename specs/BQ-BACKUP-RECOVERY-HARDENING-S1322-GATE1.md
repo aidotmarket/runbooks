@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R8_AUTHORED_PENDING_REVIEW
+Status: R9_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -22,6 +22,8 @@ R6 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` wi
 
 R7 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` with no findings and independently verified section 13 and its Qdrant cross-references against the complete artifact. R8 folds the remaining two actionable GLM nits by defining the partial-apply receipt schema and the successful LaunchAgent audit-plist retirement policy.
 
+R8 reviews: GLM and CC returned valid exact-head `APPROVE` verdicts with no findings. The mandatory MP handler task failed with `RepairExhaustedError`, so a direct read-only `gpt-5.6-sol` review verified exact head `3ddf6f2413c6b3805006adde23e04afb6f18d908` and returned `REVISE` with one blocker and six major findings. R9 folds all seven: fenced crash-durable mutation journaling, version-complete lifecycle approval, measured end-to-end alert delivery, executable anomaly-baseline epochs, correctness-bound Qdrant rebuild proof, expanded zero-disclosure negative evidence, and fail-closed Gate-4 acceptance.
+
 ## 1. Outcome
 
 ai.market must have a recovery system that is demonstrably restorable, fails loudly when any required backup is late or incomplete, and does not retain daily full backups indefinitely.
@@ -37,7 +39,7 @@ This design implements:
 - fail-closed Cloudflare exports;
 - documented RPO/RTO and replacement drills.
 
-Qdrant retains a 24-hour RPO until its rebuild drill passes. If Max later activates the approved weekly full-snapshot cadence after that proof, the accepted full-snapshot RPO becomes seven days while the rebuild-from-Postgres path remains bounded by the four-hour full-platform RTO.
+Qdrant retains a 24-hour effective data RPO. If Max later activates the approved weekly full-snapshot cadence after the fidelity/rebuild proof, the snapshot RPO becomes seven days while the authoritative rebuild path must still demonstrate a 24-hour effective data RPO and four-hour full-platform RTO.
 
 ## 2. Current evidence and problem statement
 
@@ -119,13 +121,14 @@ Required fields:
 - Postgres client/server versions;
 - restore exit status, non-system schema count and table count;
 - Docker `network=none`, `data_storage=tmpfs`;
+- non-secret control outcomes for `RLIMIT_CORE=0`, successful `mlock`/zeroization, descriptor allow-list enforcement, interrupted-input handling, and child cleanup;
 - cleanup result;
 - overall `PASS` only when every check passes;
 - SHA-256 of RFC 8785 JSON Canonicalization Scheme bytes with `attestation_sha256` set to JSON `null`, followed by insertion of the resulting digest.
 
 Independent verification must parse the attestation, set the existing `attestation_sha256` field back to JSON `null` without deleting the field, reproduce RFC 8785 bytes, and compare the computed digest in constant time.
 
-The attestation must not include table rows, secret names, the 1Password reference, key fingerprints derived from private material, environment dumps or raw subprocess output.
+The attestation must not include table rows, secret names, the 1Password reference, key fingerprints derived from private material, environment dumps or raw subprocess output. Its schema uses an explicit allow-list; any additional field or forbidden-content detector match makes verification fail.
 
 ## 5. Secure Telegram credential installation
 
@@ -171,13 +174,19 @@ Families:
 - `railway-config`;
 - `cloudflare`.
 
-For existing objects, the retention tool deterministically chooses the first successful object per family/month as monthly and classifies all other objects daily. It extends every selected monthly object version to 400-day COMPLIANCE retention before applying the monthly tag.
+For existing objects, the retention tool uses `ListObjectVersions` pagination to build a version-complete inventory of every current version, noncurrent version and delete marker. It deterministically chooses the first successful version per family/month as monthly and classifies all other data-bearing versions daily. It extends every selected monthly object version to 400-day COMPLIANCE retention before applying the monthly tag to that exact version ID.
+
+Every inventory row records family, key, version ID, current/noncurrent/delete-marker state, bytes, object last-modified, inferred noncurrent-since time from the immediately newer version or delete marker, retain-until, existing version-specific tags, integrity evidence and lifecycle-eligibility time. If a noncurrent-since time cannot be derived unambiguously, the version remains untagged and ineligible for expiration. Delete markers are inventoried and approved separately; they are never treated as data recovery points or silently omitted.
 
 “Integrity-verified” means the exact object version has a producer health record with `status=ok`; landed byte count equals the producer count; required SHA-256/TOC or Qdrant snapshot metadata is present and within policy; and no size-anomaly state is critical. A mere object listing, non-zero size or successful upload is insufficient. Cloudflare and topology exports additionally require their schema/completeness checks.
 
-Classification fails toward retention: any list, health-evidence, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has at least one integrity-verified, 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a verified monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
+Classification fails toward retention: any list, pagination, health-evidence, tag, version-ID, lock-extension, eligibility-clock or concurrency uncertainty leaves versions untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope data-bearing version has exactly one accepted version-specific tag and every completed family/month has at least one integrity-verified, 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a verified monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
 
-Every tag or retention mutator uses the same optimistic-CAS Living State lease, including the daily controller, reconciliation correction, monthly-point promotion, and the mutating phase of any operator apply command. The lease expires after 15 minutes and is renewed by CAS no later than 10 minutes after acquisition or the prior renewal. A mutator acquires it before the fresh inventory read that authorizes writes, includes the persisted lease ID in every write receipt, and renews only by CAS. Failure to acquire, renew or release the lease performs no tag/retention write and alerts. A stale lease can be replaced only after expiry and a fresh inventory read. No alternate operator path may bypass the shared lease.
+Every tag or retention mutator uses the same optimistic-CAS Living State lease, including the daily controller, reconciliation correction, monthly-point promotion, and the mutating phase of any operator apply command. Each acquisition increments a monotonic `fence_token`; the lease expires after 15 minutes and is renewed by CAS no later than 10 minutes after acquisition or the prior renewal. Controllers have no direct S3 mutation credentials. They submit only immutable, exact-version operations to a single mutation broker that owns the restricted IAM identity.
+
+Before every external write, the broker requires a durable `prepared` journal row containing operation ID, fence token, lease owner, exact key/version ID, intended tag or retain-until value, plan/manifest hashes and expected pre/post-state. It re-reads Living State and accepts the operation only if the same fence is current, unexpired and owned by the caller. It records the AWS response and version-specific readback as `applied` before accepting another operation. Timeout, connection loss or any indeterminate response records `indeterminate` and blocks all later writes for that family/version until a fresh readback reconciles the actual state.
+
+An expired lease with any `prepared` or `indeterminate` journal row cannot be automatically replaced. Replacement requires proof that the prior broker/container instance is terminated, reconciliation of every nonterminal row from S3 readback, and a new fence. A paused old holder cannot call S3 directly and the broker rejects its stale fence. The broker serializes fences and never begins a new-fence operation while an older-fence operation is in flight. Failure to acquire, renew, journal, reconcile or release the lease performs no next write and alerts. No alternate operator path may bypass the broker, journal or shared fence.
 
 If a monthly point is later found corrupt or unrestorable, reconciliation never downgrades or deletes its COMPLIANCE lock. It promotes the next integrity-verified object from that family/month by extending it to 400 days and tagging it monthly, records a replacement receipt, and alerts until the promoted point passes the appropriate restore/integrity check. Multiple locked monthly points are valid when backed by the replacement receipt; “exactly one” is not an invariant.
 
@@ -185,28 +194,28 @@ If no promotable integrity-verified candidate exists, the family/month stays in 
 
 `backup-health/`, `RESTORE-README.md`, audit evidence and unknown prefixes are excluded and remain untouched.
 
-The controller uses a dedicated IAM identity, separate from the backup writer, with only:
+The mutation broker uses a dedicated IAM identity, separate from the backup writer and unavailable to controllers, with only:
 
 - bucket list/version-list for the approved prefixes;
 - get/put object tagging;
 - get/put Object Lock retention;
 - no `GetObject`, `DeleteObject`, bypass, encryption, versioning, public-access or lifecycle-configuration permission.
 
-An IAM/bucket-policy condition permits the controller's `PutObjectRetention` only for a requested retain-until 399–401 days from the classification or promotion call. The controller computes an absolute UTC timestamp from its trusted current time, not from object creation. COMPLIANCE prevents shortening an existing retain-until regardless. The controller cannot install or alter the lifecycle policy; that remains an exact-reviewed operator action.
+An IAM/bucket-policy condition permits the broker's tag/retention role to call `PutObjectRetention` only for a requested retain-until 399–401 days from the classification or promotion call. The broker computes an absolute UTC timestamp from its trusted current time, not from object creation. COMPLIANCE prevents shortening an existing retain-until regardless. That role cannot install or alter lifecycle. At the exact-approved lifecycle step, the same fenced/journaled broker assumes a separate short-lived operator role limited to reading bucket invariants and get/put lifecycle configuration; it has no object tag, retention, delete, bypass, encryption, versioning or public-access permission.
 
 ### 6.2 Lifecycle policy
 
-The exact policy contains:
+The exact policy is family-prefix scoped and contains:
 
 - `retention=daily`: expire current versions after 35 days; permanently remove eligible noncurrent versions one day after they become noncurrent;
 - `retention=monthly`: expire current versions after 400 days; permanently remove eligible noncurrent versions one day after they become noncurrent;
-- an untagged delete-marker cleanup rule only;
+- an expired-object-delete-marker cleanup rule only for each approved family prefix; no bucket-wide delete-marker rule;
 - no rule that changes Object Lock, encryption, versioning or public access;
 - no lifecycle action on an unknown/unclassified prefix.
 
-S3 Object Lock remains authoritative: a locked version cannot be deleted by lifecycle before its retain-until time.
+S3 Object Lock remains authoritative: a locked version cannot be deleted by lifecycle before its retain-until time. The plan computes and records eligibility for current versions from object age, for noncurrent versions from the derived noncurrent-since time, and for delete markers from marker state/time plus whether any data-bearing version survives. Unknown or ambiguous clocks are ineligible.
 
-The noncurrent-version actions use the same tag filters as their current-version rules. Unique-key uploads mean normal backups do not create noncurrent versions; the rule exists only for exceptional administrative replacement. Monthly versions have explicit 400-day COMPLIANCE retention, so neither current nor noncurrent expiration can remove them earlier. Daily backups are guaranteed restorable for the complete 35-day lock window; no RPO/RTO or drill depends on a day-35 object after it becomes lifecycle-eligible.
+The noncurrent-version actions use the same version-specific tag filters as their current-version rules. Unique-key uploads mean normal backups do not create noncurrent versions; the rule exists only for exceptional administrative replacement. Monthly versions have explicit 400-day COMPLIANCE retention, so neither current nor noncurrent expiration can remove them earlier. Daily backups are guaranteed restorable for the complete 35-day lock window; no RPO/RTO or drill depends on a day-35 version after it becomes lifecycle-eligible.
 
 ### 6.3 Apply protocol
 
@@ -216,16 +225,16 @@ Apply order:
 
 1. read and record bucket versioning, Object Lock, encryption and public-access state;
 2. abort if any invariant differs;
-3. produce a separate imminent-deletion manifest listing every already-older-than-35-days daily candidate by family, key, version ID, bytes, date and retain-until, plus the oldest recovery point that survives for each family;
+3. produce a separate imminent-deletion manifest from the complete version inventory, listing every lifecycle-eligible current version, noncurrent version and delete marker by family, key, version ID or marker ID, state, bytes, object and noncurrent dates, calculated eligibility time, tags and retain-until, plus every explicitly retained version and the oldest recovery point that survives for each family;
 4. require Max's exact approval of that manifest;
-5. at `--apply`, acquire the shared mutator lease, perform a fresh invariant and candidate inventory read under that lease, reproduce the plan and imminent-deletion manifest, and abort unless both SHA-256 values exactly match Max's approved artifacts;
+5. at `--apply`, acquire the shared mutator lease/fence, perform a fresh version-complete invariant and candidate inventory read under that lease, reproduce the plan and imminent-deletion manifest, and abort unless both SHA-256 values exactly match Max's approved artifacts;
 6. extend the selected monthly versions to 400-day COMPLIANCE retention and verify readback;
 7. tag the monthly recovery points;
-8. tag remaining in-scope current objects daily;
-9. verify all in-scope objects have exactly one accepted retention tag;
+8. tag every remaining in-scope data-bearing version daily using its exact version ID;
+9. verify every in-scope data-bearing version has exactly one accepted version-specific retention tag and every delete marker has an explicit manifest disposition;
 10. install the lifecycle policy;
 11. read back and byte-compare its canonical JSON;
-12. regenerate inventory, confirm no object was synchronously deleted, and state that the reviewed deletion manifest is expected to be processed asynchronously;
+12. regenerate the complete version inventory, confirm no version or marker was synchronously deleted, and state that only the reviewed deletion manifest is expected to be processed asynchronously;
 13. record a redacted apply receipt, including the lease and both approved hashes, in the runbooks audit directory and Living State, then release the lease by CAS.
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
@@ -238,9 +247,13 @@ The partial-apply receipt records timestamp, lease ID, plan and approved-manifes
 
 The approved 35-day daily policy is implemented first. It cannot make daily 5.8 GB full Qdrant snapshots small: Object Lock intentionally sets a 35-day physical floor.
 
-A separate measured drill must prove that `knowledge_base_v2` can be rebuilt from Postgres within the four-hour full-platform RTO before its cadence is reduced. Until that proof exists, daily Qdrant snapshots remain required. Legacy `knowledge_base`, `action_logs` and `listings` may move to weekly cadence only after an owner/dependency query proves they are derived and non-authoritative.
+A separate measured drill must prove that `knowledge_base_v2` can be rebuilt from an exact, restored Postgres recovery point within the four-hour full-platform RTO before its cadence is reduced. The drill records the Postgres object version, backup timestamp/LSN or equivalent transaction boundary, outbox high-water mark, Qdrant source cluster/version and rebuild code commit. It must prove Postgres plus retained outbox/events are authoritative for every rebuilt point; otherwise cadence remains daily.
 
-Any activated weekly Qdrant full-snapshot schedule has a seven-day freshness threshold and seven-day full-snapshot RPO. Monitoring must switch thresholds only in the same reviewed change that switches cadence, retain the rebuild-path four-hour RTO check, and alert if either path is unavailable.
+Correctness acceptance requires exact collection set, point count and ID set; canonical logical digests over every point's ID, payload and vector bytes; vector names/dimensions/distance configuration; payload schema and indexes; zero missing/dead-letter operations through the recorded high-water mark; and a fixed application-query suite covering known listings, filters, ranking and representative nearest-neighbor results. Any nondeterministic index bytes are excluded only from the logical digest and are separately rebuilt/validated. The drill calculates effective recovery RPO from the newest authoritative Postgres point plus outbox boundary, not merely the age of the last Qdrant snapshot, and must demonstrate no worse than the approved 24-hour data RPO.
+
+Until that proof exists, daily Qdrant snapshots remain required. Legacy `knowledge_base`, `action_logs` and `listings` may move to weekly cadence only after an owner/dependency query and the same logical-fidelity checks prove they are derived and non-authoritative.
+
+Any activated weekly Qdrant full-snapshot schedule has a seven-day snapshot freshness threshold and seven-day snapshot RPO, while the authoritative rebuild path must preserve the 24-hour effective data RPO proved above. Monitoring must switch thresholds only in the same reviewed change that switches cadence, retain the rebuild-path four-hour RTO and 24-hour data-RPO checks, and alert if either path or its fidelity evidence is unavailable.
 
 ## 7. Backup production hardening
 
@@ -256,7 +269,11 @@ Any activated weekly Qdrant full-snapshot schedule has a seven-day freshness thr
   - critical below 20% or above 500%;
   - an explicit, time-bounded baseline reset records approved database cleanups so a legitimate 90% reduction is not treated indefinitely as corruption.
 
-Each baseline-reset receipt records timestamp, source/family, reason and change reference, old median and sample count, new expected range, Max approval or exact Council decision reference, and `expires_at`. It applies to one run by default and may never exceed 72 hours. The receipt is stored in Living State and the versioned runbook audit trail; expiry without a new stable seven-run baseline alerts and restores normal anomaly enforcement.
+Each source/family has an immutable `baseline_epoch` ID and one of `stable`, `reset_pending`, `collecting` or `critical` states. A stable epoch uses the median of its last seven integrity-verified, noncritical artifacts. A baseline-reset receipt records timestamp, source/family, old epoch/median/sample count, reason and change reference, approved new expected byte range, Max approval or exact Council decision reference, one-run default, and `expires_at` no later than 72 hours. It is stored in Living State and the versioned runbook audit trail before the changed artifact runs.
+
+The first structurally valid artifact inside the approved expected range starts a new epoch and state `collecting`; it never reuses old-epoch samples. While fewer than seven new-epoch samples exist, every run is checked against the approved expected range and against the median of available new-epoch samples once at least three exist. An accepted sample advances backup freshness and may be integrity-verified/classified, but the health record states `baseline_collecting`. Seven accepted samples establish the new stable median and close the reset receipt.
+
+An artifact outside the critical boundary or approved reset range is uploaded only to a forensic failed prefix with `status=failed`, remains untagged, does not advance the successful freshness marker, cannot become a monthly point, and triggers the 30-minute alert path. Warning-range artifacts may be retained but cannot become a monthly point until an explicit integrity review accepts them into the epoch. Reset expiry before seven accepted samples moves the source to `critical`, restores the normal fail-closed anomaly gate, and requires a new exact approval rather than silently extending the epoch.
 
 ### 7.2 Qdrant
 
@@ -280,7 +297,7 @@ Each baseline-reset receipt records timestamp, source/family, reason and change 
 
 ### 8.1 Titan-1
 
-The six-hour watchdog remains independent of Infisical. It checks:
+The watchdog runs every 15 minutes and remains independent of Infisical. Alert-delivery RTO starts when a condition is first detectable by the canonical health data, not when an operator later notices it. The schedule plus delivery/fallback path must notify Max within 30 minutes. It checks:
 
 - main Postgres;
 - Infisical Postgres;
@@ -291,30 +308,35 @@ The six-hour watchdog remains independent of Infisical. It checks:
 
 It separately checks retention classification:
 
-- any in-scope object that is missing a tag, has an unknown tag, has conflicting tags, or remains untagged beyond the controller's daily reconciliation window.
+- any in-scope data-bearing version that is missing a version-specific tag, has an unknown/conflicting tag, or remains untagged beyond the controller's daily reconciliation window, plus any delete marker lacking an explicit disposition.
 
-It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check.
+It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check. On every incident it attempts Telegram immediately. If credentials, HTTP, API response or message ID validation fails, it writes a non-secret signed failure marker to the dedicated S3 health prefix and exits non-zero.
 
 ### 8.2 Backend
 
-Enable `backup-watchdog-hourly` in Celery beat only after production credentials and the internal endpoint are proven. The task must fail, retry and escalate when the endpoint is unavailable; missing `INTERNAL_API_KEY` is critical configuration drift, not `skipped`.
+Enable `backup-watchdog-hourly` in Celery beat only after production credentials and the internal endpoint are proven. This is a tertiary path and does not establish the 30-minute RTO. The task must fail, retry and escalate when the endpoint is unavailable; missing `INTERNAL_API_KEY` is critical configuration drift, not `skipped`.
 
 ### 8.3 GitHub
 
 `backup-verify.yml` becomes a secondary dead-man's switch:
 
 - threshold 30 hours, aligned with nightly schedules and scheduler delay;
+- runs every 15 minutes and separately reads the signed Telegram-delivery-failure marker; a new marker opens or updates the deduplicated incident issue immediately, independent of Telegram and Infisical;
 - reads S3-canonical status;
 - one open issue per incident fingerprint;
 - updates the existing issue while unhealthy;
 - closes it automatically after two consecutive healthy checks;
 - links only current S3/Railway instructions, never deleted GCS workflows.
 
+The 30-hour freshness threshold and 15-minute delivery-failure polling are separate conditions in the same workflow. Gate 4 measures elapsed time from an injected detectable fixture through the scheduled Titan invocation to either a verified Telegram `message_id` or, when Telegram is deliberately failed, the GitHub issue event; both paths must complete within 30 minutes without a manual run.
+
 ## 9. Recovery objectives and drills
 
 - Main Postgres RPO: 24 hours; alert no later than 30 hours after the last success.
 - Infisical Postgres RPO: 24 hours; alert no later than 30 hours.
-- Qdrant RPO: 24 hours until the rebuild drill passes; seven days only after the reviewed weekly-cadence switch described in sections 6.4 and 13.
+- Qdrant effective data RPO: 24 hours through either snapshot or the fidelity-proven authoritative rebuild path; weekly cadence permits a seven-day snapshot RPO only after the reviewed switch described in sections 6.4 and 13.
+- Railway configuration RPO: 24 hours; alert no later than 30 hours.
+- Cloudflare complete export RPO: 24 hours; alert no later than 30 hours.
 - Main Postgres RTO: two hours from declaration.
 - Full platform RTO: four hours from declaration.
 - Alert-delivery RTO: 30 minutes.
@@ -364,19 +386,19 @@ Drills:
 
 Required before production:
 
-1. unit tests for classification across month boundaries, failed first-day backup, unknown prefix, versioned objects and idempotent rerun;
+1. unit tests for version-complete classification across month boundaries, current/noncurrent versions, delete markers, pagination, inferred noncurrent clocks, failed first-day backup, unknown prefix and idempotent rerun;
 2. tests that an unverified/corrupt first object is never made monthly, day-3 absence alerts, and a later verified object is promoted without shortening the corrupt object's lock;
-3. shared-lease tests proving the controller, reconciliation, promotion, and operator apply paths cannot write concurrently or bypass the 15-minute lease; tests also cover renewal by minute 10, lease-free read-only planning, approval-receipt persistence, fresh under-lease inventory, exact revalidation of both approved hashes before the first write, partial-apply receipts, stop-before-next-write behavior, and idempotent resume under a new lease;
-4. lifecycle policy snapshot test and AWS readback parser test;
+3. shared-fence and mutation-broker tests proving controllers cannot call S3 directly, stale/paused holders cannot write after replacement, every external write has a durable prepared journal row and immediate ownership check, nonterminal rows block a new fence, indeterminate responses block later writes until readback, and terminated-worker proof is required; tests also cover renewal by minute 10, lease-free read-only planning, approval-receipt persistence, fresh under-lease inventory, exact revalidation of both approved hashes, partial-apply receipts and idempotent resume;
+4. lifecycle policy snapshot and AWS readback tests covering every current version, noncurrent version and delete marker; unknown eligibility clocks and unapproved versions must remain retained;
 5. mocked Object Lock refusal and no-delete invariant tests;
 6. Postgres retry classification tests and clean temporary-file cleanup;
-7. size-baseline reset and anomaly tests covering every receipt field, the one-run default, the 72-hour maximum, expiry alerting, and restoration of normal enforcement;
-8. Qdrant per-collection masking regression test;
+7. size-baseline epoch and anomaly tests covering every receipt field, one-run/72-hour bounds, old/new epoch isolation, zero/one/three/seven-sample behavior, expected-range enforcement, reset expiry, warning review, critical-artifact quarantine, no freshness/tag/monthly advancement, and restoration of stable enforcement;
+8. Qdrant per-collection masking plus rebuild-fidelity tests covering exact Postgres object/transaction/outbox boundary, complete logical point digests, collection/vector/payload/index schema, dead-letter absence, fixed application queries, four-hour RTO and calculated 24-hour effective data RPO;
 9. Cloudflare 403/missing-section regression tests;
 10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, deterministic one-shot LaunchAgent scheduling, deletion-receipt fields, missed-cleanup alerting, and proof that `.env` lines remain until all live consumers are inventoried/migrated;
-11. watchdog non-zero exit on Telegram failure;
-12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including proof that no plaintext file is created and partial-pipe writes fail closed;
-13. GitHub workflow threshold, deduplication and recovery-close tests;
+11. scheduled 15-minute watchdog tests: non-zero exit and signed S3 failure marker on Telegram failure, measured Telegram success latency, and measured independent GitHub-issue fallback latency within 30 minutes without manual invocation;
+12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including plaintext-file absence; partial pipe writes; forced `RLIMIT_CORE`/`mlock` refusal; descriptor-leak checks across every child; interrupted `op read`; timeout/signal cleanup; Docker tmpfs/network refusal; attestation allow-list/forbidden-field rejection; and RFC 8785 self-hash reproduction/constant-time comparison;
+13. GitHub workflow freshness threshold, 15-minute delivery-failure-marker polling, deduplication and two-green recovery-close tests;
 14. exact-commit Council review with builder excluded;
 15. production cutover one subsystem at a time, each with readback and rollback checkpoint.
 
@@ -387,17 +409,21 @@ Gate 4 requires all of:
 - current main-Postgres and Qdrant restore evidence remains green;
 - Max-assisted Infisical attestation is `PASS`;
 - the attestation's expected-critical-schema manifest check is complete and green;
-- Telegram canary returns and logs a real message ID;
-- deliberately induced stale test fixture produces one Telegram alert and one deduplicated GitHub issue;
+- all zero-disclosure negative-control results and attestation allow-list/self-hash verification are green;
+- the candidate and Keychain-backed second Telegram canaries return and log real message IDs; every live consumer is migrated/inventoried, the pointer cutover is verified, and stale `.env` credential lines are absent without a plaintext backup;
+- a deliberately induced detectable fixture, observed through the scheduled Titan path, produces a verified Telegram alert within 30 minutes; a second fixture with Telegram deliberately failed produces the signed failure marker and deduplicated GitHub issue within 30 minutes without manual execution;
 - backend scheduled poll is observed running;
+- Railway configuration and Cloudflare complete-success recovery points each meet their 24-hour RPO/30-hour alert threshold;
 - Cloudflare export contains valid zone settings for both zones and no error records;
-- every in-scope current S3 object is classified daily/monthly;
+- every in-scope current/noncurrent data-bearing S3 version is classified daily/monthly by exact version ID, every delete marker has an explicit disposition, and no ambiguous eligibility clock is lifecycle-eligible;
+- no prepared or indeterminate mutation-journal row remains and every applied row has exact-version readback;
 - lifecycle policy canonical readback matches the reviewed artifact;
 - no Object Lock/versioning/encryption/BPA invariant changed;
 - post-policy inventory records total bytes and projected 35/400-day steady state;
 - the reviewed imminent-deletion manifest and Max's exact approval are attached to the apply receipt;
-- source runbooks are merged and the same reviewed disaster-recovery map is uploaded/versioned at `RESTORE-README.md`;
-- a replacement drill report states achieved RPO/RTO and any remaining exception.
+- source runbooks are merged and the recovery-map receipt binds Git commit SHA, file blob ID, local SHA-256, S3 `RESTORE-README.md` object version ID and downloaded SHA-256; byte equality is independently verified;
+- the Qdrant drill records logical-fidelity evidence, effective data RPO and four-hour RTO before any cadence reduction;
+- the replacement drill report proves every stated per-source RPO/RTO with zero unresolved exceptions. An exception is acceptable only under Max's exact, time-bounded waiver naming owner, risk, compensating control and expiry; an expired or broader waiver blocks Gate 4 and the claim that recovery is fully effective.
 
 ## 13. Approved source-data retention, separately migrated
 
@@ -406,7 +432,7 @@ Max approved the following retention policy on 2026-07-24:
 - `qdrant_sync_outbox` rows with terminal status `done`: 30 days;
 - `qdrant_sync_outbox` rows with terminal status `dead_letter`: 180 days;
 - `state_events`: 12 months;
-- after a measured rebuild drill proves `knowledge_base_v2` recovery within the four-hour full-platform RTO, Qdrant full-snapshot cadence may move from daily to weekly.
+- after the section-6.4 measured rebuild drill proves `knowledge_base_v2` logical fidelity, a 24-hour effective data RPO and recovery within the four-hour full-platform RTO, Qdrant full-snapshot cadence may move from daily to weekly.
 
 This Gate-1 BQ does not itself delete production database rows or reduce Qdrant cadence. A separate exact-reviewed migration must implement bounded batches, foreign-key/dependency checks, dry-run counts, archive requirements for authoritative `state_events`, immutable receipts, post-migration validation, and rollback/rebuild proof. It must treat unknown outbox states as retained and fail closed.
 
