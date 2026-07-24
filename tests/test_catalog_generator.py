@@ -30,7 +30,6 @@ SEED_IDS = [
     "council-hall-deliberation",
 ]
 E2E_IDS = [
-    "boot-kernel-companion-crosswalk",
     "e2e-programme-integrity",
     "e2e-test-status-publisher",
     "e2e-video-review",
@@ -110,12 +109,11 @@ def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None
         "runbooks/gate-procedure.md",
         "runbooks/infrastructure-discovery.md",
         "runbooks/product-elaboration.md",
-        "runbooks/boot-kernel-companion-crosswalk.md",
         "e2e-programme-integrity.md",
         "e2e-test-status-publisher.md",
         "e2e-video-review.md",
     }
-    assert grandfathered == 82
+    assert grandfathered == 83
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
 

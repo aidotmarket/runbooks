@@ -113,24 +113,6 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "Verification rules",
-          "topic": "boot-kernel-companion-crosswalk"
-        }
-      ],
-      "domain": "boot-kernel",
-      "error_signatures": [],
-      "last_verified_at": "2026-07-23",
-      "owner": "mars",
-      "path": "runbooks/boot-kernel-companion-crosswalk.md",
-      "runbook_id": "boot-kernel-companion-crosswalk",
-      "status": "ACTIVE",
-      "superseded_by": [],
-      "supersedes": []
-    },
-    {
-      "aliases": [],
-      "authoritative_for": [
-        {
           "section": "\u00a7C. Architecture & Interactions",
           "topic": "build-queue-reconciliation"
         }
@@ -645,10 +627,6 @@
       "aging-policy": {
         "runbook_id": "aging-policy",
         "section": "\u00a7C. Architecture & Interactions"
-      },
-      "boot-kernel-companion-crosswalk": {
-        "runbook_id": "boot-kernel-companion-crosswalk",
-        "section": "Verification rules"
       },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
