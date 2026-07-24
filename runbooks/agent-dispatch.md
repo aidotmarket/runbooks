@@ -73,6 +73,9 @@ Strategic why: Why MP=primary dispatch builder: Codex CLI automation and deeper 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP, AG, DeepSeek, CC, Vulcan | Normalizes task args and mode boundaries before backend invocation. |
+| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and `_resolve_council_review_diff` | inlined review diff, returned envelope | GLM, DeepSeek, CC | Preloads review diffs and applies provider-specific size handling before dispatch. |
+| Kimi review path | Kimi review handler `cap_chars` argument and timeout budget | inlined review diff, returned envelope | Kimi | Sends scoped review material to Kimi within the configured latency budget. |
+| git push guardrail, pre-push hook | repository pre-push hook and environment resolution | local ref, remote ref, push environment | git remote | Guards main pushes; remote-ref equality is authoritative for the push outcome. |
 | MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, git branch, build task record | Codex CLI / GPT-5.5 | Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
 | AG Backend | `koskadeux-mcp/ag_server.py` -> `antigravity_client.py` | AG server task record, Vertex auth env | Gemini CLI / Gemini 3.1 Pro | Read-only review prompts must state no file modification. |
 | DeepSeek Backend | `koskadeux-mcp/deepseek_server.py` -> `deepseek_client.py` | DeepSeek task record, API token env | DeepSeek API / deepseek-v4-pro | Full voter; read-oriented review path with strict result validation. |
@@ -209,6 +212,9 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-06 | DeepSeek dispatch fails (connection refused on 127.0.0.1:8768, or the server crash-loops at startup) | Server down; launcher resolved no or invalid DEEPSEEK_API_KEY from Infisical; or the stored key is expired, malformed, or overwritten so the startup auth-probe gets HTTP 401 from api.deepseek.com | Check the listener with `lsof -nP -iTCP:8768 -sTCP:LISTEN` and tail `/var/tmp/koskadeux/deepseek_server.log` plus `_error.log`; a startup 401 means a bad stored key value, an Infisical fetch error means launcher wiring (wrong project) | G-06 | CONFIRMED |
 | F-07 | Peer-bus message silently deduplicated (send returns an older row; the new body never persists) | peer_msg_send dedupes on (from_instance, to_instance, kind, ref_entity) and returns the prior row as idempotent success (T-2026-000339); observed dropping substantive coordination updates in S1321 and S1324 | Compare the returned row's created_at and body against what was just sent; a stale created_at or mismatched body means the send was deduped, not delivered | G-07 | CONFIRMED |
 | F-08 | MP dispatch task record stuck in running after the Codex process exited, or a correct build failed on the one-commit post-build invariant | Handler does not bind task-record lifecycle to process lifecycle (T-2026-000351); the one-commit invariant counts commits against the caller checkout's possibly stale local HEAD rather than the actual branch point (T-2026-000360) | Check whether the expected branch or commit exists on the remote via git fetch plus git log; a pushed remote-equal artifact with a running record is the stale-record defect; a failed task with a preserved_commit_ref plus a stale pre_build_base_sha is the invariant defect | G-08 | CONFIRMED |
+| F-09 | GLM or DeepSeek returns a normal, countable review verdict on a large change, and the verdict answers questions about files the reviewer never saw | The GLM/DeepSeek review path silently truncates the inlined diff at `_REVIEW_DIFF_INLINE_CAP_CHARS = 40,000` characters in `tools/agents.py::_resolve_council_review_diff`, appends a truncation marker, and returns success; the handler checks only preload success and never inspects the truncated flag, while the CC handler checks the same flag and refuses with `cc_review_diff_truncated` (T-2026-000364) | Compare the reported `prompt_chars` in the returned envelope against the real diff size from `git diff --stat` before trusting any verdict; a materially smaller prompt means the reviewer received only a fraction of the change; reconstruct the inline file order because truncation keeps the head of the concatenated diff and drops later files entirely | G-09 | CONFIRMED |
+| F-10 | A Kimi review dispatch on a large diff exhausts its timeout and returns no verdict, at both 120s and 600s | The Kimi handler passes `cap_chars = 2**63-1`, so unlike GLM and DeepSeek it never truncates; it receives the entire diff and cannot complete within the latency budget; observed on 99,816 characters (T-2026-000365) | Confirm the dispatch reached the provider and timed out rather than failing at auth or transport, and compare the diff size against previous successful Kimi reviews; a timeout that scales with diff size, with no truncation marker anywhere in the envelope, is this failure | G-10 | CONFIRMED |
+| F-11 | `git push` to main prints a guardrail refusal and `error: failed to push some refs`, while the same stderr block also prints a successful ref update, and the commit is in fact on the remote | The pre-push guardrail appears to evaluate `KD_ALLOW_MAIN_PUSH` in a context where it is not visible, prints a refusal, and returns non-zero while the push itself completes; the precise mechanism is not established; observed live in S1326 on koskadeux-mcp when `KD_ALLOW_MAIN_PUSH=1 git push origin main` printed the refusal and error alongside `2257a367..2961f03d main -> main` (T-2026-000367) | Never conclude a push outcome from `git push` output; run `git fetch`, then compare `git rev-parse` against the remote ref, or use `git ls-remote`, and check `git rev-list --left-right --count` against the remote branch | G-11 | CONFIRMED |
 
 ## §G. Repair
 
@@ -277,6 +283,30 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   change_pattern: Treat the committed artifact as ground truth; verify completion with git fetch plus git log on the expected branch, never with check_build alone. Before dispatching an MP build in a repo, confirm the caller checkout's main is not materially behind origin; if a build fails on the invariant with a preserved_commit_ref, recover by landing the preserved commit on the intended branch rather than rebuilding.
   rollback_procedure: Preserved refs under refs/koskadeux-build/ retain failed-delivery artifacts; discard only after the recovery branch is pushed and verified.
   integrity_check: The remote branch head equals the preserved or reported commit SHA, and the diff scope matches the dispatch's declared file boundary.
+- id: G-09
+  symptom_ref: F-09
+  component_ref: MP/Council review middleware
+  root_cause: The GLM/DeepSeek review path silently truncates the inlined diff at `_REVIEW_DIFF_INLINE_CAP_CHARS = 40,000` in `tools/agents.py::_resolve_council_review_diff`, appends a truncation marker, and returns success; its handler checks only preload success and never inspects the truncated flag, while the CC handler refuses the same input with `cc_review_diff_truncated` (T-2026-000364).
+  repair_entry_point: tools/agents.py review dispatch handlers and _resolve_council_review_diff
+  change_pattern: Until the ticketed fix ships, split the review per file using the `review_paths` pathspec argument on `council_request` and state the coverage explicitly in the prompt, so each dispatch is well inside the cap and the reviewer knows what it did and did not receive. Treat any historical GLM or DeepSeek verdict on a diff over 40,000 characters as unproven rather than as an approval.
+  rollback_procedure: None; verdicts are additive, so discard the uncovered verdict and re-run scoped.
+  integrity_check: For every voter, `prompt_chars` is consistent with the size of the pathspec it was given, and every file in the change is covered by at least one dispatch to that voter.
+- id: G-10
+  symptom_ref: F-10
+  component_ref: Kimi review path
+  root_cause: The Kimi handler passes `cap_chars = 2**63-1`, so unlike GLM and DeepSeek it never truncates; it receives the entire diff and cannot complete within the latency budget; observed on 99,816 characters (T-2026-000365).
+  repair_entry_point: the Kimi review handler cap_chars argument and its timeout budget
+  change_pattern: Until the ticketed fix ships, scope Kimi reviews per file with `review_paths`, the same workaround as G-09 but for the opposite reason. For full-document design review of a specification without pasting the document, dispatch with `base` set to the fork point, `head` set to the spec commit, and `review_paths` limited to the spec file; the whole document then renders as additions. That technique kept a 29,000 character document under GLM's cap and inside Kimi's latency budget in S1325.
+  rollback_procedure: None; re-dispatch scoped.
+  integrity_check: A verdict is returned, and the union of the `review_paths` across dispatches covers every changed file.
+- id: G-11
+  symptom_ref: F-11
+  component_ref: git push guardrail, pre-push hook
+  root_cause: The pre-push guardrail appears to evaluate `KD_ALLOW_MAIN_PUSH` in a context where it is not visible, prints a refusal, and returns non-zero while the push itself completes; the precise mechanism is not established (T-2026-000367).
+  repair_entry_point: the repository pre-push hook and its environment resolution
+  change_pattern: Until the ticketed fix ships, confirm every push against the remote before acting on the result, and do not re-dispatch, re-commit, or repair on the strength of the printed error alone. The cost of believing it is redoing work that already landed, which is how a correct build was discarded in S1324.
+  rollback_procedure: None.
+  integrity_check: Remote head equals local head for the pushed branch and the working tree is clean.
 ```
 
 ## §H. Evolve
