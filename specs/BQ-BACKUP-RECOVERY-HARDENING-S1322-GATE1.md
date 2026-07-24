@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R5_AUTHORED_PENDING_REVIEW
+Status: R6_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -16,6 +16,8 @@ R3 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two mi
 
 R4 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two minor findings but its response envelope contained an extra key and is therefore nonapproval. The MP review against the prior R2 head ended in `RepairExhaustedError`; this is a tooling failure and nonapproval, not a substantive objection, and cannot be folded as review feedback. R5 folds the substantive GLM/CC findings: every retention mutator shares one concrete lease, baseline-reset receipts are fully specified, Telegram canaries have a fixed operator-safe label, and the post-24-hour Keychain rollback boundary is explicit.
 
+R5 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content required one lease/apply-protocol correction and two Keychain clarifications, but its fenced response was malformed and is therefore nonapproval. R6 folds all substantive feedback: the canary prefix is ASCII, the conditional weekly Qdrant RPO is explicit, lease renewal is scheduled, read-only manifest approval is separated from the leased mutating phase with mandatory revalidation, and Keychain retention/deletion/recovery preconditions are deterministic.
+
 ## 1. Outcome
 
 ai.market must have a recovery system that is demonstrably restorable, fails loudly when any required backup is late or incomplete, and does not retain daily full backups indefinitely.
@@ -30,6 +32,8 @@ This design implements:
 - bounded retry for transient Postgres dump failures;
 - fail-closed Cloudflare exports;
 - documented RPO/RTO and replacement drills.
+
+Qdrant retains a 24-hour RPO until its rebuild drill passes. If Max later activates the approved weekly full-snapshot cadence after that proof, the accepted full-snapshot RPO becomes seven days while the rebuild-from-Postgres path remains bounded by the four-hour full-platform RTO.
 
 ## 2. Current evidence and problem statement
 
@@ -121,17 +125,17 @@ The attestation must not include table rows, secret names, the 1Password referen
 
 ## 5. Secure Telegram credential installation
 
-The existing rotated token is retained. It is not copied back into `.env`. A new local-only installer stores it in a versioned macOS Keychain item:
+The existing rotated token is retained. Before installation, Max confirms the same rotated token is durably retrievable from 1Password or another approved secure source. It is not copied back into `.env`. A new local-only installer stores it in a versioned macOS Keychain item:
 
 1. Max supplies token and chat ID through the `security add-generic-password ... -w` Keychain prompt on Titan-1. The value is entered directly into Apple's prompt and is never visible to the installer, shell history or argv.
 2. The installer reads only the candidate Keychain items, validates format locally and calls Telegram `getMe`.
-3. It sends a canary beginning exactly `[BACKUP CANARY — NO ACTION REQUIRED]`, followed by the session/task ID, to Max's chat and requires HTTP 2xx, JSON `ok=true`, and a numeric `message_id`.
+3. It sends a canary beginning exactly `[BACKUP CANARY - NO ACTION REQUIRED]`, followed by the session/task ID, to Max's chat and requires HTTP 2xx, JSON `ok=true`, and a numeric `message_id`.
 4. Only after delivery succeeds does it atomically switch a non-secret, mode-0600 pointer file to the versioned candidate Keychain service names.
 5. Before changing `.env`, it inventories every repository, LaunchAgent and running process configuration that references `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`. It removes the stale lines from `/Users/max/koskadeux-mcp/.env` only after proving the watchdog is the sole live consumer or migrating every other consumer to its own reviewed Keychain pointer. The Keychain-backed watchdog must pass a second canary first. No backup of the stale plaintext values is created.
 6. It restarts no unrelated services. The watchdog resolves the versioned Keychain service names from the pointer file on every invocation.
 7. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
 
-Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. After the previous items are deleted, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from 1Password or another approved secure source. That accepted boundary does not require or authorize provider-side rotation. The watchdog alerts if superseded items outlive the 24-hour window. No plaintext rollback file, token value or token hash is created or logged.
+Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. The installer schedules deletion of the prior Keychain items no later than 24 hours after the second canary and records the deletion receipt; the watchdog alerts if superseded items outlive that window. After deletion, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from the confirmed approved secure source. That accepted boundary does not require or authorize provider-side rotation. No plaintext rollback file, token value or token hash is created or logged.
 
 The watchdog's `tg()` function must:
 
@@ -167,7 +171,7 @@ For existing objects, the retention tool deterministically chooses the first suc
 
 Classification fails toward retention: any list, health-evidence, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has at least one integrity-verified, 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a verified monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
 
-Every tag or retention mutator uses the same optimistic-CAS Living State lease, including the daily controller, reconciliation correction, monthly-point promotion, and any operator apply command. The lease expires after 15 minutes. A mutator acquires it before reading candidates, includes the persisted lease ID in every write receipt, and renews only by CAS. Failure to acquire, renew or release the lease performs no tag/retention write and alerts. A stale lease can be replaced only after expiry and a fresh inventory read. No alternate operator path may bypass the shared lease.
+Every tag or retention mutator uses the same optimistic-CAS Living State lease, including the daily controller, reconciliation correction, monthly-point promotion, and the mutating phase of any operator apply command. The lease expires after 15 minutes and is renewed by CAS no later than 10 minutes after acquisition or the prior renewal. A mutator acquires it before the fresh inventory read that authorizes writes, includes the persisted lease ID in every write receipt, and renews only by CAS. Failure to acquire, renew or release the lease performs no tag/retention write and alerts. A stale lease can be replaced only after expiry and a fresh inventory read. No alternate operator path may bypass the shared lease.
 
 If a monthly point is later found corrupt or unrestorable, reconciliation never downgrades or deletes its COMPLIANCE lock. It promotes the next integrity-verified object from that family/month by extending it to 400 days and tagging it monthly, records a replacement receipt, and alerts until the promoted point passes the appropriate restore/integrity check. Multiple locked monthly points are valid when backed by the replacement receipt; “exactly one” is not an invariant.
 
@@ -200,7 +204,7 @@ The noncurrent-version actions use the same tag filters as their current-version
 
 ### 6.3 Apply protocol
 
-The retention tool defaults to plan-only and requires `--apply` plus the SHA-256 of the generated plan.
+The retention tool defaults to plan-only and requires `--apply` plus the SHA-256 of the generated plan. Plan generation and human approval are read-only and do not acquire or hold the mutator lease.
 
 Apply order:
 
@@ -208,14 +212,15 @@ Apply order:
 2. abort if any invariant differs;
 3. produce a separate imminent-deletion manifest listing every already-older-than-35-days daily candidate by family, key, version ID, bytes, date and retain-until, plus the oldest recovery point that survives for each family;
 4. require Max's exact approval of that manifest;
-5. extend the selected monthly versions to 400-day COMPLIANCE retention and verify readback;
-6. tag the monthly recovery points;
-7. tag remaining in-scope current objects daily;
-8. verify all in-scope objects have exactly one accepted retention tag;
-9. install the lifecycle policy;
-10. read back and byte-compare its canonical JSON;
-11. regenerate inventory, confirm no object was synchronously deleted, and state that the reviewed deletion manifest is expected to be processed asynchronously;
-12. record a redacted apply receipt in the runbooks audit directory and Living State.
+5. at `--apply`, acquire the shared mutator lease, perform a fresh invariant and candidate inventory read under that lease, reproduce the plan and imminent-deletion manifest, and abort unless both SHA-256 values exactly match Max's approved artifacts;
+6. extend the selected monthly versions to 400-day COMPLIANCE retention and verify readback;
+7. tag the monthly recovery points;
+8. tag remaining in-scope current objects daily;
+9. verify all in-scope objects have exactly one accepted retention tag;
+10. install the lifecycle policy;
+11. read back and byte-compare its canonical JSON;
+12. regenerate inventory, confirm no object was synchronously deleted, and state that the reviewed deletion manifest is expected to be processed asynchronously;
+13. record a redacted apply receipt, including the lease and both approved hashes, in the runbooks audit directory and Living State, then release the lease by CAS.
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
 
@@ -224,6 +229,8 @@ Lifecycle is asynchronous and removal after eligibility is irreversible. Rollbac
 The approved 35-day daily policy is implemented first. It cannot make daily 5.8 GB full Qdrant snapshots small: Object Lock intentionally sets a 35-day physical floor.
 
 A separate measured drill must prove that `knowledge_base_v2` can be rebuilt from Postgres within the four-hour full-platform RTO before its cadence is reduced. Until that proof exists, daily Qdrant snapshots remain required. Legacy `knowledge_base`, `action_logs` and `listings` may move to weekly cadence only after an owner/dependency query proves they are derived and non-authoritative.
+
+Any activated weekly Qdrant full-snapshot schedule has a seven-day freshness threshold and seven-day full-snapshot RPO. Monitoring must switch thresholds only in the same reviewed change that switches cadence, retain the rebuild-path four-hour RTO check, and alert if either path is unavailable.
 
 ## 7. Backup production hardening
 
@@ -297,7 +304,7 @@ Enable `backup-watchdog-hourly` in Celery beat only after production credentials
 
 - Main Postgres RPO: 24 hours; alert no later than 30 hours after the last success.
 - Infisical Postgres RPO: 24 hours; alert no later than 30 hours.
-- Qdrant RPO: 24 hours until a rebuild drill supports a lower snapshot cadence.
+- Qdrant RPO: 24 hours until the rebuild drill passes; seven days only after the reviewed weekly-cadence switch described in sections 6.4 and 13.
 - Main Postgres RTO: two hours from declaration.
 - Full platform RTO: four hours from declaration.
 - Alert-delivery RTO: 30 minutes.
@@ -349,7 +356,7 @@ Required before production:
 
 1. unit tests for classification across month boundaries, failed first-day backup, unknown prefix, versioned objects and idempotent rerun;
 2. tests that an unverified/corrupt first object is never made monthly, day-3 absence alerts, and a later verified object is promoted without shortening the corrupt object's lock;
-3. shared-lease tests proving the controller, reconciliation, promotion, and operator apply paths cannot write concurrently or bypass the 15-minute lease;
+3. shared-lease tests proving the controller, reconciliation, promotion, and operator apply paths cannot write concurrently or bypass the 15-minute lease; tests also cover renewal by minute 10, lease-free read-only planning, fresh under-lease inventory, and exact revalidation of both approved hashes before the first write;
 4. lifecycle policy snapshot test and AWS readback parser test;
 5. mocked Object Lock refusal and no-delete invariant tests;
 6. Postgres retry classification tests and clean temporary-file cleanup;
