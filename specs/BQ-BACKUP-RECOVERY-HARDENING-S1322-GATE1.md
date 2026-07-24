@@ -1,9 +1,14 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: AUTHORED_PENDING_REVIEW  
+Status: R2_AUTHORED_PENDING_REVIEW  
 Owner: Vulcan S1322  
 Directive: Max, 2026-07-24  
 Class: security-sensitive production resilience and retention  
+
+R1 commit: `362f234`  
+R1 reviews: MP nonapproval (`RepairExhaustedError`); GLM `APPROVE_WITH_MANDATES`; CC `APPROVED_WITH_MANDATES` / revise.  
+
+R2 folds every GLM and CC mandate: Keychain replaces plaintext Telegram storage; monthly objects receive explicit 400-day COMPLIANCE retention; classification is performed by a single fail-toward-retention controller; the first asynchronous deletion set requires exact Max approval; restore completeness uses a critical-schema manifest; age identity memory/FD handling is hardened; hash provenance and self-hash canonicalization are explicit; untagged/pending objects alert; Qdrant gains retry and baseline-reset semantics.
 
 ## 1. Outcome
 
@@ -38,7 +43,7 @@ The S1322 audit established:
 
 ## 3. Non-negotiable security invariants
 
-1. The offline age identity, Telegram token, decrypted Infisical data and provider credentials never enter chat, a networked model, logs, command-line arguments, Git, or a persistent plaintext file.
+1. The offline age identity, Telegram token, decrypted Infisical data and provider credentials never enter chat, a networked model, logs, command-line arguments, Git, or a persistent plaintext file. Local secrets required by unattended jobs live in macOS Keychain, not `.env`.
 2. Local Ollama may inspect only a redacted attestation. It must never receive the age identity, ciphertext plaintext, restored rows, Telegram token, or 1Password item contents.
 3. Deterministic programs, not an LLM, perform cryptographic verification and database restore.
 4. Object Lock stays enabled in COMPLIANCE mode. No retention period is shortened, no bypass permission is introduced, and no protected version is deleted.
@@ -58,10 +63,10 @@ The verifier:
 2. records object key, version ID, ciphertext bytes, last-modified time and non-secret S3 metadata;
 3. downloads only the encrypted object into a mode-0700 temporary directory;
 4. obtains the age identity from 1Password through `op read`;
-5. passes the identity to `age` over an inherited anonymous file descriptor, never argv or disk;
+5. passes the identity to `age` over an inherited anonymous file descriptor, never argv or disk; the parent disables core dumps, locks and later zeroes the minimal identity buffer, creates the descriptor close-on-exec, and explicitly passes it only to the `age` child;
 6. streams decrypted bytes directly into `pg_restore` connected to a disposable `postgres:18` container whose data directory is Docker tmpfs and whose network is disabled;
 7. computes the plaintext SHA-256 and byte count while streaming and compares both to S3 metadata;
-8. verifies `pg_restore` success, catalog/table counts and a small fixed set of schema-only invariants;
+8. verifies `pg_restore` success, catalog/table counts and every object in a versioned expected-critical-schema manifest;
 9. stops/removes the container and deletes the encrypted temporary directory in `finally`;
 10. writes a mode-0600 JSON attestation containing no secret values or restored data.
 
@@ -75,6 +80,12 @@ The verifier must refuse if:
 - Docker is not using tmpfs or cannot disable networking;
 - restore or any invariant fails;
 - cleanup cannot remove the disposable container.
+
+`op read` must return exactly one raw `AGE-SECRET-KEY-...` identity line. The verifier disables core dumps for itself and children (`RLIMIT_CORE=0`), uses `mlock` for the in-process identity buffer, zeroes that buffer immediately after the `age` child inherits its pipe, and refuses if those controls cannot be applied. The anonymous descriptor is inherited by `age` only; Docker, AWS, Ollama and later subprocesses cannot inherit it.
+
+The expected-critical-schema manifest is produced from a known-good Infisical schema, versioned without data or secret values, and independently reviewed. A restore cannot pass if any required schema, table, extension or migration-history relation is absent. Counts alone are informational and never establish completeness.
+
+The plaintext hash stored beside the ciphertext is a transport/accidental-corruption control, not independent authenticity against an actor able to replace both object and metadata. Successful age AEAD authentication proves ciphertext integrity under the offline identity; Object Lock/versioning and the recorded version ID provide the storage provenance boundary.
 
 ### 4.2 Local AI role
 
@@ -94,22 +105,23 @@ Required fields:
 - Docker `network=none`, `data_storage=tmpfs`;
 - cleanup result;
 - overall `PASS` only when every check passes;
-- SHA-256 of the canonical attestation itself.
+- SHA-256 of the canonical attestation computed with `attestation_sha256` set to JSON `null`, followed by insertion of the resulting digest.
 
 The attestation must not include table rows, secret names, the 1Password reference, key fingerprints derived from private material, environment dumps or raw subprocess output.
 
 ## 5. Secure Telegram credential installation
 
-The existing rotated token is retained. A new local-only installer is added to Local SecOps:
+The existing rotated token is retained. It is not copied back into `.env`. A new local-only installer stores it in a versioned macOS Keychain item:
 
-1. Max supplies token and chat ID through 1Password references or hidden TTY prompts on Titan-1.
-2. The installer validates format locally and calls Telegram `getMe`.
+1. Max supplies token and chat ID through the `security add-generic-password ... -w` Keychain prompt on Titan-1. The value is entered directly into Apple's prompt and is never visible to the installer, shell history or argv.
+2. The installer reads only the candidate Keychain items, validates format locally and calls Telegram `getMe`.
 3. It sends a clearly labelled no-action-required canary to Max's chat and requires HTTP 2xx, JSON `ok=true`, and a numeric `message_id`.
-4. Only after delivery succeeds does it atomically replace the two keys in `/Users/max/koskadeux-mcp/.env`, preserving unrelated lines and mode 0600.
-5. It restarts no unrelated services. The watchdog reads the file on every invocation.
-6. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
+4. Only after delivery succeeds does it atomically switch a non-secret, mode-0600 pointer file to the versioned candidate Keychain service names.
+5. It removes the stale `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` lines from `/Users/max/koskadeux-mcp/.env` after the Keychain-backed watchdog passes a second canary. No backup of those stale plaintext values is created.
+6. It restarts no unrelated services. The watchdog resolves the versioned Keychain service names from the pointer file on every invocation.
+7. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
 
-Rollback is the installer's mode-0600 same-host backup of the prior `.env`; the backup contains secrets and must be removed after the new credential passes a second watchdog canary. No token value or token hash is logged.
+Rollback is an atomic pointer switch to the prior Keychain service names. The prior Keychain items remain for at most 24 hours after the second canary, then the installer deletes them; the watchdog alerts if superseded items outlive that window. No plaintext rollback file, token value or token hash is created or logged.
 
 The watchdog's `tg()` function must:
 
@@ -124,9 +136,11 @@ The watchdog's `tg()` function must:
 
 ### 6.1 Classification
 
-Every future backup object under the following families receives an S3 object tag:
+Every future backup object under the following families is uploaded with a unique, collision-resistant date/time key. Upload refuses an existing key. The write-only backup identity receives no tagging or retention permission, so a compromised writer cannot downgrade a recovery point. New objects are initially untagged and therefore match no expiration rule.
 
-- `retention=monthly` for the first successful UTC backup in a month;
+A single daily Railway `backup-retention-controller` classifies new objects only after listing the complete family/month:
+
+- `retention=monthly` for the first successful UTC backup in a month, after extending that exact object version's Object Lock COMPLIANCE retain-until to 400 days;
 - `retention=daily` otherwise.
 
 Families:
@@ -137,9 +151,20 @@ Families:
 - `railway-config`;
 - `cloudflare`.
 
-For existing objects, the retention tool deterministically chooses the first successful object per family/month as monthly and classifies all other objects daily. The plan output lists every monthly key and aggregate daily/monthly counts and bytes.
+For existing objects, the retention tool deterministically chooses the first successful object per family/month as monthly and classifies all other objects daily. It extends every selected monthly object version to 400-day COMPLIANCE retention before applying the monthly tag.
+
+Classification fails toward retention: any list, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has exactly one 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
 
 `backup-health/`, `RESTORE-README.md`, audit evidence and unknown prefixes are excluded and remain untouched.
+
+The controller uses a dedicated IAM identity, separate from the backup writer, with only:
+
+- bucket list/version-list for the approved prefixes;
+- get/put object tagging;
+- get/put Object Lock retention;
+- no `GetObject`, `DeleteObject`, bypass, encryption, versioning, public-access or lifecycle-configuration permission.
+
+An IAM/bucket-policy condition permits the controller's `PutObjectRetention` only for the reviewed monthly window (399–401 remaining days). COMPLIANCE prevents shortening an existing retain-until regardless. The controller cannot install or alter the lifecycle policy; that remains an exact-reviewed operator action.
 
 ### 6.2 Lifecycle policy
 
@@ -153,6 +178,8 @@ The exact policy contains:
 
 S3 Object Lock remains authoritative: a locked version cannot be deleted by lifecycle before its retain-until time.
 
+The noncurrent-version actions use the same tag filters as their current-version rules. Unique-key uploads mean normal backups do not create noncurrent versions; the rule exists only for exceptional administrative replacement. Monthly versions have explicit 400-day COMPLIANCE retention, so neither current nor noncurrent expiration can remove them earlier. Daily backups are guaranteed restorable for the complete 35-day lock window; no RPO/RTO or drill depends on a day-35 object after it becomes lifecycle-eligible.
+
 ### 6.3 Apply protocol
 
 The retention tool defaults to plan-only and requires `--apply` plus the SHA-256 of the generated plan.
@@ -161,13 +188,16 @@ Apply order:
 
 1. read and record bucket versioning, Object Lock, encryption and public-access state;
 2. abort if any invariant differs;
-3. tag the monthly recovery points;
-4. tag remaining in-scope current objects daily;
-5. verify all in-scope objects have exactly one accepted retention tag;
-6. install the lifecycle policy;
-7. read back and byte-compare its canonical JSON;
-8. regenerate inventory and confirm no object was synchronously deleted;
-9. record a redacted apply receipt in the runbooks audit directory and Living State.
+3. produce a separate imminent-deletion manifest listing every already-older-than-35-days daily candidate by family, key, version ID, bytes, date and retain-until, plus the oldest recovery point that survives for each family;
+4. require Max's exact approval of that manifest;
+5. extend the selected monthly versions to 400-day COMPLIANCE retention and verify readback;
+6. tag the monthly recovery points;
+7. tag remaining in-scope current objects daily;
+8. verify all in-scope objects have exactly one accepted retention tag;
+9. install the lifecycle policy;
+10. read back and byte-compare its canonical JSON;
+11. regenerate inventory, confirm no object was synchronously deleted, and state that the reviewed deletion manifest is expected to be processed asynchronously;
+12. record a redacted apply receipt in the runbooks audit directory and Living State.
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
 
@@ -197,6 +227,8 @@ A separate measured drill must prove that `knowledge_base_v2` can be rebuilt fro
 - Record snapshot bytes and SHA-256 for each collection.
 - A successful small collection cannot mask a stale or missing `knowledge_base_v2`.
 - Add relative-size anomaly checks per collection.
+- Retry one transient snapshot/download/upload failure with bounded backoff; never retry authentication, schema, size, hash or collection-not-found failures.
+- Support the same explicit, time-bounded baseline-reset receipt used for Postgres after an approved reindex or migration.
 - Preserve exact collection name and source cluster/version in health metadata.
 
 ### 7.3 Cloudflare
@@ -219,6 +251,7 @@ The six-hour watchdog remains independent of Infisical. It checks:
 - Railway configuration;
 - Cloudflare complete-success marker;
 - current monthly recovery point for every family after UTC day 2.
+- any in-scope object that is missing a tag, has an unknown tag, has conflicting tags, or remains untagged beyond the controller's daily reconciliation window.
 
 It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check.
 
@@ -311,6 +344,7 @@ Gate 4 requires all of:
 
 - current main-Postgres and Qdrant restore evidence remains green;
 - Max-assisted Infisical attestation is `PASS`;
+- the attestation's expected-critical-schema manifest check is complete and green;
 - Telegram canary returns and logs a real message ID;
 - deliberately induced stale test fixture produces one Telegram alert and one deduplicated GitHub issue;
 - backend scheduled poll is observed running;
@@ -319,6 +353,7 @@ Gate 4 requires all of:
 - lifecycle policy canonical readback matches the reviewed artifact;
 - no Object Lock/versioning/encryption/BPA invariant changed;
 - post-policy inventory records total bytes and projected 35/400-day steady state;
+- the reviewed imminent-deletion manifest and Max's exact approval are attached to the apply receipt;
 - source runbooks are merged and the same reviewed disaster-recovery map is uploaded/versioned at `RESTORE-README.md`;
 - a replacement drill report states achieved RPO/RTO and any remaining exception.
 
