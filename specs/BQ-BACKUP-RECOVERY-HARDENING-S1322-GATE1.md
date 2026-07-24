@@ -24,7 +24,7 @@ R7 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` wi
 
 R8 reviews: GLM and CC returned valid exact-head `APPROVE` verdicts with no findings. The mandatory MP handler task failed with `RepairExhaustedError`, so a direct read-only `gpt-5.6-sol` review verified exact head `3ddf6f2413c6b3805006adde23e04afb6f18d908` and returned `REVISE` with one blocker and six major findings. R9 folds all seven: fenced crash-durable mutation journaling, version-complete lifecycle approval, measured end-to-end alert delivery, executable anomaly-baseline epochs, correctness-bound Qdrant rebuild proof, expanded zero-disclosure negative evidence, and fail-closed Gate-4 acceptance.
 
-R9 reviews: direct read-only MP verified exact head `7a419dbed4e2a34fd034404bc17c48d32511d2d4` and returned `REVISE` with one blocker and two major findings. R10 folds all three: deterministic partial-apply reconciliation with fresh approval on any effective deletion-manifest delta, explicit secret-safe subprocess and Telegram transport boundaries, and an authoritative recovery inventory that cannot omit AIM Data's Railway Postgres, source-code mirrors, or any other discovered dependency.
+R9 reviews: direct read-only MP verified exact head `7a419dbed4e2a34fd034404bc17c48d32511d2d4` and returned `REVISE` with one blocker and two major findings. GLM returned `APPROVE` with two nits; CC returned `APPROVE` with one delivery-RTO reliability finding. R10 folds all findings: deterministic partial-apply reconciliation with named terminal states and fresh approval on any effective deletion-manifest delta, explicit secret-safe subprocess and Telegram transport boundaries, an authoritative recovery inventory that cannot omit AIM Data's Railway Postgres, source-code mirrors, or any other discovered dependency, an explicit `qdrant_sync_outbox` drill boundary, and an event-driven AWS delivery fallback that does not depend on GitHub Actions cron timing.
 
 ## 1. Outcome
 
@@ -203,6 +203,8 @@ Every tag or retention mutator uses the same optimistic-CAS Living State lease, 
 
 Before every external write, the broker requires a durable `prepared` journal row containing operation ID, fence token, lease owner, exact key/version ID, intended tag or retain-until value, plan/manifest hashes and expected pre/post-state. It re-reads Living State and accepts the operation only if the same fence is current, unexpired and owned by the caller. It records the AWS response and version-specific readback as `applied` before accepting another operation. Timeout, connection loss or any indeterminate response records `indeterminate` and blocks all later writes for that family/version until a fresh readback reconciles the actual state.
 
+Reconciliation has exactly two non-error terminal transitions: exact target-state readback changes the row from `indeterminate` to `applied`; exact expected-pre-state readback changes it to `reconciled_not_applied`, after which a new fence may create a new prepared operation for the same approved target. Any third state remains `indeterminate`, blocks the family/version and requires operator resolution. State history is append-only.
+
 An expired lease with any `prepared` or `indeterminate` journal row cannot be automatically replaced. Replacement requires proof that the prior broker/container instance is terminated, reconciliation of every nonterminal row from S3 readback, and a new fence. A paused old holder cannot call S3 directly and the broker rejects its stale fence. The broker serializes fences and never begins a new-fence operation while an older-fence operation is in flight. Failure to acquire, renew, journal, reconcile or release the lease performs no next write and alerts. No alternate operator path may bypass the broker, journal or shared fence.
 
 If a monthly point is later found corrupt or unrestorable, reconciliation never downgrades or deletes its COMPLIANCE lock. It promotes the next integrity-verified object from that family/month by extending it to 400 days and tagging it monthly, records a replacement receipt, and alerts until the promoted point passes the appropriate restore/integrity check. Multiple locked monthly points are valid when backed by the replacement receipt; “exactly one” is not an invariant.
@@ -262,7 +264,7 @@ All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE exte
 
 The partial-apply receipt records timestamp, lease ID/fence, plan and approved-manifest hashes, immutable desired-state hash, completed operation-DAG prefix, last completed and next intended step, every affected object key/version ID/action/readback result, redacted failure class and reason, whether lifecycle installation began or completed, lease-release result, retry eligibility, and operator/session identity. It is persisted in Living State and the versioned runbook audit directory before any retry.
 
-A retry acquires a new lease/fence, proves the prior broker terminated, reconciles every prepared/indeterminate row by exact S3 readback, rereads a version-complete inventory and deterministically reconstructs the original desired state plus the journaled completed prefix. It rejects any unjournaled new/missing version or marker, identity change, tag mismatch, retain-until mismatch, invariant/lifecycle drift, reordered or non-prefix completion, unexplained already-satisfied state, changed eligibility clock, or changed approved deletion disposition. An indeterminate operation becomes `applied` only when exact readback equals its approved target; any other state remains blocked for operator resolution.
+A retry acquires a new lease/fence, proves the prior broker terminated, reconciles every prepared/indeterminate row by exact S3 readback, rereads a version-complete inventory and deterministically reconstructs the original desired state plus the journaled completed prefix. It rejects any unjournaled new/missing version or marker, identity change, tag mismatch, retain-until mismatch, invariant/lifecycle drift, reordered or non-prefix completion, unexplained already-satisfied state, changed eligibility clock, or changed approved deletion disposition. An indeterminate operation becomes `applied` only when exact readback equals its approved target, becomes `reconciled_not_applied` only when exact readback equals its recorded pre-state, and otherwise remains blocked for operator resolution.
 
 The retry then regenerates the effective imminent-deletion manifest from current state and the immutable desired state. If its canonical hash differs for any reason—including because a monotonic prior write changed which versions are now eligible—the process performs no further write and requires a fresh plan, exact manifest, Max approval and receipt. Stored hashes alone never authorize a changed deletion set. Only exact journal-backed completed nodes may be treated as already satisfied without changing the effective manifest. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback and the still-current effective deletion-manifest hash equals the exact active approval. Failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
 
@@ -270,7 +272,7 @@ The retry then regenerates the effective imminent-deletion manifest from current
 
 The approved 35-day daily policy is implemented first. It cannot make daily 5.8 GB full Qdrant snapshots small: Object Lock intentionally sets a 35-day physical floor.
 
-A separate measured drill must prove that `knowledge_base_v2` can be rebuilt from an exact, restored Postgres recovery point within the four-hour full-platform RTO before its cadence is reduced. The drill records the Postgres object version, backup timestamp/LSN or equivalent transaction boundary, outbox high-water mark, Qdrant source cluster/version and rebuild code commit. It must prove Postgres plus retained outbox/events are authoritative for every rebuilt point; otherwise cadence remains daily.
+A separate measured drill must prove that `knowledge_base_v2` can be rebuilt from an exact, restored Postgres recovery point within the four-hour full-platform RTO before its cadence is reduced. The drill records the Postgres object version, backup timestamp/LSN or equivalent transaction boundary, `qdrant_sync_outbox` high-water mark, Qdrant source cluster/version and rebuild code commit. It must prove Postgres plus retained outbox/events are authoritative for every rebuilt point; otherwise cadence remains daily.
 
 Correctness acceptance requires exact collection set, point count and ID set; canonical logical digests over every point's ID, payload and vector bytes; vector names/dimensions/distance configuration; payload schema and indexes; zero missing/dead-letter operations through the recorded high-water mark; and a fixed application-query suite covering known listings, filters, ranking and representative nearest-neighbor results. Any nondeterministic index bytes are excluded only from the logical digest and are separately rebuilt/validated. The drill calculates effective recovery RPO from the newest authoritative Postgres point plus outbox boundary, not merely the age of the last Qdrant snapshot, and must demonstrate no worse than the approved 24-hour data RPO.
 
@@ -333,25 +335,31 @@ It separately checks retention classification:
 
 - any in-scope data-bearing version that is missing a version-specific tag, has an unknown/conflicting tag, or remains untagged beyond the controller's daily reconciliation window, plus any delete marker lacking an explicit disposition.
 
-It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check. On every incident it attempts Telegram immediately. If credentials, HTTP, API response or message ID validation fails, it writes a non-secret signed failure marker to the dedicated S3 health prefix and exits non-zero.
+It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check. On every incident it attempts Telegram immediately. If credentials, HTTP, API response or message ID validation fails, it writes a non-secret signed failure marker to the dedicated S3 health prefix and exits non-zero. Marker creation triggers the event-driven AWS relay below and does not wait for a polling schedule.
 
 ### 8.2 Backend
 
 Enable `backup-watchdog-hourly` in Celery beat only after production credentials and the internal endpoint are proven. This is a tertiary path and does not establish the 30-minute RTO. The task must fail, retry and escalate when the endpoint is unavailable; missing `INTERNAL_API_KEY` is critical configuration drift, not `skipped`.
 
-### 8.3 GitHub
+### 8.3 Event-driven AWS fallback
+
+The dedicated S3 failure-marker prefix has an exact-prefix ObjectCreated event route through EventBridge to a minimal Lambda that validates marker signature, schema, timestamp and incident fingerprint, then sends the fixed non-secret incident template to Max through AWS SES. The Lambda uses only its IAM role: it has no Telegram, Infisical, database or GitHub credential and cannot read backup data. It may read only the exact marker version, write a deduplication/idempotency record, send through one verified SES identity to one allow-listed destination, and append a non-secret delivery receipt. EventBridge uses a dead-letter queue and age/retry policy whose worst-case successful path remains within the 30-minute alert RTO; DLQ depth and Lambda errors page through a separate AWS-managed CloudWatch alarm/SNS subscription.
+
+The relay records S3 event ID/version, incident fingerprint, Lambda request ID, SES message ID, send timestamp and SES delivery/bounce event. It treats only an SES `Delivery` event for the same message ID as end-to-end success; publish acceptance alone is insufficient. A bounce, complaint, timeout, invalid signature, missing delivery event or retry exhaustion is critical. The scheduled production fixture deliberately fails Telegram and must prove marker creation through SES `Delivery` within 30 minutes across at least seven consecutive runs spanning different times of day before Gate 4. The test also proves idempotent duplicate-event handling, DLQ alarm delivery and recipient allow-list enforcement.
+
+### 8.4 GitHub
 
 `backup-verify.yml` becomes a secondary dead-man's switch:
 
 - threshold 30 hours, aligned with nightly schedules and scheduler delay;
-- runs every 15 minutes and separately reads the signed Telegram-delivery-failure marker; a new marker opens or updates the deduplicated incident issue immediately, independent of Telegram and Infisical;
+- runs every 15 minutes and separately reads the signed Telegram-delivery-failure marker; a new marker opens or updates the deduplicated incident issue independently of Telegram and Infisical, but GitHub scheduler timing is not credited toward the hard 30-minute delivery RTO;
 - reads S3-canonical status;
 - one open issue per incident fingerprint;
 - updates the existing issue while unhealthy;
 - closes it automatically after two consecutive healthy checks;
 - links only current S3/Railway instructions, never deleted GCS workflows.
 
-The 30-hour freshness threshold and 15-minute delivery-failure polling are separate conditions in the same workflow. Gate 4 measures elapsed time from an injected detectable fixture through the scheduled Titan invocation to either a verified Telegram `message_id` or, when Telegram is deliberately failed, the GitHub issue event; both paths must complete within 30 minutes without a manual run.
+The 30-hour freshness threshold and 15-minute delivery-failure polling are separate conditions in the same workflow. GitHub Actions schedule delay or dropped runs cannot weaken or extend the event-driven AWS fallback. Gate 4 measures elapsed time from an injected detectable fixture through the scheduled Titan invocation to either a verified Telegram `message_id` or, when Telegram is deliberately failed, the matching SES `Delivery` event; both paths must complete within 30 minutes without a manual run. The GitHub issue path is tested for deduplication and recovery closure but is tertiary evidence.
 
 ## 9. Recovery objectives and drills
 
@@ -398,6 +406,7 @@ Drills:
 - new secure Telegram installer or reviewed Local SecOps deployment payload
 - new authoritative recovery-inventory generator and exact exclusion/coverage receipt schema
 - verified S3 git-mirror producer and restore verifier for every required repository, unless an exact alternate is approved
+- EventBridge/Lambda/SES/DLQ fallback-alert infrastructure and redacted delivery receipts
 - `backup-and-recovery.md`
 - `disaster-recovery.md`
 - `aws-s3.md`
@@ -424,9 +433,9 @@ Required before production:
 8. Qdrant per-collection masking plus rebuild-fidelity tests covering exact Postgres object/transaction/outbox boundary, complete logical point digests, collection/vector/payload/index schema, dead-letter absence, fixed application queries, four-hour RTO and calculated 24-hour effective data RPO;
 9. Cloudflare 403/missing-section regression tests;
 10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, deterministic one-shot LaunchAgent scheduling, deletion-receipt fields, missed-cleanup alerting, and proof that `.env` lines remain until all live consumers are inventoried/migrated; leak probes cover token-bearing URL absence from argv/environment/process listings, descriptor allow-lists, proxy/debug suppression, normalized exceptions, bounded response parsing, HTTP/API/timeout/signal/crash paths, stdout/stderr and audit artifacts;
-11. scheduled 15-minute watchdog tests: non-zero exit and signed S3 failure marker on Telegram failure, measured Telegram success latency, and measured independent GitHub-issue fallback latency within 30 minutes without manual invocation;
+11. scheduled 15-minute watchdog tests: non-zero exit and signed S3 failure marker on Telegram failure, measured Telegram success latency, and at least seven consecutive measured S3-event-to-SES-`Delivery` fallback runs within 30 minutes without manual invocation; tests also cover invalid signatures, duplicate S3 events, SES bounce/missing-delivery failure, retry exhaustion, DLQ/CloudWatch alarm delivery, exact recipient allow-list and absence of backup/secret read permission;
 12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including plaintext-file absence; exact per-child argv/environment/descriptor allow-lists; raw stdout/stderr suppression; normalized failures for AWS, `op`, `age`, Docker, `pg_restore`, Postgres and cleanup; partial pipe writes; forced `RLIMIT_CORE`/`mlock` refusal; descriptor-leak checks across every child; interrupted `op read`; timeout/signal/process-group/crash cleanup; Docker tmpfs/network/logging refusal; process/temp/audit forbidden-content leak probes; attestation allow-list/forbidden-field rejection; and RFC 8785 self-hash reproduction/constant-time comparison;
-13. GitHub workflow freshness threshold, 15-minute delivery-failure-marker polling, deduplication and two-green recovery-close tests;
+13. GitHub workflow freshness threshold, 15-minute delivery-failure-marker polling, deduplication and two-green recovery-close tests, with assertions that GitHub cron timing is not used to satisfy the 30-minute alert RTO;
 14. exact-commit Council review with builder excluded;
 15. production cutover one subsystem at a time, each with readback and rollback checkpoint.
 16. live discovery tests covering every Railway project/environment/service/database, Cloudflare account/zone/Worker/KV dependency, required repository, S3 prefix and Titan-hosted production dependency; fixtures prove an unlisted AIM Data Postgres, empty git mirror, expired exclusion, missing monitor, and stale restore proof each block acceptance.
@@ -440,7 +449,7 @@ Gate 4 requires all of:
 - the attestation's expected-critical-schema manifest check is complete and green;
 - all zero-disclosure negative-control results and attestation allow-list/self-hash verification are green;
 - the candidate and Keychain-backed second Telegram canaries return and log real message IDs; every live consumer is migrated/inventoried, the pointer cutover is verified, and stale `.env` credential lines are absent without a plaintext backup;
-- a deliberately induced detectable fixture, observed through the scheduled Titan path, produces a verified Telegram alert within 30 minutes; a second fixture with Telegram deliberately failed produces the signed failure marker and deduplicated GitHub issue within 30 minutes without manual execution;
+- a deliberately induced detectable fixture, observed through the scheduled Titan path, produces a verified Telegram alert within 30 minutes; with Telegram deliberately failed, at least seven consecutive scheduled fixtures produce the signed failure marker and matching SES `Delivery` event within 30 minutes without manual execution, while the deduplicated GitHub issue is separately verified without credit toward that RTO;
 - backend scheduled poll is observed running;
 - Railway configuration and Cloudflare complete-success recovery points each meet their 24-hour RPO/30-hour alert threshold;
 - the canonical authoritative recovery inventory is freshly reconciled to live discovery and every row has backup, restore, monitoring and stated RPO/RTO evidence or an exact unexpired Max-approved exclusion;
