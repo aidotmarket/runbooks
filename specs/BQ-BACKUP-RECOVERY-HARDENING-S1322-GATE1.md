@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R7_AUTHORED_PENDING_REVIEW
+Status: R8_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -19,6 +19,8 @@ R4 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two mi
 R5 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content required one lease/apply-protocol correction and two Keychain clarifications, but its fenced response was malformed and is therefore nonapproval. R6 folds all substantive feedback: the canary prefix is ASCII, the conditional weekly Qdrant RPO is explicit, lease renewal is scheduled, read-only manifest approval is separated from the leased mutating phase with mandatory revalidation, and Keychain retention/deletion/recovery preconditions are deterministic.
 
 R6 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` with two minor documentation findings. R7 folds every GLM nit and the actionable CC hash-provenance finding: Keychain cleanup uses an auditable one-shot LaunchAgent and a fully defined receipt, the approved manifest hash has a durable non-secret approval receipt, and partial retention applies stop safely and resume only from fresh inventory under a new lease. The full artifact contains section 13, so CC's conditional cross-reference observation required verification but no content change.
+
+R7 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` with no findings and independently verified section 13 and its Qdrant cross-references against the complete artifact. R8 folds the remaining two actionable GLM nits by defining the partial-apply receipt schema and the successful LaunchAgent audit-plist retirement policy.
 
 ## 1. Outcome
 
@@ -137,7 +139,7 @@ The existing rotated token is retained. Before installation, Max confirms the sa
 6. It restarts no unrelated services. The watchdog resolves the versioned Keychain service names from the pointer file on every invocation.
 7. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
 
-Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. After the second canary, the installer registers a mode-0600, one-shot per-user LaunchAgent whose `ProgramArguments` contain only the reviewed cleanup helper path and non-secret versioned Keychain service/account names. Its calendar trigger is no later than 24 hours after that canary. The helper deletes only the named superseded items, records success or failure, disables the job after success, and leaves its non-secret plist for audit until the next reviewed cleanup. The watchdog alerts if the job is missing, fails, or any superseded item outlives the deadline.
+Rollback during the first 24 hours is an atomic pointer switch to the prior Keychain service names. After the second canary, the installer registers a mode-0600, one-shot per-user LaunchAgent whose `ProgramArguments` contain only the reviewed cleanup helper path and non-secret versioned Keychain service/account names. Its calendar trigger is no later than 24 hours after that canary. The helper deletes only the named superseded items, records success or failure, and disables the job after success. The watchdog requires the job until a successful deletion receipt exists; afterward, the receipt is authoritative. The disabled non-secret plist remains for audit until the next reviewed cleanup or 90 days, whichever comes first, and is then removed only after its receipt is present in both audit stores. The watchdog alerts if the job is missing before success, fails, or any superseded item outlives the deadline.
 
 The deletion receipt records scheduled time, actual attempt and completion times, local UID, versioned service/account names, second-canary message ID, outcome, and LaunchAgent label; it contains no token value or token-derived hash. After deletion, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from the confirmed approved secure source. That accepted boundary does not require or authorize provider-side rotation. No plaintext rollback file, token value or token hash is created or logged.
 
@@ -228,7 +230,9 @@ Apply order:
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
 
-All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE extension is never shortened, and tags are reconciled from fresh inventory. If lease renewal or any write/readback fails, the process stops before its next mutation, records the completed steps and exact object versions in a partial-apply receipt, releases the lease if still owned, and alerts. It performs no compensating lock/tag mutation. A retry must acquire a new lease, reread all state, revalidate both approved hashes, and resume idempotently. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback; failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
+All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE extension is never shortened, and tags are reconciled from fresh inventory. If lease renewal or any write/readback fails, the process stops before its next mutation, releases the lease if still owned, and alerts. It performs no compensating lock/tag mutation.
+
+The partial-apply receipt records timestamp, lease ID, plan and approved-manifest hashes, last completed and next intended step, every affected object key/version ID/action/readback result, redacted failure class and reason, whether lifecycle installation began or completed, lease-release result, retry eligibility, and operator/session identity. It is persisted in Living State and the versioned runbook audit directory before any retry. A retry must acquire a new lease, reread all state, revalidate both approved hashes, and resume idempotently. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback; failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
 
 ### 6.4 Qdrant growth decision
 
