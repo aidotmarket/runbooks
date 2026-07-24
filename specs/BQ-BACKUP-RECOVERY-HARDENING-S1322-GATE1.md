@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R9_AUTHORED_PENDING_REVIEW
+Status: R10_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -24,6 +24,8 @@ R7 reviews: GLM `APPROVE_WITH_NITS`; CC returned a valid exact-head `APPROVE` wi
 
 R8 reviews: GLM and CC returned valid exact-head `APPROVE` verdicts with no findings. The mandatory MP handler task failed with `RepairExhaustedError`, so a direct read-only `gpt-5.6-sol` review verified exact head `3ddf6f2413c6b3805006adde23e04afb6f18d908` and returned `REVISE` with one blocker and six major findings. R9 folds all seven: fenced crash-durable mutation journaling, version-complete lifecycle approval, measured end-to-end alert delivery, executable anomaly-baseline epochs, correctness-bound Qdrant rebuild proof, expanded zero-disclosure negative evidence, and fail-closed Gate-4 acceptance.
 
+R9 reviews: direct read-only MP verified exact head `7a419dbed4e2a34fd034404bc17c48d32511d2d4` and returned `REVISE` with one blocker and two major findings. R10 folds all three: deterministic partial-apply reconciliation with fresh approval on any effective deletion-manifest delta, explicit secret-safe subprocess and Telegram transport boundaries, and an authoritative recovery inventory that cannot omit AIM Data's Railway Postgres, source-code mirrors, or any other discovered dependency.
+
 ## 1. Outcome
 
 ai.market must have a recovery system that is demonstrably restorable, fails loudly when any required backup is late or incomplete, and does not retain daily full backups indefinitely.
@@ -37,6 +39,7 @@ This design implements:
 - per-source freshness and backup-quality checks;
 - bounded retry for transient Postgres dump failures;
 - fail-closed Cloudflare exports;
+- a complete authoritative recovery inventory with explicit disposition for every production dependency and recovery source;
 - documented RPO/RTO and replacement drills.
 
 Qdrant retains a 24-hour effective data RPO. If Max later activates the approved weekly full-snapshot cadence after the fidelity/rebuild proof, the snapshot RPO becomes seven days while the authoritative rebuild path must still demonstrate a 24-hour effective data RPO and four-hour full-platform RTO.
@@ -56,6 +59,12 @@ The S1322 audit established:
 - The bucket has Object Lock COMPLIANCE/35 days, versioning, encryption and public-access blocking, but no lifecycle policy.
 - On 2026-07-24 the classified backup prefixes contained 322 current objects / 257,083,842,321 bytes. A first-successful-per-family-per-month policy identifies 17 monthly recovery points / 9,342,163,753 bytes and 305 daily objects / 247,741,678,568 bytes.
 - The recent database cleanup reduced new main-Postgres dumps to roughly 0.37 GB, but pre-cleanup dumps remain much larger. Qdrant `knowledge_base_v2` is now the dominant growth source.
+- The documented `git-mirrors/` S3 path is not yet populated; GitHub and local clones are currently the source-code recovery copies.
+- AIM Data has a separately observed Railway Postgres dependency that is not represented in the current S3 recovery matrix. The earlier owner decision excluding Titan-hosted AIM Data/vectorAIz data from this bucket does not automatically exclude a Railway database.
+
+Before implementation inventory freeze, a deterministic discovery job enumerates every Railway project/environment/service/database, Cloudflare account/zone/Worker/KV dependency, S3 recovery prefix, required GitHub repository, Titan-hosted production state, third-party configuration dependency and customer-custodied boundary used by ai.market, AIM Data or vectorAIz. The result is the authoritative recovery inventory, versioned by canonical SHA-256. Each row names owner, production/non-production classification, authoritative data class, backup destination and schedule, monitor, RPO, RTO, restore procedure, last successful backup, last restore proof, and either `covered` or an exact approved exclusion.
+
+No discovered row may be omitted because an older runbook called a broader product out of scope. An exclusion requires Max's exact approval of the row, scope, reason, evidence that it is non-production/regenerable/customer-custodied or protected by an independent backup, residual risk, recovery method, review date and expiry. The AIM Data Railway Postgres row remains uncovered until it has backup/restore/monitoring evidence or such an exact exclusion. Source code remains uncovered for full independent replacement until every required repository has a verified S3 mirror or a separately approved, tested independent recovery source; an empty `git-mirrors/` prefix cannot pass.
 
 ## 3. Non-negotiable security invariants
 
@@ -101,6 +110,10 @@ The verifier must refuse if:
 
 A timeout, signal, short read, broken pipe or interrupted `op read` immediately closes both pipe ends, zeroes/unlocks every buffered identity byte, terminates any child, and returns failure. Partial identity material is never retried or reused.
 
+The verifier starts with a fixed minimal environment and a deny-by-default descriptor table. Each child receives an exact argv, environment-key allow-list and descriptor allow-list. The age identity is the only secret descriptor and is inherited only by `age`; decrypted dump bytes flow through anonymous pipes to hashing and `pg_restore`; `pg_restore` receives no password in argv or environment and connects only through a dedicated local socket to the network-disabled disposable container. Process groups have explicit deadlines and are terminated and reaped on timeout, signal, short write, downstream close or parent failure.
+
+Raw child stdout/stderr is never copied to the console, attestation or persistent logs. AWS, `op`, `age`, Docker, Postgres and cleanup errors are converted in memory to a fixed allow-listed failure class and numeric exit status; verbose/debug tracing and environment/command dumps are disabled. Output needed for deterministic catalog checks is parsed in a bounded in-memory channel, rejected if it contains forbidden content, reduced to allow-listed counts/digests, and zeroed after use. The verifier never persists a decrypted dump, database logs, container logs, core file, shell trace or raw diagnostic. Before exit it scans its own child argv/environment, open descriptors, temporary directory, Docker mounts/log configuration and audit payload for forbidden secret or restored-data patterns; a leak-probe hit or inability to prove cleanup is a failure.
+
 The expected-critical-schema manifest is produced from a known-good Infisical schema, versioned without data or secret values, and independently reviewed. A restore cannot pass if any required schema, table, extension or migration-history relation is absent. Counts alone are informational and never establish completeness.
 
 The plaintext hash stored beside the ciphertext is a transport/accidental-corruption control, not independent authenticity against an actor able to replace both object and metadata. Successful age AEAD authentication proves ciphertext integrity under the offline identity; Object Lock/versioning and the recorded version ID provide the storage provenance boundary.
@@ -135,7 +148,7 @@ The attestation must not include table rows, secret names, the 1Password referen
 The existing rotated token is retained. Before installation, Max confirms the same rotated token is durably retrievable from 1Password or another approved secure source. It is not copied back into `.env`. A new local-only installer stores it in a versioned macOS Keychain item:
 
 1. Max supplies token and chat ID through the `security add-generic-password ... -w` Keychain prompt on Titan-1. The value is entered directly into Apple's prompt and is never visible to the installer, shell history or argv.
-2. The installer reads only the candidate Keychain items, validates format locally and calls Telegram `getMe`.
+2. The installer reads only the candidate Keychain items, validates format locally and calls Telegram `getMe` through the reviewed in-process HTTPS client described below.
 3. It sends a canary beginning exactly `[BACKUP CANARY - NO ACTION REQUIRED]`, followed by the session/task ID, to Max's chat and requires HTTP 2xx, JSON `ok=true`, and a numeric `message_id`.
 4. Only after delivery succeeds does it atomically switch a non-secret, mode-0600 pointer file to the versioned candidate Keychain service names.
 5. Before changing `.env`, it inventories every repository, LaunchAgent and running process configuration that references `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`. It removes the stale lines from `/Users/max/koskadeux-mcp/.env` only after proving the watchdog is the sole live consumer or migrating every other consumer to its own reviewed Keychain pointer. The Keychain-backed watchdog must pass a second canary first. No backup of the stale plaintext values is created.
@@ -146,14 +159,18 @@ Rollback during the first 24 hours is an atomic pointer switch to the prior Keyc
 
 The deletion receipt records scheduled time, actual attempt and completion times, local UID, versioned service/account names, second-canary message ID, outcome, and LaunchAgent label; it contains no token value or token-derived hash. After deletion, rollback to those items is intentionally unavailable; recovery requires Max to re-enter the same already-rotated token from the confirmed approved secure source. That accepted boundary does not require or authorize provider-side rotation. No plaintext rollback file, token value or token hash is created or logged.
 
-The watchdog's `tg()` function must:
+The watchdog's Telegram sender must be a reviewed in-process HTTPS client, not `curl` or another child process. It reads token and chat ID directly from Keychain into locked memory, constructs the Telegram endpoint only inside the process, disables proxy inheritance and HTTP/debug tracing, uses a minimal environment, enforces certificate verification and bounded connect/read deadlines, and zeroes the response and credential buffers after parsing. Neither the URL containing the token nor the request body, token, chat ID, response body or Keychain output may appear in argv, environment, process listings, exceptions, crash reports, stdout/stderr or logs.
 
-- use `curl --fail-with-body --silent --show-error`;
-- parse the JSON response;
+The sender must:
+
+- accept only an allow-listed non-secret message template and locally supplied incident fields;
+- parse the JSON response in bounded memory without logging it;
 - require `ok=true` and numeric `message_id`;
-- log the message ID on success;
-- return non-zero on absent credentials, HTTP failure or API failure;
+- log only the fixed failure class, HTTP status and message ID on success;
+- return non-zero on absent credentials, certificate/timeout/HTTP failure, malformed response or API failure;
 - cause the watchdog process to exit non-zero if any required alert cannot be delivered.
+
+Any exception is normalized to an allow-listed error code after a forbidden-content scan; raw library exception strings are not persisted. A launch-time leak probe checks process argv/environment and open descriptors, and tests force HTTP, parse, timeout, signal and crash-path failures to prove that no token, token-derived value, chat ID or response body reaches any diagnostic or artifact.
 
 ## 6. Retention and storage reduction
 
@@ -221,6 +238,8 @@ The noncurrent-version actions use the same version-specific tag filters as thei
 
 The retention tool defaults to plan-only. Plan generation and human approval are read-only and do not acquire or hold the mutator lease. Max's exact approval writes a non-secret, immutable approval receipt in Living State and the versioned runbook audit directory containing the plan SHA-256, imminent-deletion-manifest SHA-256, approval timestamp, approver, and manifest summary totals. `--apply` requires the plan SHA-256 and that approval-receipt ID; it refuses a missing, mutable, mismatched, or differently approved receipt.
 
+The approved plan is an immutable desired-state document, not a replay of the mutable current inventory. For every in-scope version and delete marker it records exact identity, observed pre-state, approved terminal tag/retain-until/disposition, lifecycle eligibility, whether deletion is approved, and a deterministic operation-DAG position. Its canonicalization is stable across retries: exact already-satisfied terminal states backed by `applied` journal readback are represented as completed nodes, while remaining nodes retain their original identities, targets and order. The approved imminent-deletion set is a separate canonical projection of that desired state.
+
 Apply order:
 
 1. read and record bucket versioning, Object Lock, encryption and public-access state;
@@ -239,9 +258,13 @@ Apply order:
 
 Lifecycle is asynchronous and removal after eligibility is irreversible. Rollback can disable the rules before S3 acts, but cannot recover a permanently expired version. The plan must state this explicitly.
 
-All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE extension is never shortened, and tags are reconciled from fresh inventory. If lease renewal or any write/readback fails, the process stops before its next mutation, releases the lease if still owned, and alerts. It performs no compensating lock/tag mutation.
+All pre-lifecycle writes are monotonic and idempotent: a monthly COMPLIANCE extension is never shortened, and tags are reconciled from fresh inventory. An `applied` journal row is an allowed monotonic prefix only when exact S3 readback equals its approved terminal state. If lease renewal or any write/readback fails, the process stops before its next mutation, releases the lease if still owned, and alerts. It performs no compensating lock/tag mutation.
 
-The partial-apply receipt records timestamp, lease ID, plan and approved-manifest hashes, last completed and next intended step, every affected object key/version ID/action/readback result, redacted failure class and reason, whether lifecycle installation began or completed, lease-release result, retry eligibility, and operator/session identity. It is persisted in Living State and the versioned runbook audit directory before any retry. A retry must acquire a new lease, reread all state, revalidate both approved hashes, and resume idempotently. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback; failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
+The partial-apply receipt records timestamp, lease ID/fence, plan and approved-manifest hashes, immutable desired-state hash, completed operation-DAG prefix, last completed and next intended step, every affected object key/version ID/action/readback result, redacted failure class and reason, whether lifecycle installation began or completed, lease-release result, retry eligibility, and operator/session identity. It is persisted in Living State and the versioned runbook audit directory before any retry.
+
+A retry acquires a new lease/fence, proves the prior broker terminated, reconciles every prepared/indeterminate row by exact S3 readback, rereads a version-complete inventory and deterministically reconstructs the original desired state plus the journaled completed prefix. It rejects any unjournaled new/missing version or marker, identity change, tag mismatch, retain-until mismatch, invariant/lifecycle drift, reordered or non-prefix completion, unexplained already-satisfied state, changed eligibility clock, or changed approved deletion disposition. An indeterminate operation becomes `applied` only when exact readback equals its approved target; any other state remains blocked for operator resolution.
+
+The retry then regenerates the effective imminent-deletion manifest from current state and the immutable desired state. If its canonical hash differs for any reason—including because a monotonic prior write changed which versions are now eligible—the process performs no further write and requires a fresh plan, exact manifest, Max approval and receipt. Stored hashes alone never authorize a changed deletion set. Only exact journal-backed completed nodes may be treated as already satisfied without changing the effective manifest. The lifecycle policy is installed only after every monthly extension/tag and daily tag has verified readback and the still-current effective deletion-manifest hash equals the exact active approval. Failure after lifecycle installation is critical and triggers immediate policy readback plus inventory reconciliation, never an assumption of rollback or synchronous deletion.
 
 ### 6.4 Qdrant growth decision
 
@@ -337,6 +360,8 @@ The 30-hour freshness threshold and 15-minute delivery-failure polling are separ
 - Qdrant effective data RPO: 24 hours through either snapshot or the fidelity-proven authoritative rebuild path; weekly cadence permits a seven-day snapshot RPO only after the reviewed switch described in sections 6.4 and 13.
 - Railway configuration RPO: 24 hours; alert no later than 30 hours.
 - Cloudflare complete export RPO: 24 hours; alert no later than 30 hours.
+- Required source-code repository RPO: 24 hours to a verified independent recovery copy; alert no later than 30 hours when its mirror/alternate proof is stale or incomplete.
+- Every additional row in the authoritative recovery inventory, including AIM Data Railway Postgres unless exactly excluded, has an explicit owner-approved RPO/RTO no weaker than the business service that depends on it.
 - Main Postgres RTO: two hours from declaration.
 - Full platform RTO: four hours from declaration.
 - Alert-delivery RTO: 30 minutes.
@@ -348,6 +373,7 @@ Drills:
 - quarterly isolated Qdrant restore;
 - quarterly Max-assisted Infisical zero-disclosure restore;
 - semiannual full replacement exercise: Infisical, Railway topology, source, main Postgres, Qdrant, Cloudflare and signed application validation.
+- quarterly authoritative-inventory reconciliation against live Railway, Cloudflare, S3, GitHub and Titan discovery, with no silent additions or removals.
 
 ## 10. Implementation scope
 
@@ -370,6 +396,8 @@ Drills:
 - new plan/apply retention tool and canonical lifecycle JSON
 - new deterministic local Infisical restore verifier
 - new secure Telegram installer or reviewed Local SecOps deployment payload
+- new authoritative recovery-inventory generator and exact exclusion/coverage receipt schema
+- verified S3 git-mirror producer and restore verifier for every required repository, unless an exact alternate is approved
 - `backup-and-recovery.md`
 - `disaster-recovery.md`
 - `aws-s3.md`
@@ -388,19 +416,20 @@ Required before production:
 
 1. unit tests for version-complete classification across month boundaries, current/noncurrent versions, delete markers, pagination, inferred noncurrent clocks, failed first-day backup, unknown prefix and idempotent rerun;
 2. tests that an unverified/corrupt first object is never made monthly, day-3 absence alerts, and a later verified object is promoted without shortening the corrupt object's lock;
-3. shared-fence and mutation-broker tests proving controllers cannot call S3 directly, stale/paused holders cannot write after replacement, every external write has a durable prepared journal row and immediate ownership check, nonterminal rows block a new fence, indeterminate responses block later writes until readback, and terminated-worker proof is required; tests also cover renewal by minute 10, lease-free read-only planning, approval-receipt persistence, fresh under-lease inventory, exact revalidation of both approved hashes, partial-apply receipts and idempotent resume;
+3. shared-fence and mutation-broker tests proving controllers cannot call S3 directly, stale/paused holders cannot write after replacement, every external write has a durable prepared journal row and immediate ownership check, nonterminal rows block a new fence, indeterminate responses block later writes until readback, and terminated-worker proof is required; tests also cover renewal by minute 10, lease-free read-only planning, approval-receipt persistence, fresh under-lease inventory, immutable desired-state and operation-DAG canonicalization, journal-backed monotonic-prefix reconstruction, exact readback of indeterminate operations, rejection of every named unjournaled drift class, effective deletion-manifest regeneration, fresh Max approval on any manifest delta, partial-apply receipts and idempotent resume;
 4. lifecycle policy snapshot and AWS readback tests covering every current version, noncurrent version and delete marker; unknown eligibility clocks and unapproved versions must remain retained;
 5. mocked Object Lock refusal and no-delete invariant tests;
 6. Postgres retry classification tests and clean temporary-file cleanup;
 7. size-baseline epoch and anomaly tests covering every receipt field, one-run/72-hour bounds, old/new epoch isolation, zero/one/three/seven-sample behavior, expected-range enforcement, reset expiry, warning review, critical-artifact quarantine, no freshness/tag/monthly advancement, and restoration of stable enforcement;
 8. Qdrant per-collection masking plus rebuild-fidelity tests covering exact Postgres object/transaction/outbox boundary, complete logical point digests, collection/vector/payload/index schema, dead-letter absence, fixed application queries, four-hour RTO and calculated 24-hour effective data RPO;
 9. Cloudflare 403/missing-section regression tests;
-10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, deterministic one-shot LaunchAgent scheduling, deletion-receipt fields, missed-cleanup alerting, and proof that `.env` lines remain until all live consumers are inventoried/migrated;
+10. Telegram installer and delivery-response tests with secret redaction assertions, the exact canary prefix, deterministic one-shot LaunchAgent scheduling, deletion-receipt fields, missed-cleanup alerting, and proof that `.env` lines remain until all live consumers are inventoried/migrated; leak probes cover token-bearing URL absence from argv/environment/process listings, descriptor allow-lists, proxy/debug suppression, normalized exceptions, bounded response parsing, HTTP/API/timeout/signal/crash paths, stdout/stderr and audit artifacts;
 11. scheduled 15-minute watchdog tests: non-zero exit and signed S3 failure marker on Telegram failure, measured Telegram success latency, and measured independent GitHub-issue fallback latency within 30 minutes without manual invocation;
-12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including plaintext-file absence; partial pipe writes; forced `RLIMIT_CORE`/`mlock` refusal; descriptor-leak checks across every child; interrupted `op read`; timeout/signal cleanup; Docker tmpfs/network refusal; attestation allow-list/forbidden-field rejection; and RFC 8785 self-hash reproduction/constant-time comparison;
+12. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including plaintext-file absence; exact per-child argv/environment/descriptor allow-lists; raw stdout/stderr suppression; normalized failures for AWS, `op`, `age`, Docker, `pg_restore`, Postgres and cleanup; partial pipe writes; forced `RLIMIT_CORE`/`mlock` refusal; descriptor-leak checks across every child; interrupted `op read`; timeout/signal/process-group/crash cleanup; Docker tmpfs/network/logging refusal; process/temp/audit forbidden-content leak probes; attestation allow-list/forbidden-field rejection; and RFC 8785 self-hash reproduction/constant-time comparison;
 13. GitHub workflow freshness threshold, 15-minute delivery-failure-marker polling, deduplication and two-green recovery-close tests;
 14. exact-commit Council review with builder excluded;
 15. production cutover one subsystem at a time, each with readback and rollback checkpoint.
+16. live discovery tests covering every Railway project/environment/service/database, Cloudflare account/zone/Worker/KV dependency, required repository, S3 prefix and Titan-hosted production dependency; fixtures prove an unlisted AIM Data Postgres, empty git mirror, expired exclusion, missing monitor, and stale restore proof each block acceptance.
 
 ## 12. Production acceptance evidence
 
@@ -414,6 +443,9 @@ Gate 4 requires all of:
 - a deliberately induced detectable fixture, observed through the scheduled Titan path, produces a verified Telegram alert within 30 minutes; a second fixture with Telegram deliberately failed produces the signed failure marker and deduplicated GitHub issue within 30 minutes without manual execution;
 - backend scheduled poll is observed running;
 - Railway configuration and Cloudflare complete-success recovery points each meet their 24-hour RPO/30-hour alert threshold;
+- the canonical authoritative recovery inventory is freshly reconciled to live discovery and every row has backup, restore, monitoring and stated RPO/RTO evidence or an exact unexpired Max-approved exclusion;
+- AIM Data's separately discovered Railway Postgres is backed up, restore-proven and monitored to its approved RPO/RTO, or its exact row has the approved exclusion evidence required by section 2;
+- every required source repository has a fresh verified independent recovery copy; an S3 git-mirror path passes only when its complete repository/commit manifest, object versions, hashes and isolated clone drill are green;
 - Cloudflare export contains valid zone settings for both zones and no error records;
 - every in-scope current/noncurrent data-bearing S3 version is classified daily/monthly by exact version ID, every delete marker has an explicit disposition, and no ambiguous eligibility clock is lifecycle-eligible;
 - no prepared or indeterminate mutation-journal row remains and every applied row has exact-version readback;
@@ -423,7 +455,7 @@ Gate 4 requires all of:
 - the reviewed imminent-deletion manifest and Max's exact approval are attached to the apply receipt;
 - source runbooks are merged and the recovery-map receipt binds Git commit SHA, file blob ID, local SHA-256, S3 `RESTORE-README.md` object version ID and downloaded SHA-256; byte equality is independently verified;
 - the Qdrant drill records logical-fidelity evidence, effective data RPO and four-hour RTO before any cadence reduction;
-- the replacement drill report proves every stated per-source RPO/RTO with zero unresolved exceptions. An exception is acceptable only under Max's exact, time-bounded waiver naming owner, risk, compensating control and expiry; an expired or broader waiver blocks Gate 4 and the claim that recovery is fully effective.
+- the replacement drill report proves every stated per-source RPO/RTO with zero unresolved exceptions. An exception is acceptable only under Max's exact, time-bounded waiver naming owner, risk, compensating control and expiry; an expired or broader waiver blocks Gate 4 and the claim that recovery is fully effective. A waiver cannot substitute for the section-2 exact exclusion required to remove a dependency from the recovery inventory.
 
 ## 13. Approved source-data retention, separately migrated
 
