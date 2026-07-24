@@ -1,7 +1,7 @@
 ---
 runbook_id: boot-kernel-companion-crosswalk
 domain: boot-kernel
-status: ACTIVE
+status: EVIDENCE_ONLY
 authoritative_for:
   - topic: boot-kernel-companion-crosswalk
     section: Verification rules
@@ -14,6 +14,8 @@ last_verified_at: 2026-07-23
 ---
 
 # Boot Kernel v2 Companion Source Cross-walk
+
+> **STALE — INVALID PENDING REGENERATION (S1321).** The source labels below reference CORE **v9.11** (SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`). The constitution moved to **v9.12** at S1319 (backend `ac3390cf`, SHA-256 `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`). By this document's own rule, the cross-walk and all seven companion source labels are invalid until regenerated against v9.12 and reviewed. Frontmatter status is `EVIDENCE_ONLY`: per the design notes below, this file is deliberately **not** a catalog member; its brief S1321 registration (c683572) was reverted the same day when the strict member linter correctly rejected it.
 
 **Authority:** evidence-only cross-walk for the seven versioned delivery companions. It is not a catalog authority and cannot override CORE, the Boot Kernel, or any companion's explicit authority boundary.
 

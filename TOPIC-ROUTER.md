@@ -10,7 +10,6 @@
 | `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture--interactions) |
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
-| `boot-kernel-companion-crosswalk` | `boot-kernel-companion-crosswalk` (`runbooks/boot-kernel-companion-crosswalk.md`) | [Verification rules](runbooks/boot-kernel-companion-crosswalk.md#verification-rules) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) |

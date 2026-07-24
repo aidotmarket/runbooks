@@ -30,7 +30,11 @@ SEED_IDS = [
     "council-hall-deliberation",
 ]
 E2E_IDS = [
-    "boot-kernel-companion-crosswalk",
+    # boot-kernel-companion-crosswalk is deliberately NOT a member: the document
+    # self-declares as an evidence-only artifact ("not a thirteenth catalog
+    # member") and its frontmatter status is EVIDENCE_ONLY. Its brief S1321
+    # registration (c683572) was reverted the same day when the strict member
+    # linter correctly rejected it (missing §K + seven required fields).
     "e2e-programme-integrity",
     "e2e-test-status-publisher",
     "e2e-video-review",
@@ -110,11 +114,12 @@ def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None
         "runbooks/gate-procedure.md",
         "runbooks/infrastructure-discovery.md",
         "runbooks/product-elaboration.md",
-        "runbooks/boot-kernel-companion-crosswalk.md",
         "e2e-programme-integrity.md",
         "e2e-test-status-publisher.md",
         "e2e-video-review.md",
     }
+    # 82: the crosswalk opts in via runbook_id but carries non-ACTIVE status
+    # (EVIDENCE_ONLY), so it is skipped entirely - neither member nor grandfathered.
     assert grandfathered == 82
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
