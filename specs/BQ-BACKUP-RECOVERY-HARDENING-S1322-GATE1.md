@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R2_AUTHORED_PENDING_REVIEW
+Status: R3_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -9,6 +9,8 @@ R1 commit: `362f234`
 R1 reviews: MP nonapproval (`RepairExhaustedError`); GLM `APPROVE_WITH_MANDATES`; CC `APPROVED_WITH_MANDATES` / revise.
 
 R2 folds every GLM and CC mandate: Keychain replaces plaintext Telegram storage; monthly objects receive explicit 400-day COMPLIANCE retention; classification is performed by a single fail-toward-retention controller; the first asynchronous deletion set requires exact Max approval; restore completeness uses a critical-schema manifest; age identity memory/FD handling is hardened; hash provenance and self-hash canonicalization are explicit; untagged/pending objects alert; Qdrant gains retry and baseline-reset semantics.
+
+R2 reviews: GLM `APPROVE_WITH_NITS`; CC raw result contained one mandate but its envelope was malformed and therefore nonapproval; MP remained nonapproval (`RepairExhaustedError`). R3 folds the CC mandate and findings plus all GLM nits: monthly selection is bound to producer integrity evidence, corrupt monthly points have a safe promotion path, identity zeroization occurs only after the full pipe write closes, JSON Canonicalization Scheme is pinned, `/dev/fd/N` wording is precise, and Telegram `.env` removal requires a consumer inventory.
 
 ## 1. Outcome
 
@@ -63,7 +65,7 @@ The verifier:
 2. records object key, version ID, ciphertext bytes, last-modified time and non-secret S3 metadata;
 3. downloads only the encrypted object into a mode-0700 temporary directory;
 4. obtains the age identity from 1Password through `op read`;
-5. passes the identity to `age` over an inherited anonymous file descriptor, never argv or disk; the parent disables core dumps, locks and later zeroes the minimal identity buffer, creates the descriptor close-on-exec, and explicitly passes it only to the `age` child;
+5. passes the identity to `age` over an inherited anonymous file descriptor, never placing secret bytes in argv or disk; argv may contain only the non-secret descriptor path `/dev/fd/N`; the parent disables core dumps, locks and later zeroes the minimal identity buffer, creates the descriptor close-on-exec, and explicitly passes it only to the `age` child;
 6. streams decrypted bytes directly into `pg_restore` connected to a disposable `postgres:18` container whose data directory is Docker tmpfs and whose network is disabled;
 7. computes the plaintext SHA-256 and byte count while streaming and compares both to S3 metadata;
 8. verifies `pg_restore` success, catalog/table counts and every object in a versioned expected-critical-schema manifest;
@@ -81,7 +83,7 @@ The verifier must refuse if:
 - restore or any invariant fails;
 - cleanup cannot remove the disposable container.
 
-`op read` must return exactly one raw `AGE-SECRET-KEY-...` identity line. The verifier disables core dumps for itself and children (`RLIMIT_CORE=0`), uses `mlock` for the in-process identity buffer, zeroes that buffer immediately after the `age` child inherits its pipe, and refuses if those controls cannot be applied. The anonymous descriptor is inherited by `age` only; Docker, AWS, Ollama and later subprocesses cannot inherit it.
+`op read` must return exactly one raw `AGE-SECRET-KEY-...` identity line. The verifier disables core dumps for itself and children (`RLIMIT_CORE=0`), uses `mlock` for the in-process identity buffer, writes the complete identity to the pipe, closes the write end, and only then zeroes/unlocks the source buffer. It refuses if any write is partial or any memory/descriptor control cannot be applied. The anonymous descriptor is inherited by `age` only; Docker, AWS, Ollama and later subprocesses cannot inherit it.
 
 The expected-critical-schema manifest is produced from a known-good Infisical schema, versioned without data or secret values, and independently reviewed. A restore cannot pass if any required schema, table, extension or migration-history relation is absent. Counts alone are informational and never establish completeness.
 
@@ -105,7 +107,7 @@ Required fields:
 - Docker `network=none`, `data_storage=tmpfs`;
 - cleanup result;
 - overall `PASS` only when every check passes;
-- SHA-256 of the canonical attestation computed with `attestation_sha256` set to JSON `null`, followed by insertion of the resulting digest.
+- SHA-256 of RFC 8785 JSON Canonicalization Scheme bytes with `attestation_sha256` set to JSON `null`, followed by insertion of the resulting digest.
 
 The attestation must not include table rows, secret names, the 1Password reference, key fingerprints derived from private material, environment dumps or raw subprocess output.
 
@@ -117,7 +119,7 @@ The existing rotated token is retained. It is not copied back into `.env`. A new
 2. The installer reads only the candidate Keychain items, validates format locally and calls Telegram `getMe`.
 3. It sends a clearly labelled no-action-required canary to Max's chat and requires HTTP 2xx, JSON `ok=true`, and a numeric `message_id`.
 4. Only after delivery succeeds does it atomically switch a non-secret, mode-0600 pointer file to the versioned candidate Keychain service names.
-5. It removes the stale `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` lines from `/Users/max/koskadeux-mcp/.env` after the Keychain-backed watchdog passes a second canary. No backup of those stale plaintext values is created.
+5. Before changing `.env`, it inventories every repository, LaunchAgent and running process configuration that references `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID`. It removes the stale lines from `/Users/max/koskadeux-mcp/.env` only after proving the watchdog is the sole live consumer or migrating every other consumer to its own reviewed Keychain pointer. The Keychain-backed watchdog must pass a second canary first. No backup of the stale plaintext values is created.
 6. It restarts no unrelated services. The watchdog resolves the versioned Keychain service names from the pointer file on every invocation.
 7. It records only timestamp, action, success/failure, HTTP status and message ID in the Local SecOps audit log.
 
@@ -138,9 +140,9 @@ The watchdog's `tg()` function must:
 
 Every future backup object under the following families is uploaded with a unique, collision-resistant date/time key. Upload refuses an existing key. The write-only backup identity receives no tagging or retention permission, so a compromised writer cannot downgrade a recovery point. New objects are initially untagged and therefore match no expiration rule.
 
-A single daily Railway `backup-retention-controller` classifies new objects only after listing the complete family/month:
+A single daily Railway `backup-retention-controller` classifies new objects only after listing the complete family/month and resolving producer health evidence:
 
-- `retention=monthly` for the first successful UTC backup in a month, after extending that exact object version's Object Lock COMPLIANCE retain-until to 400 days;
+- `retention=monthly` for the first integrity-verified UTC backup in a month, after extending that exact object version's Object Lock COMPLIANCE retain-until to 400 days;
 - `retention=daily` otherwise.
 
 Families:
@@ -153,7 +155,11 @@ Families:
 
 For existing objects, the retention tool deterministically chooses the first successful object per family/month as monthly and classifies all other objects daily. It extends every selected monthly object version to 400-day COMPLIANCE retention before applying the monthly tag.
 
-Classification fails toward retention: any list, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has exactly one 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
+“Integrity-verified” means the exact object version has a producer health record with `status=ok`; landed byte count equals the producer count; required SHA-256/TOC or Qdrant snapshot metadata is present and within policy; and no size-anomaly state is critical. A mere object listing, non-zero size or successful upload is insufficient. Cloudflare and topology exports additionally require their schema/completeness checks.
+
+Classification fails toward retention: any list, health-evidence, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has at least one integrity-verified, 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a verified monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
+
+If a monthly point is later found corrupt or unrestorable, reconciliation never downgrades or deletes its COMPLIANCE lock. It promotes the next integrity-verified object from that family/month by extending it to 400 days and tagging it monthly, records a replacement receipt, and alerts until the promoted point passes the appropriate restore/integrity check. Multiple locked monthly points are valid when backed by the replacement receipt; “exactly one” is not an invariant.
 
 `backup-health/`, `RESTORE-README.md`, audit evidence and unknown prefixes are excluded and remain untouched.
 
@@ -325,18 +331,19 @@ Drills:
 Required before production:
 
 1. unit tests for classification across month boundaries, failed first-day backup, unknown prefix, versioned objects and idempotent rerun;
-2. lifecycle policy snapshot test and AWS readback parser test;
-3. mocked Object Lock refusal and no-delete invariant tests;
-4. Postgres retry classification tests and clean temporary-file cleanup;
-5. size-baseline reset and anomaly tests;
-6. Qdrant per-collection masking regression test;
-7. Cloudflare 403/missing-section regression tests;
-8. Telegram installer and delivery-response tests with secret redaction assertions;
-9. watchdog non-zero exit on Telegram failure;
-10. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including proof that no plaintext file is created;
-11. GitHub workflow threshold, deduplication and recovery-close tests;
-12. exact-commit Council review with builder excluded;
-13. production cutover one subsystem at a time, each with readback and rollback checkpoint.
+2. tests that an unverified/corrupt first object is never made monthly, day-3 absence alerts, and a later verified object is promoted without shortening the corrupt object's lock;
+3. lifecycle policy snapshot test and AWS readback parser test;
+4. mocked Object Lock refusal and no-delete invariant tests;
+5. Postgres retry classification tests and clean temporary-file cleanup;
+6. size-baseline reset and anomaly tests;
+7. Qdrant per-collection masking regression test;
+8. Cloudflare 403/missing-section regression tests;
+9. Telegram installer and delivery-response tests with secret redaction assertions, plus proof that `.env` lines remain until all live consumers are inventoried/migrated;
+10. watchdog non-zero exit on Telegram failure;
+11. Infisical verifier tests with a disposable age identity and synthetic PG18 dump, including proof that no plaintext file is created and partial-pipe writes fail closed;
+12. GitHub workflow threshold, deduplication and recovery-close tests;
+13. exact-commit Council review with builder excluded;
+14. production cutover one subsystem at a time, each with readback and rollback checkpoint.
 
 ## 12. Production acceptance evidence
 
