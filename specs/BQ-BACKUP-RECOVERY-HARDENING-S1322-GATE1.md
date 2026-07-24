@@ -1,6 +1,6 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R3_AUTHORED_PENDING_REVIEW
+Status: R4_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
@@ -11,6 +11,8 @@ R1 reviews: MP nonapproval (`RepairExhaustedError`); GLM `APPROVE_WITH_MANDATES`
 R2 folds every GLM and CC mandate: Keychain replaces plaintext Telegram storage; monthly objects receive explicit 400-day COMPLIANCE retention; classification is performed by a single fail-toward-retention controller; the first asynchronous deletion set requires exact Max approval; restore completeness uses a critical-schema manifest; age identity memory/FD handling is hardened; hash provenance and self-hash canonicalization are explicit; untagged/pending objects alert; Qdrant gains retry and baseline-reset semantics.
 
 R2 reviews: GLM `APPROVE_WITH_NITS`; CC raw result contained one mandate but its envelope was malformed and therefore nonapproval; MP remained nonapproval (`RepairExhaustedError`). R3 folds the CC mandate and findings plus all GLM nits: monthly selection is bound to producer integrity evidence, corrupt monthly points have a safe promotion path, identity zeroization occurs only after the full pipe write closes, JSON Canonicalization Scheme is pinned, `/dev/fd/N` wording is precise, and Telegram `.env` removal requires a consumer inventory.
+
+R3 reviews: GLM `APPROVE_WITH_NITS`; CC's raw content said `APPROVE` with two minor clarifications but its fenced/prefaced envelope was malformed and is therefore nonapproval; the MP R2 review remained in flight against the prior exact head. R4 folds every R3 nit: a Living State CAS lease serializes the retention controller, retain-until is defined from classification time, interrupted `op read` zeroizes and refuses, tag checks are separated, no-candidate promotion remains critical, and attestation verification resets rather than removes the self-hash field.
 
 ## 1. Outcome
 
@@ -85,6 +87,8 @@ The verifier must refuse if:
 
 `op read` must return exactly one raw `AGE-SECRET-KEY-...` identity line. The verifier disables core dumps for itself and children (`RLIMIT_CORE=0`), uses `mlock` for the in-process identity buffer, writes the complete identity to the pipe, closes the write end, and only then zeroes/unlocks the source buffer. It refuses if any write is partial or any memory/descriptor control cannot be applied. The anonymous descriptor is inherited by `age` only; Docker, AWS, Ollama and later subprocesses cannot inherit it.
 
+A timeout, signal, short read, broken pipe or interrupted `op read` immediately closes both pipe ends, zeroes/unlocks every buffered identity byte, terminates any child, and returns failure. Partial identity material is never retried or reused.
+
 The expected-critical-schema manifest is produced from a known-good Infisical schema, versioned without data or secret values, and independently reviewed. A restore cannot pass if any required schema, table, extension or migration-history relation is absent. Counts alone are informational and never establish completeness.
 
 The plaintext hash stored beside the ciphertext is a transport/accidental-corruption control, not independent authenticity against an actor able to replace both object and metadata. Successful age AEAD authentication proves ciphertext integrity under the offline identity; Object Lock/versioning and the recorded version ID provide the storage provenance boundary.
@@ -108,6 +112,8 @@ Required fields:
 - cleanup result;
 - overall `PASS` only when every check passes;
 - SHA-256 of RFC 8785 JSON Canonicalization Scheme bytes with `attestation_sha256` set to JSON `null`, followed by insertion of the resulting digest.
+
+Independent verification must parse the attestation, set the existing `attestation_sha256` field back to JSON `null` without deleting the field, reproduce RFC 8785 bytes, and compare the computed digest in constant time.
 
 The attestation must not include table rows, secret names, the 1Password reference, key fingerprints derived from private material, environment dumps or raw subprocess output.
 
@@ -159,7 +165,11 @@ For existing objects, the retention tool deterministically chooses the first suc
 
 Classification fails toward retention: any list, health-evidence, tag, version-ID, lock-extension or concurrency uncertainty leaves objects untagged, which no lifecycle rule expires, and raises an alert. A daily reconciliation pass verifies every in-scope object has exactly one accepted tag and every completed family/month has at least one integrity-verified, 400-day-locked monthly point. It corrects unambiguous drift and fails closed on ambiguity. At 00:00 UTC on day 3, absence of a verified monthly point is critical; the two-day window permits a retry after a failed first-night job and cannot extend silently.
 
+Only one controller may classify at a time. It acquires an optimistic-CAS Living State lease with a bounded expiry before reading candidates, includes the persisted lease ID in every classification receipt, and renews only by CAS. Failure to acquire, renew or release the lease performs no tag/retention write and alerts. A stale lease can be replaced only after expiry and a fresh inventory read.
+
 If a monthly point is later found corrupt or unrestorable, reconciliation never downgrades or deletes its COMPLIANCE lock. It promotes the next integrity-verified object from that family/month by extending it to 400 days and tagging it monthly, records a replacement receipt, and alerts until the promoted point passes the appropriate restore/integrity check. Multiple locked monthly points are valid when backed by the replacement receipt; “exactly one” is not an invariant.
+
+If no promotable integrity-verified candidate exists, the family/month stays in sustained critical state, no lock or tag is changed, and the operator must create and verify a replacement recovery point. The condition cannot self-clear from the corrupt object.
 
 `backup-health/`, `RESTORE-README.md`, audit evidence and unknown prefixes are excluded and remain untouched.
 
@@ -170,7 +180,7 @@ The controller uses a dedicated IAM identity, separate from the backup writer, w
 - get/put Object Lock retention;
 - no `GetObject`, `DeleteObject`, bypass, encryption, versioning, public-access or lifecycle-configuration permission.
 
-An IAM/bucket-policy condition permits the controller's `PutObjectRetention` only for the reviewed monthly window (399–401 remaining days). COMPLIANCE prevents shortening an existing retain-until regardless. The controller cannot install or alter the lifecycle policy; that remains an exact-reviewed operator action.
+An IAM/bucket-policy condition permits the controller's `PutObjectRetention` only for a requested retain-until 399–401 days from the classification or promotion call. The controller computes an absolute UTC timestamp from its trusted current time, not from object creation. COMPLIANCE prevents shortening an existing retain-until regardless. The controller cannot install or alter the lifecycle policy; that remains an exact-reviewed operator action.
 
 ### 6.2 Lifecycle policy
 
@@ -257,6 +267,9 @@ The six-hour watchdog remains independent of Infisical. It checks:
 - Railway configuration;
 - Cloudflare complete-success marker;
 - current monthly recovery point for every family after UTC day 2.
+
+It separately checks retention classification:
+
 - any in-scope object that is missing a tag, has an unknown tag, has conflicting tags, or remains untagged beyond the controller's daily reconciliation window.
 
 It checks freshness, non-zero size, expected metadata and size anomaly status. Alert delivery itself is a required check.
