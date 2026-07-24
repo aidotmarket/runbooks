@@ -1,11 +1,11 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R12_AUTHORED_PENDING_REVIEW
+Status: R13_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
 
-Review lineage: R1–R8 established the zero-disclosure restore, Keychain cutover, 35/400-day retention, Object Lock, mutation lease, anomaly reset and Qdrant controls. R8 GLM/CC approved; direct MP returned one blocker and six majors. R9 folded fenced journaling, version-complete lifecycle approval, measured alerts, baseline epochs, Qdrant fidelity, negative secret tests and fail-closed acceptance. R9 MP returned one blocker/two majors; GLM/CC approved with findings. R10 folded deterministic retry approval, subprocess secrecy, complete recovery inventory, named journal states and event-driven alert fallback. At exact head `69cde46b329b302fc6768f3a273ddf8f83ba81e3`, CC approved with two clarity findings; GLM's approval was nonaccepting because its input truncated sections 7–13. R11 compacted the complete artifact below the reviewer limit and folded those findings; GLM approved, while CC's raw approval envelope was malformed and therefore nonapproval. R12 folds CC's substantive fixture-anchor finding by requiring both injection-to-delivery ≤30 minutes and marker-to-delivery ≤14 minutes.
+Review lineage: R1–R8 established the zero-disclosure restore, Keychain cutover, 35/400-day retention, Object Lock, mutation lease, anomaly reset and Qdrant controls. R8 GLM/CC approved; direct MP returned one blocker and six majors. R9 folded fenced journaling, version-complete lifecycle approval, measured alerts, baseline epochs, Qdrant fidelity, negative secret tests and fail-closed acceptance. R9 MP returned one blocker/two majors; GLM/CC approved with findings. R10 folded deterministic retry approval, subprocess secrecy, complete recovery inventory, named journal states and event-driven alert fallback. At exact head `69cde46b329b302fc6768f3a273ddf8f83ba81e3`, CC approved with two clarity findings; GLM's approval was nonaccepting because its input truncated sections 7–13. R11 compacted the complete artifact below the reviewer limit; GLM approved, while CC's approval envelope was malformed. R12 folded CC's fixture-anchor finding; GLM/CC approved, but MP handler failed and direct exact-head MP returned one blocker/one major. R13 folds both: the restore moves into a fully host-pinned, no-swap ephemeral VM boundary, and classification is separated from a fresh-approved version-specific deletion-eligibility tag.
 
 ## 1. Outcome and verified starting point
 
@@ -59,14 +59,16 @@ Max keeps the age identity in 1Password and supplies an `op://` reference or hid
 2. downloads ciphertext only into a mode-0700 temporary directory;
 3. obtains exactly one raw `AGE-SECRET-KEY-...` line from `op read`;
 4. passes it only to `age` over an anonymous FD; decrypted bytes flow through anonymous pipes to hashing and `pg_restore`;
-5. restores into disposable Postgres 18 with tmpfs data and `network=none`;
+5. restores inside a dedicated ephemeral QEMU VM running Postgres 18, with guest swap absent, runtime/data on guest tmpfs, an immutable read-only OS image, no writable block device and `network=none`;
 6. compares plaintext SHA-256/bytes and TOC metadata; checks a reviewed, versioned critical-schema manifest (schemas, tables, extensions and migrations);
 7. removes the container and encrypted temporary directory in `finally`;
 8. emits only a mode-0600 redacted attestation.
 
-The parent and children run with `RLIMIT_CORE=0`. The minimal identity buffer must `mlock`; the complete pipe write closes before zeroize/unlock. Exact per-child environment and FD allow-lists prevent inheritance by AWS, Docker, `pg_restore`, Postgres, cleanup or Ollama. No database password appears in argv/environment; restore traffic uses only the isolated local container channel.
+The Titan parent runs with `RLIMIT_CORE=0`, locks its identity and pipe buffers, and launches QEMU with `-overcommit mem-lock=on` (not lazy/on-fault) after proving the hard memlock limit exceeds the entire fixed VM allocation plus QEMU overhead. The VM may start only when QEMU confirms all guest/host-emulator memory is pinned; any unlocked page refuses the run. Guest boot verifies `SwapTotal=0`, no swap device/file, no writable block device, no crash dump/kdump, tmpfs for every runtime/data/log path, and network disabled. A host power assertion blocks sleep/hibernation for the proof; a sleep/power-transition event aborts and invalidates the attestation.
 
-Each process group has a deadline. Timeout, signal, partial write, broken pipe, downstream close or interrupted `op read` closes FDs, terminates/reaps children and zeroes buffers. Any unavailable tool/profile/key, invalid identity shape, metadata/hash/TOC/schema mismatch, tmpfs/network failure, memory/FD control failure, restore failure or incomplete cleanup refuses PASS.
+Thus every plaintext-bearing `age`, hashing, `pg_restore`, Postgres and restored-row page stays inside guest RAM that is pinned against host swap; only ciphertext and the immutable secret-free VM image touch persistent storage. The minimal host identity buffer must `mlock`; its complete pipe write into the pinned VM channel closes before zeroize/unlock. Exact environment and FD allow-lists prevent inheritance by AWS, QEMU management, cleanup or Ollama. No database password appears in argv/environment.
+
+Each process group has a deadline. Timeout, signal, partial write, broken pipe, downstream close or interrupted `op read` closes FDs, terminates/reaps children and zeroes buffers. Any unavailable tool/profile/key/QEMU capability, invalid identity shape, metadata/hash/TOC/schema mismatch, host or guest memlock/swap/sleep preflight failure, tmpfs/read-only-disk/network failure, memory/FD control failure, restore failure or incomplete cleanup refuses PASS.
 
 Raw stdout/stderr, verbose/debug tracing, shell traces, core/container logs and environment/command dumps are forbidden. Required catalog output is bounded and parsed in memory, rejected for forbidden content, reduced to allow-listed counts/digests and zeroed. Child errors become fixed nonsecret failure class plus numeric status. Before exit, leak probes scan child argv/environment/FDs, temporary paths, mounts/log settings and the audit payload; inability to prove no secret/restored-data persistence is failure.
 
@@ -74,7 +76,7 @@ Age AEAD authenticates ciphertext; SHA metadata detects transport corruption but
 
 ### 3.2 Attestation and local AI
 
-The allow-listed attestation records schema/time/host, bucket/key/version/last-modified/ciphertext bytes, expected/observed plaintext hash/bytes/TOC, client/server versions, restore/catalog counts, tmpfs/network controls, RLIMIT/mlock/zeroization/FD/interruption/cleanup outcomes, overall PASS, and RFC 8785 self-hash. Hashing canonicalizes with existing `attestation_sha256=null`; independent verification repeats this and constant-time compares.
+The allow-listed attestation records schema/time/host, bucket/key/version/last-modified/ciphertext bytes, expected/observed plaintext hash/bytes/TOC, client/server versions, restore/catalog counts, QEMU version/argv hash/fixed memory, host parent and full-VM memlock proof, guest `SwapTotal=0`, absent writable block/crash-dump paths, tmpfs/network/sleep-inhibitor controls, RLIMIT/zeroization/FD/interruption/cleanup outcomes, overall PASS, and RFC 8785 self-hash. Hashing canonicalizes with existing `attestation_sha256=null`; independent verification repeats this and constant-time compares.
 
 It excludes rows, secret names, 1Password reference, private-material fingerprints, environment data and raw child output; any unknown field or forbidden-pattern match fails. Only after deterministic PASS may optional `llama3.3:70b` at `127.0.0.1` review this attestation/rubric. It cannot override failure.
 
@@ -98,7 +100,7 @@ Success requires `ok=true` and numeric message ID. Logs contain only fixed error
 
 ### 5.1 Classification and Object Lock
 
-Future uploads use collision-resistant unique keys and refuse overwrite. The writer cannot tag or change retention. New objects remain untagged and match no expiration rule until one daily controller classifies these families:
+Future uploads use collision-resistant unique keys and refuse overwrite. The writer cannot tag or change retention. New objects remain untagged and match no expiration rule until one daily controller assigns a version-specific classification tag (`retention_class=daily|monthly`) to these families:
 
 - `postgres/ai-market`, `postgres/infisical`;
 - every required `qdrant/<collection>`;
@@ -106,11 +108,11 @@ Future uploads use collision-resistant unique keys and refuse overwrite. The wri
 
 The bucket's default 35-day COMPLIANCE retention remains mandatory for every new data object. Classification never shortens it; selected monthly versions are extended from classification/promotion time to 400 days before tagging.
 
-The first integrity-verified UTC object per family/month becomes `retention=monthly` only after its exact version receives a 400-day COMPLIANCE extension; other data versions become `retention=daily`. Integrity requires exact producer `status=ok`, matching bytes, required SHA/TOC/snapshot metadata, noncritical anomaly state and, for topology/Cloudflare, schema completeness. Listing/nonzero upload alone is insufficient.
+The first integrity-verified UTC object per family/month becomes `retention_class=monthly` only after its exact version receives a 400-day COMPLIANCE extension; other data versions become `retention_class=daily`. Integrity requires exact producer `status=ok`, matching bytes, required SHA/TOC/snapshot metadata, noncritical anomaly state and, for topology/Cloudflare, schema completeness. Listing/nonzero upload alone is insufficient.
 
 Existing classification uses fully paginated `ListObjectVersions`, including every current/noncurrent version and delete marker. Each row records identity/state/bytes/dates, inferred noncurrent-since from the immediately newer entry, lock, version tags, integrity evidence and eligibility. Ambiguous clocks remain untagged/ineligible. Delete markers get explicit disposition and are never recovery points.
 
-Uncertainty fails toward retention and alerts. Daily reconciliation requires one accepted tag per data version and a verified 400-day monthly point per completed family/month. On UTC day 3, missing monthly is critical. A corrupt monthly is never unlocked/downgraded: promote/lock the next verified candidate and receipt it; if none exists, remain critical until a replacement restore passes.
+Classification alone never makes a version lifecycle-eligible. Lifecycle rules require both its `retention_class` and a version-specific `deletion_approved=true` tag that only the exact-approved apply path may set. Uncertainty fails toward retention and alerts. Daily reconciliation requires one class tag per data version and a verified 400-day monthly point per completed family/month, but it cannot write `deletion_approved`. On UTC day 3, missing monthly is critical. A corrupt monthly is never unlocked/downgraded: promote/lock the next verified candidate and receipt it; if none exists, remain critical until a replacement restore passes.
 
 ### 5.2 Fenced mutation broker
 
@@ -122,22 +124,24 @@ Indeterminate reconciliation is append-only: exact target → `applied`; exact r
 
 ### 5.3 Lifecycle and exact approval
 
-Family-prefix/tag-scoped canonical rules:
+Family-prefix/tag-scoped canonical rules require an AND match on prefix, `retention_class` and `deletion_approved=true`:
 
 - daily current expiry after 35 days; eligible noncurrent removal one day after noncurrent;
 - monthly current expiry after 400 days; eligible noncurrent removal one day after noncurrent;
-- approved prefix-only expired-delete-marker cleanup;
-- no unknown/unclassified action.
+- no automatic delete-marker cleanup; markers remain explicitly inventoried/retained because an untagged marker rule could bypass exact approval;
+- no unknown, unclassified or deletion-unapproved action.
 
-The same version-tag filter applies to current/noncurrent rules. Object Lock remains authoritative. Eligibility is calculated from object age, derived noncurrent time and marker state/surviving data; ambiguity retains.
+The same two version-tag filters apply to current/noncurrent rules. Object Lock remains authoritative. Eligibility is calculated from object age and derived noncurrent time; ambiguity retains. Any later marker cleanup requires a separate exact-reviewed, exact-version deletion design and is outside this lifecycle.
 
 Plan is default/read-only. Its immutable desired state lists every version/marker's identity, pre-state, terminal tag/lock/disposition, eligibility, deletion approval and deterministic operation-DAG position. Canonical retry representation treats only exact journal-backed terminal states as completed prefix. A separate canonical imminent-deletion projection lists every eligible current/noncurrent version/marker plus explicitly retained versions and oldest survivor per family.
 
-Max's immutable approval receipt binds both SHA-256 values, time/approver and totals. Apply requires that receipt, acquires a fence, rereads complete inventory/invariants, reproduces both artifacts exactly, extends monthly locks, tags monthly then daily exact versions, verifies every version/marker disposition, installs/readbacks canonical lifecycle JSON, confirms no synchronous deletion, receipts results, then CAS-releases.
+Max's immutable approval receipt binds both SHA-256 values, time/approver and totals. Apply requires that receipt, acquires a fence, rereads complete inventory/invariants, reproduces both artifacts exactly, extends monthly locks, reconciles class tags, then sets `deletion_approved=true` only on exact versions present in the approved effective deletion manifest. It verifies every version/marker disposition, installs/readbacks canonical lifecycle JSON, confirms no synchronous deletion, receipts results, then CAS-releases.
 
 On partial failure, the receipt records fence, artifact/desired-state hashes, completed DAG prefix, next step, every exact operation/readback, failure, lifecycle state, release/retry and operator/session. Retry proves prior termination, reconciles nonterminal rows, rereads all state and reconstructs original desired state plus completed prefix. It rejects unjournaled new/missing identities, tag/lock/invariant/lifecycle/eligibility drift, reordered/nonprefix completion, unexplained satisfied state or changed deletion disposition.
 
-Retry regenerates the effective deletion manifest. Any canonical delta—including a prior monotonic write changing eligibility—causes no further write and requires a fresh plan, exact Max approval and receipt. Stored hashes never authorize a changed set. Lifecycle is installed only after all tag/lock readbacks and current manifest equality. Async deletion is irreversible; disabling rules cannot recover an expired version.
+Retry regenerates the effective deletion manifest. Any canonical delta—including a late/concurrent arrival or prior monotonic write changing eligibility—causes no further write and requires a fresh plan, exact Max approval and receipt. Stored hashes never authorize a changed set. Lifecycle is installed only after all tag/lock readbacks and current manifest equality.
+
+After installation, the daily controller may continue classifying but cannot create deletion eligibility. Each later batch approaching 35/400-day eligibility gets a fresh version-complete inventory, canonical effective-deletion projection and exact Max approval under the same fence/journal protocol before the broker applies `deletion_approved=true`. A new/changed/missing version between plan and apply changes the projection and aborts. The broker rejects any eligibility tag without the active receipt ID and exact version membership. Async deletion is irreversible; disabling rules cannot recover an expired version.
 
 `backup-health/`, `RESTORE-README.md`, audit evidence and unknown prefixes are untouched.
 
@@ -197,13 +201,13 @@ Titan deployment uses reviewed Git content under `/Users/max/local-secops/` with
 ### 8.2 Required tests/reviews
 
 1. Version-complete classification across pages/months/current/noncurrent/markers/ambiguous clocks/corrupt first backup/unknown prefix/idempotence and monthly promotion.
-2. Fence/broker tests: no controller S3 access; stale holder rejection; prepared-before-write; ownership/readback; renewal; prior-worker termination; both indeterminate terminal states; immutable desired/DAG reconstruction; every named drift rejection; effective-manifest regeneration; fresh approval on any delta.
-3. Lifecycle snapshots/readback, Object Lock refusal, no-delete/invariant proof and exact version/marker dispositions.
+2. Fence/broker tests: no controller S3 access; stale holder rejection; prepared-before-write; ownership/readback; renewal; prior-worker termination; both indeterminate terminal states; immutable desired/DAG reconstruction; every named drift rejection; effective-manifest regeneration; class tags never create eligibility; fresh approval and receipt membership for every initial/later eligibility tag; late/concurrent/overdue arrival aborts.
+3. Lifecycle snapshots/readback, required class-plus-approval tag AND filters, no automatic marker cleanup, Object Lock refusal, no-delete/invariant proof and exact version/marker dispositions.
 4. Postgres retry/temp cleanup; every baseline receipt/state/sample/expiry/quarantine path.
 5. Per-collection masking and full Qdrant boundary/digest/schema/dead-letter/query/RPO/RTO proof; Cloudflare 403/missing-section regression.
 6. Keychain installer/canaries/consumer migration/one-shot cleanup; Telegram argv/env/FD/proxy/debug/exception/output/audit leak probes across HTTP/API/timeout/signal/crash.
 7. Scheduled Titan detection at worst cadence phase; Telegram message ID; seven EventBridge-to-SES fixtures each proving injection-to-delivery ≤30m and marker-to-delivery ≤14m; invalid signature/duplicates/bounce/missing delivery/retry/DLQ/recipient/IAM tests; GitHub threshold/dedupe/two-green without RTO credit.
-8. Infisical synthetic PG18/age proof: no plaintext, per-child argv/env/FD allow-lists, output suppression/normalized errors, partial writes, RLIMIT/mlock refusal, interruption/timeout/process-group cleanup, tmpfs/network/log refusal, leak probes, attestation allow-list and constant-time RFC 8785 self-hash.
+8. Infisical synthetic PG18/age proof: no plaintext; QEMU full-allocation memlock and hard-limit preflight; guest swap/writable-disk/crash-dump absence; host sleep inhibition; forced partial/unlocked-page/swap/sleep failures; per-child argv/env/FD allow-lists; output suppression/normalized errors; partial writes; RLIMIT/mlock refusal; interruption/timeout/process-group cleanup; tmpfs/network/log refusal; leak probes; attestation allow-list and constant-time RFC 8785 self-hash.
 9. Live inventory fixtures covering every named platform/dependency; unlisted AIM Data Postgres, empty mirror, expired exclusion, missing monitor or stale restore blocks.
 10. Exact-commit Council review with builder excluded; one-subsystem production cutover with readback/rollback checkpoints.
 
@@ -216,7 +220,7 @@ All must pass:
 - scheduled worst-phase Telegram fixture injection-to-message ≤30m and seven scheduled failed-Telegram fixtures each with injection-to-SES-Delivery ≤30m and marker-to-SES-Delivery ≤14m; GitHub dedupe/recovery and backend scheduled task observed;
 - canonical live-reconciled recovery inventory: each row has backup/restore/monitor/RPO/RTO or exact unexpired exclusion; AIM Data Postgres and every required source repo explicitly pass;
 - Railway/Cloudflare recovery points meet RPO; Cloudflare has both zones/settings and no error records;
-- every S3 version/marker classified/dispositioned; no ambiguous eligibility; no prepared/indeterminate journal row; applied rows exact-readback; lifecycle canonical readback and all bucket invariants unchanged;
+- every S3 version/marker classified/dispositioned; every `deletion_approved=true` version is in the current exact-approved receipt and no class-only version is lifecycle-eligible; no ambiguous eligibility, prepared or indeterminate journal row; applied rows exact-readback; lifecycle canonical readback and all bucket invariants unchanged;
 - post-policy total bytes and projected 35/400-day steady state; exact imminent-deletion manifest/Max approval bound to apply receipt;
 - merged runbooks and S3 `RESTORE-README.md` bind Git commit/blob/local hash to object version/download hash with byte equality;
 - Qdrant logical fidelity, 24h effective RPO and 4h RTO before cadence change;
