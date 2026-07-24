@@ -1,12 +1,12 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R2_AUTHORED_PENDING_REVIEW  
-Owner: Vulcan S1322  
-Directive: Max, 2026-07-24  
-Class: security-sensitive production resilience and retention  
+Status: R2_AUTHORED_PENDING_REVIEW
+Owner: Vulcan S1322
+Directive: Max, 2026-07-24
+Class: security-sensitive production resilience and retention
 
-R1 commit: `362f234`  
-R1 reviews: MP nonapproval (`RepairExhaustedError`); GLM `APPROVE_WITH_MANDATES`; CC `APPROVED_WITH_MANDATES` / revise.  
+R1 commit: `362f234`
+R1 reviews: MP nonapproval (`RepairExhaustedError`); GLM `APPROVE_WITH_MANDATES`; CC `APPROVED_WITH_MANDATES` / revise.
 
 R2 folds every GLM and CC mandate: Keychain replaces plaintext Telegram storage; monthly objects receive explicit 400-day COMPLIANCE retention; classification is performed by a single fail-toward-retention controller; the first asynchronous deletion set requires exact Max approval; restore completeness uses a critical-schema manifest; age identity memory/FD handling is hardened; hash provenance and self-hash canonicalization are explicit; untagged/pending objects alert; Qdrant gains retry and baseline-reset semantics.
 
