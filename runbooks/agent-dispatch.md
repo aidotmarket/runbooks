@@ -207,6 +207,8 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-04 | Dispatcher stale but files committed | MP completed local work but gateway task state or Living State did not refresh | Compare git log/status with dispatcher task record and build entity `body.summary` | G-04 | CONFIRMED |
 | F-05 | MCP tool prefix lowercase silent-fail | Tool prefix used as `koskadeux:` instead of capitalized `Koskadeux:` | Check the tool name casing in the dispatched prompt or MCP call trace | G-05 | CONFIRMED |
 | F-06 | DeepSeek dispatch fails (connection refused on 127.0.0.1:8768, or the server crash-loops at startup) | Server down; launcher resolved no or invalid DEEPSEEK_API_KEY from Infisical; or the stored key is expired, malformed, or overwritten so the startup auth-probe gets HTTP 401 from api.deepseek.com | Check the listener with `lsof -nP -iTCP:8768 -sTCP:LISTEN` and tail `/var/tmp/koskadeux/deepseek_server.log` plus `_error.log`; a startup 401 means a bad stored key value, an Infisical fetch error means launcher wiring (wrong project) | G-06 | CONFIRMED |
+| F-07 | Peer-bus message silently deduplicated (send returns an older row; the new body never persists) | peer_msg_send dedupes on (from_instance, to_instance, kind, ref_entity) and returns the prior row as idempotent success (T-2026-000339); observed dropping substantive coordination updates in S1321 and S1324 | Compare the returned row's created_at and body against what was just sent; a stale created_at or mismatched body means the send was deduped, not delivered | G-07 | CONFIRMED |
+| F-08 | MP dispatch task record stuck in running after the Codex process exited, or a correct build failed on the one-commit post-build invariant | Handler does not bind task-record lifecycle to process lifecycle (T-2026-000351); the one-commit invariant counts commits against the caller checkout's possibly stale local HEAD rather than the actual branch point (T-2026-000360) | Check whether the expected branch or commit exists on the remote via git fetch plus git log; a pushed remote-equal artifact with a running record is the stale-record defect; a failed task with a preserved_commit_ref plus a stale pre_build_base_sha is the invariant defect | G-08 | CONFIRMED |
 
 ## §G. Repair
 
@@ -259,6 +261,22 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   change_pattern: "On a startup 401: rotate DEEPSEEK_API_KEY in the canonical Infisical project (prod), then launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server. On an Infisical fetch error: point launch_with_infisical.sh at project bd272d48. No automated process writes this secret, so a junk value indicates a manual overwrite, rotate it in Infisical and re-probe."
   rollback_procedure: Old launcher backups are kept at /tmp/launch_deepseek_server.sh.bak.*; restore the prior launcher if an edit regresses.
   integrity_check: curl 127.0.0.1:8768/health returns ok, and a live council_request open_response to deepseek returns success=true with model_actual=deepseek-v4-pro.
+- id: G-07
+  symptom_ref: F-07
+  component_ref: Peer Bus
+  root_cause: peer_msg_send treats a (from, to, kind, ref_entity) tuple match as an idempotent duplicate and silently returns the old row, discarding the new body (T-2026-000339).
+  repair_entry_point: koskadeux-mcp peer message send handler
+  change_pattern: Until the ticketed fix ships, vary ref_entity or kind for any follow-up message on the same subject (for example suffix the ref_entity with a round or step marker), and verify the returned row echoes the body just sent before relying on delivery. Cross-artifact attribution forensics arising from dropped or misattributed bus messages are Max-gated; evidence pointers live in the session handoffs and tickets, not here.
+  rollback_procedure: None; resend with a distinct ref_entity or kind.
+  integrity_check: The returned row's body and created_at match the message just sent.
+- id: G-08
+  symptom_ref: F-08
+  component_ref: MP Backend
+  root_cause: The MP handler leaves task records in running after process exit and can fail correct builds by measuring the one-commit invariant against a stale local base (T-2026-000351, T-2026-000360).
+  repair_entry_point: koskadeux-mcp MP dispatch handler and post-build invariant
+  change_pattern: Treat the committed artifact as ground truth; verify completion with git fetch plus git log on the expected branch, never with check_build alone. Before dispatching an MP build in a repo, confirm the caller checkout's main is not materially behind origin; if a build fails on the invariant with a preserved_commit_ref, recover by landing the preserved commit on the intended branch rather than rebuilding.
+  rollback_procedure: Preserved refs under refs/koskadeux-build/ retain failed-delivery artifacts; discard only after the recovery branch is pushed and verified.
+  integrity_check: The remote branch head equals the preserved or reported commit SHA, and the diff scope matches the dispatch's declared file boundary.
 ```
 
 ## §H. Evolve

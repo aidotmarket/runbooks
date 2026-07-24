@@ -116,6 +116,17 @@ The registry and inward surface may identify secret names and approved retrieval
   expected_failures: [{signature: registry_version_conflict, cause: another writer changed the registry first}]
   next_step_success: Regenerate or refresh derived discovery surfaces.
   next_step_failure: Re-read ownership and version before retrying without overwrite.
+- id: E-04
+  trigger: The runbooks catalog on main has changed (members, sections, or content digests) and the boot kernel catalog pin must be bumped to the new runbooks main SHA.
+  pre_conditions: [runbooks_main_ci_green, koskadeux_mcp_lane_free, gateway_restart_coordinated_with_peer]
+  tool_or_endpoint: koskadeux-mcp tools/boot_kernel_v2.py pinned constants (BOOT_KERNEL_V2_CATALOG_REF, BOOT_KERNEL_V2_CATALOG_DIGEST, BOOT_KERNEL_V2_CATALOG_ENTRIES, BOOT_KERNEL_V2_CATALOG_SECTIONS)
+  argument_sourcing: {ref: the runbooks main SHA being pinned, digest: sha256 of CATALOG.json bytes at that SHA, entries_and_sections: counts computed from that same CATALOG.json}
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: hash(pinned_runbooks_sha)
+  expected_success: {shape: one koskadeux-mcp commit updating all four pinned constants together through MP build and Council review then a coordinated gateway restart, verification: nightly runbook-harness green at the pinned SHA and a post-restart session open loads the new catalog without BOOT errors}
+  expected_failures: [{signature: pin_constants_partially_updated, cause: ref bumped without digest or counts so the boot loader fails validation}, {signature: uncoordinated_gateway_restart, cause: restart executed while a peer instance held live work}]
+  next_step_success: Record the new pin SHA in the session handoff and confirm both instances boot cleanly against it.
+  next_step_failure: Revert the pin commit, restore the previous gateway process, and re-verify boot before retrying.
 ```
 
 ## §F. Isolate
