@@ -1,11 +1,11 @@
 # BQ-BACKUP-RECOVERY-HARDENING-S1322 — Gate 1 Design
 
-Status: R11_AUTHORED_PENDING_REVIEW
+Status: R12_AUTHORED_PENDING_REVIEW
 Owner: Vulcan S1322
 Directive: Max, 2026-07-24
 Class: security-sensitive production resilience and retention
 
-Review lineage: R1–R8 established the zero-disclosure restore, Keychain cutover, 35/400-day retention, Object Lock, mutation lease, anomaly reset and Qdrant controls. R8 GLM/CC approved; direct MP returned one blocker and six majors. R9 folded fenced journaling, version-complete lifecycle approval, measured alerts, baseline epochs, Qdrant fidelity, negative secret tests and fail-closed acceptance. R9 MP returned one blocker/two majors; GLM/CC approved with findings. R10 folded deterministic retry approval, subprocess secrecy, complete recovery inventory, named journal states and event-driven alert fallback. At exact head `69cde46b329b302fc6768f3a273ddf8f83ba81e3`, CC approved with two clarity findings; GLM's approval was nonaccepting because its input truncated sections 7–13. R11 folds the CC findings and compacts this complete normative artifact below the reviewer input limit without relaxing a control.
+Review lineage: R1–R8 established the zero-disclosure restore, Keychain cutover, 35/400-day retention, Object Lock, mutation lease, anomaly reset and Qdrant controls. R8 GLM/CC approved; direct MP returned one blocker and six majors. R9 folded fenced journaling, version-complete lifecycle approval, measured alerts, baseline epochs, Qdrant fidelity, negative secret tests and fail-closed acceptance. R9 MP returned one blocker/two majors; GLM/CC approved with findings. R10 folded deterministic retry approval, subprocess secrecy, complete recovery inventory, named journal states and event-driven alert fallback. At exact head `69cde46b329b302fc6768f3a273ddf8f83ba81e3`, CC approved with two clarity findings; GLM's approval was nonaccepting because its input truncated sections 7–13. R11 compacted the complete artifact below the reviewer limit and folded those findings; GLM approved, while CC's raw approval envelope was malformed and therefore nonapproval. R12 folds CC's substantive fixture-anchor finding by requiring both injection-to-delivery ≤30 minutes and marker-to-delivery ≤14 minutes.
 
 ## 1. Outcome and verified starting point
 
@@ -167,9 +167,9 @@ Only then may `knowledge_base_v2` full snapshots become weekly (seven-day snapsh
 
 Titan watchdog runs every 15 minutes, independently of Infisical, and checks main/Infisical Postgres, each Qdrant collection, Railway config, complete Cloudflare marker, monthly points, version classification, freshness, metadata and anomaly. Alert RTO begins when canonical health first makes failure detectable. The engineering budget is ≤15 minutes to scheduled pickup, ≤1 minute for Telegram failure plus marker creation, and ≤14 minutes from marker to SES Delivery. Telegram is attempted immediately; failure writes a signed nonsecret exact-prefix S3 marker and exits nonzero.
 
-S3 ObjectCreated routes via EventBridge to minimal Lambda. With IAM only, Lambda validates marker signature/schema/time/fingerprint, deduplicates, and sends a fixed nonsecret template from one verified SES identity to one allow-listed Max destination. It reads only that marker version, no backups/secrets. EventBridge bounded retry/DLQ remains within 30 minutes; Lambda/DLQ alarms use separate CloudWatch/SNS.
+S3 ObjectCreated routes via EventBridge to minimal Lambda. With IAM only, Lambda validates marker signature/schema/time/fingerprint, deduplicates, and sends a fixed nonsecret template from one verified SES identity to one allow-listed Max destination. It reads only that marker version, no backups/secrets. EventBridge retry age and Lambda/SES timeouts may not extend the marker-to-SES-Delivery success path beyond 14 minutes; exhaustion routes immediately to DLQ. Lambda/DLQ alarms use separate CloudWatch/SNS and are tested end to end within the same 30-minute detection-to-notification RTO, but do not convert a missing SES Delivery into success for the primary fallback fixture.
 
-Relay receipt binds S3 event/version/fingerprint, Lambda request, SES message ID/send time and SES delivery/bounce. Only matching SES `Delivery` is success; publish acceptance is insufficient. Invalid marker, bounce/complaint/timeout/missing delivery/retry exhaustion is critical. Seven consecutive scheduled fixtures spanning times of day must inject just after a watchdog poll (worst detection latency), deliberately fail Telegram, and prove marker-to-delivery within 30 minutes. Tests cover duplicates, allow-list and DLQ alarm.
+Relay receipt binds S3 event/version/fingerprint, Lambda request, SES message ID/send time and SES delivery/bounce. Only matching SES `Delivery` is success; publish acceptance is insufficient. Invalid marker, bounce/complaint/timeout/missing delivery/retry exhaustion is critical. Seven consecutive scheduled fixtures spanning times of day must inject just after a watchdog poll (worst detection latency), deliberately fail Telegram, and prove both injection-to-SES-Delivery ≤30 minutes and marker-to-SES-Delivery ≤14 minutes. Tests cover duplicates, allow-list and DLQ alarm.
 
 GitHub runs every 15 minutes as tertiary dead-man: 30-hour freshness, S3-canonical status, marker polling, one deduplicated issue/fingerprint, update while unhealthy and close after two greens. GitHub cron timing receives no credit toward 30-minute RTO. Its delay/drop cannot weaken EventBridge/SES.
 
@@ -202,7 +202,7 @@ Titan deployment uses reviewed Git content under `/Users/max/local-secops/` with
 4. Postgres retry/temp cleanup; every baseline receipt/state/sample/expiry/quarantine path.
 5. Per-collection masking and full Qdrant boundary/digest/schema/dead-letter/query/RPO/RTO proof; Cloudflare 403/missing-section regression.
 6. Keychain installer/canaries/consumer migration/one-shot cleanup; Telegram argv/env/FD/proxy/debug/exception/output/audit leak probes across HTTP/API/timeout/signal/crash.
-7. Scheduled Titan detection at worst cadence phase; Telegram message ID; seven EventBridge-to-SES-delivery fixtures ≤30m; invalid signature/duplicates/bounce/missing delivery/retry/DLQ/recipient/IAM tests; GitHub threshold/dedupe/two-green without RTO credit.
+7. Scheduled Titan detection at worst cadence phase; Telegram message ID; seven EventBridge-to-SES fixtures each proving injection-to-delivery ≤30m and marker-to-delivery ≤14m; invalid signature/duplicates/bounce/missing delivery/retry/DLQ/recipient/IAM tests; GitHub threshold/dedupe/two-green without RTO credit.
 8. Infisical synthetic PG18/age proof: no plaintext, per-child argv/env/FD allow-lists, output suppression/normalized errors, partial writes, RLIMIT/mlock refusal, interruption/timeout/process-group cleanup, tmpfs/network/log refusal, leak probes, attestation allow-list and constant-time RFC 8785 self-hash.
 9. Live inventory fixtures covering every named platform/dependency; unlisted AIM Data Postgres, empty mirror, expired exclusion, missing monitor or stale restore blocks.
 10. Exact-commit Council review with builder excluded; one-subsystem production cutover with readback/rollback checkpoints.
@@ -213,7 +213,7 @@ All must pass:
 
 - fresh successful restores: main Postgres, Qdrant and Max-assisted Infisical; critical-schema and every zero-disclosure negative control green;
 - candidate/Keychain Telegram canaries with message IDs; complete consumer migration/pointer cutover; no stale `.env` plaintext;
-- scheduled worst-phase Telegram fixture ≤30m and seven scheduled failed-Telegram fixtures with matching SES Delivery ≤30m; GitHub dedupe/recovery and backend scheduled task observed;
+- scheduled worst-phase Telegram fixture injection-to-message ≤30m and seven scheduled failed-Telegram fixtures each with injection-to-SES-Delivery ≤30m and marker-to-SES-Delivery ≤14m; GitHub dedupe/recovery and backend scheduled task observed;
 - canonical live-reconciled recovery inventory: each row has backup/restore/monitor/RPO/RTO or exact unexpired exclusion; AIM Data Postgres and every required source repo explicitly pass;
 - Railway/Cloudflare recovery points meet RPO; Cloudflare has both zones/settings and no error records;
 - every S3 version/marker classified/dispositioned; no ambiguous eligibility; no prepared/indeterminate journal row; applied rows exact-readback; lifecycle canonical readback and all bucket invariants unchanged;
