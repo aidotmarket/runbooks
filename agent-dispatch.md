@@ -143,7 +143,13 @@ Deploy note: the review budget lives in `openrouter_glm_client.py`,
 is NOT live until the owning process restarts. `com.koskadeux.mcp` carries the
 GLM client in-process; DeepSeek runs as its own long-lived service. Bouncing only
 the MCP server leaves DeepSeek on stale code and it keeps returning empty
-completions. Restart BOTH:
+completions. Restart BOTH.
+
+> **READ §X FIRST.** These two commands are correct but INCOMPLETE as written.
+> A bare kickstart taken while a Council panel or build is in flight destroys it
+> silently, and the automatic guard that is meant to prevent that cannot see our
+> in-flight work (T-2026-000398). §X carries the pre-flight, the detached
+> invocation, and the verification. Do not run these two lines on their own.
 
 ```
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
@@ -796,38 +802,109 @@ and reproduced the very incident the S1338 work was fixing.
 
 **Therefore, until T-2026-000398 lands: never close a session with a Council
 panel or a build in flight, and never restart by hand without checking
-yourself.** The pre-flight, which the guard will not do for you:
+yourself.**
+
+**Do not simply list every meta without a done marker.** There are ~134 legacy
+records in that state on this machine (S1340, measured) and they will never
+acquire one, so a naive loop prints 134 lines of noise and tells you nothing.
+Two signals, in this order:
 
 ```
-ls /var/tmp/koskadeux/cc_tasks/*.meta.json | while read m; do
+# 1. AUTHORITATIVE for MP builds: is a builder subprocess actually alive?
+pgrep -fl 'codex exec'
+
+# 2. FRESH thread tasks: no done marker AND touched in the last 6 hours.
+#    6h matches BUILD_STALE_SECONDS in reload_when_idle.sh; anything older is
+#    a legacy orphan, not live work.
+find /var/tmp/koskadeux/cc_tasks -name '*.meta.json' -mmin -360 | while read m; do
   t=$(basename "$m" .meta.json)
-  [ -e "/var/tmp/koskadeux/cc_tasks/$t.done" ] || echo "NO DONE MARKER: $t"
+  [ -e "/var/tmp/koskadeux/cc_tasks/$t.done" ] || echo "IN FLIGHT (or died today): $t"
 done
-pgrep -fl 'codex exec'          # a live builder subprocess
 ```
 
-Treat **any** fresh meta without a `.done` marker as work in flight, pid or no
-pid.
+Signal 1 empty and signal 2 empty means nothing is running. Signal 1 empty with
+entries in signal 2 means either a live thread task (an AG/GLM/Kimi review, which
+spawns no subprocess) or something that already died today — and you cannot tell
+which from the record, which is the whole reason this section exists. **Resolve
+it before bouncing: poll `check_build` on those task ids, or ask the instance
+that dispatched them.** Do not treat "I could not tell" as "nothing is running";
+that is the exact inversion T-2026-000398 is about.
 
 ### If a manual restart is genuinely required
 
 Only with a human decision on the record, because it drops every connected
 session including Max's.
 
-1. Run the pre-flight above. Confirm the tree is clean and `origin/main` is what
-   you intend to deploy.
-2. Tell the peer instance and get an answer. Do not act on silence.
-3. `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`, detached, so the
-   command is not killed with the server it is restarting.
-4. **Verify from launchd, not from the kickstart exit code**:
-   `launchctl list com.koskadeux.mcp` gives the new PID and `LastExitStatus`
-   (expect `9`, the SIGKILL of the old process). Then confirm the new start time
-   is later than the commit you are deploying, remembering §W's local-versus-UTC
-   trap.
-5. **Only after that verification**, write `deployed_sha`. Writing it first, or
-   on the strength of the kickstart returning zero, tells the reloader a deploy
-   succeeded when it may not have — a fail-open on the one file that records
-   what is actually running.
+1. Run the pre-flight above, then confirm the tree is clean and that
+   `origin/main` is what you intend to deploy:
+
+   ```
+   git -C /Users/max/koskadeux-mcp status --porcelain     # must print nothing
+   git -C /Users/max/koskadeux-mcp rev-parse origin/main  # the SHA you are deploying
+   cat /var/tmp/koskadeux/deployed_sha                    # what is running now
+   ```
+
+2. Tell the peer instance and get an answer. **Do not act on silence.**
+
+3. Kickstart **detached**, or the command dies with the server it is bouncing.
+   If you are running through the MCP server, a bare foreground kickstart kills
+   your own shell mid-command:
+
+   ```
+   cat > /var/tmp/koskadeux/restart.sh <<'SH'
+   #!/bin/bash
+   sleep 3
+   launchctl kickstart -k "gui/$(id -u)/com.koskadeux.mcp" \
+     >> /tmp/koskadeux_mcp_reload.log 2>&1
+   SH
+   chmod +x /var/tmp/koskadeux/restart.sh
+   nohup /var/tmp/koskadeux/restart.sh >/dev/null 2>&1 &
+   disown
+   ```
+
+   The `sleep` lets your tool call return before the server goes away. Expect
+   the next call or two to fail while it comes back; that is normal.
+
+4. **Verify from launchd, never from the kickstart exit code.** Tolerant
+   extraction, because the output format is not guaranteed across macOS
+   versions:
+
+   ```
+   launchctl list com.koskadeux.mcp | awk -F'= ' \
+     '/"PID"/{gsub(/[^0-9]/,"",$2); print "PID="$2} \
+      /LastExitStatus/{gsub(/[^0-9]/,"",$2); print "LastExitStatus="$2}'
+   ```
+
+   Observed on this machine (S1340): `"PID" = 49692;` and
+   `"LastExitStatus" = 9;`. Nine is the SIGKILL of the old process and is the
+   expected value — but accept `137` too (128+9), which some systems report for
+   the same event. A non-zero status consistent with SIGKILL means the bounce
+   worked; it does not mean the server crashed.
+
+   Then confirm the new start time is later than the commit you are deploying,
+   remembering §W's local-versus-UTC trap:
+
+   ```
+   ps -o pid,lstart -p <the PID from above>
+   git -C /Users/max/koskadeux-mcp show -s --format=%cI <the SHA>
+   ```
+
+5. **Only after that verification**, record the deploy:
+
+   ```
+   printf '%s\n' <the SHA you verified> > /var/tmp/koskadeux/deployed_sha.tmp \
+     && mv /var/tmp/koskadeux/deployed_sha.tmp /var/tmp/koskadeux/deployed_sha
+   ```
+
+   Use the SHA you actually verified as running, which is `origin/main` at the
+   moment of the bounce, not local `HEAD` (they differ whenever you have
+   unpushed commits). Write via a temp file and rename so a half-written marker
+   can never be read. **Order matters and is not cosmetic:** writing this first,
+   or on the strength of the kickstart returning zero, tells the reloader a
+   deploy succeeded when it may not have. That is a fail-open on the single file
+   that records what is actually running, and the automatic reloader trusts it
+   without question.
+
 6. Message the peer the new pid and start time before either instance dispatches
    anything.
 
