@@ -670,10 +670,26 @@ answers about one task, neither is evidence; go to the process table.
 1. `ls -la /var/tmp/koskadeux/cc_tasks/{task_id}*`. A lone `.meta.json` with no
    `.json` and no `.done` means the worker produced nothing at all.
 2. `python3 -c "import json;print(json.load(open('/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json'))['dispatched_iso'])"`
-3. `ps -eo pid,lstart,command | grep koskadeux_server`. **If the server start
-   time is later than the dispatch time, the worker was killed by the restart.**
-   That is the whole diagnosis. Twenty-three seconds separated the two in the
-   S1334 case.
+3. **Ask launchd which process it owns, not the process table.**
+   `launchctl list com.koskadeux.mcp | grep '"PID"'`, then
+   `ps -eo pid,lstart -p <that pid>`. **If the server start time is later than
+   the dispatch time, the worker was killed by the restart.** That is the whole
+   diagnosis. Twenty-three seconds separated the two in the S1334 case.
+
+   **Do not use `pgrep -f koskadeux_server.py` and do not use a bare
+   `ps | grep` without `grep -v grep`.** Both match the shell and python
+   children of the command doing the checking, because the pattern sits in
+   their own argv. S1340 recorded pid 49834 as the server on exactly this
+   mistake; the real pid was 49692. Two phantom pids appeared and vanished
+   across consecutive samples and very nearly got reported as a crash loop.
+   For a launchd-owned job, launchd is the authority.
+
+   **Compare like with like.** `ps lstart` prints LOCAL time; git commit
+   timestamps and Living State are UTC. S1340 compared a local start against a
+   UTC commit time and reported a 58-second race that was actually a gap of
+   nearly two hours. The conclusion survived, the number did not, and a
+   58-second window and a two-hour window argue for completely different
+   fixes.
 4. Confirm nothing landed: `git ls-remote origin 'refs/heads/<branch>'` against
    the remote, never a local branch and never the task record.
 5. The dispatch is dead. Re-dispatch; there is nothing to recover unless
@@ -681,23 +697,142 @@ answers about one task, neither is evidence; go to the process table.
 
 ### Repair, and what is still open
 
-Owner liveness landed on `build/bq-dispatch-owner-liveness-s1338`:
+**MERGED to main at `621dbedc` (S1340).** Gate 3 unanimous: R1 CC APPROVE,
+GLM APPROVE, Kimi APPROVED_WITH_MANDATES; R2 after folding Kimi's M1, all three
+APPROVE with zero mandates. Regression proved by measurement, not assertion:
+identical selector at base and merged head, failure NAMES diffed, 21 and 21,
+sets identical. What landed:
 `dispatch_async` records `owner_pid`, `check_claude_code` returns a terminal
 `failed` / `worker_abandoned` verdict when that process is gone, and
 `list_claude_code_tasks` stops reporting the same record as `finished`.
 `_owner_process_gone` returns False whenever the answer is not known, so records
 carrying no owner are left alone rather than guessed at.
 
-**Still open, and it is the larger point (T-2026-000393).** The hardened
-dispatch path already exists: `codex_cli_bridge.dispatch_codex_cli` wraps the
-build in an OS-level `timeout`, records pid, `timeout_s`, model and codex_bin —
-and its own docstring states it has no live caller. **We built the bounded path
-and then did not wire it up.** A `timeout_s` handed to the live path is passed
-into the in-process bridge and never persisted, so no reader outside the worker
-can see the declared bound. Until that is resolved, treat any declared build
-timeout as advisory rather than enforced.
+Kimi's M1, folded before merge: `_owner_process_gone` now rejects a
+non-positive `owner_pid` **before** probing. A negative value reached
+`os.kill(-n, 0)`, which probes a process GROUP rather than a process, so a
+`ProcessLookupError` there produced a terminal verdict from malformed input —
+a hole in the one property the change exists to guarantee.
+
+**T-2026-000393 residual A is DECIDED (S1340, Max approved).** The earlier
+direction recorded here — wire the live path onto the hardened
+`codex_cli_bridge.dispatch_codex_cli` — was **REJECTED** on evidence. Do not
+pursue it:
+
+- `dispatch_async` is **agent-generic** and serves AG, XAI and MP, while
+  `dispatch_codex_cli` is codex-only. Routing onto it would fix MP builds and
+  leave every other agent dispatch with the identical defect.
+- It is **fixed-deadline**, which is precisely what killed anon-visitor Chunk 1
+  on `hard_timeout` at 1800s in S1265. The progress-aware streaming path exists
+  to remove that failure.
+- It has **no live caller**, so promoting it to carry every build is a large
+  unmeasured bet.
+
+The accepted direction instead:
+
+- **B (approved, next).** Persist the declared `timeout_s` and a computed
+  `deadline_at` in the meta at dispatch. `owner_pid` already arrives with
+  `621dbedc`. **This is declaration, not enforcement** — nothing kills a
+  runaway thread. It makes the record truthful; it does not make the bound
+  binding. State it that way rather than letting it read as a timeout fix.
+- **C (highest leverage, after B).** Surface the **real codex child pid** onto
+  the live meta. The correction that unlocked this: the live path *does* have a
+  genuine OS child process — `dispatch_codex_cli_streaming` spawns `codex exec`
+  — and we simply throw its identity away instead of recording it. Recording it
+  repairs the reaper, the S320 guard and the reload guard **without changing a
+  single one of their predicates**.
+
+Until B lands, treat any declared build timeout as advisory rather than
+enforced.
 
 **Related:** T-2026-000393 (residuals, including ~130 legacy records that will
 report running for ever and are deliberately not guessed at), and §B on the
 "MP delivered even though the envelope says failed" family, which is the
 opposite error — that one under-reports success, this one under-reports death.
+
+## §X — Restarting the MCP server (do not do it by hand first, S1340)
+
+**There IS a sanctioned restart procedure and it is automatic.** Both instances
+searched this router in S1339/S1340, found nothing, told each other no procedure
+existed, and proposed a manual restart to Max. The procedure was not in the
+index; it was in launchd and in the repo, running once a minute, writing a log
+that named the exact two commits under discussion. **Read the machine before
+concluding a mechanism is absent.**
+
+### The mechanism
+
+`com.koskadeux.mcp-reloader` (a user LaunchAgent, `StartInterval` 60) runs
+`scripts/reload_when_idle.sh` in `koskadeux-mcp`. Each tick it fast-forwards to
+`origin/main`, then **refuses** to bounce unless the tree is clean, no session is
+live or unverifiable, and no build child is in flight. On success it kickstarts
+`com.koskadeux.mcp` and records the deployed commit in
+`/var/tmp/koskadeux/deployed_sha`.
+
+**Merged is not live.** Code on main is not running until that bounce happens.
+To check whether a deploy is outstanding:
+
+```
+cat /var/tmp/koskadeux/deployed_sha            # what is running
+git -C /Users/max/koskadeux-mcp rev-parse origin/main   # what is merged
+tail -5 /tmp/koskadeux_mcp_reload.log          # why it is deferring
+```
+
+A repeating `deferring` line naming two commits is the reloader working
+correctly, not a fault. It is waiting for both instances to close.
+
+### THE HAZARD — the idle guard cannot see our builds (T-2026-000398)
+
+Step 4b of the script decides whether a build is in flight by reading a `pid`
+from each task meta, and treats a meta with **no pid** as *not blocking*, on the
+stated reasoning that a pid-less record is an HTTP thread task. **That reasoning
+is inverted.** A thread task is the one kind of work a bounce is guaranteed to
+destroy, because the thread lives inside the server process and dies with it,
+and the only writer of its terminal state was that thread.
+
+`dispatch_async` records no pid, and **1407 of 1409 metas carry none**. Measured
+live in S1340: the guard returned `RUNNING_BUILDS=0` while a real build was
+running. Had the restart gone ahead, it would have destroyed that build silently
+and reproduced the very incident the S1338 work was fixing.
+
+**Therefore, until T-2026-000398 lands: never close a session with a Council
+panel or a build in flight, and never restart by hand without checking
+yourself.** The pre-flight, which the guard will not do for you:
+
+```
+ls /var/tmp/koskadeux/cc_tasks/*.meta.json | while read m; do
+  t=$(basename "$m" .meta.json)
+  [ -e "/var/tmp/koskadeux/cc_tasks/$t.done" ] || echo "NO DONE MARKER: $t"
+done
+pgrep -fl 'codex exec'          # a live builder subprocess
+```
+
+Treat **any** fresh meta without a `.done` marker as work in flight, pid or no
+pid.
+
+### If a manual restart is genuinely required
+
+Only with a human decision on the record, because it drops every connected
+session including Max's.
+
+1. Run the pre-flight above. Confirm the tree is clean and `origin/main` is what
+   you intend to deploy.
+2. Tell the peer instance and get an answer. Do not act on silence.
+3. `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`, detached, so the
+   command is not killed with the server it is restarting.
+4. **Verify from launchd, not from the kickstart exit code**:
+   `launchctl list com.koskadeux.mcp` gives the new PID and `LastExitStatus`
+   (expect `9`, the SIGKILL of the old process). Then confirm the new start time
+   is later than the commit you are deploying, remembering §W's local-versus-UTC
+   trap.
+5. **Only after that verification**, write `deployed_sha`. Writing it first, or
+   on the strength of the kickstart returning zero, tells the reloader a deploy
+   succeeded when it may not have — a fail-open on the one file that records
+   what is actually running.
+6. Message the peer the new pid and start time before either instance dispatches
+   anything.
+
+### Related
+
+§W (abandoned worker — what a careless bounce produces), T-2026-000398 (the
+guard's inverted predicate, covering all three mechanisms that share it),
+T-2026-000397 (narrower duplicate, superseded by 398).
