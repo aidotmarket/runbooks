@@ -659,13 +659,30 @@ Two guards exist for this and neither could fire:
 1. `claude_code_client.check_claude_code` contains a timeout reaper. It is
    guarded by `if pid:` and `dispatch_async` recorded no pid. Measured S1338:
    **1407 of 1409 task metas carried no pid**, so the reaper was unreachable on
-   the live path.
+   the live path. Re-derive that census rather than trusting the number:
+
+   ```
+   python3 -c "
+   import glob, json
+   m = glob.glob('/var/tmp/koskadeux/cc_tasks/*.meta.json'); n = 0
+   for f in m:
+       try:
+           if json.load(open(f)).get('pid') is None: n += 1
+       except Exception: n += 1
+   print(n, 'of', len(m), 'metas carry no pid')"
+   ```
 2. The S320 crash guard for thread tasks starts its 120s grace timer from the
    **mtime of the output file**. A worker that dies before producing output
    never writes one, so the timer never starts. Measured S1338: **131 tasks
    stuck running with no pid and no done marker, 130 of them with no output
    file.** The single case the guard was written for is the single case it
    cannot detect.
+
+**Vocabulary, because this section uses both.** `check_build` is
+`claude_code_client.check_claude_code`; `list_builds` is
+`claude_code_client.list_claude_code_tasks`. Symptoms below are written in
+MCP-action terms and repairs in function terms; they are the same two
+instruments.
 
 **The instruments also disagreed.** `check_build` returned `running` for a
 record that `list_builds` reported as `finished`. If two tools give opposite
@@ -698,8 +715,23 @@ answers about one task, neither is evidence; go to the process table.
    fixes.
 4. Confirm nothing landed: `git ls-remote origin 'refs/heads/<branch>'` against
    the remote, never a local branch and never the task record.
-5. The dispatch is dead. Re-dispatch; there is nothing to recover unless
-   `task_state.md` exists in the build cwd.
+5. **Branch on step 3 before you do anything.**
+
+   **If the server start time is LATER than the dispatch time:** the worker was
+   killed by the restart. The dispatch is dead. Re-dispatch; there is nothing to
+   recover unless `task_state.md` exists in the build cwd.
+
+   **If the server start time is EARLIER than the dispatch time: STOP. The
+   worker may still be alive.** Nothing in this section licenses re-dispatch in
+   that case, and re-dispatching puts two workers on one task, both writing the
+   same branch. Remember this same section says declared timeouts are ADVISORY,
+   not enforced, and the streaming path exists precisely so that a long healthy
+   build is not killed for being slow: elapsed time past the declared bound is
+   therefore not evidence of death. Establish liveness positively instead —
+   signal 1 in §X for an MP build, or poll `check_build` and watch for the
+   output file to grow — and if you cannot establish it either way, say so and
+   escalate rather than guessing. Absence of a terminal record is the symptom
+   this whole section exists to explain; it is not proof the worker is gone.
 
 ### Repair, and what is still open
 
@@ -714,7 +746,25 @@ sets identical. What landed:
 `_owner_process_gone` returns False whenever the answer is not known, so records
 carrying no owner are left alone rather than guessed at.
 
-Kimi's M1, folded before merge: `_owner_process_gone` now rejects a
+**All three R1 mandates, and what actually happened to each — so a later reader
+cannot mistake deferral for discharge.**
+
+- **M2 (consumer audit), DISCHARGED, no code change.** Read-only audit at
+  `621dbedc` found the only two consumers of `list_claude_code_tasks` —
+  `tools/agent_request.py:98` and `_handle_list_builds` in `tools/agents.py:6255`
+  — are pure pass-through: both serialise the result with `json.dumps` and
+  neither branches on the status string. The risk M2 named, a consumer bucketing
+  an unknown status as non-terminal, does not exist. The vocabulary split is
+  real and remains: `list_claude_code_tasks` reports `abandoned` while
+  `check_claude_code` reports `failed` with `error_type: worker_abandoned` for
+  the same record. It is downgraded to documentation, and this paragraph is that
+  documentation. Revisit only if a consumer ever starts branching on the string.
+- **M3 (reconcile the ~130 pid-less orphans), STILL OWED, NOT DISCHARGED.** The
+  change prevents recurrence and heals nothing retroactively. Those records will
+  report `running` from `check_claude_code` and `finished` from
+  `list_claude_code_tasks` until a one-time reconciliation lands. Tracked as
+  T-2026-000393 residual B.
+- **M1 (non-positive owner_pid), FOLDED BEFORE MERGE:** `_owner_process_gone` now rejects a
 non-positive `owner_pid` **before** probing. A negative value reached
 `os.kill(-n, 0)`, which probes a process GROUP rather than a process, so a
 `ProcessLookupError` there produced a terminal verdict from malformed input —
@@ -811,7 +861,11 @@ Two signals, in this order:
 
 ```
 # 1. AUTHORITATIVE for MP builds: is a builder subprocess actually alive?
-pgrep -fl 'codex exec'
+#    Build the pattern from two pieces so THIS shell's own argv never contains
+#    the literal phrase. Immune to self-match by construction, which a bare
+#    pgrep is not (see the note below, and §W step 3).
+PAT='codex'' exec'
+pgrep -fl "$PAT"
 
 # 2. FRESH thread tasks: no done marker AND touched in the last 6 hours.
 #    6h matches BUILD_STALE_SECONDS in reload_when_idle.sh; anything older is
@@ -821,6 +875,24 @@ find /var/tmp/koskadeux/cc_tasks -name '*.meta.json' -mmin -360 | while read m; 
   [ -e "/var/tmp/koskadeux/cc_tasks/$t.done" ] || echo "IN FLIGHT (or died today): $t"
 done
 ```
+
+**On the split pattern, stated precisely rather than dramatically.** §W tells
+you never to trust a bare pattern match on the process table, so this section
+must not hand you one. Measured in S1340: `pgrep -fl 'codex exec'` run from an
+agent shell did **not** in fact match its own wrapper, while
+`ps -eo pid,ppid,command | grep -E '[c]odex exec'` **did** return the checking
+shell itself. So the naive form was not observed to self-match, and the ps form
+was. The split-literal above removes the possibility either way, at the cost of
+one line. Prefer construction over a claim that a hazard did not occur the one
+time it was tried.
+
+**Council panels are covered by NEITHER signal and there is no mechanical check
+for them.** A review dispatched to CC, GLM or Kimi is a thread task that spawns
+no subprocess, so signal 1 cannot see it, and signal 2 cannot tell it apart from
+something that already died. Panel safety is enforced SOCIALLY — by step 2
+below, by the peer bus, and by each instance not closing while it has a panel
+out. Stated here rather than left to be discovered: if you did not dispatch the
+panel yourself, you cannot prove from this machine that none is running.
 
 Signal 1 empty and signal 2 empty means nothing is running. Signal 1 empty with
 entries in signal 2 means either a live thread task (an AG/GLM/Kimi review, which
@@ -885,9 +957,23 @@ session including Max's.
    remembering §W's local-versus-UTC trap:
 
    ```
-   ps -o pid,lstart -p <the PID from above>
+   # Both sides in UTC, so there is nothing left to convert in your head.
+   TZ=UTC ps -o lstart= -p <the PID from above>
    git -C /Users/max/koskadeux-mcp show -s --format=%cI <the SHA>
    ```
+
+   Naming the local-versus-UTC trap without giving the conversion is how S1340
+   repeated it. If you remember one thing: `ps lstart` is LOCAL, git and Living
+   State are UTC, and this box runs CEST (UTC+2), so an uncorrected comparison
+   is wrong by two hours in the direction that makes a stale process look fresh.
+
+   **If verification fails** — no PID, a `LastExitStatus` you cannot reconcile
+   with a SIGKILLed predecessor, or a start time NOT later than the commit —
+   the bounce did not do what you think. **Do not write `deployed_sha`.**
+   Leaving it stale is the safe failure: the reloader keeps seeing a pending
+   deploy and keeps deferring. Check `/tmp/koskadeux_mcp.log` for a startup
+   failure, and note `KeepAlive` here restarts only on a NON-zero exit, so a job
+   that exited cleanly will not come back on its own.
 
 5. **Only after that verification**, record the deploy:
 
