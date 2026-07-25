@@ -147,6 +147,38 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
   next_step_failure: Restore Living State event access and rerun without changing reconciliation state.
 ```
 
+### Guarded Living State patch of a decision or status field (S1342)
+
+Applies whenever a field on a build entity is being corrected by hand rather than
+by the reconciler: a resolved decision still presented as open, a stale
+`next_action`, a gate note that no longer matches the branch.
+
+1. **GET before PATCH, always.** `state_request(action="get", key=...)` and read the
+   field you are about to overwrite. Never write a correction sourced from a
+   handoff, a summary, or memory.
+2. **Verify the replacement against the primary source at a SHA.** If the field
+   records a decision, read the decision where it was actually written
+   (`git show <sha>:<spec path>`) and cite that SHA in the field you write. A
+   correction sourced from prose reproduces the defect it is fixing.
+3. **Supply `expected_version`.** A `version_conflict` means a concurrent writer
+   (usually `reconciliation_job`) touched the entity; re-read and retry rather
+   than dropping the lock.
+4. **`patch` DEEP-MERGES. It does not replace.** Writing a sub-object merges your
+   keys into the existing one and leaves every sibling key in place. Marking a
+   decision `status: RESOLVED` therefore does NOT remove the `options` map or a
+   `reserved_by` field sitting next to it, and a later reader will still see the
+   question as open. Every stale key must be overwritten explicitly, which
+   normally means two patches: one to add the resolution, one to neutralise the
+   superseded keys.
+5. **Record why the field was wrong, in the field.** A `reconciliation_note`
+   naming the session, what the field previously asserted, and what damage it did
+   is what stops the same correction being argued again.
+
+Failure signature: a field reading `status: RESOLVED` while its sibling `options`
+map and `reserved_by` still read as live. Cause: a single-patch correction relying
+on replace semantics. Repair: a second patch that overwrites the superseded keys
+by name.
+
 ### Bypass procedure
 
 Use `auto_reconcile=true` when the reconciler reports `HIGH_CONFIDENCE_GIT_AHEAD`, `cleanly_extends=true`, and the proposed patch only appends the next chunk and advances `next_action`. The system applies the Living State patch, emits `ls_drift_reconciled`, and then proceeds.
