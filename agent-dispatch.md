@@ -625,3 +625,79 @@ CC (`council_request agent=cc mode=review`) is a read-only gate voter with files
 - **Known gap (open):** the DS review path (server-side auto-resolution, agent-dispatch §P) and the GLM review path (shared preloader, `tools/agents.py` `_REVIEW_DIFF_INLINE_CAP_CHARS` = 40k) both proceed SILENTLY on a truncated diff (`FULL DIFF (truncated):` marker only). A spec or diff over 40k chars therefore reaches DS/GLM incomplete — invalid gate participation. Until this is fixed (same env-tunable-cap pattern is the candidate), verify inlined-content size before treating a DS/GLM verdict on large single files as valid: `git show <sha> -- <path> | wc -c` must be under the cap.
 - **Model verification.** A `model_matched: false` CC result discards the vote (CORE §5); redispatch.
 - **Output-schema contract (S1248).** The CC review path injects NO output schema into the prompt; the server validates the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA` and rejects anything else as `cc_review_malformed_verdict`. The dispatcher MUST state the contract in the task, verbatim: the ENTIRE final message is one raw JSON object (first char `{`, no prose/fences outside it) with ALL FOUR keys required and `additionalProperties: false` everywhere: `verdict` one of `APPROVE` | `APPROVED_WITH_MANDATES` | `REJECT` (there is NO `APPROVE_WITH_NITS`/`REVISE` in this validator — non-blocking findings ride in `findings` under verdict `APPROVE`); `mandates` `[]` or items with exactly `id` (`^M[0-9]+$`), `description`, `severity` (`blocking`|`major`|`minor`), `target_file`, `target_location`; `findings` items with required `severity` (`blocking`|`major`|`minor`), `title`, `description` and optional `target_file`/`target_location` — NO `id` key on findings; `summary` non-empty. Discovered the hard way in S1248: four dispatches burned guessing the schema one validation error at a time. Defect ticket: schema should be auto-injected by the CC review path like MP's response_format.
+
+## §W — A dispatched build reports "running" for ever (abandoned worker, S1338, discharges S1338-D1)
+
+**Symptom:** `council_request(action=check_build, task_id=...)` returns
+`status: running` with an `elapsed_s` far past the declared bound, and the task
+never reaches a terminal state. No branch appears on the remote. Observed S1334
+on MP task `b21a2ac8`: 5310s against a declared 1800s, no artifact, no
+terminal state, and the record still says running days later.
+
+**Do not diagnose this from the task record. Diagnose it from the process
+table.** The task record is the thing that is lying; reading it harder does not
+help. Three prior sessions read it and concluded, wrongly, that no timeout
+enforcement existed.
+
+### Mechanism
+
+Builds dispatched through `tools/async_dispatch.dispatch_async` run the worker
+as a **daemon thread inside the dispatching process** (the MCP server), and the
+meta file at `/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json` is written once,
+at dispatch, saying `"status": "running"`. **Only that thread will ever update
+it.** If the server restarts, the thread dies with it and nothing is left alive
+that could ever write a terminal state.
+
+Two guards exist for this and neither could fire:
+
+1. `claude_code_client.check_claude_code` contains a timeout reaper. It is
+   guarded by `if pid:` and `dispatch_async` recorded no pid. Measured S1338:
+   **1407 of 1409 task metas carried no pid**, so the reaper was unreachable on
+   the live path.
+2. The S320 crash guard for thread tasks starts its 120s grace timer from the
+   **mtime of the output file**. A worker that dies before producing output
+   never writes one, so the timer never starts. Measured S1338: **131 tasks
+   stuck running with no pid and no done marker, 130 of them with no output
+   file.** The single case the guard was written for is the single case it
+   cannot detect.
+
+**The instruments also disagreed.** `check_build` returned `running` for a
+record that `list_builds` reported as `finished`. If two tools give opposite
+answers about one task, neither is evidence; go to the process table.
+
+### Procedure
+
+1. `ls -la /var/tmp/koskadeux/cc_tasks/{task_id}*`. A lone `.meta.json` with no
+   `.json` and no `.done` means the worker produced nothing at all.
+2. `python3 -c "import json;print(json.load(open('/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json'))['dispatched_iso'])"`
+3. `ps -eo pid,lstart,command | grep koskadeux_server`. **If the server start
+   time is later than the dispatch time, the worker was killed by the restart.**
+   That is the whole diagnosis. Twenty-three seconds separated the two in the
+   S1334 case.
+4. Confirm nothing landed: `git ls-remote origin 'refs/heads/<branch>'` against
+   the remote, never a local branch and never the task record.
+5. The dispatch is dead. Re-dispatch; there is nothing to recover unless
+   `task_state.md` exists in the build cwd.
+
+### Repair, and what is still open
+
+Owner liveness landed on `build/bq-dispatch-owner-liveness-s1338`:
+`dispatch_async` records `owner_pid`, `check_claude_code` returns a terminal
+`failed` / `worker_abandoned` verdict when that process is gone, and
+`list_claude_code_tasks` stops reporting the same record as `finished`.
+`_owner_process_gone` returns False whenever the answer is not known, so records
+carrying no owner are left alone rather than guessed at.
+
+**Still open, and it is the larger point (T-2026-000393).** The hardened
+dispatch path already exists: `codex_cli_bridge.dispatch_codex_cli` wraps the
+build in an OS-level `timeout`, records pid, `timeout_s`, model and codex_bin —
+and its own docstring states it has no live caller. **We built the bounded path
+and then did not wire it up.** A `timeout_s` handed to the live path is passed
+into the in-process bridge and never persisted, so no reader outside the worker
+can see the declared bound. Until that is resolved, treat any declared build
+timeout as advisory rather than enforced.
+
+**Related:** T-2026-000393 (residuals, including ~130 legacy records that will
+report running for ever and are deliberately not guessed at), and §B on the
+"MP delivered even though the envelope says failed" family, which is the
+opposite error — that one under-reports success, this one under-reports death.
