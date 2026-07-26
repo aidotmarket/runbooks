@@ -52,6 +52,7 @@ The frontmatter above is authoritative for catalog identity. **Authority: delive
 **Provenance convention used throughout this runbook.** Every load-bearing claim below is tagged.
 
 - **OBSERVED** — read directly at a named source by the author of this runbook, at the SHA or timestamp given.
+- Claims below observed at `koskadeux-mcp` `4365fcf4` were **not** re-observed after `origin/main` moved to `5a9ea9ed` later the same hour. The SHA named in each claim is the SHA it was read at, and a reader applying it to current code must re-read first.
 - **INHERITED** — carried from a handoff, event or peer message and *not* re-verified here. An inherited claim may be true. It is not evidence.
 
 The convention is not decoration. It is the subject of this runbook applied to the runbook itself, and a reader is entitled to treat an untagged assertion as INHERITED.
@@ -214,7 +215,7 @@ No figure enters a specification unless one of the following is true.
 A figure that arrived by handoff, by peer message, or by any summary of either is INHERITED and cannot be written as fact.
 
 - OBSERVED at S1346, 2026-07-26T10:26Z: `state_request action=assignment_query`, `caller_instance=vulcan`, `filters.include_peer_owned=true`, `limit=200` returns `total_eligible` 52, `returned` 52, `has_more` false. Fifty-two is the eligible population and the spec may say so with that method recorded.
-- OBSERVED: `bq_drift_report` in the S1346 boot envelope carries thirteen rows. It is a subset of the same population and any spec quoting it must say which.
+- OBSERVED: `bq_drift_report` carried thirteen rows in the S1346 boot envelope specifically; the count varies per envelope and Mars measured ten in the S1347 envelope. It is a subset of the eligible population, and any spec quoting a drift-report figure must name the envelope it came from as well as the population.
 - INHERITED and explicitly unmeasured: "3 of 52 carrying target_repos" and "94 percent". Both appear in the S1343 record; nobody has produced a measurement either way. Write them as unmeasured or re-derive them. Do not attribute them to a peer.
 - OBSERVED, superseded figures: 41, "34 of 41" and "83 percent" came from a list endpoint that truncates (T-2026-000410). They are wrong and must not be carried forward.
 
@@ -355,11 +356,11 @@ first_staleness_detected_at: null
 
 ## §K. Conformance
 
-The recorded harness score of 0.0 is a real measured result and is reported here rather than smoothed. It does not mean the twelve scenarios were judged and failed. The run at 2026-07-26T11:13:42Z returned `INVALID_RESPONSE` on all twelve, with the reason `response is not a JSON object matching the harness output schema`, so no scenario was ever scored on its content. The score therefore measures the harness dispatch path, not this document's legibility. Cause and fix are on T-2026-000413; the score must be re-taken once that lands, and until then this runbook has no evidence either way about how well a stateless agent can use it.
+The recorded harness score of 0.0 is a real measured result and is reported here rather than smoothed. It does not mean the twelve scenarios were judged and failed. The run at 2026-07-26T11:13:42Z returned `INVALID_RESPONSE` on all twelve, with the reason `response is not a JSON object matching the harness output schema`, so no scenario was ever scored on its content. The score therefore measures the harness dispatch path, not this document's legibility. Cause and fix are on T-2026-000413. The machine-readable record of that score is `last_harness_pass_rate: 0.0` in the section J lifecycle block; the section K conformance block cannot carry it, because its schema rejects any additional property and has no harness field, which is itself the second defect on T-2026-000413. A tool reading only the conformance block will see `last_lint_result: PASS` and learn nothing about the harness. That gap is in the schema, not in this document. the score must be re-taken once that lands, and until then this runbook has no evidence either way about how well a stateless agent can use it.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1346 / 2026-07-26T11:00:00Z
+last_lint_run: S1346 / 2026-07-26T11:33:00Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
