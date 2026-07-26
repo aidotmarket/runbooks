@@ -128,19 +128,27 @@ returns False whenever the answer is **not known**, so records with no owner are
 left alone rather than guessed at. Absence of knowledge is not evidence of
 death.
 
-**What this record still cannot tell you, as of `4365fcf4`.** It does not record
-what time bound the task was given. A declared `timeout_s` is passed into the
-in-process bridge and never persisted, so no reader outside the worker can
-answer "what bound was this task given" or "should it have finished by now".
-Max accepted option B of `decision:bounded-dispatch-path-s1340` to persist
-`timeout_s` and `deadline_at` on this path. Build in flight in S1345 on branch
-`build/bounded-dispatch-path-b-s1345`; **not on main and not reviewed at the time
-of writing.** Do not read this paragraph as describing current behaviour.
+**The bound the task was given, added in S1345.** `dispatch_async` now takes a
+keyword-only `timeout_s` and always writes two further keys, `timeout_s` and
+`deadline_at`. Merged to `koskadeux-mcp` main at `5a9ea9ed` under Max's accepted
+option B of `decision:bounded-dispatch-path-s1340`, after two non-author Council
+approvals. `deadline_at` is `dispatched_at + timeout_s`, computed after the
+`extra_meta` merge so the two can never disagree.
 
-**When those fields do land, read them for exactly what they are.** They are
+| Field | Written | What a reader may conclude | What a reader may NOT conclude |
+|---|---|---|---|
+| `timeout_s` | at dispatch, S1345 | the bound the caller declared | `null` means no bound was declared, NOT that the task is unbounded in effect |
+| `deadline_at` | at dispatch, S1345 | when the task said it would be done by | that anything happens at that moment |
+
+Only the Kimi review dispatch is wired so far. Every other call site still records
+`null` for both, which is honest rather than absent: no bound was declared to the
+dispatcher. Wiring MP, CC, GLM and AG is separate work.
+
+**Read those two fields for exactly what they are.** They are
 declaration, not enforcement. Nothing in `async_dispatch.py` kills a runaway
 thread or cancels work at the deadline. A task past its `deadline_at` is a task
-that said it would be done by now, not a task that has been stopped. `null` in
+that said it would be done by now, not a task that has been stopped. Nothing
+reads that field and acts on it yet. `null` in
 either field means no bound was declared, and it must never be filled in with a
 default; a fabricated bound is worse than a recorded absence.
 
