@@ -1,0 +1,10 @@
+id: I-01
+runbook: gate-specification-authoring.md
+type: operate
+refs:
+- E-03
+scenario: A figure arrives in a peer handoff and is about to be written into the spec.
+expected_answers:
+- kind: classification
+  label: INHERITED_NOT_OBSERVED
+weight: 0.0833333333

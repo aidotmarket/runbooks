@@ -405,6 +405,53 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "gate-specification-authoring"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7G. Repair",
+          "signature": "builder_failure_report_contradicted_by_remote"
+        },
+        {
+          "section": "\u00a7G. Repair",
+          "signature": "fold_lost_to_builder_timeout"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "gate_result_trusted_without_deployed_sha_check"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "session_identity_unverified"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "spec_authored_against_stale_source"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "unmeasured_figure_written_as_fact"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "verdict_read_from_legacy_payload"
+        }
+      ],
+      "last_verified_at": "2026-07-26",
+      "owner": "vulcan",
+      "path": "runbooks/gate-specification-authoring.md",
+      "runbook_id": "gate-specification-authoring",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "infrastructure-discovery"
         }
       ],
@@ -470,6 +517,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "builder_failure_report_contradicted_by_remote": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7G. Repair"
+      },
       "chunk_scope_gap": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -502,6 +553,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "fold_lost_to_builder_timeout": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7G. Repair"
+      },
       "gate1_status_trap": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -509,6 +564,10 @@
       "gate_eligibility_unknown": {
         "runbook_id": "gate-procedure",
         "section": "\u00a7F. Isolate"
+      },
+      "gate_result_trusted_without_deployed_sha_check": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7E. Operate"
       },
       "gateway_timeout": {
         "runbook_id": "agent-dispatch",
@@ -578,6 +637,14 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "session_identity_unverified": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7F. Isolate"
+      },
+      "spec_authored_against_stale_source": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7E. Operate"
+      },
       "stale_queue_undispatched": {
         "runbook_id": "aging-policy",
         "section": "\u00a7F. Isolate"
@@ -602,6 +669,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "unmeasured_figure_written_as_fact": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7E. Operate"
+      },
       "unresolved_mandates": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -613,6 +684,10 @@
       "unsupported_target_repo": {
         "runbook_id": "build-queue-reconciliation",
         "section": "\u00a7F. Isolate"
+      },
+      "verdict_read_from_legacy_payload": {
+        "runbook_id": "gate-specification-authoring",
+        "section": "\u00a7E. Operate"
       }
     },
     "topics": {
@@ -666,6 +741,10 @@
       },
       "gate-procedure": {
         "runbook_id": "gate-procedure",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "gate-specification-authoring": {
+        "runbook_id": "gate-specification-authoring",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "infrastructure-discovery": {

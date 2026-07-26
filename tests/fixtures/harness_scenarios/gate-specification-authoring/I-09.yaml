@@ -1,0 +1,12 @@
+id: I-09
+runbook: gate-specification-authoring.md
+type: repair
+refs:
+- G-04
+scenario: A Living State entity carries an updated_by that the named instance denies.
+expected_answers:
+- kind: human_action
+  verb: annotate
+  object: the entity
+  target: in place attribution correction
+weight: 0.0833333333

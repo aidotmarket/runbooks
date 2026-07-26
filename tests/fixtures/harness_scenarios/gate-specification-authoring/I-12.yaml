@@ -1,0 +1,11 @@
+id: I-12
+runbook: gate-specification-authoring.md
+type: ambiguous
+refs:
+- §H.6
+scenario: A runbook table and two live tests assert opposite behaviour for the same
+  branch.
+expected_answers:
+- kind: classification
+  label: ADJUDICATE_BEFORE_FOLD
+weight: 0.0833333337

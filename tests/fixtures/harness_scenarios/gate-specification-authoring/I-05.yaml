@@ -1,0 +1,12 @@
+id: I-05
+runbook: gate-specification-authoring.md
+type: isolate
+refs:
+- F-03
+scenario: The builder reports the completed range was not persisted.
+expected_answers:
+- kind: human_action
+  verb: check
+  object: remote branch
+  target: git ls-remote
+weight: 0.0833333333

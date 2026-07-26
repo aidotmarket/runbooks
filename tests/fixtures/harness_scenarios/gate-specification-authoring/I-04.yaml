@@ -1,0 +1,10 @@
+id: I-04
+runbook: gate-specification-authoring.md
+type: operate
+refs:
+- E-04
+scenario: The spec cites a function that moved two commits ago.
+expected_answers:
+- kind: classification
+  label: STALE_SOURCE
+weight: 0.0833333333

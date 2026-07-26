@@ -1,0 +1,10 @@
+id: I-06
+runbook: gate-specification-authoring.md
+type: isolate
+refs:
+- F-05
+scenario: A document signed by this instance appears that this instance did not write.
+expected_answers:
+- kind: classification
+  label: UNATTRIBUTED
+weight: 0.0833333333

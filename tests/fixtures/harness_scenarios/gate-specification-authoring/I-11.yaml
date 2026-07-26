@@ -1,0 +1,10 @@
+id: I-11
+runbook: gate-specification-authoring.md
+type: evolve
+refs:
+- §H.3
+scenario: The verdict vocabulary gains an additional canonical value.
+expected_answers:
+- kind: classification
+  label: REVIEW
+weight: 0.0833333333

@@ -1,0 +1,12 @@
+id: I-08
+runbook: gate-specification-authoring.md
+type: repair
+refs:
+- G-01
+scenario: A figure in the spec cannot be reproduced from its own text.
+expected_answers:
+- kind: human_action
+  verb: relabel
+  object: the figure
+  target: explicit unmeasured
+weight: 0.0833333333

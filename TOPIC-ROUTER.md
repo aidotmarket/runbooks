@@ -20,6 +20,7 @@
 | `e2e-test-status-publisher` | `e2e-test-status-publisher` (`e2e-test-status-publisher.md`) | [§C. Architecture & Interactions](e2e-test-status-publisher.md#c-architecture--interactions) |
 | `e2e-video-review` | `e2e-video-review` (`e2e-video-review.md`) | [§C. Architecture & Interactions](e2e-video-review.md#c-architecture--interactions) |
 | `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture--interactions) |
+| `gate-specification-authoring` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§C. Architecture & Interactions](runbooks/gate-specification-authoring.md#c-architecture--interactions) |
 | `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture--interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture--interactions) |
 
@@ -32,6 +33,7 @@
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `builder_failure_report_contradicted_by_remote` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§G. Repair](runbooks/gate-specification-authoring.md#g-repair) |
 | `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F. Isolate](runbooks/constitution-history.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -40,8 +42,10 @@
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `fold_lost_to_builder_timeout` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§G. Repair](runbooks/gate-specification-authoring.md#g-repair) |
 | `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F. Isolate](runbooks/gate-procedure.md#f-isolate) |
+| `gate_result_trusted_without_deployed_sha_check` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§E. Operate](runbooks/gate-specification-authoring.md#e-operate) |
 | `gateway_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `harness_bound_to_stale_code` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
@@ -59,15 +63,19 @@
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `session_identity_unverified` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§F. Isolate](runbooks/gate-specification-authoring.md#f-isolate) |
+| `spec_authored_against_stale_source` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§E. Operate](runbooks/gate-specification-authoring.md#e-operate) |
 | `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F. Isolate](runbooks/aging-policy.md#f-isolate) |
 | `stale_review_order` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `unmeasured_figure_written_as_fact` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§E. Operate](runbooks/gate-specification-authoring.md#e-operate) |
 | `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `unsupported_line_claim` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§F. Isolate](runbooks/build-queue-reconciliation.md#f-isolate) |
+| `verdict_read_from_legacy_payload` | `gate-specification-authoring` (`runbooks/gate-specification-authoring.md`) | [§E. Operate](runbooks/gate-specification-authoring.md#e-operate) |
 
 ## Aliases
 

@@ -1,0 +1,10 @@
+id: I-02
+runbook: gate-specification-authoring.md
+type: operate
+refs:
+- E-01
+scenario: A round result arrives and the deployed server SHA has not been checked.
+expected_answers:
+- kind: classification
+  label: UNVERIFIED
+weight: 0.0833333333

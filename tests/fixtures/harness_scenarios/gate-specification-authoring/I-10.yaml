@@ -1,0 +1,10 @@
+id: I-10
+runbook: gate-specification-authoring.md
+type: evolve
+refs:
+- §H.2
+scenario: A proposal allows an inherited summary figure to be recorded as observed.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0833333333

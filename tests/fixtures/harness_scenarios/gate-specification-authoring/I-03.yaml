@@ -1,0 +1,11 @@
+id: I-03
+runbook: gate-specification-authoring.md
+type: operate
+refs:
+- E-02
+scenario: The verdict field reads REVISE while every reviewer prose approves with
+  conditions.
+expected_answers:
+- kind: classification
+  label: APPROVED_WITH_MANDATES
+weight: 0.0833333333
