@@ -87,6 +87,72 @@ Strategic why: Why MP=primary dispatch builder: Codex CLI automation and deeper 
 
 Agent processes require a clean working directory when the task may write, a readable repo when the task is review-only, provider credentials in the approved environment, and PATH entries for backend CLIs. `run_background` style dispatch must explicitly export required PATH segments because it does not inherit the interactive shell environment.
 
+### The background dispatch meta record
+
+`tools/async_dispatch.py:dispatch_async` is the generic background dispatcher
+for every Council agent. Call sites on `koskadeux-mcp` main `4365fcf4`, measured
+in S1345 by agent literal in `tools/agents.py`: `ag` 7, `deepseek` 4, `mp` 3,
+`glm` 2, `cc` 1, `kimi` 1, `kimi-shadow` 1. It is not MP-specific, and a change
+to it reaches every agent.
+
+It runs the work as a **daemon thread inside the dispatching process** and writes
+one record per task to `/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json`. That
+record is the only thing an outside reader has. Written before this entry
+existed, because two instances separately concluded there was no documentation
+of what these fields mean and what may be inferred from them.
+
+| Field | Written | What a reader may conclude | What a reader may NOT conclude |
+|---|---|---|---|
+| `task_id` | at dispatch | the record's identity | nothing about progress |
+| `task` | at dispatch | the prompt as sent | nothing about what the agent did with it |
+| `agent`, `builder` | at dispatch | which agent was addressed | not which model answered |
+| `dispatched_at`, `dispatched_iso` | at dispatch | when it started, epoch seconds and local ISO | `dispatched_iso` carries no timezone suffix; do not treat it as UTC |
+| `status` | `running` at dispatch, terminal by the worker | the terminal values are observed | **`running` is a dispatch-time claim, not an observation.** Nothing re-checks it |
+| `owner_pid` | at dispatch, S1338 | which process owns the thread; if that process is gone the work cannot still be running | a live pid does not mean this task is progressing, only that its owner survives |
+| `completed_at` | by the worker | the worker reached the end | absent does not mean still running, see below |
+
+**The failure mode this record has, and why `running` cannot be trusted alone.**
+The worker that writes the terminal state is a daemon thread in the dispatching
+process. If that process dies, the thread dies with it and **no terminal state is
+ever written**, so `running` becomes permanent. Observed on T-2026-000393: MP
+task `b21a2ac8` read `running` at 5310s against a declared 1800s bound, with no
+output file and no done marker, because the server restarted twenty-three
+seconds into the build. At the time of that measurement 131 tasks were stuck
+`running` with no pid and no done marker, and 130 of those had no output file at
+all.
+
+`owner_pid` (S1338, merged at `57336b5b`) is the repair: a reader can now
+establish that nothing is running any more instead of taking the dispatch-time
+claim on trust. Note the deliberate asymmetry in `_owner_process_gone`: it
+returns False whenever the answer is **not known**, so records with no owner are
+left alone rather than guessed at. Absence of knowledge is not evidence of
+death.
+
+**What this record still cannot tell you, as of `4365fcf4`.** It does not record
+what time bound the task was given. A declared `timeout_s` is passed into the
+in-process bridge and never persisted, so no reader outside the worker can
+answer "what bound was this task given" or "should it have finished by now".
+Max accepted option B of `decision:bounded-dispatch-path-s1340` to persist
+`timeout_s` and `deadline_at` on this path. Build in flight in S1345 on branch
+`build/bounded-dispatch-path-b-s1345`; **not on main and not reviewed at the time
+of writing.** Do not read this paragraph as describing current behaviour.
+
+**When those fields do land, read them for exactly what they are.** They are
+declaration, not enforcement. Nothing in `async_dispatch.py` kills a runaway
+thread or cancels work at the deadline. A task past its `deadline_at` is a task
+that said it would be done by now, not a task that has been stopped. `null` in
+either field means no bound was declared, and it must never be filled in with a
+default; a fabricated bound is worse than a recorded absence.
+
+**Do not confuse this path with the hardened one.**
+`codex_cli_bridge.dispatch_codex_cli` wraps the build in an OS-level `timeout`
+and records `pid`, `timeout_s`, `codex_bin` and `model`. It has **no live
+caller** and its own docstring says so; its two callers are both tests. It is
+also fixed-deadline, which is the behaviour progress-aware timeouts were built
+to remove after a healthy build was killed at 1800s in S1265. Reading its
+richer meta and assuming the live path behaves the same way is a mistake that
+has been made before.
+
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
