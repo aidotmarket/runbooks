@@ -113,7 +113,9 @@ def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None
         "e2e-test-status-publisher.md",
         "e2e-video-review.md",
     }
-    assert grandfathered == 83
+    # 82 since S1348: the repo-root agent-dispatch.md duplicate was merged into
+    # runbooks/agent-dispatch.md and deleted (Max option A, BQ-RUNBOOK-CATALOG-VALIDATOR-S1229).
+    assert grandfathered == 82
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
 

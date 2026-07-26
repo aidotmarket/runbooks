@@ -522,7 +522,7 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
   - `POST /api/v2/build-queue/{code}/affirm` — clear stale-item alarm (§D).
   - `POST /api/v1/allai/state/atomic_write` — single-use atomic-token write endpoint (§I).
 - **Related runbooks:**
-  - [runbooks/agent-dispatch.md](agent-dispatch.md) — how builder agents are dispatched.
+  - [runbooks/agent-dispatch.md](runbooks/agent-dispatch.md) — how builder agents are dispatched.
   - [morning-briefing.md](morning-briefing.md) — the morning briefing where stale-item escalations (§D) appear.
   - [runbooks/activation-verification.md](activation-verification.md) — proof-of-life checks for shipped work.
 - **CORE.md cross-reference:** this runbook should be linked from CORE.md under the Build Queue section. That edit is not part of this commit; file a follow-up if it has not been added by the time you read this.
