@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-26
 system_name: build-queue-reconciliation
 purpose_sentence: Build Queue reconciliation keeps Living State, Build Queue status, and git evidence aligned before more build work is dispatched.
 owner_agent: vulcan
@@ -239,6 +239,83 @@ Scheduling option: the weekly report is registered in `koskadeux_server.py` thro
 | F-04 | Reconciler reports `unsupported_target_repo`. | `body.target_repos` is missing or names a repository outside the supported `aidotmarket/*` scope. | Confirm repository ownership and compare the BQ target list with the repositories that contain chunk evidence. | §G-04 | CONFIRMED |
 | F-05 | Classification is `AMBIGUOUS` or `LS_AHEAD_SUSPECTED`. | Evidence conflicts, includes a later revert, or Living State contains progress that git and Build Queue do not confirm. | Compare Living State chunks, Build Queue history, all target-repository commits, and revert evidence before dispatch. | §G-05 | CONFIRMED |
 | F-06 | Trigger D has safe evidence but no patch occurs and audit emission failed. | The required audit event could not be written. | Inspect event persistence for `ls_drift_reconciled` and confirm no Living State mutation followed the failed emission. | §G-06 | CONFIRMED |
+
+### Correction notice: F-01 and F-03 as measured in S1345
+
+The F-01 and F-03 rows above were written from the error names. Both names are
+misleading, and following them as written sends the operator to the wrong
+diagnosis. Measured at koskadeux-mcp main `4365fcf4`; ticket T-2026-000411;
+re-runnable probe `/var/tmp/koskadeux/S1345-reconciler-probe.py`.
+
+**F-01 `build_queue_unreachable` is usually not an outage.**
+`services/reconciler_adapters.py:107-111`. `get_bq_gates` swallows only HTTP 404.
+The gates endpoint answers HTTP 400 for any entity that is not BQ-coded, and
+`_get_json` converts that into `BuildQueueUnreachable`. In the S1345 boot report
+all eight occurrences were HTTP 400 on non-BQ-coded entities (the seven `PROJ-*`
+items, `BQ:POLICY-STEWARD-PROGRAM`, and `CUSTOMER-JOURNEY-HOSTING-READINESS-S1187`)
+while the backend was healthy and answering. Call the gates endpoint directly
+before diagnosing an outage; G-01 as written wastes the operator's time.
+
+**F-03 `chunk_plan_unavailable` is structural, not transient.**
+`services/reconciler_adapters.py:135-141`. `SpecsAdapter.read_gate_spec` reads
+`<koskadeux-mcp>/specs/{bq_code.lower()}-gate{N}.md` from one local working tree.
+Current gate specs live on unmerged `spec/*` branches in other repositories, so
+the adapter cannot reach them by construction. Five of the nine S1345
+occurrences were checked and none had a matching file at any gate; the 471 files
+present in that directory are legacy BQ-045 to BQ-129 era. G-03's "correct the
+spec path" repair does not apply, because there is no path to correct. The
+chunk-plan half of the reconciler has been inoperative for a long time.
+
+**A dependency failure does not currently produce `AMBIGUOUS`.**
+The §C classification table above says it should. The code caps to
+`ADVISORY_GIT_AHEAD` instead (`build_queue_reconciler.py:185`), and two tests
+assert that behaviour deliberately
+(`tests/services/test_build_queue_reconciler.py:270` and `:280`). Note the
+inconsistency: `git_fetch_failed` and `unsupported_target_repo` do return
+`AMBIGUOUS` immediately. Code, tests and this runbook cannot all be right.
+Unresolved as of S1345. Adjudicate under §H.6 before relying on any
+classification that carries an error code.
+
+**There is no classification for "nothing was observed."**
+`build_queue_reconciler.py:375` is a bare terminal fall-through returning
+`ADVISORY_GIT_AHEAD` with `error_code=None` and `divergences=[]`. Probe case A:
+healthy dependencies, chunk plan present, zero evidence anywhere, and the
+reconciler still reports that git appears ahead. No test in the 34-test suite
+covers this path. Until that is fixed, read `ADVISORY_GIT_AHEAD` with an empty
+`divergences` list as "the reconciler saw nothing", never as a finding.
+
+### Measurement discipline
+
+Written in S1345 to discharge runbook debts S1344-D1, S1344-D2 and S1344-D3,
+waived at the S1344 close on the understanding that they would not be waived
+twice.
+
+1. **Never measure a denominator with the Living State `list` action.** It
+   silently caps at 500 rows, ignores `offset`, and reports no total. Use
+   `assignment_query`, which returns `total_eligible` and `has_more`. Defect
+   T-2026-000410.
+2. **`git_state_branch_name` is a generated convention string, not evidence.**
+   It is produced whether or not the branch exists. In S1344 only 17 of 52 named
+   spec branches existed in any repository. Confirm with
+   `git ls-remote origin 'refs/heads/spec/*'` before treating a branch as real.
+3. **Read `body.target_repos` before writing it.** In S1344 a proposed backfill
+   would have overwritten `bq-e2e-testing-framework-s1152`, which already carried
+   four repositories, and silently dropped one of them. It was caught in dry run.
+   `scripts/backfill_target_repos.py` runs dry by default; keep it that way.
+4. **There are eight repositories, not seven.** `aidotmarket/ops-ai-market` is
+   live and is absent from the seven-repo inventory that has been in general use.
+   The full set is `ai-market-backend`, `ai-market-frontend`, `koskadeux-mcp`,
+   `aim-data`, `vectoraiz`, `aim-node`, `runbooks`, `ops-ai-market`.
+5. **Record how a value was arrived at, next to the value.** BQ items carry
+   `body.target_repos_provenance` with `basis` in `observed`, `max_directed`,
+   `intended`, `pre_existing`, `not_applicable`. `intended` means someone judged
+   it from the item's content and nothing measured it; 29 of 52 are in that
+   state. Never read `intended` as checked.
+6. **Filing a defect against a Living State or Build Queue endpoint.** Use
+   `support_ticket_create` with `issue_class=dev`, the `bq_code` of the item the
+   defect blocks where one exists, and `source_ref` set to the session id. State
+   the file and line, what was executed, and what came back. A defect reported
+   without an executed reproduction is a suspicion, not a ticket.
 
 ## §G. Repair
 
@@ -505,9 +582,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1265
+last_refresh_session: S1345
 last_refresh_commit: 03cd4c0
-last_refresh_date: 2026-07-17T20:00:00Z
+last_refresh_date: 2026-07-26T09:50:00Z
 owner_agent: vulcan
 refresh_triggers:
   - reconciliation classification or cleanly_extends invariant changes
@@ -517,15 +594,25 @@ refresh_triggers:
 scheduled_cadence: 90d
 last_harness_pass_rate: 1.0
 last_harness_date: 2026-07-17T20:00:00Z
-first_staleness_detected_at: null
+first_staleness_detected_at: 2026-07-26T09:45:00Z
 ```
 
 ## §K. Conformance
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1265 / 2026-07-17T20:00:00Z
-last_lint_result: PASS
+last_lint_run: S1345 / 2026-07-26T09:52:00Z
+last_lint_result: FAIL
+last_lint_detail: >-
+  One FAIL from check_02_agent_forms_present: the frontmatter schema rejects the
+  catalog fields aliases, authoritative_for, domain, error_signatures and
+  last_verified_at as additional properties. PRE-EXISTING and NOT introduced by
+  the S1345 edit: the same single FAIL was measured on origin/main at 7288f88
+  before the edit and after it, with no other check failing either side. The
+  previous PASS recorded against S1265 does not reproduce. Either the schema or
+  the frontmatter convention moved and the other did not follow. Owner
+  BQ-RUNBOOK-CATALOG-VALIDATOR-S1229, whose approved scope includes making the
+  lint non-vacuous.
 retrofit: false
 trace_matrix_path: null
 word_count_delta: null
