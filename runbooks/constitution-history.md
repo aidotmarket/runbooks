@@ -30,7 +30,7 @@ The frontmatter is authoritative for catalog identity. **Authority: historical d
 
 **Fetch trigger:** amendment, provenance, or historical audit.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, version preamble and final amendment clause; §5 supplies the referenced decision rules.
+**Source constitution:** CORE v9.12, SHA-256 `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`, version preamble and final amendment clause; §5 supplies the referenced decision rules.
 
 ## §B. Capability Matrix
 
@@ -51,19 +51,19 @@ The frontmatter is authoritative for catalog identity. **Authority: historical d
 | Amendment Procedure | `constitution-amendment.md` | Runbooks git history | Council and Max approval | Procedure only; cannot self-authorize a change. |
 | Prior Git Objects | Full commit SHA | Backend repository object database | Historical audit | Retrieve exact prior text without treating it as current. |
 
-### Normative projection — CORE v9.11 preamble
+### Normative projection — CORE v9.12 preamble
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`.
 
-> **Version:** 9.11
+> **Version:** 9.12
 
-> **Last Updated:** 2026-07-16 (S1242 — amendment process tightened: constitution changes now require a unanimous Council gate (CC, DeepSeek, GLM) PLUS Max's direct approval, replacing 'Max approval + one peer review'; procedure in `aidotmarket/runbooks` → `constitution-amendment.md`. Full amendment history lives in Living State (`infra:constitution` amendment records + entity history) and in git history of this file. Current roster and consensus rules: §4–§5. Prior bump: 9.10, S1242 §3 2-Strike investigate-and-correct amendment. Max-approved S1242; Vulcan ratification of 9.10 and 9.11 requested under the outgoing rule.)
+> **Last Updated:** 2026-07-24 (S1319 — Kimi activated as a gate voter after an exact-model bounded production smoke; its fail-closed diagnostic mandate was folded before cutover by making authoritative failure fields override provider telemetry. The active panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM under Max's direct S1319 launch and roster-cutover authority. Incumbent-panel attestation: Living State `decision:kimi-roster-constitution-attestation-s1319`. Full amendment history lives in Living State and git history. Current roster and consensus rules: §4–§5.)
 
 ### Normative projection — CORE final amendment clause
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`.
 
-> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, DeepSeek, GLM — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval; either instance may then apply the approved change. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
+> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval; either instance may then apply the approved change. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
 
 ### Version index
 
@@ -71,6 +71,7 @@ The table is historical retrieval metadata derived from backend Git history. It 
 
 | Version | Git commit | Date | Historical change summary |
 |---|---|---|---|
+| 9.12 | `ac3390cfc2a0d1e8b87a44ead61de8ac34ef5805` | 2026-07-24 | Gate voter panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM. |
 | 9.11 | `6851a671a7adb0a7511162b0c5bd1939cb274162` | 2026-07-16 | Unanimous Council gate plus Max direct approval required for amendments. |
 | 9.10 | `356a2dfe947d8e84be288437b6407e226d0dc1a2` | 2026-07-16 | Two-strike rule changed to investigate and correct before abort when possible. |
 | 9.9 | `76a5d193abf2b00e3c052b5eca312e330087310f` | 2026-07-15 | Header history prose trimmed without invariant change. |
@@ -94,7 +95,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan or Mars | Audit current and prior constitutional sources | Living State and Git read | Read | COMPLETE |
-| CC, DeepSeek, GLM | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
+| CC, Kimi, GLM | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
 | Max | Directly approve or reject an amendment | Human decision | Final authority | COMPLETE |
 
 ## §E. Operate
@@ -124,7 +125,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   trigger: A proposed constitutional semantic change needs authorization.
   pre_conditions: [exact_diff_written, rationale_written, current_source_hash_known]
   tool_or_endpoint: constitution-amendment.md procedure
-  argument_sourcing: {council: require valid CC DeepSeek and GLM verdicts, max: require direct approval, diff: bind all evidence to exact bytes}
+  argument_sourcing: {council: require valid CC Kimi and GLM verdicts, max: require direct approval, diff: bind all evidence to exact bytes}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(current_sha + proposed_diff + verdict_set + max_approval)
   expected_success: {shape: authorized exact amendment with complete provenance, verification: validate 3 of 3 verdicts and direct Max approval before apply}
