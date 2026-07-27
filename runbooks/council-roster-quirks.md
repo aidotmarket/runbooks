@@ -46,7 +46,7 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 |---|---|---|---|---|
 | Live Roster | `state_get("infra:council-comms")` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
-| Dispatch Surface | `council_request` | Dispatch records | MP, CC, DeepSeek, GLM, AG | Validate agent, mode, model, and read/write scope before accepting a result. |
+| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, Kimi, GLM voters; retained AG/DeepSeek backends | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused and DeepSeek is retired; neither supplies an active gate vote. |
 
 ### Normative projection — CORE §4
 

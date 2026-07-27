@@ -72,7 +72,7 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 |---|---|---|---|---|
 | BQ Entity | `build:bq-* Living State entities` | gate fields, builders, reviewers, verdicts, body summary | Vulcan, Mars, MP, CC, Kimi, GLM | Canonical work record for gate status and provenance. |
 | Gate 1 Design | `build:bq-*.gate1` | problem statement, design verdicts, mandates | CC, Kimi, GLM, Vulcan, Mars | Approves the shape of the work before implementation planning. |
-| Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP, Vulcan, builders | Converts approved design into bounded implementation work. |
+| Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP author; CC, Kimi, GLM reviewers; Vulcan, Mars | MP authors the bounded implementation plan; the active gate panel reviews it before build dispatch. |
 | Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | CC, Kimi, GLM | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
 | Gate 4 Verification | `build:bq-*.gate4` | production checks, customer-perspective verification | reviewer agents, Vulcan | Confirms the shipped behavior and closes the BQ only after review evidence exists. |
 | Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `bq_complete`, Living State | Requires `approved_reviewers - builders` to be non-empty. |
@@ -121,7 +121,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   argument_sourcing:
     spec_path: use the BQ slug and canonical specs directory
     files_touched: derive from the approved design and repository survey
-    status: set from MP review of the implementation spec
+    status: derive from the complete valid CC/Kimi/GLM review panel; MP authors the implementation spec and does not vote on it
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + spec_path + spec_commit)
   expected_success: {shape: reviewed Gate 2 spec with chunk ACs and test plan, verification: confirm the spec commit and BQ gate2 status match}
@@ -133,11 +133,12 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 - id: E-03
   trigger: A chunk build has landed and must pass Gate 3 post-build audit.
   pre_conditions: [feature_branch_exists, commit_sha_known, gate2_spec_reviewed, builder_recorded]
-  tool_or_endpoint: council_request(agent=mp, task=<audit_prompt>, allowed_tools=[Read,Grep,Glob,LS])
+  tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) for every active voter
   argument_sourcing:
     audit_prompt: include Gate 1, Gate 2, commit SHA, changed files, and explicit read-only review instructions
     commit_sha: use the build commit being promoted
     builder_recorded: read from BQ entity builders list or infer from dispatch transcript before patching state
+    reviewer_panel: read the exact active CC/Kimi/GLM roster from infra:council-comms; MP is the builder and cannot vote
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + gate3 + commit_sha + reviewer)
   expected_success: {shape: PASS, PASS_WITH_MANDATES, or FAIL verdict tied to the commit SHA, verification: verify cited file lines and attach the verdict}
@@ -331,14 +332,26 @@ scenario_set:
     type: operate
     refs: [E-03, F-04, agent-dispatch:E-03]
     scenario: |
-      id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, and reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=mp, task=<audit_prompt>, allowed_tools=[Read,Grep,Glob,LS]). argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: PASS, PASS_WITH_MANDATES, or FAIL verdict tied to the audited commit, with line claims verified before attachment. expected_failures: review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification. next_step_failure: redispatch a strict read-only review or return the chunk to build repair.
+      id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, the live CC/Kimi/GLM roster is confirmed, and every reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) once for each active voter. argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; reviewer panel comes from infra:council-comms; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: a complete valid CC/Kimi/GLM panel returns verdicts tied to the audited commit, with line claims verified before attachment. expected_failures: missing/malformed/model-mismatched voter, review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification only after the required panel passes. next_step_failure: redispatch the failed active voter read-only or return the chunk to build repair; never substitute MP, AG, or DeepSeek.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, task, allowed_tools]
+        argument_keys: [agent, mode, task, cwd, dispatch_sha]
         argument_values:
-          agent: mp
-          allowed_tools: [Read, Grep, Glob, LS]
+          agent: cc
+          mode: review
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd, dispatch_sha]
+        argument_values:
+          agent: kimi
+          mode: review
+      - kind: tool_call
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd, dispatch_sha]
+        argument_values:
+          agent: glm
+          mode: review
     weight: 0.08333333333333333
   - id: I-04
     type: operate
