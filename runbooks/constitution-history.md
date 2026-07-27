@@ -229,8 +229,8 @@ last_refresh_date: 2026-07-27T21:25:00Z
 owner_agent: max
 refresh_triggers: [CORE amendment or version change, canonical mirror path change, amendment procedure or Council decision-rule change]
 scheduled_cadence: 30d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-07-17T22:00:00Z
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 

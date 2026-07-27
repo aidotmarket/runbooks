@@ -53,8 +53,15 @@
       ]
     },
     "last_harness_date": {
-      "type": "string",
-      "format": "date-time"
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ]
     },
     "first_staleness_detected_at": {
       "oneOf": [

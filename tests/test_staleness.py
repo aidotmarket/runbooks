@@ -41,6 +41,41 @@ def test_evaluate_staleness_harness_stale() -> None:
     assert triggered_predicates == ["harness_90d"]
 
 
+def test_evaluate_staleness_null_harness_date_is_never_harnessed_not_stale() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text().replace(
+        "last_harness_date: 2026-04-20T02:00:00Z",
+        "last_harness_date: null",
+        1,
+    )
+
+    is_stale, triggered_predicates, _, _ = evaluate_staleness(
+        extract_sections(markdown),
+        datetime(2027, 4, 21, tzinfo=timezone.utc),
+        "ea70326",
+    )
+
+    assert is_stale is False
+    assert "harness_90d" not in triggered_predicates
+
+
+def test_evaluate_staleness_null_refresh_date_does_not_trigger_commit_drift() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text().replace(
+        "last_refresh_date: 2026-04-21T17:30:00Z",
+        "last_refresh_date: null",
+        1,
+    )
+
+    is_stale, triggered_predicates, _, _ = evaluate_staleness(
+        extract_sections(markdown),
+        datetime(2027, 4, 21, tzinfo=timezone.utc),
+        "different-head",
+    )
+
+    assert is_stale is True
+    assert "commit_drift_60d" not in triggered_predicates
+    assert triggered_predicates == ["harness_90d"]
+
+
 def test_evaluate_staleness_unverified_b_rows() -> None:
     _, triggered_predicates, _, _ = evaluate_staleness(
         _sections("stale_unverified_b.md"),

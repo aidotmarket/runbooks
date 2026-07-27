@@ -30,6 +30,10 @@ from runbook_tools.harness.scorer import score_response
 from runbook_tools.harness.writer import write_result
 from runbook_tools.lint import CheckContext, Finding
 from runbook_tools.lint.checks import ALL_CHECKS
+from runbook_tools.lint.staleness import (
+    harness_lifecycle_values,
+    write_lifecycle_update,
+)
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from runbook_tools.scaffold.template import generate_scaffold, validate_system_name
 from runbook_tools.version import LINTER_VERSION
@@ -148,6 +152,13 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
 
         for target in target_paths:
             path = target.resolve()
+            if update_lifecycle:
+                harness_pass_rate, harness_date = harness_lifecycle_values(path)
+                write_lifecycle_update(
+                    path,
+                    last_harness_pass_rate=harness_pass_rate,
+                    last_harness_date=harness_date,
+                )
             markdown = path.read_text()
             sections = extract_sections(markdown)
             frontmatter = extract_yaml_frontmatter(markdown)
@@ -168,7 +179,14 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
             )
             findings: list[Finding] = []
             for check in ALL_CHECKS:
-                findings.extend(check(sections, ctx))
+                try:
+                    findings.extend(check(sections, ctx))
+                except Exception as exc:
+                    click.echo(
+                        f"internal error in {check.__name__} while linting {path}: {exc}",
+                        err=True,
+                    )
+                    raise SystemExit(3) from exc
             findings_by_path[path] = findings
             had_fail = had_fail or any(finding.severity == "FAIL" for finding in findings)
 

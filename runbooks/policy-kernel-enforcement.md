@@ -539,7 +539,7 @@ refresh_triggers:
   - handler restart or dispatch persistence changes
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-27T09:56:32+02:00
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 

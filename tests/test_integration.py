@@ -6,7 +6,18 @@ from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 from runbook_tools.cli import harness_cmd, lint_cmd, new_cmd
 
 
-def test_lint_conformant_runbook_passes() -> None:
+def test_lint_conformant_runbook_passes(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "runbook_tools.lint.checks.newest_harness_result",
+        lambda _: (
+            Path("harness/results/conformant/S-TEST.json"),
+            {
+                "result": "PASS",
+                "aggregate_score": 1.0,
+                "run_started_at": "2026-04-20T02:00:00Z",
+            },
+        ),
+    )
     runner = CliRunner()
 
     result = runner.invoke(

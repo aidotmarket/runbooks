@@ -592,8 +592,8 @@ refresh_triggers:
   - Build Queue or Living State incident
   - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-07-17T20:00:00Z
+last_harness_pass_rate: 0.08333333333333333
+last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: 2026-07-26T09:45:00Z
 ```
 
@@ -603,16 +603,6 @@ first_staleness_detected_at: 2026-07-26T09:45:00Z
 linter_version: 1.0.0
 last_lint_run: S1345 / 2026-07-26T09:52:00Z
 last_lint_result: FAIL
-last_lint_detail: >-
-  One FAIL from check_02_agent_forms_present: the frontmatter schema rejects the
-  catalog fields aliases, authoritative_for, domain, error_signatures and
-  last_verified_at as additional properties. PRE-EXISTING and NOT introduced by
-  the S1345 edit: the same single FAIL was measured on origin/main at 7288f88
-  before the edit and after it, with no other check failing either side. The
-  previous PASS recorded against S1265 does not reproduce. Either the schema or
-  the frontmatter convention moved and the other did not follow. Owner
-  BQ-RUNBOOK-CATALOG-VALIDATOR-S1229, whose approved scope includes making the
-  lint non-vacuous.
 retrofit: false
 trace_matrix_path: null
 word_count_delta: null

@@ -402,7 +402,7 @@ refresh_triggers:
   - Max ruling on authenticated-session recordings, retention, or automatic nightly analysis
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-23T13:20:00Z
+last_harness_date: null
 first_staleness_detected_at: "2026-07-23T13:24:00.585073+00:00"
 ```
 
