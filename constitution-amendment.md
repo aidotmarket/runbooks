@@ -1,6 +1,6 @@
 ---
 system_name: constitution-amendment
-purpose_sentence: How CORE.md (the agent constitution, served as infra:constitution on every session boot) is amended — a unanimous Council gate (CC, Kimi, GLM) plus Max's direct approval, then a versioned apply to Living State and the backend git mirror with boot-delivery verification.
+purpose_sentence: Amend CORE through the normal unanimous Council gate plus Max approval, or an explicit matter-specific Max supersession, with boot-safe versioned delivery.
 owner_agent: mars
 escalation_contact: Max (human operator)
 lifecycle_ref: §J
@@ -10,7 +10,7 @@ linter_version: 1.0.0
 
 # Constitution Amendment — changing CORE.md
 
-**The rule (CORE footer, v9.12, Max directive S1242; voter roster updated S1319):** every amendment to CORE.md — including editorial changes — requires a **unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Either instance may then apply the approved change. No reduced quorum, no voter substitution, no builder vote. This replaced the prior "Max approval + one peer review" rule; v9.10 and v9.11 were the last amendments made under the old rule.
+**The rule (CORE footer, v9.13; Max directives S1242 and S1370; voter roster updated S1319):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 
 ## §A. Header
 
@@ -24,7 +24,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Boot-contract marker assertion (§3 comms invariant text must be present) | SHIPPED | `tests/integration/test_constitution_comms_invariant.py` | CI on koskadeux-mcp | 2026-07-16 |
 | Optimistic-versioned entity patch | SHIPPED | `koskadeux-mcp:tools/state.py` | entity history v16→v18 (S1242 live) | 2026-07-16 |
 | Git mirror on backend main | SHIPPED | `ai-market-backend:docs/core/CORE.md` | manual byte diff vs entity (E-04) | 2026-07-16 |
-| Unanimous Council gate for amendments | SHIPPED | `koskadeux-mcp:tools/agents.py` | CORE v9.11 footer + §5 decision rules | 2026-07-16 |
+| Unanimous Council gate or explicit Max supersession for amendments | SHIPPED | `koskadeux-mcp:tools/agents.py` | CORE v9.13 footer + §5 decision rules | 2026-07-27 |
 
 ## §C. Architecture & Interactions
 
@@ -53,6 +53,7 @@ YAML frontmatter above is authoritative for the §A header fields.
     - Exact old→new wording drafted (verbatim strings, not a paraphrase)
     - The §3 comms marker text is untouched by the diff
     - Projected content size under 46,000 chars
+    - No explicit Max supersession is inferred; the standard path applies unless Max has expressly named the exact matter being superseded
   tool_or_endpoint: council_request (three dispatches, agent=cc / kimi / glm)
   argument_sourcing:
     diff: the exact old→new wording inline in each prompt; Kimi and GLM may instead read the pinned commit through their shared read-only at-SHA repository tools
@@ -67,25 +68,26 @@ YAML frontmatter above is authoritative for the §A header fields.
     - signature: any non-APPROVE-class verdict
       cause: substantive objection — amendment returns to drafting; do not proceed to E-02
   next_step_success: E-02
-  next_step_failure: F-04, or redraft
+  next_step_failure: F-04 or redraft; proceed without the gate only if Max explicitly supersedes the Council for this exact amendment and the statement is recorded in the Event Ledger
 - id: E-02
-  trigger: Unanimous Council approval obtained
+  trigger: Unanimous Council approval obtained, or Max explicitly superseded the Council for this exact amendment
   pre_conditions:
-    - E-01 complete with 3/3 APPROVE-class verdicts
-  tool_or_endpoint: present the exact wording + Council result to Max in the round summary or a blocking question
+    - E-01 complete with 3/3 APPROVE-class verdicts, OR an exact matter-specific Max supersession statement is recorded in the Event Ledger
+  tool_or_endpoint: present the exact wording + Council result to Max, or record and byte-read Max's explicit matter-specific supersession statement
   argument_sourcing:
     wording: verbatim from the gated diff
+    authority: either the 3/3 verdict set plus Max approval, or the exact Max supersession statement and its Event Ledger ID
   idempotency: IDEMPOTENT
   expected_success:
-    shape: Max's direct approval, recorded verbatim in the amendment record
-    verification: approval text quoted in body.core_amendment_* record
+    shape: Max's direct approval or exact supersession, recorded verbatim in the amendment record
+    verification: approval or supersession text and Event Ledger ID quoted in body.core_amendment_* record
   expected_failures:
     - signature: Max declines or amends
       cause: final-authority veto — return to drafting (re-gate if wording changes)
   next_step_success: E-03
   next_step_failure: redraft and re-run E-01
 - id: E-03
-  trigger: Council-unanimous + Max-approved amendment ready to apply
+  trigger: Council-unanimous + Max-approved amendment, or exact Max-superseded amendment, ready to apply
   pre_conditions:
     - E-01 and E-02 complete
     - Backend repo clean and at origin/main
@@ -180,7 +182,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 ### §H.1 Invariants
 
-- Every CORE.md change — including editorial — requires a unanimous Council gate (CC, Kimi, GLM; 3/3 valid verdicts) AND Max's direct approval. No reduced quorum, no voter substitution, no builder vote (Max directive S1242; CORE v9.12 footer; voter roster set S1319).
+- Every CORE.md change — including editorial — requires a unanimous Council gate (CC, Kimi, GLM; 3/3 valid verdicts) AND Max's direct approval, unless Max explicitly supersedes the Council for the exact named matter under CORE v9.13 §5. Supersession must be recorded in the Event Ledger and may never be inferred. No reduced quorum, voter substitution, or builder vote is permitted.
 - The §3 comms-invariant marker text stays verbatim; the boot-contract test enforces it.
 - `infra:constitution` is the boot source of truth; the git file is a mirror.
 - Total content stays under the 46,000-char boot wire budget.
@@ -341,7 +343,7 @@ scenario_set:
     refs:
       - §E E-03
       - §F F-02
-    scenario: Max approves an amendment verbally but the Council gate was never run; the instance is about to apply. What is the correct first action?
+    scenario: Max approves an amendment verbally but does not explicitly say that he supersedes the Council; the Council gate was never run and the instance is about to apply. What is the correct first action?
     expected_answers:
       - kind: human_action
         action: stop and run the unanimous Council gate (E-01) before applying — Max approval alone is necessary but not sufficient

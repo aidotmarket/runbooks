@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: max
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-27
 system_name: constitution-history
 purpose_sentence: This companion indexes constitutional amendments and prior versions while preserving current CORE as the sole normative constitutional authority.
 owner_agent: max
@@ -30,7 +30,7 @@ The frontmatter is authoritative for catalog identity. **Authority: historical d
 
 **Fetch trigger:** amendment, provenance, or historical audit.
 
-**Source constitution:** CORE v9.12, SHA-256 `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`, version preamble and final amendment clause; §5 supplies the referenced decision rules.
+**Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, version preamble and final amendment clause; §5 supplies the referenced decision rules and Max-supersession rule.
 
 ## §B. Capability Matrix
 
@@ -51,19 +51,19 @@ The frontmatter is authoritative for catalog identity. **Authority: historical d
 | Amendment Procedure | `constitution-amendment.md` | Runbooks git history | Council and Max approval | Procedure only; cannot self-authorize a change. |
 | Prior Git Objects | Full commit SHA | Backend repository object database | Historical audit | Retrieve exact prior text without treating it as current. |
 
-### Normative projection — CORE v9.12 preamble
+### Normative projection — CORE v9.13 preamble
 
-Source SHA: `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> **Version:** 9.12
+> **Version:** 9.13
 
-> **Last Updated:** 2026-07-24 (S1319 — Kimi activated as a gate voter after an exact-model bounded production smoke; its fail-closed diagnostic mandate was folded before cutover by making authoritative failure fields override provider telemetry. The active panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM under Max's direct S1319 launch and roster-cutover authority. Incumbent-panel attestation: Living State `decision:kimi-roster-constitution-attestation-s1319`. Full amendment history lives in Living State and git history. Current roster and consensus rules: §4–§5.)
+> **Last Updated:** 2026-07-27 (S1370 — Max supersession clause added to §5 and to the closing amendment clause. Max stated, verbatim: "I am superseding the council to install this." Applied on Max's authority OUTSIDE the amendment gate, because the gate requires unanimous CC, Kimi, GLM and Kimi could not return a valid verdict, so no gate could complete. This is recorded as a supersession, not as a gate that passed. Ledger: decision event of S1370. Resolves a standing contradiction: §1 already ranked Max's instruction above this document while §5 and the closing clause read as unconditional.)
 
 ### Normative projection — CORE final amendment clause
 
-Source SHA: `1c1147810c5b5dff125d7d5a9b0add1cce50420f03813bae3237162651c6299a`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval; either instance may then apply the approved change. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
+> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval, unless Max explicitly supersedes the Council under §5; either instance may then apply the approved change. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
 
 ### Version index
 
@@ -71,6 +71,7 @@ The table is historical retrieval metadata derived from backend Git history. It 
 
 | Version | Git commit | Date | Historical change summary |
 |---|---|---|---|
+| 9.13 | `6a90b4981bfcfec98530adacf68105ce8e23ed64` | 2026-07-27 | Explicit, matter-specific Max supersession may stand in place of Council approval and must be recorded in the Event Ledger. |
 | 9.12 | `ac3390cfc2a0d1e8b87a44ead61de8ac34ef5805` | 2026-07-24 | Gate voter panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM. |
 | 9.11 | `6851a671a7adb0a7511162b0c5bd1939cb274162` | 2026-07-16 | Unanimous Council gate plus Max direct approval required for amendments. |
 | 9.10 | `356a2dfe947d8e84be288437b6407e226d0dc1a2` | 2026-07-16 | Two-strike rule changed to investigate and correct before abort when possible. |
@@ -125,11 +126,11 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   trigger: A proposed constitutional semantic change needs authorization.
   pre_conditions: [exact_diff_written, rationale_written, current_source_hash_known]
   tool_or_endpoint: constitution-amendment.md procedure
-  argument_sourcing: {council: require valid CC Kimi and GLM verdicts, max: require direct approval, diff: bind all evidence to exact bytes}
+  argument_sourcing: {standard_authority: require valid CC Kimi and GLM verdicts plus Max direct approval, supersession_authority: accept only Max's explicit exact-matter Council supersession with Event Ledger record, diff: bind all evidence to exact bytes}
   idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: hash(current_sha + proposed_diff + verdict_set + max_approval)
-  expected_success: {shape: authorized exact amendment with complete provenance, verification: validate 3 of 3 verdicts and direct Max approval before apply}
-  expected_failures: [{signature: amendment_authority_incomplete, cause: diff, unanimous valid panel, or direct Max approval is missing}]
+  idempotency_key: hash(current_sha + proposed_diff + standard_verdict_set_or_supersession_event + max_authority)
+  expected_success: {shape: authorized exact amendment with complete provenance, verification: validate either 3 of 3 verdicts plus direct Max approval or an exact explicit Max supersession and Event Ledger record before apply}
+  expected_failures: [{signature: amendment_authority_incomplete, cause: exact diff and either standard gate authority or explicit recorded Max supersession are missing}]
   next_step_success: Apply the exact approved change and regenerate dependent projections.
   next_step_failure: Leave current CORE unchanged.
 ```
