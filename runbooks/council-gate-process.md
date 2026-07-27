@@ -454,12 +454,12 @@ scenario_set:
 
 ## §J. Lifecycle
 
-Lifecycle metadata records the S1265 content-conformance refresh and registered scenario-harness pass.
+Lifecycle metadata records the S1369 gate-roster refresh. The most recent registered scenario-harness pass remains the earlier S1265 run.
 
 ```yaml lifecycle
-last_refresh_session: S1265
-last_refresh_commit: 03cd4c0
-last_refresh_date: 2026-07-17T20:00:00Z
+last_refresh_session: S1369
+last_refresh_commit: fa23332
+last_refresh_date: 2026-07-27T21:45:44Z
 owner_agent: mp
 refresh_triggers:
   - BQ gate lifecycle or state entity contract changes
@@ -476,11 +476,11 @@ The gate-process scenario set is registered under `tests/fixtures/harness_scenar
 
 ## §K. Conformance
 
-Conformance fields for the S1265 content refresh.
+Conformance fields for the S1369 content refresh.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1265 / 2026-07-17T20:00:00Z
+last_lint_run: S1369 / 2026-07-27T21:45:44Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null

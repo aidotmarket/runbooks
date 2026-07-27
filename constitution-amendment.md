@@ -359,8 +359,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1369
-last_refresh_commit: 66e670e
-last_refresh_date: "2026-07-27"
+last_refresh_commit: fa23332
+last_refresh_date: "2026-07-27T21:45:44Z"
 owner_agent: mars
 refresh_triggers:
   - any CORE.md amendment
@@ -377,7 +377,7 @@ first_staleness_detected_at: null
 ```yaml conformance
 retrofit: false
 linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T21:25:00Z
+last_lint_run: S1369 / 2026-07-27T21:45:44Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
