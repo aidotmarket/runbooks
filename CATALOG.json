@@ -428,6 +428,45 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "policy-kernel-enforcement"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "deployed_sha_stale"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "dispatch_terminal_state_missing_after_restart"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "policy_kernel_enforcement_setting_invalid"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "policy_kernel_not_evaluable"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "policy_kernel_preflight_indeterminate"
+        }
+      ],
+      "last_verified_at": "2026-07-27",
+      "owner": "vulcan",
+      "path": "runbooks/policy-kernel-enforcement.md",
+      "runbook_id": "policy-kernel-enforcement",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "product-elaboration"
         }
       ],
@@ -486,9 +525,17 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "deployed_sha_stale": {
+        "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
+      },
       "directional_evidence_missing": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
+      },
+      "dispatch_terminal_state_missing_after_restart": {
+        "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
       },
       "duplicate_deliberation": {
         "runbook_id": "council-hall-deliberation",
@@ -557,6 +604,18 @@
       "participant_config_missing": {
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
+      },
+      "policy_kernel_enforcement_setting_invalid": {
+        "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
+      },
+      "policy_kernel_not_evaluable": {
+        "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
+      },
+      "policy_kernel_preflight_indeterminate": {
+        "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
       },
       "premature_cross_poll": {
         "runbook_id": "council-hall-deliberation",
@@ -670,6 +729,10 @@
       },
       "infrastructure-discovery": {
         "runbook_id": "infrastructure-discovery",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "policy-kernel-enforcement": {
+        "runbook_id": "policy-kernel-enforcement",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "product-elaboration": {

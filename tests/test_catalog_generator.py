@@ -28,6 +28,7 @@ SEED_IDS = [
     "council",
     "council-gate-process",
     "council-hall-deliberation",
+    "policy-kernel-enforcement",
 ]
 E2E_IDS = [
     "e2e-programme-integrity",
@@ -90,7 +91,7 @@ def _digest_outputs(root: Path) -> dict[str, str]:
     }
 
 
-def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None:
+def test_live_catalog_has_six_seed_and_seven_kernel_companion_members() -> None:
     catalog, grandfathered = build_catalog(REPO_ROOT)
 
     assert [entry["runbook_id"] for entry in catalog["entries"]] == sorted(
@@ -108,6 +109,7 @@ def test_live_catalog_has_five_seed_and_seven_kernel_companion_members() -> None
         "runbooks/council.md",
         "runbooks/gate-procedure.md",
         "runbooks/infrastructure-discovery.md",
+        "runbooks/policy-kernel-enforcement.md",
         "runbooks/product-elaboration.md",
         "e2e-programme-integrity.md",
         "e2e-test-status-publisher.md",

@@ -21,6 +21,7 @@
 | `e2e-video-review` | `e2e-video-review` (`e2e-video-review.md`) | [§C. Architecture & Interactions](e2e-video-review.md#c-architecture--interactions) |
 | `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture--interactions) |
 | `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture--interactions) |
+| `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture--interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture--interactions) |
 
 ## Error signatures
@@ -36,7 +37,9 @@
 | `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F. Isolate](runbooks/constitution-history.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `dispatch_terminal_state_missing_after_restart` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -54,6 +57,9 @@
 | `no resolution` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `open_response_schema_mismatch` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `policy_kernel_enforcement_setting_invalid` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `policy_kernel_not_evaluable` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `policy_kernel_preflight_indeterminate` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `premature_cross_poll` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `product_boundary_conflict` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§F. Isolate](runbooks/product-elaboration.md#f-isolate) |
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
