@@ -1,6 +1,6 @@
 ---
 system_name: constitution-amendment
-purpose_sentence: How CORE.md (the agent constitution, served as infra:constitution on every session boot) is amended — a unanimous Council gate (CC, DeepSeek, GLM) plus Max's direct approval, then a versioned apply to Living State and the backend git mirror with boot-delivery verification.
+purpose_sentence: How CORE.md (the agent constitution, served as infra:constitution on every session boot) is amended — a unanimous Council gate (CC, Kimi, GLM) plus Max's direct approval, then a versioned apply to Living State and the backend git mirror with boot-delivery verification.
 owner_agent: mars
 escalation_contact: Max (human operator)
 lifecycle_ref: §J
@@ -10,7 +10,7 @@ linter_version: 1.0.0
 
 # Constitution Amendment — changing CORE.md
 
-**The rule (CORE footer, v9.11, Max directive S1242):** every amendment to CORE.md — including editorial changes — requires a **unanimous Council gate (CC, DeepSeek, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Either instance may then apply the approved change. No reduced quorum, no voter substitution, no builder vote. This replaced the prior "Max approval + one peer review" rule; v9.10 and v9.11 were the last amendments made under the old rule.
+**The rule (CORE footer, v9.12, Max directive S1242; voter roster updated S1319):** every amendment to CORE.md — including editorial changes — requires a **unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Either instance may then apply the approved change. No reduced quorum, no voter substitution, no builder vote. This replaced the prior "Max approval + one peer review" rule; v9.10 and v9.11 were the last amendments made under the old rule.
 
 ## §A. Header
 
@@ -33,13 +33,13 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Living State entity | `tools/state.py:state_request` | Postgres `state_entities`, key `infra:constitution` (body.content, body.version_label, append-only amendment records) | kd_session_open boot payload; ops console | Boot source of truth. Optimistic `expected_version` on every write. |
 | Git mirror | `ai-market-backend:docs/core/CORE.md` | git, backend main | Railway auto-deploys backend on push (docs-only change still rebuilds) | Mirrors the entity byte-for-byte. On divergence the entity wins (G-02). |
 | Boot delivery | `tools/session.py:kd_session_open` | Titan-1 `registry.db` | both instances on every open | 46,000-char wire budget; §3 marker assertion; constitution_source=db. |
-| Council gate | `tools/agents.py:council_request` | council task logs | CC / DeepSeek / GLM voters | 3/3 valid unanimous verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
+| Council gate | `tools/agents.py:council_request` | council task logs | CC / Kimi / GLM voters | 3/3 valid unanimous verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
 
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan / Mars | dispatch the amendment diff to each voter | `council_request` (agent=cc, deepseek, glm) | MCP session | COMPLETE |
+| Vulcan / Mars | dispatch the amendment diff to each voter | `council_request` (agent=cc, kimi, glm) | MCP session | COMPLETE |
 | Vulcan / Mars | apply the entity patch | `state_request` action=patch | MCP session (boot-gated) | COMPLETE |
 | Vulcan / Mars | commit + push the git mirror | `shell_request` (git; `KD_ALLOW_MAIN_PUSH=1` on the push) | Titan-1 shell | COMPLETE |
 | Max | final approval / veto | direct instruction in session | human | COMPLETE |
@@ -53,9 +53,9 @@ YAML frontmatter above is authoritative for the §A header fields.
     - Exact old→new wording drafted (verbatim strings, not a paraphrase)
     - The §3 comms marker text is untouched by the diff
     - Projected content size under 46,000 chars
-  tool_or_endpoint: council_request (three dispatches, agent=cc / deepseek / glm)
+  tool_or_endpoint: council_request (three dispatches, agent=cc / kimi / glm)
   argument_sourcing:
-    diff: the exact old→new wording inline in each prompt (GLM and DeepSeek have no filesystem access)
+    diff: the exact old→new wording inline in each prompt (GLM and Kimi have no filesystem access)
     verdict_enum: offer APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE | REQUEST_CHANGES | REJECT verbatim
   idempotency: IDEMPOTENT
   expected_success:
@@ -132,7 +132,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | F-01 | Entity patch rejected with a version conflict | concurrent write to infra:constitution between get and patch | re-run state_request get; compare returned version vs the expected_version sent | G-01 | CONFIRMED |
 | F-02 | Git file and entity content diverge | one side edited without the other, or a retyped (not file-read) patch introduced drift | byte-compare `git show origin/main:docs/core/CORE.md` vs entity body.content | G-02 | CONFIRMED |
 | F-03 | Boot-contract CI test fails after an amendment | §3 comms marker text altered, or constitution dropped/truncated in the boot payload | run `tests/integration/test_constitution_comms_invariant.py` in koskadeux-mcp; grep content for the marker string | G-03 | CONFIRMED |
-| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing cwd/inline diff for GLM/DeepSeek | inspect each council task result; classify per agent-dispatch.md / codex-mp.md §F | | CONFIRMED |
+| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing cwd/inline diff for GLM/Kimi | inspect each council task result; classify per agent-dispatch.md / codex-mp.md §F | | CONFIRMED |
 | F-05 | Push to backend main prints a GUARDRAIL refusal yet may have landed | pre-push hook emits the refusal text even on a KD_ALLOW_MAIN_PUSH=1 push that succeeds (observed S1242, commits 356a2dfe and 6851a671) | `git fetch origin && git log -1 origin/main`, and confirm via the GitHub API commits/main | | CONFIRMED |
 
 ## §G. Repair
@@ -168,7 +168,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 ### §H.1 Invariants
 
-- Every CORE.md change — including editorial — requires a unanimous Council gate (CC, DeepSeek, GLM; 3/3 valid verdicts) AND Max's direct approval. No reduced quorum, no voter substitution, no builder vote (Max directive S1242; CORE v9.11 footer).
+- Every CORE.md change — including editorial — requires a unanimous Council gate (CC, Kimi, GLM; 3/3 valid verdicts) AND Max's direct approval. No reduced quorum, no voter substitution, no builder vote (Max directive S1242; CORE v9.12 footer; voter roster set S1319).
 - The §3 comms-invariant marker text stays verbatim; the boot-contract test enforces it.
 - `infra:constitution` is the boot source of truth; the git file is a mirror.
 - Total content stays under the 46,000-char boot wire budget.
