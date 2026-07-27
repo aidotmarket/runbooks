@@ -74,7 +74,12 @@ The YAML frontmatter above defines the §A header. This runbook documents stable
 
 ### §A.1 Consolidation ownership and revision policy (S612, folded from the retired root copy)
 
-Carried verbatim from the retired root copy. Two things to know before reading it. The four-way §A–§D sub-section layout this block mandates is not the §A–§K structure this document actually uses, and §A–§K is what `CATALOG.json` and strict lint enforce. The mapping between the two layouts was never written down and is not invented here. The revision policy in the block stands: new failure surfaces are filed as revisions to this runbook, not as new build-queue items.
+Historical text carried verbatim from the retired root copy. Its former
+MP/AG/DeepSeek reviewer roster and Council-R1 approval rule are superseded and
+grant no current dispatch or voting authority. The only surviving operational
+point is that new dispatch failure surfaces are filed as revisions to this
+runbook rather than as new build-queue items. Current revisions follow the live
+CC/Kimi/GLM review panel from `infra:council-comms`.
 
 >
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for agent dispatch reliability after the S612 consolidation that collapsed ~20 process BQs into BQ-PROCESS-AGENT-DISPATCH-RELIABILITY-S612 (P0). Per MP review mandate, content is organized under four explicit sub-sections; existing body sections map into these per the survivor BQ body.absorbed_bqs subsection field. Future failure surfaces file as revisions to this runbook, NOT as new BQs.
@@ -94,7 +99,7 @@ Carried verbatim from the retired root copy. Two things to know before reading i
 | `council_request` unified dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_call_*` | Koskadeux MCP dispatch integration coverage | 2026-04-29 |
 | `dispatch_mp_build` background build dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_dispatch_mp_build` | MP background dispatch smoke coverage | 2026-04-29 |
 | `council_hall` deliberation dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | Council Hall transcript dispatch coverage | 2026-04-29 |
-| Codex CLI backend for MP | SHIPPED | `koskadeux-mcp/dispatch_codex_cli.py` | Codex CLI dispatch path exercised by MP build/review tasks | 2026-04-29 |
+| Codex CLI backend for MP | SHIPPED | `koskadeux-mcp/dispatch_codex_cli.py` | Codex CLI dispatch path exercised by MP build tasks | 2026-04-29 |
 | Gemini/AG server backend | SHIPPED | `koskadeux-mcp/antigravity_client.py` | AG server health + task dispatch coverage | 2026-04-29 |
 | DeepSeek server/API backend | SHIPPED | `koskadeux-mcp/deepseek_server.py` | DeepSeek review-schema and server health coverage | 2026-04-29 |
 | Claude Code backend for CC | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_call_cc` | CC background task dispatch coverage | 2026-04-29 |
@@ -115,7 +120,7 @@ Carried from the retired root copy and corrected at S1351 against live `infra:co
 > HISTORICAL, superseded: the panel was CC + DeepSeek + GLM from S1213, activated at S1223 (49739a44 merged to koskadeux-mcp main as d370d65c, gateway restarted on the merged SHA, live per-voter proof CC/DeepSeek/GLM all APPROVE plus fail-closed quorum verification inside the Chunk 5 freeze; Vulcan ratification peer msg #1178). That record is retained as history and must not be read as current roster state. Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
 
 Per-agent:
-- **MP**: mandatory builder for both instances; never substituted; never votes on its own work; explicit review dispatch remains available but MP is NOT a gate voter.
+- **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
 - **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
 - **Kimi**: gate voter, review-only, with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `2db3201d` on koskadeux-mcp `fdf50693`.
 - **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per §H.2) plus Max approval.
@@ -254,20 +259,20 @@ input-schema rejection. It is also distinct from the AG review **ref-resolution*
 
 ### §C.1 Architecture: MP Codex CLI bridge and timeout knobs (was root copy §C)
 
-MP build and review dispatches use the Codex CLI bridge. For
-`council_request agent=mp mode=build`, `council_request agent=mp mode=review`,
-and `dispatch_mp_build`, the default backend path is now
-`dispatch_codex_cli_streaming`.
+MP build dispatches use the Codex CLI bridge. For
+`council_request agent=mp mode=build` and `dispatch_mp_build`, the default
+backend path is `dispatch_codex_cli_streaming`. Retained MP review/open-response
+handler code is not current gate authority and must not be used for a gate vote.
 
 The streaming bridge launches Codex CLI with `subprocess.Popen`,
 `start_new_session=True`, and disk-backed output capture. It monitors progress
 from three signals: the final output file, the stdout transcript, and
 `cwd/task_state.md` when present. Any mtime or size growth counts as progress.
 
-`council_request agent=mp mode=open_response` now returns immediately with a
-`dispatch_async` task ID. The background closure still calls `run_codex_cli`
-and preserves the shaped envelope; callers poll `council_request action=check_build`.
-Direct `run_codex_cli` callers retain fixed-deadline semantics for backward
+The retained non-gate `council_request agent=mp mode=open_response` handler
+returns a `dispatch_async` task ID, but it cannot supply review or voting
+authority. The background closure still calls `run_codex_cli`; direct
+`run_codex_cli` callers retain fixed-deadline semantics for backward
 compatibility.
 
 Timeout knobs:
@@ -289,13 +294,13 @@ Timeout knobs:
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | dispatch from Codex CLI | Codex CLI / GPT-5.5 | full repo write | COMPLETE |
+| MP | mandatory build dispatch from Codex CLI | Codex CLI / GPT-5.5 | full repo write only in explicit build/author mode | COMPLETE |
 | AG | dispatch from `antigravity_client.py` | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | dispatch from Claude Code wrapper | Claude Code / Opus | full repo write, 600s timeout | COMPLETE |
+| CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
 | Kimi | dispatch through the shared provider read-only review loop | Moonshot API (OpenAI-compatible) / kimi-k3 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read and binding-verdict proof `2db3201d` |
 | GLM | dispatch through the shared provider read-only review loop | OpenRouter / z-ai/glm-5.2 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read, terminal repair, and binding-verdict proof `ff0f2f67` |
-| Vulcan | dispatch orchestration | Anthropic API / MCP tools | gateway, LS, all repos | COMPLETE |
+| Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
 This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and retired from voting at S1321. The live gate voter panel is CC + Kimi + GLM and is recorded in §B.1, with `infra:council-comms` canonical.
@@ -307,7 +312,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 
 ```yaml operate
 - id: E-01
-  trigger: A BQ chunk requires MP to build or audit a dispatch-scoped change.
+  trigger: A BQ chunk requires MP to build a dispatch-scoped change.
   pre_conditions: [feature_branch_exists, target_repo_clean_or_intentionally_dirty, relevant_specs_read, BQ_entity_has_body_summary]
   tool_or_endpoint: dispatch_mp_build(task=<prompt>, cwd=<repo>, branch=<branch>, timeout=300)
   argument_sourcing:
@@ -317,7 +322,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     timeout: use the configured MP background timeout unless the BQ states otherwise
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(branch + prompt_digest + target_commit)
-  expected_success: {shape: background task id plus committed artifact or audit verdict, verification: "compare git HEAD, task transcript, and BQ build summary"}
+  expected_success: {shape: background task id plus committed artifact, verification: "compare git HEAD, task transcript, and BQ build summary"}
   expected_failures:
     - {signature: gateway_timeout, cause: task exceeded synchronous endpoint limit}
     - {signature: stale_task_state, cause: files committed but dispatcher status did not refresh}
@@ -438,17 +443,17 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 - id: G-02
   symptom_ref: F-02
   component_ref: AG Backend
-  root_cause: AG stopped making progress before returning a review verdict.
+  root_cause: A live-state-authorized non-gate AG advisory dispatch stopped making progress before returning advice.
   repair_entry_point: koskadeux-mcp/antigravity_client.py
-  change_pattern: Narrow the prompt, require read-only mode, restart AG server if health is bad, and redispatch once.
-  rollback_procedure: Cancel or supersede the timed-out task id in the review record.
-  integrity_check: Verify the replacement verdict and any line citations against the changed files.
+  change_pattern: Re-read infra:council-comms; only if it still explicitly permits AG advisory work, narrow the prompt, require read-only mode, repair health if needed, and redispatch once as non-gate advice. Never use the result as voter coverage.
+  rollback_procedure: Cancel or supersede the timed-out advisory task id; preserve the gate as failed closed until CC/Kimi/GLM evidence is complete.
+  integrity_check: Verify the replacement advice and citations, label it non-gate, and confirm it was not added to the voter set.
 - id: G-03
   symptom_ref: F-03
   component_ref: MP Backend
   root_cause: MP dispatches are queued behind the Codex CLI mutex.
   repair_entry_point: koskadeux-mcp/dispatch_codex_cli.py
-  change_pattern: Wait for the active MP task or schedule non-blocking work with another read-only reviewer; do not treat queueing alone as failure.
+  change_pattern: Wait for the active MP build task; independent CC/Kimi/GLM review work may proceed in its own lane, but no voter may substitute for another and queueing alone is not failure.
   rollback_procedure: None unless a duplicate task was dispatched; then cancel the duplicate and keep the oldest valid task.
   integrity_check: Confirm task ordering and that the accepted result corresponds to the intended prompt digest.
 - id: G-04
@@ -896,9 +901,9 @@ is absent, obtain Max approval and re-commit or update the PR body with the
 trailer before merging.
 
 This restriction is additive to the operator runbook requirements in §A-§K.
-Follow the existing dispatch, repair, plus-one, and conflict-adjudication rules;
-the sandbox only narrows what AG review mode may execute while those procedures
-remain in force.
+Follow the current dispatch and repair rules. Historical plus-one and
+DeepSeek-conflict procedures below do not remain in force; the sandbox only
+narrows an explicitly live-state-authorized non-gate AG advisory dispatch.
 
 ## §M.1 Agent sub-sessions must NOT run the human session lifecycle (S855)
 
@@ -988,9 +993,14 @@ Failure modes:
   or closed. Preserve the adapter result when fail-open is intentional, and make
   fail-closed behavior explicit in the caller.
 
-## §P DeepSeek Context-Access Auto-Resolution Layer
+## §P Historical DeepSeek Context-Access Auto-Resolution Layer (superseded)
 
-When `council_request agent=deepseek mode=review` is dispatched,
+Everything in this section documents retained pre-retirement behavior only.
+DeepSeek is retired and must not be dispatched for current gate coverage. The
+fallback and truncation behavior below is not an authorized current review
+procedure.
+
+Historically, when `council_request agent=deepseek mode=review` was dispatched,
 `deepseek_server.py` auto-extracts any commit SHA from the task prompt, fetches
 the diff via `git show` at that SHA in the configured `repo_root`, validates
 cited file paths against `git ls-tree`, and prepends a structured
@@ -1001,7 +1011,7 @@ The default `repo_root` is `/Users/max/koskadeux-mcp`, set in
 must pass the `cwd` parameter explicitly, pointing at the repo that contains the
 cited SHA.
 
-Now structurally enforced — see §Q.
+This was structurally enforced for the former backend — see §Q.
 
 Prelude format:
 
@@ -1031,11 +1041,11 @@ END RESOLVED REPO CONTEXT
 <original task_body follows>
 ```
 
-If the diff exceeds the auto-cap, the `FULL DIFF` header is marked
+In the former path, if the diff exceeded the auto-cap, the `FULL DIFF` header was marked
 `(truncated)` and the diff body ends with an explicit truncation marker. The
 default cap is 10K tokens, approximated as about 40K chars.
 
-Fallback paths do not break dispatch:
+Historical fallback behavior did not break dispatch:
 
 - No SHA in prompt: prompt is sent unchanged.
 - Invalid `repo_root`: prompt is sent unchanged and a warning is logged.
@@ -1043,9 +1053,9 @@ Fallback paths do not break dispatch:
 - Over-cap diff: diff is truncated with an explicit marker, then dispatch
   continues.
 
-Belt-and-suspenders manual diff inlining still works for very-large diffs that
-exceed the auto-cap. Use it only when the operator needs to provide a narrower
-or more curated context than the automatic `git show` prelude can carry.
+Manual diff inlining belonged to that former path and must not be used as
+current gate evidence. Current Kimi and GLM voters use only the bounded
+exact-SHA four-tool loop; CC uses its pinned read-only review path.
 
 Design references:
 
@@ -1199,12 +1209,12 @@ same branch.
 
 ## §T — MP Spec-File Dispatch Standard (canonical, S827)
 
-Canonical pattern for any MP dispatch grounded in a spec (Max directive S826, probe-verified S827; Living State: `infra:council-comms.mp_spec_file_dispatch_standard`).
+Canonical pattern for an MP build dispatch grounded in a spec (Max directive S826, probe-verified S827; Living State: `infra:council-comms.mp_spec_file_dispatch_standard`). MP does not use this pattern for gate review.
 
 Reference the COMMITTED spec path at a pinned commit SHA — never a bare path, never long specs pasted inline (Codex /goal objectives cap at 4,000 chars; real specs do not fit). Required thin-contract wrapper elements:
 
 1. Read instruction: "use `git show <SHA>:<path>` — do not trust the working tree".
-2. Scope guards: READ-ONLY for reviews, plus the S452 prefix (DO NOT git add/commit/push/modify) — MP treats READ-ONLY as advisory.
+2. Scope guards: the explicit build/author file boundary and prohibited out-of-scope paths.
 3. Output contract: numbered parts, §-citation requirement against the spec's own section numbers.
 4. Untruncated-read proof: demand the exact first and last line of the file verbatim.
 5. Explicit stop condition.
@@ -1637,7 +1647,11 @@ Conflict events from historical rounds remain readable, but their roster does
 not authorize a current dispatch.
 
 
-## §Z Conflict Adjudication Procedure (was root copy §K)
+## §Z Historical DeepSeek Conflict Adjudication Procedure (superseded)
+
+This procedure applies only when interpreting legacy MP/AG plus DeepSeek rounds.
+It cannot unblock or authorize a current gate. Current CC/Kimi/GLM disagreement
+returns through the current Council process and ultimately to Max.
 
 When a `verdict_conflict` event exists, dispatch remains blocked until one of
 the ledgered resolution paths lands:
