@@ -1,101 +1,121 @@
 # T-2026-000422 — Lossless Peer Bus Gate 1
 
-Status: `AUTHORED_PENDING_REVIEW_R3`
+Status: `AUTHORED_PENDING_REVIEW_R4`
 
 Owner: Vulcan S1373  
 Evidence author: Mars (excluded from review)  
 Builder: MP/Codex (excluded from review)  
 Required independent reviewers: CC, Kimi, GLM
 
-## 1. Decision
+## 1. Decision and guarantee
 
 Replace destructive unread consumption with an append-only, recipient-receipted
 message log.
 
-For every message committed after cutover:
+For every peer-message insert that commits after cutover:
 
-- the row and body remain durably queryable;
-- reading or rendering never advances delivery;
-- one complete message is offered with one opaque recipient-bound token;
+- the immutable row remains durably queryable;
+- reads, frames, crashes, truncation, retries, and mode changes never mark it
+  delivered;
+- a stable 256-bit token is bound to that one message and recipient;
 - only an explicit idempotent receipt advances transport state;
-- an unreceipted message is offered again;
-- semantic acknowledgement remains separate.
+- an unreceipted row stays pending and receives further complete delivery
+  opportunities;
+- requests/alerts still require a separate semantic acknowledgement.
 
-The gateway does not block substantive work while delivery is pending. It
-reserves output space for one complete message frame, appends the frame, and
-continues replay/rotation until a receipt arrives. This removes both silent loss
-and the lockout introduced by the round-2 delivery-only-turn design.
+Duplicate presentation is expected and harmless. Consumers key behavior by
+stable message id. A duplicate frame or receipt never repeats a privileged
+effect.
 
-The guarantee begins after a peer-message insert commits. Send-side
-deduplication and the known pre-persistence path remain T-2026-000339 / F-07 /
-G-07 and are not certified here.
+Receipt is a mandatory protocol action, but a missing receipt does not lock the
+operator out of health, recovery, peer communication, or ordinary local work.
+The gateway periodically gives a complete delivery-only turn and blocks only
+privileged state-changing effects after bounded nonreceipt. If the recipient
+never receipts, the message remains durably pending forever and no delivery
+claim is made; convergence necessarily requires recipient cooperation.
+
+The guarantee begins after insert commit. Send-side deduplication and the known
+pre-persistence path remain T-2026-000339 / F-07 / G-07.
 
 ## 2. Verified fault
 
-The ticket's measured rows prove an unsafe boundary, not an intentional
-non-ack-kind filter:
+The ticket proves an unsafe boundary, not an intentional non-ack-kind filter:
 
 - the exact formatter renders every row it receives;
 - automatic injection and explicit inbox use the same consuming path;
-- the backend commits `consumed_at` before the gateway or model proves receipt;
+- the backend commits `consumed_at` before recipient receipt;
 - only semantically unacknowledged request/alert rows remain selectable;
 - S1373 live injection displayed ordinary status message `#2027`.
 
 The historical claim/status disappearance with request replay is consistent with
-either a wholly dropped response after the consuming commit or a post-commit
-partial-render/truncation event. Existing evidence does not distinguish them.
-The before-fix suite must reproduce both separately.
+either a wholly dropped response after commit or post-commit partial rendering.
+Existing evidence does not distinguish them. The before-fix suite reproduces
+both separately.
 
-## 3. Guarantee and invariants
+## 3. Binding invariants
 
-1. `peer_messages` is an immutable append-only log under this design. No T-422
-   code path deletes a row or changes its body, kind, sender, recipient, or id.
-2. Fetch, peek, offer creation, rendering, timeout, disconnect, crash,
-   truncation, replay, quarantine, and mode transition never set delivery
-   received.
-3. An active offer contains exactly one complete message. Its token can receipt
-   only that message for the bound recipient.
-4. Receipt authority comes only from the active session binding established by
-   `kd_session_open`; there is no caller-supplied instance parameter.
-5. Every well-formed unreceipted post-cutover row remains eligible for
-   deterministic replay/rotation.
-6. A partial or missing response without a receipt changes no delivery state.
-7. `requires_ack` and message kind retain their present meaning. All kinds
-   require transport receipt; only request/alert require semantic ack.
-8. Transport pending and semantic pending have separate selection, counts,
-   response sections, and state transitions.
-9. Automatic injection and explicit inbox call the same non-consuming offer
-   implementation.
-10. Legacy rows whose receipt cannot be proved stay explicitly
-    `legacy_unverified`; they are preserved and queryable, never silently
-    certified as delivered.
-11. Quarantine preserves content and is never delivery, acknowledgement,
-    pruning, or deletion.
-12. Backend or gateway uncertainty never advances delivery state.
+1. `peer_messages` is immutable and append-only. No T-422 path deletes a row or
+   changes body, kind, sender, recipient, ref, or id.
+2. Every successfully committed post-cutover row satisfies database-enforced
+   size/member constraints and enters either live pending or an explicit
+   critical parked state. No row is silently excluded.
+3. Fetch, selection, frame creation, presentation, timeout, disconnect, crash,
+   truncation, retry, quarantine, parking, and mode transition never set
+   `delivery_received_at`.
+4. One token maps to exactly one immutable message and recipient.
+5. Receipt authority comes only from the active `kd_session_open` session
+   binding. There is no caller-supplied instance or message id.
+6. Missing/partial responses without a receipt change no delivery state.
+7. All kinds require transport receipt; only request/alert require semantic ack.
+8. Transport, semantic, parked, quarantined, and legacy-unverified views and
+   counts are separate.
+9. Automatic scheduling and explicit inbox use the same selector and frame.
+10. Legacy receipt uncertainty remains visible and queryable, never certified.
+11. Quarantine/parking preserves the row and is not receipt, ack, or deletion.
+12. Backend/gateway uncertainty never advances delivery state.
+13. Duplicate frames and receipts are idempotent and harmless.
 
-## 4. Ground-truth snapshot and size boundary
+## 4. Exact persistence and frame bounds
 
-The S1373 authenticated production read, without exposing bodies, found:
+The S1373 authenticated production snapshot, without exposing bodies, found
+1,310 retained rows (ids 651–2031), 2 legacy-unconsumed rows, 2 semantically
+unacknowledged request/alert rows, and a maximum body of 7,842 UTF-8 bytes.
+Those rows are legacy and remain accessible through the legacy view.
 
-- 1,310 retained rows, ids 651 through 2031;
-- 2 rows still legacy-unconsumed;
-- 2 request/alert rows still semantically unacknowledged;
-- maximum retained UTF-8 body size 7,842 bytes.
+Post-cutover sends enforce at gateway, backend model, and database CHECK:
 
-New sends are rejected before persistence when `body` exceeds 8,192 UTF-8 bytes.
-Backend request validation and gateway tool validation use the same named
-constant and test 8,192 success / 8,193 refusal.
+- `body`: at most 6,000 UTF-8 bytes;
+- `ref_entity`: null or at most 256 UTF-8 bytes;
+- sender/recipient/kind/priority: existing fixed enums;
+- message id: signed 64-bit positive integer;
+- created timestamp: canonical UTC RFC3339.
 
-One offer contains one message. `PEER_OFFER_MAX_BYTES` is 10,240 UTF-8 bytes,
-including metadata, framing, and the fixed 43-character token. Before offer
-creation the gateway serializes with a 43-character placeholder and requires the
-complete frame to fit. The final combined tool response is byte-aware and
-limited to 50,000 UTF-8 bytes: the primary tool result is safely reduced first
-to reserve the exact serialized offer size. The offer frame is never passed
-through middle truncation.
+The delivery frame is length-prefixed plain UTF-8, not an escaped inner JSON
+document. Its decoded-text worst-case budget is:
 
-If one valid 8,192-byte body cannot fit the offer cap, the gateway creates no
-offer, emits `PEER_OFFER_SIZE_INVARIANT`, and leaves the row pending.
+| Component | Maximum bytes |
+|---|---:|
+| Body | 6,000 |
+| Ref entity | 256 |
+| Token | 43 |
+| Id/from/to/kind/priority/ack/timestamp values | 160 |
+| Fixed labels, lengths, delimiters, receipt instruction | 541 |
+| Total `PEER_FRAME_MAX_BYTES` | 7,000 |
+
+The outer MCP JSON worst case is also tested: every body/ref byte chosen from
+JSON's six-byte escape class still serializes below the existing 50,000-byte
+transport cap. A delivery opportunity returns only this frame, so no primary
+tool result is reduced, mixed, or corrupted.
+
+The gateway serializes with a 43-character placeholder before token creation and
+requires both decoded frame `<= 7,000` and outer response `< 50,000`. The build
+contains an exhaustive maximum-field fixture including control characters.
+
+If a committed row violates the supposedly impossible frame invariant, the
+backend atomically sets `delivery_parked_at/reason=frame_invariant`, raises a
+critical alert containing id but no body, excludes it from head-of-line
+selection, and advances to the next row. Parking never marks delivery; admin
+repair/requeue is required.
 
 ## 5. Durable schema
 
@@ -104,458 +124,460 @@ Add to `peer_messages`:
 - `delivery_received_at timestamptz null`
 - `delivery_attempt_count integer not null default 0`
 - `last_delivery_attempt_at timestamptz null`
-- `delivery_quarantined_at timestamptz null`
-- `delivery_quarantined_by text null`
-- `delivery_quarantine_reason text null`
+- `delivery_quarantined_at/by/reason`
+- `delivery_parked_at/reason`
 
-`acked_at` remains semantic request/alert acknowledgement. `consumed_at` is
-legacy-only evidence and is ignored by enforced selection.
+`acked_at` remains semantic ack. On accepted transport receipt,
+`consumed_at = coalesce(consumed_at, delivery_received_at)` is written solely for
+legacy compatibility; enforced selection ignores it.
 
-Add `peer_message_delivery_offers`:
+Add `peer_message_delivery_offers`, exactly one row per message:
 
-- `offer_id uuid primary key`, internal and never used as the receipt token;
-- `offer_token char(43) not null unique`;
-- `to_instance text not null`;
-- `message_id bigint not null references peer_messages(id)`;
-- `state text not null` constrained to `active`, `received`, `superseded`;
-- `created_at`, `receipted_at`, `superseded_at`;
-- `render_attempt_count integer not null default 0`;
-- `last_render_attempt_at timestamptz null`;
-- a partial unique index allowing one active offer per recipient.
+- `offer_id uuid primary key`
+- `offer_token char(43) not null unique`
+- `message_id bigint not null unique references peer_messages(id)`
+- `to_instance text not null`
+- `state` constrained to `pending`, `active`, `received`, `quarantined`,
+  `parked`
+- `created_at`, `first_offered_at`, `last_offered_at`, `received_at`
+- `offer_count integer not null default 0`
+- partial unique index: at most one `active` row per recipient.
 
-The token is exactly 32 cryptographically random bytes encoded as unpadded
-base64url: 43 ASCII characters matching `^[A-Za-z0-9_-]{43}$`. It is a
-capability-bearing identifier shown only to the addressed instance. The token
-column and offer history remain retained with the message log so duplicate
-receipts stay idempotent; no token expiry or token tombstone pruning exists in
-T-422.
+The token is exactly 32 cryptographically random bytes as unpadded base64url:
+43 ASCII characters matching `^[A-Za-z0-9_-]{43}$`. It never expires or changes.
+Rotation updates the same one-per-message row; it does not create offer history.
+Offer storage is therefore bounded by message count, not elapsed checks.
 
 Add `peer_bus_instance_state`:
 
 - `instance` primary key;
-- `mode` constrained to `legacy`, `shadow`, `enforced`;
+- `mode`: `legacy`, `shadow`, `enforced`, `safe_readonly`;
 - `cutover_message_id bigint null`;
-- `mode_changed_at`, `mode_changed_by`, `mode_change_reason`;
-- `consecutive_degraded_checks integer not null default 0`.
+- `mode_changed_at/by/reason`;
+- `calls_since_delivery_opportunity integer not null default 0`;
+- `last_priority_served` nullable `high|normal`.
 
-`cutover_message_id` is set exactly once, during the first `legacy -> shadow`
-transition, to the recipient's current maximum id under the same transaction
-lock. It is immutable across rollback and re-enablement.
+`cutover_message_id` is null throughout shadow. It is set once at the atomic
+cutover and immutable thereafter.
 
-Add `peer_bus_legacy_manifest`:
+Add `peer_bus_legacy_manifest` with recipient, cutover id, count, min/max id,
+ordered digest, creation time, actor/session.
 
-- recipient;
-- immutable cutover id;
-- row count, minimum id, maximum id;
-- ordered SHA-256 digest over `(id, body_sha256)` tuples;
-- creation time and verified actor/session.
+Manifest digest is reproducible without a new body-hash column:
 
-The manifest is evidence and indexing metadata. It never marks legacy rows
-received.
+1. UTF-8 encode body exactly as stored, with no normalization;
+2. compute lowercase hex `sha256(body_bytes)`;
+3. for ascending id, append ASCII
+   `<decimal_id>:<64-hex-body-digest>\n`;
+4. manifest digest is lowercase hex SHA-256 of that concatenation.
 
-No migration backfills `delivery_received_at` from `consumed_at`.
+No migration infers delivery from `consumed_at`.
 
-## 6. Identity and receipt classification
+## 6. Identity and exhaustive receipt outcomes
 
-The model-facing tool is:
+Model-facing tool:
 
 `peer_msg_delivery_receipt(offer_token)`
 
-It has no `instance`, message-id, or override argument.
+It has no instance, message-id, mode, or override argument. The gateway resolves
+the active registry session and sends that bound recipient over the
+service-authenticated internal API.
 
-The gateway resolves the caller from the active registry session and request
-context established by `kd_session_open`, then submits the bound recipient to
-the service-authenticated backend. The backend locks the offer and verifies
-`to_instance`.
-
-Receipt outcomes:
-
-| Input/state | Outcome |
+| Condition | Result |
 |---|---|
-| No resolvable active session | `unbound_session`; benign fail-closed; no security event |
-| Token wrong length/alphabet | `malformed_token`; 422; no lookup or state change |
-| Well-formed token absent from retained offer log | `unknown_token`; hard refusal and security event |
-| Correct token, wrong bound recipient | hard refusal and security event |
-| Active token, correct recipient | atomically receipt the one message and offer |
-| Received token, correct recipient | idempotent success with the same message id |
-| Superseded token, correct recipient | `stale_offer`; no state change; message remains pending |
-| Offer/message recipient or quarantine invariant failure | atomic hard refusal; no partial state |
+| Backend unreachable | gateway `peer_bus_unavailable`; no backend state change |
+| Mode `legacy` or `shadow` | `mode_not_enforced`; no state change |
+| No active session binding | `unbound_session`; benign fail-closed |
+| Bad length/alphabet | `malformed_token`; 422, no lookup |
+| Well-formed absent token | `unknown_token`; hard refusal + security event |
+| Wrong bound recipient | hard refusal + security event |
+| Token row `quarantined` | `quarantined_message`; no delivery |
+| Token row `parked` | `parked_message`; no delivery |
+| Token row `pending` or `active`, correct recipient, mode `enforced`/`safe_readonly` | atomic receipt |
+| Token row `received`, correct recipient | idempotent success, same message id |
+| Offer/message recipient mismatch or corrupt state | atomic hard refusal |
 
-Any tool argument, query parameter, or client header attempting to replace the
-active binding is rejected and security-logged. Enforced mode is blocked until
-integration tests prove Vulcan cannot receipt Mars's token and vice versa,
-including forged argument/header attempts.
+Receipt locks instance state, offer, and message; rechecks quarantine/parking;
+sets message `delivery_received_at`, compatibility `consumed_at`, offer
+`state=received/received_at`; never sets semantic `acked_at`.
 
-## 7. Non-consuming selection and one-message offers
+Forged arguments, query parameters, or headers cannot replace the active
+binding. Cross-recipient integration tests are a cutover prerequisite.
 
-### 7.1 Separate views
+## 7. Per-turn check, scheduler, and delivery opportunities
 
-The backend reports:
+### 7.1 Every-turn truth check
 
-- `live_transport_pending_count`: unquarantined rows above the immutable cutover
-  id with `delivery_received_at is null`;
-- `legacy_unverified_count`: rows at or below cutover with
-  `delivery_received_at is null`;
-- `semantic_pending_count`: every request/alert with `acked_at is null`,
-  regardless of transport or legacy state;
-- current backend-owned mode;
-- an existing active offer, or the next live candidate.
+Every tool turn performs a backend peer-bus check before substantive dispatch.
+There is no TTL suppression, proof-of-empty cache, or local unread cursor.
+Backend-unavailable behavior is section 11; it never advances delivery.
 
-Only the chosen candidate id is exposed. Counts are scalars; withheld ids are
-not returned. Semantic reminders are a separate section and never enter a
-transport offer.
+The check returns scalar live/legacy/semantic/quarantined/parked counts, mode,
+and the next candidate only. Hidden live ids are not exposed.
 
-Selection for live candidates is deterministic:
+### 7.2 Bounded delivery cadence
 
-1. high priority before normal;
-2. never-before-offered (`last_delivery_attempt_at is null`) before replayed;
-3. oldest `last_delivery_attempt_at`;
-4. ascending id.
+For an ordinary eligible tool call with pending live messages:
 
-This is a round-robin pending log with priority, not a slot/byte partition. One
-valid candidate always fits by the size invariant.
+1. calls 1–2 execute normally and return their untouched result;
+2. call 3 is a delivery opportunity: the substantive tool is not executed and
+   the gateway returns one complete delivery-only frame;
+3. the caller receipts the token, then retries its original tool;
+4. the three-call cadence repeats while pending remains.
 
-### 7.2 Active-offer replay and rotation
+Thus at most one in three ordinary calls is displaced, and no substantive result
+is truncated. Receipt, semantic ack, peer send, peer status, session
+open/plan/recovery, health, and explicit inbox tools are never displaced.
 
-An active offer is replayed for at most three successful gateway render
-attempts. On each successful offer fetch, in a telemetry-only transaction:
+An explicit inbox call is itself an immediate delivery opportunity.
 
-- increment the offer's `render_attempt_count`;
-- increment the message's `delivery_attempt_count`;
-- set both last-attempt timestamps.
+Privileged state-changing tools (dispatch/build authorizations, merge, deploy,
+production mutation, and session close) require all already-offered overdue
+tokens for that recipient to be receipted first. They return the next complete
+frame instead of executing. After receipt they are retried. At 60 minutes
+without receipt, privileged effects remain frozen and a critical incident opens.
+A Max-authorized, ticketed, time-bounded suspension may allow the effect without
+marking any message delivered; frames and alerts continue.
 
-These writes never set `delivery_received_at`, `consumed_at`, or `acked_at` and
-are not part of the receipt transaction.
+Every frame states: receipt is the recipient's mandatory next protocol action.
+If the recipient never receipts, ordinary work remains possible, privileged
+effects stop after the bound, and the durable log continues cycling messages.
 
-At the fourth eligible check, the backend atomically supersedes the active offer
-without marking delivery and creates a new offer using the selection order.
-The prior message returns to the pending rotation. A high-priority message may
-preempt a normal active offer at the next check. A new normal message with `Q`
-never-before-offered normal messages ahead of it is offered within
-`4 * (Q + 1)` successful checks. `Q` is returned as a scalar at insertion/peek
-time and the pending-count alerts bound abnormal growth. This is the numeric
-starvation rule; the design makes no false four-check promise when a real queue
-already exists.
+### 7.3 Fair selection
 
-There is no time-based expiry. A delayed superseded token returns `stale_offer`;
-the message remains pending and will rotate again.
+At each delivery opportunity:
 
-Concurrent peek/create/rotate/receipt operations lock the instance-state row and
-active offer. The receipt either wins and records delivery, or rotation wins and
-the old token becomes stale. The partial unique index is the final one-active-
-offer guard.
+- if both priorities are pending, alternate high and normal using
+  `last_priority_served`;
+- if only one exists, serve it;
+- within a priority, choose never-offered first, then oldest
+  `last_delivery_attempt_at`, then ascending id.
 
-### 7.3 Exact render binding
+After the complete frame is issued, increment the message and stable offer
+counts/timestamps and move the previously active row back to `pending`; the new
+row becomes `active`. The token remains valid when pending, because it may have
+been seen before rotation.
 
-The gateway:
+With delivery opportunities every third eligible call:
 
-1. peeks without changing delivery state;
-2. serializes the one complete immutable record with a fixed 43-character token
-   placeholder;
-3. verifies the offer and combined-response byte bounds;
-4. requests an offer for that exact bound recipient/message id;
-5. receives the exact immutable row plus its 43-character token;
-6. asserts id/body/kind/sender/recipient parity with the preflight record;
-7. replaces the placeholder and appends the complete framed record after the
-   safely reduced primary response.
+- with one priority lane, a new row with `Q` same-lane never-offered rows ahead
+  is framed within `3 * (Q + 1)` eligible calls;
+- with both lanes continuously nonempty, it is framed within
+  `6 * (Q + 1)` eligible calls;
+- no high-priority stream can consume two consecutive delivery opportunities
+  while normal is pending.
 
-If a concurrent active offer already exists, the backend returns that exact
-offer and the gateway discards its preflight candidate. Automatic and explicit
-paths therefore converge on the same offer.
+These are conditional, testable bounds based on the scalar `Q` captured at
+selection. Privileged gating can accelerate delivery but never weaken bounds.
 
-Only the token for the displayed message is returned. The model calls receipt
-only after the complete frame is present. A lost or downstream-truncated
-response produces no receipt; the exact pending message remains in the log and
-replays/rotates. No design claim assumes downstream truncation is impossible.
+An explicit legacy offer is allowed only when no live row is pending. It uses
+the same stable token/counters and is displaced immediately by any newly live
+row at the next opportunity.
 
-### 7.4 Non-blocking behavior
+### 7.4 Exact offer creation and concurrency
 
-Pending or active offers never suppress the substantive tool result and never
-block `peer_msg_send`, session lifecycle/recovery, status, health, receipt,
-semantic ack, dispatch, or local work. Tool-specific authorization gates remain
-unchanged.
+The gateway preflights one immutable candidate with the token placeholder. The
+backend locks instance state and message, creates the one-per-message token row
+if absent, and atomically selects it active.
 
-If the offer check is unavailable or mode is unknown, the gateway appends
-`PEER_BUS_DEGRADED`, allows the substantive call, increments the local degraded
-counter when possible, and advances no delivery state.
+If concurrency returns a different active row, the gateway discards the first
+buffer, reserializes and revalidates the returned row/token against both bounds,
+then returns it. If parity or size fails, it parks that row and performs one
+fresh peek. A second conflict returns `PEER_BUS_DEGRADED` with no delivery
+change; the substantive tool is not run on a scheduled delivery opportunity.
 
-## 8. Legacy reconciliation without starvation
+Peek/create/frame never increments delivery receipt state. Lost or truncated
+frames without receipt simply leave the token pending for a later opportunity.
 
-The 1,310 retained unproved rows are not placed in the automatic live queue and
-are not called delivered. At the first shadow transition the backend creates the
-immutable per-recipient legacy manifest and verifies every row at or below the
-cutover id is queryable.
+## 8. Atomic cutover and legacy preservation
 
-The current data set requires at most three 500-row read pages. The rollout
-operation must finish manifest generation and independent count/digest
-verification within ten minutes or stop. Completion means every legacy row is
-preserved, indexed, and reconciled to the manifest; it does not mean delivered.
+Shadow qualification does not establish cutover and does not create a live
+post-cutover backlog. It runs the new selector/serializer in dry-run against a
+read snapshot while legacy delivery continues. The known at-most-once exposure
+therefore remains until cutover, is explicitly accepted only for a maximum
+30-minute qualification window, and T-2026-000422 remains open. Deletion is
+already disabled, so even a shadow delivery failure preserves the row for the
+legacy manifest.
 
-The explicit read-only tool `peer_msg_legacy_page(after_id, limit<=100)` exposes
-complete legacy rows without state changes. The optional
-`peer_msg_legacy_offer(message_id)` promotes one selected unreceived legacy row
-through the same one-message offer/receipt protocol; it cannot run while a live
-offer is active and never bulk-certifies rows.
+Shadow pass per recipient is 100 consecutive checks completed within 30 minutes,
+including status/claim/request canaries, with exact independent-query parity,
+zero new-state mutation, zero selector/frame errors, and all frame bounds met.
 
-Every turn surfaces only the scalar legacy-unverified count and the manifest
-reference, so old data remains discoverable without starving post-cutover
-traffic. Only a separately reviewed, Max-authorized disposition may quarantine
-legacy rows; no automatic cutoff, receipt, or deletion is allowed.
+All sends and cutover use the same recipient advisory lock:
 
-The two known semantically unacknowledged legacy request/alert rows remain in
-`semantic_pending_count` from the first shadow check because semantic selection
-does not depend on transport receipt.
+`peer_bus_cutover:<recipient>`
 
-## 9. Modes and transitions
+The cutover transaction waits for earlier send transactions, acquires the lock,
+sets the maximum committed id, creates/verifies the manifest, switches directly
+to `enforced`, and releases. A concurrent send either commits wholly before the
+watermark and is manifested legacy, or acquires the lock afterward and is live.
+There is no in-flight sequence-id straggler.
 
-The backend-owned per-instance mode is the only behavior switch:
+The measured 1,310-row snapshot requires three 500-row internal pages. At
+cutover the job pages until the then-current count is exhausted and must
+independently reconcile count/min/max/digest within ten minutes. Mismatch stops
+cutover.
 
-- `legacy`: old consume/injection continues for compatibility, while the new
-  tables are inert; message deletion is already disabled.
-- `shadow`: old consume/injection continues; the new selector runs read-only and
-  writes only comparison metrics. It creates no offers, exposes no tokens,
-  accepts no receipt (`mode_not_enforced`), and never changes delivery fields.
-- `enforced`: old consuming selection is disabled; the new non-consuming
-  offer/receipt protocol is authoritative.
+Legacy rows remain `legacy_unverified`, visible by scalar count and manifest.
+`peer_msg_legacy_page(after_id, limit<=100)` is read-only.
+`peer_msg_legacy_offer(message_id)` uses the normal stable-token protocol only
+when no live row is pending. No bulk receipt or automatic certification exists.
+Semantic pending includes every unacked request/alert regardless of legacy or
+transport state.
 
-Shadow pass requires, for each recipient, 100 consecutive successful checks over
-at least 24 hours, including at least one status, claim, and request canary, with:
+Legacy paging also applies a 40,000-byte decoded-output budget and returns only
+complete records plus a continuation id. A legacy offer preflights the actual
+record against the 50,000-byte outer cap; an exceptional row that cannot fit
+returns `legacy_frame_unsupported` with no state change and remains fully
+queryable by paged/admin storage access.
 
-- exact candidate/count parity against an independent SQL reference query;
-- zero mutation of offer or delivery fields;
-- every complete preflight frame at or below 10,240 bytes;
-- zero selector error and zero unknown mode.
+## 9. Modes and rollback-safe behavior
 
-Transition rules are transactional:
+- `legacy`: old consume path; new protocol inert; deletion disabled.
+- `shadow`: old consume path plus bounded dry-run comparator; no token/receipt
+  mutation and `cutover_message_id` remains null.
+- `enforced`: non-consuming scheduled frames and receipt are authoritative; old
+  consume path is disabled.
+- `safe_readonly`: rollback mode; old consuming injection remains disabled;
+  automatic scheduled frames are disabled, but explicit non-consuming inbox and
+  receipt remain available.
 
-- first `legacy -> shadow`: lock instance state, set immutable cutover id, create
-  the legacy manifest;
-- `shadow -> enforced`: require the shadow pass artifact and no active offer;
-- `enforced -> shadow`: supersede any active offer, requeue its message without
-  delivery, preserve cutover id and all receipt state;
-- re-enable: reuse the original cutover id; every unreceipted post-cutover row
-  accumulated during shadow remains live pending.
+Unknown/missing mode is degraded non-enforcing and never consumes.
 
-A missing/unreadable/unknown mode is degraded non-enforcing and advances no
-delivery state.
+Production schema downgrade is prohibited after any non-null cutover id. The
+backward migration is tested only on a fresh never-enforced database before
+release. Production rollback is a mode transition to `safe_readonly`, never an
+Alembic downgrade.
 
-## 10. Quarantine race and operator recovery
+`enforced -> safe_readonly` keeps stable offer tokens and all message/receipt
+state. There is no return to `consumed_at`-based injection, so already-received
+post-cutover history is not mass-replayed. Duplicate presentation remains
+harmless in all modes.
 
-Quarantine is admin-only, requires explicit Max authorization plus actor,
-reason, ticket, and recipient, and applies only to unreceipted rows.
+## 10. Quarantine, parking, and recovery
 
-The transaction locks instance state, the message, and any active offer:
+Quarantine is Max-authorized/admin-only and applies only to unreceipted rows.
+It locks instance, message, and offer:
 
-- if quarantine wins, it supersedes the active offer first, then sets quarantine
-  fields; all other pending rows remain eligible;
-- if receipt wins first, quarantine returns `already_received` and makes no
-  change;
-- receipt always rechecks quarantine under the same locks before delivery.
+- quarantine wins: set offer `quarantined`, message quarantine fields;
+- receipt wins: quarantine returns `already_received`;
+- receipt always rechecks quarantine.
 
-Quarantine excludes the row from automatic offers but keeps the complete
-append-only row, token history, manifest membership, and admin queryability.
-Requeue clears quarantine fields under an equally audited Max-authorized action.
-Neither action changes receipt or semantic ack state.
+Parking is automatic only for a violated database/frame invariant, emits an
+immediate critical incident, and advances scheduler selection. It is never
+delivery. Repair/requeue for parked or quarantined rows requires audited actor,
+reason, ticket, and Max authorization; it returns the stable offer to `pending`
+without changing receipt/semantic state.
 
-Because delivery is non-blocking and tokens do not expire, no receipt-specific
-operator escape is needed for liveness. Admin offer supersede remains available
-for a corrupt/stuck active offer; it requeues without marking delivery.
+## 11. Degraded-state authority and observability
 
-## 11. Numeric observability
-
-Metrics are per recipient and emit to the Event Ledger plus the existing
-SysAdmin alert channel:
+Backend-reachable metrics emit to Event Ledger and SysAdmin:
 
 | Signal | Warning | Critical |
 |---|---:|---:|
-| Oldest live pending age | 2 minutes | 10 minutes |
+| Oldest live pending age | 15 minutes | 60 minutes |
 | Live pending count | 20 | 100 |
-| Active offer render attempts | 3 | 6 across superseded offers for same message |
-| Receipt latency | 5 minutes | 15 minutes |
-| Consecutive degraded checks | 2 | 5 |
-| Quarantined count | any non-zero | age over 24 hours |
-| Legacy manifest mismatch | immediate | immediate rollout stop |
+| Offer count for one message | 5 | 20 |
+| Receipt latency after first frame | 15 minutes | 60 minutes |
+| Quarantined/parked count | any non-zero informational | any row over 24 hours |
+| Manifest mismatch | immediate | rollout stop |
 
-Warnings deduplicate for 15 minutes per instance/signal. Critical alerts remain
-open until the metric clears and include oldest message id, count, mode, and
-ticket reference, never body or token.
+Warnings deduplicate 15 minutes. Critical events remain open until cleared.
+Routine first frames and scheduler rotation do not warn.
 
-## 12. Retention and pruning
+Backend outage uses a different authority: the local gateway writes every
+failure transactionally to `registry.db.peer_bus_degraded_events`, which is
+available when the backend is not. The authoritative consecutive count is
+local. Every affected tool response displays `PEER_BUS_DEGRADED`; the fifth
+consecutive failure sets a durable local critical flag exposed by `peer_status`
+and every subsequent terminal banner.
+On recovery the gateway sends the exact local event range/count to Event Ledger,
+verifies persistence, then marks it reconciled and resets the consecutive count.
+No backend column attempts to count its own outage.
 
-T-422 makes `peer_messages`, delivery offers, and legacy manifests append-only.
-The existing peer-message deletion job is disabled; its enforced-mode code path
-must prove zero deletes. No T-422 pruning condition exists, so there is no
-message/offer retention cycle and no idempotency tombstone loss.
+Alerts include instance, mode, count/age, oldest id, and ticket, never body or
+token.
 
-This is deliberate: current volume is small, while the objective is no lost
-messages. A future retention/archival policy is a separate Gate-1/Council change
-that must prove recoverability before deleting any log row.
+## 12. Retention and bounded storage
 
-Quarantine, rollback, mode transition, semantic ack, and receipt never delete.
+`peer_messages` and legacy manifests are retained indefinitely under T-422.
+Existing peer-message deletion is disabled and tested for zero deletes.
+
+Delivery-offer storage has a unique one-row-per-message bound. Scheduler
+rotation updates counters/state on that row and never creates another token or
+history row. Thus storage grows only with persisted messages, not turns.
+
+A future archive/deletion policy is a separate Council-approved change proving
+recoverability. Quarantine, parking, receipt, semantic ack, mode transition, and
+rollback never delete.
 
 ## 13. Migration and rollout
 
-Follow `schema-migration.md` exactly:
+Follow `schema-migration.md`:
 
-- run `alembic heads` and require one head;
-- merge heads before this revision if multiple exist;
-- test forward upgrade and backward downgrade on a fresh database;
-- record exact heads and inspect every new constraint/index;
-- MP build output must include the migration manifest.
+- require one Alembic head; merge heads first if needed;
+- test upgrade and downgrade on a fresh never-enforced database;
+- record exact heads and every constraint/index;
+- prohibit production downgrade once cutover is non-null;
+- MP build output includes migration and consumed-at reader/writer manifests.
 
 Rollout:
 
-1. backend schema/API/metrics first, default `legacy`, with deletion disabled;
-2. gateway supporting all modes, still governed by backend mode;
-3. first shadow transition sets immutable cutover/legacy manifest;
-4. pass the numeric shadow oracle for one recipient, then the peer;
-5. enable one recipient, run Gate 4, then enable the peer;
-6. keep legacy manifest/count visible; do not auto-certify legacy rows;
-7. remove the old consuming path only in a separately reviewed follow-up.
+1. backend schema/API with deletion disabled, mode `legacy`;
+2. compatible gateway;
+3. bounded shadow qualification while cutover remains null;
+4. advisory-lock atomic cutover/manifest and one-recipient canary;
+5. Gate-4 dropped-response proof, then peer cutover;
+6. keep legacy manifest/count visible;
+7. old consuming code removal only in a separate reviewed change.
 
-Before enablement, audit every `consumed_at` reader/writer: backend consume
-selection, gateway cursor, explicit inbox, automatic injection,
-pruning/reporting, reconciliation/escalation, and tests. The build manifest names
-each exact file/function and behavior in all modes.
+Audit every `consumed_at` reader/writer: consume selection, gateway cursor,
+automatic/explicit inbox, pruning/reporting, reconciliation/escalation, rollback,
+and tests.
 
 ## 14. Safe rollback
 
-Rollback sets the affected instance to `shadow` transactionally:
+Rollback is `enforced -> safe_readonly`:
 
-1. supersede any active offer and requeue without delivery;
-2. preserve immutable cutover, messages, offers, receipts, quarantine, and
-   manifest;
-3. continue legacy compatibility injection plus read-only shadow comparison;
-4. notify both peers and Max and keep T-2026-000422 open;
-5. before dispatch/merge/deploy/close, report degraded state and reconcile live
-   pending/legacy counts;
-6. re-enable only with the original cutover id and a new shadow pass.
+1. preserve all messages, stable tokens, receipts, quarantine/parking, cutover,
+   and manifest;
+2. disable automatic scheduling and old destructive consumption;
+3. retain explicit non-consuming inbox and receipt;
+4. notify both peers and Max; keep ticket open;
+5. require explicit inbox before dispatch/merge/deploy/close;
+6. reconcile live/legacy/semantic/quarantine/parked counts;
+7. re-enable only after repaired gateway review and a fresh bounded dry-run.
 
-Rollback never consumes, receipts, backfills, quarantines, prunes, or deletes.
+No production schema downgrade, consume fallback, receipt fabrication, backfill,
+quarantine, pruning, or deletion is a rollback action.
 
-## 15. Mandatory named proofs
+## 15. Mandatory proofs
 
 Before fix:
 
-1. whole-response discard after consuming commit hides status/claim;
-2. post-commit partial render hides status/claim;
-3. semantically unacknowledged request can replay in both cases.
+1. discarded consuming response hides status/claim;
+2. post-commit partial rendering hides status/claim;
+3. semantic request can replay in both.
 
 After fix:
 
-1. read/peek/render/lost response changes no delivery state;
-2. injected downstream truncation with no receipt leaves the exact message
-   pending and replayable;
-3. offer token is 43-character base64url, maps to one message/recipient, and no
-   hidden id/token is returned;
-4. malformed, unknown, unbound-session, wrong-recipient, active, received, and
-   superseded receipt branches match section 6;
-5. automatic and explicit paths return the same active offer;
-6. receipt is atomic/idempotent and does not set semantic ack;
-7. status, claim, request, alert, and response retain original kinds;
-8. 8,192-byte send/frame passes; 8,193-byte send fails before persistence;
-9. combined primary response plus full offer stays within 50,000 UTF-8 bytes
-   without offer middle truncation;
-10. three replays then rotation; a normal new row with `Q` never-offered normal
-    rows ahead appears within `4 * (Q + 1)` successful checks under worst-case
-    8,192-byte messages; high priority preempts next check;
-11. concurrent peek/create/rotate/receipt yields one active offer and no skipped
-    pending row;
-12. attempt telemetry writes only counters/timestamps and drives exact warning
-    thresholds;
-13. substantive tools and `peer_msg_send` continue with an active offer;
-14. backend outage/unknown mode allows work, emits degraded state, and advances
-    no delivery;
-15. legacy manifest reconciles all 1,310 snapshot rows in at most three pages and
-    ten minutes; automatic live selection exposes no legacy id;
-16. legacy page/offer is explicit, non-consuming until receipt, and never bulk
-    certifies;
-17. the two known legacy semantic rows remain visible independently of transport;
-18. shadow runs 100 checks/24 hours with exact oracle parity and zero new-state
-    mutation;
-19. enforced/shadow/re-enable preserves immutable cutover and requeues in-flight
-    offers;
-20. quarantine-vs-receipt race serializes to either received or quarantined,
-    never both; requeue is audited;
-21. every alert threshold/dedup/clear behavior asserts;
-22. peer-message/offer/manifest deletion paths perform zero deletes;
-23. forward upgrade/backward downgrade passes with one Alembic head;
-24. gateway/backend restart and duplicate receipt lose no persisted row;
-25. forged instance arguments/headers cannot change receipt identity.
+1. every committed post-cutover row is live or explicitly parked; none silently
+   excluded;
+2. exact 6,000/256 maximum fields fit 7,000 decoded bytes and worst-case outer
+   JSON under 50,000; 6,001-byte body and 257-byte ref reject before commit;
+3. frame-invariant failure parks/alerts/skips without receipt or head-of-line
+   blocking;
+4. every-turn/no-cache check is enforced;
+5. ordinary calls follow two untouched results then one complete delivery-only
+   opportunity; exempt tools are never displaced;
+6. privileged effects block on overdue offered tokens; Max suspension is
+   audited and never receipts;
+7. stable 43-char token maps to one message/recipient and persists through
+   scheduler rotation;
+8. all receipt outcomes in section 6, including modes, outage, quarantine,
+   parking, unbound, forged recipient, and idempotency;
+9. semantic ack remains independent;
+10. alternating priority prevents sustained-high starvation; bounds
+    `3*(Q+1)` / `6*(Q+1)` hold; legacy yields to live;
+11. concurrency returning a different row triggers full reserialization and a
+    second-conflict degraded stop;
+12. lost/truncated frame without receipt remains pending and cycles again;
+13. never-receipting recipient keeps ordinary/recovery/send work, freezes
+    privileged effects at 60 minutes, alerts, and is never called delivered;
+14. advisory-lock cutover assigns every concurrent send exactly legacy or live;
+15. 100-check shadow completes within 30 minutes without cutover/backlog;
+16. manifest canonical digest independently reconciles the measured 1,310-row
+    snapshot in three pages and the actual cutover set in as many pages as
+    required, always within ten minutes;
+17. legacy page/offer never bulk certifies and semantic legacy requests remain
+    visible;
+18. safe_readonly rollback never calls old consume or replays received history;
+19. one offer row per message under indefinite rotation;
+20. quarantine/receipt and parking/repair races serialize safely;
+21. local outage counter works with backend down and reconciles exactly on
+    recovery;
+22. alert thresholds do not fire on normal first presentation/rotation;
+23. zero peer-message deletes;
+24. fresh-DB upgrade/downgrade passes; production downgrade after cutover refuses;
+25. backend/gateway restart preserves rows/tokens/receipts;
+26. all `consumed_at` paths are mode-correct;
+27. real Vulcan/Mars status, claim, request and controlled dropped-response
+    Gate-4 rows reconcile to exact deployed commits.
 
-Gate 4 uses real Vulcan/Mars status, claim, and request canaries plus a controlled
-dropped-response test and reconciles exact rows, offers, tokens, counters,
-receipt timestamps, semantic acks, modes, and deployed commits.
+## 16. Review register
 
-## 16. Review mandate register
+### Round 1
 
-### Round 1 CC `747cbfd9`
+- CC `747cbfd9`: 13 mandates, all mapped in R3/R4 design.
+- GLM `d7eebf51`: two nits (migration single-head/forward/backward; explicit
+  post-persistence boundary), discharged in sections 1 and 13.
+- Kimi `f9a5329b`, retry `9e521006`: strict-verdict-invalid, no usable approval
+  and no extracted mandate; recorded as nonapproval.
 
-| Mandate | Discharge |
+### Round 2
+
+- CC `3c593c43`: 16 mandates; R4 retains their discharges and replaces the
+  problematic R3 mechanisms where necessary.
+- GLM `fe185529`: infrastructure failure; retry `f708ea64` rejected with three
+  findings (expiry, create-conflict handling, active-offer starvation). R4 has no
+  expiry, defines second-conflict handling, stable-token cycling and bounded
+  escalation.
+- Kimi `94c24a61`: interim/nonterminal approval; retry `0d726c65` became stale.
+  Neither produced usable mandates; both remain nonapproval.
+
+### Round 3
+
+- CC `27a90dfe`: 17 mandates. Discharges:
+
+| Mandate | R4 discharge |
 |---|---|
-| R1-M1 exact rendered subset | One-message offer, exact preflight/parity, sections 3, 7.3 |
-| R1-M2 authenticated identity | No instance arg; bound-session receipt, section 6 |
-| R1-M3 oversize/HOL | 8,192-byte send bound and one-message frame, section 4 |
-| R1-M4 outage lockout | Non-blocking degraded behavior, section 7.4 |
-| R1-M5 legacy starvation | Immutable legacy manifest and live-only automatic queue, section 8 |
-| R1-M6 semantic/transport mixing | Separate views/counts, sections 3 and 7.1 |
-| R1-M7 mixed-mode rollout | Backend modes and transactional canary, sections 9 and 13 |
-| R1-M8 poison receipt | Token outcome classification, section 6 |
-| R1-M9 unobtainable empty cache | Backend check each turn; no empty cache, section 7 |
-| R1-M10 offline recipient | Audited preserved quarantine, section 10 |
-| R1-M11 named tests | Section 15 |
-| R1-M12 consumed_at audit | Section 13 |
-| R1-M13 rollback polling/notice | Section 14 |
+| M1 frame contradiction/HOL | exact byte table + park/skip, sections 4, 10 |
+| M2 cutover race | shared send/cutover advisory lock, section 8 |
+| M3 shadow loss/backlog | cutover null during bounded shadow; atomic cutover, section 8 |
+| M4 rollback mass replay | safe_readonly, compatibility consumed_at, duplicate invariant, sections 1, 5, 9, 14 |
+| M5 voluntary receipt only | mandatory protocol, periodic frames, privileged freeze/escalation, sections 1, 7 |
+| M6 priority/legacy fairness | alternating scheduler and conditional bounds, section 7.3 |
+| M7 missing per-turn rule | section 7.1 |
+| M8 substituted-frame size | mandatory reserialize/reverify, section 7.4 |
+| M9 primary-result corruption | no mixing; delivery-only opportunity, sections 4, 7.2 |
+| M10 incomplete receipt table | exhaustive section 6 |
+| M11 offer growth | one stable row/token per message, sections 5, 12 |
+| M12 outage counter | local durable authority/reconciliation, section 11 |
+| M13 reviewer traceability | this complete register |
+| M14 destructive downgrade | fresh-only downgrade; production prohibition, sections 9, 13 |
+| M15 undefined manifest hash | canonical algorithm, section 5 |
+| M16 undefined well-formed | qualifier removed; DB constraints + explicit parking, sections 3, 4 |
+| M17 noisy alerts | thresholds above normal envelope, section 11 |
 
-GLM R1 `d7eebf51`: `schema-migration.md` single-head/forward/backward rules are
-in section 13; post-persistence guarantee boundary and T-2026-000339 separation
-are in section 1.
+- GLM `41bad871`: clean exact-artifact approval of R3.
+- Kimi `7cb1bddc`: clean exact-artifact approval of R3.
 
-### Round 2 CC `3c593c43`
-
-| Mandate | Discharge |
-|---|---|
-| R2-M1 slot/byte starvation | One candidate/offer; guaranteed fit, sections 4 and 7 |
-| R2-M2 undefined token | Exact 32-byte/43-char token schema, sections 5 and 6 |
-| R2-M3 expiry | Expiry removed; attempt-based rotation, section 7.2 |
-| R2-M4 unbounded lockout | Delivery is non-blocking, section 7.4 |
-| R2-M5 1,310-row drain | Bounded manifest reconciliation, no automatic drain, section 8 |
-| R2-M6 peer send blocked | All substantive/send tools continue, section 7.4 |
-| R2-M7 shadow contradiction | Dry-run selector plus old compatibility path and numeric oracle, section 9 |
-| R2-M8 circular pruning | Append-only/no pruning, section 12 |
-| R2-M9 telemetry writer | Exact render-attempt transaction, section 7.2 |
-| R2-M10 quarantine race | Locked serialize/supersede rule, section 10 |
-| R2-M11 mode transition/cutover | Immutable one-time cutover and in-flight rule, section 9 |
-| R2-M12 unbound receipt | Explicit benign fail-closed outcome, section 6 |
-| R2-M13 traceability | This register |
-| R2-M14 semantic legacy visibility | Ack selection independent of transport, sections 7.1 and 8 |
-| R2-M15 alert thresholds | Numeric table/destination, section 11 |
-| R2-M16 truncation proof | Injected truncation/no-receipt replay test, section 15.2 |
-
-The round-2 note that four maximum bodies cannot fit is removed by the
-one-message offer invariant.
+Only R4 reviews can approve the current artifact; earlier approvals are evidence,
+not transferred authority.
 
 ## 17. Acceptance and stop conditions
 
-Accept Gate 1 only when CC, Kimi, and GLM independently read this exact complete
-artifact and return `APPROVE` with zero findings, nits, mandates, conditions, or
-unknowns. Mars and MP remain excluded.
+Gate 1 requires fresh complete-artifact `APPROVE` with zero findings, nits,
+conditions, mandates, or unknowns from CC, Kimi, and GLM. Mars and MP are
+excluded.
 
-No build before Gate 1 approval. No merge/deploy until the two-repository build
-is exact, tested, pushed, independently Gate-3-approved, migration-safe, and
-authorized. Stop on identity override, token/message mismatch, delivery state
-changed without receipt, lost/changed row, frame overflow, fairness bound
-failure, legacy manifest mismatch, mode/cutover drift, any delete path, Council
-nonapproval, failing test, dirty worktree, remote mismatch, or unhealthy
-gateway/database.
+No build before approval. No merge/deploy until exact two-repository build,
+migration evidence, complete tests, independent Gate-3 approval, and deployment
+authorization exist.
+
+Stop on silent exclusion, wrong receipt identity/token, state advance without
+receipt, frame overflow, primary-result mutation, cutover straggler, fairness
+bound failure, old-consume call after cutover, manifest mismatch, deletion,
+production downgrade, Council nonapproval, failing test, dirty worktree, remote
+mismatch, or unhealthy gateway/database.
 
 Ticket T-2026-000422 must contain exact spec/build/review/deploy SHAs and Gate-4
-row-level evidence before closure.
+row evidence before closure.
 
 ## 18. Out of scope
 
 - Send-side duplicate suppression / T-2026-000339.
 - New message kinds.
-- General work ownership, peer equality, or Council roster.
+- General ownership, peer equality, or Council roster.
 - General identity/authorship hardening beyond receipt binding.
-- Any future deletion, compaction, or archival policy for the append-only log.
+- Future deletion/archival policy.
