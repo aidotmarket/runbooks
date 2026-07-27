@@ -56,7 +56,7 @@ YAML frontmatter above is authoritative for the §A header fields.
     - No explicit Max supersession is inferred; the standard path applies unless Max has expressly named the exact matter being superseded
   tool_or_endpoint: council_request (three dispatches, agent=cc / kimi / glm)
   argument_sourcing:
-    diff: the exact old→new wording inline in each prompt; Kimi and GLM may instead read the pinned commit through their shared read-only at-SHA repository tools
+    diff: give CC the exact old→new wording required by its read-only review path; Kimi and GLM must read the pinned commit through their shared bounded at-SHA repository tools
     verdict_enum: offer APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE | REQUEST_CHANGES | REJECT verbatim
   idempotency: IDEMPOTENT
   expected_success:
@@ -146,7 +146,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | F-01 | Entity patch rejected with a version conflict | concurrent write to infra:constitution between get and patch | re-run state_request get; compare returned version vs the expected_version sent | G-01 | CONFIRMED |
 | F-02 | Git file and entity content diverge | one side edited without the other, or a retyped (not file-read) patch introduced drift | byte-compare `git show origin/main:docs/core/CORE.md` vs entity body.content | G-02 | CONFIRMED |
 | F-03 | Boot-contract CI test fails after an amendment | §3 comms marker text altered, or constitution dropped/truncated in the boot payload | run `tests/integration/test_constitution_comms_invariant.py` in koskadeux-mcp; grep content for the marker string | G-03 | CONFIRMED |
-| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing cwd/inline diff for GLM/Kimi | inspect each council task result; classify per agent-dispatch.md / codex-mp.md §F | | CONFIRMED |
+| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing exact dispatch SHA, or incomplete Kimi/GLM at-SHA evidence coverage | inspect each council task result; classify per agent-dispatch.md / codex-mp.md §F | | CONFIRMED |
 | F-05 | Push to backend main prints a GUARDRAIL refusal yet may have landed | pre-push hook emits the refusal text even on a KD_ALLOW_MAIN_PUSH=1 push that succeeds (observed S1242, commits 356a2dfe and 6851a671) | `git fetch origin && git log -1 origin/main`, and confirm via the GitHub API commits/main | | CONFIRMED |
 
 ## §G. Repair

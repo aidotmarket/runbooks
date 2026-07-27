@@ -518,22 +518,22 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 ```
 
 
-### §G.1 Reviewer returns an EMPTY completion (DS / GLM) — T-2026-000232
+### §G.1 Historical empty-completion incident (DeepSeek / former GLM inline path) — T-2026-000232
 
-Symptom: a review dispatch to DeepSeek or GLM fails immediately with a parse
+Historical symptom: a review dispatch to DeepSeek or the former GLM inline path failed with a parse
 error and `raw_response_length=0`, e.g. `DeepSeekResponseParseError: ...
 (candidate_count=0, ..., raw_response_length=0)`, or a blank GLM verdict. A
 trivial `mode=open_response` probe to the same provider succeeds, which proves
 the provider is up and misleads you into hunting a prompt or parser defect.
 
-Cause: DS and GLM are REASONING models. The reasoning trace and the visible
+Historical cause: the provider reasoning trace and visible
 content share ONE output budget. With a small `max_tokens`, a substantive review
 spends the whole budget thinking and returns zero content tokens -> empty
 completion -> parse failure. This is already written down in
 `config:resource-registry` -> `secrets.OPENROUTER_API_KEY.notes`. Read the
 registry and TOPIC-ROUTER on the error string BEFORE reading code.
 
-Repair:
+Current handling:
 
 1. Read `finish_reason` and the token telemetry now returned in the review
    envelope (`prompt_tokens`, `completion_tokens`, `reasoning_tokens`,
@@ -542,21 +542,18 @@ Repair:
 2. Budget content separately from reasoning. Review budget is 32000 tokens with a
    separate 8000-token reasoning cap (`reasoning.max_tokens` on OpenRouter), plus
    retry-once-on-empty at double budget. Landed in koskadeux-mcp `f1aa7d19`.
-3. Scope the review; do not truncate it. `council_request mode=review` accepts
-   `review_paths` (a git pathspec list). The inlined diff is capped at
-   `_REVIEW_DIFF_INLINE_CAP_CHARS`, which since T-2026-000399 (koskadeux-mcp
-   `4365fcf4`) reads `COUNCIL_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 400000)
-   rather than a 40,000 literal. Material above the cap is no longer silently
-   truncated on the GLM and CC paths: the dispatch is REFUSED. Split a large
-   branch into two or more scoped reviews, each under the cap. The Kimi voting
-   path and the DeepSeek handler do not yet refuse; see §V and T-2026-000400.
+3. For current GLM review, pin the exact dispatch SHA and require complete
+   evidence coverage through only `read_file_at_sha`, `list_dir_at_sha`,
+   `grep_at_sha`, and `git_show`. The shared provider loop paginates reads and
+   fails closed on repository-tool failure, incomplete coverage, invalid
+   terminal schema, or an unprovable cost bound. Do not use the former inline
+   diff/cap workaround. DeepSeek is retired and cannot supply gate coverage.
 
-Deploy note: the review budget lives in `openrouter_glm_client.py`,
-`deepseek_client.py`, `deepseek_server.py` and `tools/agents.py`. A merge to main
-is NOT live until the owning process restarts. `com.koskadeux.mcp` carries the
-GLM client in-process; DeepSeek runs as its own long-lived service. Bouncing only
-the MCP server leaves DeepSeek on stale code and it keeps returning empty
-completions. Restart BOTH.
+Deploy note: the active GLM review budget and shared read-only loop live in
+`openrouter_glm_client.py`, `provider_readonly_review.py`, and `tools/agents.py`.
+A merge to main is not live until `com.koskadeux.mcp` restarts onto the new
+commit. The retained DeepSeek service is outside the active roster and is not
+part of current gate verification.
 
 > **READ §X FIRST.** These two commands are correct but INCOMPLETE as written.
 > A bare kickstart taken while a Council panel or build is in flight destroys it
@@ -851,9 +848,10 @@ word_count_delta: null
 The §K block records the strict-lint result; harness state is authoritative in §J.
 
 
-## §L Review-Round Completeness
+## §L Historical DeepSeek Review-Round Completeness (superseded)
 
-The terminal DeepSeek states are:
+The following terminal DeepSeek states are retained only to interpret historical
+rounds:
 
 - `verdict_received`
 - `classified_timeout`
@@ -863,14 +861,10 @@ The terminal DeepSeek states are:
 - `classified_provider_error`
 - `audited_waiver`
 
-`classified_timeout`, `classified_malformed`, `classified_truncated`,
-`classified_hallucinated_context`, and `classified_provider_error` are degraded
-rounds. The primary verdict carries, the round is marked complete, and the chat
-summary disposition must be
-`DeepSeek result unavailable — see completeness block.`
-
-Pending DeepSeek work is not a degraded round. It is incomplete, and no folding
-or builder dispatch proceeds until a terminal state lands.
+The former degraded-round rule allowed a primary verdict to carry after a
+terminal DeepSeek failure. It is not current gate authority. Current gate rounds
+require complete valid CC/Kimi/GLM participation; a missing, failed, malformed,
+model-mismatched, or incomplete active voter fails the gate closed.
 
 ## §M Sandbox-Based Review-Mode Tool Restriction
 
@@ -932,17 +926,21 @@ not a fault.
 Positive lockdown is scoped to **BQ-PEER-BUS-GATEWAY-INSTANCE-IDENTITY-S843**. S858 neutralizes the
 clobber; it does not yet fully sandbox all agent writes.
 
-## §N DeepSeek Skipped Anti-Pattern
+## §N Historical DeepSeek Skip Rule (superseded)
 
-Do not emit or accept "DeepSeek SKIPPED" as a review outcome. Skipping the +1
-review hides whether the round is clean, additive, conflicting, or degraded.
+The former DeepSeek +1 process rejected "DeepSeek SKIPPED" outcomes. DeepSeek is
+now retired, so current gate dispatches must not target it at all.
 
-The dispatch surface rejects explicit skip attempts such as `_skip_fanout`,
-fanout config disablement, and direct short-circuiting of the fanout hook. The
-regression coverage lives in
-`tests/integration/test_skip_fanout_regression.py`.
+Historical fanout regression coverage remains in
+`tests/integration/test_skip_fanout_regression.py`; it does not alter the current
+CC/Kimi/GLM roster or permit fallback.
 
-## §O Wired Structural Dispatch Path (BQ-COUNCIL-DISPATCH-MIDDLEWARE-WIRING)
+## §O Historical Structural Middleware Wiring
+
+This section records retained middleware plumbing from
+BQ-COUNCIL-DISPATCH-MIDDLEWARE-WIRING. References to AG or DeepSeek below are
+implementation history, not current gate eligibility; current voting uses only
+CC, Kimi, and GLM, and MP is the mandatory builder.
 
 The wired middleware path fires only for structural dispatches:
 `dispatch_class="structural"` in the handler args for MP, AG, or DS.
