@@ -223,9 +223,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1266
-last_refresh_commit: e4d2057
-last_refresh_date: 2026-07-17T22:00:00Z
+last_refresh_session: S1369
+last_refresh_commit: 66e670e
+last_refresh_date: 2026-07-27T21:25:00Z
 owner_agent: max
 refresh_triggers: [CORE amendment or version change, canonical mirror path change, amendment procedure or Council decision-rule change]
 scheduled_cadence: 30d
@@ -238,7 +238,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1266 / 2026-07-17T22:00:00Z
+last_lint_run: S1369 / 2026-07-27T21:25:00Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
