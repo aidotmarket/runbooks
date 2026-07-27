@@ -1696,8 +1696,8 @@ Precedent S691 (first complete codified application; predecessor durability gap 
 7. bootstrap: `launchctl bootstrap gui/$(id -u) <plist>`; poll `launchctl list` until NEW_PID is present and != OLD_PID.
 8. Verify env in BOTH the bash wrapper AND python child PIDs: `pstree -p <NEW_PID>`; for each PID, `ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING` (no tr pipe).
 9. Cross-check `launchctl print gui/$(id -u)/<service>` shows the env var in the canonical 'environment' Dict, NOT only 'inherited environment'.
-10. Smoke dispatch: `council_request agent=mp mode=open_response cwd=/Users/max/Projects/ai-market/ai-market-backend task='echo hostname + ENV var'`; verify hostname=Koskadeux.local, env=1, no node-path error.
-11. Optional: mode=review smoke with a real BQ context (implicitly covered by any subsequent reviewer dispatch in the same session).
+10. Smoke the MP lane only through an explicitly bounded build-mode diagnostic in a disposable test branch; MP open-response/review mode is not current gate or review authority.
+11. If reviewer routing also changed, run separate read-only smoke reviews through the active CC/Kimi/GLM paths at an exact test commit; never use MP, AG, or DeepSeek as replacement voter coverage.
 
 ### T-2026-000300 harness semantics (shipped 2026-07-21, koskadeux-mcp @ 57590559)
 
