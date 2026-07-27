@@ -356,7 +356,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: schema_validation_failure, cause: result did not match required review shape}
     - {signature: repository_review_coverage_incomplete, cause: required exact-SHA files were not read completely}
   next_step_success: Add Kimi's verdict and immutable read evidence to the Council review set.
-  next_step_failure: Repair the Kimi path and retry; do not substitute a retired or fallback voter.
+  next_step_failure: Repair the Kimi path and retry; do not substitute MP, AG, DeepSeek, or any other non-member.
 - id: E-04
   trigger: After any change to the laptop-routing env-var deployment surface (KOSKADEUX_DISABLE_LAPTOP_ROUTING in com.koskadeux.council-hall.plist or related agents), the fix must be smoke-verified before claiming durable.
   pre_conditions: [plist_change_committed_to_disk, plist_passes_plutil_lint, council_hall_currently_running_or_intentionally_down]
@@ -681,7 +681,7 @@ scenario_set:
     type: operate
     refs: [E-02, §D, council:I-02]
     scenario: |
-      id: E-02. trigger: A completed dispatch-gateway patch needs independent AG review before Gate 3 closes. pre_conditions: commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: agent and mode from §D auth map; task from gate ACs plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns a read-only verdict with no file writes, and cited lines are verified before attachment. expected_failures: AG progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, or unhealthy AG backend. next_step_success: attach the verified verdict to the gate record. next_step_failure: isolate with F-02 and repair with G-02 or cover the review with another voter.
+      id: E-02. trigger: A completed dispatch-gateway patch needs optional non-gate AG advice and infra:council-comms explicitly permits that advisory dispatch. pre_conditions: live-state AG advisory eligibility, commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: eligibility from current infra:council-comms; task from the advisory questions plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns non-gate read-only advice with no file writes, and cited lines are verified before attachment. expected_failures: missing live-state eligibility, progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, unhealthy AG backend, or counting AG toward a gate. next_step_success: attach the result as advisory evidence and obtain the required CC/Kimi/GLM votes separately. next_step_failure: preserve the advisory failure and fail closed for gate purposes; never substitute AG, MP, or DeepSeek for an active voter.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -706,13 +706,13 @@ scenario_set:
     type: operate
     refs: [E-03, §D, council:I-01]
     scenario: |
-      id: E-03. trigger: A cross-vote needs DeepSeek to review an open_response-style agent output for dispatch correctness. pre_conditions: DeepSeek health, dispatch_cost_cap, open_response transcript, review prompt, and repo cwd are available. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<open_response_cross_vote_prompt>, cwd=<repo>). argument_sourcing: task from the open_response transcript plus gate questions; cwd from the reviewed repo; cost cap from infra:council-comms; agent role from §D. idempotency: IDEMPOTENT_WITH_KEY on deepseek + transcript_digest + review_scope. expected_success: DeepSeek returns a schema-valid read-only verdict that agrees or identifies concrete dispatch issues. expected_failures: health failure, token failure, schema validation failure, or cost cap refusal. next_step_success: add DeepSeek verdict to the Council review set. next_step_failure: repair DeepSeek backend health or route fallback per gate policy.
+      id: E-03. trigger: A gate review needs Kimi's required active-voter coverage. pre_conditions: Kimi provider is healthy, review scope is read-only, the exact dispatch SHA is known, and the configured cost cap is available. tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; cost cap and model from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on kimi + dispatch_sha + review_scope. expected_success: Kimi returns a schema-valid binding verdict with complete at-SHA evidence from only the four bounded repository-read tools. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, schema validation failure, or cost-cap refusal. next_step_success: add the Kimi vote to the CC/Kimi/GLM gate set. next_step_failure: fail the gate closed and retry Kimi without substituting MP, AG, or DeepSeek.
     expected_answers:
       - kind: tool_call
         tool: council_request
         argument_keys: [agent, mode, task, cwd]
         argument_values:
-          agent: deepseek
+          agent: kimi
           mode: review
     weight: 0.08333333333333333
   - id: I-04
@@ -1140,10 +1140,11 @@ parsed manifest when present, and the returned envelope reports
 
 ## §S Review Verdict Persistence
 
-Review-mode primary Council dispatches for `agent=ag`, `agent=mp`, and
-`agent=deepseek` persist returned verdict text in the handler after the provider
-result is available. The handler writes to the target branch, not from inside the
-review sandbox.
+Review-mode dispatches can persist returned verdict text in the handler after the
+provider result is available. Current gate-voter reviewer keys are `cc`, `kimi`,
+and `glm`; the retained non-gate/backend keys are `ag`, `mp`, and `ds`
+(`agent=deepseek` maps to `ds`). The handler writes to the target branch, not
+from inside the review sandbox.
 
 Dispatch contract:
 
@@ -1155,9 +1156,10 @@ Dispatch contract:
   `VERDICT_TARGET_BRANCH_REQUIRED=True` in `tools/agents.py`. After the flip,
   review-mode primary dispatches without `verdict_target_branch` fail at handler
   entry with `missing_verdict_target_branch`.
-- Verdict filenames are `specs/<bq_slug>-r<round>-<reviewer>.md`. Reviewer keys
-  are `ag`, `mp`, and `ds`; `agent=deepseek` maps to `ds`. If round is absent,
-  the handler writes under `r1`. (GLM joined the standard roster S994; the handler maps `agent=glm` to key `glm` and persists verdicts via the same path — verified S994 in tools/agents.py.)
+- Verdict filenames are `verdicts/<bq_slug>/r<round>/<reviewer>.md`. Reviewer
+  keys supported by the deployed handler are `cc`, `kimi`, `glm`, `ag`, `mp`,
+  and `ds`; `agent=deepseek` maps to `ds`. If round is absent, the handler writes
+  under `r1`. Only `cc`, `kimi`, and `glm` are current gate voters.
 
 Failure modes:
 
@@ -1220,7 +1222,7 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 **Procedure (do NOT redispatch a rebuild):**
 1. Confirm delivery: `git log --oneline -3`, `git status --short`, and inspect the commit diff against the chunk's spec scope.
 2. Complete the wrapper's pre-push gates manually: run the chunk's new tests plus `ci_verification.py:CI_WORKFLOW_TEST_PATHS` locally; all green or stop.
-3. Run the chunk's Gate 3 cross-review with builder excluded (MP built it → DS + GLM review).
+3. Run the chunk's Gate 3 review with the builder excluded and the complete active panel (MP built it → CC + Kimi + GLM review).
 4. On pass, push as a deliberate instance merge: `KD_ALLOW_MAIN_PUSH=1 git push origin main` (fast-forward only).
 5. Record the workaround: patch the BQ entity (chunk verdicts + `wrapper_incident`) and emit a `decision` event.
 
@@ -1232,8 +1234,8 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 
 - The RepairExhaustedError-with-delivered-commit pattern hit **4/4 structural MP builds** in S1147. §U recovery worked every time with zero rebuilds. A BQ against the SchemaRepair/manifest-parser stage is now warranted (see BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146 follow-ups).
 - **Check for shadowing after every MP session.py build:** one S1147 chunk added a module-level helper duplicating a pre-existing function name (`_read_state_entity`), silently shadowing the original for all earlier call sites. Grep `grep -n "def <name>(" <file>` for duplicate defs before review; the introduced-failure baseline diff (worktree at parent commit, identical pytest selection, `comm -13`) catches the symptom.
-- **GLM inline reviews: inline VERBATIM code for anything GLM must judge.** An orchestrator-condensed summary produced two false REQUEST_CHANGES findings in S1147 (an "undefined variable" and a "missing guard" that existed only in the summary). Condense context, never the code under audit.
-- **DeepSeek review degradation (empty responses, raw_response_length 0):** after 2 strikes on the same subtask, substitute AG as cross-reviewer (tight DO-ONLY checklist prompt, verify its citations by grep) rather than stalling the gate.
+- **HISTORICAL GLM inline-review lesson (superseded by deployed `fdf50693`):** an orchestrator-condensed summary produced two false findings in S1147. Current GLM reviews read the exact pinned repository objects through the shared four-tool loop; do not replace those reads with a summary.
+- **HISTORICAL DeepSeek substitution note (superseded by S1319/S1321):** DeepSeek is retired and AG is paused. Neither AG nor DeepSeek can substitute for CC, Kimi, or GLM; a missing active voter fails the gate closed.
 
 ### §U resolution note (S1150)
 
@@ -1244,16 +1246,16 @@ The manual-recovery loop in §U is now largely obsolete: the pipeline auto-recov
 The §C.0 "sanitize at the adapter" fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. Trigger: the S1150 close gate added `additionalProperties` to `kd_session_close.runbook_exit`, which killed ALL AG dispatches at tool-fetch time (observed S1152 hall voter dispatch). If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
 
 ## Gate-change consultation for shipped mandates (S1164, discharges S1164-D4)
-Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) dispatch the standing voters (check infra:council-comms for roster; S1164 used MP+AG+DeepSeek) in open_response with verdict APPROVE/APPROVE_WITH_MANDATES/REJECT, max 3 findings; (3) fold ALL mandates into the build prompt as BINDING; (4) normal build → Gate-3 (reviewer≠builder, inline diffs for DS/GLM per T-2026-000206) → merge → Gate-4 live verify; (5) record the decision as a state event naming the vote and mandates. Precedent: S1164 HF metadata-only-by-default (unanimous; hard line kept: data rows always require seller-approved disclosure snapshot).
+Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — CC, Kimi, and GLM — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit CC/Kimi/GLM review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
 
 ## §V — CC gate-review dispatch mechanics (S1231)
 
-CC (`council_request agent=cc mode=review`) is a read-only gate voter with filesystem access, but its dispatch contract is stricter than DS/GLM:
+CC (`council_request agent=cc mode=review`) is a read-only gate voter with filesystem access, but its dispatch contract differs from the shared Kimi/GLM exact-SHA review loop:
 
 - **Pinned worktree required.** `cwd` must be a checkout whose HEAD equals `dispatch_sha`, or the dispatch fails `checkout_not_pinned` (`cc_review_target_invalid`). Never re-point the live server checkout (`/Users/max/koskadeux-mcp`); create a detached worktree: `git worktree add --detach <path> <sha>` and pass that as `cwd`.
 - **Exactly one pinned ref.** Supplying conflicting `dispatch_sha`/`head`/`sha` aliases fails `dispatch_sha_alias_conflict`; supplying none fails `dispatch_sha_required`.
 - **Inline diff cap, CC-only.** The CC preload inlines the pinned diff and HARD-FAILS loud (`cc_review_diff_truncated`) if it exceeds `CC_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 120000, read at process start — a change needs a handler restart). Shipped T-2026-000263 @ koskadeux-mcp 83c9189d after a 45.4k single-file Gate 2 spec could not pass the shared 40k cap and `review_paths` cannot narrow a single file.
-- **Truncation is fail-closed and detection is authoritative (T-2026-000399, koskadeux-mcp `4365fcf4`, was an open gap until 2026-07-26).** The shared preloader cap is now `COUNCIL_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 400000, read at process start), not the old 40k literal, and both the GLM path and the CC path refuse rather than dispatch when material is truncated (`review_diff_truncated` / `cc_review_diff_truncated`). Detection trusts the resolver's `truncated` boolean and falls back only to a LINE-ANCHORED header match; the previous substring test for `FULL DIFF (truncated):` matched its own sentinel inside any diff touching this code, which made CC structurally unable to review the review subsystem for three weeks. Do not reintroduce a substring test. **Still open, tracked as T-2026-000400:** the Kimi voting path resolves with `cap_chars=2**63-1`, so `truncated` is permanently False there and the refusal can never fire; `_handle_call_deepseek` (`tools/agents.py:1780`) resolves with the default cap and has no refusal guard at all. Until those close, a Kimi or DeepSeek verdict on very large material still needs the manual size check: `git show <sha> -- <path> | wc -c`.
+- **Historical inline-diff truncation controls remain relevant only to CC and retained legacy backends.** CC's preload fails closed on `cc_review_diff_truncated`. The former GLM and Kimi inline-cap defects tracked by T-2026-000399/T-2026-000400 were superseded for those two voters by deployed `fdf50693`: both now use the shared exact-SHA loop with only `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show`, pagination to completion, and required-file coverage before a verdict. DeepSeek remains retired; do not use its retained inline backend for gate coverage.
 - **Model verification.** A `model_matched: false` CC result discards the vote (CORE §5); redispatch.
 - **Output-schema contract (S1248).** The CC review path injects NO output schema into the prompt; the server validates the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA` and rejects anything else as `cc_review_malformed_verdict`. The dispatcher MUST state the contract in the task, verbatim: the ENTIRE final message is one raw JSON object (first char `{`, no prose/fences outside it) with ALL FOUR keys required and `additionalProperties: false` everywhere: `verdict` one of `APPROVE` | `APPROVED_WITH_MANDATES` | `REJECT` (there is NO `APPROVE_WITH_NITS`/`REVISE` in this validator — non-blocking findings ride in `findings` under verdict `APPROVE`); `mandates` `[]` or items with exactly `id` (`^M[0-9]+$`), `description`, `severity` (`blocking`|`major`|`minor`), `target_file`, `target_location`; `findings` items with required `severity` (`blocking`|`major`|`minor`), `title`, `description` and optional `target_file`/`target_location` — NO `id` key on findings; `summary` non-empty. Discovered the hard way in S1248: four dispatches burned guessing the schema one validation error at a time. Defect ticket: schema should be auto-injected by the CC review path like MP's response_format.
 
@@ -1626,25 +1628,15 @@ guard's inverted predicate, covering all three mechanisms that share it),
 T-2026-000397 (narrower duplicate, superseded by 398).
 
 
-## §Y Plus-One Discipline (was root copy §J)
+## §Y Historical Plus-One Discipline (superseded)
 
-Review-mode MP and AG dispatches require a DeepSeek +1 review. The discipline is
-defined by four contracts:
-
-- Findings folding: primary findings remain first, DeepSeek-only findings fold
-  into the next round, and overlapping severity conflicts are surfaced instead
-  of silently downgraded.
-- Conflict surfacing: incompatible verdicts or incompatible severities write a
-  `verdict_conflict` ledger event and block later builder dispatches for the
-  same BQ and review round.
-- Side-by-side display: chat summaries use
-  `tools/council_review_summary.py::render_review_summary` so primary and
-  DeepSeek verdicts always appear together with finding-count breakdowns.
-- Review-round completeness: a round is not complete until the primary verdict
-  and a terminal DeepSeek state are both recorded for the same BQ and round.
-
-For chat output, use the fixed review-summary block. Do not hand-write a summary
-that omits the DeepSeek verdict, finding counts, or disposition line.
+The former MP/AG primary plus DeepSeek +1 process is retained only as history.
+It was superseded when Kimi replaced the DeepSeek seat at S1319 and DeepSeek was
+retired at S1321. Current gate completeness requires the exact active
+CC/Kimi/GLM panel from infra:council-comms; MP is builder-only, AG is paused, and
+neither MP, AG, nor DeepSeek can satisfy or supplement a missing gate vote.
+Conflict events from historical rounds remain readable, but their roster does
+not authorize a current dispatch.
 
 
 ## §Z Conflict Adjudication Procedure (was root copy §K)
