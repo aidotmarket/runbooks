@@ -821,8 +821,8 @@ Lifecycle metadata records the S1369 roster and exact-SHA review-path refresh. T
 
 ```yaml lifecycle
 last_refresh_session: S1369
-last_refresh_commit: 217ff63
-last_refresh_date: 2026-07-27T22:12:57Z
+last_refresh_commit: 959a4ac
+last_refresh_date: 2026-07-27T22:21:28Z
 owner_agent: vulcan
 refresh_triggers:
   - council_request dispatch contract or allowed_tools handling changes
@@ -844,7 +844,7 @@ Conformance fields for the S1369 content refresh.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T22:12:57Z
+last_lint_run: S1369 / 2026-07-27T22:21:28Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
