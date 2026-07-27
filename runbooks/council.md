@@ -22,9 +22,9 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-27
 system_name: council
-purpose_sentence: A multi-agent build and review system with MP as mandatory builder and CC, DeepSeek, and GLM as the gate voter panel.
+purpose_sentence: A multi-agent build and review system with MP as mandatory builder and CC, Kimi, and GLM as the gate voter panel.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
@@ -56,7 +56,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 
 `council_request` is the canonical code entry point for Council operations. The Council is documented here as one system: agent rosters, `review_order`, and `dispatch_patterns` belong to the same operating model, while live participant config remains authoritative in `infra:council-comms`.
 
-The current gate voter panel is CC + DeepSeek + GLM exactly. MP is the mandatory builder and
+The current gate voter panel is CC + Kimi + GLM exactly. MP is the mandatory builder and
 is not a gate voter. AG is PAUSED, and XAI is RETIRED. Model assignments, dispatch caps,
 quirks, and any later roster change are live configuration and must be read from
 `infra:council-comms`, not inferred from this prose.
@@ -71,7 +71,7 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 | Gate Review Flow | `build:bq-* Living State entities` | build entities, gate status fields, review verdicts | Council dispatch, author-mode tokens, runbook specs | Implements the BQ 4-gate flow and binds authoring/review mode to dispatch provenance. |
 | Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | Configured voter panel and synthesis | Runs multi-agent deliberation when independent reviews are insufficient. |
 | Agent Roster | `infra:council-comms` | active agents, paused/retired agents, quirks, model frontier notes | dispatch gateway, runbooks, memory references | Sole live config source for roster and roles. |
-| Review Order | `infra:council-comms.review_order` | ordered voter list and policy | Gate Review Flow, Council Hall | Resolves the configured CC + DeepSeek + GLM voter panel without promoting MP to voter. |
+| Review Order | `infra:council-comms.review_order` | ordered voter list and policy | Gate Review Flow, Council Hall | Resolves the configured CC + Kimi + GLM voter panel without promoting MP to voter. |
 | Dispatch Patterns | `infra:council-comms.dispatch_patterns` | mode templates, timeout caps, cost caps | Council Dispatch, gateway tokens | Encodes review-only, author-mode, fallback-build, and deliberation routing constraints. |
 
 ## §D. Agent Capability Map
@@ -80,8 +80,9 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 |---|---|---|---|---|
 | MP | Roster status ACTIVE: mandatory build author; not a gate voter | Builder backend from `infra:council-comms` | repo write when author-mode is explicit | COMPLETE |
 | CC | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
-| DeepSeek | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
-| GLM | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
+| Kimi | Roster status ACTIVE: gate voter | Shared provider read-only review loop | bounded read-only at-SHA repository tools | COMPLETE |
+| GLM | Roster status ACTIVE: gate voter | Shared provider read-only review loop | bounded read-only at-SHA repository tools | COMPLETE |
+| DeepSeek | Roster status RETIRED: no active gate role | Retained dispatch backend | none for current gates | COMPLETE |
 | AG | Roster status PAUSED: no active gate role | Paused backend metadata in `infra:council-comms` | none for current gates | COMPLETE |
 | XAI | Roster status RETIRED: no active gate role | Retirement metadata in `infra:council-comms` | none | PARTIAL — retired; see `infra:council-comms.retired_agents.xai` for cold storage and reactivation procedure |
 | Vulcan + Mars | Roster status ACTIVE: equal-authority peer orchestration and state management | Koskadeux MCP | gateway, Living State, repos | COMPLETE |
@@ -96,9 +97,9 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
 - id: E-01
   trigger: A gate audit needs a Council review dispatch.
   pre_conditions: [target_repo_available, dispatch_mode_selected, Living State build entity exists when tied to a BQ]
-  tool_or_endpoint: council_request(action=review, agent=<cc|deepseek|glm>, prompt=<task>, context_refs=<refs>)
+  tool_or_endpoint: council_request(action=review, agent=<cc|kimi|glm>, prompt=<task>, context_refs=<refs>)
   argument_sourcing:
-    agent: select each required voter from the exact CC + DeepSeek + GLM panel, confirmed against infra:council-comms
+    agent: select each required voter from the exact CC + Kimi + GLM panel, confirmed against infra:council-comms
     prompt: derive from BQ gate task or operator request
     context_refs: include spec paths, branch name, commit SHA, and relevant Living State entity
   idempotency: IDEMPOTENT_WITH_KEY
@@ -122,7 +123,7 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
   expected_failures:
     - {signature: "missing dispatch token", cause: author-mode or review-mode gateway token not bound}
     - {signature: "stale review_order", cause: dispatcher read old infra:council-comms config}
-  expected_success: {shape: Three gate verdicts, verification: Confirm CC, DeepSeek, and GLM each returned one read-only verdict and MP is recorded only as builder}
+  expected_success: {shape: Three gate verdicts, verification: Confirm CC, Kimi, and GLM each returned one read-only verdict and MP is recorded only as builder}
   next_step_success: Patch the BQ entity with the gate verdict and next gate status
   next_step_failure: Preserve all verdicts and use Council Hall or current infra:council-comms backend state to resolve the conflict
 - id: E-03

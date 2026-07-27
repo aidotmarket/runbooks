@@ -117,9 +117,9 @@ Carried from the retired root copy and corrected at S1351 against live `infra:co
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never votes on its own work; explicit review dispatch remains available but MP is NOT a gate voter.
 - **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
-- **Kimi**: gate voter, review, content-cited (no at-SHA file reading yet, tracked by BQ-KIMI-DEEPSEEK-PARITY-S1321); verify quoted code against the supplied material.
+- **Kimi**: gate voter, review-only, with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `2db3201d` on koskadeux-mcp `fdf50693`.
 - **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per §H.2) plus Max approval.
-- **GLM**: gate voter, review-only, content-cited/diff-inlined (no filesystem access); verify quoted code against the diff (nested-quote garble quirk).
+- **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
 - **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
 - **XAI is RETIRED** (Max go, S994).
 - **Vulcan/Mars are never gate voters** (instance non-voter rule). Reversal condition: if Vulcan's model returns to any Anthropic model, the change is blocked until CC panel independence is re-reviewed (CORE 9.8).
@@ -293,8 +293,8 @@ Timeout knobs:
 | AG | dispatch from `antigravity_client.py` | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | dispatch from Claude Code wrapper | Claude Code / Opus | full repo write, 600s timeout | COMPLETE |
-| Kimi | dispatch from the local fail-closed one-shot client | Moonshot API (OpenAI-compatible) / kimi-k3 | no tool access, review material inlined | PARTIAL — dispatch and strict-schema voting complete; at-SHA repo reading not wired (BQ-KIMI-DEEPSEEK-PARITY-S1321) |
-| GLM | dispatch from `openrouter_glm_client.py` | OpenRouter / z-ai/glm-5.2 | no filesystem access, diff inlined | PARTIAL — dispatch and voting complete; file reading not wired |
+| Kimi | dispatch through the shared provider read-only review loop | Moonshot API (OpenAI-compatible) / kimi-k3 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read and binding-verdict proof `2db3201d` |
+| GLM | dispatch through the shared provider read-only review loop | OpenRouter / z-ai/glm-5.2 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read, terminal repair, and binding-verdict proof `ff0f2f67` |
 | Vulcan | dispatch orchestration | Anthropic API / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
