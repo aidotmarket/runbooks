@@ -73,7 +73,7 @@ With enforcement `on`, the Policy Kernel is the authoritative decision path on t
 | Legacy Parity Adapter | `compare_council_gate_parity` | Structured parity log event | Policy Kernel Decision | Continues to run with enforcement on; it is not the authoritative decision path. |
 | Refusal Alert | `COUNCIL_GATE_KERNEL_ENFORCEMENT_REFUSED_LEGACY_ALLOW` | `/tmp/koskadeux_mcp.log`; process-lifetime counter | Incident monitoring | Warning includes predicate, kernel status, and count since process start. |
 | Readiness Preflight | `council_gate_policy_kernel_preflight` | Read-only live build inventory | Living State HTTP or database scan | Scans only the known sentinel-lease divergence. |
-| Dispatch Task Store | `/var/tmp/koskadeux/cc_tasks` | `<task>.meta.json`, `<task>.done`, result files | Council and build worker threads | A metadata file without matching `.done` blocks restart. |
+| Dispatch Task Store | `/var/tmp/koskadeux/cc_tasks` | `<task>.meta.json`, `<task>.done`, result files | Council and build worker threads | A record blocks restart when it is LIVE, or INDETERMINATE and not yet resolved by the reaper. |
 | Handler LaunchAgent | `com.koskadeux.mcp` | Running process and `/tmp/koskadeux_mcp.log` | `/Users/max/koskadeux-mcp` checkout | Kickstart kills worker threads and every in-flight Council/build dispatch. |
 | Emergency Lever | `break_glass` | Existing break-glass sentinel and audit path | First statement in `CouncilComplianceGate.check` | Still works with enforcement on. `emergency_authority` is not this lever. |
 
@@ -90,7 +90,15 @@ Before a planned restart, record `git -C /Users/max/koskadeux-mcp rev-parse HEAD
 
 Restarting `com.koskadeux.mcp` kills the dispatching process and all of its worker threads. In-flight Council and build dispatches do not write a terminal state, and recovery is unavailable. Four dispatches were destroyed this way on 2026-07-27.
 
-Before any restart, scan `/var/tmp/koskadeux/cc_tasks` for every `.meta.json` that lacks a matching `.done`. Any result is a stop condition: do not restart.
+Before any restart, run the liveness check:
+
+```bash
+python3 /Users/max/koskadeux-mcp/scripts/check_dispatch_liveness.py
+```
+
+It classifies every task record as LIVE, TERMINAL or INDETERMINATE and exits non-zero when a restart is unsafe. Never restart while any record is LIVE. An INDETERMINATE record is also a stop condition, but unlike the old procedure it is answerable: the reaper in `claude_code_client.reap_abandoned_tasks` writes terminal state for records whose owner process is provably gone, and ages out records carrying no owner identity after 24 hours. Run the reaper, then run the check again.
+
+The earlier version of this procedure told operators to stop on any `.meta.json` without a matching `.done`. That check was unsatisfiable and was therefore routinely bypassed with private ad-hoc checks. On 2026-07-27 it reported 135 blocking records, 134 of which carried no owner identity at all and so could never be resolved by waiting. It was replaced under T-2026-000437.
 
 ## §D. Agent Capability Map
 
@@ -111,22 +119,24 @@ Before any restart, scan `/var/tmp/koskadeux/cc_tasks` for every `.meta.json` th
     - "`/var/tmp/koskadeux/cc_tasks` is readable"
     - the intended checkout SHA is known
     - no restart command has been issued
-  tool_or_endpoint: Scan `/var/tmp/koskadeux/cc_tasks/*.meta.json` for entries without a matching `<task_id>.done`, then record checkout SHA and kickstart only when the scan is empty.
+  tool_or_endpoint: Run `python3 /Users/max/koskadeux-mcp/scripts/check_dispatch_liveness.py`. It exits 0 when `safe_to_restart` is true. On a non-zero exit, run the reaper once and run the check again. Record the checkout SHA and kickstart only on a zero exit, or under an explicit named waiver from Max.
   argument_sourcing:
-    task directory: "literal `/var/tmp/koskadeux/cc_tasks`"
+    task directory: "default `/var/tmp/koskadeux/cc_tasks`; override with `--tasks-dir`"
     intended SHA: "`git -C /Users/max/koskadeux-mcp rev-parse HEAD`"
     launch label: "literal `gui/$(id -u)/com.koskadeux.mcp`"
   idempotency: NOT_IDEMPOTENT
   expected_success:
-    shape: Empty unmatched-metadata scan, recorded checkout SHA, new handler PID/start time, and healthy handler.
-    verification: Confirm no `.meta.json` lacks `.done`; after kickstart compare the new process start time with the recorded checkout SHA.
+    shape: "`safe_to_restart` true with `live_count` zero, recorded checkout SHA, new handler PID and start time, and a healthy handler."
+    verification: Confirm the check exits 0; after kickstart compare the new process start time with the recorded checkout SHA.
   expected_failures:
     - signature: dispatch_in_flight
-      cause: At least one `.meta.json` has no matching `.done`; restarting would destroy that dispatch.
+      cause: "`live_count` is above zero. A dispatch is provably running and restarting would destroy it."
+    - signature: dispatch_indeterminate
+      cause: Records remain INDETERMINATE after a reaper run, because owner identity is missing and the 24 hour age-out has not yet expired.
     - signature: task_inventory_unreadable
-      cause: The operator cannot prove the dispatch directory is clear.
+      cause: The operator cannot read the dispatch directory.
   next_step_success: Proceed to E-02 for enablement or E-04 for rollback.
-  next_step_failure: Stop. Wait for every dispatch to write `.done`; do not restart on uncertainty.
+  next_step_failure: On `dispatch_in_flight`, stop and wait for the dispatch to finish. On `dispatch_indeterminate`, either wait for the age-out or obtain an explicit waiver from Max naming the specific records, and record the restart as proceeding under waiver and not as a passing check. Never clear a record by hand to turn the check green.
 - id: E-02
   trigger: An authorized operator is preparing to enable Policy Kernel enforcement.
   pre_conditions:
@@ -233,17 +243,21 @@ Interpretation:
 
 Treat both `not_ready` and `indeterminate` as not ready. A `ready` result is narrow: the preflight scans only the known sentinel-lease divergence. It does not prove that another request shape will not newly refuse.
 
-### Mandatory pre-restart task scan
+### Mandatory pre-restart liveness check
 
 ```bash
-for meta in /var/tmp/koskadeux/cc_tasks/*.meta.json; do
-  [ -e "$meta" ] || continue
-  task="${meta%.meta.json}"
-  [ -e "${task}.done" ] || printf '%s\n' "$meta"
-done
+python3 /Users/max/koskadeux-mcp/scripts/check_dispatch_liveness.py
 ```
 
-Any output is a stop condition. Do not restart. Do not assume a missing worker recovery path exists.
+Exit 0 means safe to restart. Exit 1 means not safe, and the JSON it prints names every blocking record with a reason.
+
+If the check refuses, run the reaper once and check again:
+
+```bash
+python3 -c "import sys, json; sys.path.insert(0, '/Users/max/koskadeux-mcp'); import claude_code_client as c; print(json.dumps(c.reap_abandoned_tasks()['counts']))"
+```
+
+The reaper writes terminal state only for records it can prove are finished, and it distinguishes an observed successful result from an assumed failure. It never clears a record it cannot establish, so it is safe to run and safe to repeat. Do not clear records by hand, and do not assume a missing worker recovery path exists.
 
 ### Post-restart evidence
 
