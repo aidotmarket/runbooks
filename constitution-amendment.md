@@ -57,7 +57,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   tool_or_endpoint: council_request (three dispatches, agent=cc / kimi / glm)
   argument_sourcing:
     diff: give CC the exact old→new wording required by its read-only review path; Kimi and GLM must read the pinned commit through their shared bounded at-SHA repository tools
-    verdict_enum: offer APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE | REQUEST_CHANGES | REJECT verbatim
+    verdict_enum: offer APPROVE | APPROVED_WITH_MANDATES | REJECT verbatim
   idempotency: IDEMPOTENT
   expected_success:
     shape: three valid verdicts, all APPROVE-class (3/3 unanimous)
@@ -89,7 +89,8 @@ YAML frontmatter above is authoritative for the §A header fields.
 - id: E-03
   trigger: Council-unanimous + Max-approved amendment, or exact Max-superseded amendment, ready to apply
   pre_conditions:
-    - E-01 and E-02 complete
+    - E-02 complete
+    - Either E-01 completed with 3/3 valid approval and E-02 recorded Max approval, OR E-02 recorded and byte-read an exact matter-specific Max supersession statement
     - Backend repo clean and at origin/main
   tool_or_endpoint: edit docs/core/CORE.md (assert each old string occurs exactly once) → REPIN THE BOOT KERNEL IN THE SAME OPERATION → validate with load_boot_kernel BEFORE committing → git commit + KD_ALLOW_MAIN_PUSH=1 push (both repos) → state_request patch infra:constitution → fast-forward the running koskadeux-mcp tree → re-verify end to end
   argument_sourcing:
