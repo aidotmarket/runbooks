@@ -1,0 +1,10 @@
+id: I-08
+runbook: branch-landed-verification.md
+type: isolate
+refs:
+- F-02
+scenario: A checkout is clean and zero ahead but three commits behind the remote.
+expected_answers:
+- kind: classification
+  label: CLEAN_TREE_READ_AS_CURRENT
+weight: 0.0769230769

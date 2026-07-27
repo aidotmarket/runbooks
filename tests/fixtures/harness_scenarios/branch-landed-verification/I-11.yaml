@@ -1,0 +1,10 @@
+id: I-11
+runbook: branch-landed-verification.md
+type: evolve
+refs:
+- §H
+scenario: A proposal drops the content test and keeps only SHA ancestry.
+expected_answers:
+- kind: classification
+  label: BREAKING
+weight: 0.0769230769

@@ -1,0 +1,12 @@
+id: I-05
+runbook: branch-landed-verification.md
+type: operate
+refs:
+- E-04
+scenario: A dispatcher returns push_failed with all gates passed.
+expected_answers:
+- kind: human_action
+  verb: read
+  object: remote branch ref
+  target: git ls-remote before any repair
+weight: 0.0769230769

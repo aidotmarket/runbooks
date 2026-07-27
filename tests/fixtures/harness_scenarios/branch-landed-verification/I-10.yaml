@@ -1,0 +1,12 @@
+id: I-10
+runbook: branch-landed-verification.md
+type: repair
+refs:
+- G-01
+scenario: A build already ran from a base that was behind the remote.
+expected_answers:
+- kind: human_action
+  verb: strip
+  object: hunks reversing a deliberate change
+  target: delivered branch before merge
+weight: 0.0769230769

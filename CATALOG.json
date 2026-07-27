@@ -114,6 +114,41 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "branch-landed-verification"
+        }
+      ],
+      "domain": "build-queue",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "clean_tree_read_as_current"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "push_failed_but_landed"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "stale_build_base"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "unlanded_branch_believed_landed"
+        }
+      ],
+      "last_verified_at": "2026-07-27",
+      "owner": "mars",
+      "path": "runbooks/branch-landed-verification.md",
+      "runbook_id": "branch-landed-verification",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "build-queue-reconciliation"
         }
       ],
@@ -513,6 +548,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "clean_tree_read_as_current": {
+        "runbook_id": "branch-landed-verification",
+        "section": "\u00a7F. Isolate"
+      },
       "constitution_source_drift": {
         "runbook_id": "constitution-history",
         "section": "\u00a7F. Isolate"
@@ -629,6 +668,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "push_failed_but_landed": {
+        "runbook_id": "branch-landed-verification",
+        "section": "\u00a7F. Isolate"
+      },
       "read-only agent attempted write": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -636,6 +679,10 @@
       "schema_validation_failure": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
+      },
+      "stale_build_base": {
+        "runbook_id": "branch-landed-verification",
+        "section": "\u00a7F. Isolate"
       },
       "stale_queue_undispatched": {
         "runbook_id": "aging-policy",
@@ -661,6 +708,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "unlanded_branch_believed_landed": {
+        "runbook_id": "branch-landed-verification",
+        "section": "\u00a7F. Isolate"
+      },
       "unresolved_mandates": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -685,6 +736,10 @@
       },
       "aging-policy": {
         "runbook_id": "aging-policy",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "branch-landed-verification": {
+        "runbook_id": "branch-landed-verification",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "build-queue-reconciliation": {

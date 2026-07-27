@@ -1,0 +1,12 @@
+id: I-04
+runbook: branch-landed-verification.md
+type: operate
+refs:
+- E-03
+scenario: A branch must be reported as landed or not landed.
+expected_answers:
+- kind: human_action
+  verb: run
+  object: ancestry cherry and content tests
+  target: origin/main
+weight: 0.0769230769

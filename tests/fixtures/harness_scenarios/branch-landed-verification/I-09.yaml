@@ -1,0 +1,12 @@
+id: I-09
+runbook: branch-landed-verification.md
+type: repair
+refs:
+- G-03
+scenario: A handoff asserts that a branch landed and no SHA is given.
+expected_answers:
+- kind: human_action
+  verb: withdraw
+  object: completion claim
+  target: build queue entity and handoff
+weight: 0.0769230769

@@ -1,0 +1,10 @@
+id: I-02
+runbook: branch-landed-verification.md
+type: operate
+refs:
+- E-01
+scenario: Local main and origin main differ and the brief already contains local main.
+expected_answers:
+- kind: classification
+  label: STALE_BUILD_BASE
+weight: 0.0769230769

@@ -1,0 +1,13 @@
+id: I-01
+runbook: branch-landed-verification.md
+type: operate
+refs:
+- E-01
+scenario: A base SHA is needed for a build brief and the checkout was last fetched
+  yesterday.
+expected_answers:
+- kind: human_action
+  verb: fetch
+  object: origin
+  target: repository before reading the base
+weight: 0.0769230769

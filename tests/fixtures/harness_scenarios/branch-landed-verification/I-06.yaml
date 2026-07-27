@@ -1,0 +1,11 @@
+id: I-06
+runbook: branch-landed-verification.md
+type: isolate
+refs:
+- F-01
+scenario: A delivered build re-adds links that were deliberately deleted two commits
+  ago.
+expected_answers:
+- kind: classification
+  label: STALE_BUILD_BASE
+weight: 0.0769230769
