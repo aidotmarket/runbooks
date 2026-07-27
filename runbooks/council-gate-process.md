@@ -141,7 +141,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
     reviewer_panel: read the exact active CC/Kimi/GLM roster from infra:council-comms; MP is the builder and cannot vote
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + gate3 + commit_sha + reviewer)
-  expected_success: {shape: PASS, PASS_WITH_MANDATES, or FAIL verdict tied to the commit SHA, verification: verify cited file lines and attach the verdict}
+  expected_success: {shape: APPROVE, APPROVED_WITH_MANDATES, or REJECT verdict tied to the commit SHA, verification: verify cited file lines and attach the verdict}
   expected_failures:
     - {signature: authoring_distinction_trap, cause: a review dispatch performed writes and became builder evidence}
     - {signature: fabricated_line_reference, cause: reviewer cited non-existent or stale lines}
@@ -306,7 +306,7 @@ When agents disagree on the evolve class for a gate-process change, use the more
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §C, agent-dispatch:E-02]
+    refs: [E-01, §C, agent-dispatch:E-03]
     scenario: |
       id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, the live CC/Kimi/GLM panel is available, and no chunk spec has been promoted. tool_or_endpoint: bq_update(entity=build:bq-*, gate=gate1, status=<status>, reviewer_verdict=<verdict>). argument_sourcing: entity from Living State; reviewer panel from infra:council-comms; status from the complete valid panel using APPROVED, APPROVED_WITH_MANDATES, or REJECTED. idempotency: IDEMPOTENT_WITH_KEY on entity + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and the complete CC/Kimi/GLM verdict set, including mandates, are attached to the BQ entity with design evidence. expected_failures: missing problem statement, missing/malformed/model-mismatched active voter, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure: return to design authoring or escalate ambiguous scope to Vulcan; never substitute MP, AG, or DeepSeek.
     expected_answers:

@@ -687,7 +687,7 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd]
+        argument_keys: [agent, mode, task, cwd, dispatch_sha]
         argument_values:
           agent: ag
           mode: review
