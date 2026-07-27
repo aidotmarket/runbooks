@@ -467,8 +467,8 @@ refresh_triggers:
   - chunk approval, closeout, or production verification policy changes
   - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-07-17T20:00:00Z
+last_harness_pass_rate: 0.16666666666666666
+last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
 ```
 

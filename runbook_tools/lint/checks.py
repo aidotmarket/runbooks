@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import timezone
+import math
 import re
 from typing import Any
 
@@ -20,7 +21,14 @@ from runbook_tools.lint.forms import (
     validate_form,
     validate_k,
 )
-from runbook_tools.lint.staleness import _normalize_iso_value, evaluate_staleness, write_lifecycle_update
+from runbook_tools.lint.staleness import (
+    PENDING_HARNESS_TOOLING,
+    _normalize_iso_value,
+    _parse_datetime as _parse_staleness_datetime,
+    evaluate_staleness,
+    newest_harness_result,
+    write_lifecycle_update,
+)
 from runbook_tools.parser.sections import Section
 from runbook_tools.version import LINTER_VERSION
 
@@ -538,6 +546,92 @@ def check_20_b_exact_columns(sections: list[Section], ctx: CheckContext) -> list
     ]
 
 
+def check_21_harness_claim_matches_result(
+    sections: list[Section],
+    ctx: CheckContext,
+) -> list[Finding]:
+    section_j = _section_map(sections).get("J")
+    payload = _get_j_payload(sections, ctx)
+    if section_j is None or payload is None or ctx.readme_path is None:
+        return []
+
+    newest = newest_harness_result(ctx.readme_path)
+    claimed_score = payload.get("last_harness_pass_rate")
+    stem = ctx.readme_path.stem
+    if newest is None or newest[1].get("result") == "INFRASTRUCTURE_FAILURE":
+        if claimed_score == PENDING_HARNESS_TOOLING:
+            return []
+        return [
+            Finding(
+                severity="FAIL",
+                check=21,
+                message=f"§J claims a measured pass rate but no harness result exists for {stem}",
+                line=section_j.line_start,
+            )
+        ]
+
+    result_path, result_payload = newest
+    result_value = result_payload.get("result")
+    if result_value not in {"PASS", "FAIL"}:
+        raise ValueError(
+            f"unsupported harness result value {result_value!r} in {result_path}"
+        )
+
+    measured_score = float(result_payload["aggregate_score"])
+    findings: list[Finding] = []
+    claimed_numeric = (
+        float(claimed_score)
+        if isinstance(claimed_score, (int, float)) and not isinstance(claimed_score, bool)
+        else None
+    )
+    if claimed_numeric is None or not math.isclose(
+        claimed_numeric,
+        measured_score,
+        rel_tol=0.0,
+        abs_tol=1e-9,
+    ):
+        findings.append(
+            Finding(
+                severity="FAIL",
+                check=21,
+                message=(
+                    "§J last_harness_pass_rate "
+                    f"claimed {claimed_score!r} but newest harness result measured {measured_score!r}"
+                ),
+                line=section_j.line_start,
+            )
+        )
+
+    claimed_date = payload.get("last_harness_date")
+    measured_started_at = result_payload.get("run_started_at")
+    try:
+        claimed_at = _parse_staleness_datetime(claimed_date)
+    except (TypeError, ValueError, OverflowError):
+        claimed_at = None
+    try:
+        measured_at = _parse_staleness_datetime(measured_started_at)
+    except (TypeError, ValueError, OverflowError):
+        measured_at = None
+    if (
+        claimed_at is None
+        or measured_at is None
+        or claimed_at.date() != measured_at.date()
+    ):
+        findings.append(
+            Finding(
+                severity="FAIL",
+                check=21,
+                message=(
+                    "§J last_harness_date "
+                    f"claimed {_normalize_iso_value(claimed_date)!r} "
+                    f"but newest harness result measured {measured_started_at!r}"
+                ),
+                line=section_j.line_start,
+            )
+        )
+    return findings
+
+
 CHECKS_BUILD2: list[CheckFn] = [
     check_01_sections_present_and_ordered,
     check_02_agent_forms_present,
@@ -572,6 +666,7 @@ ALL_CHECKS: list[CheckFn] = [
     check_18_retrofit_fields,
     check_19_header_required_fields,
     check_20_b_exact_columns,
+    check_21_harness_claim_matches_result,
 ]
 
 
@@ -640,7 +735,7 @@ def _required_field_findings(
     label: str,
 ) -> list[Finding]:
     nullable_fields = {
-        "§J": {"first_staleness_detected_at"},
+        "§J": {"last_harness_date", "first_staleness_detected_at"},
         "§K": {"trace_matrix_path", "word_count_delta"},
     }
     findings: list[Finding] = []

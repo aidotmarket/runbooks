@@ -456,8 +456,8 @@ refresh_triggers:
   - participating agent capability or availability changes
   - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-07-17T20:00:00Z
+last_harness_pass_rate: 0.2
+last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
 ```
 

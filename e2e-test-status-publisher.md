@@ -363,7 +363,7 @@ refresh_triggers:
   - any change to the published record shape, redaction, or the payload/ring bounds
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-22T22:10:00Z
+last_harness_date: null
 first_staleness_detected_at: "2026-07-22T22:09:30.726062+00:00"
 ```
 

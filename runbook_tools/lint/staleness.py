@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 import re
 import tempfile
+from typing import Any
 
 from dateutil import parser as dateparser
 
@@ -12,6 +14,8 @@ from runbook_tools.lint.forms import extract_b_rows, extract_j_payload
 from runbook_tools.parser.sections import Section
 
 StalenessResult = tuple[bool, list[str], str | None, str]
+PENDING_HARNESS_TOOLING = "PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)"
+_UNSET = object()
 
 
 def evaluate_staleness(sections: list[Section], now: datetime, git_head: str) -> StalenessResult:
@@ -29,11 +33,19 @@ def evaluate_staleness(sections: list[Section], now: datetime, git_head: str) ->
 
     now_utc = _to_utc(now)
     commit_drift = j.get("last_refresh_commit") != git_head
-    date_expired = (now_utc - _parse_datetime(j["last_refresh_date"])) > timedelta(days=60)
+    last_refresh_at = _parse_datetime(j.get("last_refresh_date"))
+    date_expired = (
+        last_refresh_at is not None
+        and (now_utc - last_refresh_at) > timedelta(days=60)
+    )
     if commit_drift and date_expired:
         predicates.append("commit_drift_60d")
 
-    if (now_utc - _parse_datetime(j["last_harness_date"])) > timedelta(days=90):
+    last_harness_at = _parse_datetime(j.get("last_harness_date"))
+    if (
+        last_harness_at is not None
+        and (now_utc - last_harness_at) > timedelta(days=90)
+    ):
         predicates.append("harness_90d")
 
     if b_rows_unverified:
@@ -63,7 +75,13 @@ def compute_unverified_b_rows(sections: list[Section]) -> list[int]:
     return unverified_rows
 
 
-def write_lifecycle_update(runbook_path: Path, new_first_detected_at: str | None) -> None:
+def write_lifecycle_update(
+    runbook_path: Path,
+    new_first_detected_at: str | None | object = _UNSET,
+    *,
+    last_harness_pass_rate: float | str | object = _UNSET,
+    last_harness_date: str | None | object = _UNSET,
+) -> None:
     content = runbook_path.read_text()
     section_match = re.search(
         r"(^##\s+§J\..*?)(?=^##\s+§[A-K]\.|\Z)",
@@ -82,16 +100,33 @@ def write_lifecycle_update(runbook_path: Path, new_first_detected_at: str | None
     if block_match is None:
         raise ValueError("§J lifecycle yaml block not found")
 
-    replacement_value = "null" if new_first_detected_at is None else f'"{new_first_detected_at}"'
-    updated_block, replacements = re.subn(
-        r"(^first_staleness_detected_at:\s*).*$",
-        rf"\g<1>{replacement_value}",
-        block_match.group(1),
-        count=1,
-        flags=re.MULTILINE,
-    )
-    if replacements != 1:
-        raise ValueError("§J first_staleness_detected_at field not found")
+    updated_block = block_match.group(1)
+    if new_first_detected_at is not _UNSET:
+        replacement_value = (
+            "null"
+            if new_first_detected_at is None
+            else f'"{new_first_detected_at}"'
+        )
+        updated_block = _replace_lifecycle_field(
+            updated_block,
+            "first_staleness_detected_at",
+            replacement_value,
+        )
+    if last_harness_pass_rate is not _UNSET:
+        updated_block = _replace_lifecycle_field(
+            updated_block,
+            "last_harness_pass_rate",
+            str(last_harness_pass_rate),
+        )
+    if last_harness_date is not _UNSET:
+        replacement_value = (
+            "null" if last_harness_date is None else str(last_harness_date)
+        )
+        updated_block = _replace_lifecycle_field(
+            updated_block,
+            "last_harness_date",
+            replacement_value,
+        )
 
     updated_section = section_text.replace(block_match.group(1), updated_block, 1)
     updated_content = content[: section_match.start(1)] + updated_section + content[section_match.end(1) :]
@@ -105,6 +140,41 @@ def write_lifecycle_update(runbook_path: Path, new_first_detected_at: str | None
         tmp.write(updated_content)
         temp_path = Path(tmp.name)
     temp_path.replace(runbook_path)
+
+
+def newest_harness_result(
+    runbook_path: Path,
+) -> tuple[Path, dict[str, Any]] | None:
+    repo_root = _find_repo_root(runbook_path)
+    if repo_root is None:
+        return None
+
+    results_dir = repo_root / "harness" / "results" / runbook_path.stem
+    candidates: list[tuple[Path, dict[str, Any]]] = []
+    for result_path in results_dir.glob("*.json"):
+        payload = json.loads(result_path.read_text())
+        if not isinstance(payload, dict):
+            raise TypeError(f"harness result is not a JSON object: {result_path}")
+        candidates.append((result_path, payload))
+
+    if not candidates:
+        return None
+    return max(candidates, key=_harness_result_sort_key)
+
+
+def harness_lifecycle_values(runbook_path: Path) -> tuple[float | str, str | None]:
+    newest = newest_harness_result(runbook_path)
+    if newest is None:
+        return PENDING_HARNESS_TOOLING, None
+
+    _, payload = newest
+    run_started_at = payload.get("run_started_at")
+    harness_date = str(run_started_at) if run_started_at else None
+    if payload.get("result") == "INFRASTRUCTURE_FAILURE":
+        return PENDING_HARNESS_TOOLING, harness_date
+    if payload.get("result") not in {"PASS", "FAIL"}:
+        raise ValueError(f"unsupported harness result value: {payload.get('result')!r}")
+    return float(payload["aggregate_score"]), harness_date
 
 
 def get_staleness_payload(sections: list[Section], ctx: CheckContext) -> dict[str, object]:
@@ -122,7 +192,9 @@ def get_staleness_payload(sections: list[Section], ctx: CheckContext) -> dict[st
     return payload
 
 
-def _parse_datetime(value: str) -> datetime:
+def _parse_datetime(value: str | datetime | None) -> datetime | None:
+    if value is None:
+        return None
     if isinstance(value, datetime):
         return _to_utc(value)
     return _to_utc(dateparser.parse(value))
@@ -140,3 +212,39 @@ def _normalize_iso_value(value: str | datetime | None) -> str | None:
     if isinstance(value, datetime):
         return _to_utc(value).isoformat().replace("+00:00", "Z")
     return value
+
+
+def _replace_lifecycle_field(block: str, field: str, value: str) -> str:
+    updated_block, replacements = re.subn(
+        rf"(^{re.escape(field)}:\s*).*$",
+        rf"\g<1>{value}",
+        block,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    if replacements != 1:
+        raise ValueError(f"§J {field} field not found")
+    return updated_block
+
+
+def _find_repo_root(runbook_path: Path) -> Path | None:
+    start = runbook_path.resolve().parent
+    for candidate in (start, *start.parents):
+        if (candidate / "CATALOG.json").is_file():
+            return candidate
+    return None
+
+
+def _harness_result_sort_key(
+    candidate: tuple[Path, dict[str, Any]],
+) -> tuple[bool, datetime, str]:
+    result_path, payload = candidate
+    try:
+        run_started_at = _parse_datetime(payload.get("run_started_at"))
+    except (TypeError, ValueError, OverflowError):
+        run_started_at = None
+    return (
+        run_started_at is not None,
+        run_started_at or datetime.min.replace(tzinfo=timezone.utc),
+        result_path.name,
+    )

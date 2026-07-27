@@ -221,8 +221,8 @@ last_refresh_date: 2026-07-17T22:00:00Z
 owner_agent: vulcan
 refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-07-17T22:00:00Z
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 

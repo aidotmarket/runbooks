@@ -417,7 +417,7 @@ refresh_triggers:
   - the money path shipping, which changes what a charter is permitted to do
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-23T10:35:00Z
+last_harness_date: null
 first_staleness_detected_at: "2026-07-23T10:49:39.734984+00:00"
 ```
 
