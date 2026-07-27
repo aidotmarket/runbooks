@@ -249,7 +249,7 @@
           "signature": "unresolved_mandates"
         }
       ],
-      "last_verified_at": "2026-07-17",
+      "last_verified_at": "2026-07-27",
       "owner": "mp",
       "path": "runbooks/council-gate-process.md",
       "runbook_id": "council-gate-process",
@@ -315,7 +315,7 @@
           "signature": "stale_roster_snapshot"
         }
       ],
-      "last_verified_at": "2026-07-17",
+      "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/council-roster-quirks.md",
       "runbook_id": "council-roster-quirks",
@@ -392,7 +392,7 @@
           "signature": "gate_eligibility_unknown"
         }
       ],
-      "last_verified_at": "2026-07-17",
+      "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/gate-procedure.md",
       "runbook_id": "gate-procedure",

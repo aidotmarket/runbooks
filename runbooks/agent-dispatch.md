@@ -110,7 +110,7 @@ Carried from the retired root copy and corrected at S1351 against live `infra:co
 `infra:council-comms` remains canonical for live roster state. Read it before dispatching.
 
 
-**Gate voter panel: CC + Kimi + GLM — exactly three** (Max direct directive S1319; CORE v9.12 names CC, Kimi and GLM in the amendment gate). ACTIVATION STATUS: ACTIVE. Kimi replaced the DeepSeek seat at the S1319 cutover (koskadeux-mcp `1a7d9c6e`, deployed at `2257a367`, gateway restarted 2026-07-24). `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` in `council_gate_runner.py` are exactly {cc, kimi, glm}. The deployed gateway enforces this panel.
+**Gate voter panel: CC + Kimi + GLM — exactly three** (Max direct directive S1319; CORE v9.13 names CC, Kimi and GLM in the amendment gate). ACTIVATION STATUS: ACTIVE. Kimi replaced the DeepSeek seat at the S1319 cutover (koskadeux-mcp `1a7d9c6e`, deployed at `2257a367`, gateway restarted 2026-07-24). `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` in `council_gate_runner.py` are exactly {cc, kimi, glm}. The deployed gateway enforces this panel.
 
 > HISTORICAL, superseded: the panel was CC + DeepSeek + GLM from S1213, activated at S1223 (49739a44 merged to koskadeux-mcp main as d370d65c, gateway restarted on the merged SHA, live per-voter proof CC/DeepSeek/GLM all APPROVE plus fail-closed quorum verification inside the Chunk 5 freeze; Vulcan ratification peer msg #1178). That record is retained as history and must not be read as current roster state. Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
 
@@ -133,17 +133,17 @@ This section documents the S1213 roster change and discharges the S1221 waived r
 
 Dispatch is a gateway-controlled routing layer. Operators submit a task, target agent, mode, working directory, and evidence references; the gateway chooses the agent backend, applies mode constraints, and returns either a synchronous result or a background task id.
 
-Strategic why: Why MP=primary dispatch builder: Codex CLI automation and deeper wiring-gap detection per S526 Chunk 3B precedent make MP the default builder/reviewer path. Why AG=secondary cross-vote: Gemini 3.1 Pro frontier reasoning is valuable for independent review, but line-number fabrication risk excludes AG from `gate3_post_build_audit` since S342. Why DeepSeek=graduated full voter S528: 94 dispatches, `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical record floor crushed 4.7x justified full-voter dispatch. Why CC=fallback builder: it is the 300s MP Codex CLI timeout safety net and provides Opus-tier reasoning for complex multi-file builds.
+Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder. Current operational truth is the block above: MP is mandatory builder, CC/Kimi/GLM are the gate voters, AG is paused, and DeepSeek is retired.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP, AG, DeepSeek, CC, Vulcan | Normalizes task args and mode boundaries before backend invocation. |
-| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and `_resolve_council_review_diff` | inlined review diff, returned envelope | GLM, DeepSeek, CC | Preloads review diffs and applies provider-specific size handling before dispatch. |
+| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP, CC, Kimi, GLM, retained AG/DeepSeek backends, Vulcan | Normalizes task args and mode boundaries before backend invocation. |
+| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | CC, Kimi, GLM, retained DeepSeek backend | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
 | Kimi review path | Kimi review handler `cap_chars` argument and timeout budget | inlined review diff, returned envelope | Kimi | Sends scoped review material to Kimi within the configured latency budget. |
 | git push guardrail, pre-push hook | repository pre-push hook and environment resolution | local ref, remote ref, push environment | git remote | Guards main pushes; remote-ref equality is authoritative for the push outcome. |
 | MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, git branch, build task record | Codex CLI / GPT-5.5 | Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
 | AG Backend | `koskadeux-mcp/ag_server.py` -> `antigravity_client.py` | AG server task record, Vertex auth env | Gemini CLI / Gemini 3.1 Pro | Read-only review prompts must state no file modification. |
-| DeepSeek Backend | `koskadeux-mcp/deepseek_server.py` -> `deepseek_client.py` | DeepSeek task record, API token env | DeepSeek API / deepseek-v4-pro | Full voter; read-oriented review path with strict result validation. |
+| DeepSeek Backend | `koskadeux-mcp/deepseek_server.py` -> `deepseek_client.py` | DeepSeek task record, API token env | DeepSeek API / deepseek-v4-pro | Retained, technically callable review path; retired from active gate voting. |
 | CC Backend | `koskadeux-mcp/tools/agents.py:_handle_call_cc` | background task id, working tree | Claude Code / Opus | Fallback builder path with full repo write and longer timeout. |
 | Environment Loader | launch scripts and LaunchAgents | PATH, Infisical-backed tokens, local config | Codex CLI, Gemini, DeepSeek, Claude Code | `gemini` must be on PATH; provider tokens must come from approved secret sources. |
 | MCP Tool Prefix | dispatched prompt or MCP tool invocation | tool-call transcript | Koskadeux MCP bridge | Tool prefix casing must use capitalized `Koskadeux:`; lowercase can silently fail. |
@@ -340,21 +340,23 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_success: Attach verified verdict to the gate review record.
   next_step_failure: Use F-02, narrow the prompt, or redispatch to another voter.
 - id: E-03
-  trigger: A review task needs DeepSeek full-voter coverage.
-  pre_conditions: [DeepSeek_server_or_API_healthy, review_scope_is_read_only, dispatch_cost_cap_available]
-  tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<review_prompt>, cwd=<repo>)
+  trigger: A gate review needs Kimi's required voter coverage.
+  pre_conditions: [Kimi_provider_healthy, review_scope_is_read_only, exact_dispatch_sha_known, dispatch_cost_cap_available]
+  tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>)
   argument_sourcing:
     review_prompt: derive from gate ACs and changed-file list
-    mode: use review unless an approved future BQ expands scope
+    mode: review only
+    dispatch_sha: use the exact immutable commit under review
     cost_cap: read from infra:council-comms dispatch config
   idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: hash("deepseek" + commit_sha + review_scope)
-  expected_success: {shape: strict review result with verdict and findings, verification: ensure schema validation passed and citations are real}
+  idempotency_key: hash("kimi" + commit_sha + review_scope)
+  expected_success: {shape: strict review result with verdict, findings, and at-SHA read evidence, verification: ensure exact-model/schema validation and required-file coverage passed}
   expected_failures:
-    - {signature: health_failure, cause: server unavailable or API token missing}
+    - {signature: health_failure, cause: provider unavailable or credential missing}
     - {signature: schema_validation_failure, cause: result did not match required review shape}
-  next_step_success: Add DeepSeek verdict to the Council review set.
-  next_step_failure: Repair backend health or route to AG/MP fallback per gate policy.
+    - {signature: repository_review_coverage_incomplete, cause: required exact-SHA files were not read completely}
+  next_step_success: Add Kimi's verdict and immutable read evidence to the Council review set.
+  next_step_failure: Repair the Kimi path and retry; do not substitute a retired or fallback voter.
 - id: E-04
   trigger: After any change to the laptop-routing env-var deployment surface (KOSKADEUX_DISABLE_LAPTOP_ROUTING in com.koskadeux.council-hall.plist or related agents), the fix must be smoke-verified before claiming durable.
   pre_conditions: [plist_change_committed_to_disk, plist_passes_plutil_lint, council_hall_currently_running_or_intentionally_down]

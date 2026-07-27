@@ -30,7 +30,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: mp
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-27
 system_name: council-gate-process
 purpose_sentence: Council Build Queue gate-process runbook for operating the BQ four-gate flow and enforcing non-builder cross-review before completion.
 owner_agent: mp
@@ -54,7 +54,7 @@ The YAML frontmatter above defines the §A header. This runbook documents the st
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Build Queue entity tracking | SHIPPED | `build:bq-* Living State entities` | Gate transitions verified through BQ entity state review | 2026-04-29 |
-| Gate 1 design review | SHIPPED | `build:bq-*.gate1` | MP/AG design-review artifacts attached to BQ records | 2026-04-29 |
+| Gate 1 design review | SHIPPED | `build:bq-*.gate1` | CC/Kimi/GLM design-review artifacts attached to BQ records | 2026-07-27 |
 | Gate 2 chunking and implementation spec | SHIPPED | `specs/BQ-*-GATE2.md` | Chunk specs reviewed before build dispatch | 2026-04-29 |
 | Gate 3 post-build audit | SHIPPED | `build:bq-*.gate3` | Mandatory reviewer verdicts checked against commit SHAs | 2026-04-29 |
 | Gate 4 production verification | SHIPPED | `build:bq-*.gate4` | Customer-perspective verification recorded before completion | 2026-04-29 |
@@ -70,10 +70,10 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| BQ Entity | `build:bq-* Living State entities` | gate fields, builders, reviewers, verdicts, body summary | Vulcan, MP, AG, DeepSeek, CC | Canonical work record for gate status and provenance. |
-| Gate 1 Design | `build:bq-*.gate1` | problem statement, design verdicts, mandates | MP, AG, DeepSeek, Vulcan | Approves the shape of the work before implementation planning. |
+| BQ Entity | `build:bq-* Living State entities` | gate fields, builders, reviewers, verdicts, body summary | Vulcan, Mars, MP, CC, Kimi, GLM | Canonical work record for gate status and provenance. |
+| Gate 1 Design | `build:bq-*.gate1` | problem statement, design verdicts, mandates | CC, Kimi, GLM, Vulcan, Mars | Approves the shape of the work before implementation planning. |
 | Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP, Vulcan, builders | Converts approved design into bounded implementation work. |
-| Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | MP, AG, DeepSeek | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
+| Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | CC, Kimi, GLM | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
 | Gate 4 Verification | `build:bq-*.gate4` | production checks, customer-perspective verification | reviewer agents, Vulcan | Confirms the shipped behavior and closes the BQ only after review evidence exists. |
 | Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `bq_complete`, Living State | Requires `approved_reviewers - builders` to be non-empty. |
 | Compliance Gate | `BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION` | gate status, author-mode provenance | dispatch surfaces, BQ state | Blocks build dispatch when Gate 1 mandates are unresolved or author/review mode is ambiguous. |
@@ -85,13 +85,15 @@ The gate state shape is intentionally small: `gate1`, `gate2`, `gate3`, and `gat
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | primary Gate 1-3 reviewer and frequent builder | Codex CLI / GPT-5.5 | full repo write | COMPLETE |
-| AG | secondary cross-vote and independent reviewer | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
-| DeepSeek | full Council voter for read-oriented gate review | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | fallback builder when MP timeout or complexity requires it | Claude Code / Opus | full repo write | COMPLETE |
+| MP | mandatory builder; not a gate voter | Codex CLI / gpt-5.6-sol | repository write only in explicit build/author mode | COMPLETE |
+| CC | active gate voter | Claude Code read-only review path | repository read | COMPLETE |
+| Kimi | active gate voter | shared provider read-only review loop / kimi-k3 | bounded read-only at-SHA repository tools | COMPLETE |
+| GLM | active gate voter | shared provider read-only review loop / z-ai/glm-5.2 | bounded read-only at-SHA repository tools | COMPLETE |
+| AG | paused; explicit non-gate review only when live state permits | Gemini / Vertex | repository read | COMPLETE |
+| DeepSeek | retired from the active gate roster | retained dispatch backend | no current gate authority | COMPLETE |
 | Vulcan | gate orchestrator and Living State operator | Anthropic API / MCP tools | gateway, LS, all repos | COMPLETE |
 
-MP is primary because Codex CLI automation gives it reliable repo interaction and it has historically caught deeper wiring gaps in build chunks. AG is the cross-vote reviewer because Gemini 3.1 Pro gives strong independent reasoning, while its line-number fabrication risk means every cited line must be verified before Gate 3 evidence is accepted. DeepSeek is a full voter after S528 because 94 dispatches showed `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and a 4.7x crushed statistical record floor. CC is the fallback builder because it gives Opus-tier multi-file reasoning and a practical escape hatch when MP Codex CLI hits the 300s timeout. Vulcan owns orchestration because gate movement is stateful across specs, commits, reviews, and Living State.
+MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly CC, Kimi, and GLM; Kimi replaced DeepSeek at S1319, DeepSeek is retired from voting, and AG is paused. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. `infra:council-comms` remains canonical for live membership and model strings.
 
 ## §E. Operate
 
@@ -103,7 +105,7 @@ MP is primary because Codex CLI automation gives it reliable repo interaction an
   argument_sourcing:
     entity: use the Living State key for the BQ under review
     status: derive from the reviewer verdict using APPROVED, APPROVED_WITH_MANDATES, or REJECTED
-    reviewer_verdict: attach MP first and add AG or DeepSeek when risk warrants cross-vote
+    reviewer_verdict: attach the complete valid CC/Kimi/GLM panel required by current policy; MP remains builder-only
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + gate1 + reviewer + verdict_commit)
   expected_success: {shape: Gate 1 status plus reviewer verdict on the BQ entity, verification: read the entity back and confirm mandates are explicit}
@@ -199,7 +201,7 @@ MP is primary because Codex CLI automation gives it reliable repo interaction an
   component_ref: Cross-Review Gate
   root_cause: Completion requires at least one approving reviewer who is not also a builder, and the entity lacks that evidence.
   repair_entry_point: cross_review_gate.py
-  change_pattern: Dispatch a read-only Gate 4 verification to AG, DeepSeek, or MP if MP was not the builder; patch `reviewers` and `gate4.<agent>_verdict` only after verifying the returned evidence.
+  change_pattern: Dispatch read-only Gate 4 verification to the current CC/Kimi/GLM panel; patch `reviewers` and `gate4.<agent>_verdict` only after verifying each returned result and preserving builder exclusion.
   rollback_procedure: Remove only the invalid reviewer field if it was patched without evidence; keep valid builder and commit records intact.
   integrity_check: Confirm `approved_reviewers - builders` is non-empty before rerunning `bq_complete`.
 - id: G-02
@@ -257,7 +259,7 @@ MP is primary because Codex CLI automation gives it reliable repo interaction an
 
 - Removing one of the four gates or collapsing Gate 3 and Gate 4 is BREAKING.
 - Removing cross-review enforcement before `bq_complete` is BREAKING.
-- Granting write-mode review authority to AG or DeepSeek without changing builder/reviewer provenance rules is BREAKING.
+- Granting write-mode authority to any gate voter, or restoring retired/paused voter authority without an approved roster change, is BREAKING.
 - Changing the BQ entity key shape away from `build:bq-*` is BREAKING.
 
 ### §H.3 REVIEW predicates

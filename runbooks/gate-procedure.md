@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-27
 system_name: gate-procedure
 purpose_sentence: This companion carries the full Gate 1 through Gate 4 and Council consensus procedure needed for authoring, review, build dispatch, and recovery.
 owner_agent: vulcan
@@ -30,7 +30,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, section 5.
+**Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, section 5.
 
 ## §B. Capability Matrix
 
@@ -57,11 +57,11 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 ### Normative projection — CORE §5, CCP
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
 > CCP is the **full-ceremony gate flow, reserved for expensive-to-reverse work** (schema, auth, money, customer data) per the Charter's risk sizing. Low-risk reversible internal work does not run the full CCP — it gets one reviewer, one round.
 
-> **Voters:** CC, DeepSeek, GLM — exactly three. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work.
+> **Voters:** CC, Kimi, GLM — exactly three. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work.
 
 > - **Round 1 (Positions):** voters evaluate independently, full position, each sees only the spec.
 > - **Round 2 (Debate):** voters see Round 1 positions; react, challenge, concede, or hold.
@@ -69,16 +69,18 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 > - **Synthesis:** the orchestrating instance synthesizes, flags disagreements, presents to Max. Unresolved splits go to Max.
 > - **Hard limit:** 3 rounds.
 
-> **Decision rules:** majority (2/3) for standard items, and only after all three voters return valid verdicts (3/3 valid participation); unanimous (3/3) REQUIRED for security, auth, money flows, production data, and customer data; missing, failed, malformed, or model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter; any voter CRITICAL veto halts and escalates to Max; mandatory dissent record; DeepSeek guaranteed a seat on every code review (conflicts surface to Max).
+> **Decision rules:** majority (2/3) for standard items, and only after all three voters return valid verdicts (3/3 valid participation); unanimous (3/3) REQUIRED for security, auth, money flows, production data, and customer data; missing, failed, malformed, or model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter; any voter CRITICAL veto halts and escalates to Max; mandatory dissent record; Kimi guaranteed a seat on every code review (conflicts surface to Max).
+
+> **Max supersession.** Max supersedes the Council. When Max explicitly states that he is superseding it, his statement stands in place of the Council's approval for the matter he names, including the amendment gate in CORE's closing clause. The statement must name what is being superseded and be recorded in the Event Ledger. No agent may infer supersession.
 
 ### Normative projection — CORE §5, Build Gates
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
 > - **Gate 1 (Design):** architecture review. APPROVED → build. APPROVED_WITH_MANDATES → Gate 2. REJECT → redesign.
 > - **Gate 2 (Spec):** verify mandates addressed. APPROVED → build unblocked. REJECT → fix spec.
 > - **Build:** MP executes — the mandatory builder for both instances. Compliance gate blocks dispatch if Gate 2 not passed.
-> - **Gate 3 (Audit):** post-build review by the gate voter panel (CC, DeepSeek, GLM; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
+> - **Gate 3 (Audit):** post-build review by the gate voter panel (CC, Kimi, GLM; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
 > - **Gate 4 (Production Verification):** deployed and verified working. Nothing is done until Gate 4 passes. Cross-review required (reviewer ≠ builder).
 
 ### Selection and eligibility
@@ -103,7 +105,7 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 |---|---|---|---|---|
 | Vulcan or Mars | Select gate and orchestrate rounds | State and Council tools | Gate state and dispatch | COMPLETE |
 | MP | Build approved chunks | `council_request mode=build` | Repository write | COMPLETE |
-| CC, DeepSeek, GLM | Review and vote independently | `council_request mode=review` | Read-only | COMPLETE |
+| CC, Kimi, GLM | Review and vote independently | `council_request mode=review` | Read-only | COMPLETE |
 | Max | Decide genuine forks and approve constitutional changes | Human decision | Final authority | COMPLETE |
 
 ## §E. Operate

@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-07-27
 system_name: council-roster-quirks
 purpose_sentence: This companion routes Council dispatchers to the live roster and preserves the stable role and behavioral constraints needed before dispatch.
 owner_agent: vulcan
@@ -30,7 +30,7 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 
 **Fetch trigger:** before Council dispatch or voter validation.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 4 and 5. Normative extracts below name their CORE section and source SHA.
+**Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, sections 4 and 5. Normative extracts below name their CORE section and source SHA.
 
 ## §B. Capability Matrix
 
@@ -50,22 +50,23 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 
 ### Normative projection — CORE §4
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
 > Each Council brain has different tools, behavioral defaults, and quirks. **This document names the roles; the live roster and current models live in `infra:council-comms` and the model registry — CORE does not pin model versions, because they change.** Before dispatching any Council task, check `state_get("infra:council-comms")` for the canonical reference.
 
 ### Normative projection — CORE §5
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> The gate voter panel is exactly **CC, DeepSeek, GLM** — three voters. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
+> The gate voter panel is exactly **CC, Kimi, GLM** — three voters. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
 
 > Vulcan and Mars are two cooperating frontier-model instances (current model strings live in the registry, not here), **peers of equal authority** over shell, git, dispatch, and Living State.
 
 Stable dispatch roles carried from CORE §§4–5:
 
 - MP is the mandatory builder and cannot vote on its own work.
-- CC, DeepSeek, and GLM are the gate voters; a valid gate requires the policy-defined complete panel.
+- CC, Kimi, and GLM are the gate voters; a valid gate requires the policy-defined complete panel.
+- DeepSeek is retired from the active gate roster; its technically callable dispatch path does not confer voting authority.
 - AG is not assumed active. Consult live state before any explicit AG review.
 - Vulcan and Mars orchestrate and synthesize as peers; neither is a gate voter.
 - Max is final authority, not a Council voter.
@@ -78,7 +79,7 @@ These bullets are companion synthesis, not a new source of constitutional author
 |---|---|---|---|---|
 | Vulcan or Mars | Resolve roster before dispatch | `state_get` | Living State read | COMPLETE |
 | MP | Build approved work | `council_request agent=mp` | Repository write per dispatch | COMPLETE |
-| CC, DeepSeek, GLM | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
+| CC, Kimi, GLM | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
 | AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
 
 ## §E. Operate
