@@ -458,8 +458,8 @@ Lifecycle metadata records the S1369 gate-roster refresh. The most recent regist
 
 ```yaml lifecycle
 last_refresh_session: S1369
-last_refresh_commit: 91ebd40
-last_refresh_date: 2026-07-27T21:55:39Z
+last_refresh_commit: 217ff63
+last_refresh_date: 2026-07-27T22:12:57Z
 owner_agent: mp
 refresh_triggers:
   - BQ gate lifecycle or state entity contract changes
@@ -480,7 +480,7 @@ Conformance fields for the S1369 content refresh.
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T21:55:39Z
+last_lint_run: S1369 / 2026-07-27T22:12:57Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
