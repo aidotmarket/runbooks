@@ -89,11 +89,23 @@ YAML frontmatter above is authoritative for the §A header fields.
   pre_conditions:
     - E-01 and E-02 complete
     - Backend repo clean and at origin/main
-  tool_or_endpoint: edit docs/core/CORE.md (assert each old string occurs exactly once) → git commit + KD_ALLOW_MAIN_PUSH=1 push → state_request patch infra:constitution
+  tool_or_endpoint: edit docs/core/CORE.md (assert each old string occurs exactly once) → REPIN THE BOOT KERNEL IN THE SAME OPERATION → validate with load_boot_kernel BEFORE committing → git commit + KD_ALLOW_MAIN_PUSH=1 push (both repos) → state_request patch infra:constitution → fast-forward the running koskadeux-mcp tree → re-verify end to end
   argument_sourcing:
     expected_version: current entity version from a fresh state_request get
     content: read the committed file byte-exact (do NOT retype); the S1242 pattern posts to localhost:8765/api/call with the file read programmatically
     amendment_record: new body.core_amendment_<session> key with change, reason, approvals, commit SHA, safety_check
+    kernel_repin: koskadeux-mcp boot_kernel/v2/manifest fields constitution_version, source_constitution_sha256, content_sha256, observed_kernel_chars, section_chars; plus KERNEL.md I1 and H6 if either names the constitution version or the amendment gate
+  MANDATORY_PAIRED_CHANGE_DO_NOT_SKIP: |
+    tools/boot_kernel_v2.py hashes the LIVE constitution at every session open and compares it byte-exactly to
+    manifest source_constitution_sha256 (the check is `_sha256(source_constitution) != source_sha`). A mismatch
+    raises BOOT_KERNEL_SOURCE_DRIFT and CORE H3 aborts the boot, so the session DOES NOT OPEN. Amending the
+    constitution without repinning the kernel in the same operation LOCKS BOTH INSTANCES OUT of opening any
+    session, and recovery is manual. BOOT_KERNEL_V2_MODE defaults to on in scripts/launch_mcp_server.sh, so this
+    is live, not theoretical. Order that avoids a drift window: edit CORE, recompute its sha256, amend KERNEL.md,
+    rewrite the manifest, run load_boot_kernel(amended_core, artifact_dir=...) and require PASS BEFORE anything is
+    committed, then push both mains, then PATCH infra:constitution, then fast-forward /Users/max/koskadeux-mcp,
+    then re-run load_boot_kernel against the constitution read back out of Living State. Discovered and first
+    executed at S1370 (CORE v9.12 -> v9.13); prior to that it was documented nowhere.
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: expected_version (a replayed patch fails on version conflict rather than double-applying)
   expected_success:
