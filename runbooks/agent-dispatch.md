@@ -1676,6 +1676,17 @@ incident cost a session partly because the guard raised the same code and
 message for an empty batch as for an over-ceiling one, which sent the diagnosis
 toward the preloader and the repository rather than the call budget.
 
+**Resolution, S1377.** T-2026-000457 is RESOLVED. End-to-end proof on the
+deployed fix: GLM task 118e47c2 reviewed a 5-file C2 branch diff including a
+full read of an ~8k-line file — 25 turns, 34 repository calls, $3.21 of an $8
+cap, zero limit errors, and the terminal conformance repair returned a parsed
+APPROVE. Operational rule from the incident pair: **wide GLM/Kimi reviews
+(5+ changed files, or any file over ~2k lines) dispatch with
+`max_budget_usd=8`.** A $4 cap dies at terminal repair
+(`terminal_repair_cost_unprovable`) after the review substance succeeded, which
+wastes the whole run at its most expensive point.
+
+
 ## §X.3 — Council re-dispatch and peer-coordination mechanics (S1375)
 
 Three subjects that repeatedly reached the session-plan gate as
@@ -1756,6 +1767,35 @@ enough — it must be recorded on the peer's entity.
   item to be surfaced and, if deferred, an explicit recorded decision event.
 - **Establishing whether a branch actually landed** belongs to
   `branch-landed-verification` (§E-03). Do not re-derive it.
+
+## §X.4 — Dispatch prompts that run in the shared checkout MUST end with "restore checkout to main" (S1376)
+
+MP builds that operate in a shared repo checkout (anything dispatched with
+`cwd` pointing at the live clone rather than an isolated worktree) can leave
+that checkout on the build branch when they finish. S1376 measured the cost:
+MP left `/Users/max/koskadeux-mcp` on the C2 branch, the next server restart
+briefly served UNREVIEWED branch code for ~90 seconds before the drift was
+caught and re-bounced. Full account on T-2026-000457.
+
+Rules:
+
+- Every build or fold dispatch prompt that can touch a shared checkout ends
+  with an explicit instruction: check out `main` and verify with
+  `git branch --show-current` before finishing.
+- Before any server restart or reviewed merge, verify the shared checkout is
+  on `main` yourself (`git branch --show-current`); do not assume the builder
+  complied.
+- Never `git checkout` in a shared clone while a builder is running in it.
+  For pinned read-only reviews use an ephemeral detached worktree
+  (`git worktree add --detach <path> <sha>`) and prune it in the same session.
+  For ref-only operations (fast-forwarding `main` to a reviewed head), push
+  the named branch ref remotely (`git push origin <branch>:refs/heads/main`)
+  and `git fetch origin main:main` locally — neither touches the working tree.
+  A raw SHA as the push source is rejected by the pre-push guardrail; use the
+  branch name.
+
+This section discharges the S1376 handoff lesson set; the GLM budget rule
+lives in §X.2's resolution note.
 
 ## §Y Historical Plus-One Discipline (superseded)
 
