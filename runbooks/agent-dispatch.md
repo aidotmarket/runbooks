@@ -1877,3 +1877,15 @@ The enforcing code ships an atomically-versioned §E supplement at `koskadeux-mc
 | `pre_build_git_probe_failed` | git itself failed (missing binary, timeout, no-origin named distinctly). Fails closed, nothing discarded. | Fix the environment; work untouched. |
 | Stacked-build pre-position | For builds atop an unmerged reviewed commit: check out the target branch at its PUSHED head, set upstream to the branch's own origin ref, pass explicit `cwd` on dispatch. | Required before any stacked structural dispatch. |
 | Failure/timeout preservation | Builder commits are pinned to `refs/koskadeux-build/<sha>` before any teardown; timeout payloads report worktree_path + preserved ref; retained worktrees carry a TTL marker and are reaped after expiry. | Recover via the pinned ref; never assume a failed verdict means lost work. |
+
+## §X.6 — GLM/Kimi review dispatch: preloaded-diff method, pinning, and provider quirks (S1382)
+
+Discharges S1382-D1..D4.
+
+1. Preloaded-diff reviews (S1382-D1). For GLM/Kimi code reviews, dispatch mode=review with explicit `base` and `head`. The legacy coverage controller may still deliver a partial changed-set (T-2026-000460a). ALWAYS include this tripwire in the task: "State the exact number of files in the changed-set you reviewed and list them — if you were shown fewer than the full changed-set, say so explicitly and do not approve." The tripwire caught partial coverage live twice on 2026-07-28. Expect this section to be superseded by bq-council-review-harness-reform-s1382 C3.
+
+2. Full-diff pinning fallback (S1382-D2). When coverage is partial, generate the complete `git diff base..head` yourself and pin it: pinned_artifacts entries require (a) an absolute path under a repo root that is DECLARED in `review_sources` of the SAME dispatch, (b) a suffix in {.md, .txt, .json, .cfg, .ini, .rst, .toml, .yaml, .yml} — rename .diff to .txt, (c) size ≤ 2 MiB, (d) an exact lowercase sha256. Instruct the reviewer that the pinned artifact is the authoritative changed-set and to state its file count.
+
+3. Provider quirks (S1382-D3). GLM's repo harness is bound to koskadeux-mcp and cannot resolve runbooks-repo dispatch SHAs — review runbooks documents via mode=open_response with the text inlined. Kimi open_response needs `max_tokens` ≥ 16000 (reasoning consumes the 4096 default and truncates the answer) and may time out once — retry with `timeout_s=600`. Backend-repo (ai-market-backend) review dispatches require explicit `cwd` set to the backend checkout.
+
+4. Scripted file edits (S1382-D4). Never perform multi-replacement edits via a quoted bash heredoc containing escaped quotes — a Python SyntaxError silently skips ALL replacements while a subsequent `git commit` still succeeds on whatever else was staged. Write the edit script with write_file, run it, then VERIFY the target file content (grep for a folded phrase) before committing.
