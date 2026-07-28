@@ -1,6 +1,6 @@
 # T-2026-000422 — Lossless Peer Bus Gate 1
 
-Status: `AUTHORED_PENDING_REVIEW_R5`
+Status: `AUTHORED_PENDING_REVIEW_R6`
 
 Owner: Vulcan S1373  
 Evidence author: Mars (excluded from review)  
@@ -31,7 +31,7 @@ effect.
 Receipt is a mandatory protocol action, but a missing receipt does not lock the
 operator out of health, recovery, peer communication, or ordinary local work.
 The gateway periodically gives a complete delivery-only turn and blocks only
-privileged state-changing effects after bounded nonreceipt. If the recipient
+privileged state-changing effects after bounded non-receipt. If the recipient
 never receipts, the message remains durably pending forever and no delivery
 claim is made; convergence necessarily requires recipient cooperation.
 
@@ -79,9 +79,12 @@ both separately.
 ## 4. Exact persistence and frame bounds
 
 The S1373 authenticated production snapshot, without exposing bodies, found
-1,310 retained rows (ids 651–2031), 2 legacy-unconsumed rows, 2 semantically
-unacknowledged request/alert rows, and a maximum body of 7,842 UTF-8 bytes.
-Those rows are legacy and remain accessible through the legacy view.
+1,310 retained rows across the non-contiguous id range 651–2031, with 71 absent
+ids. The retained-row count, not the inclusive numeric span, is authoritative.
+It also found 2 legacy-unconsumed rows, 2 semantically unacknowledged
+request/alert rows, and a maximum body of 7,842 UTF-8 bytes. Those rows are
+legacy and remain accessible through the legacy view. Manifests iterate only
+existing retained rows in ascending id order.
 
 `priority` is exactly the closed enum `high|normal` at the gateway, backend
 model, database, selector, and state table. No third value is accepted or
@@ -97,15 +100,19 @@ apply only to version 1, so they validate safely against the existing
 7,842-byte legacy row while every post-cutover commit is still
 database-enforced.
 
-Version-1 sends enforce at gateway, backend model, trigger, and conditional
-database CHECK:
+Version-1 sends enforce the following at gateway, backend model, trigger, and
+conditional database CHECK:
 
 - `body`: at most 6,000 UTF-8 bytes;
 - `ref_entity`: null or at most 256 UTF-8 bytes;
 - sender/recipient/kind: existing fixed enums; priority: exactly
   `high|normal`;
-- message id: signed 64-bit positive integer;
-- created timestamp: canonical UTC RFC3339.
+- message id: signed 64-bit positive integer.
+
+`created_at` is a server-generated, non-null `timestamptz` instant. The database
+enforces non-null storage and supplies the default; it does not claim to enforce
+a text encoding. The gateway serializer alone renders that stored instant as
+canonical UTC RFC3339.
 
 The delivery frame is length-prefixed plain UTF-8, not an escaped inner JSON
 document. Its decoded-text worst-case budget is:
@@ -137,14 +144,15 @@ and the 50,000-byte outer bound. A larger legacy row returns
 complete, bounded admin pages. The post-cutover lossless guarantee does not
 retroactively certify or transform legacy rows.
 
-If a committed version-1 row violates the supposedly impossible frame invariant, the
-backend atomically sets `delivery_parked_at/reason=frame_invariant`, raises a
-critical alert containing id but no body, excludes it from head-of-line
-selection, and advances to the next row. Parking never marks delivery.
+If a committed version-1 row violates the supposedly impossible frame
+invariant, the backend atomically sets
+`delivery_parked_at/reason=frame_invariant`, raises a critical alert containing
+id but no body, excludes it from head-of-line selection, and advances to the
+next row. Parking never marks delivery.
 Requeue is accepted only after the current serializer dry-runs the same
 immutable row successfully against both bounds; otherwise it remains parked
-without creating another alert. If immutable data is corrupt, an
-Max-authorized operator may commit a distinct replacement message referencing
+without creating another alert. If immutable data is corrupt, a Max-authorized
+operator may commit a distinct replacement message referencing
 the parked id and then quarantine the original. The original is preserved and
 never falsely receipted.
 
@@ -163,7 +171,8 @@ Add to `peer_messages`:
 `consumed_at = coalesce(consumed_at, delivery_received_at)` is written solely for
 legacy compatibility; enforced selection ignores it.
 
-Add `peer_message_delivery_offers`, exactly one row per message:
+Add `peer_message_delivery_offers`, at most one row per message and exactly one
+for every message that has reached token creation:
 
 - `offer_id uuid primary key`
 - `offer_token char(43) not null unique`
@@ -186,7 +195,10 @@ Add `peer_bus_instance_state`:
 - `mode`: `legacy`, `shadow`, `enforced`, `safe_readonly`;
 - `cutover_message_id bigint null`;
 - `mode_changed_at/by/reason`;
-- `calls_since_delivery_opportunity integer not null default 0`;
+- `calls_since_delivery_opportunity integer not null default 0` constrained to
+  `0..2`;
+- `consecutive_offer_conflicts integer not null default 0`;
+- `next_offer_attempt_at timestamptz null`;
 - `last_priority_served` nullable `high|normal`.
 
 `cutover_message_id` is null throughout shadow. It is set once at the atomic
@@ -252,14 +264,18 @@ and the next candidate only. Hidden live ids are not exposed.
 
 ### 7.2 Bounded delivery cadence
 
-The cadence counter has one exact owner and unit. Only an ordinary eligible
-invocation whose substantive primary result is returned increments
-`calls_since_delivery_opportunity`, after that result is finalized; success and
-tool-level error results both count. Exempt tools, every-turn checks, explicit
-inbox, receipt, privileged-gate checks, backend failures, and displaced calls
-neither increment nor reset it. A successfully emitted scheduled frame resets
-it to zero. Receipt does not reset it. With pending live messages, a value of
-two makes the next ordinary eligible call a due delivery opportunity.
+The cadence counter has one exact owner and unit. It saturates at two. An
+ordinary eligible invocation whose substantive primary result is returned sets
+`calls_since_delivery_opportunity =
+min(2, calls_since_delivery_opportunity + 1)` after that result is finalized;
+success and tool-level error results both count. Exempt tools, every-turn
+checks, receipt, privileged-gate checks, backend failures, and displaced calls
+neither increment nor reset it. Any successfully emitted complete frame,
+scheduled or explicit-inbox, resets it to zero. Receipt does not reset it. With
+pending live messages, a value of two makes the next ordinary eligible call a
+due delivery opportunity. An explicit inbox attempted during offer backoff
+returns `offer_backoff` without changing the counter; after the bound it may
+emit and reset normally.
 
 For an ordinary eligible tool call with pending live messages:
 
@@ -314,7 +330,10 @@ With delivery opportunities every third eligible call:
   while normal is pending.
 
 These are conditional, testable bounds based on the scalar `Q` captured at
-selection. Privileged gating can accelerate delivery but never weaken bounds.
+selection while the backend is reachable and offer creation does not conflict.
+The exact conflict backoff and fifth-conflict safe-readonly bound in section 7.4
+applies instead when that concurrency precondition fails. Privileged gating can
+accelerate delivery but never weaken bounds.
 
 An explicit legacy offer is allowed only when no live row is pending. It uses
 the same stable token/counters and is displaced immediately by any newly live
@@ -331,11 +350,23 @@ buffer, reserializes and revalidates the returned row/token against both bounds,
 then returns it. If parity or size fails, it parks that row and performs one
 fresh peek. On a second conflict the gateway records
 `offer_create_conflict`, returns the original substantive call's untouched
-result, leaves the cadence counter due at two, and applies bounded randomized
-backoff before the next eligible attempt. It never consumes a call without
-either its primary result or a complete frame. Five consecutive conflicts open
-a critical incident and transition that recipient to `safe_readonly`; explicit
-inbox/receipt/recovery remain available.
+result, and applies the saturating increment rule, which leaves a due counter
+at two.
+
+Conflict state is per recipient. The first through fourth consecutive
+second-conflict events set `next_offer_attempt_at` to a cryptographically
+random delay in, respectively, 50–100 ms, 100–200 ms, 200–400 ms, and
+400–800 ms. Calls before that instant return their untouched substantive result
+and leave the due counter at two. A successful offer creation resets the
+conflict count and backoff timestamp; returning a substantive result, receipt,
+elapsed wall time, and ordinary mode changes do not. “Consecutive” means no
+successful offer creation between conflicts. Before the fifth conflict, a
+successful offer creation resets both fields. The fifth conflict opens a
+critical incident, latches the conflict state, and transitions that recipient
+to `safe_readonly`; after latching, only ticketed recovery after the root cause
+is fixed may reset it.
+Explicit inbox/receipt/recovery remain available. The gateway never consumes a
+call without either its primary result or a complete frame.
 
 Peek/create/frame never increments delivery receipt state. Lost or truncated
 frames without receipt simply leave the token pending for a later opportunity.
@@ -387,6 +418,15 @@ Legacy rows remain `legacy_unverified`, visible by scalar count and manifest.
 when no live row is pending. No bulk receipt or automatic certification exists.
 Semantic pending includes every unacked request/alert regardless of legacy or
 transport state.
+
+Manifest membership and `legacy_unverified_total` are immutable provenance:
+even an individually receipted legacy row remains in both because its historical
+pre-cutover delivery state is unknowable. Separate scalar subcounts report
+`legacy_never_offered`, `legacy_offered_unreceipted`, and
+`legacy_individually_receipted`. A valid explicit receipt moves only between
+those subcounts and excludes that row from future legacy offer selection; it
+does not remove or rewrite the manifest and does not certify historical
+delivery.
 
 Legacy paging also applies a 40,000-byte decoded-output budget and returns only
 complete records plus a continuation id. A legacy offer preflights the actual
@@ -443,10 +483,12 @@ Backend-reachable metrics emit to Event Ledger and SysAdmin:
 | Oldest live pending age | 15 minutes | 60 minutes |
 | Live pending count | 20 | 100 |
 | Receipt latency after first frame | 15 minutes | 60 minutes |
-| Quarantined/parked count | any non-zero informational | any row over 24 hours |
+| Quarantined/parked count | none; any non-zero emits informational | any row over 24 hours |
 | Manifest mismatch | immediate | rollout stop |
 
-Warnings deduplicate 15 minutes. Critical events remain open until cleared.
+Warnings deduplicate 15 minutes. The quarantined/parked informational event
+deduplicates separately for 15 minutes and is not a warning. Critical events
+remain open until cleared.
 Offer count remains a metric without an alert threshold; repeated presentation
 is required protocol behavior. Routine first frames and scheduler rotation do
 not warn.
@@ -541,7 +583,8 @@ After fix:
    blocking;
 4. every-turn/no-cache check is enforced;
 5. ordinary calls follow two untouched results then one complete delivery-only
-   opportunity; exempt tools are never displaced;
+   opportunity; exempt tools are never displaced; explicit inbox emission
+   resets the same saturating counter;
 6. privileged effects remain available before the exact 60-minute overdue
    boundary, then block; Max suspension is audited and never receipts;
 7. stable 43-char token maps to one message/recipient and persists through
@@ -553,20 +596,24 @@ After fix:
     `3*(Q+1)` / `6*(Q+1)` hold; legacy yields to live;
 11. concurrency returning a different row triggers full reserialization; a
     second conflict returns the untouched primary result, preserves the due
-    counter, backs off, and reaches bounded safe_readonly escalation;
+    counter, follows the exact four-step backoff, resets only on successful
+    offer creation, and reaches safe_readonly on the fifth conflict;
 12. lost/truncated frame without receipt remains pending and cycles again;
 13. never-receipting recipient keeps ordinary/recovery/send work, freezes
     privileged effects at 60 minutes, alerts, and is never called delivered;
 14. advisory-lock cutover assigns every concurrent send exactly legacy or live;
 15. 100-check shadow completes within one cumulative 30-minute attempt without
     cutover/backlog; expiry/failure forbids an unauthorized restart;
-16. manifest canonical digest, including null/empty distinction, independently
-    reconciles the measured 1,310-row snapshot in three pages, precomputes
-    without blocking sends, and finalizes the locked tail within five seconds;
+16. manifest canonical digest, including null/empty distinction and the 71
+    absent ids in the non-contiguous range, independently reconciles the
+    measured 1,310 retained rows in three pages, precomputes without blocking
+    sends, and finalizes the locked tail within five seconds;
 17. legacy page/offer never bulk certifies and semantic legacy requests remain
-    visible;
+    visible; individual legacy receipts change only explicit transport
+    subcounts and never remove manifest/unverified provenance;
 18. safe_readonly rollback never calls old consume or replays received history;
-19. one offer row per message under indefinite rotation;
+19. at most one offer row per message, and exactly one after token creation,
+    under indefinite rotation;
 20. quarantine/receipt and parking/repair races serialize safely;
 21. local outage counter works with backend down and reconciles exactly on
     recovery;
@@ -585,7 +632,7 @@ After fix:
 
 CC `747cbfd9`:
 
-| Mandate | R5 discharge |
+| Mandate | R6 discharge |
 |---|---|
 | R1-M1 exact rendered subset | One-message offer, exact preflight/parity, sections 3, 7.4 |
 | R1-M2 authenticated identity | No instance arg; bound-session receipt, section 6 |
@@ -610,7 +657,7 @@ CC `747cbfd9`:
 
 CC `3c593c43`:
 
-| Mandate | R5 discharge |
+| Mandate | R6 discharge |
 |---|---|
 | R2-M1 slot/byte starvation | One candidate/frame; live and legacy bounds, sections 4, 7 |
 | R2-M2 undefined token | Exact 32-byte/43-char stable token schema, sections 5, 6 |
@@ -630,7 +677,7 @@ CC `3c593c43`:
 | R2-M16 truncation proof | Separate dropped and partial-render before-fix proofs, section 15 |
 
 - GLM `fe185529`: infrastructure failure; retry `f708ea64` rejected with three
-  findings (expiry, create-conflict handling, active-offer starvation). R5 has no
+  findings (expiry, create-conflict handling, active-offer starvation). R6 has no
   expiry, defines second-conflict handling, stable-token cycling and bounded
   escalation.
 - Kimi `94c24a61`: interim/nonterminal approval; retry `0d726c65` became stale.
@@ -640,7 +687,7 @@ CC `3c593c43`:
 
 - CC `27a90dfe`: 17 mandates. Discharges:
 
-| Mandate | R5 discharge |
+| Mandate | R6 discharge |
 |---|---|
 | M1 frame contradiction/HOL | exact byte table + park/skip, sections 4, 10 |
 | M2 cutover race | shared send/cutover advisory lock, section 8 |
@@ -667,7 +714,7 @@ CC `3c593c43`:
 
 - CC `82165e4f`: rejected with 15 findings. Discharges:
 
-| Finding | R5 discharge |
+| Finding | R6 discharge |
 |---|---|
 | R4-F1 legacy rows fail new CHECK | Protocol-version conditional checks plus mode-derived trigger; production-shape migration proof, sections 4, 13, 15 |
 | R4-F2 legacy frame contradiction | Live-only 7,000 bound; explicit legacy 9,000 bound and unsupported outcome, sections 4, 8 |
@@ -688,7 +735,28 @@ CC `3c593c43`:
 - GLM `7ad060f9`: clean exact-artifact approval of R4.
 - Kimi `e246912f`: clean exact-artifact approval of R4.
 
-Only R5 reviews can approve the current artifact; earlier approvals are evidence,
+### Round 5
+
+- CC `3fec5320`: raw completion rejected with three minor findings, but the
+  wrapper failed closed as `cc_review_malformed_verdict` because its REJECT
+  omitted mandates. The findings remain nonapproval evidence.
+- Kimi `ebe6867d`: rejected with six mandates.
+- GLM `e53a55df`: failed closed with
+  `terminal_finish_reason_invalid`; no verdict transferred.
+
+| Finding or mandate | R6 discharge |
+|---|---|
+| CC-F1 randomized backoff unbounded | Exact 50–100/100–200/200–400/400–800 ms schedule and fifth-conflict terminal action, sections 5, 7.4 |
+| CC-F2 informational vs warning ambiguous | Explicit no-warning informational severity and separate 15-minute dedup, section 11 |
+| CC-F3 snapshot count/range mismatch | Non-contiguous range and 71 absent ids stated; retained count authoritative, sections 4, 15 |
+| Kimi-M1 cadence/second-conflict contradiction | Counter constrained and saturating at two; one rule covers the returned-result path, sections 5, 7.2, 7.4 |
+| Kimi-M2 RFC3339 database CHECK impossible | Database stores/non-null-defaults a timestamptz instant; gateway alone canonicalizes output text, section 4 |
+| Kimi-M3 legacy receipt accounting | Immutable provenance plus three exact transport subcounts and selector effect, section 8 |
+| Kimi-M4 conflict counter reset undefined | Per-recipient scope; success-only reset; non-reset events and ticketed recovery defined, section 7.4 |
+| Kimi-M5 grammar/consistency | Correct article and `non-receipt` spelling, sections 1, 4 |
+| Kimi-M6 explicit inbox reset ambiguous | Any complete emitted frame resets; backoff outcome does not, section 7.2 |
+
+Only R6 reviews can approve the current artifact; earlier approvals are evidence,
 not transferred authority.
 
 ## 17. Acceptance and stop conditions
