@@ -1636,6 +1636,46 @@ guard's inverted predicate, covering all three mechanisms that share it),
 T-2026-000397 (narrower duplicate, superseded by 398).
 
 
+## §X.2 — A read-only review dies with no verdict on a wide commit (T-2026-000457, S1375)
+
+**Symptom.** A GLM or Kimi review returns no verdict at all and fails with
+`repository_tool_call_limit_exceeded`, message "<provider> requested an invalid
+number of repository calls". Retrying with a narrower prompt does not help.
+
+**Cause, measured S1375.** `provider_readonly_review.py` builds
+`required_evidence` from EVERY file in the commit's changed-file set, so a
+17-file commit demands 17 files of coverage regardless of what the dispatch
+prompt asks the reviewer to look at. Against that, `DEFAULT_MAX_CALLS_PER_TURN`
+was 4 and the provider was never told the ceiling existed. A model batching
+enough calls to cover the required set exceeded the ceiling and the guard raised
+fatally. **The trigger is changed-file count, not the repository and not the
+reviewer.** Control case the same hour: a 1-file commit passed with 2 calls.
+Narrowing the prompt cannot help, because required coverage comes from the
+commit, not the prompt.
+
+**Fix, live from koskadeux-mcp `137865b3`.** An over-ceiling batch is now
+recoverable: nothing in the batch executes, the provider is told the requested
+count and the ceiling and that none ran, and the loop continues. Give-up only
+after more than `DEFAULT_MAX_CONSECUTIVE_CALL_LIMIT_VIOLATIONS` (2) consecutive
+violations. The provider is told the ceiling and the required-file count up
+front. `max_calls_per_turn` is settable per dispatch, default still 4, clamped
+to `MAX_CALLS_PER_TURN_CEILING` (16).
+
+**Signatures and what each means now:**
+
+| Signature | Meaning | Action |
+|---|---|---|
+| `repository_tool_call_limit_exceeded` | Over the per-turn ceiling. **Recoverable** — appears in a correction, not necessarily a failure. | None if the review completes. If it recurs, raise `max_calls_per_turn` for that dispatch. |
+| `repository_tool_call_limit_violation_exhausted` | The provider ignored more than two consecutive corrections. | Genuine provider non-compliance. Re-dispatch; if it repeats, the model is not honouring the tool protocol. |
+| `repository_tool_call_batch_empty` | The provider returned an empty tool-call batch where calls were required. | Distinct from the above two; do not read it as a budget problem. |
+
+**Diagnosis shortcut.** Failure telemetry now carries `requested_call_count`,
+`max_calls_per_turn`, `required_evidence_count`, `turn` and
+`consecutive_violation_count`. Read those five before theorising. The original
+incident cost a session partly because the guard raised the same code and
+message for an empty batch as for an over-ceiling one, which sent the diagnosis
+toward the preloader and the repository rather than the call budget.
+
 ## §Y Historical Plus-One Discipline (superseded)
 
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.

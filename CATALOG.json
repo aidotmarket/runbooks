@@ -62,6 +62,18 @@
           "signature": "progress_guard_timeout"
         },
         {
+          "section": "\u00a7X.2",
+          "signature": "repository_tool_call_batch_empty"
+        },
+        {
+          "section": "\u00a7X.2",
+          "signature": "repository_tool_call_limit_exceeded"
+        },
+        {
+          "section": "\u00a7X.2",
+          "signature": "repository_tool_call_limit_violation_exhausted"
+        },
+        {
           "section": "\u00a7E. Operate",
           "signature": "schema_validation_failure"
         },
@@ -78,7 +90,7 @@
           "signature": "unsupported_line_claim"
         }
       ],
-      "last_verified_at": "2026-07-26",
+      "last_verified_at": "2026-07-28",
       "owner": "vulcan",
       "path": "runbooks/agent-dispatch.md",
       "runbook_id": "agent-dispatch",
@@ -675,6 +687,18 @@
       "read-only agent attempted write": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
+      },
+      "repository_tool_call_batch_empty": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7X.2"
+      },
+      "repository_tool_call_limit_exceeded": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7X.2"
+      },
+      "repository_tool_call_limit_violation_exhausted": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7X.2"
       },
       "schema_validation_failure": {
         "runbook_id": "agent-dispatch",

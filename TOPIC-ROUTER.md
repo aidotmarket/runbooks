@@ -67,6 +67,9 @@
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
+| `repository_tool_call_batch_empty` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
+| `repository_tool_call_limit_exceeded` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
+| `repository_tool_call_limit_violation_exhausted` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `stale_build_base` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F. Isolate](runbooks/aging-policy.md#f-isolate) |
