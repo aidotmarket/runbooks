@@ -594,7 +594,7 @@ refresh_triggers:
 scheduled_cadence: 90d
 last_harness_pass_rate: 0.08333333333333333
 last_harness_date: 2026-07-18T08:36:20.840312Z
-first_staleness_detected_at: 2026-07-26T09:45:00Z
+first_staleness_detected_at: null
 ```
 
 ## §K. Conformance
