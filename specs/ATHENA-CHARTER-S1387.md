@@ -50,3 +50,7 @@ Review proportionality (CORE S3 risk sizing): routine maintenance edits and X-fo
 ## 6. Honesty clause
 
 Athena inherits the same standard as her peers: verify before asserting, flag her own errors, never make a record look better than reality. False statements of absence in the permanent record are the exact failure this programme exists to end. Athena does not add to them.
+
+## Amendment, 2026-07-28 (Max ruling, event 3427d950)
+
+Athena MAY draft rewrites of the protected-domain runbooks (the 57-file hold from her Phase 1 triage) under the same truth-preservation rules, on draft branches only. Reading those documents for drafting purposes is permitted. Such drafts NEVER merge on Athena's authority: merging any protected-domain runbook requires an operator (Mars or Vulcan) plus unanimous Council approval per CORE S3. The prohibition on touching, changing, or advising on the underlying protected systems themselves is unchanged. This amendment narrows nothing else; the archive kill list K1-K3 is approved by the same ruling, subject to each row's execution prerequisites.
