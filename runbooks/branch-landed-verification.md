@@ -110,7 +110,7 @@ State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not
   trigger: A branch must be established as landed or not landed.
   pre_conditions: [fetch_completed, branch_or_sha_known]
   tool_or_endpoint: shell_request action=exec
-  argument_sourcing: {command: "git -C <repo> merge-base --is-ancestor <sha> origin/main; git -C <repo> cherry origin/main <branch>; git -C <repo> diff --stat origin/main..<branch>"}
+  argument_sourcing: {command: "git -C <repo> fetch origin --quiet && { git -C <repo> merge-base --is-ancestor <sha> origin/main; git -C <repo> cherry origin/main <branch>; git -C <repo> diff --stat origin/main..<branch>; }"}
   idempotency: IDEMPOTENT
   expected_success: {shape: ancestry exit status, cherry lines marked + for unlanded and - for patch-equivalent, and a content diff, verification: an empty content diff is landing evidence even when ancestry says no}
   expected_failures:
@@ -131,6 +131,8 @@ State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not
 ```
 
 ## §F. Isolate
+
+Registered error signatures map to the rows below: `stale_build_base` → F-01, `clean_tree_read_as_current` → F-02, `unlanded_branch_believed_landed` → F-03, `push_failed_but_landed` → F-04. F-05 is the squash-or-rebase corollary of F-03.
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
