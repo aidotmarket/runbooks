@@ -625,6 +625,39 @@ output file was written. This is expected and is the primary fix for the old
 600-second false failure mode.
 
 
+### §G.4 Transport outage vs builder death — verify liveness before any recovery action (T-2026-000463, S1384)
+
+A gateway/tunnel outage during a running MP build does NOT imply the builder
+died. The Codex CLI process is host-local and survives MCP transport failures;
+only the tool-call surface goes dark. Live S1384 incident: after a ~10-minute
+transport outage the operator concluded the builder was dead from a TRUNCATED
+process listing (`pgrep -fl codex | head -5` hid the live PID), removed the
+builder's slot worktree and branch, and thereby destroyed a healthy in-flight
+commit-locally-only build that then had to be redispatched.
+
+Before ANY recovery action on a possibly-dead build (worktree removal, branch
+deletion, kill, redispatch), ALL of the following checks are mandatory:
+
+1. Full untruncated process check bound to the invocation, not a generic name:
+   `pgrep -f 'codex exec'` then `ps -p <pid> -o pid,lstart,etime,command`
+   and confirm the `-C <worktree>` / `-o <task file>` arguments match the
+   invocation directory under `/var/tmp/koskadeux/slot-*/invocations/<id>/`.
+2. Task output growth: `ls -la <invocation>/tasks/*.out` — an mtime within the
+   progress window means the builder is alive regardless of what check_build
+   or a process listing suggests.
+3. check_build status is corroborating evidence only. A record stuck at
+   `running` past the configured hard bound is a known reaper defect and proves
+   nothing about the process either way.
+
+If, and only if, all three show a dead builder: reap the process group if a
+zombie remains, remove the worktree, and redispatch. If the builder is alive
+after a transport outage, do nothing — let it finish and harvest normally.
+
+Known open defect this section works around: the server-side hard-timeout
+(dispatch reaper) does not reliably fire, and gateway restarts do not sweep
+dispatch meta records for dead processes (T-2026-000463 follow-ups b/d).
+
+
 ## §H. Evolve
 
 ### §H.1 Invariants
