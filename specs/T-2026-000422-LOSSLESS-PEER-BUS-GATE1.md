@@ -1,6 +1,6 @@
 # T-2026-000422 — Lossless Peer Bus Gate 1
 
-Status: `AUTHORED_PENDING_REVIEW_R6`
+Status: `AUTHORED_PENDING_REVIEW_R7`
 
 Owner: Vulcan S1373  
 Evidence author: Mars (excluded from review)  
@@ -205,7 +205,12 @@ Add `peer_bus_instance_state`:
 cutover and immutable thereafter.
 
 Add `peer_bus_legacy_manifest` with recipient, cutover id, count, min/max id,
-ordered digest, creation time, actor/session.
+ordered digest, creation time, actor/session, status, and `manifest_attempt_id`.
+Add `peer_bus_legacy_manifest_items`, keyed by
+`(manifest_attempt_id, message_id)`, with recipient, null/value tag, body digest,
+and creation time. A partial unique index permits one active preparation attempt
+per recipient. Item rows are immutable. Finalization binds their attempt id to
+the manifest; aborted attempts are marked failed and retained for audit.
 
 Manifest digest is reproducible without a new body-hash column. Null and empty
 bodies are distinct:
@@ -237,7 +242,7 @@ service-authenticated internal API.
 | No active session binding | `unbound_session`; benign fail-closed |
 | Bad length/alphabet | `malformed_token`; 422, no lookup |
 | Well-formed absent token | `unknown_token`; hard refusal + security event |
-| Wrong bound recipient | hard refusal + security event |
+| Wrong bound recipient | `wrong_recipient`; hard refusal + security event |
 | Token row `quarantined` | `quarantined_message`; no delivery |
 | Token row `parked` | `parked_message`; no delivery |
 | Token row `pending` or `active`, correct recipient, mode `enforced`/`safe_readonly` | atomic receipt |
@@ -269,13 +274,17 @@ ordinary eligible invocation whose substantive primary result is returned sets
 `calls_since_delivery_opportunity =
 min(2, calls_since_delivery_opportunity + 1)` after that result is finalized;
 success and tool-level error results both count. Exempt tools, every-turn
-checks, receipt, privileged-gate checks, backend failures, and displaced calls
-neither increment nor reset it. Any successfully emitted complete frame,
-scheduled or explicit-inbox, resets it to zero. Receipt does not reset it. With
-pending live messages, a value of two makes the next ordinary eligible call a
-due delivery opportunity. An explicit inbox attempted during offer backoff
-returns `offer_backoff` without changing the counter; after the bound it may
-emit and reset normally.
+checks, receipt, privileged-gate checks, and backend failures neither increment
+nor reset it by themselves. Frame emission is the sole reset event: any
+successfully emitted complete frame, scheduled or explicit-inbox, resets it to
+zero even when the originating ordinary call was displaced. A due call that
+returns its substantive result because offer creation conflicted follows the
+saturating increment rule; a due call that returns neither result nor frame
+leaves the counter at two. Receipt does not reset it. With pending live
+messages, a value of two makes the next ordinary eligible call a due delivery
+opportunity. An explicit inbox attempted during offer backoff returns
+`offer_backoff` without changing the counter; after the bound it may emit and
+reset normally.
 
 For an ordinary eligible tool call with pending live messages:
 
@@ -291,13 +300,27 @@ open/plan/recovery, health, and explicit inbox tools are never displaced.
 
 An explicit inbox call is itself an immediate delivery opportunity.
 
-An offered token becomes overdue exactly when
+An offered token in `pending` or `active` becomes overdue exactly when
 `now >= first_offered_at + 60 minutes` and it is still unreceipted. Privileged
 state-changing tools (dispatch/build authorizations, merge, deploy, production
 mutation, and session close) require all overdue tokens for that recipient to
 be receipted first. Before 60 minutes cadence continues but privileged effects
-are not frozen. At 60 minutes they return the next complete frame instead of
-executing and a critical incident opens. After receipt they are retried.
+are not frozen. At 60 minutes the gateway returns
+`peer_bus_receipt_required` with a complete re-emission of the oldest overdue
+stable token instead of executing, and a critical incident opens. This
+privileged-gate re-emission is not ordinary automatic scheduling: it is enabled
+in both `enforced` and `safe_readonly`, ignores offer-create backoff because the
+stable offer already exists, and can re-emit either a live or previously offered
+legacy record under its original frame bound. It does not rotate, create a
+token, or change cadence/conflict state. After receipt the tool is retried.
+
+If backend truth is unavailable or mode is unknown, privileged effects fail
+closed as `peer_bus_privileged_unavailable`; they neither execute nor claim a
+frame. A quarantined or parked offer is excluded from the overdue set and
+governed by its open critical incident. A re-emission parity/size failure also
+fails closed, opens a critical incident, and enters `safe_readonly`. The
+Max-authorized suspension is evaluated only while backend truth is available;
+it never bypasses backend outage or unknown mode.
 A Max-authorized, ticketed, time-bounded suspension may allow the effect without
 marking any message delivered; frames and alerts continue.
 
@@ -315,10 +338,11 @@ At each delivery opportunity:
 - within a priority, choose never-offered first, then oldest
   `last_delivery_attempt_at`, then ascending id.
 
-After the complete frame is issued, increment the message and stable offer
-counts/timestamps and move the previously active row back to `pending`; the new
-row becomes `active`. The token remains valid when pending, because it may have
-been seen before rotation.
+`last_priority_served` changes only in the same committed offer transaction that
+activates a size-valid candidate. Parking does not change it. If a selected row
+parks, the fresh peek stays in that priority lane while another eligible row
+exists there; only an empty eligible lane permits selection from the other
+lane. Parked rows are excluded from `Q`.
 
 With delivery opportunities every third eligible call:
 
@@ -326,14 +350,15 @@ With delivery opportunities every third eligible call:
   is framed within `3 * (Q + 1)` eligible calls;
 - with both lanes continuously nonempty, it is framed within
   `6 * (Q + 1)` eligible calls;
-- no high-priority stream can consume two consecutive delivery opportunities
-  while normal is pending.
+- no two consecutive valid committed offers are high while an eligible normal
+  row is pending.
 
 These are conditional, testable bounds based on the scalar `Q` captured at
 selection while the backend is reachable and offer creation does not conflict.
-The exact conflict backoff and fifth-conflict safe-readonly bound in section 7.4
-applies instead when that concurrency precondition fails. Privileged gating can
-accelerate delivery but never weaken bounds.
+Gateway digest parity must also succeed. The exact conflict backoff and
+fifth-conflict safe-readonly bound in section 7.4 applies instead when a
+concurrency precondition fails; parity failure stops in `safe_readonly`.
+Privileged gating can accelerate delivery but never weaken bounds.
 
 An explicit legacy offer is allowed only when no live row is pending. It uses
 the same stable token/counters and is displaced immediately by any newly live
@@ -342,13 +367,35 @@ row at the next opportunity.
 ### 7.4 Exact offer creation and concurrency
 
 The gateway preflights one immutable candidate with the token placeholder. The
-backend locks instance state and message, creates the one-per-message token row
-if absent, and atomically selects it active.
+backend then owns the sole mutation transaction and canonical serialization. It
+locks instance state and candidates; creates the one-per-message token row if
+absent; serializes with the final token; and validates decoded and outer bounds.
+An invalid candidate parks without changing `last_priority_served`, and one
+fresh peek follows the same-lane rule in section 7.3.
+If that fresh candidate also violates a frame invariant, it parks too, no frame
+is emitted, the original substantive result is returned untouched, and the due
+counter remains two for the next eligible call. This is not an offer-create
+conflict and does not increment the conflict counter.
 
-If concurrency returns a different active row, the gateway discards the first
-buffer, reserializes and revalidates the returned row/token against both bounds,
-then returns it. If parity or size fails, it parks that row and performs one
-fresh peek. On a second conflict the gateway records
+For a valid candidate, one transaction demotes the previously active row to
+`pending`, activates the candidate, sets `first_offered_at` if null, sets
+`last_offered_at`, increments offer/message attempt counts and timestamps,
+updates `last_priority_served`, and commits. These writes occur before any frame
+bytes leave the gateway. `first_offered_at` means first durable offer commit,
+not proof that the client saw bytes. A gateway crash after commit but before
+emission is therefore conservative: no delivery is claimed, the same token
+remains pending/active for re-emission, and the overdue clock may run.
+
+The backend returns the committed record, token, and canonical frame digest.
+The gateway independently reserializes the returned row and requires exact
+digest/byte-bound parity before emission. A mismatch emits no frame, opens a
+critical incident, and enters `safe_readonly`; it does not perform another
+selection. A restart test proves the committed attempt/token re-emits and only a
+receipt advances delivery.
+
+If concurrency returns a different valid active row than the gateway preflight,
+the gateway discards its first buffer and validates only that committed return.
+On a second create/select conflict before commit, the gateway records
 `offer_create_conflict`, returns the original substantive call's untouched
 result, and applies the saturating increment rule, which leaves a due counter
 at two.
@@ -443,7 +490,8 @@ state change and remains fully queryable by paged/admin storage access.
   consume path is disabled.
 - `safe_readonly`: rollback mode; old consuming injection remains disabled;
   automatic scheduled frames are disabled, but explicit non-consuming inbox and
-  receipt remain available.
+  receipt remain available, and the section 7.2 privileged overdue gate may
+  re-emit an already-created stable offer without scheduling or rotation.
 
 Unknown/missing mode is degraded non-enforcing and never consumes.
 
@@ -460,19 +508,24 @@ harmless in all modes.
 ## 10. Quarantine, parking, and recovery
 
 Quarantine is Max-authorized/admin-only and applies only to unreceipted rows.
-It locks instance, message, and offer:
+It locks instance and message plus the offer when one exists. It does not create
+a token for an unoffered row; message quarantine fields are authoritative and
+the selector excludes the row. If an offer exists, its state changes too:
 
 - quarantine wins: set offer `quarantined`, message quarantine fields;
 - receipt wins: quarantine returns `already_received`;
-- receipt always rechecks quarantine.
+- receipt always rechecks message quarantine even if offer state is stale.
 
 Parking is automatic only for a violated version-1 frame invariant, emits one
-immediate critical incident, and advances scheduler selection. It is never
-delivery. Repair/requeue for parked or quarantined rows requires audited actor,
-reason, ticket, and Max authorization. Parked requeue first dry-runs the
-immutable row and returns it to `pending` only if it now fits. A failed dry-run
-leaves it parked without another incident. Replacement-plus-quarantine is the
-terminal remedy for irreparable immutable corruption.
+immediate critical incident, and advances scheduler selection. Message parking
+fields are authoritative; an existing offer is also set `parked`, but parking
+does not create a token. It is never delivery. Repair/requeue for parked or
+quarantined rows requires audited actor, reason, ticket, and Max authorization.
+Parked requeue first dry-runs the immutable row and returns an existing offer to
+`pending`, or leaves token creation to first presentation when no offer exists,
+only if it now fits. A failed dry-run leaves it parked without another incident.
+Replacement-plus-quarantine is the terminal remedy for irreparable immutable
+corruption.
 
 ## 11. Degraded-state authority and observability
 
@@ -509,8 +562,9 @@ token.
 
 ## 12. Retention and bounded storage
 
-`peer_messages` and legacy manifests are retained indefinitely under T-422.
-Existing peer-message deletion is disabled and tested for zero deletes.
+`peer_messages`, finalized legacy manifests/items, and failed manifest attempts
+are retained indefinitely under T-422. Existing peer-message deletion is
+disabled and tested for zero deletes.
 
 Delivery-offer storage has a unique one-row-per-message bound. Scheduler
 rotation updates counters/state on that row and never creates another token or
@@ -557,9 +611,18 @@ Rollback is `enforced -> safe_readonly`:
 2. disable automatic scheduling and old destructive consumption;
 3. retain explicit non-consuming inbox and receipt;
 4. notify both peers and Max; keep ticket open;
-5. require explicit inbox before dispatch/merge/deploy/close;
+5. before dispatch/merge/deploy/close, apply the exact privileged-gate outcomes
+   in section 7.2; explicit inbox/receipt remains the normal recovery path;
 6. reconcile live/legacy/semantic/quarantine/parked counts;
-7. re-enable only after repaired gateway review and a fresh bounded dry-run.
+7. re-enable only after repaired gateway Gate-3 approval and a ticketed,
+   Max-authorized `safe_readonly` requalification: 100 consecutive dry-run
+   checks within one cumulative 30-minute window, with the same parity, canary,
+   frame-bound, expiry, and no-restart criteria as section 8. Old consumption
+   and automatic scheduling remain disabled during requalification; explicit
+   inbox/receipt may continue. On pass, a send-lock transaction changes only
+   `safe_readonly -> enforced` while preserving the non-null cutover, manifest,
+   tokens, and receipts. Failure or expiry stays `safe_readonly`; another
+   attempt requires fresh ticketed Max authorization.
 
 No production schema downgrade, consume fallback, receipt fabrication, backfill,
 quarantine, pruning, or deletion is a rollback action.
@@ -586,14 +649,17 @@ After fix:
    opportunity; exempt tools are never displaced; explicit inbox emission
    resets the same saturating counter;
 6. privileged effects remain available before the exact 60-minute overdue
-   boundary, then block; Max suspension is audited and never receipts;
+   boundary, then block; already-created live/legacy offers re-emit through
+   backoff and safe_readonly, backend outage/unknown mode fails closed, and Max
+   suspension is audited and never receipts;
 7. stable 43-char token maps to one message/recipient and persists through
    scheduler rotation;
 8. all receipt outcomes in section 6, including modes, outage, quarantine,
    parking, unbound, forged recipient, and idempotency;
 9. semantic ack remains independent;
-10. alternating priority prevents sustained-high starvation; bounds
-    `3*(Q+1)` / `6*(Q+1)` hold; legacy yields to live;
+10. alternating priority prevents sustained-high starvation; parking never
+    advances the lane marker, fresh peek stays in-lane while eligible work
+    exists, bounds `3*(Q+1)` / `6*(Q+1)` hold, and legacy yields to live;
 11. concurrency returning a different row triggers full reserialization; a
     second conflict returns the untouched primary result, preserves the due
     counter, follows the exact four-step backoff, resets only on successful
@@ -612,6 +678,8 @@ After fix:
     visible; individual legacy receipts change only explicit transport
     subcounts and never remove manifest/unverified provenance;
 18. safe_readonly rollback never calls old consume or replays received history;
+    requalification uses one exact authorized 100-check/30-minute window and
+    preserves cutover/manifest/token/receipt state;
 19. at most one offer row per message, and exactly one after token creation,
     under indefinite rotation;
 20. quarantine/receipt and parking/repair races serialize safely;
@@ -621,7 +689,9 @@ After fix:
     degraded diagnostics never mutate primary payloads;
 23. zero peer-message deletes;
 24. fresh-DB upgrade/downgrade passes; production downgrade after cutover refuses;
-25. backend/gateway restart preserves rows/tokens/receipts;
+25. backend/gateway restart between durable offer commit and frame emission
+    preserves the active token/attempt/timestamps, re-emits without claiming
+    receipt, and never leaves `first_offered_at` null;
 26. all `consumed_at` paths are mode-correct;
 27. real Vulcan/Mars status, claim, request and controlled dropped-response
     Gate-4 rows reconcile to exact deployed commits.
@@ -632,7 +702,7 @@ After fix:
 
 CC `747cbfd9`:
 
-| Mandate | R6 discharge |
+| Mandate | R7 discharge |
 |---|---|
 | R1-M1 exact rendered subset | One-message offer, exact preflight/parity, sections 3, 7.4 |
 | R1-M2 authenticated identity | No instance arg; bound-session receipt, section 6 |
@@ -657,7 +727,7 @@ CC `747cbfd9`:
 
 CC `3c593c43`:
 
-| Mandate | R6 discharge |
+| Mandate | R7 discharge |
 |---|---|
 | R2-M1 slot/byte starvation | One candidate/frame; live and legacy bounds, sections 4, 7 |
 | R2-M2 undefined token | Exact 32-byte/43-char stable token schema, sections 5, 6 |
@@ -677,7 +747,7 @@ CC `3c593c43`:
 | R2-M16 truncation proof | Separate dropped and partial-render before-fix proofs, section 15 |
 
 - GLM `fe185529`: infrastructure failure; retry `f708ea64` rejected with three
-  findings (expiry, create-conflict handling, active-offer starvation). R6 has no
+  findings (expiry, create-conflict handling, active-offer starvation). R7 has no
   expiry, defines second-conflict handling, stable-token cycling and bounded
   escalation.
 - Kimi `94c24a61`: interim/nonterminal approval; retry `0d726c65` became stale.
@@ -687,7 +757,7 @@ CC `3c593c43`:
 
 - CC `27a90dfe`: 17 mandates. Discharges:
 
-| Mandate | R6 discharge |
+| Mandate | R7 discharge |
 |---|---|
 | M1 frame contradiction/HOL | exact byte table + park/skip, sections 4, 10 |
 | M2 cutover race | shared send/cutover advisory lock, section 8 |
@@ -714,7 +784,7 @@ CC `3c593c43`:
 
 - CC `82165e4f`: rejected with 15 findings. Discharges:
 
-| Finding | R6 discharge |
+| Finding | R7 discharge |
 |---|---|
 | R4-F1 legacy rows fail new CHECK | Protocol-version conditional checks plus mode-derived trigger; production-shape migration proof, sections 4, 13, 15 |
 | R4-F2 legacy frame contradiction | Live-only 7,000 bound; explicit legacy 9,000 bound and unsupported outcome, sections 4, 8 |
@@ -744,7 +814,7 @@ CC `3c593c43`:
 - GLM `e53a55df`: failed closed with
   `terminal_finish_reason_invalid`; no verdict transferred.
 
-| Finding or mandate | R6 discharge |
+| Finding or mandate | R7 discharge |
 |---|---|
 | CC-F1 randomized backoff unbounded | Exact 50–100/100–200/200–400/400–800 ms schedule and fifth-conflict terminal action, sections 5, 7.4 |
 | CC-F2 informational vs warning ambiguous | Explicit no-warning informational severity and separate 15-minute dedup, section 11 |
@@ -756,7 +826,22 @@ CC `3c593c43`:
 | Kimi-M5 grammar/consistency | Correct article and `non-receipt` spelling, sections 1, 4 |
 | Kimi-M6 explicit inbox reset ambiguous | Any complete emitted frame resets; backoff outcome does not, section 7.2 |
 
-Only R6 reviews can approve the current artifact; earlier approvals are evidence,
+### Round 6
+
+- CC `7fb2f373`: rejected with two minor mandates.
+- GLM `a0b71e38`: clean exact-artifact approval of R6.
+- Kimi `d5dbfb29`: rejected with four mandates.
+
+| Finding or mandate | R7 discharge |
+|---|---|
+| CC-M1 displaced-call/reset attribution | Frame emission is the sole reset event; returned-result conflict fallback saturates; no-result/no-frame leaves two, section 7.2 |
+| CC-M2 wrong recipient unnamed | Exact `wrong_recipient` result code, section 6 |
+| Kimi-M1 offer activation/write crash window | One pre-emission backend transaction writes activation, demotion, timestamps, attempts, and lane marker; digest parity and restart behavior explicit, sections 5, 7.3, 7.4, 15 |
+| Kimi-M2 overdue gate degraded states | Exact live/legacy re-emission through backoff/safe_readonly; outage/unknown fail closed; parked/quarantined excluded; suspension scope explicit, sections 7.2, 9, 11, 14 |
+| Kimi-M3 parked-lane fairness | Parking does not update lane marker; fresh peek stays in-lane while eligible work exists; `Q` excludes parked, sections 7.3, 7.4 |
+| Kimi-M4 rollback dry-run undefined | Exact ticketed Max-authorized 100-check/30-minute safe_readonly requalification and transition, section 14 |
+
+Only R7 reviews can approve the current artifact; earlier approvals are evidence,
 not transferred authority.
 
 ## 17. Acceptance and stop conditions
