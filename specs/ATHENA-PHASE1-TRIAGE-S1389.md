@@ -1,6 +1,6 @@
 # ATHENA-PHASE1-TRIAGE-S1389
 
-Status: DRAFT FOR MAX SIGNATURE  
+Status: SIGNED — Max approval recorded in decision event `792442c3-da41-4b64-ba8f-b0551fba14ff` on 2026-07-28
 Owner: Athena  
 Session: S1389  
 Repository: `aidotmarket/runbooks` only  
@@ -27,7 +27,7 @@ This is deliberately conservative. A false archive decision costs more than carr
 ## 2. Load-bearing provenance findings
 
 1. The Athena charter is on `origin/main` exactly where the handoff says it is, at `876b2bde6aad003f271e8f42bc8d76e94e0f7465`.
-2. The approved organization plan is not on `origin/main`, despite the handoff saying it is. Git ground truth places it on the remote-equal branch `spec/runbook-organization-plan-s1387` at `9c025c529822d60349257de6e3a695501730984b`. The Athena handoff and the s1229 assignment record identify that document as the approved Gate 1 amendment. This triage cites the exact branch SHA and does not claim the file exists on main.
+2. At this spec's base SHA, the approved organization plan existed only on `spec/runbook-organization-plan-s1387` at `9c025c529822d60349257de6e3a695501730984b`. It has since landed on `origin/main` through commit `67cd1682`; current Phase 2 work cites main.
 3. The opening tool misrouted Athena to Vulcan's handoff, exactly as the Athena seed warned. The correct handoff was read from `infra:handoff:instance=athena`; no Vulcan work was claimed or used.
 4. An early metadata/read batch exposed protected-surface content in `aimarket-mcp-server.md`, `allai-agents.md`, `marketing-tab.md`, and `seo-infrastructure.md`. Athena stopped using those reads, placed those files in the protected hold, and made no content recommendation from them. This record does not hide that boundary error.
 
@@ -51,7 +51,7 @@ No archive move is authorized by this draft. Max's signature approves the propos
 
 Signature decision:
 
-- [ ] APPROVE K1-K3 as a recoverable archive list, subject to each prerequisite.
+- [x] APPROVE K1-K3 as a recoverable archive list, subject to each prerequisite. Signed by Max in decision event `792442c3-da41-4b64-ba8f-b0551fba14ff`.
 - [ ] REVISE — Max names the row and required disposition.
 
 ## 5. Merge-source retirement list for Max's signature
@@ -69,7 +69,7 @@ These sources are not archived now. They become retirement candidates only after
 
 Signature decision:
 
-- [ ] APPROVE M1-M6 as post-containment retirement candidates.
+- [x] APPROVE M1-M6 as post-containment retirement candidates. Signed by Max in decision event `792442c3-da41-4b64-ba8f-b0551fba14ff`.
 - [ ] REVISE — Max names the row and required destination.
 
 ## 6. Frozen Phase 2 manifests
