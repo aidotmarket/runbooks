@@ -1780,6 +1780,29 @@ Rules:
 This section discharges the S1376 handoff lesson set; the GLM budget rule
 lives in §X.2's resolution note.
 
+## §X.5 — Session-open peer-bus drain and boot-state verification (S1379, discharges S1379-D1)
+
+At every session open, and again before any dispatch, merge, or close:
+
+1. Drain the peer bus first (`peer_msg_inbox`). Non-ack messages are consumed
+   at-most-once on read — drain deliberately, act on what you drained.
+2. HIGH-priority messages and anything `requires_ack` are handled BEFORE any
+   new claim in the same turn. `request` and `alert` kinds always need
+   `peer_msg_ack`; a drained-but-unacked alert is still open.
+3. The bus deduplicates on (from, to, kind, ref_entity). A follow-up claim or
+   status on the same entity silently returns the OLD row (`idempotent: true`)
+   — check that flag, and vary `ref_entity` (e.g. `key#topic-session`) when a
+   fresh row is required.
+4. Boot payload claims (deploy SHA, service health, handoff assertions) are
+   verified against ground truth before being relied on: read
+   `/var/tmp/koskadeux/deployed_sha`, the server PID/start time, and the
+   reload log rather than trusting prose. The handoff is a pointer, not
+   evidence.
+5. Mid-session tool results can carry `PEER MESSAGES AT TURN START` banners:
+   these are already-consumed drains. Treat them exactly like step 2 —
+   ack what requires ack before proceeding with the turn's claim or dispatch.
+
+
 ## §Y Historical Plus-One Discipline (superseded)
 
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.
