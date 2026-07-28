@@ -1,0 +1,45 @@
+# RCA: Council Review Failures (Kimi + GLM) — and the Build-vs-Adopt Question
+
+- **Author:** Mars, S1382, 2026-07-28
+- **Directive:** Max, S1379 — written root-cause analysis of the Council review failures (Kimi and GLM specifically), answering "are we reinventing the wheel / should we adopt an open-source review harness".
+- **Status:** DRAFT FOR COUNCIL REVIEW
+- **Evidence base:** Mars S1379 (all failures from one operating day, 28 Jul 2026), corroborated by the T-2026-000422 Gate-1/Gate-3 review record (7+ rounds, 27–28 Jul).
+
+## 1. The question
+
+Two of our three Council voters (Kimi, GLM) failed repeatedly on real reviews. Is the cause the models, or the harness we built around them — and if it is the harness, should we keep building it or adopt an existing open-source review harness?
+
+## 2. Evidence — five failure classes, one day (S1379)
+
+| # | Task(s) | What happened | Root cause class |
+|---|---------|---------------|------------------|
+| 1 | GLM `f89e5e22` | `turns_exhausted` after 24 agentic turns, **no verdict produced** | Terminal-conformance defect in our wrapper's turn loop (the class Vulcan is fixing on T422) |
+| 2 | GLM (same round) | Coverage controller fed GLM a **2-file** changed-set (top commit's parent-delta) instead of the **21-file** base..head delta; the `base` parameter was ignored | Our coverage controller (T-2026-000460a) |
+| 3 | Kimi `513b7319`, `e18b58b9` | `budget_projection_exceeded`: `max_budget_usd` **ignored**, an env-pinned $2 effective cap applied, and the reservation math counts UTF-8 **bytes as tokens**, reserving ~70,656 "tokens" per call. Kimi mathematically cannot finish any real multi-turn repo review | Our budget projector (T-2026-000460b) |
+| 4 | CC `6cf4837f` | A **perfect APPROVE verdict was discarded** as `review_schema_invalid` because the brief requested one extra JSON key (`mandate_resolution`) while the schema sets `additionalProperties=false`. Operator-adjudicated from the preserved raw completion | Our brief/schema mismatch + fail-closed discard of correct work |
+| 5 | CC `4635413e` | `structured_payload` verdict (APPROVED_WITH_MANDATES) vs `legacy_payload` (REVISE) **disagree on the same completion** — three extraction modes coexist | Our triple verdict-extraction stack |
+
+Corroboration from T-2026-000422 (independent of S1379): Gate-3 R1/R2 recorded GLM and Kimi `NONAPPROVAL_PROVIDER_FAILURE` on full multi-source reviews (GLM: complete coverage but invalid terminal JSON; Kimi: fail-closed cost projection cap), and Gate-3 R8 recorded GLM emitting 32,000 reasoning tokens and terminating `finish_reason=length` with an empty terminal response. Across seven Gate-1 rounds, nearly every Kimi/GLM non-verdict was wrapper or provider mechanics, not review judgment.
+
+**The control group.** Every GLM/Kimi *success* that day was a preloaded-diff, single-completion review (e.g. GLM `118e47c2`, C2 approve, $3.21). Every CC agentic review *completed* (3/3, $0.70–$1.52); the two CC "failures" were our own parsing discarding or contradicting correct completions.
+
+## 3. Root cause
+
+**Not the models' judgment. The harness.** We built a bespoke multi-provider *agentic tool-loop* harness — custom turn policing, a coverage controller, byte-token budget projection, and a triple verdict-extraction/salvage stack — and wrapped it around chat-completion models that are weakest exactly at long agentic loops. When the loop and wrapper machinery are taken out of the path (preloaded diff, one structured completion), the same models review competently and cheaply. The failures are self-inflicted: four of the five classes above are defects in code we wrote and must maintain.
+
+## 4. Are we reinventing the wheel?
+
+Partially, yes. Deterministic diff-and-context packing, schema-validated structured review output, and multi-provider dispatch are exactly what mature open-source PR-review harnesses already do (e.g. Qodo PR-Agent, Apache-2.0). What is genuinely ours and worth keeping: gate semantics, verdict persistence, roster/unanimity rules, and Living State integration. What is commodity and currently defective: context packing, budget projection, and structured-output enforcement.
+
+## 5. Recommendation (for Council review)
+
+1. **(a) Default GLM and Kimi to deterministic context-packing + a single structured completion**, using provider-native `response_format`/`json_schema` (OpenRouter and Moonshot both support it). `GLM_REVIEW_RESPONSE_FORMAT` already exists — **send it to the provider** rather than only validating after the fact.
+2. **(b) Reserve agentic repo-loop reviews for CC only** (the one reviewer that completes them reliably and cheaply).
+3. **(c) Spike-evaluate adopting/porting an open-source PR-review harness** (candidate: Qodo PR-Agent) for the commodity layer — deterministic diff+context packing, schema-validated output, multi-provider — versus continuing to maintain our coverage controller. Outcome is a Council-reviewed BQ with a build-vs-adopt decision on evidence, not preference.
+4. **(d) Fix the T-2026-000460 mechanics regardless** (coverage-set `base` ignored; Kimi budget cap and byte-as-token reservation): even under (a) these components remain in the path.
+
+**Coordination note:** Vulcan's T422 terminal-wrapper repair (artifact `1f455081`, Mars-verified) addresses only failure class 1. Classes 2–5 are untouched by it; this RCA and T-2026-000460 remain necessary.
+
+## 6. What this costs us today
+
+Every Kimi/GLM harness failure burns a review round on our single-builder critical path and pushes gates toward CC-only coverage, weakening the independence the unanimity rule exists to provide. The fix direction above makes the two cheap seats reliable again at roughly the cost they already succeed at ($1–4 per review) and shrinks the bespoke code we must keep correct.
