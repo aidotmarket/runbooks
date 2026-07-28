@@ -1676,6 +1676,87 @@ incident cost a session partly because the guard raised the same code and
 message for an empty batch as for an over-ceiling one, which sent the diagnosis
 toward the preloader and the repository rather than the call budget.
 
+## §X.3 — Council re-dispatch and peer-coordination mechanics (S1375)
+
+Three subjects that repeatedly reached the session-plan gate as
+`no_entry_found` attestations and had no home. Written here so the next
+session cites a runbook instead of attesting again.
+
+### §X.3.1 Re-dispatching a Council round after verdict-enum drift
+
+**The drift.** CC and Kimi intermittently emit the PAST-tense variant
+`APPROVED_WITH_MANDATES`. The strict normalizer records that as `REVISE`
+(S588 lineage). The substance is an approval; the record says otherwise.
+
+**Rules, learned S1374/S1375:**
+- Treat the strictest RECORDED reading as governing, fold everything, and
+  re-review. Do not argue the raw text into an approval.
+- Always read `raw_completion`, not only the recorded verdict.
+- State the six present-tense values verbatim in the prompt
+  (`APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE |
+  REQUEST_CHANGES | REJECT`) and say plainly that past-tense spellings are
+  invalid and are recorded as REVISE. S1375 R2: all three voters returned
+  present-tense values and the drift did not recur.
+- **Do NOT specify a custom verdict JSON shape.** The harness enforces its own
+  terminal schema; a competing shape in the prompt forces a conformance-repair
+  round-trip (measured S1375, GLM task b8fa933f). Constrain the enum, let the
+  harness supply the shape.
+
+**Poisoned REQUIRED CONTEXT (T-2026-000446).** Review dispatches carry an
+auto-injected "REQUIRED CONTEXT" block that can contain irrelevant and wrong
+material — a Stripe/payments section and a 15% figure have both been observed,
+against an actual 5% commission, plus a stale 4/4 unanimity claim against the
+real 3-voter panel. Inoculate explicitly in the prompt: name the correct panel
+(CC, Kimi, GLM), the correct commission, cite T-2026-000446, and tell the
+reviewer the injected block is overridden. Reviewers otherwise review against
+the injected content.
+
+**Narrow the round.** On a re-review, ask each voter the narrow question — are
+your own prior mandates discharged by the text rather than merely referenced,
+and did the fold introduce a new defect — and restate that voter's own prior
+findings back to it. This is what produced three clean verdicts in one round.
+
+### §X.3.2 Reviewing a peer instance's change request at a pinned commit
+
+The peer asks over the bus, naming a commit. Review the commit, not the
+summary.
+
+- Verify claims against ground truth, not against the peer's description. If
+  the change projects CORE, compare the projected SHA-256 against
+  `source_constitution_sha256` in your own boot kernel byte for byte (S1375,
+  a0d5049).
+- Check whether the commit is ALREADY an ancestor of `origin/main`. Peer review
+  requests frequently arrive post-hoc; say so in the verdict rather than
+  implying you gated it.
+- Return the verdict on the bus with `kind=response` and a `ref_entity` naming
+  the commit, so the thread is findable later.
+- Nits belong to the peer to fold. Do not edit a peer's landed work yourself.
+
+### §X.3.3 Confirming a cross-BQ gate dependency before the peer's gate closes
+
+When your design constrains an item the peer owns, informal mention is not
+enough — it must be recorded on the peer's entity.
+
+- Send `kind=request` (which requires an ack) naming the constraint, the
+  acceptable outcomes, and exactly what you need back.
+- Offer explicit alternatives rather than an open question. S1375 offered
+  (a) satisfy the constraint now, or (b) close with the gap recorded as a
+  residual and blocked on the constraining chunk. Vulcan chose (b) in one line.
+- Require the outcome to be written onto the owning entity, not held in either
+  instance's head. T-2026-000422 carries
+  `cross_bq_dependencies.s1374_chunk4.status=BLOCKS_GATE3_CLOSE`.
+- If the answer is (b), record the reciprocal obligation on YOUR entity too, so
+  the chunk that owes the discharge knows it owes it.
+
+### §X.3.4 Two subjects that already have owners — stop attesting them
+
+- **Disposition of an approved build item stale beyond the seven-day window**
+  belongs to `aging-policy` (`stale_queue_undispatched`, §F. Isolate). S1375
+  filed a `no_entry_found` attestation for this in error. CORE S17 requires the
+  item to be surfaced and, if deferred, an explicit recorded decision event.
+- **Establishing whether a branch actually landed** belongs to
+  `branch-landed-verification` (§E-03). Do not re-derive it.
+
 ## §Y Historical Plus-One Discipline (superseded)
 
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.
