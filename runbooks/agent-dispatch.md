@@ -1062,89 +1062,72 @@ Design references:
 - `specs/bq-council-deepseek-context-access-fix-gate1.md`
 - `specs/bq-council-deepseek-context-access-fix-gate2.md`
 
-## §Q — Build Dispatch CI-Workflow Verification Gate
+## §Q — Build Dispatch CI-Workflow Verification and Recovery
 
-Structural MP build dispatches run the CI-workflow verification gate after MP
-reports build success and before the success envelope returns to the caller.
-The gate executes the paths listed in `ci_verification.py:CI_WORKFLOW_TEST_PATHS`.
-On pass, the build envelope includes a `ci_workflow_check` block. On persistent
-test failure, the dispatch wrapper reverts `HEAD`, pushes the revert to `main`,
-and returns a failure envelope instead of allowing the regression to stand.
+Structural MP build dispatches record four immutable values before any shared
+branch mutation:
 
-Error envelopes:
+- `dispatch_base_sha`: the commit from which the isolated slot started;
+- `builder_commit_sha`: the builder's verified, exactly-one-commit result;
+- `target_branch`: the shared branch selected at dispatch time; and
+- `expected_remote_old_sha`: the remote branch tip observed before the build.
 
-- `ci_regression`: the configured CI-workflow tests failed after retry and the
-  automatic revert push succeeded. Treat the build commit as rejected; inspect
-  `failing_tests`, `pytest_output_truncated`, and `revert_commit_sha`, then
-  dispatch a corrected follow-up chunk.
-- `ci_regression_revert_push_failed`: the tests failed and the local revert was
-  attempted, but pushing the revert failed after retry. Treat this as urgent
-  operator recovery: inspect the broken commit SHA and worktree state in the
-  envelope, restore `main` manually, then re-run the CI-workflow tests.
-- `ci_check_unavailable`: required gate infrastructure such as `pytest` or
-  `git` is missing. Fix the tool availability problem on the dispatch host and
-  retry the build; do not bypass unless Max explicitly authorizes emergency
-  operation.
-- `ci_check_timeout`: the gate subprocess exceeded its timeout. Inspect whether
-  the test run is hung or simply too slow, correct the underlying issue or
-  adjust the chunk size, then retry.
+The CI-workflow gate runs in the isolated slot after the builder reports
+success and before any push. The gate executes the paths listed in
+`ci_verification.py:CI_WORKFLOW_TEST_PATHS`. A persistent pre-push CI failure
+resets only that isolated slot worktree to `dispatch_base_sha`; it must not
+reset, check out, or otherwise mutate a peer slot or the shared checkout.
 
-To extend coverage, edit only the `CI_WORKFLOW_TEST_PATHS` constant in
-`ci_verification.py` and add the new test path as a repository-relative string.
-Keep the list aligned with the CI workflow's dispatch-critical coverage and
-update the corresponding unit assertion in `tests/unit/test_ci_verification.py`
-in the same patch.
+Every normal or recovery push to the shared branch is a single
+compare-and-swap attempt:
 
-The skip flag is an emergency-only operator pattern. Use `skip_flag=True`
-through the dispatch surface only under explicit Max authorization, comparable
-to break-glass operation. A skipped gate must produce an audited
-`ci_check_bypass` event with the reason, and the returned envelope must show
+```text
+git push --force-with-lease=<branch>:<expected_remote_old_sha> origin HEAD:<branch>
+```
+
+The expected SHA is immutable for the attempt. A failed lease must never be
+handled by refreshing the expected SHA, rebasing, or retrying automatically.
+A fresh dispatch or explicit operator adjudication is required.
+
+The pre-push path normally leaves no remote regression to undo. If a retained
+legacy or operator recovery path must undo a commit that was already pushed,
+the only permitted revert selector is the recorded `builder_commit_sha`.
+Immediately before preparing that revert, verify that the recovery worktree's
+observed commit equals `builder_commit_sha`. Never infer the selector from the
+current branch position.
+
+Error envelopes and operator handling:
+
+- `ci_regression`: CI failed before push and the isolated slot was reset to
+  `dispatch_base_sha`, or a commit-specific legacy recovery completed. Inspect
+  the failing tests and immutable SHA evidence, correct the build, and start a
+  fresh dispatch.
+- `ci_regression_head_moved`: the recovery worktree no longer points at
+  `builder_commit_sha`. No revert or push was attempted. Preserve the worktree,
+  compare `builder_commit_sha` with `observed_head_sha`, identify who advanced
+  it, and adjudicate a new recovery from immutable evidence.
+- `shared_branch_cas_rejected`: the remote no longer equals
+  `expected_remote_old_sha`, or the explicit lease was rejected. Preserve the
+  local commit or prepared revert, inspect `observed_remote_sha`, and start a
+  fresh dispatch. Do not refresh, rebase, or retry the rejected attempt.
+- `ci_regression_revert_failed`: the exact-SHA revert could not be prepared.
+  Preserve the worktree and inspect its status before any manual cleanup.
+- `ci_check_unavailable` or `ci_check_timeout`: repair the gate environment or
+  timeout cause, then begin a fresh dispatch.
+
+Each failure envelope must remain secret-free and include
+`dispatch_base_sha`, `builder_commit_sha`, `target_branch`,
+`expected_remote_old_sha`, `observed_head_sha`, `observed_remote_sha`, and
+`mutation_occurred`.
+
+The skip flag is emergency-only. Use it only with explicit authorization. A
+skipped gate must emit an audited `ci_check_bypass` event and return
 `ci_workflow_check.status == "skipped"`.
 
-Design references:
+Design authority:
 
-- `specs/bq-council-build-verification-full-ci-suite-gate1.md`
-- `specs/bq-council-build-verification-full-ci-suite-gate2.md`
-
-## R
-
-§R — Pre-Push Gate Composition. Structural MP build dispatches use pre-push gate composition. The shipped row is
-`pre-push gate composition`: status `shipped`, implementation
-`tools/agents.py:_run_pre_push_gate_composition`, call site
-`_handle_call_mp_build`.
-
-The wrapper owns the full sequence:
-
-1. Pre-build invariants: the working tree must be clean and the current branch
-   must not be ahead of its upstream.
-2. Builder execution: MP creates exactly one local commit and returns
-   `claimed_commit_sha`; MP does not push.
-3. Post-build invariants: the branch must contain exactly one new commit and
-   `claimed_commit_sha` must match `HEAD`.
-4. Pre-push gates: run `ci_workflow_check`, parse the single
-   `builder-output-manifest` block, run `builder_output_check`, then push only
-   if both gates pass.
-
-The discard primitive is `git reset --hard <pre_build_base_sha>`. It is used for
-post-build invariant failures, CI failures, missing or malformed manifest output,
-and builder-output claim mismatches. A push failure is the exception: if all
-pre-push gates passed but `git push` fails, the verified local commit is
-preserved and the envelope returns `error_type=push_failed` with manual recovery
-guidance.
-
-Manifest emission is part of the MP build prompt template for structural builds.
-The prompt is selected by `verifier_subtype` (`general`, `code_fold`,
-`runbook_revision`, or `spec_authoring`) and requires exactly one fenced
-`builder-output-manifest` JSON block with `manifest_version: 1`. Supported
-claim kinds are `surface_exists`, `code_fold`, and `runbook_row_shipped`;
-`code_fold` has a soft cap of 3 claims and reports a warning rather than
-failing solely for cap excess.
-
-Emergency bypasses are explicit and audited. `skip_ci_check` bypasses only the
-CI-workflow gate. `skip_output_verification` or `KD_SKIP_OUTPUT_VERIFICATION`
-bypasses only builder-output verification; the manifest parser still records a
-parsed manifest when present, and the returned envelope reports
-`builder_output_check.status == "skipped"`.
+- `specs/BQ-CONCURRENT-BUILD-CAPACITY-S1214-GATE2.md` §3.4 and §4-C3 at
+  `db849f67`.
 
 ## §S Review Verdict Persistence
 
