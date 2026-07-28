@@ -2,8 +2,8 @@
 
 - **Author:** Mars, S1382, 2026-07-28
 - **Directive:** Max, S1379 — written root-cause analysis of the Council review failures (Kimi and GLM specifically), answering "are we reinventing the wheel / should we adopt an open-source review harness".
-- **Status:** R3 — CC R1 mandates M1/M2 + five minors folded (task 65c1ee23); GLM nits (task 9e4f6f03) and Kimi findings 1–4 (task 2c89ac37) folded. GLM: APPROVE_WITH_NITS. Kimi: APPROVE_WITH_NITS.
-- **Evidence base:** Mars S1379 (all failures from one operating day, 28 Jul 2026), corroborated by the T-2026-000422 Gate-1/Gate-3 review record (7+ rounds, 27–28 Jul).
+- **Status:** R4 (FINAL, Council-approved) — CC R2 verdict APPROVE on the mandate fold (task ad953b81); CC R1 mandates M1/M2 + five minors folded (task 65c1ee23); GLM nits (task 9e4f6f03) and Kimi findings 1–4 (task 2c89ac37) folded. GLM: APPROVE_WITH_NITS. Kimi: APPROVE_WITH_NITS.
+- **Evidence base:** primary failures from one operating day (Mars S1379, 28 Jul 2026); corroboration from the T-2026-000422 Gate-1/Gate-3 review record spanning 27–28 Jul — a ~2-day window overall.
 
 ## 1. The question
 
