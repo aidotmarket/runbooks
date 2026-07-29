@@ -572,7 +572,7 @@ Current handling:
    diff/cap workaround. DeepSeek is retired and cannot supply gate coverage.
 
 Deploy note: the active GLM review budget and shared read-only loop live in
-`openrouter_glm_client.py`, `provider_readonly_review.py`, and `tools/agents.py`.
+`zai_glm_client.py`, `provider_readonly_review.py`, and `tools/agents.py`.
 A merge to main is not live until `com.koskadeux.mcp` restarts onto the new
 commit. The retained DeepSeek service is outside the active roster and is not
 part of current gate verification.
