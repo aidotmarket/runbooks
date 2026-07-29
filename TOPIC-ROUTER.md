@@ -67,15 +67,13 @@
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `repository_tool_call_batch_empty` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
-| `repository_tool_call_limit_exceeded` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
-| `repository_tool_call_limit_violation_exhausted` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.2](runbooks/agent-dispatch.md#x2--a-read-only-review-dies-with-no-verdict-on-a-wide-commit-t-2026-000457-s1375) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `stale_build_base` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F. Isolate](runbooks/aging-policy.md#f-isolate) |
 | `stale_review_order` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `unlanded_branch_believed_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |

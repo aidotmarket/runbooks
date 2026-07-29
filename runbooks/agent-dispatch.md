@@ -29,6 +29,8 @@ error_signatures:
     section: §E. Operate
   - signature: mp_busy
     section: §E. Operate
+  - signature: strict_verdict_invalid
+    section: §E. Operate
 supersedes: []
 superseded_by: []
 owner: vulcan
@@ -411,6 +413,21 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_failure: Reconcile drift in the same session (update Living State/BQ note to the verified origin state) before dispatching anything that depends on it.
 ```
 
+
+- id: E-07
+  trigger: A GLM or Kimi provider readonly review (council_request agent=glm|kimi mode=review) returns status=failed with error_code strict_verdict_invalid or validation_error_type DispatchSchemaError.
+  pre_conditions: [check_build_payload_collected]
+  tool_or_endpoint: council_request(action=check_build, task_id=...) then read validation_error_type in the failure payload
+  argument_sourcing:
+    validation_error_type: type name of the exception parse_terminal raised; DispatchSchemaError has exactly ONE production raise site (council_output_schemas.py:402) - verdict APPROVED_WITH_MANDATES or REJECT with an EMPTY mandates array; ValidationError means Draft2020-12 schema mismatch (field_path in message); JSONDecodeError means non-JSON or fenced output (decode_strict_council_verdict tolerates no fencing or salvage)
+    raw_completion: NOT PRESERVED on failure at koskadeux-mcp baacd2b7 - the legacy validation site (council_dispatch_middleware/provider_readonly_review.py:568-581) appends terminal content to the transcript only after successful parse, and _terminal_attempt_record stores only response_sha256 + character count; the discard is unauditable by construction until the s1382 harness fix lands (T-2026-000479)
+    terminal_repair: GLM wires TerminalRepairPolicy(enabled=True) (zai_glm_client.py:864) and gets one schema-pinned conformance-repair attempt; the Kimi review call (kimi_shadow_eval.py:1492-1510, the LIVE kimi review path) passes NO policy, so one malformed terminal fails the whole review with zero repair attempts
+  idempotency: IDEMPOTENT (check_build reads)
+  expected_success: {shape: root cause classified from validation_error_type without redispatch, verification: "exception class name maps to exactly one of the three parse stages above"}
+  expected_failures:
+    - {signature: strict_verdict_invalid, cause: provider returned a terminal verdict that parsed as JSON and passed the schema but violated the semantic mandate-count rule (empty mandates on APPROVED_WITH_MANDATES/REJECT - the provider typically filed mandate content under findings), OR failed schema/JSON decode; the mandate-count rule itself is correct and must NOT be weakened}
+  next_step_success: Do NOT blind-redispatch (two identical failures = two strikes; a third blind dispatch violates the S5 bounded-investigation rule). If the fix (Kimi TerminalRepairPolicy + bounded raw-completion preservation, owned by bq-council-review-harness-reform-s1382) has landed, redispatch once; otherwise escalate gate participation to Max.
+  next_step_failure: File or update the ticket (pattern T-2026-000479) with the payload evidence and coordinate on the peer bus with the s1382 owner before touching harness code.
 
 ## §F. Isolate
 
