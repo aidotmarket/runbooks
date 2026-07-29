@@ -1,12 +1,15 @@
-# Session Lifecycle — consolidated into `mcp-gateway.md`
+---
+status: RETIRED
+archived_at: 2026-07-29
+archive_path: archive/session-lifecycle.md
+replacement: mcp-gateway.md
+decision_event: 17df8171
+---
 
-> **Consolidated (S734).** The Koskadeux session lifecycle — `kd_session_open` / `kd_session_plan`
-> / `kd_session_close`, the two-instance peer model (primary + worker slots, close ordering),
-> per-instance `HANDOFF.<role>.md`, the boot gate (PLANNING → OPERATIONAL), the local SQLite
-> registry vs the remote `infra:active-session-lock` (two lock records, and why), and recovery
-> — now lives in the canonical Koskadeux MCP runbook:
->
-> ## → see `mcp-gateway.md`, section **"Session lifecycle"**
->
-> This stub is kept so existing links resolve. The eventual §A–§K-conformant / relocated
-> edition is tracked by the runbook-decentralization and autonomous-operations BQs.
+# Session Lifecycle — retired redirect
+
+The historical redirect moved to `archive/session-lifecycle.md` under signed
+row K2. Current lifecycle state is documented in `mcp-gateway.md`.
+
+This stable tombstone preserves the old path until the operator lane
+regenerates catalog aliases and confirms inbound-reference migration.

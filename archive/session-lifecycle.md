@@ -1,0 +1,14 @@
+<!-- ARCHIVED 2026-07-29 under signed row K2; decision event 17df8171. Original content follows unchanged. -->
+
+# Session Lifecycle — consolidated into `mcp-gateway.md`
+
+> **Consolidated (S734).** The Koskadeux session lifecycle — `kd_session_open` / `kd_session_plan`
+> / `kd_session_close`, the two-instance peer model (primary + worker slots, close ordering),
+> per-instance `HANDOFF.<role>.md`, the boot gate (PLANNING → OPERATIONAL), the local SQLite
+> registry vs the remote `infra:active-session-lock` (two lock records, and why), and recovery
+> — now lives in the canonical Koskadeux MCP runbook:
+>
+> ## → see `mcp-gateway.md`, section **"Session lifecycle"**
+>
+> This stub is kept so existing links resolve. The eventual §A–§K-conformant / relocated
+> edition is tracked by the runbook-decentralization and autonomous-operations BQs.
