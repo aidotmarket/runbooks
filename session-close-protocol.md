@@ -18,7 +18,7 @@ close complete. Use `session-registry-recovery.md` if the instance row is stale 
 partially completes.
 
 MP is the mandatory builder, not a gate voter; the current gate voter panel is CC +
-DeepSeek + GLM. `infra:council-comms` is canonical for the live roster and dispatch config.
+Kimi + GLM (DeepSeek retired). `infra:council-comms` is canonical for the live roster and dispatch config.
 
 <!-- catalog:historical -->
 ## Historical S607-S630 role-slot close record (retired)
