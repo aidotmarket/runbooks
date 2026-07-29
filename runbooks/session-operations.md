@@ -87,7 +87,7 @@ be a liveness collision. A missing instance is not permission to guess one.
 
 The Registry recovery path above is a DRAFT forward reference: the destination
 runbook has not yet been promoted at this commit. References to that path,
-s1374, and peer-instance discipline must resolve in the full reference scan
+build:bq-agent-identity-n-peer-roster-s1374, and peer-instance discipline must resolve in the full reference scan
 before this document can become ACTIVE.
 
 ## §D. Agent Capability Map
@@ -97,7 +97,7 @@ before this document can become ACTIVE.
 | Registered operator | Open its own session | 'kd_session_open' | Its own roster identity | COMPLETE |
 | Registered operator | Plan its own session | 'kd_session_plan' | Its own live session | COMPLETE |
 | Vulcan or Mars | Close its own authorized session | 'kd_session_close' | Its own verified identity | PARTIAL — closes when instance-safe verification is complete |
-| Athena | Close its own session | 'kd_session_close' | None while defect is live | GAP — do not call; s1374 owns repair |
+| Athena | Close its own session | 'kd_session_close' | None while defect is live | GAP — do not call; build:bq-agent-identity-n-peer-roster-s1374 owns repair |
 | Registered operator | Read its handoff | 'state_request get' | Readable Living State | COMPLETE |
 | Registered operator | Drain its inbox | 'peer_msg_inbox' | Its own identity | PARTIAL — client rejects Athena |
 | Max | Authorize close or rule on identity ambiguity | Human decision | Final authority | COMPLETE |
@@ -189,7 +189,7 @@ before this document can become ACTIVE.
   pre_conditions: [instance_is_athena]
   tool_or_endpoint: No close call while the Athena close/handoff defect remains live.
   argument_sourcing:
-    defect_state: Read s1374 or a superseding independently verified repair record.
+    defect_state: Read build:bq-agent-identity-n-peer-roster-s1374 or a superseding independently verified repair record.
   idempotency: IDEMPOTENT
   expected_success:
     shape: Athena remains open and reports close withheld because the path is unsafe.
@@ -219,7 +219,7 @@ implementation-unverified. Keep handoffs lean; put durable detail in Living Stat
 | F-03 | 'PLANNING_GATE' appears after a plan or restart. | Transition absent, wrong session id, or rejected coverage. | Check exact pair and objective coverage. | G-03 | CONFIRMED |
 | F-04 | 'BOOT_NON_TRUNCATABLE_OVER_BUDGET' appears. | A protected component exceeds the boot floor. | Use returned size telemetry; do not trim protected content. |  | CONFIRMED |
 | F-05 | Close returns 'no_active_session_for_id' or changes another handoff. | Wrong routing or partial close. | Use read-only close status and instance-scoped reads. | G-04 | CONFIRMED |
-| F-06 | Athena peer-inbox drain returns HTTP 422. | Peer-bus widening is not deployed. | Preserve exact status/detail and read s1374 state. | G-01 | CONFIRMED |
+| F-06 | Athena peer-inbox drain returns HTTP 422. | Peer-bus widening is not deployed. | Preserve exact status/detail and read build:bq-agent-identity-n-peer-roster-s1374 state. | G-01 | CONFIRMED |
 | F-07 | A live scratch session is present. | Dispatch or missing-instance machine session uses a reserved namespace. | Confirm it does not collide with a registered operator. |  | HYPOTHESIZED |
 
 ## §G. Repair
@@ -370,8 +370,8 @@ retrofit: true
 trace_matrix_path: specs/ATHENA-PHASE2-CHUNK-A-TRACE-S1389.md
 word_count_delta:
   before: 2698
-  after: 3287
-  pct: 21.83
+  after: 3322
+  pct: 23.13
 ```
 
 ### §K.1 Draft promotion gate ledger
@@ -413,11 +413,15 @@ direct-check result for a promotable authority.
   'vulcan-configuration.md'; run the full old-path reference scan; then reconcile
   authority boundaries across the surviving documents.
 - **Promotion order:** obtain a valid wrapper lint result, resolve or deliberately
-  carry inherited catalog drift through the owning lane, change coherent
-  authorities from DRAFT to ACTIVE, regenerate generated surfaces with existing
-  tooling, and obtain one non-author review on the exact final SHA.
-- **Review hold:** dispatch no review until Mars confirms the reviewer fix tracked
-  by T-2026-000475 has landed. Kimi is excluded, GLM requires inlined
-  'open_response' text, and CC requires a worktree pinned to the exact review SHA.
+  carry inherited catalog drift through the owning lane, resolve the two promoted
+  forward paths, change coherent authorities from DRAFT to ACTIVE, regenerate
+  generated surfaces with existing tooling, rerun the isolation probe at that
+  exact promotion SHA, and obtain one non-author review on the exact final SHA.
+- **Review state:** exact-head reviews at
+  '32afa122cd951c757e9f95767729244ae424293c' are complete. CC task '40075d11'
+  returned APPROVE with no mandates; GLM task 'b31c4448' returned
+  APPROVE_WITH_NITS with no mandates, recorded by Mars at S1394 under event
+  '53dac93e'. The nits are non-blocking and do not reopen Chunk A. The eventual
+  ACTIVE/catalog change still requires review at its own exact final SHA.
 - **Retirement hold:** no source moves until signed prerequisites, containment,
   link checks, generated-surface verification, and non-author review all pass.

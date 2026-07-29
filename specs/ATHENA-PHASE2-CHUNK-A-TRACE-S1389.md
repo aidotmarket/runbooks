@@ -126,26 +126,47 @@ surviving destination or listed as a permitted historical/archive disposition.
 
 ## 7. Reference scan state
 
-The initial repository scan found live references to old session paths in
-'peer-instance-discipline.md', 'work-checkout.md',
-'session-registry-recovery.md', 'mcp-gateway.md', 'max-reporting.md',
-'runbook-first-gates.md', 'gateway-transport.md', audit records, and specs.
+The promotion-gate scan was rerun at
+'32afa122cd951c757e9f95767729244ae424293c' after refreshing origin/main to
+'4d0934b4b810ef5d09742bc3a82b95042c5495ef'. The branch was three commits ahead
+and zero behind. Excluding archive and specs, ten current Markdown files contain
+session-open, session-close, registry-recovery, or peer-discipline references:
 
-M3/M4 retirement is therefore blocked. Current operational references must move
-or remain intentional archive citations. Audit/spec provenance must not be
-rewritten as if historical paths never existed.
+| Classification | Current files | Promotion effect |
+|---|---|---|
+| Sources intentionally retained | 'session-open-protocol.md', 'session-close-protocol.md' | Resolve today; cannot retire until containment and all consumers move. |
+| Future Chunk A authorities at root only | 'session-registry-recovery.md', 'peer-instance-discipline.md' | Root files exist, but the referenced 'runbooks/' promotion paths do not; neither appears in CATALOG.json. ACTIVE is blocked. |
+| Current operational consumers of old paths | 'gateway-transport.md', 'runbook-first-gates.md', 'max-reporting.md', 'ai-market-backend.md', 'operator-telegram-notifications.md' | Resolve to retained root sources today; classify and rewrite with the relevant authority promotion rather than breaking them early. |
+| Draft destination | 'runbooks/session-operations.md' | Its source citations resolve; its two future 'runbooks/' forward paths do not. |
+
+The exact lifecycle repair reference is
+'build:bq-agent-identity-n-peer-roster-s1374'. Its Gate 3 state was independently
+read as 'REPAIR_BUILD_TIMED_OUT_WIP_PRESERVED': MP task '336bd316' timed out
+after 1,800 seconds with no builder commit, and the preserved WIP is not a Gate 3
+candidate or authorized for review, merge, activation, or deployment. The draft
+now uses that exact entity key instead of the ambiguous label 's1374'.
+
+Pinned resolver calls for session-registry-recovery, peer-instance-discipline,
+and session-operations all failed closed before resolution because inherited
+agent-dispatch §X.2 drift makes CATALOG.json and TOPIC-ROUTER.md invalid at this
+SHA. Catalog files remain untouched. T-2026-000476 is also still NEW, so the
+normal strict-lint wrapper has not supplied a valid promotion verdict.
+
+The scan is complete and every current hit is classified, but the promotion gate
+is closed. M3/M4 retirement remains blocked; historical audit/spec provenance
+must not be rewritten as if the old paths never existed.
 
 ## 8. Remaining Chunk A gates
 
-- [x] Record destination word-count delta: 2,698 source words to 2,802 draft words, +3.85%.
+- [x] Record destination word-count delta: reviewed head 32afa122 was 3,287 words (+21.83%); the current gate-preparation draft is 3,322 words against 2,698 source words (+23.13%).
 - [x] Execute all 21 strict lint checks directly: 0 FAIL, 0 WARN, 0 INFO. The CLI wrapper separately returned 'Parser must be a string or character stream, not NoneType'; no tooling file was changed.
 - [x] Mechanical exact-range check passed for 1–109 and 1–158.
 - [ ] Promote 'session-registry-recovery.md'.
 - [ ] Promote 'peer-instance-discipline.md' and contain M5/M6.
-- [ ] Run full reference scan and classify every active hit.
-- [ ] Change destinations from DRAFT to ACTIVE only when boundaries are coherent.
+- [x] Run full reference scan and classify every active hit at 32afa122; §7 records the unresolved promotion paths and inherited catalog-validator failure.
+- [ ] Resolve 'runbooks/session-registry-recovery.md' and 'runbooks/peer-instance-discipline.md', clear T-2026-000476 and catalog validation, then change coherent destinations from DRAFT to ACTIVE.
 - [ ] Regenerate catalog surfaces with existing tooling only.
-- [x] Obtain initial non-author review at 72d119fb: CC approved with mandate M1 and GLM approved. The mandate fold requires CC follow-up at its exact new SHA.
+- [x] Complete Chunk A review at 32afa122: CC task 40075d11 APPROVE, GLM task b31c4448 APPROVE_WITH_NITS, no mandates; Mars recorded event 53dac93e. Exact-promotion-SHA review remains a separate ACTIVE gate.
 - [ ] Retire sources only after every prerequisite above is complete.
 
 
@@ -164,6 +185,11 @@ mandate without changing generated catalog files.
 | Minor: range tables were internally exhaustive but the review diff did not re-collate sources. | Renamed §6 as coverage accounting, recorded exact source blob/line/nonblank/word measurements, and explicitly kept final content containment pending before retirement. |
 | Major M1: prove populated authority/supersedes metadata on DRAFT cannot become canonical prematurely. | Discharged by specs/ATHENA-DRAFT-CATALOG-ISOLATION-PROOF-S1389.md at evidence commit ae719540. The proof cites generator, validator, and resolver behavior plus an in-memory/committed-catalog probe. |
 
-No GLM follow-up is required because the proof documents existing catalog
-selection semantics and does not change the operational procedure. CC follow-up
-must review the exact fold SHA.
+The fold was reviewed at exact head
+'32afa122cd951c757e9f95767729244ae424293c'. CC task '40075d11' returned
+APPROVE with no mandates. GLM task 'b31c4448', dispatched by Mars at S1394,
+returned APPROVE_WITH_NITS with no mandates and independently reproduced the
+committed-catalog isolation check at that head; event '53dac93e' records it on
+the s1229 entity. The two nits are carried without reopening Chunk A: this
+trace's destination word count is corrected above, and the isolation probe must
+be rerun and recorded at the actual promotion SHA.
