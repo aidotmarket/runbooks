@@ -21,7 +21,7 @@ owner: vulcan
 last_verified_at: 2026-06-16
 system_name: peer-instance-discipline
 purpose_sentence: Peer-symmetric operating discipline for the trusted Vulcan and Mars instances.
-owner_agent: vulcan/mars
+owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: Equal-authority instance behavior, claim-before-work coordination, peer-message bus usage, and escalation boundaries.
@@ -54,7 +54,7 @@ The YAML frontmatter above is the §A header. This runbook supersedes the retire
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Peer Instance | `kd_session_open(instance=<vulcan|mars>)` | `registry.db` instance rows, per-instance handoff | Living State, shell, git, Council dispatch | Either instance may open first, plan independently, work any item, and close independently. |
+| Peer Instance | `kd_session_open(instance=<vulcan-or-mars>)` | `registry.db` instance rows, per-instance handoff | Living State, shell, git, Council dispatch | Vulcan and Mars may open first, plan independently, work any item, and close independently. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages by `to`, `from_instance`, kind, ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
 | Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP, AG, DeepSeek, CC | Either peer may dispatch after draining the bus and confirming no competing claim. |
@@ -83,8 +83,16 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
     instance: the active instance name used in kd_session_open
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: active_instance + inbox_cursor
-  expected_success: Inbox is drained; request and alert messages are acknowledged or queued for immediate response.
-  expected_failures: [inbox_unavailable, unread_request, unread_alert]
+  expected_success:
+    shape: Inbox is drained; request and alert messages are acknowledged or queued for immediate response.
+    verification: Unknown — the inherited source states the outcome but does not state an independent verification step.
+  expected_failures:
+    - signature: inbox_unavailable
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: unread_request
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: unread_alert
+      cause: Unknown — the inherited source names the signature but does not state a cause.
   next_step_success: Choose candidate work from the queue and run E-02 before touching it.
   next_step_failure: Repair bus access or answer required peer messages before starting work.
 - id: E-02
@@ -97,8 +105,16 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
     claim_note: active instance, session id, branch or file scope, and intended first action
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: target_entity + expected_version + active_instance
-  expected_success: CAS transition succeeds and the entity records the claimant.
-  expected_failures: [version_conflict, status_already_in_progress, missing_body_summary]
+  expected_success:
+    shape: CAS transition succeeds and the entity records the claimant.
+    verification: Unknown — the inherited source states the outcome but does not state an independent verification step.
+  expected_failures:
+    - signature: version_conflict
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: status_already_in_progress
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: missing_body_summary
+      cause: Unknown — the inherited source names the signature but does not state a cause.
   next_step_success: Send E-03 claim message, then begin work.
   next_step_failure: Treat the item as already taken; pick another item or coordinate with the claimant.
 - id: E-03
@@ -111,8 +127,14 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
     body: include claimant instance, session id, CAS evidence, and intended work boundary
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: target_entity + cas_version + "claim"
-  expected_success: Claim message is visible to the peer bus.
-  expected_failures: [send_failed, ambiguous_claim_scope]
+  expected_success:
+    shape: Claim message is visible to the peer bus.
+    verification: Unknown — the inherited source states the outcome but does not state an independent verification step.
+  expected_failures:
+    - signature: send_failed
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: ambiguous_claim_scope
+      cause: Unknown — the inherited source names the signature but does not state a cause.
   next_step_success: Proceed with work inside the claimed scope.
   next_step_failure: Pause work until the bus message is sent or Max resolves a bus outage.
 - id: E-04
@@ -123,8 +145,16 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
     instance: active instance
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: active_instance + "pre-dispatch-merge-close" + inbox_cursor
-  expected_success: No unread claim conflicts, requests, or alerts remain.
-  expected_failures: [unread_claim_conflict, request_requires_ack, alert_requires_ack]
+  expected_success:
+    shape: No unread claim conflicts, requests, or alerts remain.
+    verification: Unknown — the inherited source states the outcome but does not state an independent verification step.
+  expected_failures:
+    - signature: unread_claim_conflict
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: request_requires_ack
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: alert_requires_ack
+      cause: Unknown — the inherited source names the signature but does not state a cause.
   next_step_success: Dispatch, merge, or close.
   next_step_failure: Acknowledge and resolve the peer message before proceeding.
 - id: E-05
@@ -136,8 +166,16 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
     body: concise operational fact, requested action, deadline if any, and evidence link
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: recipient + kind + subject + body_digest
-  expected_success: Status messages inform; request and alert messages are acked by the recipient.
-  expected_failures: [missing_ack, wrong_kind, over_escalation_to_max]
+  expected_success:
+    shape: Status messages inform; request and alert messages are acked by the recipient.
+    verification: Unknown — the inherited source states the outcome but does not state an independent verification step.
+  expected_failures:
+    - signature: missing_ack
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: wrong_kind
+      cause: Unknown — the inherited source names the signature but does not state a cause.
+    - signature: over_escalation_to_max
+      cause: Unknown — the inherited source names the signature but does not state a cause.
   next_step_success: Continue without assigning or approving peer work.
   next_step_failure: Retry once, then escalate only if cross-instance unblock is impossible.
 ```
@@ -220,90 +258,197 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 - `request` and `alert` messages require acknowledgement.
 - Max escalation is reserved for strategic forks and cross-instance unblocks.
 
-### §H.2 Change-class predicates
+### §H.2 BREAKING predicates
 
-BREAKING if any proposed change:
 - Reintroduces primary/worker authority, work lanes, parent/worker session IDs, or close ordering.
 - Allows work to begin without CAS claim plus peer-bus claim.
 - Lets one instance approve, assign, or supervise the other instance's work.
 - Removes ack requirements for `request` or `alert` messages.
 
-REVIEW if any proposed change:
+### §H.3 REVIEW predicates
+
 - Adds a new peer-bus message kind.
 - Changes claim-note schema, ack semantics, or bus drain timing.
 - Changes Max escalation boundaries.
 - Changes runbook governance for process BQ consolidation.
 
-SAFE otherwise:
+### §H.4 SAFE predicates
+
 - Documentation wording that preserves the invariants.
 - Additional examples or scenario coverage.
 - Narrow clarifications to shell, git, or dispatch hygiene.
 
+### §H.5 Boundary definitions
+
+#### module
+
+Unknown — the inherited source does not define a formal module boundary.
+
+#### public contract
+
+Unknown — the inherited source does not define a formal public-contract boundary.
+
+#### runtime dependency
+
+Unknown — the inherited source does not define a formal runtime-dependency boundary.
+
+#### config default
+
+Unknown — the inherited source does not define a formal configuration-default boundary.
+
+### §H.6 Adjudication
+
+Unknown — the inherited source does not define a formal adjudication procedure
+beyond reserving Max escalation for strategic forks and cross-instance unblocks.
+
 ## §I. Acceptance Criteria
 
-```yaml scenarios
-- id: E-CLAIM-01
+```yaml acceptance
+scenario_set:
+- id: I-01
+  type: operate
+  refs: [E-01]
   weight: 0.10
-  prompt: "Mars wants to start BQ-X after opening."
-  expected_first_action: "Drain peer_msg_inbox, then read the BQ entity and CAS-claim before work."
-- id: E-CLAIM-02
+  scenario: "Mars wants to start BQ-X after opening."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Drain peer_msg_inbox, then read the BQ entity and CAS-claim before work."
+- id: I-02
+  type: operate
+  refs: [E-03]
   weight: 0.10
-  prompt: "Vulcan's CAS claim succeeds."
-  expected_first_action: "Send a kind=claim peer-bus message with scope and CAS evidence."
-- id: E-DRAIN-03
+  scenario: "Vulcan's CAS claim succeeds."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Send a kind=claim peer-bus message with scope and CAS evidence."
+- id: I-03
+  type: operate
+  refs: [E-04]
   weight: 0.10
-  prompt: "A peer is about to dispatch MP."
-  expected_first_action: "Drain peer_msg_inbox and resolve unread claim/request/alert messages first."
-- id: F-CONFLICT-01
+  scenario: "A peer is about to dispatch MP."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Drain peer_msg_inbox and resolve unread claim/request/alert messages first."
+- id: I-04
+  type: isolate
+  refs: [F-01, G-01]
   weight: 0.10
-  prompt: "Both peers seem active on the same branch."
-  expected_first_action: "Read entity/history, drain bus, and identify the successful CAS claimant."
-- id: F-CAS-02
+  scenario: "Both peers seem active on the same branch."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Read entity/history, drain bus, and identify the successful CAS claimant."
+- id: I-05
+  type: isolate
+  refs: [F-02, G-02]
   weight: 0.10
-  prompt: "CAS expected_version fails."
-  expected_first_action: "Treat item as already taken and re-read state before any work."
-- id: F-STALE-03
+  scenario: "CAS expected_version fails."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Treat item as already taken and re-read state before any work."
+- id: I-06
+  type: isolate
+  refs: [F-04, G-04]
   weight: 0.10
-  prompt: "Handoff says a gate is open, but the branch may have shipped."
-  expected_first_action: "Verify Living State and origin/main before acting."
-- id: G-BUS-01
+  scenario: "Handoff says a gate is open, but the branch may have shipped."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Verify Living State and origin/main before acting."
+- id: I-07
+  type: repair
+  refs: [G-03, F-03]
   weight: 0.10
-  prompt: "A request message was unread before merge."
-  expected_first_action: "Pause merge, ack/respond, and resolve the request."
-- id: G-FOLD-02
+  scenario: "A request message was unread before merge."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Pause merge, ack/respond, and resolve the request."
+- id: I-08
+  type: repair
+  refs: [G-05, F-05]
   weight: 0.10
-  prompt: "A builder claims five findings fixed."
-  expected_first_action: "Verify each finding against the actual diff and split unsupported work."
-- id: H-BREAKING-01
+  scenario: "A builder claims five findings fixed."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Verify each finding against the actual diff and split unsupported work."
+- id: I-09
+  type: evolve
+  refs: [§H.2]
   weight: 0.10
-  prompt: "Proposal: Mars must close before Vulcan closes."
-  expected_first_action: "Classify BREAKING."
-- id: H-REVIEW-02
+  scenario: "Proposal: Mars must close before Vulcan closes."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Classify BREAKING."
+- id: I-10
+  type: evolve
+  refs: [§H.3]
   weight: 0.10
-  prompt: "Proposal: add a peer-bus kind named handoff."
-  expected_first_action: "Classify REVIEW."
-- id: AMB-01
+  scenario: "Proposal: add a peer-bus kind named handoff."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Classify REVIEW."
+- id: I-11
+  type: ambiguous
+  refs: [§H.6]
   weight: 0.00
-  prompt: "A peer sees stale handoff text and an unread claim for the same BQ."
-  expected_first_action: "Drain/resolve the claim and verify Living State plus origin/main; do not start work."
+  scenario: "A peer sees stale handoff text and an unread claim for the same BQ."
+  expected_answers:
+    - kind: human_action
+      verb: follow
+      object: the inherited expected first action
+      target: "Drain/resolve the claim and verify Living State plus origin/main; do not start work."
 ```
 
-The weighted ten-scenario set sums to 1.0. `AMB-01` is an explicit ambiguous-symptom guard and is unweighted until the harness supports overlapping scenario categories.
+The ten operational scenarios retain their inherited weight of 0.10 and sum to
+1.0. The ambiguous-symptom guard remains unweighted because the inherited source
+says harness support for overlapping scenario categories is unknown.
+
+### §I.1 Weight Justification
+
+- I-01: Retains the inherited 0.10 weight.
+- I-02: Retains the inherited 0.10 weight.
+- I-03: Retains the inherited 0.10 weight.
+- I-04: Retains the inherited 0.10 weight.
+- I-05: Retains the inherited 0.10 weight.
+- I-06: Retains the inherited 0.10 weight.
+- I-07: Retains the inherited 0.10 weight.
+- I-08: Retains the inherited 0.10 weight.
+- I-09: Retains the inherited 0.10 weight.
+- I-10: Retains the inherited 0.10 weight.
+- I-11: Retains the inherited zero weight; overlapping-category harness support is unknown.
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S870
-last_refresh_commit: pending-this-commit
-last_refresh_date: 2026-06-16T00:00:00+02:00
-owner_agent: vulcan/mars
+last_refresh_session: S1389
+last_refresh_commit: 348c28ec483b510406a803f41b6609c195c234cc
+last_refresh_date: 2026-07-29T00:00:00Z
+owner_agent: vulcan
 refresh_triggers:
   - peer bus tool contract changes
   - session lifecycle model changes
   - claim/CAS semantics changes
   - process-BQ consolidation changes
-scheduled_cadence: 90 days
-last_harness_pass_rate: not_run
+scheduled_cadence: 90d
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: null
 first_staleness_detected_at: null
 ```
@@ -312,10 +457,17 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S870 2026-06-16
-last_lint_result: "NOT_RUN - runbook-lint is not present in this repo; router_drift_check.py is the available guard for this change"
-trace_matrix_path: null
-word_count_delta: "retrofit rewrite and rename; old 1297 words, new 2233 words, +936 words (+72.2%)"
+last_lint_run: S1389 / 2026-07-29T15:29:34Z
+last_lint_result: PASS
+retrofit: true
+trace_matrix_path: specs/ATHENA-PHASE2-CHUNK-A-TRACE-S1389.md
+word_count_delta:
+  before: 2238
+  after: 3011
+  pct: 34.54
 ```
 
-Router conformance is guarded by `scripts/router_drift_check.py`; the topic router must point to this filename and carry no dangling reference to the retired filename.
+The inherited source did not record a valid strict-lint verdict. The S1389
+conformance pass executed all 21 current strict checks directly against this
+DRAFT and returned zero findings. Generated catalog surfaces remain outside
+Athena's scope and are unchanged.

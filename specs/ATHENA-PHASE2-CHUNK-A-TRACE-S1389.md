@@ -228,3 +228,70 @@ treated as a pass. These are DRAFT paths, not promoted authorities.
 This resolves path existence for the already-reviewed session-operations draft.
 It does not satisfy M5/M6 containment, strict-wrapper integrity, catalog
 validation, exact-promotion-SHA isolation proof, or final non-author review.
+
+## 11. Catalog-drift repair proposal — specification only
+
+Commit 'f557bc67adb9cb5b0735f6dbce05eeb0070b772c' added section §X.2 to
+'runbooks/agent-dispatch.md', then hand-edited 'CATALOG.json' and
+'TOPIC-ROUTER.md' to register these three signatures:
+
+- 'repository_tool_call_batch_empty'
+- 'repository_tool_call_limit_exceeded'
+- 'repository_tool_call_limit_violation_exhausted'
+
+That made derived output disagree with frontmatter. The signatures are
+operationally documented in §X.2, but §X.2 is not a section form that the current
+generator resolves from frontmatter. Regeneration therefore removes the
+hand-added signatures and exposes the drift.
+
+The repair must make the signatures frontmatter-true. The frontmatter owner,
+Vulcan, chooses one of two valid designs:
+
+1. Teach the generator and resolver to recognize X.2-style subsections, then add
+   all three signatures to agent-dispatch frontmatter with a resolvable §X.2
+   section reference.
+2. Relocate the three signature definitions to a section the current generator
+   already resolves, then add all three frontmatter entries pointing to that
+   section.
+
+Either design must satisfy the same acceptance conditions:
+
+- Each signature appears exactly once in agent-dispatch frontmatter.
+- Each declared section resolves at the pinned commit.
+- 'runbook-catalog generate' produces 'CATALOG.json', 'TOPIC-ROUTER.md', and the
+  README inventory from frontmatter without a hand-edit.
+- 'runbook-catalog check' reports the generated surfaces current.
+- The signature meanings recorded at §X.2 are preserved; a relocation must not
+  invent or broaden operational behavior.
+
+Athena does not choose between the designs and does not edit
+'runbooks/agent-dispatch.md' or any generated catalog surface.
+
+## 12. S1398 inherited-DRAFT conformance round
+
+The current-source strict pass initially reported exactly 49 findings across
+the three DRAFT targets:
+
+- 'runbooks/session-operations.md': 0 findings.
+- 'runbooks/session-registry-recovery.md': 6 findings caused by one unquoted
+  colon making the inherited §G YAML block unparsable; the scalar was changed to
+  a folded form without changing its text.
+- 'runbooks/peer-instance-discipline.md': 43 findings from pre-current-schema
+  §A, §C, §E, §H, §I, §J, and §K forms.
+
+The peer-discipline conversion preserves source-supported truth:
+
+- Five newly required verification fields and fourteen failure-cause fields are
+  explicitly 'Unknown' because the inherited source did not supply them.
+- The four §H.5 boundary fields and the §H.6 formal adjudication procedure stay
+  explicitly unknown.
+- The eleven inherited scenarios keep their prompts, prescribed first actions,
+  and weights; only their schema representation and IDs changed.
+- The singleton lifecycle owner is Vulcan, matching existing frontmatter owner
+  metadata; peer equality remains stated in the body.
+- Harness status is pending rather than presented as a measured score.
+
+All 21 strict checks then returned zero findings on all three DRAFT files.
+'git diff --check' is clean. This is a local documentation conformance commit,
+not ACTIVE promotion: source documents remain, generated catalog surfaces are
+untouched, M5/M6 containment remains open, and no merge or build is authorized.
