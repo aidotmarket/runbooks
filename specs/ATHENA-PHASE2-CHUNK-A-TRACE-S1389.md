@@ -100,7 +100,7 @@ numbered line, including blanks. A mechanical range check confirmed the exact un
 | 149–153 | Rewrite | §C routes recovery and peer discipline and unifies open/close. |
 | 154–158 | Preserve and correct | §J retains lifecycle ownership; current promotion review follows charter and live config. |
 
-## 6. Containment verification state
+## 6. Coverage-accounting verification state
 
 The range tables are exhaustive by construction:
 
@@ -113,6 +113,16 @@ The range tables are exhaustive by construction:
 No line is authorized for deletion by this table. Historical and enumerated-drop
 material remains in the source or future recoverable archive, not deleted from
 Git history.
+
+This is machine-verified coverage accounting, not final destination-content
+containment. At exact commit ae7195407a2c79a6a1bf834f397ac256d27eaaee,
+the source blobs were independently re-read: session-open-protocol.md blob
+a8c7441c03db0025e54d5c99cf77aac861a7752b has 109 lines, 82 non-blank lines,
+and 1,282 words; session-close-protocol.md blob
+82e0e4268caf21e8812b56058cf98245069f28a9 has 158 lines, 124 non-blank lines,
+and 1,416 words. Those measurements match §§4-5. Final retirement still requires
+a machine comparison proving every non-blank source line is present in a
+surviving destination or listed as a permitted historical/archive disposition.
 
 ## 7. Reference scan state
 
@@ -135,5 +145,25 @@ rewritten as if historical paths never existed.
 - [ ] Run full reference scan and classify every active hit.
 - [ ] Change destinations from DRAFT to ACTIVE only when boundaries are coherent.
 - [ ] Regenerate catalog surfaces with existing tooling only.
-- [ ] Obtain and record one non-author review.
+- [x] Obtain initial non-author review at 72d119fb: CC approved with mandate M1 and GLM approved. The mandate fold requires CC follow-up at its exact new SHA.
 - [ ] Retire sources only after every prerequisite above is complete.
+
+
+## 9. Chunk A review fold
+
+The exact review target was 72d119fb88b9de5f4c0e9e16f23f8ec49c8630c3.
+CC task 83cafa22 returned APPROVED_WITH_MANDATES; GLM task 897cfe23 returned
+APPROVE with no findings. This fold addresses CC's four minor findings and major
+mandate without changing generated catalog files.
+
+| Review item | Disposition in this fold |
+|---|---|
+| Minor: the §B close row labels the whole feature BROKEN when the deployed defect is Athena-specific. | Split the matrix into Vulcan/Mars PARTIAL and Athena BROKEN rows. No Athena close path is opened. |
+| Minor: forward references may dangle until the other Chunk A runbooks are promoted. | Added an explicit §C forward-reference warning and retained the full reference scan as an ACTIVE gate. |
+| Minor: reviewed §K said PASS although the wrapper crashed. | Already corrected at ae719540: §K now says FAIL and §K.1 points to T-2026-000476; direct checks remain diagnostic only. |
+| Minor: range tables were internally exhaustive but the review diff did not re-collate sources. | Renamed §6 as coverage accounting, recorded exact source blob/line/nonblank/word measurements, and explicitly kept final content containment pending before retirement. |
+| Major M1: prove populated authority/supersedes metadata on DRAFT cannot become canonical prematurely. | Discharged by specs/ATHENA-DRAFT-CATALOG-ISOLATION-PROOF-S1389.md at evidence commit ae719540. The proof cites generator, validator, and resolver behavior plus an in-memory/committed-catalog probe. |
+
+No GLM follow-up is required because the proof documents existing catalog
+selection semantics and does not change the operational procedure. CC follow-up
+must review the exact fold SHA.

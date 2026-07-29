@@ -61,7 +61,8 @@ These are consumer defects, not evidence for rewriting the roster as two-party.
 | Registered-instance session open | PARTIAL | `koskadeux-mcp:kd_session_open` | Live Athena open; implementation path not inspected in this docs-only promotion | 2026-07-29 |
 | Instance-keyed planning gate | SHIPPED | `koskadeux-mcp:kd_session_plan` | Live S1389 rejected-then-accepted plan | 2026-07-29 |
 | Instance-scoped handoff read | PARTIAL | `state_request:get infra:handoff:instance=<instance>` | Athena handoff v4 read directly; open misrouting remains known | 2026-07-29 |
-| Instance-scoped close | BROKEN | `koskadeux-mcp:kd_session_close` | Athena defect remains live; no Athena close attempted | 2026-07-29 |
+| Instance-scoped close for Vulcan and Mars | PARTIAL | `koskadeux-mcp:kd_session_close` | Source-supported current path; not reverified in this docs-only promotion | 2026-07-29 |
+| Instance-scoped close for Athena | BROKEN | `koskadeux-mcp:kd_session_close` | Deployed handoff-key collapse remains live; no Athena close attempted | 2026-07-29 |
 | Peer-inbox drain before close | PARTIAL | `peer_msg_inbox` | Current client rejects Athena with HTTP 422 | 2026-07-29 |
 | Boot-size protection | PARTIAL | `koskadeux-mcp:BOOT_WIRE_BUDGET_CHARS` | Source records 64,000 characters; implementation not inspected | 2026-07-29 |
 
@@ -83,6 +84,11 @@ because Athena's charter limits this work to documents.
 Session and instance identifiers are separate. Reopening the same pair is
 recovery; opening a different live session id against an occupied instance can
 be a liveness collision. A missing instance is not permission to guess one.
+
+The Registry recovery path above is a DRAFT forward reference: the destination
+runbook has not yet been promoted at this commit. References to that path,
+s1374, and peer-instance discipline must resolve in the full reference scan
+before this document can become ACTIVE.
 
 ## §D. Agent Capability Map
 
@@ -364,8 +370,8 @@ retrofit: true
 trace_matrix_path: specs/ATHENA-PHASE2-CHUNK-A-TRACE-S1389.md
 word_count_delta:
   before: 2698
-  after: 3154
-  pct: 16.90
+  after: 3287
+  pct: 21.83
 ```
 
 ### §K.1 Draft promotion gate ledger
@@ -383,6 +389,14 @@ direct-check result for a promotable authority.
   Direct execution of all 21 strict checks returned zero findings, but that is
   diagnostic evidence, not a valid wrapper lint verdict. The §K result remains
   FAIL until the normal wrapper completes and reports its own result.
+- **DRAFT isolation proof:**
+  'specs/ATHENA-DRAFT-CATALOG-ISOLATION-PROOF-S1389.md' discharges CC mandate M1
+  at evidence commit 'ae7195407a2c79a6a1bf834f397ac256d27eaaee'. The generator
+  skips non-ACTIVE frontmatter before constructing entries; the loader rejects
+  non-ACTIVE entries; and the resolver searches only validated entries/indexes
+  with no path fallback. Populated draft authority metadata therefore has no
+  canonical or supersession effect until status becomes ACTIVE and catalog
+  generation runs. Explicit Git-path reads remain possible as review reads.
 - **Inherited catalog drift:** the origin/main-derived worktree already drifts in
   'CATALOG.json' and 'TOPIC-ROUTER.md'. Regeneration would remove the three
   agent-dispatch §X.2 signatures 'repository_tool_call_batch_empty',
