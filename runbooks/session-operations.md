@@ -408,13 +408,13 @@ direct-check result for a promotable authority.
   'f18cc2aaf460049b4b93e73583c81478bb4c5ede' was backed up locally, rewritten as
   '72d119fb88b9de5f4c0e9e16f23f8ec49c8630c3', and force-pushed only to the docs
   branch. The replacement author and committer are 'athena <athena@ai.market>'.
-- **Remaining content:** promote 'session-registry-recovery.md'; promote
-  'peer-instance-discipline.md' while containing 'work-checkout.md' and
-  'vulcan-configuration.md'; run the full old-path reference scan; then reconcile
-  authority boundaries across the surviving documents.
+- **Remaining content:** the two referenced 'runbooks/' destinations now exist
+  as DRAFT content-preserving copies. Contain 'work-checkout.md' and
+  'vulcan-configuration.md' in peer discipline, reconcile authority boundaries,
+  and complete the DRAFT-to-ACTIVE promotion gates.
 - **Promotion order:** obtain a valid wrapper lint result, resolve or deliberately
-  carry inherited catalog drift through the owning lane, resolve the two promoted
-  forward paths, change coherent authorities from DRAFT to ACTIVE, regenerate
+  carry inherited catalog drift through the owning lane, finish M5/M6
+  containment, change coherent authorities from DRAFT to ACTIVE, regenerate
   generated surfaces with existing tooling, rerun the isolation probe at that
   exact promotion SHA, and obtain one non-author review on the exact final SHA.
 - **Review state:** exact-head reviews at

@@ -135,7 +135,7 @@ session-open, session-close, registry-recovery, or peer-discipline references:
 | Classification | Current files | Promotion effect |
 |---|---|---|
 | Sources intentionally retained | 'session-open-protocol.md', 'session-close-protocol.md' | Resolve today; cannot retire until containment and all consumers move. |
-| Future Chunk A authorities at root only | 'session-registry-recovery.md', 'peer-instance-discipline.md' | Root files exist, but the referenced 'runbooks/' promotion paths do not; neither appears in CATALOG.json. ACTIVE is blocked. |
+| Future Chunk A authorities, root sources plus DRAFT destinations | 'session-registry-recovery.md', 'peer-instance-discipline.md', 'runbooks/session-registry-recovery.md', 'runbooks/peer-instance-discipline.md' | Both referenced 'runbooks/' paths now exist as content-preserving DRAFT copies. Neither appears in CATALOG.json. ACTIVE remains blocked. |
 | Current operational consumers of old paths | 'gateway-transport.md', 'runbook-first-gates.md', 'max-reporting.md', 'ai-market-backend.md', 'operator-telegram-notifications.md' | Resolve to retained root sources today; classify and rewrite with the relevant authority promotion rather than breaking them early. |
 | Draft destination | 'runbooks/session-operations.md' | Its source citations resolve; its two future 'runbooks/' forward paths do not. |
 
@@ -152,19 +152,24 @@ agent-dispatch §X.2 drift makes CATALOG.json and TOPIC-ROUTER.md invalid at thi
 SHA. Catalog files remain untouched. T-2026-000476 is also still NEW, so the
 normal strict-lint wrapper has not supplied a valid promotion verdict.
 
-The scan is complete and every current hit is classified, but the promotion gate
-is closed. M3/M4 retirement remains blocked; historical audit/spec provenance
-must not be rewritten as if the old paths never existed.
+The scan is complete and every current hit is classified. The two missing
+'runbooks/' paths are resolved as DRAFT documents, but the promotion gate is
+still closed. M3/M4 retirement remains blocked; historical audit/spec
+provenance must not be rewritten as if the old paths never existed.
 
 ## 8. Remaining Chunk A gates
 
 - [x] Record destination word-count delta: reviewed head 32afa122 was 3,287 words (+21.83%); the current gate-preparation draft is 3,322 words against 2,698 source words (+23.13%).
 - [x] Execute all 21 strict lint checks directly: 0 FAIL, 0 WARN, 0 INFO. The CLI wrapper separately returned 'Parser must be a string or character stream, not NoneType'; no tooling file was changed.
 - [x] Mechanical exact-range check passed for 1–109 and 1–158.
-- [ ] Promote 'session-registry-recovery.md'.
-- [ ] Promote 'peer-instance-discipline.md' and contain M5/M6.
+- [x] Materialize 'runbooks/session-registry-recovery.md' as a DRAFT
+  content-preserving copy; ACTIVE promotion remains pending.
+- [x] Materialize 'runbooks/peer-instance-discipline.md' as a DRAFT
+  content-preserving copy; M5/M6 containment and ACTIVE promotion remain pending.
 - [x] Run full reference scan and classify every active hit at 32afa122; §7 records the unresolved promotion paths and inherited catalog-validator failure.
-- [ ] Resolve 'runbooks/session-registry-recovery.md' and 'runbooks/peer-instance-discipline.md', clear T-2026-000476 and catalog validation, then change coherent destinations from DRAFT to ACTIVE.
+- [x] Resolve the filesystem paths 'runbooks/session-registry-recovery.md' and
+  'runbooks/peer-instance-discipline.md'. T-2026-000476, M5/M6 containment,
+  catalog validation, and the DRAFT-to-ACTIVE switch remain separate gates.
 - [ ] Regenerate catalog surfaces with existing tooling only.
 - [x] Complete Chunk A review at 32afa122: CC task 40075d11 APPROVE, GLM task b31c4448 APPROVE_WITH_NITS, no mandates; Mars recorded event 53dac93e. Exact-promotion-SHA review remains a separate ACTIVE gate.
 - [ ] Retire sources only after every prerequisite above is complete.
@@ -193,3 +198,33 @@ committed-catalog isolation check at that head; event '53dac93e' records it on
 the s1229 entity. The two nits are carried without reopening Chunk A: this
 trace's destination word count is corrected above, and the isolation probe must
 be rerun and recorded at the actual promotion SHA.
+
+## 10. S1389 continuation: forward-path resolution
+
+At base '2c64af5d66ef2a4c6b9ea1b39404232852ab5db2', the branch and
+Living State both recorded two dangling future paths. This continuation
+materializes them without claiming promotion:
+
+- 'runbooks/session-registry-recovery.md' preserves the root document body and
+  adds only catalog-shaped DRAFT metadata plus an explicit non-authority notice.
+- 'runbooks/peer-instance-discipline.md' preserves the root document body and
+  adds only catalog-shaped DRAFT metadata plus an explicit notice that M5/M6
+  containment is not yet claimed.
+- The root sources remain present and unchanged.
+- 'CATALOG.json', 'TOPIC-ROUTER.md', and the generated README inventory remain
+  untouched.
+
+Mechanical multiset verification found zero missing non-blank source lines:
+364 source lines for session-registry-recovery and 265 for peer-instance
+discipline are all present in their DRAFT destinations. 'git diff --check' is
+clean.
+
+Direct current-source strict checks leave 'runbooks/session-operations.md'
+clean, but report 49 inherited conformance failures across the two newly
+materialized DRAFT copies. The failures are concentrated in the source
+documents' pre-current-schema §A/§C/§E/§H/§I/§J/§K forms; they are not hidden or
+treated as a pass. These are DRAFT paths, not promoted authorities.
+
+This resolves path existence for the already-reviewed session-operations draft.
+It does not satisfy M5/M6 containment, strict-wrapper integrity, catalog
+validation, exact-promotion-SHA isolation proof, or final non-author review.
