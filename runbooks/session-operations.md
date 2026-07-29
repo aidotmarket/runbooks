@@ -34,9 +34,10 @@ linter_version: 1.0.0
 
 # Session Operations
 
-> Phase 2 Chunk A draft. The source files remain in place until containment,
-> reference checks, and a non-author review are complete. While this header says
-> DRAFT, this file is not catalog authority.
+> Phase 2 Chunk A plus bounded Chunk B continuation draft. The source files
+> remain in place until containment, reference checks, valid lint, and a non-author
+> review are complete. While this header says DRAFT, this file is not catalog
+> authority and must not change generated catalog surfaces.
 
 ## §A. Header
 
@@ -357,12 +358,52 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1389 / 2026-07-29T00:00:00Z
-last_lint_result: PASS
+last_lint_run: S1389 / 2026-07-29T09:20:00Z
+last_lint_result: FAIL
 retrofit: true
 trace_matrix_path: specs/ATHENA-PHASE2-CHUNK-A-TRACE-S1389.md
 word_count_delta:
   before: 2698
-  after: 2802
-  pct: 3.85
+  after: 3154
+  pct: 16.90
 ```
+
+### §K.1 Draft promotion gate ledger
+
+This DRAFT is deliberately outside the generated catalog. Chunk B carries the
+promotion state into the document so a later session does not mistake a clean
+direct-check result for a promotable authority.
+
+- **Containment:** the trace matrix accounts for every line of
+  'session-open-protocol.md' (1–109) and 'session-close-protocol.md' (1–158).
+  M3/M4 sources remain in place because live references still resolve to them.
+- **Lint integrity blocker:** T-2026-000476 records that
+  'rtk runbook-lint --mode strict runbooks/session-operations.md' exits 3 with
+  'internal error: Parser must be a string or character stream, not NoneType'.
+  Direct execution of all 21 strict checks returned zero findings, but that is
+  diagnostic evidence, not a valid wrapper lint verdict. The §K result remains
+  FAIL until the normal wrapper completes and reports its own result.
+- **Inherited catalog drift:** the origin/main-derived worktree already drifts in
+  'CATALOG.json' and 'TOPIC-ROUTER.md'. Regeneration would remove the three
+  agent-dispatch §X.2 signatures 'repository_tool_call_batch_empty',
+  'repository_tool_call_limit_exceeded', and
+  'repository_tool_call_limit_violation_exhausted', and would move
+  agent-dispatch 'last_verified_at' from 2026-07-28 back to 2026-07-26. Those
+  unrelated generated changes were restored and are not folded into this draft.
+- **Authorship correction:** the original remote commit
+  'f18cc2aaf460049b4b93e73583c81478bb4c5ede' was backed up locally, rewritten as
+  '72d119fb88b9de5f4c0e9e16f23f8ec49c8630c3', and force-pushed only to the docs
+  branch. The replacement author and committer are 'athena <athena@ai.market>'.
+- **Remaining content:** promote 'session-registry-recovery.md'; promote
+  'peer-instance-discipline.md' while containing 'work-checkout.md' and
+  'vulcan-configuration.md'; run the full old-path reference scan; then reconcile
+  authority boundaries across the surviving documents.
+- **Promotion order:** obtain a valid wrapper lint result, resolve or deliberately
+  carry inherited catalog drift through the owning lane, change coherent
+  authorities from DRAFT to ACTIVE, regenerate generated surfaces with existing
+  tooling, and obtain one non-author review on the exact final SHA.
+- **Review hold:** dispatch no review until Mars confirms the reviewer fix tracked
+  by T-2026-000475 has landed. Kimi is excluded, GLM requires inlined
+  'open_response' text, and CC requires a worktree pinned to the exact review SHA.
+- **Retirement hold:** no source moves until signed prerequisites, containment,
+  link checks, generated-surface verification, and non-author review all pass.
