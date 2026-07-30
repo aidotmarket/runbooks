@@ -62,18 +62,6 @@
           "signature": "progress_guard_timeout"
         },
         {
-          "section": "\u00a7X.2",
-          "signature": "repository_tool_call_batch_empty"
-        },
-        {
-          "section": "\u00a7X.2",
-          "signature": "repository_tool_call_limit_exceeded"
-        },
-        {
-          "section": "\u00a7X.2",
-          "signature": "repository_tool_call_limit_violation_exhausted"
-        },
-        {
           "section": "\u00a7E. Operate",
           "signature": "schema_validation_failure"
         },
@@ -202,6 +190,26 @@
       "owner": "max",
       "path": "runbooks/constitution-history.md",
       "runbook_id": "constitution-history",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [
+        "allai-corpus-policy"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "corpus-capture-policy"
+        }
+      ],
+      "domain": "allai-corpus",
+      "error_signatures": [],
+      "last_verified_at": "2026-07-30",
+      "owner": "mars",
+      "path": "corpus-capture-policy.md",
+      "runbook_id": "corpus-capture-policy",
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -347,6 +355,60 @@
       "owner": "vulcan",
       "path": "runbooks/council-hall-deliberation.md",
       "runbook_id": "council-hall-deliberation",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [
+        "council-verdict-collection",
+        "gate-recording"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-review-collection"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "cc_verdict_parse_failure"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "completion_truncated"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "dispatch_sha_invalid"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "gate_status_not_flipped"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "glm_page_path_hallucination"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "mp_lane_held"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "peer_msg_silent_dedupe"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "review_preload_unresolved"
+        }
+      ],
+      "last_verified_at": "2026-07-30",
+      "owner": "mars",
+      "path": "runbooks/council-review-collection.md",
+      "runbook_id": "council-review-collection",
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -538,7 +600,20 @@
     }
   ],
   "indexes": {
-    "aliases": {},
+    "aliases": {
+      "allai-corpus-policy": {
+        "runbook_id": "corpus-capture-policy",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-verdict-collection": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "gate-recording": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7C. Architecture & Interactions"
+      }
+    },
     "error_signatures": {
       "agent silence": {
         "runbook_id": "council",
@@ -560,6 +635,10 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "cc_verdict_parse_failure": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7E. Operate"
+      },
       "chunk_scope_gap": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -567,6 +646,10 @@
       "clean_tree_read_as_current": {
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7F. Isolate"
+      },
+      "completion_truncated": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7E. Operate"
       },
       "constitution_source_drift": {
         "runbook_id": "constitution-history",
@@ -586,6 +669,10 @@
       },
       "directional_evidence_missing": {
         "runbook_id": "council-gate-process",
+        "section": "\u00a7E. Operate"
+      },
+      "dispatch_sha_invalid": {
+        "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
       "dispatch_terminal_state_missing_after_restart": {
@@ -612,8 +699,16 @@
         "runbook_id": "gate-procedure",
         "section": "\u00a7F. Isolate"
       },
+      "gate_status_not_flipped": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7E. Operate"
+      },
       "gateway_timeout": {
         "runbook_id": "agent-dispatch",
+        "section": "\u00a7E. Operate"
+      },
+      "glm_page_path_hallucination": {
+        "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
       "harness_bound_to_stale_code": {
@@ -648,6 +743,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "mp_lane_held": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7E. Operate"
+      },
       "no resolution": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -658,6 +757,10 @@
       },
       "participant_config_missing": {
         "runbook_id": "council-hall-deliberation",
+        "section": "\u00a7E. Operate"
+      },
+      "peer_msg_silent_dedupe": {
+        "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
       "policy_kernel_enforcement_setting_invalid": {
@@ -692,17 +795,9 @@
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
       },
-      "repository_tool_call_batch_empty": {
-        "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.2"
-      },
-      "repository_tool_call_limit_exceeded": {
-        "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.2"
-      },
-      "repository_tool_call_limit_violation_exhausted": {
-        "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.2"
+      "review_preload_unresolved": {
+        "runbook_id": "council-review-collection",
+        "section": "\u00a7E. Operate"
       },
       "schema_validation_failure": {
         "runbook_id": "agent-dispatch",
@@ -782,6 +877,10 @@
         "runbook_id": "constitution-history",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "corpus-capture-policy": {
+        "runbook_id": "corpus-capture-policy",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
       "council-gate-process": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7C. Architecture & Interactions"
@@ -792,6 +891,10 @@
       },
       "council-operations": {
         "runbook_id": "council",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-review-collection": {
+        "runbook_id": "council-review-collection",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "council-roster-quirks": {

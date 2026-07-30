@@ -1,4 +1,17 @@
 ---
+runbook_id: corpus-capture-policy
+domain: allai-corpus
+status: ACTIVE
+authoritative_for:
+  - topic: corpus-capture-policy
+    section: §C. Architecture & Interactions
+aliases:
+  - allai-corpus-policy
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-07-30
 system_name: corpus-capture-policy
 purpose_sentence: This runbook is the operating authority for what ai.market keeps in allAI semantic memory and the corpus, what it never keeps, and how retention of the transport queue is managed.
 owner_agent: sysadmin
