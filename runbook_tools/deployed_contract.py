@@ -26,8 +26,8 @@ block whose info string is ``yaml deployed-contract-roles``::
     current_roles:
       builders: [mp]
       voters: [cc, kimi, glm]
-      paused: [ag]
-      retired: [deepseek]
+      paused: [ag, deepseek]
+      retired: []
 
 The member sets are compared exactly without assigning semantics to list order.
 Current role prose in §C, §D, §E, §H, or §I is reported as an unchecked claim
