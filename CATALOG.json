@@ -537,6 +537,53 @@
       "supersedes": []
     },
     {
+      "aliases": [
+        "peer-bus",
+        "peer-bus-coordination",
+        "peer-message-bus"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "peer-bus-coordination"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "peer-instance-discipline"
+        }
+      ],
+      "domain": "peer-coordination",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "duplicate_claim_on_one_item"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "over_escalation_to_max"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "peer_message_silently_deduped"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "stale_handoff_trusted_at_open"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "unread_request_or_alert_at_dispatch"
+        }
+      ],
+      "last_verified_at": "2026-07-31",
+      "owner": "mars",
+      "path": "peer-instance-discipline.md",
+      "runbook_id": "peer-instance-discipline",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
       "aliases": [],
       "authoritative_for": [
         {
@@ -612,6 +659,18 @@
       "gate-recording": {
         "runbook_id": "council-review-collection",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "peer-bus": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7E. Operate"
+      },
+      "peer-bus-coordination": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7E. Operate"
+      },
+      "peer-message-bus": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7E. Operate"
       }
     },
     "error_signatures": {
@@ -677,6 +736,10 @@
       },
       "dispatch_terminal_state_missing_after_restart": {
         "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
+      },
+      "duplicate_claim_on_one_item": {
+        "runbook_id": "peer-instance-discipline",
         "section": "\u00a7F. Isolate"
       },
       "duplicate_deliberation": {
@@ -755,9 +818,17 @@
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
       },
+      "over_escalation_to_max": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7F. Isolate"
+      },
       "participant_config_missing": {
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
+      },
+      "peer_message_silently_deduped": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7F. Isolate"
       },
       "peer_msg_silent_dedupe": {
         "runbook_id": "council-review-collection",
@@ -807,6 +878,10 @@
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7F. Isolate"
       },
+      "stale_handoff_trusted_at_open": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7F. Isolate"
+      },
       "stale_queue_undispatched": {
         "runbook_id": "aging-policy",
         "section": "\u00a7F. Isolate"
@@ -837,6 +912,10 @@
       },
       "unlanded_branch_believed_landed": {
         "runbook_id": "branch-landed-verification",
+        "section": "\u00a7F. Isolate"
+      },
+      "unread_request_or_alert_at_dispatch": {
+        "runbook_id": "peer-instance-discipline",
         "section": "\u00a7F. Isolate"
       },
       "unresolved_mandates": {
@@ -919,6 +998,14 @@
       },
       "infrastructure-discovery": {
         "runbook_id": "infrastructure-discovery",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "peer-bus-coordination": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7E. Operate"
+      },
+      "peer-instance-discipline": {
+        "runbook_id": "peer-instance-discipline",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "policy-kernel-enforcement": {
