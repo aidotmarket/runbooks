@@ -1,0 +1,1556 @@
+manifest_version: 1
+purpose: Exhaustive adjudication ledger for the operational Markdown corpus; only conformant ACTIVE runbooks
+  grant catalog authority.
+inventory:
+  repository: aidotmarket/runbooks
+  base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
+  inventory_sha: 78c9323bc7dc2f0bf958894848170d6202f37af6
+  blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
+    uncommitted working-tree version.
+  inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
+    inventory_path while path names the current source or recoverable archive location.
+  source_selector: runbook_tools.catalog.generator.source_paths
+  refresh_required_before_execution: true
+  counts:
+    operational_documents: 102
+    source_documents: 101
+    active: 20
+    grandfathered: 81
+    archived: 1
+policy:
+  pending_is_not_authority: true
+  manifest_grants_no_authority: true
+  archive_is_recoverable: true
+  promotion_requires_ground_truth_verification: true
+  merge_or_archive_requires_section_coverage: true
+  high_risk_requires_independent_review: true
+risk_scale:
+  P0: Security, destructive state, recovery, session, or gateway behavior with direct outage or integrity
+    risk.
+  P1: Material operational or governance behavior requiring truth-focused review.
+  P2: Routine operational or product guidance with bounded blast radius.
+  P3: Historical, scratch, or evidence-only material with no proposed current authority.
+documents:
+  - path: archive/evidence/briefing-verification-2026-04-25.md
+    inventory_path: archive/evidence/briefing-verification-2026-04-25.md
+    git_blob_oid: ec04a8d53ac3b3821244d7d0989937595b22bfc2
+    catalog_state: archived
+    status: archived
+    proposed_disposition: archive
+    batch: crm-briefing
+    risk: P3
+    target_paths:
+      - archive/evidence/briefing-verification-2026-04-25.md
+    archive_path: archive/evidence/briefing-verification-2026-04-25.md
+    evidence:
+      - ref: git:aidotmarket/runbooks@5937a52424a2f0cd9f5ef186b3a0052792acf887:ops/briefing-verification-2026-04-25.md
+        finding: Dated April 2026 verification checklist whose observation window ended; executable production
+          and rollback commands are historical evidence, not current procedure.
+    verify_against:
+      - exact source blob preserved under archive/evidence
+      - owning current CRM and deployment runbooks before any operational use
+    independent_review_required: false
+  - path: account-capability-onboarding.md
+    git_blob_oid: 98c4564001c3580edcc56fa01985773c1cab10b1
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P1
+    target_paths:
+      - runbooks/account-capability-onboarding.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: account-teardown.md
+    git_blob_oid: c7c8be993e8e1b058987c5eb050f8e71512735c4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/account-teardown.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: acl-sole-writer-enforcement.md
+    git_blob_oid: f46516e47b356b457f836c5eb6a4d81d62fa3ae5
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/acl-sole-writer-enforcement.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: activation-verification.md
+    git_blob_oid: 7284c2a2089f79caa37d1a50278adb7695b357b2
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/activation-verification.md
+    evidence: []
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: ai-market-backend.md
+    git_blob_oid: 161c99b3b7652ce61ae95268bed7a5fb4c912ba9
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/ai-market-backend.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: ai-market-frontend.md
+    git_blob_oid: 8abf71ce1b26d332bee2c97e866734ce1f9b4a1f
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/ai-market-frontend.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: aim-data-release-process.md
+    git_blob_oid: 6120359227b92336a6461be710457855002612c0
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/aim-data-release-process.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: aim-data-seller-publish-journey.md
+    git_blob_oid: 07e84ddd69d0038335d369b35f804352043c9126
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/aim-data-seller-publish-journey.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: aim-data.md
+    git_blob_oid: 047643e767a0aab5b95848ab1c0d639e94ff17d1
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/aim-data.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: aim-node-release-process.md
+    git_blob_oid: 6ae1c8d5bd47448d039f3d29d6b8816a457a2f6c
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/aim-node-release-process.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: aim-node.md
+    git_blob_oid: 8c1c71b00b4f2fdfd43d725b160e1e2cd99a468e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/aim-node.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: aimarket-mcp-server.md
+    git_blob_oid: 2ee1a1805c4f8d4180c4947c866e3998218873a4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P1
+    target_paths:
+      - runbooks/aimarket-mcp-server.md
+    evidence: []
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: allai-agents.md
+    git_blob_oid: 0c77f197ab6e7c5caa35625b1776fa90505ec6c4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/allai-agents.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: allai-escalation-safety-spine.md
+    git_blob_oid: fd27faf0b053efed7eecd45ebbffff46b3eb7d4d
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P0
+    target_paths:
+      - runbooks/allai-escalation-safety-spine.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: alphafold-publish-scale-up.md
+    git_blob_oid: caa43ee8096a203a4e6528d6ca98aac9fe198b88
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P2
+    target_paths:
+      - runbooks/alphafold-publish-scale-up.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: false
+  - path: auth-signup-flow.md
+    git_blob_oid: dcb540b28a75b673411c6b0dbfe80bd9953f8eed
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/auth-signup-flow.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: aws-s3.md
+    git_blob_oid: 471581b4a0645713255a004c53615355920b5425
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: secrets-provider-auth
+    risk: P0
+    target_paths:
+      - runbooks/aws-s3.md
+    evidence: []
+    verify_against:
+      - live provider and synchronization configuration
+      - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: aws.md
+    git_blob_oid: 1e19b36ef65beef164ee802929979d200b9dfa80
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: secrets-provider-auth
+    risk: P0
+    target_paths:
+      - runbooks/aws.md
+    evidence: []
+    verify_against:
+      - live provider and synchronization configuration
+      - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: backup-and-recovery.md
+    git_blob_oid: f5fd1a682ab67d41653d9da3060c37053499d3fa
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P0
+    target_paths:
+      - runbooks/backup-and-recovery.md
+    evidence:
+      - ref: backup-and-recovery.md:15
+        finding: states remaining S3 migration is rows 3-4
+      - ref: backup-and-recovery.md:28
+        finding: states rows 3-7 remain only in primary homes despite LIVE rows in the coverage matrix
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: bq-124-retro-verification.md
+    git_blob_oid: 9572aff8b742d3539427d2c5457b34ad70c08767
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: archive_after_evidence_check
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - archive/bq-124-retro-verification.md
+    archive_path: archive/bq-124-retro-verification.md
+    evidence:
+      - ref: bq-124-retro-verification.md:3
+        finding: source defines a bounded retro-verification procedure for two named jobs
+    verify_against:
+      - durable runtime proof for qdrant-reconciler-nightly
+      - durable runtime proof for kd-janitor-weekly
+      - current build-queue status
+    independent_review_required: true
+  - path: browser-session-auth.md
+    git_blob_oid: 74674c7d794653e20f8e7861f99156f4d4d76e9e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/browser-session-auth.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: build-queue-lifecycle.md
+    git_blob_oid: 452cb16e8922d03bd61844b6cb99951ff7be637e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P1
+    target_paths:
+      - runbooks/build-queue-lifecycle.md
+    evidence: []
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: celery-infrastructure-deployment.md
+    git_blob_oid: 8dd1ab93f2a91990a9e7a2cf09f1d0fbdfb63f77
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - runbooks/celery-infrastructure-deployment.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: cloudflare-and-dns.md
+    git_blob_oid: 5754ca9c2202812091e976d27386ba42e9e0c373
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P0
+    target_paths:
+      - runbooks/cloudflare-and-dns.md
+    evidence:
+      - ref: cloudflare-and-dns.md:23
+        finding: states current token has Tunnel and Workers Routes write scopes
+      - ref: cloudflare-and-dns.md:25
+        finding: adjacent paragraph says the current token lacks those same scopes
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: cloudflare-worker.md
+    git_blob_oid: a54206957be205f0373f6e07b4a1c5373279bb59
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: archive
+    batch: host-network-tooling
+    risk: P2
+    target_paths:
+      - archive/cloudflare-worker.md
+    archive_path: archive/cloudflare-worker.md
+    evidence:
+      - ref: cloudflare-worker.md:2
+        finding: explicitly DEPRECATED, fully subsumed, and historical-only
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: codex-mp.md
+    git_blob_oid: c0f6a54dbabdcedbe99a16040d3e615937b61181
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P1
+    target_paths:
+      - runbooks/codex-mp.md
+    evidence: []
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: connectivity.md
+    git_blob_oid: ffc56b41ab2a55e0829f8d4bc297b2e80bcc060d
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P1
+    target_paths:
+      - runbooks/connectivity.md
+    evidence: []
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: constitution-amendment.md
+    git_blob_oid: 520b765fdacb4dfb329eb28cb361bc2360f6d3d7
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P0
+    target_paths:
+      - runbooks/constitution-amendment.md
+    evidence: []
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: runbooks/corpus-capture-policy.md
+    git_blob_oid: dfe88d0ff5f7192127e6846c525782366b4968de
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/corpus-capture-policy.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: council-session-gate-and-fold-ops.md
+    git_blob_oid: d75c222c336be88ad1714039f0c9638e221239ca
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: session-gateway
+    risk: P1
+    target_paths:
+      - runbooks/agent-dispatch.md
+      - runbooks/council-gate-process.md
+      - runbooks/gateway-handler-operations.md
+      - runbooks/session-open-protocol.md
+    archive_path: archive/council-session-gate-and-fold-ops.md
+    evidence:
+      - ref: council-session-gate-and-fold-ops.md:43
+        finding: mixes resolved incident history, open middleware gaps, peer operations, and gateway deployment
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: crm-architecture.md
+    git_blob_oid: ccee8bbacd5b525cf25fa63165641fac938b620e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/crm-target-state.md
+    archive_path: archive/crm-architecture.md
+    evidence:
+      - ref: crm-architecture.md:132
+        finding: source itself recommends consolidation into a target-state model
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: crm-pipeline.md
+    git_blob_oid: 644b259a6e65580e3880682fbd62d9176d4b3f89
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/crm-target-state.md
+    archive_path: archive/crm-pipeline.md
+    evidence:
+      - ref: crm-pipeline.md:67
+        finding: redirects the authoritative capability list to crm-target-state.md
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: crm-target-state.md
+    git_blob_oid: 0dc8fc432b15f9ba6387a5d0043286e188be2c03
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/crm-target-state.md
+    evidence:
+      - ref: crm-target-state.md:3
+        finding: claims system-wide CRM authority while current and historical migration chronology are
+          interleaved
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: data-requests.md
+    git_blob_oid: 002029e30559168676be3f5bb0bfab2a99b1707f
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P1
+    target_paths:
+      - runbooks/data-requests.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: true
+  - path: dataset-card-publishing.md
+    git_blob_oid: 661401f4d5df3376d37d54214311dc10ef734e6e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P2
+    target_paths:
+      - runbooks/dataset-card-publishing.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: false
+  - path: dev-tickets.md
+    git_blob_oid: 543c4782f502fe5d0254569116b28a9c699ae956
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/dev-tickets.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: disaster-recovery.md
+    git_blob_oid: 7e9124475a9d8b5b7e9887eed33ce92ab7c88bec
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: generated_projection
+    batch: recovery-data-integrity
+    risk: P0
+    target_paths:
+      - runbooks/backup-and-recovery.md
+    evidence:
+      - ref: disaster-recovery.md:3
+        finding: source declares itself a map derived from the full backup-and-recovery manual
+    verify_against:
+      - canonical backup-and-recovery source
+      - live S3 prefix inventory and offline recovery artifact
+    independent_review_required: true
+  - path: docker-testing.md
+    git_blob_oid: 48e13f55bc198e3f596961fd3936348b89bd44be
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P2
+    target_paths:
+      - runbooks/docker-testing.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: false
+  - path: dual-brand-vectoraiz-aim-channel.md
+    git_blob_oid: 8b52dfaa81193e7589b8bfa134e600240d8f9794
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: archive
+    batch: aim-release
+    risk: P3
+    target_paths:
+      - archive/dual-brand-vectoraiz-aim-channel.md
+    archive_path: archive/dual-brand-vectoraiz-aim-channel.md
+    evidence:
+      - ref: dual-brand-vectoraiz-aim-channel.md:4
+        finding: explicitly RETIRED and historical-only
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: e2e-browser-runner.md
+    git_blob_oid: db37840a465e8b310bff8c704cfb23bfd8764054
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/e2e-browser-runner.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: runbooks/e2e-programme-integrity.md
+    git_blob_oid: 46b3a71bf0abec706a44cc6fb157c7b016da16ef
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/e2e-programme-integrity.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/e2e-test-status-publisher.md
+    git_blob_oid: aada02a494a88c72b07a4fe12814373cabb6227d
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/e2e-test-status-publisher.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/e2e-video-review.md
+    git_blob_oid: 66eaa2a7e248831fee409b56f26e4f929d49a327
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/e2e-video-review.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: email-drafting.md
+    git_blob_oid: ffa160b03c1aa2ae07bac6a7c41073e45505f201
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: relocate_then_archive
+    batch: crm-communications
+    risk: P2
+    target_paths:
+      - runbooks/crm-communications.md
+    archive_path: archive/email-drafting.md
+    evidence:
+      - ref: email-drafting.md:10
+        finding: documents a personal Vulcan mailto workflow rather than a system authority
+      - ref: email-drafting.md:36
+        finding: uses the legacy crm_log_interaction tool form
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: gateway_v2_rollback.md
+    git_blob_oid: c4edb809a23fa1dab021ac091642bda16d0ccff3
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: market-growth
+    risk: P1
+    target_paths:
+      - runbooks/gateway-v2-rollback.md
+      - specs/gateway-v2-rollback.md
+    evidence:
+      - ref: gateway_v2_rollback.md:3
+        finding: defines rollback intent without ACTIVE catalog metadata or current deployment proof
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: true
+  - path: gateway_v2_rollout.md
+    git_blob_oid: c1c18d3da29e4a9039df07577095fa985f7c010f
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: market-growth
+    risk: P1
+    target_paths:
+      - runbooks/gateway-v2-rollout.md
+      - specs/gateway-v2-rollout.md
+    evidence:
+      - ref: gateway_v2_rollout.md:7
+        finding: lists rollout flags but carries no ACTIVE catalog metadata or current deployment proof
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: true
+  - path: gateway-transport.md
+    git_blob_oid: 6c01628ebd5f62dfcb37567435588d4c77756691
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/gateway-transport.md
+    evidence:
+      - ref: command:runbook-lint gateway-transport.md
+        finding: observed strict result fail=87 warn=2; A-K appearance is not conformance
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: gcp-auth.md
+    git_blob_oid: b87000ace1405a500902324e0a903613b17460fc
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: secrets-provider-auth
+    risk: P0
+    target_paths:
+      - runbooks/gcp-auth.md
+    evidence: []
+    verify_against:
+      - live provider and synchronization configuration
+      - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: gmail-drop-pipeline.md
+    git_blob_oid: 697026969c8f8802db1cab417d9af2ce307cf57c
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/gmail-drop-pipeline.md
+    evidence: []
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: infisical-secrets.md
+    git_blob_oid: 07d075a2bbc65133f6becb4dde693c4e24719cb7
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: secrets-provider-auth
+    risk: P0
+    target_paths:
+      - runbooks/infisical-secrets.md
+    evidence:
+      - ref: infisical-secrets.md:10
+        finding: states native Infisical-to-Railway sync is live and routine changes are automatic
+      - ref: infisical-secrets.md:105
+        finding: states Infisical-only changes do not reach production and mandates manual Railway propagation
+    verify_against:
+      - live provider and synchronization configuration
+      - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: local-secops.md
+    git_blob_oid: ede7e36cee5de8ff1eb096e868322cada7575990
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: secrets-provider-auth
+    risk: P0
+    target_paths:
+      - runbooks/local-secops.md
+    evidence: []
+    verify_against:
+      - live provider and synchronization configuration
+      - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: marketing-tab.md
+    git_blob_oid: b187668d07c60f2efc5dd83eafbe7baccb3e9979
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P2
+    target_paths:
+      - runbooks/marketing-tab.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: false
+  - path: max-reporting.md
+    git_blob_oid: 70d4848cac988dd3921bbe60ba1276c5d65981cb
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P1
+    target_paths:
+      - runbooks/max-reporting.md
+    evidence: []
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: mcp-gateway.md
+    git_blob_oid: 98c01c3d96f7d5a15d3c085a7bdb8dc3e2026817
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/gateway-handler-operations.md
+      - runbooks/gateway-transport.md
+      - runbooks/activation-verification.md
+      - runbooks/session-open-protocol.md
+      - runbooks/session-close-protocol.md
+      - runbooks/session-registry-recovery.md
+    archive_path: archive/mcp-gateway.md
+    evidence:
+      - ref: mcp-gateway.md:11
+        finding: claims broad canonical authority while excluded from the ACTIVE catalog
+      - ref: mcp-gateway.md:56
+        finding: names CC + DeepSeek + GLM rather than the current roster
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: meet-records-pipeline.md
+    git_blob_oid: c235b95258eea85ab1343cb3cab757b79e8898af
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/meet-records-pipeline.md
+    evidence: []
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: morning-briefing.md
+    git_blob_oid: 53e8ef4770753e960cfe1de082a9711468524f9c
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: crm-communications
+    risk: P1
+    target_paths:
+      - runbooks/morning-briefing.md
+    evidence: []
+    verify_against:
+      - deployed CRM schema and services
+      - production-safe queries and current canonical state
+    independent_review_required: true
+  - path: operator-telegram-notifications.md
+    git_blob_oid: 8eff1f0969db79b6faa78581ee85da44b5ff0363
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P1
+    target_paths:
+      - runbooks/operator-telegram-notifications.md
+    evidence: []
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: ops-ai-market.md
+    git_blob_oid: 6186bee61438b21cf95969de19304b8c11fcc09e
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/ops-ai-market.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: runbooks/peer-instance-discipline.md
+    git_blob_oid: 1bb703448d23c1a7d25929a44a16240a59060c6b
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/peer-instance-discipline.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: publish-paths.md
+    git_blob_oid: e1186f1c38697a3da072d82258074e898c3e2a13
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/publish-paths.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: qdrant-sync-outbox.md
+    git_blob_oid: f1e9a91823cbeee9a5642b1249753a5a6f8817b4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - runbooks/qdrant-sync-outbox.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: qdrant.md
+    git_blob_oid: 11f7d31e03ecb1815fb1a1eebfd7edcb8b62d504
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - runbooks/qdrant.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: queue-overlay-archival-cutover.md
+    git_blob_oid: ee5ec92457ebd58333858048c19e0833cfb8e9ce
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: governance
+    risk: P1
+    target_paths:
+      - runbooks/acl-sole-writer-enforcement.md
+      - runbooks/build-queue-lifecycle.md
+    archive_path: archive/queue-overlay-archival-cutover.md
+    evidence:
+      - ref: queue-overlay-archival-cutover.md:5
+        finding: source marks the cutover EXECUTED AND COMPLETE
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: reconciliation-github-webhook.md
+    git_blob_oid: 798e1bd5c1fa073f3473bde2edd6a8fefb1076d2
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - runbooks/reconciliation-github-webhook.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: rtk-token-optimization.md
+    git_blob_oid: c41f9611ec7c6d9147b13d93f23751e979f287ee
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P2
+    target_paths:
+      - runbooks/rtk-token-optimization.md
+    evidence: []
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: false
+  - path: runbook-first-gates.md
+    git_blob_oid: b4984003551196435b268dded5d54e0226cbe44b
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P0
+    target_paths:
+      - runbooks/runbook-first-gates.md
+    evidence:
+      - ref: runbook-first-gates.md:13
+        finding: documents the blocking runbook-attestation design being replaced
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: runbooks/agent-completeness.md
+    git_blob_oid: 242f05ab1240d4ca6ceb6b6d1d54d9a56f0e24f4
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/agent-completeness.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/agent-dispatch.md
+    git_blob_oid: b28f43d2bae7ccb3307a6f5ab59b3f6f182e51fc
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/agent-dispatch.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/aging-policy.md
+    git_blob_oid: ccc0e41023584729268b70cd6e48df04ec00149f
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/aging-policy.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/boot-kernel-companion-crosswalk.md
+    git_blob_oid: 77033124c3c460e18fea07732f8fa543a68b8506
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: evidence_only
+    batch: governance
+    risk: P2
+    target_paths:
+      - evidence/boot-kernel-companion-crosswalk.md
+    evidence:
+      - ref: runbooks/boot-kernel-companion-crosswalk.md:3
+        finding: source explicitly declares itself evidence-only and not catalog authority
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: runbooks/branch-landed-verification.md
+    git_blob_oid: da765f0c808fb53c254b8389e255445e09fb33f7
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/branch-landed-verification.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/build-queue-reconciliation.md
+    git_blob_oid: 4929cdd06678e8f50e6be0c605ee90f5ef70481c
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/build-queue-reconciliation.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/constitution-history.md
+    git_blob_oid: 27384780e211c4a2f77aa858cd8f3b8a3927f5e5
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/constitution-history.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/council-gate-process.md
+    git_blob_oid: 88c78387c99420c17f51694d145ae2e19e2556a2
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/council-gate-process.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/council-hall-deliberation.md
+    git_blob_oid: efa58dbf80f28792672e80372fac766f6760b6d6
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/council-hall-deliberation.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/council-review-collection.md
+    git_blob_oid: dc418d7a2fd118e9e810527f33079266763a1d3a
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/council-review-collection.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/council-roster-quirks.md
+    git_blob_oid: 03f48a41f9a5e4413fcbe8d339bcc4dbbbf31eb1
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/council-roster-quirks.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/council.md
+    git_blob_oid: f6d13b768500a80597eb9cb523d7edf7a0b2d43b
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/council.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/gate-procedure.md
+    git_blob_oid: 4eaca1f282eb3148f2e2b3272efea7f8a827e80c
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/gate-procedure.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/infrastructure-discovery.md
+    git_blob_oid: 40e3f5755afb1e88fadda6314d76c2b15a49959c
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/infrastructure-discovery.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/policy-kernel-enforcement.md
+    git_blob_oid: b435ba0605384fffe8563351bd673dc87cee2130
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/policy-kernel-enforcement.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/product-elaboration.md
+    git_blob_oid: 3358bb1da31150f5ab97492fe97ebfa754ba83a9
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P2
+    target_paths:
+      - runbooks/product-elaboration.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: schema-migration.md
+    git_blob_oid: 0ac4fd7a72a612214bec6fbc1c2405b7040790c4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P0
+    target_paths:
+      - runbooks/schema-migration.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: schema-rationalization.md
+    git_blob_oid: f2569f7b86a5fb8ec9b7df454d224b7686acda84
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P0
+    target_paths:
+      - runbooks/schema-rationalization.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: seo-infrastructure.md
+    git_blob_oid: af4db45133131999ab91981f8e1aa7f2863d6c69
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P2
+    target_paths:
+      - runbooks/seo-infrastructure.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: false
+  - path: seo-seller-validation.md
+    git_blob_oid: f1e02f6d52866ef8b24aeebf368dae1feb615fb5
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P2
+    target_paths:
+      - runbooks/seo-seller-validation.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: false
+  - path: session-close-protocol.md
+    git_blob_oid: 034f36bad0b13c7b8f5c11a732d7177662a4fa91
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/session-close-protocol.md
+    evidence:
+      - ref: session-close-protocol.md:25
+        finding: current peer preamble is followed by a large explicitly historical role-slot record
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: session-lifecycle.md
+    git_blob_oid: 63145c37293f276ca6beb441a7b35f2823f340f4
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: archive
+    batch: session-gateway
+    risk: P2
+    target_paths:
+      - archive/session-lifecycle.md
+    archive_path: archive/session-lifecycle.md
+    evidence:
+      - ref: session-lifecycle.md:1
+        finding: source is a consolidation stub pointing to mcp-gateway.md
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: session-open-protocol.md
+    git_blob_oid: e2132eb3ababdaf908b2d3bd3352335de69090af
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/session-open-protocol.md
+    evidence:
+      - ref: session-open-protocol.md:15
+        finding: requires caller-authored runbook_consultation on every plan
+      - ref: session-open-protocol.md:109
+        finding: names CC + DeepSeek + GLM rather than the current roster
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: session-registry-recovery.md
+    git_blob_oid: f794ae84896db4addfd50bf592846d274f5855ea
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: session-gateway
+    risk: P0
+    target_paths:
+      - runbooks/session-registry-recovery.md
+    evidence: []
+    verify_against:
+      - deployed koskadeux-mcp source and exact live tool schema
+      - registry database behavior and production-safe session probes
+    independent_review_required: true
+  - path: support-ticket-system.md
+    git_blob_oid: ef2c8214ced6e0a30d586300aa91264b9d3c28be
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P1
+    target_paths:
+      - runbooks/support-ticket-system.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: sysadmin.md
+    git_blob_oid: 92458fff9894dc3bf80517e1a162789bc52cdc76
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: core-platform-agents
+    risk: P0
+    target_paths:
+      - runbooks/sysadmin.md
+    evidence: []
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: task_state.md
+    git_blob_oid: 79002d448999b24c62a76c6bc02230e492b30401
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: archive
+    batch: core-platform-agents
+    risk: P3
+    target_paths:
+      - archive/task_state.md
+    archive_path: archive/task_state.md
+    evidence:
+      - ref: task_state.md:23
+        finding: completed scratch task record ends with DONE
+    verify_against:
+      - deployed service source and health endpoints
+      - production-safe behavior probes and canonical state
+    independent_review_required: true
+  - path: ticket-probe-autoclose.md
+    git_blob_oid: 22643a194a42ad136fa468f40cb87d0520106f2a
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: recovery-data-integrity
+    risk: P1
+    target_paths:
+      - runbooks/ticket-probe-autoclose.md
+    evidence: []
+    verify_against:
+      - live schedules and storage inventory
+      - restoration evidence, watchdog output, and owning code
+    independent_review_required: true
+  - path: titan-1.md
+    git_blob_oid: b3ee279ea5f36a0a6e62f9f875ed5e50e191b2d0
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P1
+    target_paths:
+      - runbooks/titan-1.md
+    evidence: []
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: trust-channel.md
+    git_blob_oid: 4176758f445d911c642cc04b167be8d9cbd6ba22
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/trust-channel.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: two-factor-auth.md
+    git_blob_oid: afd8ee7b482231597bae3603d8d1ec8180d61493
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: account-security
+    risk: P0
+    target_paths:
+      - runbooks/two-factor-auth.md
+    evidence: []
+    verify_against:
+      - deployed authentication and authorization code
+      - database schema and production-safe negative probes
+    independent_review_required: true
+  - path: vulcan-configuration.md
+    git_blob_oid: f948463ef1c9a4094db121c82947b6922361dfaa
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: merge_then_archive
+    batch: host-network-tooling
+    risk: P1
+    target_paths:
+      - runbooks/peer-instance-discipline.md
+      - runbooks/infrastructure-discovery.md
+    archive_path: archive/vulcan-configuration.md
+    evidence:
+      - ref: vulcan-configuration.md:34
+        finding: uses retired state_get guidance
+      - ref: vulcan-configuration.md:48
+        finding: uses pre-catalog GitHub filename discovery
+      - ref: vulcan-configuration.md:93
+        finding: records an S342 instance-memory snapshot
+    verify_against:
+      - live process table and health endpoints
+      - DNS, tunnel, provider, and host configuration
+    independent_review_required: true
+  - path: vz-release-process.md
+    git_blob_oid: 8d8a57d74130a7deb9c9c364e8e418ab2e793110
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: aim-release
+    risk: P1
+    target_paths:
+      - runbooks/vz-release-process.md
+    evidence: []
+    verify_against:
+      - owning repository and release workflow
+      - published artifacts and production-safe customer probes
+    independent_review_required: true
+  - path: website-copy-standard.md
+    git_blob_oid: 22aec721e64f2e919756d765efcb2aa731344634
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: market-growth
+    risk: P2
+    target_paths:
+      - runbooks/website-copy-standard.md
+    evidence: []
+    verify_against:
+      - owning backend and frontend code
+      - deployed customer surface and current feature flags
+    independent_review_required: false
+  - path: work-checkout.md
+    git_blob_oid: 2bcc46c387efe76a9e99d895247b3d0eb6e0923a
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: governance
+    risk: P1
+    target_paths:
+      - runbooks/work-checkout.md
+    evidence: []
+    verify_against:
+      - deployed gateway tool schema and canonical state
+      - current CORE and policy-kernel sources
+    independent_review_required: true

@@ -25,6 +25,8 @@ jobs:
         run: pip install -e '.[dev]'
       - name: Run repository tests
         run: python -m pytest -q
+      - name: Check corpus inventory and pending adjudication ledger
+        run: python -m runbook_tools.corpus_manifest
       - name: Check generated catalog outputs
         run: runbook-catalog check
       - name: Validate catalog at checked-out commit
