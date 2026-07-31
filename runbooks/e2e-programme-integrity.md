@@ -20,6 +20,8 @@ authoritative_scope: The INTEGRITY of the E2E testing programme end to end - the
 linter_version: 1.0.0
 ---
 
+<!-- Canonical source path: runbooks/e2e-programme-integrity.md -->
+
 # E2E Programme Integrity
 
 > Max, S1315: "This is the crucial test of our system. If we solve this we have a business. If not we have a gigantic pile of crap."
@@ -79,7 +81,7 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
 | Vulcan/Mars | Author or amend a charter against §H.1 | `shell_request` edit + Council review | Titan-1 shell | COMPLETE |
 | Vulcan/Mars | Reconcile the queue against committed charters (§E-03) | `shell_request` | Titan-1 shell | COMPLETE — the guard cannot do this yet |
 | MP (Codex) | Build charters and guard changes | `council_request mode=build` | Council dispatch | COMPLETE — its summaries over-claim; diff-inspect at file:line every time |
-| CC / GLM / DS | Review charters for safety and coverage honesty | `council_request mode=review` (builder excluded) | Council dispatch | COMPLETE — this review has caught a dangerous charter and two false coverage claims |
+| CC / Kimi / GLM | Review charters for safety and coverage honesty when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
 | launchd nightly | Execute the queue and publish | plist + `scripts/run-nightly.sh` | Titan-1 | COMPLETE |
 
 ## §E. Operate
@@ -301,7 +303,10 @@ scenario_set:
     scenario: Max asks how much of the product is tested. The Test page shows a number. Do you quote it?
     expected_answers:
       - kind: human_action
-        action: not until the six-point audit passes - every failure this programme has had looked like success, so a healthy-looking page proves nothing on its own
+        verb: verify
+        object: six-point audit result
+        target: product coverage claim shown on the Test page
+        rationale: not until the six-point audit passes - every failure this programme has had looked like success, so a healthy-looking page proves nothing on its own
     weight: 0.076923077
   - id: I-02
     type: isolate
@@ -309,7 +314,10 @@ scenario_set:
     scenario: The newest nightly run finished in under a second and reported no findings. Quiet night?
     expected_answers:
       - kind: human_action
-        action: no - that is a startup failure before a browser opened; read the report and the scheduler log, then fix the environment at the sanctioned entrypoint and trigger a run to prove it
+        verb: inspect-and-repair
+        object: nightly report, scheduler log, and startup environment
+        target: sanctioned scheduler entrypoint followed by a proving run
+        rationale: no - that is a startup failure before a browser opened; read the report and the scheduler log, then fix the environment at the sanctioned entrypoint and trigger a run to prove it
     weight: 0.076923077
   - id: I-03
     type: isolate
@@ -317,7 +325,10 @@ scenario_set:
     scenario: Charters run and pass every night, yet every coverage item still reads never_run. Where do you look?
     expected_answers:
       - kind: human_action
-        action: at the coverage mapping - the queue copy of the charter may have lost the covers ids its committed file declares, so no run can ever move an item
+        verb: compare
+        object: queued and committed charter coverage ids
+        target: coverage mapping
+        rationale: at the coverage mapping - the queue copy of the charter may have lost the covers ids its committed file declares, so no run can ever move an item
     weight: 0.076923077
   - id: I-04
     type: isolate
@@ -325,7 +336,10 @@ scenario_set:
     scenario: You audit the queue and find a charter running nightly with no file in charters/. How serious?
     expected_answers:
       - kind: human_action
-        action: it has never passed the guard or a review, so its goal text has never been checked for safety or honesty, and it contributes no coverage signal; reconcile by hand until enqueue is restricted to committed files
+        verb: reconcile
+        object: orphan runtime charter
+        target: committed charter registry and guarded enqueue path
+        rationale: it has never passed the guard or a review, so its goal text has never been checked for safety or honesty, and it contributes no coverage signal; reconcile by hand until enqueue is restricted to committed files
     weight: 0.076923077
   - id: I-05
     type: repair
@@ -333,7 +347,10 @@ scenario_set:
     scenario: Ticketing is connected but a library default supplies the destination. Ship it?
     expected_answers:
       - kind: human_action
-        action: no - resolve the URL in a clean environment and confirm it is the production backend; a default once pointed at a decommissioned host, and filing defects into a dead system is worse than filing none because it looks like it works
+        verb: resolve-and-verify
+        object: ticketing destination URL
+        target: production backend in a clean environment
+        rationale: no - resolve the URL in a clean environment and confirm it is the production backend; a default once pointed at a decommissioned host, and filing defects into a dead system is worse than filing none because it looks like it works
     weight: 0.076923077
   - id: I-06
     type: repair
@@ -341,7 +358,10 @@ scenario_set:
     scenario: A charter targeting a decommissioned system fails the guard because it declares no coverage. Someone maps it to a real item to make the guard pass. Response?
     expected_answers:
       - kind: human_action
-        action: reject and retire the charter - mapping a charter that can only fail drags a real journey to a permanent false red on the page Max reads
+        verb: reject-and-retire
+        object: decommissioned-system charter
+        target: committed charter set without a false coverage mapping
+        rationale: reject and retire the charter - mapping a charter that can only fail drags a real journey to a permanent false red on the page Max reads
     weight: 0.076923077
   - id: I-07
     type: repair
@@ -349,7 +369,10 @@ scenario_set:
     scenario: A charter tells the agent to log out and then log back in, but the harness destroys the credential after first use. What happens if it ships?
     expected_answers:
       - kind: human_action
-        action: the agent improvises - it reads the account email off the screen and guesses passwords against a live account, risking lockout and putting the identity into transcripts; rewrite the goal to what the session can prove and reduce the claim
+        verb: rewrite
+        object: logout-and-login charter goal and coverage claim
+        target: actions provable with the one-use credential
+        rationale: the agent improvises - it reads the account email off the screen and guesses passwords against a live account, risking lockout and putting the identity into transcripts; rewrite the goal to what the session can prove and reduce the claim
     weight: 0.076923077
   - id: I-08
     type: evolve
@@ -357,7 +380,7 @@ scenario_set:
     scenario: A change adds an exemption to the charter guard so one awkward charter can ship. Classify.
     expected_answers:
       - kind: classification
-        verdict: BREAKING
+        label: BREAKING
     weight: 0.076923077
   - id: I-09
     type: evolve
@@ -365,7 +388,7 @@ scenario_set:
     scenario: A charter walks one public page on a phone-sized window and claims the whole phone-journeys item as complete. Classify.
     expected_answers:
       - kind: classification
-        verdict: BREAKING
+        label: BREAKING
     weight: 0.076923077
   - id: I-10
     type: evolve
@@ -373,7 +396,7 @@ scenario_set:
     scenario: A change rewrites the goal text of an existing committed charter to explore a new part of the product. Classify.
     expected_answers:
       - kind: classification
-        verdict: REVIEW
+        label: REVIEW
     weight: 0.076923077
   - id: I-11
     type: ambiguous
@@ -383,7 +406,10 @@ scenario_set:
       - kind: classification
         label: PARTIAL_UNTIL_ADJUDICATED
       - kind: human_action
-        action: default to covers_partial, because a checked item must mean the whole item was proved; if the branch is genuinely unreachable by any customer the catalog description should change instead, and that is a Max escalation under §H.6 rather than a judgement call at authoring time
+        verb: default-and-escalate
+        object: incomplete coverage claim
+        target: covers_partial pending Max adjudication under §H.6
+        rationale: default to covers_partial, because a checked item must mean the whole item was proved; if the branch is genuinely unreachable by any customer the catalog description should change instead, and that is a Max escalation under §H.6 rather than a judgement call at authoring time
     weight: 0.076923077
   - id: I-12
     type: operate
@@ -391,7 +417,10 @@ scenario_set:
     scenario: You want to know what the nightly ACTUALLY runs. Is reading charters/ enough?
     expected_answers:
       - kind: human_action
-        action: no - the runtime queue is the authoritative list of what runs and it diverges from the committed charters silently; reconcile the two by id and by coverage mapping
+        verb: reconcile
+        object: runtime queue and committed charter ids
+        target: authoritative nightly execution and coverage mapping
+        rationale: no - the runtime queue is the authoritative list of what runs and it diverges from the committed charters silently; reconcile the two by id and by coverage mapping
     weight: 0.076923077
   - id: I-13
     type: operate
@@ -399,7 +428,10 @@ scenario_set:
     scenario: You are about to commit a new charter. What is the last check before it goes in?
     expected_answers:
       - kind: human_action
-        action: trace every instructed step to the harness primitive that would execute it, and confirm the coverage claim matches what the goal actually exercises - then have a reviewer who is not the author do the same
+        verb: trace-and-review
+        object: charter steps and coverage claim
+        target: executing harness primitives and an independent reviewer
+        rationale: trace every instructed step to the harness primitive that would execute it, and confirm the coverage claim matches what the goal actually exercises - then have a reviewer who is not the author do the same
     weight: 0.076923077
 ```
 

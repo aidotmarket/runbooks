@@ -6,18 +6,53 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 ## O.2 Instance open sequence
 1. `kd_session_open(session_id="S{N}", instance="vulcan")` or `kd_session_open(session_id="S{N}", instance="mars")`. Reads CORE.md + per-instance handoff + BQ status + service health in one atomic call. Registers session start in `registry.db`. Returns business briefing.
 2. If the response indicates a stale registry row, reconcile per §O.5.
-3. `kd_session_plan(session_id, work_type, objectives, delegation_strategy, tool_budget)`. Transitions boot gate from PLANNING to OPERATIONAL. Tools unlock after this call.
-4. Verify the DB-owned pickup source points at a real not-yet-shipped target. If stale, advance the queue before any other work.
-5. Pick up the highest-leverage work from §O.4 priority order.
+3. Inspect the exact deployed `kd_session_plan` schema/contract identity and follow
+   §O.2.1. A text sentence that says a plan was accepted is not state evidence.
+4. Confirm the response is the typed accepted result and the server moved this
+   instance from PLANNING to OPERATIONAL. Only then are tools unlocked.
+5. Verify the DB-owned pickup source points at a real not-yet-shipped target. If stale, advance the queue before any other work.
+6. Pick up the highest-leverage work from §O.4 priority order.
 
-### O.2.1 kd_session_plan runbook_consultation schema
+### O.2.1 kd_session_plan context contract
 
-Every plan and amendment MUST pass `runbook_consultation`, a list whose entries are one of:
+The intended contract is server-delivered context, not caller-authored proof of
+reading. Detect the deployed contract from the exact connected tool schema and
+contract digest; do not infer rollout state from this file, a prior session, or
+response prose.
 
-- **RunbookRef** `{path, section, synthesis?, covers?}` — `path` must resolve to a file under the runbooks repo (a bare basename like `codex-mp.md` works); `section` must resolve in that file: an exact heading (text or anchor form) or a §-style token (e.g. `F-08`, `§G.2`) appearing in the text.
-- **Attestation** `{no_entry_found: true, subject, reason, covers?}` — the sanctioned "no runbook exists" path; each attestation creates dischargeable session debt (a runbooks commit before close).
+**When typed context delivery is deployed:**
 
-`covers` lists **1-based objective numbers** (a plan with 3 objectives accepts values 1–3; on an amendment, numbers index the amendment's own objectives list). An entry **without** `covers` defaults to covering the objective at its own list position. A value of `0` is coerced to `1`; other out-of-range values are silently ignored and are reported only when the plan is rejected for uncovered objectives. Every objective must be covered, and the consultation must include at least one resolved RunbookRef or attestations covering every objective. In `block` enforce mode any violation rejects the plan; the rejection detail states this schema.
+1. Submit the objective-bearing plan without consultation IDs. Before any plan,
+   debt, or status mutation, the server resolves one immutable runbooks
+   `origin/main` SHA and returns the typed non-success outcome
+   `RUNBOOK_CONTEXT_SELECTION_REQUIRED` with ranked bounded excerpts and an
+   honest gap ID for every objective. The instance remains PLANNING.
+2. Resubmit the unchanged plan using only the server-delivered consultation IDs
+   or gap IDs. Caller-supplied paths, excerpts, scores, coverage claims, and
+   reading attestations are not authority. The server binds each ID to this
+   session, instance, objective set, catalog SHA, and excerpt digest.
+3. A gap ID records a search miss; it does not prove that no runbook exists and
+   does not force an agent to manufacture documentation. A changed objective or
+   incomplete/truncated envelope requires a fresh selection response.
+4. Proceed only after a typed accepted result atomically records the delivery
+   receipt and moves the instance to OPERATIONAL.
+
+**Bounded legacy compatibility, while the connected schema still exposes only
+`runbook_consultation`:** resolve a freshly fetched full `origin/main` SHA in a
+trusted clean checkout and search every objective against that one snapshot as
+documented in the runbooks README. Submit exact existing `{path, section,
+covers?}` references. Use `{no_entry_found: true, subject, reason, covers?}` only
+after a recorded search miss; never invent a path, section, synthesis, or
+runbook merely to satisfy the gate. Legacy debt/waiver rows are rollout
+telemetry, not evidence that a runbook update is useful. A rejected or retried
+plan must not be treated as a documentation obligation. If the legacy gateway
+does create such a row, preserve it for migration and do not write filler to
+discharge it.
+
+In the legacy schema, `covers` contains 1-based objective numbers and every
+objective must be covered. A RunbookRef section must be an exact heading, anchor,
+or present § token. Incident synthesis, where the deployed schema still demands
+it, is explanatory telemetry only and never proof that the source was read.
 
 ## O.3 Peer open sequence
 Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
@@ -69,7 +104,9 @@ ground truth before acting on them. That is standing practice, not a numbered
 protocol.
 
 ## O.8 Canonical peer prompt
-Use `docs/instance-opening-prompt.md` for either peer.
+Use the live `infra:opening-prompt` Living State entity returned by
+`kd_session_open` for either peer. The former
+`docs/instance-opening-prompt.md` file is retired and is not a current path.
 
 ## O.9 Business briefing review at open
 `kd_session_open` returns a `business_briefing` with the top BQs in business English. Either peer uses this for:
@@ -87,7 +124,7 @@ The names below are historical S612 work-item identifiers retained verbatim; the
 - BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1)
 - BQ-PROCESS-VULCAN-PRIMARY-DISCIPLINE-S612 (P2)
 
-New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see peer-instance-discipline.md §H / §G).
+New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see runbooks/peer-instance-discipline.md §H / §G).
 
 ## O.10.5 Boot wire budget and the boot-size bake (T-2026-000271, S1256)
 
@@ -99,11 +136,15 @@ The `kd_session_open` boot payload has a hard wire budget of 64,000 JSON charact
 - Keeping boots clean: the biggest instance-controlled lever is the handoff — write lean handoffs (aim well under ~2k chars; durable detail belongs in Living State entities, not the handoff). Instance-to-instance close/reopen cycling for bake evidence requires Max's consent per the close protocol.
 
 ## O.11 Related runbooks
-- `runbooks/session-close-protocol.md` — close flow.
-- `runbooks/session-registry-recovery.md` — recovery when session registry desyncs.
+- `session-close-protocol.md` — non-authoritative transition and legacy close record.
+- `session-registry-recovery.md` — recovery when session registry desyncs.
 - `runbooks/peer-instance-discipline.md` — Vulcan/Mars peer operating discipline.
-- `runbooks/build-queue-lifecycle.md` — BQ lifecycle and pickup semantics.
+- `build-queue-lifecycle.md` — BQ lifecycle and pickup semantics.
 
 ## O.12 Owner
 This runbook is owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0).
-Revisions land as PRs against koskadeux-mcp main. MP is the mandatory builder, not a gate voter; the current gate voter panel is CC + DeepSeek + GLM, with live roster/config authority in `infra:council-comms`.
+Revisions land as reviewed changes against the owning gateway repository. This
+historical protocol is not roster authority. Resolve builders, voters, paused
+members, and retired members from the exact signed deployed tool-and-Council
+contract; if that contract is absent or disagrees with the connected schema,
+stop roster-dependent work rather than copying a prior-session panel.

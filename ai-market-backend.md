@@ -158,7 +158,7 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 
 **Implementation rule:** match the `ck_peer_messages_` constraint-name prefix *generically* (one branch) so any future CHECK on this table returns 422, not 500. Only genuinely-unknown `IntegrityError`s re-raise.
 
-**Operator note:** the peer bus enforces these at the DB layer. If a `peer_msg_send` claim fails, the cause is almost always a missing `ref_entity` — always send claims WITH a `ref_entity` (see `peer-instance-discipline.md`).
+**Operator note:** the peer bus enforces these at the DB layer. If a `peer_msg_send` claim fails, the cause is almost always a missing `ref_entity` — always send claims WITH a `ref_entity` (see `runbooks/peer-instance-discipline.md`).
 
 **History:** before the S960 fix the CHECK path surfaced as a raw 500 (the handler only translated the unique-index violation). The 422 mapping shipped to `ai-market-backend` main in commit `c6b34401` (S960).
 

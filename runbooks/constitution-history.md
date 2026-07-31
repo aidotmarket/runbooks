@@ -105,8 +105,8 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 - id: E-01
   trigger: An audit needs the exact current constitution and its source hash.
   pre_conditions: [living_state_available, git_mirror_available]
-  tool_or_endpoint: state_get("infra:constitution") plus git hash-object docs/core/CORE.md
-  argument_sourcing: {content: use exact current body content bytes, mirror: use the canonical backend Git file}
+  tool_or_endpoint: state_request(action=get, key=infra:constitution) plus git hash-object docs/core/CORE.md
+  argument_sourcing: {content: read the exact current body content bytes from the unified Living State tool, mirror: use the canonical backend Git file}
   idempotency: IDEMPOTENT
   expected_success: {shape: byte-identical current sources and one SHA-256, verification: compare exact bytes before accepting the mirror}
   expected_failures: [{signature: constitution_source_drift, cause: Living State and the selected Git mirror differ or a moved stub was hashed}]

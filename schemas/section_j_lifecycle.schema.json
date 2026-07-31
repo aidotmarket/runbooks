@@ -7,10 +7,7 @@
     "last_refresh_commit",
     "last_refresh_date",
     "owner_agent",
-    "refresh_triggers",
-    "last_harness_pass_rate",
-    "last_harness_date",
-    "first_staleness_detected_at"
+    "refresh_triggers"
   ],
   "additionalProperties": false,
   "properties": {
@@ -74,5 +71,13 @@
         }
       ]
     }
+  },
+  "dependentRequired": {
+    "last_harness_pass_rate": [
+      "last_harness_date"
+    ],
+    "last_harness_date": [
+      "last_harness_pass_rate"
+    ]
   }
 }

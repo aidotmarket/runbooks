@@ -4,11 +4,16 @@ import subprocess
 from pathlib import Path
 
 import pytest
-import yaml
 
 from runbook_tools.catalog.generator import generate_catalog
 from runbook_tools.catalog.model import CatalogError
 from runbook_tools.catalog.resolver import resolve_catalog_key
+from tests.catalog_test_support import (
+    conformant_catalog_document,
+    ensure_catalog_schemas,
+)
+
+pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
 
 
 def _repository(root: Path, *, stable: bool = False) -> tuple[str, str]:
@@ -24,19 +29,22 @@ def _repository(root: Path, *, stable: bool = False) -> tuple[str, str]:
         "error_signatures": [{"signature": "Exact Error", "section": "Repair"}],
         "supersedes": [],
         "superseded_by": [],
-        "owner": "test-owner",
+        "owner": "sysadmin",
+        "owner_agent": "sysadmin",
         "last_verified_at": "2026-07-17",
     }
     if stable:
         metadata["authoritative_for"][0]["section_id"] = "overview"
     path = root / "runbooks" / "member.md"
     path.parent.mkdir(parents=True)
+    ensure_catalog_schemas(root)
     path.write_text(
-        "---\n"
-        + yaml.safe_dump(metadata, sort_keys=False)
-        + "---\n\n# Member\n\n"
-        + ('<a id="rb-section-overview"></a>\n' if stable else "")
-        + "## Overview\n\nOverview.\n\n## Repair\n\nRepair.\n"
+        conformant_catalog_document(
+            metadata,
+            title="Member",
+            overview_body="Overview.",
+        ).rstrip()
+        + "\n\n## Repair\n\nRepair.\n"
     )
     (root / "README.md").write_text(
         "# Fixture\n\n## Adoption status\n\n"

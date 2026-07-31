@@ -44,7 +44,7 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Live Roster | `state_get("infra:council-comms")` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
+| Live Roster | `state_request(action=get, key=infra:council-comms)` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
 | Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, Kimi, GLM voters; retained AG/DeepSeek backends | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused and DeepSeek is retired; neither supplies an active gate vote. |
 
@@ -52,7 +52,14 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 
 Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
+<!-- catalog:historical -->
 > Each Council brain has different tools, behavioral defaults, and quirks. **This document names the roles; the live roster and current models live in `infra:council-comms` and the model registry — CORE does not pin model versions, because they change.** Before dispatching any Council task, check `state_get("infra:council-comms")` for the canonical reference.
+<!-- /catalog:historical -->
+
+The projection above is retained as source provenance because it uses a legacy
+tool spelling. The callable current equivalent is
+`state_request(action=get, key=infra:council-comms)`; `state_get` is not a
+separate current gateway tool.
 
 ### Normative projection — CORE §5
 
@@ -77,7 +84,7 @@ These bullets are companion synthesis, not a new source of constitutional author
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan or Mars | Resolve roster before dispatch | `state_get` | Living State read | COMPLETE |
+| Vulcan or Mars | Resolve roster before dispatch | `state_request action=get` | Living State read | COMPLETE |
 | MP | Build approved work | `council_request agent=mp` | Repository write per dispatch | COMPLETE |
 | CC, Kimi, GLM | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
 | AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
@@ -88,7 +95,7 @@ These bullets are companion synthesis, not a new source of constitutional author
 - id: E-01
   trigger: A Council build or review dispatch is about to be issued.
   pre_conditions: [task_scope_known, live_state_available]
-  tool_or_endpoint: state_get("infra:council-comms")
+  tool_or_endpoint: state_request(action=get, key=infra:council-comms)
   argument_sourcing: {entity: use the canonical live roster key}
   idempotency: IDEMPOTENT
   expected_success: {shape: current roster and tool quirks, verification: compare the intended agent and mode with live membership}
@@ -190,7 +197,7 @@ If CORE, the kernel, this companion, and live roster prose disagree, apply sourc
 
 ```yaml acceptance
 scenario_set:
-  - {id: I-01, type: operate, refs: [E-01], scenario: A reviewer dispatch needs the current Council member and model., expected_answers: [{kind: tool_call, tool: state_get, argument_keys: [key], argument_values: {key: infra:council-comms}}], weight: 0.0909090909}
+  - {id: I-01, type: operate, refs: [E-01], scenario: A reviewer dispatch needs the current Council member and model., expected_answers: [{kind: tool_call, tool: state_request, argument_keys: [action, key], argument_values: {action: get, key: infra:council-comms}}], weight: 0.0909090909}
   - {id: I-02, type: operate, refs: [E-02], scenario: A completed vote must be validated against its dispatch envelope., expected_answers: [{kind: classification, label: VALIDATE_VOTER_ENVELOPE}], weight: 0.0909090909}
   - {id: I-03, type: operate, refs: [E-03], scenario: A provider quirk changes the safe prompt shape for a review., expected_answers: [{kind: tool_call, tool: council_request, argument_keys: [agent, mode, task]}], weight: 0.0909090909}
   - {id: I-04, type: isolate, refs: [F-01], scenario: A dispatch names a member that live state marks paused., expected_answers: [{kind: classification, label: STALE_ROSTER}], weight: 0.0909090909}

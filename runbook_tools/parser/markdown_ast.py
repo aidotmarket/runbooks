@@ -4,7 +4,6 @@ from collections.abc import Iterator
 
 import mistune
 
-
 _MARKDOWN = mistune.create_markdown(
     renderer="ast",
     plugins=["table", "strikethrough"],

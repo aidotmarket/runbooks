@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$comment": "Implements spec §4.4.9",
+  "$comment": "Implements spec §4 §I. Operational examples are curated guidance, not an automated quota or score gate.",
   "type": "object",
   "required": [
     "scenario_set"
@@ -9,7 +9,6 @@
   "properties": {
     "scenario_set": {
       "type": "array",
-      "minItems": 10,
       "items": {
         "type": "object",
         "required": [
@@ -17,8 +16,7 @@
           "type",
           "refs",
           "scenario",
-          "expected_answers",
-          "weight"
+          "expected_answers"
         ],
         "additionalProperties": false,
         "properties": {
@@ -39,8 +37,10 @@
           "refs": {
             "type": "array",
             "minItems": 1,
+            "uniqueItems": true,
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "\\S"
             }
           },
           "scenario": {
@@ -65,31 +65,94 @@
                   ]
                 },
                 "tool": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "\\S"
                 },
                 "argument_keys": {
                   "type": "array",
+                  "uniqueItems": true,
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "\\S"
                   }
                 },
                 "argument_values": {
                   "type": "object"
                 },
                 "verb": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "\\S"
                 },
                 "object": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "\\S"
                 },
                 "target": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "\\S"
                 },
                 "label": {
-                  "type": "string"
+                  "type": "string",
+                  "pattern": "\\S"
                 }
               },
-              "additionalProperties": true
+              "additionalProperties": true,
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "kind": {
+                        "const": "tool_call"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "tool",
+                      "argument_keys"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "kind": {
+                        "const": "human_action"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "verb",
+                      "object",
+                      "target"
+                    ]
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "kind": {
+                        "const": "classification"
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "label"
+                    ]
+                  }
+                }
+              ]
             }
           },
           "weight": {

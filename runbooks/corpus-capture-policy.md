@@ -10,7 +10,7 @@ aliases:
 error_signatures: []
 supersedes: []
 superseded_by: []
-owner: mars
+owner: sysadmin
 last_verified_at: 2026-07-30
 system_name: corpus-capture-policy
 purpose_sentence: This runbook is the operating authority for what ai.market keeps in allAI semantic memory and the corpus, what it never keeps, and how retention of the transport queue is managed.
@@ -20,6 +20,8 @@ lifecycle_ref: §J
 authoritative_scope: Capture policy for allAI semantic memory and the corpus - the keep/never-keep rules for Event Ledger admission, entity indexing, the six S1299 capture classes, the S1396 moat capture, and qdrant_sync_outbox transport-row retention. NOT the outbox producer/consumer mechanics themselves; see qdrant-sync-outbox.md. NOT Qdrant hosting; see qdrant.md.
 linter_version: 1.0.0
 ---
+
+<!-- Canonical source path: runbooks/corpus-capture-policy.md -->
 
 # Corpus Capture Policy - What We Keep
 
@@ -367,7 +369,7 @@ refresh_triggers:
   - any capture-related cost incident
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-30T12:00:00Z
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 

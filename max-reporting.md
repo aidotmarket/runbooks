@@ -4,7 +4,7 @@ purpose_sentence: Operate, diagnose, and evolve the Communicating-with-Max disci
 owner_agent: mars
 escalation_contact: Max (rule changes); either instance (Vulcan/Mars) operates this runbook
 lifecycle_ref: §J
-authoritative_scope: The per-round Max-facing output contract (CORE §3 "Execution Philosophy — Communicating with Max"), the summary's required structure and voice, the two carve-outs (hard stop, blocking question), the timestamp header and round-end markers, and the boot-contract marker test that guards the rule. NOT authoritative for session open/close mechanics (session-open-protocol.md, session-close-protocol.md), the write-like-max skill content itself (skill source is canonical), business_summary field rules (CORE §8), or peer-to-peer messaging (peer-instance-discipline.md).
+authoritative_scope: The per-round Max-facing output contract (CORE §3 "Execution Philosophy — Communicating with Max"), the summary's required structure and voice, the two carve-outs (hard stop, blocking question), the timestamp header and round-end markers, and the boot-contract marker test that guards the rule. NOT authoritative for session open/close mechanics (session-open-protocol.md, session-close-protocol.md), the write-like-max skill content itself (skill source is canonical), business_summary field rules (CORE §8), or peer-to-peer messaging (runbooks/peer-instance-discipline.md).
 linter_version: 1.0.0
 ---
 

@@ -3,13 +3,15 @@ from __future__ import annotations
 import math
 import re
 from collections.abc import Callable
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
+from runbook_tools.catalog.sections import parse_markdown_document
 from runbook_tools.lint import CheckContext, Finding, retag_findings
 from runbook_tools.lint.forms import (
     collect_b_rule_findings,
     extract_c_rows,
+    extract_e_entries,
     extract_f_rows,
     extract_g_entries,
     extract_i_payload,
@@ -25,20 +27,24 @@ from runbook_tools.lint.staleness import (
     _normalize_iso_value,
     evaluate_staleness,
     newest_harness_result,
-    write_lifecycle_update,
 )
 from runbook_tools.lint.staleness import (
     _parse_datetime as _parse_staleness_datetime,
 )
 from runbook_tools.parser.sections import Section
+from runbook_tools.placeholders import UNRESOLVED_PLACEHOLDER_RE
 from runbook_tools.version import LINTER_VERSION
 
 CheckFn = Callable[[list[Section], CheckContext], list[Finding]]
 
 PLACEHOLDER_RE = re.compile(r"^<<[^>]+>>$")
-WEIGHT_JUSTIFICATION_HEADING_RE = re.compile(r"^###\s+§I\.1\s+Weight Justification\s*$", re.MULTILINE)
-LIST_ITEM_RE = re.compile(r"^\s*[-*+]\s+(.+?)\s*$")
 SEMVER_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+LOCAL_ENTRY_REF_RE = re.compile(r"^§?([EFG])-\d{2,}$")
+LOCAL_SECTION_REF_RE = re.compile(r"^§([A-K])(?:\.(\d+))?$")
+CROSS_FILE_REF_RE = re.compile(
+    r"^[a-z0-9]+(?:-[a-z0-9]+)*:"
+    r"(?:§?(?:[EFGI]-\d{2,})|§[A-K](?:\.\d+)?)$"
+)
 EXPECTED_B_HEADER = [
     "Feature/Capability",
     "Status",
@@ -55,8 +61,17 @@ def check_01_sections_present_and_ordered(sections: list[Section], ctx: CheckCon
     findings: list[Finding] = []
 
     for letter in expected:
-        if letter not in letters:
+        count = letters.count(letter)
+        if count == 0:
             findings.append(Finding(severity="FAIL", check=1, message=f"missing §{letter}"))
+        elif count > 1:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=1,
+                    message=f"§{letter} appears {count} times; exactly one current section is required",
+                )
+            )
 
     previous_index = -1
     for letter in letters:
@@ -148,21 +163,21 @@ def check_06_backing_code(sections: list[Section], ctx: CheckContext) -> list[Fi
 
 
 def check_07_last_verified_warn(sections: list[Section], ctx: CheckContext) -> list[Finding]:
-    del ctx
     section_b = _section_map(sections).get("B")
     if section_b is None:
         return []
-    findings = collect_b_rule_findings(section_b, check=7)
+    findings = collect_b_rule_findings(section_b, check=7, now=ctx.now)
     return [
         Finding(
-            severity="WARN",
+            severity=finding.severity,
             check=7,
             message=finding.message,
             line=finding.line,
             hint=finding.hint,
         )
         for finding in findings
-        if finding.severity == "WARN" and "Last Verified" in finding.message
+        if finding.severity in {"FAIL", "WARN"}
+        and "Last Verified" in finding.message
     ]
 
 
@@ -238,111 +253,6 @@ def check_10_component_ref_resolves(sections: list[Section], ctx: CheckContext) 
     return findings
 
 
-def check_11_scenario_distribution(sections: list[Section], ctx: CheckContext) -> list[Finding]:
-    section_i = _section_map(sections).get("I")
-    payload = _get_i_payload(sections, ctx)
-    if section_i is None or payload is None:
-        return []
-
-    scenario_set = payload.get("scenario_set", [])
-    counts = {
-        "operate": sum(1 for scenario in scenario_set if scenario.get("type") == "operate"),
-        "isolate": sum(1 for scenario in scenario_set if scenario.get("type") == "isolate"),
-        "repair": sum(1 for scenario in scenario_set if scenario.get("type") == "repair"),
-        "evolve": sum(1 for scenario in scenario_set if scenario.get("type") == "evolve"),
-        "ambiguous": sum(1 for scenario in scenario_set if scenario.get("type") == "ambiguous"),
-    }
-
-    findings: list[Finding] = []
-    if len(scenario_set) < 10:
-        findings.append(Finding(severity="FAIL", check=11, message=f"§I has {len(scenario_set)} total scenarios, needs ≥10", line=section_i.line_start))
-
-    minimums = {
-        "operate": 3,
-        "isolate": 3,
-        "repair": 2,
-        "evolve": 2,
-        "ambiguous": 1,
-    }
-    for scenario_type, minimum in minimums.items():
-        if counts[scenario_type] < minimum:
-            findings.append(
-                Finding(
-                    severity="FAIL",
-                    check=11,
-                    message=f"§I has {counts[scenario_type]} {scenario_type} scenarios, needs ≥{minimum}",
-                    line=section_i.line_start,
-                )
-            )
-    return findings
-
-
-def check_12_weights_sum(sections: list[Section], ctx: CheckContext) -> list[Finding]:
-    section_i = _section_map(sections).get("I")
-    payload = _get_i_payload(sections, ctx)
-    if section_i is None or payload is None:
-        return []
-
-    scenario_set = payload.get("scenario_set", [])
-    total = sum(float(scenario.get("weight", 0.0)) for scenario in scenario_set)
-    if abs(total - 1.0) <= 0.001:
-        return []
-    return [
-        Finding(
-            severity="FAIL",
-            check=12,
-            message=f"§I scenario weights sum to {total:.6f}, expected 1.0 ± 0.001",
-            line=section_i.line_start,
-        )
-    ]
-
-
-def check_13_unequal_weights_justified(sections: list[Section], ctx: CheckContext) -> list[Finding]:
-    section_i = _section_map(sections).get("I")
-    payload = _get_i_payload(sections, ctx)
-    if section_i is None or payload is None:
-        return []
-
-    scenario_set = payload.get("scenario_set", [])
-    if not scenario_set:
-        return []
-
-    expected_weight = 1.0 / len(scenario_set)
-    divergent_ids = [
-        str(scenario.get("id"))
-        for scenario in scenario_set
-        if abs(float(scenario.get("weight", 0.0)) - expected_weight) > 1e-6
-    ]
-    if not divergent_ids:
-        return []
-
-    section_text = section_i.raw_markdown
-    heading_match = WEIGHT_JUSTIFICATION_HEADING_RE.search(section_text)
-    if heading_match is None:
-        return [
-            Finding(
-                severity="FAIL",
-                check=13,
-                message="§I has unequal scenario weights; missing ### §I.1 Weight Justification subsection",
-                line=section_i.line_start,
-            )
-        ]
-
-    entries = _extract_weight_justification_entries(section_text[heading_match.end() :])
-    findings: list[Finding] = []
-    for scenario_id in divergent_ids:
-        if scenario_id not in entries:
-            findings.append(
-                Finding(
-                    severity="FAIL",
-                    check=13,
-                    message=f"§I.1 Weight Justification is missing an entry for divergent scenario {scenario_id}",
-                    line=section_i.line_start,
-                )
-            )
-    return findings
-
-
 def check_14_lifecycle_fields(sections: list[Section], ctx: CheckContext) -> list[Finding]:
     section_j = _section_map(sections).get("J")
     payload = _get_j_payload(sections, ctx)
@@ -355,14 +265,46 @@ def check_14_lifecycle_fields(sections: list[Section], ctx: CheckContext) -> lis
         "last_refresh_date",
         "owner_agent",
         "refresh_triggers",
-        "last_harness_pass_rate",
+    ]
+    findings = _required_field_findings(
+        section_j,
+        payload,
+        required_fields,
+        check=14,
+        label="§J",
+    )
+    if ctx.now is None:
+        return findings
+
+    now_utc = (
+        ctx.now.replace(tzinfo=UTC)
+        if ctx.now.tzinfo is None
+        else ctx.now.astimezone(UTC)
+    )
+    for field in (
+        "last_refresh_date",
         "last_harness_date",
         "first_staleness_detected_at",
-    ]
-    return _required_field_findings(section_j, payload, required_fields, check=14, label="§J")
+    ):
+        if payload.get(field) is None:
+            continue
+        try:
+            parsed = _parse_staleness_datetime(payload[field])
+        except (TypeError, ValueError, OverflowError):
+            continue
+        if parsed is not None and parsed > now_utc:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=14,
+                    message=f"§J field {field} cannot be in the future",
+                    line=section_j.line_start,
+                )
+            )
+    return findings
 
 
-def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext) -> list[Finding]:
+def check_15_current_staleness(sections: list[Section], ctx: CheckContext) -> list[Finding]:
     if ctx.now is None or ctx.git_head is None:
         return []
     if _section_map(sections).get("J") is None:
@@ -371,76 +313,29 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
     if payload is None:
         return []
 
-    is_stale, triggered_predicates, new_first_detected_at, recommended_action = evaluate_staleness(
-        sections, ctx.now, ctx.git_head
+    is_stale, triggered_predicates, _, _ = evaluate_staleness(
+        sections,
+        ctx.now,
+        ctx.git_head,
     )
-    triggered = ", ".join(triggered_predicates)
-    findings: list[Finding] = []
-    prev_first = _normalize_iso_value(payload.get("first_staleness_detected_at"))
-
-    if is_stale and prev_first is None and recommended_action == "SET":
-        findings.append(
-            Finding(
-                severity="FAIL",
-                check=15,
-                message=(
-                    "§J.first_staleness_detected_at must be set in a reviewed "
-                    f"change (current measured value: {new_first_detected_at})"
-                ),
-            )
+    if not is_stale:
+        return []
+    return [
+        Finding(
+            severity="WARN",
+            check=15,
+            message=(
+                "current stale predicates: "
+                + ", ".join(triggered_predicates)
+                + "; age and escalation are owned by canonical server state"
+            ),
+            line=_section_map(sections)["J"].line_start,
         )
-    elif is_stale and prev_first is not None and recommended_action == "NONE":
-        days = _grace_days(ctx.now, prev_first)
-        if days < 0:
-            findings.append(
-                Finding(
-                    severity="FAIL",
-                    check=15,
-                    message="§J.first_staleness_detected_at cannot be in the future",
-                )
-            )
-        elif days <= 30:
-            findings.append(
-                Finding(
-                    severity="WARN",
-                    check=15,
-                    message=f"§J stale ({triggered}), grace clock at {days}/30 days",
-                )
-            )
-        else:
-            findings.append(
-                Finding(
-                    severity="FAIL",
-                    check=15,
-                    message=f"§J stale ({triggered}), grace period exceeded ({days} > 30)",
-                )
-            )
-    elif (not is_stale) and prev_first is not None and recommended_action == "CLEAR":
-        findings.append(
-            Finding(
-                severity="FAIL",
-                check=15,
-                message=(
-                    "§J.first_staleness_detected_at must be cleared to null in a "
-                    "reviewed change (all stale predicates fell)"
-                ),
-            )
-        )
+    ]
 
-    if findings and ctx.update_lifecycle and ctx.readme_path is not None and recommended_action in {"SET", "CLEAR"}:
-        write_lifecycle_update(ctx.readme_path, new_first_detected_at)
-        findings = [
-            Finding(
-                severity="INFO",
-                check=15,
-                message=finding.message,
-                line=finding.line,
-                hint=finding.hint,
-            )
-            for finding in findings
-        ]
 
-    return findings
+# Compatibility import for callers that used the pre-S1413 function name.
+check_15_staleness_grace_workflow = check_15_current_staleness
 
 
 def check_16_linter_version_compat(sections: list[Section], ctx: CheckContext) -> list[Finding]:
@@ -474,8 +369,6 @@ def check_17_conformance_fields(sections: list[Section], ctx: CheckContext) -> l
 
     required_fields = [
         "linter_version",
-        "last_lint_run",
-        "last_lint_result",
         "trace_matrix_path",
         "word_count_delta",
     ]
@@ -569,27 +462,98 @@ def check_21_harness_claim_matches_result(
     if section_j is None or payload is None or ctx.readme_path is None:
         return []
 
+    has_score = "last_harness_pass_rate" in payload
+    has_date = "last_harness_date" in payload
+    if has_score != has_date:
+        return [
+            Finding(
+                severity="FAIL",
+                check=21,
+                message=(
+                    "§J last_harness_pass_rate and last_harness_date must be "
+                    "present or omitted together"
+                ),
+                line=section_j.line_start,
+            )
+        ]
+
     newest = newest_harness_result(ctx.readme_path)
-    claimed_score = payload.get("last_harness_pass_rate")
-    stem = ctx.readme_path.stem
-    if newest is None or newest[1].get("result") == "INFRASTRUCTURE_FAILURE":
-        if claimed_score == PENDING_HARNESS_TOOLING:
+    if not has_score and not has_date:
+        if newest is None:
             return []
         return [
             Finding(
                 severity="FAIL",
                 check=21,
-                message=f"§J claims a measured pass rate but no harness result exists for {stem}",
+                message=(
+                    "§J must retain the harness claim pair because a harness "
+                    f"result exists for {ctx.readme_path.stem}"
+                ),
                 line=section_j.line_start,
             )
         ]
 
+    claimed_score = payload["last_harness_pass_rate"]
+    claimed_date = payload["last_harness_date"]
+    stem = ctx.readme_path.stem
+    if newest is None:
+        findings: list[Finding] = []
+        if claimed_score != PENDING_HARNESS_TOOLING:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=21,
+                    message=(
+                        "§J claims a measured pass rate but no harness result "
+                        f"exists for {stem}"
+                    ),
+                    line=section_j.line_start,
+                )
+            )
+        if claimed_date is not None:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=21,
+                    message=(
+                        "§J last_harness_date must be null when no retained "
+                        f"harness result exists for {stem}"
+                    ),
+                    line=section_j.line_start,
+                )
+            )
+        return findings
+
     result_path, result_payload = newest
     result_value = result_payload.get("result")
-    if result_value not in {"PASS", "FAIL"}:
+    if result_value not in {"PASS", "FAIL", "INFRASTRUCTURE_FAILURE"}:
         raise ValueError(
             f"unsupported harness result value {result_value!r} in {result_path}"
         )
+
+    measured_started_at = result_payload.get("run_started_at")
+    date_finding = _harness_date_mismatch_finding(
+        section_j,
+        claimed_date,
+        measured_started_at,
+    )
+    if result_value == "INFRASTRUCTURE_FAILURE":
+        findings = []
+        if claimed_score != PENDING_HARNESS_TOOLING:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=21,
+                    message=(
+                        "§J claims a measured pass rate but newest harness "
+                        f"result for {stem} is an infrastructure failure"
+                    ),
+                    line=section_j.line_start,
+                )
+            )
+        if date_finding is not None:
+            findings.append(date_finding)
+        return findings
 
     measured_score = float(result_payload["aggregate_score"])
     findings: list[Finding] = []
@@ -616,8 +580,189 @@ def check_21_harness_claim_matches_result(
             )
         )
 
-    claimed_date = payload.get("last_harness_date")
-    measured_started_at = result_payload.get("run_started_at")
+    if date_finding is not None:
+        findings.append(date_finding)
+    return findings
+
+
+def check_22_i_example_identity_and_refs(
+    sections: list[Section],
+    ctx: CheckContext,
+) -> list[Finding]:
+    del ctx
+    section_map = _section_map(sections)
+    section_i = section_map.get("I")
+    if section_i is None:
+        return []
+    payload = extract_i_payload(section_i)
+    if not isinstance(payload, dict):
+        return []
+    scenarios = payload.get("scenario_set")
+    if not isinstance(scenarios, list):
+        return []
+
+    entry_ids: dict[str, set[str]] = {"E": set(), "F": set(), "G": set()}
+    section_e = section_map.get("E")
+    section_f = section_map.get("F")
+    section_g = section_map.get("G")
+    if section_e is not None:
+        entry_ids["E"] = {
+            str(entry.get("id"))
+            for entry in extract_e_entries(section_e)
+            if isinstance(entry, dict) and entry.get("id") is not None
+        }
+    if section_f is not None:
+        entry_ids["F"] = {
+            str(row.get("ID"))
+            for row in extract_f_rows(section_f)
+            if row.get("ID") is not None
+        }
+    if section_g is not None:
+        entry_ids["G"] = {
+            str(entry.get("id"))
+            for entry in extract_g_entries(section_g)
+            if isinstance(entry, dict) and entry.get("id") is not None
+        }
+
+    findings: list[Finding] = []
+    seen_ids: set[str] = set()
+    for scenario in scenarios:
+        if not isinstance(scenario, dict):
+            continue
+        scenario_id = scenario.get("id")
+        if isinstance(scenario_id, str):
+            if scenario_id in seen_ids:
+                findings.append(
+                    Finding(
+                        severity="FAIL",
+                        check=22,
+                        message=f'§I scenario id "{scenario_id}" is duplicated',
+                        line=section_i.line_start,
+                    )
+                )
+            seen_ids.add(scenario_id)
+
+        refs = scenario.get("refs")
+        if not isinstance(refs, list):
+            continue
+        for raw_ref in refs:
+            if not isinstance(raw_ref, str):
+                continue
+            ref = raw_ref.strip()
+            if CROSS_FILE_REF_RE.fullmatch(ref):
+                # Existence belongs to validation against the pinned catalog
+                # artifact; local lint only validates deterministic syntax.
+                continue
+            if ":" in ref:
+                findings.append(
+                    _invalid_i_ref_finding(
+                        section_i,
+                        scenario_id,
+                        ref,
+                        "has invalid cross-file syntax",
+                    )
+                )
+                continue
+
+            entry_match = LOCAL_ENTRY_REF_RE.fullmatch(ref)
+            if entry_match is not None:
+                letter = entry_match.group(1)
+                normalized = ref.removeprefix("§")
+                if normalized not in entry_ids[letter]:
+                    findings.append(
+                        _invalid_i_ref_finding(
+                            section_i,
+                            scenario_id,
+                            ref,
+                            "does not resolve within this runbook",
+                        )
+                    )
+                continue
+
+            section_match = LOCAL_SECTION_REF_RE.fullmatch(ref)
+            if section_match is not None:
+                letter, subsection = section_match.groups()
+                target = section_map.get(letter)
+                resolves = target is not None and (
+                    subsection is None or _subsection_anchor_exists(target, ref)
+                )
+                if not resolves:
+                    findings.append(
+                        _invalid_i_ref_finding(
+                            section_i,
+                            scenario_id,
+                            ref,
+                            "does not resolve within this runbook",
+                        )
+                    )
+                continue
+
+            findings.append(
+                _invalid_i_ref_finding(
+                    section_i,
+                    scenario_id,
+                    ref,
+                    "is not a supported local or cross-file reference",
+                )
+            )
+    return findings
+
+
+def check_23_e_operation_ids_unique(
+    sections: list[Section],
+    ctx: CheckContext,
+) -> list[Finding]:
+    del ctx
+    section_e = _section_map(sections).get("E")
+    if section_e is None:
+        return []
+    seen: set[str] = set()
+    findings: list[Finding] = []
+    for entry in extract_e_entries(section_e):
+        if not isinstance(entry, dict) or not isinstance(entry.get("id"), str):
+            continue
+        entry_id = entry["id"]
+        if entry_id in seen:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=23,
+                    message=f'§E operation id "{entry_id}" is duplicated',
+                    line=section_e.line_start,
+                )
+            )
+        seen.add(entry_id)
+    return findings
+
+
+def check_24_no_unresolved_placeholders(
+    sections: list[Section],
+    ctx: CheckContext,
+) -> list[Finding]:
+    """Reject every complete placeholder token in current document content."""
+
+    del sections
+    if ctx.raw_markdown is None:
+        return []
+    active_text = parse_markdown_document(ctx.raw_markdown).active_text
+    findings: list[Finding] = []
+    for match in UNRESOLVED_PLACEHOLDER_RE.finditer(active_text):
+        findings.append(
+            Finding(
+                severity="FAIL",
+                check=24,
+                message=f"unresolved placeholder: {match.group(0)}",
+                line=active_text.count("\n", 0, match.start()) + 1,
+            )
+        )
+    return findings
+
+
+def _harness_date_mismatch_finding(
+    section_j: Section,
+    claimed_date: object,
+    measured_started_at: object,
+) -> Finding | None:
     try:
         claimed_at = _parse_staleness_datetime(claimed_date)
     except (TypeError, ValueError, OverflowError):
@@ -626,24 +771,18 @@ def check_21_harness_claim_matches_result(
         measured_at = _parse_staleness_datetime(measured_started_at)
     except (TypeError, ValueError, OverflowError):
         measured_at = None
-    if (
-        claimed_at is None
-        or measured_at is None
-        or claimed_at.date() != measured_at.date()
-    ):
-        findings.append(
-            Finding(
-                severity="FAIL",
-                check=21,
-                message=(
-                    "§J last_harness_date "
-                    f"claimed {_normalize_iso_value(claimed_date)!r} "
-                    f"but newest harness result measured {measured_started_at!r}"
-                ),
-                line=section_j.line_start,
-            )
-        )
-    return findings
+    if claimed_at is not None and measured_at is not None and claimed_at == measured_at:
+        return None
+    return Finding(
+        severity="FAIL",
+        check=21,
+        message=(
+            "§J last_harness_date "
+            f"claimed {_normalize_iso_value(claimed_date)!r} "
+            f"but newest harness result measured {measured_started_at!r}"
+        ),
+        line=section_j.line_start,
+    )
 
 
 CHECKS_BUILD2: list[CheckFn] = [
@@ -670,17 +809,39 @@ ALL_CHECKS: list[CheckFn] = [
     check_08_repair_ref_resolves,
     check_09_symptom_ref_resolves,
     check_10_component_ref_resolves,
-    check_11_scenario_distribution,
-    check_12_weights_sum,
-    check_13_unequal_weights_justified,
     check_14_lifecycle_fields,
-    check_15_staleness_grace_workflow,
+    check_15_current_staleness,
     check_16_linter_version_compat,
     check_17_conformance_fields,
     check_18_retrofit_fields,
     check_19_header_required_fields,
     check_20_b_exact_columns,
     check_21_harness_claim_matches_result,
+    check_22_i_example_identity_and_refs,
+    check_23_e_operation_ids_unique,
+    check_24_no_unresolved_placeholders,
+]
+
+DETERMINISTIC_CONFORMANCE_CHECKS: list[CheckFn] = [
+    check_01_sections_present_and_ordered,
+    check_02_agent_forms_present,
+    check_03_a_j_owner_agent_consistency,
+    check_04_a_k0_linter_version_consistency,
+    check_05_status_values,
+    check_06_backing_code,
+    check_07_last_verified_warn,
+    check_08_repair_ref_resolves,
+    check_09_symptom_ref_resolves,
+    check_10_component_ref_resolves,
+    check_14_lifecycle_fields,
+    check_16_linter_version_compat,
+    check_17_conformance_fields,
+    check_18_retrofit_fields,
+    check_19_header_required_fields,
+    check_20_b_exact_columns,
+    check_22_i_example_identity_and_refs,
+    check_23_e_operation_ids_unique,
+    check_24_no_unresolved_placeholders,
 ]
 
 
@@ -697,8 +858,23 @@ def _line_for_row(section: Section, row: dict[str, str]) -> int | None:
     return section.line_start
 
 
-def _get_i_payload(sections: list[Section], ctx: CheckContext) -> dict[str, Any] | None:
-    return _get_cached_payload("I", sections, ctx, extract_i_payload)
+def _invalid_i_ref_finding(
+    section_i: Section,
+    scenario_id: object,
+    ref: str,
+    reason: str,
+) -> Finding:
+    return Finding(
+        severity="FAIL",
+        check=22,
+        message=f'§I scenario {scenario_id or "<unknown>"} ref "{ref}" {reason}',
+        line=section_i.line_start,
+    )
+
+
+def _subsection_anchor_exists(section: Section, ref: str) -> bool:
+    heading_re = re.compile(rf"^#{{3,6}}\s+{re.escape(ref)}(?:\s|$)")
+    return any(heading_re.match(line) for line in section.raw_markdown.splitlines())
 
 
 def _get_j_payload(sections: list[Section], ctx: CheckContext) -> dict[str, Any] | None:
@@ -725,19 +901,6 @@ def _get_cached_payload(
     if isinstance(payload, dict):
         ctx.form_cache[cache_key] = payload
     return payload
-
-
-def _extract_weight_justification_entries(text: str) -> set[str]:
-    entries: set[str] = set()
-    for line in text.splitlines():
-        if line.startswith("#"):
-            break
-        match = LIST_ITEM_RE.match(line)
-        if match is None:
-            continue
-        scenario_id = match.group(1).split()[0].rstrip(":")
-        entries.add(scenario_id)
-    return entries
 
 
 def _required_field_findings(
@@ -805,18 +968,3 @@ def _parse_semver(value: str) -> tuple[int, int, int] | None:
     if match is None:
         return None
     return tuple(int(part) for part in match.groups())
-
-
-def _grace_days(now: Any, prev_first: str) -> int:
-    now_utc = now if now.tzinfo is not None else now.replace(tzinfo=timezone.utc)
-    prev = _parse_datetime(prev_first)
-    return (now_utc.astimezone(timezone.utc) - prev).days
-
-
-def _parse_datetime(value: str) -> Any:
-    from dateutil import parser as dateparser
-
-    parsed = dateparser.parse(value)
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)

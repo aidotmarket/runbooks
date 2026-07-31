@@ -3,14 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 
 from runbook_tools.cli import lint_cmd
 from runbook_tools.lint import CheckContext
-from runbook_tools.lint.checks import (
-    check_15_staleness_grace_workflow,
-    check_21_harness_claim_matches_result,
-)
+from runbook_tools.lint.checks import check_21_harness_claim_matches_result
 from runbook_tools.lint.staleness import PENDING_HARNESS_TOOLING
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
@@ -21,11 +19,14 @@ def test_check_21_no_result_requires_pending_tooling(tmp_path: Path) -> None:
 
     findings = _run_check_21(runbook_path)
 
-    assert len(findings) == 1
-    assert findings[0].severity == "FAIL"
-    assert findings[0].message == (
-        "§J claims a measured pass rate but no harness result exists for demo"
+    assert len(findings) == 2
+    assert all(finding.severity == "FAIL" for finding in findings)
+    assert any(
+        finding.message
+        == "§J claims a measured pass rate but no harness result exists for demo"
+        for finding in findings
     )
+    assert any("last_harness_date must be null" in finding.message for finding in findings)
 
     runbook_path.write_text(
         runbook_path.read_text().replace(
@@ -34,7 +35,36 @@ def test_check_21_no_result_requires_pending_tooling(tmp_path: Path) -> None:
             1,
         )
     )
+    pending_with_unsupported_date = _run_check_21(runbook_path)
+    assert len(pending_with_unsupported_date) == 1
+    assert "last_harness_date must be null" in pending_with_unsupported_date[0].message
+
+    runbook_path.write_text(
+        runbook_path.read_text().replace(
+            "last_harness_date: 2026-04-20T02:00:00Z",
+            "last_harness_date: null",
+            1,
+        )
+    )
     assert _run_check_21(runbook_path) == []
+
+
+def test_check_21_never_harnessed_runbook_may_omit_claim_pair(tmp_path: Path) -> None:
+    runbook_path = _write_runbook(tmp_path, stem="never-harnessed")
+    _remove_harness_claim_pair(runbook_path)
+
+    assert _run_check_21(runbook_path) == []
+
+    _write_result(
+        tmp_path,
+        runbook_path.stem,
+        result="PASS",
+        score=1.0,
+        run_started_at="2026-04-20T02:00:00Z",
+    )
+    findings = _run_check_21(runbook_path)
+    assert len(findings) == 1
+    assert "must retain the harness claim pair" in findings[0].message
 
 
 def test_check_21_infrastructure_failure_requires_pending_tooling(
@@ -53,7 +83,8 @@ def test_check_21_infrastructure_failure_requires_pending_tooling(
 
     assert len(findings) == 1
     assert findings[0].message == (
-        "§J claims a measured pass rate but no harness result exists for demo"
+        "§J claims a measured pass rate but newest harness result for demo "
+        "is an infrastructure failure"
     )
 
     runbook_path.write_text(
@@ -65,8 +96,19 @@ def test_check_21_infrastructure_failure_requires_pending_tooling(
     )
     assert _run_check_21(runbook_path) == []
 
+    runbook_path.write_text(
+        runbook_path.read_text().replace(
+            "last_harness_date: 2026-04-20T02:00:00Z",
+            "last_harness_date: 2026-04-20T03:00:00Z",
+            1,
+        )
+    )
+    date_findings = _run_check_21(runbook_path)
+    assert len(date_findings) == 1
+    assert "last_harness_date" in date_findings[0].message
 
-def test_check_21_measured_result_must_match_score_and_utc_date(
+
+def test_check_21_measured_result_must_match_score_and_exact_instant(
     tmp_path: Path,
 ) -> None:
     runbook_path = _write_runbook(tmp_path)
@@ -75,18 +117,22 @@ def test_check_21_measured_result_must_match_score_and_utc_date(
         runbook_path.stem,
         result="PASS",
         score=1.0,
-        run_started_at="2026-04-20T23:30:00-02:00",
+        run_started_at="2026-04-20T03:00:00Z",
     )
 
     date_findings = _run_check_21(runbook_path)
 
     assert len(date_findings) == 1
     assert "claimed '2026-04-20T02:00:00Z'" in date_findings[0].message
-    assert "measured '2026-04-20T23:30:00-02:00'" in date_findings[0].message
+    assert "measured '2026-04-20T03:00:00Z'" in date_findings[0].message
 
     payload = json.loads(result_path.read_text())
+    payload["run_started_at"] = "2026-04-19T22:00:00-04:00"
+    result_path.write_text(json.dumps(payload))
+
+    assert _run_check_21(runbook_path) == []
+
     payload["aggregate_score"] = 0.25
-    payload["run_started_at"] = "2026-04-20T01:00:00Z"
     result_path.write_text(json.dumps(payload))
 
     score_findings = _run_check_21(runbook_path)
@@ -141,6 +187,7 @@ def test_refresh_harness_metadata_rewrites_no_result_as_pending_and_null(
     monkeypatch,
 ) -> None:
     runbook_path = _write_runbook(tmp_path, stem="never-harnessed")
+    _remove_harness_claim_pair(runbook_path)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("runbook_tools.cli.ALL_CHECKS", [])
 
@@ -161,57 +208,28 @@ def test_refresh_harness_metadata_rewrites_no_result_as_pending_and_null(
     assert "first_staleness_detected_at: null" in updated
 
 
-def test_deprecated_update_lifecycle_alias_cannot_overwrite_harness_metadata(
+@pytest.mark.parametrize("retired_flag", ["--update-lifecycle", "--update-staleness"])
+def test_retired_file_clock_write_flags_are_rejected_without_writes(
     tmp_path: Path,
     monkeypatch,
+    retired_flag: str,
 ) -> None:
-    runbook_path = _write_runbook(tmp_path, stem="safe-legacy-alias")
+    runbook_path = _write_runbook(tmp_path, stem="retired-clock-writer")
     before = runbook_path.read_text()
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("runbook_tools.cli.ALL_CHECKS", [])
 
     result = CliRunner().invoke(
         lint_cmd,
         [
             str(runbook_path),
-            "--update-lifecycle",
+            retired_flag,
             "--schemas-dir",
             str(SCHEMAS_DIR),
         ],
     )
 
-    assert result.exit_code == 0
-    assert "deprecated" in result.output
+    assert result.exit_code == 2
     assert runbook_path.read_text() == before
-
-
-def test_update_staleness_writes_only_the_clock(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    runbook_path = _write_runbook(tmp_path, stem="clock-only")
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(
-        "runbook_tools.cli.ALL_CHECKS",
-        [check_15_staleness_grace_workflow],
-    )
-    monkeypatch.setattr("runbook_tools.cli._git_head", lambda _: "different-head")
-
-    result = CliRunner().invoke(
-        lint_cmd,
-        [
-            str(runbook_path),
-            "--update-staleness",
-            "--schemas-dir",
-            str(SCHEMAS_DIR),
-        ],
-    )
-
-    assert result.exit_code == 0
-    updated = runbook_path.read_text()
-    assert "first_staleness_detected_at: null" not in updated
-    assert "last_harness_pass_rate: 1.0" in updated
-    assert "last_harness_date: 2026-04-20T02:00:00Z" in updated
 
 
 def _write_runbook(tmp_path: Path, *, stem: str = "demo") -> Path:
@@ -253,6 +271,14 @@ def _write_result(
         )
     )
     return result_path
+
+
+def _remove_harness_claim_pair(runbook_path: Path) -> None:
+    runbook_path.write_text(
+        runbook_path.read_text()
+        .replace("last_harness_pass_rate: 1.0\n", "", 1)
+        .replace("last_harness_date: 2026-04-20T02:00:00Z\n", "", 1)
+    )
 
 
 def _run_check_21(runbook_path: Path):

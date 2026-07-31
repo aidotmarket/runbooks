@@ -1,4 +1,16 @@
 ---
+runbook_id: <<SYSTEM_NAME:required>>
+domain: <<DOMAIN:required>>
+status: DRAFT
+authoritative_for:
+  - topic: <<AUTHORITATIVE_TOPIC:required>>
+    section: <<AUTHORITATIVE_SECTION:required>>
+aliases: []
+error_signatures: []
+supersedes: []
+superseded_by: []
+owner: <<OWNER_AGENT:required>>
+last_verified_at: <<LAST_VERIFIED_AT:required>>
 system_name: <<SYSTEM_NAME:required>>
 purpose_sentence: <<PURPOSE_SENTENCE:required>>
 owner_agent: <<OWNER_AGENT:required>>
@@ -35,23 +47,12 @@ YAML frontmatter above is authoritative for the §A header fields.
 ## §E. Operate
 
 ```yaml operate
-- id: <<E_ID:example>>
-  trigger: <<E_TRIGGER:example>>
-  pre_conditions:
-    - <<E_PRECONDITION:example>>
-  tool_or_endpoint: <<E_TOOL_OR_ENDPOINT:example>>
-  argument_sourcing:
-    arg: <<E_ARGUMENT_SOURCING:example>>
-  idempotency: <<E_IDEMPOTENCY:example>>
-  expected_success:
-    shape: <<E_SUCCESS_SHAPE:example>>
-    verification: <<E_SUCCESS_VERIFICATION:example>>
-  expected_failures:
-    - signature: <<E_FAILURE_SIGNATURE:example>>
-      cause: <<E_FAILURE_CAUSE:example>>
-  next_step_success: <<E_NEXT_STEP_SUCCESS:example>>
-  next_step_failure: <<E_NEXT_STEP_FAILURE:example>>
+[]
 ```
+
+Leave §E empty rather than inventing an operation. If the runbook has an
+operational scope but evidence is unavailable, name the `UNKNOWN`, its owner,
+and the evidence needed in current prose before promotion.
 
 ## §F. Isolate
 
@@ -112,22 +113,14 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 <<H6_ADJUDICATION:example>>
 
-## §I. Acceptance Criteria
+## §I. Operational Examples
 
 ```yaml acceptance
-scenario_set:
-  - id: <<I_ID:example>>
-    type: <<I_TYPE:example>>
-    refs:
-      - <<I_REF:example>>
-    scenario: <<I_SCENARIO:example>>
-    expected_answers:
-      - kind: <<I_EXPECTED_ANSWER_KIND:example>>
-        tool: <<I_EXPECTED_ANSWER_TOOL:example>>
-        argument_keys:
-          - <<I_EXPECTED_ANSWER_ARGUMENT_KEY:example>>
-    weight: <<I_WEIGHT:example>>
+scenario_set: []
 ```
+
+Leave the set empty until a real, evidence-backed example clarifies an
+otherwise ambiguous current instruction. Do not invent examples for conformance.
 
 ## §J. Lifecycle
 
@@ -139,17 +132,13 @@ owner_agent: <<J_OWNER_AGENT:required>>
 refresh_triggers:
   - <<REFRESH_TRIGGER:required>>
 scheduled_cadence: <<SCHEDULED_CADENCE:required>>
-last_harness_pass_rate: <<LAST_HARNESS_PASS_RATE:required>>
-last_harness_date: <<LAST_HARNESS_DATE:required>>
-first_staleness_detected_at: <<FIRST_STALENESS_DETECTED_AT:required>>
 ```
 
 ## §K. Conformance
 
 ```yaml conformance
 linter_version: <<K_LINTER_VERSION:required>>
-last_lint_run: <<LAST_LINT_RUN:required>>
-last_lint_result: <<LAST_LINT_RESULT:required>>
-trace_matrix_path: <<TRACE_MATRIX_PATH:required>>
-word_count_delta: <<WORD_COUNT_DELTA:required>>
+retrofit: false
+trace_matrix_path: null
+word_count_delta: null
 ```

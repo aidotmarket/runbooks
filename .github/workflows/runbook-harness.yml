@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Catalog admission proves ancestry from the rollout baseline with
+          # replacement objects disabled; a shallow checkout cannot do that.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: pip install -e .

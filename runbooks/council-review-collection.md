@@ -63,14 +63,14 @@ Backing-code paths are relative to the koskadeux-mcp repository root.
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Review dispatcher | council_request(agent=..., mode=review) | dispatch receipts | koskadeux-mcp gateway | dispatch_sha resolves against cwd or the server process cwd; see E-01 |
-| Kimi reviewer | Moonshot provider via provider_readonly_review harness | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | USD 2 hard cap; exact model match mandatory; fails closed on coverage gaps |
+| Kimi reviewer | Kimi Code subscription transport via the shared provider_readonly_review harness | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | Verify plan endpoint/model in the live receipt and registry; exact model match mandatory; fails closed on coverage gaps |
 | GLM reviewer | OpenRouter pinned endpoint via the same harness | evidence ledger per dispatch | the same read-only tool set | USD 5 authorized live max; exact model match mandatory |
 | CC reviewer | council dispatch path, agentic | structured_payload in receipt | repo checkout at SHA | raw structured_payload is authoritative over legacy coercion |
-| Gate recorder | state_request bq_update and leaf patch | build:bq-* entities, Event Ledger | Living State | bq_update gate_status does NOT flip gateN.status; see E-02 |
+| Gate recorder | `state_request(action=bq_update)` | build:bq-* entities, Event Ledger | Living State | Set `gate_status_update=true` to update `body.gateN.status`; see E-02. |
 | Peer bus | peer_msg_send and peer_msg_inbox | peer_messages table | both instances | silent dedupe on (from, to, kind, ref_entity); see E-03 |
-| MP builder lane | dispatch_mp_build | MP mutex, Living State claims | single Codex CLI on Titan-1 | one lane; claim on the bus before dispatch; see E-03 |
+| MP builder lane | dispatch_mp_build | MP mutex, Living State claims | single Codex CLI on Titan-1 | one lane; claim on the bus before dispatch and use the live required payload; see E-03 |
 
-Canonical live-roster reference: state_get on infra:council-comms. Read it before any Council work in a session; this runbook does not restate roster, model pins, or cost caps.
+Canonical live-roster reference: `state_request(action=get, key=infra:council-comms)`. Read it before any Council work in a session; this runbook does not restate roster, model pins, or cost caps.
 
 ## §D. Agent Capability Map
 
@@ -89,9 +89,11 @@ Canonical live-roster reference: state_get on infra:council-comms. Read it befor
   pre_conditions:
     - dispatch SHA is a full 40-hex commit reachable in a local checkout
     - the checkout has fetched the SHA
+    - the connected client council_request enum contains the selected required voter; if upstream and client differ, refresh or reconnect before dispatch
     - review scoped within the reviewer cost cap; for Kimi 3-page deltas use max_tokens 20000 plus a summary word cap; for GLM multi-page reads quote the file path on its own line and instruct re-issuing identical args changing only offset
-  tool_or_endpoint: council_request(agent=kimi or glm, mode=review, dispatch_sha=SHA, cwd=repo root containing the SHA)
+  tool_or_endpoint: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>)
   argument_sourcing:
+    review_prompt: derive from the exact gate/spec questions and changed-file coverage, with explicit read-only scope
     cwd: absolute path of the repo checkout that contains the dispatch SHA; the resolver uses args.cwd or the server process cwd, and review_sources entries do NOT satisfy it (root-caused S1407, verified live on backend SHA 00a45639)
   idempotency: IDEMPOTENT
   expected_success:
@@ -114,7 +116,7 @@ Canonical live-roster reference: state_get on infra:council-comms. Read it befor
     - every required voter is terminal with exact model match
     - reviewer is not the builder
     - for CC verdicts, the raw JSON envelope parsed; if CC emitted prose before the JSON, the round is re-dispatched instructing raw JSON with no preamble rather than scraping prose
-  tool_or_endpoint: "state_request(action=bq_update, ...) for lifecycle status and notes, PLUS a leaf state_request(action=patch, key=build:bq-*, body={gateN: {status: CANONICAL}}, expected_version=v) for the gate status itself"
+  tool_or_endpoint: "state_request(action=bq_update, bq_code=<code>, gate=<N>, status=<canonical>, note=<panel_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>); issue a separate bq_update with gate_status_update=false only when top-level lifecycle status must also change"
   argument_sourcing:
     expected_version: read the entity immediately before patching; optimistic lock
     status: canonical vocabulary only (REQUEST_CHANGES, AUTHORING_IN_FLIGHT, AUTHORED_PENDING_REVIEW, APPROVED, REJECTED); free text is not recognized by middleware
@@ -122,22 +124,24 @@ Canonical live-roster reference: state_get on infra:council-comms. Read it befor
   idempotency_key: entity key + gate number + verdict commit SHA
   expected_success:
     shape: entity version bumps; gateN.status shows the canonical word; the note carries panel task ids and the dispatch SHA
-    verification: state_get the entity and confirm gateN.status actually changed
+    verification: state_request(action=get, key=build:bq-*) and confirm gateN.status actually changed
   expected_failures:
     - signature: gate_status_not_flipped
-      cause: relying on bq_update gate_status alone; it does not flip body.gateN.status, so the leaf patch with expected_version is required
+      cause: omitting gate_status_update=true updates only the top-level lifecycle path and leaves body.gateN.status unchanged
     - signature: cc_verdict_parse_failure
       cause: CC emitted prose before the JSON block, so the envelope parser rejected a round that looked complete
   next_step_success: fold mandates per G-04 notes if the verdict carries them, then continue the gate flow per council-gate-process.md
-  next_step_failure: re-read the entity, apply the leaf patch with the fresh expected_version, and verify again; for a parse failure, re-dispatch CC with the raw-JSON instruction
+  next_step_failure: re-read the entity, repeat bq_update with gate_status_update=true and the fresh expected_version, and verify again; for a parse failure, re-dispatch CC with the raw-JSON instruction
 - id: E-03
   trigger: An instance needs the peer bus for a follow-up message or wants the single MP builder lane.
   pre_conditions:
     - peer bus drained this cycle (at open, before dispatch, before merge, before close)
     - for a lane request, no unacked lane claim from the peer
-  tool_or_endpoint: peer_msg_send(to=peer, kind=claim or status, ref_entity=entity, body=...) followed by dispatch_mp_build once the lane is known free
+  tool_or_endpoint: peer_msg_send(to=<peer>, kind=claim, ref_entity=<entity>, body=<lane_claim>) followed by dispatch_mp_build(task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural) once the lane is known free
   argument_sourcing:
     ref_entity: vary it with a session or round marker on follow-ups, or change kind, because the bus silently dedupes identical (from, to, kind, ref_entity) tuples
+    bounded_build_task: derive from the approved BQ/spec and include the expected output manifest
+    absolute_repo: resolve from config:resource-registry and verify the clean isolated checkout/base before dispatch
   idempotency: NOT_IDEMPOTENT
   expected_success:
     shape: persisted row returned with a new message id; a lane claim is acked or uncontested; the build dispatches without mutex contention
@@ -158,7 +162,7 @@ Canonical live-roster reference: state_get on infra:council-comms. Read it befor
 | F-01 | Kimi or GLM review fails instantly citing an unresolvable or invalid SHA | cwd omitted for a non-default repo; SHA not fetched locally | run git cat-file -e on the SHA in the intended repo; re-check the dispatch args for cwd | G-01 | CONFIRMED |
 | F-02 | Reviewer output ends mid-sentence with no verdict | token budget exhausted on a Kimi multi-page delta | receipt shows a truncation or max-token stop reason | G-02 | CONFIRMED |
 | F-03 | CC envelope rejected though a verdict is visible in the text | prose preceded the JSON block | inspect the raw terminal message; JSON is not at the first byte | G-03 | CONFIRMED |
-| F-04 | Gate dashboard still shows the old gate status after recording | leaf gateN.status never patched; only bq_update ran | state_get the entity and compare body.gateN.status against the note | G-04 | CONFIRMED |
+| F-04 | Gate dashboard still shows the old gate status after recording | `bq_update` omitted `gate_status_update=true` | `state_request(action=get, key=build:bq-*)` and compare body.gateN.status against the note | G-04 | CONFIRMED |
 | F-05 | Peer never reacted to a follow-up bus message | silent dedupe swallowed it | check peer_messages for a new row id after the send | G-05 | HYPOTHESIZED |
 | F-06 | MP dispatch refused or times out while the peer session is live | lane held by the peer, or the task silently completed | drain the bus for claims; check git status in the target repo before redispatch | G-06 | HYPOTHESIZED |
 
@@ -192,11 +196,11 @@ Canonical live-roster reference: state_get on infra:council-comms. Read it befor
 - id: G-04
   symptom_ref: F-04
   component_ref: Gate recorder
-  root_cause: bq_update gate_status does not flip body.gateN.status
-  repair_entry_point: state_request patch on the leaf gateN.status with expected_version
-  change_pattern: single leaf patch using canonical status vocabulary
-  rollback_procedure: patch back to the prior canonical status with the next expected_version
-  integrity_check: state_get shows the intended gateN.status and a version bump
+  root_cause: The bq_update call omitted gate_status_update=true, so it targeted top-level lifecycle state instead of body.gateN.status.
+  repair_entry_point: state_request(action=bq_update) with gate_status_update=true and expected_version
+  change_pattern: repeat the bounded gate-status update using canonical vocabulary and the fresh entity version
+  rollback_procedure: issue the same bounded update with the prior canonical status and the next expected_version
+  integrity_check: state_request(action=get) shows the intended gateN.status and a version bump
 - id: G-05
   symptom_ref: F-05
   component_ref: Peer bus
@@ -271,11 +275,11 @@ scenario_set:
     type: operate
     refs: [E-01, §C]
     scenario: |
-      id: E-01. trigger: Kimi review needed on an ai-market-backend SHA. pre_conditions: SHA fetched locally, review scoped within the cost cap. tool_or_endpoint: council_request(agent=kimi, mode=review, dispatch_sha=SHA, cwd=backend checkout). argument_sourcing: cwd is the repo containing the SHA; review_sources does not satisfy the resolver. idempotency: IDEMPOTENT. expected_success: receipt with resolved SHA, preloaded context, complete coverage. expected_failures: dispatch_sha_invalid when cwd is omitted. next_step_success: collect the verdict and record per E-02. next_step_failure: pass cwd explicitly and re-dispatch.
+      id: E-01. trigger: Kimi review needed on an ai-market-backend SHA. pre_conditions: SHA fetched locally, exact review prompt prepared, review scoped within the cost cap. tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<backend_checkout>). argument_sourcing: task from exact gate/spec questions and changed files with read-only scope; cwd is the repo containing the SHA; review_sources does not satisfy the resolver. idempotency: IDEMPOTENT. expected_success: receipt with resolved SHA, preloaded context, complete coverage. expected_failures: dispatch_sha_invalid when cwd is omitted. next_step_success: collect the verdict and record per E-02. next_step_failure: pass cwd explicitly and re-dispatch.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, dispatch_sha, cwd]
+        argument_keys: [agent, mode, task, dispatch_sha, cwd]
         argument_values:
           agent: kimi
     weight: 0.09090909090909091
@@ -283,25 +287,31 @@ scenario_set:
     type: operate
     refs: [E-02, F-04, G-04]
     scenario: |
-      id: E-02. trigger: panel complete, gate outcome must be recorded. pre_conditions: complete valid panel, reviewer is not the builder. tool_or_endpoint: bq_update plus a leaf patch of gateN.status with expected_version. argument_sourcing: expected_version from a fresh entity read; canonical status vocabulary. idempotency: IDEMPOTENT_WITH_KEY. expected_success: gateN.status flipped and verified by re-read. expected_failures: gate_status_not_flipped when only bq_update ran. next_step_success: fold mandates if any. next_step_failure: leaf patch with a fresh expected_version.
+      id: E-02. trigger: panel complete, gate outcome must be recorded. pre_conditions: complete valid panel, reviewer is not the builder. tool_or_endpoint: state_request(action=bq_update, bq_code=<code>, gate=<N>, status=<canonical>, note=<panel_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>). argument_sourcing: expected_version from a fresh entity read; canonical status vocabulary; immutable panel references from the receipts. idempotency: IDEMPOTENT_WITH_KEY. expected_success: gateN.status flipped and verified by re-read. expected_failures: gate_status_not_flipped when gate_status_update is omitted. next_step_success: fold mandates if any. next_step_failure: repeat the bounded update with gate_status_update=true and a fresh expected_version.
     expected_answers:
       - kind: tool_call
         tool: state_request
-        argument_keys: [action, key, body, expected_version]
+        argument_keys: [action, bq_code, status, gate, note, session_id, gate_status_update, expected_version]
         argument_values:
-          action: patch
+          action: bq_update
+          gate_status_update: true
     weight: 0.09090909090909091
   - id: I-03
     type: operate
     refs: [E-03, F-06, G-06]
     scenario: |
-      id: E-03. trigger: MP build wanted while the peer session is live. pre_conditions: bus drained, no unacked peer claim. tool_or_endpoint: peer_msg_send with kind claim, then dispatch_mp_build once the lane is known free. argument_sourcing: the claim names the BQ; follow-ups vary ref_entity because of silent dedupe. idempotency: NOT_IDEMPOTENT. expected_success: dispatch without mp_busy. expected_failures: mp_lane_held. next_step_success: release status at completion. next_step_failure: wait for the lane-free status and verify git status before any redispatch.
+      id: E-03. trigger: MP build wanted while the peer session is live. pre_conditions: bus drained, no unacked peer claim, bounded task, absolute clean checkout, BQ code, and caller instance are known. tool_or_endpoint: peer_msg_send(to=<peer>, kind=claim, ref_entity=<entity>, body=<lane_claim>), then dispatch_mp_build(task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural) once the lane is known free. argument_sourcing: the claim body names the BQ and scope; follow-ups vary ref_entity because of silent dedupe; task comes from the approved BQ/spec; cwd from the verified isolated checkout; caller identity from the active registry session. idempotency: NOT_IDEMPOTENT. expected_success: dispatch without mp_busy and retain its task id. expected_failures: mp_lane_held, missing required task, stale base, or caller/schema mismatch. next_step_success: release status at completion. next_step_failure: wait for the lane-free status and verify git status before any redispatch.
     expected_answers:
       - kind: tool_call
         tool: peer_msg_send
         argument_keys: [to, kind, ref_entity, body]
         argument_values:
           kind: claim
+      - kind: tool_call
+        tool: dispatch_mp_build
+        argument_keys: [task, cwd, bq_code, caller_instance, dispatch_class]
+        argument_values:
+          dispatch_class: structural
     weight: 0.09090909090909091
   - id: I-04
     type: isolate
@@ -318,12 +328,12 @@ scenario_set:
     type: isolate
     refs: [F-04, G-04, E-02]
     scenario: |
-      id: F-04. trigger: the build-queue dashboard still shows the old gate status after a recording round that looked successful. pre_conditions: the BQ entity, the recording calls made, and the panel receipts are available. tool_or_endpoint: state_get on the build entity comparing body.gateN.status against the recorded note. argument_sourcing: entity key from the BQ; expected status from the panel outcome. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as the bq_update gate_status trap when the note is present but the leaf status never flipped. expected_failures: re-running the whole panel, or hand-editing the dashboard. next_step_success: apply G-04. next_step_failure: escalate to the peer if the entity version conflicts persist.
+      id: F-04. trigger: the build-queue dashboard still shows the old gate status after a recording round that looked successful. pre_conditions: the BQ entity, the recording calls made, and the panel receipts are available. tool_or_endpoint: state_request(action=get, key=build:bq-*) comparing body.gateN.status against the recorded note. argument_sourcing: entity key from the BQ; expected status from the panel outcome. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as the omitted-gate_status_update trap when the note is present but the leaf status never flipped. expected_failures: re-running the whole panel, or hand-editing the dashboard. next_step_success: apply G-04. next_step_failure: escalate to the peer if the entity version conflicts persist.
     expected_answers:
       - kind: human_action
         verb: compare
         object: body.gateN.status against the recorded panel note
-        target: G-04 leaf patch
+        target: G-04 bounded gate-status update
     weight: 0.09090909090909091
   - id: I-06
     type: isolate
@@ -340,11 +350,11 @@ scenario_set:
     type: repair
     refs: [G-02, F-02, E-01]
     scenario: |
-      id: G-02. trigger: a Kimi 3-page delta review truncated before the verdict. pre_conditions: the truncated receipt and the review scope are known. tool_or_endpoint: re-dispatch with max_tokens 20000 and an explicit summary word cap. argument_sourcing: max_tokens from this runbook; scope unchanged from the original dispatch. idempotency: IDEMPOTENT. expected_success: terminal verdict present with complete coverage and cost within the cap. expected_failures: hand-repairing the truncated output, or narrowing coverage to force completion. next_step_success: record per E-02. next_step_failure: two malformed terminal attempts fail closed; split the review scope instead.
+      id: G-02. trigger: a Kimi 3-page delta review truncated before the verdict. pre_conditions: the truncated receipt, original task, repo root, SHA, and review scope are known. tool_or_endpoint: council_request(agent=kimi, mode=review, task=<same_review_prompt_with_summary_cap>, cwd=<repo>, dispatch_sha=<SHA>, max_tokens=20000). argument_sourcing: max_tokens from this runbook; task, cwd, SHA, and scope unchanged from the original dispatch except the explicit summary word cap. idempotency: IDEMPOTENT. expected_success: terminal verdict present with complete coverage and cost within the cap. expected_failures: hand-repairing the truncated output, or narrowing coverage to force completion. next_step_success: record per E-02. next_step_failure: two malformed terminal attempts fail closed; split the review scope instead.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, dispatch_sha, max_tokens]
+        argument_keys: [agent, mode, task, cwd, dispatch_sha, max_tokens]
         argument_values:
           agent: kimi
     weight: 0.09090909090909091
@@ -352,11 +362,11 @@ scenario_set:
     type: repair
     refs: [G-03, F-03, E-02]
     scenario: |
-      id: G-03. trigger: a CC review round was rejected by the envelope parser because prose preceded the JSON block. pre_conditions: the raw terminal message confirms a verdict exists inside prose. tool_or_endpoint: re-dispatch CC instructing raw JSON with no preamble and no markdown fences. argument_sourcing: the same review scope and SHA as the rejected round. idempotency: IDEMPOTENT. expected_success: structured_payload parses on the fresh receipt and the verdict records cleanly. expected_failures: scraping the verdict out of prose, or treating the parse failure as a reviewer rejection. next_step_success: record per E-02. next_step_failure: fail closed and escalate to the peer for adjudication.
+      id: G-03. trigger: a CC review round was rejected by the envelope parser because prose preceded the JSON block. pre_conditions: the raw terminal message confirms a verdict exists inside prose, and the original repo root and SHA are known. tool_or_endpoint: council_request(agent=cc, mode=review, task=<same_review_prompt_with_raw_json_only_instruction>, cwd=<repo>, dispatch_sha=<SHA>). argument_sourcing: the same review scope, cwd, and SHA as the rejected round; task adds raw JSON with no preamble or markdown fences. idempotency: IDEMPOTENT. expected_success: structured_payload parses on the fresh receipt and the verdict records cleanly. expected_failures: scraping the verdict out of prose, or treating the parse failure as a reviewer rejection. next_step_success: record per E-02. next_step_failure: fail closed and escalate to the peer for adjudication.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, dispatch_sha]
+        argument_keys: [agent, mode, task, cwd, dispatch_sha]
         argument_values:
           agent: cc
     weight: 0.09090909090909091

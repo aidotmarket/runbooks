@@ -57,7 +57,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 
 | Classification | Meaning | Example scenario | Operator action |
 |---|---|---|---|
-| `HIGH_CONFIDENCE_GIT_AHEAD` | Git contains completed chunk evidence that cleanly extends Living State. This is the only class eligible for automatic safe patching. | Living State says the next action is Chunk 2A, and all target repositories contain Chunk 2A commits with no revert evidence. | Use `auto_reconcile=true` or let Trigger D apply the safe patch. |
+| `HIGH_CONFIDENCE_GIT_AHEAD` | Git contains completed chunk evidence that cleanly extends Living State. This is the only class eligible for automatic safe patching. | Living State says the next action is Chunk 2A, and all target repositories contain Chunk 2A commits with no revert evidence. | Use build-dispatch `auto_reconcile=true`, manual `kd_reconcile_bq(auto_patch=true)`, or let Trigger D apply the safe patch. |
 | `ADVISORY_GIT_AHEAD` | Git appears ahead, but confidence is insufficient for automatic mutation. | One target repository has the chunk commit, but another declared repository has no matching commit. | Inspect repositories and Build Queue history; do not auto-patch. |
 | `ADVISORY_BUILD_QUEUE_AHEAD` | Build Queue appears ahead of Living State, but git evidence is not sufficient for automatic mutation. | Build Queue marks a chunk complete, but git evidence is missing or incomplete. | Verify builder output and commits; patch manually only after evidence is clear. |
 | `AMBIGUOUS` | Evidence conflicts or a dependency failed. | Git fetch fails, Build Queue is unreachable, or evidence includes a revert. | Treat as degraded evidence; resolve the failure or inspect manually. |
@@ -79,9 +79,14 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 - id: E-01
   trigger: A build dispatch with a BQ code reaches the Trigger A reconciliation gate.
   pre_conditions: [BQ_entity_exists, body_target_repos_are_declared, gate_spec_is_readable, build_dispatch_context_is_available]
-  tool_or_endpoint: council_request(mode=build, bq_code=<code>, auto_reconcile=<bool>, bypass_reconcile=<bool>, reconcile_justification=<text>)
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural, session_id=<session>, runbook_refs=<delivered_refs>, auto_reconcile=<bool>, bypass_reconcile=<bool>, reconcile_justification=<text>)
   argument_sourcing:
     bq_code: read from the requested Build Queue entity
+    bounded_build_task: derive from the approved BQ/spec and include the required output manifest
+    absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base
+    caller_instance: active registry identity, Mars or Vulcan
+    session_id: active registered session
+    delivered_refs: server-issued runbook context for this objective; never caller-invented refs
     auto_reconcile: set true only for HIGH_CONFIDENCE_GIT_AHEAD with cleanly_extends=true
     bypass_reconcile: set true only for an intentional human decision to proceed without patching Living State
     reconcile_justification: obtain the concrete evidence or outage reason from the human authorizing the bypass
@@ -96,8 +101,8 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 - id: E-02
   trigger: A session opens and needs a read-only drift report across in-progress BQs.
   pre_conditions: [session_is_opening, in_progress_BQs_can_be_listed]
-  tool_or_endpoint: kd_session_open
-  argument_sourcing: {}
+  tool_or_endpoint: kd_session_open(instance=<self>)
+  argument_sourcing: {instance: active Mars or Vulcan identity}
   idempotency: IDEMPOTENT
   expected_success: {shape: advisory reconciliation report for in-progress BQs, verification: Confirm the report contains classifications and no Living State mutation or reconciliation event}
   expected_failures:
@@ -107,10 +112,10 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 - id: E-03
   trigger: An operator requests on-demand inspection or correction for one BQ.
   pre_conditions: [BQ_entity_exists, target_repo_evidence_can_be_fetched, gate_spec_path_is_known]
-  tool_or_endpoint: kd_reconcile_bq(bq_code=<code>, auto_reconcile=<bool>)
+  tool_or_endpoint: kd_reconcile_bq(bq_code=<code>, auto_patch=<bool>)
   argument_sourcing:
     bq_code: read from the operator request or Build Queue entity
-    auto_reconcile: set true only after the report shows HIGH_CONFIDENCE_GIT_AHEAD and cleanly_extends=true
+    auto_patch: set true only after the report shows HIGH_CONFIDENCE_GIT_AHEAD and cleanly_extends=true
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: BQ code plus observed Living State version plus proposed next chunk
   expected_success: {shape: one reconciliation report and optional safe Living State append, verification: Confirm existing chunks remain unchanged, all target repositories support the next chunk, and gate status is unchanged}
@@ -470,8 +475,8 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [mode, bq_code, auto_reconcile]
-        argument_values: {mode: build, auto_reconcile: true}
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, auto_reconcile]
+        argument_values: {agent: mp, mode: build, dispatch_class: structural, auto_reconcile: true}
     weight: 0.08333333333333333
   - id: I-02
     type: operate
@@ -480,7 +485,7 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: kd_session_open
-        argument_keys: []
+        argument_keys: [instance]
     weight: 0.08333333333333333
   - id: I-03
     type: operate
@@ -574,8 +579,8 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [mode, bq_code, bypass_reconcile, reconcile_justification]
-        argument_values: {mode: build, bypass_reconcile: true}
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, bypass_reconcile, reconcile_justification]
+        argument_values: {agent: mp, mode: build, dispatch_class: structural, bypass_reconcile: true}
     weight: 0.08333333333333333
 ```
 

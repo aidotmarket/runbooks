@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from difflib import unified_diff
 import json
+from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
 import yaml
+from jsonschema import Draft202012Validator
 
 from runbook_tools.lint.forms import extract_i_payload
-from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
-
+from runbook_tools.parser.sections import extract_sections
+from runbook_tools.strict_yaml import strict_yaml_load
 
 SCENARIO_SCHEMA_PATH = Path(__file__).parent.parent.parent / "schemas" / "scenario.schema.json"
+INLINE_SCENARIO_SCHEMA_PATH = (
+    Path(__file__).parent.parent.parent / "schemas" / "section_i_acceptance.schema.json"
+)
 
 REQUIRED_TYPE_COUNTS: dict[str, int] = {
     "operate": 3,
@@ -41,14 +44,14 @@ class Scenario:
 @dataclass(slots=True)
 class ScenarioLoadConfig:
     runbook_path: Path
-    scenarios_dir: Path
+    # Retained as a compatibility-only input for older callers. Normal harness
+    # runs never read duplicated scenario YAML; §I is the sole scenario source.
+    scenarios_dir: Path | None = None
     external_set_path: Path | None = None
 
 
 class ConfigurationError(RuntimeError):
-    def __init__(self, message: str, *, diff: str | None = None) -> None:
-        super().__init__(message if not diff else f"{message}\n{diff}")
-        self.diff = diff
+    pass
 
 
 class ScenarioSetConstraintError(ConfigurationError):
@@ -59,102 +62,85 @@ def _scenario_validator() -> Draft202012Validator:
     return Draft202012Validator(json.loads(SCENARIO_SCHEMA_PATH.read_text()))
 
 
+def _inline_scenario_validator() -> Draft202012Validator:
+    return Draft202012Validator(json.loads(INLINE_SCENARIO_SCHEMA_PATH.read_text()))
+
+
 def load_scenarios(config: ScenarioLoadConfig) -> list[Scenario]:
     if config.external_set_path is not None:
         return _load_external_scenarios(config.runbook_path, config.external_set_path)
-    return _load_authoritative_scenarios(config.runbook_path, config.scenarios_dir)
+    return _load_inline_scenarios(config.runbook_path)
 
 
-def load_scenarios_for_runbook(runbook_path: Path, scenarios_dir: Path) -> list[Scenario]:
+def load_scenarios_for_runbook(
+    runbook_path: Path,
+    scenarios_dir: Path | None = None,
+) -> list[Scenario]:
     return load_scenarios(
         ScenarioLoadConfig(runbook_path=runbook_path, scenarios_dir=scenarios_dir)
     )
 
 
-def _load_authoritative_scenarios(runbook_path: Path, scenarios_dir: Path) -> list[Scenario]:
+def _load_inline_scenarios(runbook_path: Path) -> list[Scenario]:
     markdown = runbook_path.read_text()
-    sections = extract_sections(markdown)
-    section_i = next((section for section in sections if section.letter == "I"), None)
-    payload = extract_i_payload(section_i) if section_i is not None else None
+    section_i_matches = [
+        section for section in extract_sections(markdown) if section.letter == "I"
+    ]
+    if len(section_i_matches) != 1:
+        raise ConfigurationError(
+            f"{runbook_path.name} must contain exactly one current §I acceptance section"
+        )
+
+    payload = extract_i_payload(section_i_matches[0])
     if not isinstance(payload, dict):
-        raise ConfigurationError(f"{runbook_path.name} is missing a valid §I acceptance payload")
+        raise ConfigurationError(
+            f"{runbook_path.name} §I acceptance payload is missing or malformed"
+        )
 
-    frontmatter = extract_yaml_frontmatter(markdown) or {}
-    system_name = str(frontmatter.get("system_name") or runbook_path.stem)
-    expected_runbook_name = f"{system_name}.md"
-    expected_meta = {
-        str(item["id"]): {
-            "type": item["type"],
-            "refs": list(item["refs"]),
-            "weight": float(item["weight"]),
-        }
-        for item in payload.get("scenario_set", [])
-    }
+    errors = sorted(
+        _inline_scenario_validator().iter_errors(payload),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        messages = ", ".join(error.message for error in errors)
+        raise ConfigurationError(
+            f"{runbook_path.name} §I failed acceptance schema validation: {messages}"
+        )
 
-    scenario_root = scenarios_dir / system_name
-    yaml_paths = sorted(scenario_root.glob("*.yaml"))
-    actual_payloads: dict[str, dict[str, Any]] = {}
-    validator = _scenario_validator()
-
-    for yaml_path in yaml_paths:
-        loaded = yaml.safe_load(yaml_path.read_text())
-        if not isinstance(loaded, dict):
-            raise ConfigurationError(f"{yaml_path} did not parse to an object")
-        errors = sorted(validator.iter_errors(loaded), key=lambda error: list(error.absolute_path))
-        if errors:
-            messages = ", ".join(error.message for error in errors)
-            raise ConfigurationError(f"{yaml_path} failed scenario schema validation: {messages}")
-        actual_payloads[str(loaded["id"])] = loaded
-
-    mismatches: list[str] = []
-    expected_ids = set(expected_meta)
-    actual_ids = set(actual_payloads)
-
-    missing_ids = sorted(expected_ids - actual_ids)
-    orphan_ids = sorted(actual_ids - expected_ids)
-    mismatches.extend(f"missing_yaml:{scenario_id}" for scenario_id in missing_ids)
-    mismatches.extend(f"orphan_yaml:{scenario_id}" for scenario_id in orphan_ids)
-
-    for scenario_id in sorted(expected_ids & actual_ids):
-        expected = expected_meta[scenario_id]
-        actual = actual_payloads[scenario_id]
-        if actual.get("type") != expected["type"]:
-            mismatches.append(f"type:{scenario_id}: expected {expected['type']!r}, got {actual.get('type')!r}")
-        if list(actual.get("refs", [])) != expected["refs"]:
-            mismatches.append(f"refs:{scenario_id}: expected {expected['refs']!r}, got {actual.get('refs')!r}")
-        actual_weight = float(actual.get("weight", 0.0))
-        if abs(actual_weight - expected["weight"]) > 1e-9:
-            mismatches.append(f"weight:{scenario_id}: §I={expected['weight']!r}, yaml={actual_weight!r}")
-        if actual.get("runbook") != expected_runbook_name:
-            mismatches.append(f"runbook:{scenario_id}: expected {expected_runbook_name!r}, got {actual.get('runbook')!r}")
-
-    if mismatches:
-        expected_lines = [f"{scenario_id}: {expected_meta[scenario_id]}" for scenario_id in sorted(expected_ids)]
-        actual_lines = [f"{scenario_id}: {actual_payloads[scenario_id]}" for scenario_id in sorted(actual_ids)]
-        diff = "\n".join(
-            unified_diff(
-                expected_lines,
-                actual_lines,
-                fromfile=f"{runbook_path.name} §I",
-                tofile=str(scenario_root),
-                lineterm="",
+    scenario_items = payload["scenario_set"]
+    weight_presence = ["weight" in item for item in scenario_items]
+    if any(weight_presence) and not all(weight_presence):
+        raise ConfigurationError(
+            f"{runbook_path.name} diagnostic weights must be present on every "
+            "§I example or omitted from every example"
+        )
+    use_declared_weights = bool(scenario_items) and all(weight_presence)
+    equal_diagnostic_weight = 1.0 / len(scenario_items) if scenario_items else 0.0
+    seen_ids: set[str] = set()
+    scenarios: list[Scenario] = []
+    for item in scenario_items:
+        scenario_id = item["id"]
+        if scenario_id in seen_ids:
+            raise ConfigurationError(
+                f"{runbook_path.name} §I contains duplicate scenario id: {scenario_id}"
+            )
+        seen_ids.add(scenario_id)
+        scenarios.append(
+            Scenario(
+                id=scenario_id,
+                type=item["type"],
+                refs=list(item["refs"]),
+                scenario_prose=item["scenario"],
+                expected_answers=deepcopy(item["expected_answers"]),
+                weight=(
+                    float(item["weight"])
+                    if use_declared_weights
+                    else equal_diagnostic_weight
+                ),
+                runbook=runbook_path,
             )
         )
-        mismatch_text = "\n".join(mismatches)
-        raise ConfigurationError(f"Scenario configuration drift for {runbook_path.name}\n{mismatch_text}", diff=diff or None)
-
-    return [
-        Scenario(
-            id=scenario_id,
-            type=str(actual_payloads[scenario_id]["type"]),
-            refs=list(actual_payloads[scenario_id]["refs"]),
-            scenario_prose=str(actual_payloads[scenario_id]["scenario"]),
-            expected_answers=list(actual_payloads[scenario_id]["expected_answers"]),
-            weight=float(actual_payloads[scenario_id]["weight"]),
-            runbook=runbook_path,
-        )
-        for scenario_id in sorted(actual_ids)
-    ]
+    return scenarios
 
 
 def _load_external_scenarios(runbook_path: Path, external_set_path: Path) -> list[Scenario]:
@@ -188,7 +174,10 @@ def _load_external_scenarios(runbook_path: Path, external_set_path: Path) -> lis
     seen_ids: set[str] = set()
 
     for yaml_path in yaml_paths:
-        loaded = yaml.safe_load(yaml_path.read_text())
+        try:
+            loaded = strict_yaml_load(yaml_path.read_text())
+        except yaml.YAMLError as exc:
+            raise ConfigurationError(f"{yaml_path} contains invalid YAML: {exc}") from exc
         if not isinstance(loaded, dict):
             raise ConfigurationError(f"{yaml_path} did not parse to an object")
         errors = sorted(validator.iter_errors(loaded), key=lambda error: list(error.absolute_path))

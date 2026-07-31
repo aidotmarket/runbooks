@@ -1,16 +1,25 @@
 ---
 system_name: runbook-first-gates
-purpose_sentence: Operate, diagnose, and evolve the runbook-first enforcement gates that block session plans, Council dispatches, and session closes lacking valid runbook references, attestations, or exit declarations.
+purpose_sentence: Preserve and diagnose the legacy attestation-based runbook gates during their bounded retirement; the S1413 server-delivered context and evidence-based impact contract supersedes them for new design work.
 owner_agent: vulcan
 escalation_contact: Max (enforce-mode flips, routine-class edits, disputed adjudications); either instance (Vulcan/Mars) operates this runbook
 lifecycle_ref: §J
-authoritative_scope: The three Phase-1 enforcement gate points (kd_session_plan runbook_consultation, council_request runbook_refs, kd_session_close runbook_exit), the shared ref resolver, the RUNBOOK_* error-code contract, the runbook-debt ledger, the waiver accumulator and its plan-time bite, the routine fast path, and the gate config. NOT authoritative for general session open/close mechanics (session-open-protocol.md, session-close-protocol.md), MP/Council dispatch mechanics (codex-mp.md, agent-dispatch.md), the runbook authoring standard itself (specs/BQ-RUNBOOK-STANDARD.md), or the queued Phase 2/3 enforcement surfaces (owner BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146).
+authoritative_scope: Historical compatibility behavior of the three legacy Phase-1 gate points only. This file is not authority for the replacement planning, action-receipt, completion-impact, obligation, roster, or rollout contracts; those are defined by specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md §12 and become operational only through the exact signed deployed gateway contract.
 linter_version: 1.0.0
 ---
 
 # Runbook-First Gates
 
-> The system-enforced version of CORE §4 "Runbooks": a session cannot submit a plan, hand work to a builder, or close without pointing at the manual page that governs the work — or explicitly attesting no page exists, which creates dischargeable debt. Shipped as Phase 1 of `BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146` (chunks C1/C3/C4/C5), Council-gated, live in BLOCK mode since S1150 on Max GO. Phase 2/3 (bq_complete evidence, BQ-gate hard blocking, ticket §F citation gate, CI paired-change check, drift/coverage program) are PLANNED under the same BQ.
+> **LEGACY COMPATIBILITY — DO NOT EXTEND.** This document records the
+> attestation/debt implementation so it can be diagnosed and retired safely. It
+> is not evidence that forcing a reference, attestation, waiver, or close
+> declaration improves documentation. Do not enable another blocking surface,
+> create filler to discharge debt, or treat an agent's self-authored statement as
+> proof. The replacement contract is `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md`
+> §12: the server delivers immutable context first, high-risk actions use exact
+> receipts, and completion uses server-measured behavior impact. Until the signed
+> deployed contract proves that replacement is live, use this page only to
+> understand a legacy rejection and keep routine enforcement assistive.
 
 ## §A. Header
 

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from runbook_tools.lint import CheckContext
 from runbook_tools.lint.checks import (
+    ALL_CHECKS,
     check_01_sections_present_and_ordered,
     check_02_agent_forms_present,
     check_03_a_j_owner_agent_consistency,
@@ -14,16 +15,16 @@ from runbook_tools.lint.checks import (
     check_08_repair_ref_resolves,
     check_09_symptom_ref_resolves,
     check_10_component_ref_resolves,
-    check_11_scenario_distribution,
-    check_12_weights_sum,
-    check_13_unequal_weights_justified,
     check_14_lifecycle_fields,
-    check_15_staleness_grace_workflow,
+    check_15_current_staleness,
     check_16_linter_version_compat,
     check_17_conformance_fields,
     check_18_retrofit_fields,
     check_19_header_required_fields,
     check_20_b_exact_columns,
+    check_22_i_example_identity_and_refs,
+    check_23_e_operation_ids_unique,
+    check_24_no_unresolved_placeholders,
 )
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
@@ -37,6 +38,24 @@ def test_check_01_sections_present_and_ordered() -> None:
     assert conformant == []
     assert any(f.severity == "FAIL" and f.message == "missing §G" for f in missing)
     assert any(f.severity == "FAIL" and "§G appears out of order" in f.message for f in out_of_order)
+
+
+def test_check_01_rejects_duplicate_current_sections() -> None:
+    findings = _run_check(
+        check_01_sections_present_and_ordered,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace(
+            "## §F. Isolate",
+            "## §E. Duplicate\n\nDuplicate current content.\n\n## §F. Isolate",
+            1,
+        ),
+    )
+
+    assert any(
+        finding.severity == "FAIL"
+        and "§E appears 2 times" in finding.message
+        for finding in findings
+    )
 
 
 def test_check_02_agent_forms_present() -> None:
@@ -78,6 +97,58 @@ def test_check_07_last_verified_warn() -> None:
     assert not any(f.severity == "FAIL" for f in findings)
 
 
+def test_check_07_uses_one_utc_calendar_age_boundary() -> None:
+    def set_b_dates(markdown: str, value: str) -> str:
+        for original in ("2026-04-20", "2026-04-19", "2026-04-18"):
+            markdown = markdown.replace(f"| {original} |", f"| {value} |", 1)
+        return markdown
+
+    exactly_90 = _run_check(
+        check_07_last_verified_warn,
+        "conformant.md",
+        now=datetime(2026, 7, 19, 23, 59, tzinfo=UTC),
+        transform=lambda markdown: set_b_dates(markdown, "2026-04-20"),
+    )
+    expired_91 = _run_check(
+        check_07_last_verified_warn,
+        "conformant.md",
+        now=datetime(2026, 7, 20, tzinfo=UTC),
+        transform=lambda markdown: set_b_dates(markdown, "2026-04-20"),
+    )
+
+    assert exactly_90 == []
+    assert len([finding for finding in expired_91 if finding.severity == "WARN"]) == 3
+    assert all("91 days old" in finding.message for finding in expired_91)
+
+
+def test_check_07_fails_impossible_and_future_dates() -> None:
+    impossible = _run_check(
+        check_07_last_verified_warn,
+        "conformant.md",
+        now=datetime(2026, 7, 31, tzinfo=UTC),
+        transform=lambda markdown: markdown.replace(
+            "| 2026-04-20 |", "| 2026-99-99 |", 1
+        ),
+    )
+    future = _run_check(
+        check_07_last_verified_warn,
+        "conformant.md",
+        now=datetime(2026, 7, 31, tzinfo=UTC),
+        transform=lambda markdown: markdown.replace(
+            "| 2026-04-20 |", "| 2026-08-01 |", 1
+        ),
+    )
+
+    assert any(
+        finding.severity == "FAIL" and "real YYYY-MM-DD" in finding.message
+        for finding in impossible
+    )
+    assert any(
+        finding.severity == "FAIL" and "in the future" in finding.message
+        for finding in future
+    )
+
+
 def test_check_08_repair_ref_resolves() -> None:
     findings = _run_check(check_08_repair_ref_resolves, "dangling_repair_ref.md")
 
@@ -96,131 +167,93 @@ def test_check_10_component_ref_resolves() -> None:
     assert any(f.severity == "FAIL" and 'component_ref "GhostCLI"' in f.message for f in findings)
 
 
-def test_check_11_scenario_distribution() -> None:
-    too_few = _run_check(check_11_scenario_distribution, "scenarios_9.md")
-    no_ambiguous = _run_check(check_11_scenario_distribution, "scenarios_no_ambiguous.md")
+def test_retired_scenario_quota_and_weight_checks_are_not_registered() -> None:
+    registered_names = {check.__name__ for check in ALL_CHECKS}
 
-    assert any(f.severity == "FAIL" and "9 total scenarios" in f.message for f in too_few)
-    assert any(f.severity == "FAIL" and "0 ambiguous scenarios" in f.message for f in no_ambiguous)
-
-
-def test_check_12_weights_sum() -> None:
-    findings = _run_check(check_12_weights_sum, "weights_sum_99.md")
-
-    assert any(f.severity == "FAIL" and "sum to" in f.message for f in findings)
-
-
-def test_check_13_unequal_weights_justified() -> None:
-    findings = _run_check(check_13_unequal_weights_justified, "unequal_weights_unjustified.md")
-
-    assert any(f.severity == "FAIL" and "Weight Justification" in f.message for f in findings)
+    assert "check_11_scenario_distribution" not in registered_names
+    assert "check_12_weights_sum" not in registered_names
+    assert "check_13_unequal_weights_justified" not in registered_names
 
 
 def test_check_14_lifecycle_fields() -> None:
-    findings = _run_check(check_14_lifecycle_fields, "missing_last_harness_date.md")
+    markdown_without_legacy_fields = lambda markdown: markdown.replace(
+        "last_harness_pass_rate: 1.0\n", "", 1
+    ).replace(
+        "last_harness_date: 2026-04-20T02:00:00Z\n", "", 1
+    ).replace(
+        "first_staleness_detected_at: null\n", "", 1
+    )
+    findings = _run_check(
+        check_14_lifecycle_fields,
+        "conformant.md",
+        now=datetime(2026, 4, 22, tzinfo=UTC),
+        transform=markdown_without_legacy_fields,
+    )
 
-    assert any(f.severity == "FAIL" and "last_harness_date" in f.message for f in findings)
+    assert findings == []
 
 
-def test_check_15_staleness_emission_table() -> None:
-    row1 = _run_check(
-        check_15_staleness_grace_workflow,
+def test_check_14_rejects_future_lifecycle_timestamps() -> None:
+    now = datetime(2026, 4, 22, tzinfo=UTC)
+    fields = [
+        ("last_refresh_date", "last_refresh_date: 2026-04-21T17:30:00Z", "last_refresh_date: 2099-01-01T00:00:00Z"),
+        ("last_harness_date", "last_harness_date: 2026-04-20T02:00:00Z", "last_harness_date: 2099-01-01T00:00:00Z"),
+        ("first_staleness_detected_at", "first_staleness_detected_at: null", "first_staleness_detected_at: 2099-01-01T00:00:00Z"),
+    ]
+    for field, before, after in fields:
+        findings = _run_check(
+            check_14_lifecycle_fields,
+            "conformant.md",
+            now=now,
+            transform=lambda markdown, before=before, after=after: markdown.replace(
+                before, after, 1
+            ),
+        )
+        assert any(
+            finding.severity == "FAIL" and field in finding.message
+            for finding in findings
+        )
+
+
+def test_check_15_reports_current_staleness_without_file_clock_escalation() -> None:
+    without_clock = _run_check(
+        check_15_current_staleness,
         "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
+        now=datetime(2026, 4, 21, tzinfo=UTC),
         git_head="ea70326",
     )
-    row2 = _run_check(
-        check_15_staleness_grace_workflow,
+    recent_clock = _run_check(
+        check_15_current_staleness,
         "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
+        now=datetime(2026, 4, 21, tzinfo=UTC),
         git_head="ea70326",
         transform=lambda markdown: markdown.replace(
             "first_staleness_detected_at: null",
             "first_staleness_detected_at: 2026-04-11T00:00:00Z",
         ),
     )
-    row3 = _run_check(
-        check_15_staleness_grace_workflow,
+    old_clock = _run_check(
+        check_15_current_staleness,
         "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
+        now=datetime(2026, 4, 21, tzinfo=UTC),
         git_head="ea70326",
         transform=lambda markdown: markdown.replace(
             "first_staleness_detected_at: null",
             "first_staleness_detected_at: 2026-03-01T00:00:00Z",
         ),
     )
-    row4 = _run_check(
-        check_15_staleness_grace_workflow,
+    current = _run_check(
+        check_15_current_staleness,
         "conformant.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
+        now=datetime(2026, 4, 21, tzinfo=UTC),
         git_head="ea70326",
     )
-    row5 = _run_check(
-        check_15_staleness_grace_workflow,
-        "conformant.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
-        git_head="ea70326",
-        transform=lambda markdown: markdown.replace(
-            "first_staleness_detected_at: null",
-            "first_staleness_detected_at: 2026-04-01T00:00:00Z",
-        ),
-    )
-
-    assert any(f.severity == "FAIL" and "must be set" in f.message for f in row1)
-    assert any(f.severity == "WARN" and "grace clock at 10/30 days" in f.message for f in row2)
-    assert any(f.severity == "FAIL" and "grace period exceeded" in f.message for f in row3)
-    assert row4 == []
-    assert any(f.severity == "FAIL" and "must be cleared to null" in f.message for f in row5)
-
-
-def test_check_15_read_only_mode_fails_an_unpersisted_transition(tmp_path) -> None:
-    source = FIXTURES_DIR / "stale_commit_drift.md"
-    runbook_path = tmp_path / "runbook.md"
-    original = source.read_text()
-    runbook_path.write_text(original)
-
-    findings = _run_check(
-        check_15_staleness_grace_workflow,
-        "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
-        git_head="ea70326",
-        readme_path=runbook_path,
-    )
-
-    assert any(f.severity == "FAIL" for f in findings)
-    assert runbook_path.read_text() == original
-
-
-def test_check_15_explicit_update_helper_writes_the_measured_transition(tmp_path) -> None:
-    runbook_path = tmp_path / "runbook.md"
-    runbook_path.write_text((FIXTURES_DIR / "stale_commit_drift.md").read_text())
-
-    findings = _run_check(
-        check_15_staleness_grace_workflow,
-        "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
-        git_head="ea70326",
-        readme_path=runbook_path,
-        update_lifecycle=True,
-    )
-
-    assert any(f.severity == "INFO" for f in findings)
-    assert 'first_staleness_detected_at: "2026-04-21T00:00:00+00:00"' in runbook_path.read_text()
-
-
-def test_check_15_rejects_a_future_grace_clock() -> None:
-    findings = _run_check(
-        check_15_staleness_grace_workflow,
-        "stale_commit_drift.md",
-        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
-        git_head="ea70326",
-        transform=lambda markdown: markdown.replace(
-            "first_staleness_detected_at: null",
-            "first_staleness_detected_at: 2026-05-01T00:00:00Z",
-        ),
-    )
-
-    assert any(f.severity == "FAIL" and "future" in f.message for f in findings)
+    assert without_clock == recent_clock == old_clock
+    assert len(without_clock) == 1
+    assert without_clock[0].severity == "WARN"
+    assert "commit_drift_60d" in without_clock[0].message
+    assert "canonical server state" in without_clock[0].message
+    assert current == []
 
 
 def test_check_16_linter_version_compat(monkeypatch) -> None:
@@ -235,7 +268,7 @@ def test_check_16_linter_version_compat(monkeypatch) -> None:
 def test_check_17_conformance_fields() -> None:
     findings = _run_check(check_17_conformance_fields, "missing_last_lint_run.md")
 
-    assert any(f.severity == "FAIL" and "last_lint_run" in f.message for f in findings)
+    assert findings == []
 
 
 def test_check_18_retrofit_fields() -> None:
@@ -270,6 +303,120 @@ def test_check_20_b_exact_columns() -> None:
     assert any(f.severity == "FAIL" and "header row must match exactly" in f.message for f in findings)
 
 
+def test_check_22_rejects_duplicate_ids_and_dangling_local_refs() -> None:
+    duplicate = _run_check(
+        check_22_i_example_identity_and_refs,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace("id: I-02", "id: I-01", 1),
+    )
+    dangling = _run_check(
+        check_22_i_example_identity_and_refs,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace("refs: [E-01]", "refs: [E-99]", 1),
+    )
+
+    assert any("I-01" in finding.message and "duplicated" in finding.message for finding in duplicate)
+    assert any("E-99" in finding.message and "does not resolve" in finding.message for finding in dangling)
+
+
+def test_check_22_resolves_section_refs_and_defers_valid_cross_file_targets() -> None:
+    findings = _run_check(
+        check_22_i_example_identity_and_refs,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace(
+            "refs: [E-01]",
+            "refs: [E-01, §H.2, other-runbook:E-01, other-runbook:I-01]",
+            1,
+        ),
+    )
+
+    assert findings == []
+
+
+def test_check_22_rejects_unsupported_cross_file_row_id_kinds() -> None:
+    findings = _run_check(
+        check_22_i_example_identity_and_refs,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace(
+            "refs: [E-01]",
+            "refs: [E-01, other-runbook:A-01]",
+            1,
+        ),
+    )
+
+    assert any(
+        "other-runbook:A-01" in finding.message
+        and "invalid cross-file syntax" in finding.message
+        for finding in findings
+    )
+
+
+def test_check_23_rejects_duplicate_e_operation_ids_and_allows_empty_e() -> None:
+    duplicate = _run_check(
+        check_23_e_operation_ids_unique,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace("id: E-02", "id: E-01", 1),
+    )
+    empty = _run_check(
+        check_23_e_operation_ids_unique,
+        "conformant.md",
+        transform=lambda markdown: markdown.replace(
+            markdown[markdown.index("```yaml operate") : markdown.index("## §F. Isolate")],
+            "```yaml operate\n[]\n```\n\n",
+            1,
+        ),
+    )
+
+    assert any("E-01" in finding.message and "duplicated" in finding.message for finding in duplicate)
+    assert empty == []
+
+
+def test_check_24_rejects_any_current_placeholder_kind_but_not_history() -> None:
+    current = _run_check(
+        check_24_no_unresolved_placeholders,
+        "conformant.md",
+        transform=lambda markdown: markdown + "\n<<E_TOOL:optional>>\n",
+    )
+    historical = _run_check(
+        check_24_no_unresolved_placeholders,
+        "conformant.md",
+        transform=lambda markdown: (
+            markdown
+            + "\n<!-- catalog:historical -->\n"
+            + "<<OLD_TOOL:optional>>\n"
+            + "<!-- /catalog:historical -->\n"
+        ),
+    )
+
+    assert any("<<E_TOOL:optional>>" in finding.message for finding in current)
+    assert historical == []
+
+
+def test_check_24_rejects_malformed_scaffold_tokens_without_matching_heredocs() -> None:
+    for token in (
+        "<<E_TOOL:required>",
+        "<<E_TOOL:REQUIRED>",
+        "<<E_TOOL-required>",
+        "<E_TOOL:required>>",
+    ):
+        findings = _run_check(
+            check_24_no_unresolved_placeholders,
+            "conformant.md",
+            transform=lambda markdown, token=token: markdown + f"\n{token}\n",
+        )
+        assert any(token in finding.message for finding in findings)
+
+    heredocs = _run_check(
+        check_24_no_unresolved_placeholders,
+        "conformant.md",
+        transform=lambda markdown: (
+            markdown
+            + "\n```sh\ncat <<'PY'\nprint('ok')\nPY\ncat <<END_JSON\n{}\nEND_JSON\n```\n"
+        ),
+    )
+    assert heredocs == []
+
+
 def _run_check(
     check_fn,
     fixture_name: str,
@@ -277,7 +424,6 @@ def _run_check(
     now: datetime | None = None,
     git_head: str | None = None,
     readme_path=None,
-    update_lifecycle: bool = False,
     transform=None,
 ):
     markdown = (FIXTURES_DIR / fixture_name).read_text()
@@ -291,6 +437,6 @@ def _run_check(
         frontmatter=extract_yaml_frontmatter(markdown),
         now=now,
         git_head=git_head,
-        update_lifecycle=update_lifecycle,
+        raw_markdown=markdown,
     )
     return check_fn(sections, ctx)

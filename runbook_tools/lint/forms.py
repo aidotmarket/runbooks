@@ -1,21 +1,25 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from datetime import date, datetime
-from pathlib import Path
 import re
+from collections.abc import Iterable
+from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from runbook_tools.catalog.sections import FENCE_CLOSE_RE, FENCE_OPEN_RE
 from runbook_tools.lint import Finding
 from runbook_tools.parser.sections import Section, extract_fenced_yaml_block
-
 
 STATUS_ENUM = {"SHIPPED", "PARTIAL", "PLANNED", "DEPRECATED", "BROKEN"}
 COVERAGE_STATUS_ENUM = {"COMPLETE", "PARTIAL", "GAP", "PLANNED"}
 BACKING_CODE_RE = re.compile(r"^`[^`]+`$")
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+RFC3339_DATETIME_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$"
+)
+LAST_VERIFIED_MAX_AGE_DAYS = 90
 H_SECTION_HEADINGS = [
     "§H.1 Invariants",
     "§H.2 BREAKING predicates",
@@ -31,6 +35,46 @@ H5_SUBHEADINGS = [
     "config default",
 ]
 _FORMAT_CHECKER = FormatChecker()
+_ESCAPED_FORM_RE: dict[str, re.Pattern[str]] = {
+    "E": re.compile(r"^ {0,3}-[ \t]+id:[ \t]+[\"']?E-\d{2,}\b"),
+    "G": re.compile(r"^ {0,3}-[ \t]+id:[ \t]+[\"']?G-\d{2,}\b"),
+    "I": re.compile(
+        r"^(?: {0,3}scenario_set:[ \t]*| {0,3}-[ \t]+id:[ \t]+[\"']?I-\d{2,}\b)"
+    ),
+    "J": re.compile(
+        r"^ {0,3}(?:last_refresh_session|last_refresh_commit|last_refresh_date|"
+        r"owner_agent|refresh_triggers|scheduled_cadence|"
+        r"last_harness_pass_rate|last_harness_date|"
+        r"first_staleness_detected_at):[ \t]*"
+    ),
+    "K": re.compile(
+        r"^ {0,3}(?:linter_version|last_lint_run|last_lint_result|retrofit|"
+        r"trace_matrix_path|word_count_delta):[ \t]*"
+    ),
+}
+
+
+@_FORMAT_CHECKER.checks("date")
+def _valid_date_format(value: object) -> bool:
+    if not isinstance(value, str) or ISO_DATE_RE.fullmatch(value) is None:
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
+
+
+@_FORMAT_CHECKER.checks("date-time")
+def _valid_datetime_format(value: object) -> bool:
+    if not isinstance(value, str) or RFC3339_DATETIME_RE.fullmatch(value) is None:
+        return False
+    normalized = value[:-1] + "+00:00" if value[-1:].casefold() == "z" else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None
 
 
 def validate_form(section: Section, schemas_dir: Path) -> list[Finding]:
@@ -287,6 +331,11 @@ def extract_f_rows(section: Section) -> list[dict[str, str]]:
     return rows
 
 
+def extract_e_entries(section: Section) -> list[dict[str, Any]]:
+    block = extract_fenced_yaml_block(section, "operate")
+    return block if isinstance(block, list) else []
+
+
 def extract_g_entries(section: Section) -> list[dict[str, Any]]:
     block = extract_fenced_yaml_block(section, "repair")
     return block if isinstance(block, list) else []
@@ -307,18 +356,103 @@ def extract_k_payload(section: Section) -> dict[str, Any] | None:
     return block if isinstance(block, dict) else None
 
 
-def collect_b_rule_findings(section: Section, check: int, *, include_warn: bool = True) -> list[Finding]:
-    return _validate_b_rules(section, extract_b_rows(section), check, include_warn=include_warn)
+def collect_b_rule_findings(
+    section: Section,
+    check: int,
+    *,
+    include_warn: bool = True,
+    now: datetime | None = None,
+) -> list[Finding]:
+    return _validate_b_rules(
+        section,
+        extract_b_rows(section),
+        check,
+        include_warn=include_warn,
+        now=now,
+    )
+
+
+def classify_last_verified(
+    value: str,
+    now: datetime | None,
+) -> tuple[str, int | None]:
+    """Classify a §B verification cell using one shared calendar-day rule."""
+
+    normalized = value.strip()
+    if normalized in {"", "—"}:
+        return "unverified", None
+    if not ISO_DATE_RE.fullmatch(normalized):
+        return "invalid", None
+    try:
+        verified_at = date.fromisoformat(normalized)
+    except ValueError:
+        return "invalid", None
+    if now is None:
+        return "verified", None
+    now_utc = (
+        now.replace(tzinfo=UTC)
+        if now.tzinfo is None
+        else now.astimezone(UTC)
+    )
+    age_days = (now_utc.date() - verified_at).days
+    if age_days < 0:
+        return "future", age_days
+    if age_days > LAST_VERIFIED_MAX_AGE_DAYS:
+        return "expired", age_days
+    return "verified", age_days
 
 
 def _validate_yaml_block(section: Section, schemas_dir: Path, marker: str, schema_name: str) -> list[Finding]:
     payload = extract_fenced_yaml_block(section, marker)
-    return _validate_schema_payload(
+    findings = _validate_schema_payload(
         payload=payload,
         schema_path=schemas_dir / schema_name,
         line=section.line_start,
         empty_message=f"§{section.letter} must contain a ```yaml {marker}``` block",
     )
+    findings.extend(_escaped_form_findings(section, marker))
+    return findings
+
+
+def _escaped_form_findings(section: Section, marker: str) -> list[Finding]:
+    pattern = _ESCAPED_FORM_RE.get(section.letter)
+    if pattern is None:
+        return []
+    for offset, line in _rendered_prose_lines(section.raw_markdown):
+        if pattern.match(line) is not None:
+            return [
+                Finding(
+                    severity="FAIL",
+                    check=2,
+                    message=(
+                        f"§{section.letter} form-shaped content must be inside "
+                        f"a rendered ```yaml {marker}``` block"
+                    ),
+                    line=section.line_start + offset,
+                )
+            ]
+    return []
+
+
+def _rendered_prose_lines(markdown: str) -> Iterable[tuple[int, str]]:
+    fence: tuple[str, int] | None = None
+    for offset, line in enumerate(markdown.splitlines()):
+        if fence is not None:
+            closing = FENCE_CLOSE_RE.fullmatch(line)
+            if closing is not None:
+                marks = closing.group("marks")
+                if marks[0] == fence[0] and len(marks) >= fence[1]:
+                    fence = None
+            continue
+
+        opening = FENCE_OPEN_RE.match(line)
+        if opening is not None:
+            marks = opening.group("marks")
+            info = opening.group("info")
+            if marks[0] == "~" or "`" not in info:
+                fence = (marks[0], len(marks))
+                continue
+        yield offset, line
 
 
 def _validate_table_schema(section: Section, schema_path: Path, headers: list[str], rows: list[dict[str, str]]) -> list[Finding]:
@@ -361,6 +495,7 @@ def _validate_b_rules(
     check: int,
     *,
     include_warn: bool = True,
+    now: datetime | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
     for row in rows:
@@ -416,7 +551,8 @@ def _validate_b_rules(
                 )
             )
 
-        if last_verified in {"", "—"}:
+        verification_state, age_days = classify_last_verified(last_verified, now)
+        if verification_state == "unverified":
             if include_warn:
                 findings.append(
                     Finding(
@@ -426,12 +562,39 @@ def _validate_b_rules(
                         line=row_line,
                     )
                 )
-        elif not ISO_DATE_RE.fullmatch(last_verified):
+        elif verification_state == "invalid":
             findings.append(
                 Finding(
                     severity="FAIL",
                     check=check,
-                    message=f"Last Verified must be YYYY-MM-DD, empty, or em-dash (got {last_verified})",
+                    message=(
+                        "Last Verified must be a real YYYY-MM-DD date, empty, "
+                        f"or em-dash (got {last_verified})"
+                    ),
+                    line=row_line,
+                )
+            )
+        elif verification_state == "future":
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=check,
+                    message=(
+                        f"Last Verified is in the future ({last_verified}); "
+                        "verification evidence cannot postdate the lint clock"
+                    ),
+                    line=row_line,
+                )
+            )
+        elif verification_state == "expired" and include_warn:
+            findings.append(
+                Finding(
+                    severity="WARN",
+                    check=check,
+                    message=(
+                        f"Last Verified is {age_days} days old "
+                        f"(> {LAST_VERIFIED_MAX_AGE_DAYS}); row is UNVERIFIED"
+                    ),
                     line=row_line,
                 )
             )
@@ -497,28 +660,28 @@ def _extract_h_payload(section: Section) -> dict[str, Any]:
 
 
 def _extract_h_heading_body(section: Section, heading_text: str) -> str | None:
-    lines = section.raw_markdown.splitlines()
-    start_index: int | None = None
-    heading_level: int | None = None
-    for index, line in enumerate(lines):
-        if not line.startswith("#"):
+    tokens = section.ast_subtree
+    for index, token in enumerate(tokens):
+        if token.get("type") != "heading":
             continue
-        stripped = line.lstrip("#").strip()
-        if stripped == heading_text:
-            start_index = index + 1
-            heading_level = len(line) - len(line.lstrip("#"))
-            break
-    if start_index is None or heading_level is None:
-        return None
+        if _flatten_text(token) != heading_text:
+            continue
+        heading_level = token.get("attrs", {}).get("level")
+        if not isinstance(heading_level, int):
+            return None
 
-    collected: list[str] = []
-    for line in lines[start_index:]:
-        if line.startswith("#"):
-            next_level = len(line) - len(line.lstrip("#"))
-            if next_level <= heading_level:
-                break
-        collected.append(line)
-    return "\n".join(collected).strip()
+        collected: list[str] = []
+        for body_token in tokens[index + 1 :]:
+            if body_token.get("type") == "heading":
+                next_level = body_token.get("attrs", {}).get("level")
+                if isinstance(next_level, int) and next_level <= heading_level:
+                    break
+            body = _flatten_text(body_token).strip()
+            if body:
+                collected.append(body)
+        rendered_body = "\n".join(collected).strip()
+        return rendered_body or None
+    return None
 
 
 def _flatten_text(token: dict[str, Any]) -> str:

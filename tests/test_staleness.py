@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from runbook_tools.lint.staleness import evaluate_staleness, write_lifecycle_update
+from runbook_tools.lint.staleness import evaluate_staleness
 from runbook_tools.parser.sections import extract_sections
 from tests.conftest import FIXTURES_DIR
 
@@ -31,6 +31,17 @@ def test_evaluate_staleness_commit_drift_and_date_expired() -> None:
     assert triggered_predicates == ["commit_drift_60d"]
 
 
+def test_full_head_matches_the_same_stored_short_commit() -> None:
+    is_stale, triggered_predicates, _, _ = evaluate_staleness(
+        _sections("conformant.md"),
+        datetime(2026, 6, 21, tzinfo=timezone.utc),
+        "ea70326000000000000000000000000000000000",
+    )
+
+    assert is_stale is False
+    assert triggered_predicates == []
+
+
 def test_evaluate_staleness_ignores_retired_harness_age() -> None:
     is_stale, triggered_predicates, _, recommended_action = evaluate_staleness(
         _sections("stale_harness_old.md"),
@@ -49,6 +60,8 @@ def test_evaluate_staleness_null_harness_date_is_not_a_staleness_signal() -> Non
         "last_harness_date: null",
         1,
     )
+    for original in ("2026-04-20", "2026-04-19", "2026-04-18"):
+        markdown = markdown.replace(f"| {original} |", "| 2027-04-20 |", 1)
 
     is_stale, triggered_predicates, _, _ = evaluate_staleness(
         extract_sections(markdown),
@@ -66,6 +79,8 @@ def test_evaluate_staleness_null_refresh_date_does_not_trigger_commit_drift() ->
         "last_refresh_date: null",
         1,
     )
+    for original in ("2026-04-20", "2026-04-19", "2026-04-18"):
+        markdown = markdown.replace(f"| {original} |", "| 2027-04-20 |", 1)
 
     is_stale, triggered_predicates, _, _ = evaluate_staleness(
         extract_sections(markdown),
@@ -87,6 +102,50 @@ def test_evaluate_staleness_unverified_b_rows() -> None:
     assert triggered_predicates == ["unverified_b_rows"]
 
 
+def test_evaluate_staleness_treats_91_but_not_90_days_as_unverified() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text()
+    for original in ("2026-04-20", "2026-04-19", "2026-04-18"):
+        markdown = markdown.replace(f"| {original} |", "| 2026-04-20 |", 1)
+
+    at_90 = evaluate_staleness(
+        extract_sections(markdown),
+        datetime(2026, 7, 19, 23, 59, tzinfo=timezone.utc),
+        "ea70326",
+    )
+    at_91 = evaluate_staleness(
+        extract_sections(markdown),
+        datetime(2026, 7, 20, tzinfo=timezone.utc),
+        "ea70326",
+    )
+
+    assert at_90[0] is False
+    assert at_90[1] == []
+    assert at_91[0] is True
+    assert at_91[1] == ["unverified_b_rows"]
+    assert at_91[3] == "NONE"
+
+
+def test_last_verified_age_uses_utc_day_across_extreme_caller_timezones() -> None:
+    markdown = (FIXTURES_DIR / "conformant.md").read_text()
+    for original in ("2026-04-20", "2026-04-19", "2026-04-18"):
+        markdown = markdown.replace(f"| {original} |", "| 2026-04-20 |", 1)
+    sections = extract_sections(markdown)
+
+    local_next_day_but_utc_day_90 = evaluate_staleness(
+        sections,
+        datetime(2026, 7, 20, 0, 30, tzinfo=timezone(timedelta(hours=14))),
+        "ea70326",
+    )
+    local_day_90_but_utc_day_91 = evaluate_staleness(
+        sections,
+        datetime(2026, 7, 19, 23, 30, tzinfo=timezone(timedelta(hours=-10))),
+        "ea70326",
+    )
+
+    assert local_next_day_but_utc_day_90[1] == []
+    assert local_day_90_but_utc_day_91[1] == ["unverified_b_rows"]
+
+
 def test_evaluate_staleness_multiple_authoritative_predicates_ignore_harness_age() -> None:
     markdown = (
         FIXTURES_DIR / "stale_commit_drift.md"
@@ -102,73 +161,26 @@ def test_evaluate_staleness_multiple_authoritative_predicates_ignore_harness_age
     assert triggered_predicates == ["commit_drift_60d", "unverified_b_rows"]
 
 
-def test_emission_table_row_1_set() -> None:
-    _, _, _, recommended_action = evaluate_staleness(
-        _sections("stale_commit_drift.md"),
+def test_file_owned_first_seen_clock_never_changes_staleness_result() -> None:
+    base = (FIXTURES_DIR / "stale_commit_drift.md").read_text()
+    without_clock = evaluate_staleness(
+        extract_sections(base),
+        datetime(2026, 4, 21, tzinfo=timezone.utc),
+        "ea70326",
+    )
+    with_reset_clock = evaluate_staleness(
+        extract_sections(
+            base.replace(
+                "first_staleness_detected_at: null",
+                "first_staleness_detected_at: 2026-04-21T00:00:00Z",
+            )
+        ),
         datetime(2026, 4, 21, tzinfo=timezone.utc),
         "ea70326",
     )
 
-    assert recommended_action == "SET"
-
-
-def test_emission_table_row_2_no_action() -> None:
-    markdown = (FIXTURES_DIR / "stale_commit_drift.md").read_text().replace(
-        "first_staleness_detected_at: null",
-        "first_staleness_detected_at: 2026-04-11T00:00:00Z",
-    )
-
-    _, _, new_first_detected_at, recommended_action = evaluate_staleness(
-        extract_sections(markdown),
-        datetime(2026, 4, 21, tzinfo=timezone.utc),
-        "ea70326",
-    )
-
-    assert recommended_action == "NONE"
-    assert new_first_detected_at == "2026-04-11T00:00:00Z"
-
-
-def test_emission_table_row_3_still_no_action() -> None:
-    markdown = (FIXTURES_DIR / "stale_commit_drift.md").read_text().replace(
-        "first_staleness_detected_at: null",
-        "first_staleness_detected_at: 2026-03-07T00:00:00Z",
-    )
-
-    _, _, new_first_detected_at, recommended_action = evaluate_staleness(
-        extract_sections(markdown),
-        datetime(2026, 4, 21, tzinfo=timezone.utc),
-        "ea70326",
-    )
-
-    assert recommended_action == "NONE"
-    assert new_first_detected_at == "2026-03-07T00:00:00Z"
-
-
-def test_emission_table_row_4_clean() -> None:
-    is_stale, _, _, recommended_action = evaluate_staleness(
-        _sections("conformant.md"),
-        datetime(2026, 4, 21, tzinfo=timezone.utc),
-        "ea70326",
-    )
-
-    assert recommended_action == "NONE"
-    assert is_stale is False
-
-
-def test_emission_table_row_5_clear() -> None:
-    markdown = (FIXTURES_DIR / "conformant.md").read_text().replace(
-        "first_staleness_detected_at: null",
-        "first_staleness_detected_at: 2026-04-01T00:00:00Z",
-    )
-
-    _, _, new_first_detected_at, recommended_action = evaluate_staleness(
-        extract_sections(markdown),
-        datetime(2026, 4, 21, tzinfo=timezone.utc),
-        "ea70326",
-    )
-
-    assert recommended_action == "CLEAR"
-    assert new_first_detected_at is None
+    assert without_clock == with_reset_clock
+    assert without_clock == (True, ["commit_drift_60d"], None, "NONE")
 
 
 def test_evaluate_staleness_commit_drift_boundary_at_60_days_is_not_stale() -> None:
@@ -208,33 +220,6 @@ def test_evaluate_staleness_harness_boundary_at_90_days_is_not_stale() -> None:
 
     assert is_stale is False
     assert triggered_predicates == []
-
-
-def test_write_lifecycle_update_sets_iso(tmp_path) -> None:
-    runbook_path = tmp_path / "runbook.md"
-    original = (FIXTURES_DIR / "conformant.md").read_text()
-    runbook_path.write_text(original)
-
-    write_lifecycle_update(runbook_path, "2026-04-21T00:00:00+00:00")
-
-    updated = runbook_path.read_text()
-    assert 'first_staleness_detected_at: "2026-04-21T00:00:00+00:00"' in updated
-    assert "last_refresh_session: S487" in updated
-    assert "last_harness_date: 2026-04-20T02:00:00Z" in updated
-
-
-def test_write_lifecycle_update_sets_null(tmp_path) -> None:
-    runbook_path = tmp_path / "runbook.md"
-    original = (FIXTURES_DIR / "conformant.md").read_text().replace(
-        "first_staleness_detected_at: null",
-        "first_staleness_detected_at: 2026-04-01T00:00:00Z",
-    )
-    runbook_path.write_text(original)
-
-    write_lifecycle_update(runbook_path, None)
-
-    updated = runbook_path.read_text()
-    assert "first_staleness_detected_at: null" in updated
 
 
 def _sections(fixture_name: str):

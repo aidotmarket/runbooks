@@ -20,6 +20,8 @@ authoritative_scope: The DESIGN LOGIC and decision record for reviewing e2e brow
 linter_version: 1.0.0
 ---
 
+<!-- Canonical source path: runbooks/e2e-video-review.md -->
+
 # E2E Video Review
 
 > Max, S1315: "I feel like this is a mine field that can only be crossed in the moment."
@@ -75,8 +77,8 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
 |---|---|---|---|---|
 | Vulcan/Mars | Read the decision log before changing anything here | this runbook §H.7 | none | COMPLETE |
 | Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Titan-1 | PARTIAL — cannot be settled until a real recording exists |
-| Vulcan/Mars | Put a proposed change to Council before building | `council_request mode=open_response` | Council dispatch | COMPLETE — three rounds already run, see the §H.6 decision log |
-| GLM / DeepSeek | Attack a proposed question set or gate | `council_request mode=open_response` | Council dispatch | COMPLETE — each caught what the other missed |
+| Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<kimi\|glm>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in §H.6; current calls use the deployed role/schema projection |
+| Kimi / GLM | Attack a proposed question set or gate outside a binding gate vote | `council_request mode=open_response` | Council dispatch | COMPLETE — use separate prompts and preserve both receipts; DeepSeek is retired from active voting |
 | CC | Review built code | `council_request mode=review` | Council dispatch | COMPLETE — note CC supports review mode only, not open_response |
 | Gemini | Analyse a recording and return findings | Vertex, existing Council connection | Google Cloud project | PLANNED |
 
@@ -104,9 +106,11 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
   trigger: A change to the questions, the gate, or the finding schema is proposed
   pre_conditions:
     - the change names the §H.6 decision it revises
-  tool_or_endpoint: "council_request mode=open_response to at least TWO reviewers, separately, each instructed to attack rather than agree"
+  tool_or_endpoint: "council_request(agent=<kimi|glm>, mode=open_response, task=<adversarial_prompt>, cwd=<repo>) once for each of two schema-visible challengers, separately"
   argument_sourcing:
-    reviewers: current roster in infra:council-comms - do not trust memory
+    reviewers: select Kimi and GLM only after confirming both in the deployed role projection and connected client schema; this is non-gate deliberation and does not alter the binding voter contract
+    adversarial_prompt: proposed change, governing decision and evidence, plus an explicit instruction to find counterexamples and unsafe assumptions
+    repo: canonical checkout containing the evidence under discussion
   idempotency: IDEMPOTENT
   expected_success:
     shape: 'two independent critiques, at least one of which disagrees with the other, and an explicit adjudication recorded with reasons'
@@ -302,7 +306,10 @@ scenario_set:
     scenario: You want to change how findings are accepted. What do you do first?
     expected_answers:
       - kind: human_action
-        action: read the decision log, name the decision you are reopening, state its original reason, and say what new information justifies changing it
+        verb: read-and-state
+        object: reopened decision, original reason, and new evidence
+        target: decision log and change proposal
+        rationale: read the decision log, name the decision you are reopening, state its original reason, and say what new information justifies changing it
     weight: 0.090909091
   - id: I-02
     type: operate
@@ -310,7 +317,10 @@ scenario_set:
     scenario: You have a proposed change to the question set. One reviewer approves it. Ship it?
     expected_answers:
       - kind: human_action
-        action: no - dispatch a second reviewer, show them the first reviewer's conclusions by name, and instruct them to attack; every real correction here came from disagreement, not consensus
+        verb: dispatch
+        object: adversarial second review with the first reviewer's named conclusions
+        target: proposed question-set change
+        rationale: no - dispatch a second reviewer, show them the first reviewer's conclusions by name, and instruct them to attack; every real correction here came from disagreement, not consensus
     weight: 0.090909091
   - id: I-03
     type: operate
@@ -318,7 +328,10 @@ scenario_set:
     scenario: Two reviewers argue opposite conclusions about one analysis pass versus two. How do you decide?
     expected_answers:
       - kind: human_action
-        action: measure the assembled evidence object plus the video against the context window on a real recording; it is an empirical question and neither reviewer can measure
+        verb: measure
+        object: assembled evidence object plus video size
+        target: context window on a real recording
+        rationale: measure the assembled evidence object plus the video against the context window on a real recording; it is an empirical question and neither reviewer can measure
     weight: 0.090909091
   - id: I-04
     type: isolate
@@ -326,7 +339,10 @@ scenario_set:
     scenario: A finding says a button was broken. The video shows the agent clicking and nothing happening. Accept it as a product defect?
     expected_answers:
       - kind: human_action
-        action: not on that alone - on video a wrong click is indistinguishable from a broken control; require the agent's declared intent plus hard evidence the product misbehaved, otherwise accept-with-review or demote
+        verb: require-or-demote
+        object: declared intent plus hard evidence of product misbehavior
+        target: button-defect finding
+        rationale: not on that alone - on video a wrong click is indistinguishable from a broken control; require the agent's declared intent plus hard evidence the product misbehaved, otherwise accept-with-review or demote
     weight: 0.090909091
   - id: I-05
     type: isolate
@@ -334,7 +350,10 @@ scenario_set:
     scenario: The same defect has filed a new ticket every morning for a week. Cause?
     expected_answers:
       - kind: human_action
-        action: the signature is keyed on something that varies per run, such as timings or model-rephrased prose; rekey it on the defect's own identity
+        verb: rekey
+        object: duplicate-suppression signature
+        target: stable defect identity
+        rationale: the signature is keyed on something that varies per run, such as timings or model-rephrased prose; rekey it on the defect's own identity
     weight: 0.090909091
   - id: I-06
     type: isolate
@@ -342,7 +361,10 @@ scenario_set:
     scenario: Recordings stopped appearing and nothing errored. First check?
     expected_answers:
       - kind: human_action
-        action: whether the target directory still exists - it is throwaway by design, and the writer must create it at write time rather than assume it persists
+        verb: verify-and-create
+        object: recording target directory
+        target: writer output path at write time
+        rationale: whether the target directory still exists - it is throwaway by design, and the writer must create it at write time rather than assume it persists
     weight: 0.090909091
   - id: I-07
     type: repair
@@ -350,7 +372,10 @@ scenario_set:
     scenario: A finding cites only a timestamp and says the checkout page looks broken. What happens to it?
     expected_answers:
       - kind: human_action
-        action: it fails path 1 and does not meet path 2 either, because 'looks broken' is not concrete visual evidence with a stated user impact; demote it to the reviewable queue rather than discarding it
+        verb: demote
+        object: timestamp-only looks-broken finding
+        target: reviewable queue
+        rationale: it fails path 1 and does not meet path 2 either, because 'looks broken' is not concrete visual evidence with a stated user impact; demote it to the reviewable queue rather than discarding it
     weight: 0.090909091
   - id: I-08
     type: repair
@@ -358,7 +383,10 @@ scenario_set:
     scenario: Someone proposes building the acceptance gate this week. The evidence-object schema is not written. Proceed?
     expected_answers:
       - kind: human_action
-        action: no - the gate depends entirely on that object, and if it omits the agent's declared intent the gate is decorative; define the schema first
+        verb: define
+        object: evidence-object schema including declared intent
+        target: acceptance gate before implementation
+        rationale: no - the gate depends entirely on that object, and if it omits the agent's declared intent the gate is decorative; define the schema first
     weight: 0.090909091
   - id: I-09
     type: evolve
@@ -366,7 +394,7 @@ scenario_set:
     scenario: A change auto-files tickets from accept-with-review findings to save human time. Classify.
     expected_answers:
       - kind: classification
-        verdict: BREAKING
+        label: BREAKING
     weight: 0.090909091
   - id: I-10
     type: evolve
@@ -374,7 +402,7 @@ scenario_set:
     scenario: A change adds a new evaluation category for subscription upsell clarity, widening what is looked for. Classify.
     expected_answers:
       - kind: classification
-        verdict: SAFE
+        label: SAFE
     weight: 0.090909091
   - id: I-11
     type: ambiguous
@@ -384,7 +412,10 @@ scenario_set:
       - kind: classification
         label: ACCEPT_WITH_REVIEW
       - kind: human_action
-        action: this is exactly the class the three-path gate exists for - it trips no contract, so path 1 cannot accept it, but concrete visual evidence at a timestamp with a clear user impact earns path 2 and a human look; forcing it through path 1 is how the gate goes blind
+        verb: route
+        object: price-zero finding with concrete timestamped visual impact
+        target: path 2 human review
+        rationale: this is exactly the class the three-path gate exists for - it trips no contract, so path 1 cannot accept it, but concrete visual evidence at a timestamp with a clear user impact earns path 2 and a human look; forcing it through path 1 is how the gate goes blind
     weight: 0.090909091
 ```
 

@@ -18,7 +18,10 @@ def test_lint_version_flag() -> None:
 def test_new_cmd_invalid_name() -> None:
     runner = CliRunner()
 
-    result = runner.invoke(new_cmd, ["BAD"])
+    result = runner.invoke(
+        new_cmd,
+        ["BAD", "--owner", "sysadmin", "--domain", "infrastructure"],
+    )
 
     assert result.exit_code == 2
     assert "invalid system_name" in result.output
@@ -26,15 +29,47 @@ def test_new_cmd_invalid_name() -> None:
 
 def test_new_cmd_refuses_overwrite(tmp_path: Path) -> None:
     runner = CliRunner()
-    existing = tmp_path / "infisical-secrets.md"
-    existing.write_text("already here")
 
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        Path("infisical-secrets.md").write_text("already here")
-        result = runner.invoke(new_cmd, ["infisical-secrets"])
+        Path("runbooks").mkdir()
+        Path("runbooks/infisical-secrets.md").write_text("already here")
+        result = runner.invoke(
+            new_cmd,
+            [
+                "infisical-secrets",
+                "--owner",
+                "sysadmin",
+                "--domain",
+                "infrastructure",
+            ],
+        )
 
     assert result.exit_code == 1
     assert "refusing to overwrite" in result.output
+
+
+def test_new_cmd_creates_explicit_draft_inside_runbooks(tmp_path: Path) -> None:
+    runner = CliRunner()
+
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(
+            new_cmd,
+            [
+                "infisical-secrets",
+                "--owner",
+                "sysadmin",
+                "--domain",
+                "infrastructure",
+            ],
+        )
+        created = Path("runbooks/infisical-secrets.md")
+        assert result.exit_code == 0
+        assert created.is_file()
+        assert not Path("infisical-secrets.md").exists()
+        content = created.read_text()
+        assert "runbook_id: infisical-secrets" in content
+        assert "status: DRAFT" in content
+        assert "owner: sysadmin" in content
 
 
 def test_parse_readme_status_rows_accepts_markdown_links(tmp_path: Path) -> None:
@@ -131,11 +166,7 @@ def test_harness_cmd_configuration_error(tmp_path: Path) -> None:
         "  - id: I-01\n"
         "    type: operate\n"
         "    refs: [E-01]\n"
-        "    scenario: demo scenario\n"
-        "    expected_answers:\n"
-        "      - kind: tool_call\n"
-        "        tool: demo\n"
-        "        argument_keys: [x]\n"
+        "    scenario: demo scenario deliberately has no expected answer\n"
         "    weight: 1.0\n"
         "```\n"
     )
@@ -143,4 +174,28 @@ def test_harness_cmd_configuration_error(tmp_path: Path) -> None:
     result = runner.invoke(harness_cmd, ["--runbook", str(runbook)])
 
     assert result.exit_code == 1
-    assert "Scenario configuration drift" in result.output or "missing_yaml:I-01" in result.output
+    assert "§I failed acceptance schema validation" in result.output
+
+
+def test_harness_cmd_skips_empty_i_without_creating_failure_artifact(
+    tmp_path: Path,
+) -> None:
+    runbook = tmp_path / "empty.md"
+    runbook.write_text(
+        """---
+system_name: empty
+---
+
+## §I. Acceptance Criteria
+
+```yaml acceptance
+scenario_set: []
+```
+"""
+    )
+
+    result = CliRunner().invoke(harness_cmd, ["--runbook", str(runbook)])
+
+    assert result.exit_code == 0
+    assert "SKIP_NO_EVIDENCE_BACKED_SCENARIOS" in result.output
+    assert not (Path.cwd() / "harness" / "results" / "empty").exists()

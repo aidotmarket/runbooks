@@ -17,8 +17,30 @@ work claims, and handoff untouched. Verify those instance-scoped effects before 
 close complete. Use `session-registry-recovery.md` if the instance row is stale or a close
 partially completes.
 
-MP is the mandatory builder, not a gate voter; the current gate voter panel is CC +
-Kimi + GLM (DeepSeek retired). `infra:council-comms` is canonical for the live roster and dispatch config.
+Runbook completion is determined by operational behavior impact, not by producing
+prose that satisfies a close field. Detect the exact deployed close contract from
+the signed connected schema:
+
+- When structured `runbook_impact` is deployed, the agent proposes
+  `required|not_required|uncertain`, but the server owns repository baselines,
+  changed paths, action/config/deploy receipts, remote ancestry, and section
+  verification. `not_required` is valid only for a deterministic known
+  behavior-preserving class. Missing evidence becomes `uncertain` and creates or
+  refreshes one deduplicated nonblocking obligation; it does not force filler.
+- While the connected schema still exposes only legacy `runbook_exit`, pass the
+  truthful compatibility declaration required by that exact schema. A legacy
+  commit/created/no-change/waiver value is not evidence of impact and must not
+  induce an unrelated runbook edit. Preserve any resulting legacy debt for
+  migration rather than inventing facts to discharge it.
+- A typed committed close receipt is the only success signal. Response prose,
+  local handoff files, mutable registry rows, author names, and `git cat-file`
+  existence alone are not close truth.
+
+The intended current roles are MP as builder/non-voter, CC + Kimi + GLM as
+voters, AG paused, and DeepSeek retired. The exact signed deployed
+tool-and-Council contract is runtime authority. If it is absent or the connected
+schema contradicts it, stop roster-dependent work; historical Living State
+prose is not a substitute.
 
 <!-- catalog:historical -->
 ## Historical S607-S630 role-slot close record (retired)
@@ -148,8 +170,8 @@ If `kd_session_close` first attempt fails on branch check and retry after main c
 3. File this as a known surface; the close handler should atomically roll back transaction state on first-attempt failure (open work item).
 
 ## C.14 Related runbooks
-- `runbooks/session-open-protocol.md` — open flow (paired with close).
-- `runbooks/session-registry-recovery.md` — recovery when session registry desyncs.
+- `session-open-protocol.md` — non-authoritative transition and legacy open record.
+- `session-registry-recovery.md` — recovery when session registry desyncs.
 - `runbooks/peer-instance-discipline.md` — pre-close peer-bus and claim discipline checks.
 
 ## C.15 Owner

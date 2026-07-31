@@ -4,8 +4,6 @@
   "type": "object",
   "required": [
     "linter_version",
-    "last_lint_run",
-    "last_lint_result",
     "trace_matrix_path",
     "word_count_delta"
   ],

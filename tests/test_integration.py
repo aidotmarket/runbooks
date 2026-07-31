@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -8,6 +9,10 @@ from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 
 def test_lint_conformant_runbook_passes(monkeypatch) -> None:
     monkeypatch.setattr("runbook_tools.cli._git_head", lambda _: "ea70326")
+    monkeypatch.setattr(
+        "runbook_tools.cli._utc_now",
+        lambda: datetime(2026, 4, 22, tzinfo=timezone.utc),
+    )
     monkeypatch.setattr(
         "runbook_tools.lint.checks.newest_harness_result",
         lambda _: (
@@ -45,10 +50,22 @@ def test_lint_missing_section_fails() -> None:
 def test_new_cmd_creates_file(tmp_path: Path) -> None:
     runner = CliRunner()
 
-    result = runner.invoke(new_cmd, ["infisical-secrets", "--dry-run"], catch_exceptions=False)
+    result = runner.invoke(
+        new_cmd,
+        [
+            "infisical-secrets",
+            "--owner",
+            "sysadmin",
+            "--domain",
+            "infrastructure",
+            "--dry-run",
+        ],
+        catch_exceptions=False,
+    )
 
     assert result.exit_code == 0
     assert "infisical-secrets" in result.output
+    assert "status: DRAFT" in result.output
 
 
 def test_harness_cmd_reports_dispatch_failure_when_local_server_unavailable(

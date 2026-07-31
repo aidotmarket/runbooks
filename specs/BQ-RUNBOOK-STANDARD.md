@@ -20,9 +20,9 @@ Define the system-wide standard every runbook in the ai.market ecosystem must me
 
 A runbook is legible when a stateless agent, given only this runbook and no prior context, can produce a correct first action on any defined operational scenario.
 
-**R3 scope (retained).** Unified §3/§4 agent-form taxonomy, §I equal-weight default, §H boundary definitions, §J timestamps + grace workflow, G4 hidden-scenario protocol, §C/§G entry-point distinction, §12 Gate Boundaries.
+**R3 scope (historical provenance).** Unified §3/§4 agent-form taxonomy, the former §I scored-scenario design, §H boundary definitions, the former file-owned §J grace workflow, G4 hidden-scenario protocol, §C/§G entry-point distinction, §12 Gate Boundaries. The automated §I quota, distribution, and weight gate and client-authored staleness clock were retired in S1413; the current rules are in §4 below.
 
-**R4 scope (retained).** §J grace-clear tightened, G4 reviewer-independence partial split, §K.1 severity classification, `linter_version` drift closed.
+**R4 scope (historical provenance).** The former §J grace-clear rule, G4 reviewer-independence partial split, §K.1 severity classification, and `linter_version` drift handling. The current server-owned staleness contract supersedes the file clock.
 
 **R5 scope (retained).** G4 reviewer independence via XAI challenger, attempt-scoped Living State keys, §K.1 checks #19/#20, AG operational dependency.
 
@@ -30,7 +30,7 @@ A runbook is legible when a stateless agent, given only this runbook and no prio
 
 **R7 scope (retained).** Attempt-registry shape split (per-attempt + manifest), multi-predicate precedence, state-transition table, Case D → Case A routing.
 
-**R8 scope (retained).** §E agent-autonomy fields, §9 harness coverage proof, stalled→superseded transition, Case D reviewer shape, step 2(c) manifest-first read, terminal-state language.
+**R8 scope (historical provenance).** §E agent-autonomy fields, the former §9 harness coverage proof, stalled→superseded transition, Case D reviewer shape, step 2(c) manifest-first read, terminal-state language. S1413 replaced harness coverage quotas with direct procedure-coverage review.
 
 **R9 scope (final Gate 1 revision).** Closes the 2 micro-defects MP R8 flagged: (a) Case D reviewer-eligibility paradox — MP R8 correctly observed that step 4 makes MP a mandatory eval-set co-author, so "MP eligible if MP didn't co-author" is unreachable. R9 rewrites eligibility: XAI is the primary reviewer; MP-as-reviewer is defined only for corner cases where the `SUSPECT_OVERFITTING` verdict is unrelated to MP's eval-set work (e.g., if XAI later SUSPECT_OVERFITTINGs on a fresh MP+AG pair where MP was not in the reconciliation for the verdict under review). (b) Step 2(c) race condition — MP R8 noted "newest g4_attempt_id" from manifest is not race-safe under concurrent opens. R9 introduces a correlation token: Vulcan generates a `request_nonce` (UUID) in the `g4-attempt-opened` event; Koskadeux includes the `request_nonce` in the attempt-registry entity and in the manifest append; Vulcan reads the manifest and matches on `request_nonce` to find its own attempt_id, not just "newest." This is race-safe under any concurrent-open pattern.
 
@@ -82,7 +82,15 @@ Consumer-specific affordances:
 
 ## 4. Mandatory Sections
 
-Every runbook under this standard contains §A through §K, in order. Sections can be extended but not omitted or renamed. Each §C–§K section has a *single* required agent form with a prescribed schema. The linter (§K.1) validates schema conformance.
+Every runbook under this standard contains exactly one current §A through §K,
+in order. Sections can be extended but not omitted, duplicated, or renamed.
+Content retained only for provenance must be enclosed in explicit
+`<!-- catalog:historical -->` / `<!-- /catalog:historical -->` spans; historical
+content cannot satisfy a current form or appear in current search results. Each
+§C–§K section has a *single* required agent form with a prescribed schema. The
+linter (§K.1) validates schema conformance. YAML frontmatter and fenced agent
+forms use strict YAML parsing: duplicate mapping keys are invalid instead of
+silently taking the final value.
 
 ### §A. Header
 **Agent form:** header block (prescribed keys)
@@ -105,7 +113,7 @@ Header is a summary display; §J is authoritative. When they diverge, §J wins a
 
 **`PARTIAL` definition:** shipped but known to have one or more listed defects in §F, OR shipped for a subset of documented use cases. Non-`PARTIAL` cells with known defects are runbook defects.
 
-**`UNVERIFIED` is not a status value.** It is a cell annotation overlay applied when `Last Verified` is empty or older than 90 days. Rendered as e.g., `SHIPPED (UNVERIFIED)`. The linter flags unverified cells.
+**`UNVERIFIED` is not a status value.** It is a cell annotation overlay applied when `Last Verified` is empty or older than 90 UTC calendar days (exactly 90 remains verified). Rendered as e.g., `SHIPPED (UNVERIFIED)`. The linter flags unverified cells and feeds the same classification into §J staleness. Impossible dates and dates later than the lint clock are `FAIL`, not freshness evidence.
 
 **Canonical → legacy mapping** (for retrofits):
 - `Working` → `SHIPPED`
@@ -153,6 +161,14 @@ Each scenario:
 - `next_step_failure`
 
 §E covers **expected paths**: common operational scenarios and their anticipated failure branches. Deviations outside any §E branch are handled in §F. Covers both human-initiated (support ticket, ops request) and agent-initiated (allAI triage, scheduled job, cross-system call) flows.
+
+The operate list may contain zero or more scenarios; there is no minimum count.
+When scenarios exist, their `id` values are unique. An empty list is honest when
+there is no evidence-backed operation to document. If the runbook claims an
+operational scope but the procedure is not yet known, current prose must name
+the `UNKNOWN`, the owner who will resolve it, and the evidence needed. Reviewers
+must reject an unexplained empty list used to hide an operational gap; authors
+must not invent a procedure to make the form look populated.
 
 **Why `pre_conditions`, `argument_sourcing`, `idempotency` are required.** Agent-initiated flows need to check pre-conditions before acting (no human intuition to fall back on), need to know where to fetch argument values (stateless agents cannot assume values are in-context), and need to know whether a retry after a timeout is safe (critical for agent error-recovery paths). Human-initiated flows benefit from the same fields but could survive without them; the contract is written for the stricter agent consumer.
 
@@ -218,35 +234,51 @@ Each pattern:
 
 **Adjudication.** If two agents classify the same change differently, the more restrictive classification wins. Disputes unresolvable under the predicates escalate to Max for ruling; the ruling is added as a per-system clarification to §H.1.
 
-### §I. Acceptance Criteria (for the runbook itself)
-**Agent form:** scenario set declaration
+### §I. Operational Examples
+**Agent form:** curated example set
 
-**Scenario set (minimum 10 per-system).**
+§I contains zero or more real, behavior-bearing examples that make an otherwise
+ambiguous §E, §F, §G, or §H instruction easier to apply. It is not a coverage
+quota. There is no required count, type distribution, weight total, or score.
+`scenario_set: []` is correct when no evidence-backed example is available;
+record any material `UNKNOWN` in the owning procedure with an evidence-gap owner
+instead of manufacturing an example. Do not split one procedure into filler
+examples merely to satisfy tooling.
 
-Required distribution:
-- At least 3 §E Operate scenarios
-- At least 3 §F Isolate scenarios
-- At least 2 §G Repair scenarios
-- At least 2 §H Evolve scenarios (propose a change, classify it per §H predicates)
-- At least 1 **ambiguous-symptom** scenario (multiple plausible first actions with a defined correct set)
+Each example declares:
 
-**Correct-first-action definition.** The stateless agent must produce one of:
-- The first tool call / endpoint invocation (matched by tool-name AND argument-key-set; argument-value correctness scored separately per rubric), OR
-- The first instruction to a human operator (matched by action verb + object + target; e.g., "run Alembic upgrade against production database" matches regardless of exact wording), OR
-- A classification verdict (for §H Evolve scenarios: SAFE / REVIEW / BREAKING).
+- `id`, `type`, and `refs` to the owning current instruction;
+- a concrete `scenario` with enough evidence to choose a safe first action; and
+- one or more `expected_answers` describing an acceptable tool call, human
+  action, or change classification.
 
-**Scoring rubric** (per scenario):
-- **Correct (1.0):** produces one of the answers in the scenario's expected-answer key
-- **Partial (0.5):** correct intent and correct target but incorrect detail (e.g., right tool, missing one argument; right human-action verb + object but wrong target subsystem)
-- **Incorrect (0.0):** off-path or harmful
+Example IDs are unique. `refs` is a non-empty, duplicate-free list. Local
+references to §E/§F/§G entries or §A–§K sections must resolve in the same
+runbook. A qualified cross-file reference such as `runbook-id:§E-01` is checked
+locally for syntax only; its existence must be resolved against the session's
+pinned catalog artifact before an agent relies on it.
 
-**Weighting.** Each scenario carries a weight; **default is equal-weight (1/N where N = scenario count)**. Authors may declare unequal weights in §I subsection `§I.1 Weight Justification` with one sentence per scenario explaining why it carries more or less weight (e.g., production-risk scenarios may justify higher weight). Linter enforces sum of weights = 1.0 (±0.001 tolerance). Unjustified unequal weights are a FAIL.
+Every expected answer has one of these non-vacuous contracts:
 
-**Pass threshold:** weighted score ≥ 0.80 across the full scenario set.
+- `tool_call`: non-blank `tool` and an explicit, duplicate-free
+  `argument_keys` list. The list may be empty only for a verified argumentless
+  tool. `argument_values`, when present, records verified fixed values.
+- `human_action`: non-blank `verb`, `object`, and `target`.
+- `classification`: non-blank `label`.
 
-**Adjudication.** The scenario's expected-answer key may list multiple acceptable answers; any listed answer scores 1.0. MP + AG must concur on the expected-answer key when scenarios are authored (for each scenario, both sign off before it enters the harness set). Disputes escalate to Max.
+Examples are documentation, not proof that an operation works. Tool names,
+argument keys, and fixed values in an example must be verified against the live
+schema or other owning ground truth before they are made current. Unsupported
+detail is written as `UNKNOWN` with an owner/evidence gap, never invented.
 
-**Harness.** Stateless MP dispatch with `allowed_tools=[Read,Grep,Glob,LS]` restricted to this runbook file. Harness script in `aidotmarket/runbooks/harness/` (§K.2). Full scenario-YAML grammar and harness execution semantics are Gate 2 deliverables (see §12); this section specifies what the harness must achieve, not its implementation details.
+Legacy `weight` fields may remain so an operator can reproduce an old manual
+diagnostic. They are optional, have no conformance or freshness meaning, and
+are not checked by `runbook-lint`. When every example omits `weight`, the
+optional diagnostic harness derives equal weights for that run only.
+
+The automated LLM exam and its quota/distribution/weight gate were retired in
+S1413. A manually invoked diagnostic may still exercise §I examples, but its
+score cannot make a runbook current, authoritative, or compliant.
 
 ### §J. Lifecycle
 **Agent form:** lifecycle metadata block
@@ -259,27 +291,46 @@ Authoritative refresh tracking. §A Header is a display summary; §J is the sour
 - `last_refresh_date` — ISO timestamp of last refresh
 - `owner_agent` — agent responsible for refresh cycles
 - `refresh_triggers` — list (BQ completion, gate approval, incident, scheduled cadence)
-- `scheduled_cadence` — e.g., `90 days` (optional; must be set if not event-driven)
-- `last_harness_pass_rate` — most recent §I harness score, or the explicit pending-tooling value when no valid result exists; retained as historical diagnostic evidence
-- `last_harness_date` — ISO timestamp of the most recent harness run, or `null`; retained as historical diagnostic evidence
-- `first_staleness_detected_at` — ISO timestamp; initialized `null`; the explicit `--update-staleness` helper proposes the measured transition when STALE becomes `true`, and clears it ONLY when all stale predicates re-evaluate to `false`; the resulting diff is reviewed and committed (see non-compliance workflow below)
 
-**Staleness detection (STALE true if ANY of):**
-- `last_refresh_commit != current HEAD of system's primary repo` AND `now - last_refresh_date > 60 days`
-- Any §B row has `UNVERIFIED` overlay
+**Optional fields:**
 
-The automated LLM harness exam was retired in S1413. Harness scores and dates remain auditable historical claims: check #21 still verifies them against any retained result artifact, but harness age is not a freshness predicate and must not be refreshed merely to keep a runbook compliant. `--refresh-harness-metadata` is the only command that rewrites those two claims; it is explicit and separate from the staleness clock.
+- `scheduled_cadence` — compact cadence such as `90d`; set it when refresh is
+  cadence-driven.
+- `last_harness_pass_rate` and `last_harness_date` — an optional historical
+  pair. They must be present or omitted together. If a retained harness artifact
+  exists, the pair is required and must exactly describe its measured state and
+  normalized start instant. These fields are diagnostic provenance, never
+  positive conformance or freshness evidence.
+- `first_staleness_detected_at` — optional legacy provenance. Local lint ignores
+  it for age and escalation decisions; new scaffolds omit it.
 
-**Non-compliance workflow:**
-1. On STALE transition `false → true`: read-only CI emits `FAIL` until `first_staleness_detected_at` is persisted in the reviewed change. An author may run `runbook-lint --update-staleness` to write the actual invocation timestamp locally; CI never writes or pushes it. The deprecated `--update-lifecycle` alias is clock-only and cannot rewrite harness claims.
-2. If `now - first_staleness_detected_at > 30 days` AND any stale predicate is still true: linter emits `FAIL` (PR-blocking).
-3. On metadata refresh (author updates `last_refresh_*` fields or re-verifies a §B cell), linter **re-evaluates all stale predicates**. When every predicate becomes false, read-only CI emits `FAIL` until the reviewed change clears `first_staleness_detected_at` to `null`. If any predicate remains true (for example, a §B cell is still `UNVERIFIED`), `first_staleness_detected_at` is preserved and the grace clock continues — the runbook is not considered re-freshed for grace-workflow purposes until the underlying staleness is cured.
+All present lifecycle timestamps must be valid and no later than the lint clock.
 
-**Rationale:** without this rule, a metadata-only refresh could wipe the grace clock while the runbook remained substantively stale, defeating the non-compliance mechanism. Requiring the transition in a reviewed diff also avoids a scheduled workflow manufacturing lifecycle or harness data and pushing it directly.
+**Current local staleness observations (true if either predicate fires):**
+
+- `last_refresh_commit` differs from the current repository HEAD and
+  `last_refresh_date` is more than 60 days old;
+- any §B row has an `UNVERIFIED` overlay.
+
+Local lint reports these current predicates as `WARN`. It does not write a
+first-seen clock and cannot turn a file-authored timestamp into a grace period.
+The canonical server state owns observation identity, first-seen time, elapsed
+age, escalation, and clearing. This prevents an agent from resetting enforcement
+by editing a runbook clock. There is no local `--update-staleness` or
+`--update-lifecycle` command.
+
+The automated LLM harness exam was retired in S1413. With no retained artifact,
+the historical pair may be omitted; if it is retained, the only supported
+no-result claim is the explicit pending value with a null date. An
+infrastructure-failure artifact uses that pending value with the artifact's
+exact start instant. A PASS or FAIL artifact requires its exact aggregate score
+and start instant. `--refresh-harness-metadata` is the only lifecycle writer and
+rewrites only this pair from local result artifacts.
 
 Other linter `FAIL` triggers (always PR-blocking, no grace period):
-- Any §A–§K section missing
+- Any current §A–§K section missing, duplicated, or out of order
 - Any §C–§K section missing its required agent form
+- Duplicate keys in YAML frontmatter or a fenced agent form
 - Internal contradictions (Header/Lifecycle mismatch, §F Repair Ref pointing to nonexistent §G entry, §G symptom_ref pointing to nonexistent §F entry)
 
 ### §K. Conformance
@@ -287,10 +338,14 @@ Other linter `FAIL` triggers (always PR-blocking, no grace period):
 
 **Required fields:**
 - `linter_version` — version of `runbook-lint` validated against
-- `last_lint_run` — session + date
-- `last_lint_result` — `PASS` | `WARN` | `FAIL` with diff summary if WARN/FAIL
 - `trace_matrix_path` — if this runbook is a retrofit, path to the trace matrix document
 - `word_count_delta` — if retrofit, before/after word count and percentage change
+
+Legacy `last_lint_run` and `last_lint_result` fields may remain, but they are
+optional and are not proof of current validation. The current read-only CI run
+is authoritative for lint outcome. A retrofit sets `retrofit: true`, in which
+case `trace_matrix_path` and `word_count_delta` must be populated; a non-retrofit
+may set both to `null`.
 
 **§K.0 — Linter version compatibility.** Each runbook declares the linter version it was validated against. The linter reads its own version from `runbook-lint --version` and compares against §K.0; mismatch is a `WARN` (not blocking) until the runbook re-validates.
 
@@ -300,8 +355,8 @@ The linter's complete validation set with design-level severity classification:
 
 | # | Check | Severity |
 |---|---|---|
-| 1 | Every §A–§K section present and in prescribed order | FAIL |
-| 2 | Every §C–§K section contains its required agent form (§4 schema) | FAIL |
+| 1 | Exactly one current §A–§K section is present, in prescribed order | FAIL |
+| 2 | Every §C–§K section contains its strict-YAML required agent form (§4 schema); duplicate YAML keys are invalid | FAIL |
 | 3 | §A fields match §J authoritative values (Header drift) | FAIL |
 | 4 | §A `linter_version` matches §K.0 `linter_version` (A↔K consistency) | FAIL |
 | 5 | §B status cells use only canonical values (`SHIPPED`/`PARTIAL`/`PLANNED`/`DEPRECATED`/`BROKEN`) | FAIL |
@@ -310,31 +365,67 @@ The linter's complete validation set with design-level severity classification:
 | 8 | §F Repair Ref resolves to a real §G `id` | FAIL |
 | 9 | §G `symptom_ref` resolves to a real §F `id` | FAIL |
 | 10 | §G `component_ref` resolves to a real §C Component | FAIL |
-| 11 | §I scenario count ≥ 10 with required distribution (§4 §I) | FAIL |
-| 12 | §I weights sum to 1.0 (±0.001) | FAIL |
-| 13 | §I unequal weights have §I.1 justification with one sentence per weighted scenario | FAIL |
-| 14 | §J required fields populated | FAIL |
-| 15 | §J STALE predicate evaluation and `first_staleness_detected_at` transition management | see §J grace workflow (WARN → FAIL after 30 days) |
+| 11 | Reserved — retired S1413 scenario-count/distribution gate | N/A |
+| 12 | Reserved — retired S1413 scenario-weight-sum gate | N/A |
+| 13 | Reserved — retired S1413 unequal-weight-justification gate | N/A |
+| 14 | §J required fields are populated and present lifecycle timestamps are not in the future | FAIL |
+| 15 | Current §J/§B stale predicates are surfaced; age and escalation remain server-owned | WARN while a current predicate is true |
 | 16 | §K.0 `linter_version` on this runbook matches `runbook-lint --version`  | WARN (until runbook re-validates) |
-| 17 | §K required fields populated (`last_lint_run`, `last_lint_result`, etc.) | FAIL |
+| 17 | §K required fields populated (`linter_version`, `trace_matrix_path`, `word_count_delta`); legacy lint claims are optional | FAIL |
 | 18 | Retrofit runbook has `trace_matrix_path` + `word_count_delta` populated | FAIL (if runbook is marked as retrofit in §K) |
 | 19 | §A required fields populated (`system_name`, `purpose_sentence`, `owner_agent`, `escalation_contact`, `lifecycle_ref`, `authoritative_scope`, `linter_version`) | FAIL |
 | 20 | §B renders as a markdown table with the exact required column set (`Feature/Capability`, `Status`, `Backing Code`, `Test Coverage`, `Last Verified`) in the prescribed order | FAIL |
+| 21 | Optional §J harness fields occur as a pair; when an artifact exists they match its score/state and exact normalized start instant | FAIL for unsupported or contradictory historical claims; never a positive conformance signal |
+| 22 | §I IDs are unique; local refs resolve; qualified cross-file refs have valid syntax and remain deferred to pinned-artifact resolution | FAIL |
+| 23 | §E operation IDs are unique | FAIL |
+| 24 | No unresolved `<<...>>` placeholder token remains in current content, regardless of legacy suffix | FAIL |
 
-FAIL is PR-blocking. WARN is informational (logged, surfaced in CI output, does not block). The STALE/grace workflow (check #15) is the only check that has a time-based WARN→FAIL escalation; all other checks resolve to WARN or FAIL immediately on each linter run.
+FAIL is PR-blocking. WARN is informational (logged, surfaced in CI output, does
+not block). Local lint performs no elapsed-time WARN→FAIL escalation; canonical
+server state owns that policy. Every automatic catalog-based lint or harness
+selection prints its selected paths and exits non-zero if it selects zero
+targets, so a vacuous CI pass is impossible.
 
-**§K.2 — Stateless-agent harness** (`aidotmarket/runbooks/harness/`):
-- Reads scenario YAML from `harness/scenarios/<system>.yaml`
-- Dispatches MP with `allowed_tools=[Read,Grep,Glob,LS]` restricted to the target runbook file
-- Scores each response against expected-answer key per §I rubric
-- Writes result to `harness/results/<system>-<session>.json`
-- Nightly scheduled via GitHub Actions
-- YAML grammar + scoring implementation = Gate 2 deliverable (see §12)
+**§K.2 — Retired stateless-agent exam** (`aidotmarket/runbooks/harness/`):
+
+The harness remains available only as an explicitly invoked diagnostic (local
+command or `workflow_dispatch`). It is not scheduled, does not write runbooks,
+and is not a conformance or freshness gate. Retained result files are historical
+claims. Check #21 prevents a runbook from contradicting the newest retained
+measured PASS/FAIL result; a pending or infrastructure-failure state is not
+evidence that the documented first action is correct.
 
 **§K.3 — Template validator** (for new-runbook scaffolding):
-- `runbook-new <system-name>` generates a §A–§K skeleton with placeholders
-- Scaffold passes `runbook-lint` structurally (content placeholders emit WARN until filled)
-- Placeholder tokens and WARN-vs-FAIL derivation = Gate 2 deliverable (see §12)
+
+- `runbook-new <runbook-id> --owner <owner> --domain <domain>` writes a complete
+  §A–§K DRAFT under `runbooks/`; a DRAFT has no catalog authority.
+- Empty §E and §I forms are deliberate; other placeholders must be replaced
+  with grounded content before future promotion consideration. The current
+  promotion closure applies regardless of syntactic readiness.
+- `runbook-catalog promote <runbook-id>` accepts only a DRAFT under `runbooks/`,
+  but is fail-closed for every risk class until trusted claim-bound evidence and
+  independent review authority are deployed. Syntax, an `UNKNOWN` marker,
+  section-to-file mapping, exact blob identity, an author-written test, local
+  receipt data, or a reviewer name cannot establish semantic support. The
+  command exits before changing source, catalog, router, or README.
+- `runbook-catalog pin-evidence` may fill local Git/SHA-256 digests in the §K
+  `yaml promotion-evidence` preparatory projection. This is bookkeeping for a
+  future server receipt only: it keeps the source DRAFT and grants no authority.
+  The future RFC 8785/Ed25519 envelope is defined by
+  `schemas/runbook_promotion_receipt.schema.json`, but no trust key, receipt, or
+  verifier is locally invented.
+- Directly editing DRAFT to ACTIVE is also rejected. Every Git repository must
+  contain exact rollout commit
+  `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and pinned
+  validation SHAs must descend from it with replacement objects disabled.
+  Catalog v2 requires the exact 20-member population and the digest-pinned
+  reviewed projection of IDs, approved canonical moves, topics, sections and
+  section IDs, aliases, signatures, and supersession fields. Dirty manifests,
+  catalogs, or projection-policy bytes cannot expand or mutate that surface.
+  Existing entries and content edits are integrity-only discovery material:
+  `semantic_verification`, `authority_admission`, and
+  `action_authority_eligible` remain false. This bootstrap closure remains until
+  trusted promotion provenance can replace it.
 
 ---
 
@@ -351,33 +442,45 @@ Every §F symptom and §G repair procedure carries a confidence tag:
 
 ## 6. Runbook Index
 
-**Gate 2 deliverable.** `aidotmarket/runbooks/README.md` does not exist as of R3; creating it is a §9 Gate 2 line item.
+`README.md`, `CATALOG.json`, and `TOPIC-ROUTER.md` are generated from ACTIVE
+catalog frontmatter. The generated inventory lists the runbook id, domain,
+path, declared authority, owner, and claimed verification date. It does not
+promote grandfathered documents into authority and does not treat a harness
+score as currentness evidence.
 
-When created, the index lists:
-- All runbooks under this standard
-- Status (up-to-standard / migrating / not-yet-adopted)
-- Last refresh session + commit SHA
-- Owner agent
-- Last harness pass rate
-
-The index itself conforms to a micro-version of this standard (§A header + table of runbooks + §J lifecycle entry).
+Catalog generation rejects an ACTIVE document that fails deterministic
+structural conformance. Catalog v2 and pinned validation report
+`integrity_pass_unverified`, `integrity_only: true`,
+`semantic_verification: false`, `authority_admission: false`, and
+`action_authority_eligible: false`. The check deliberately excludes wall-clock
+age, server-owned escalation, retained harness-result lookup, and semantic
+truth; those depend on evidence outside the Markdown blob. Catalog presence
+therefore means “integrity checked and discoverable,” not “every operational
+claim is true.” Agents must inspect the selected section and verify load-bearing
+claims against owning code, schema, configuration, or live state.
 
 ---
 
-## 7. Acceptance Criteria for this BQ
+## 7. Historical Acceptance Record for this BQ
+
+The G1–G4 material below records how the original standard was ratified. It is
+not the current runbook CI contract. In particular, its scored-harness quotas
+and reviewer roster must not be copied into current procedures; S1413 retired
+the automated exam and the current Council policy lives in its owning code,
+schema, and runbooks.
 
 **G1 — Gate 1 (spec) AC:** MP review verdict `APPROVE` or `APPROVE_WITH_NITS`. AG cross-vote concurs on consumer-first framing. Both sign off that §4 mandatory sections cover operate/isolate/repair/evolve with agent-executable detail at design resolution (schema shape named; implementation grammar deferred to Gate 2 per §12).
 
 **G2 — Gate 2 (implementation spec) AC:**
 - `runbook-lint` CI job authored with full YAML/schema grammar for each §C–§K required form, landing in `aidotmarket/runbooks` repo; PR-blocking on FAIL
-- Stateless-agent harness (`harness/`) authored with scenario YAML grammar, scorer, adjudication rule, nightly CI scheduling
+- Stateless-agent harness (`harness/`) authored with the then-current scenario YAML grammar and scorer (historical deliverable; automated scheduling is retired)
 - Template validator (`runbook-new`) authored with placeholder token set and WARN/FAIL derivation
 - Runbook index `README.md` authored under this standard, listing existing + planned runbooks
 - **Infisical runbook** authored from scratch under this standard (initial reference implementation)
 - Migration plan documents retrofit sequence for CRM and Celery with owner assignment and trace-matrix requirement
 
 **G3 — Gate 3 (code audit) AC:**
-- Infisical runbook passes `runbook-lint` and passes harness at ≥ 0.80 weighted first-action accuracy on a ≥10-scenario set with required distribution per §4 §I
+- Infisical runbook passed the historical weighted harness threshold used for the original Gate 3 ratification
 - `runbook-lint` passes on itself (the linter's own code comments documenting each check)
 
 **G4 — Gate 4 (production / falsifiability) AC.** The standard is ratified only if a second runbook authored against the *frozen* standard passes an *externally-authored hidden* evaluation set, under reviewer-independence constraints spanning three agents:
@@ -502,7 +605,7 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 
 ---
 
-## 8. Open Questions
+## 8. Historical Open Questions
 
 **R1 + R2 questions (all resolved in R3 or earlier):** Q1–Q9 resolved in R2 change log. See Appendix A.
 
@@ -518,14 +621,18 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 
 ---
 
-## 9. Migration Plan (Gate 2 preview)
+## 9. Historical Migration Plan (Gate 2 preview)
+
+This section is retained as delivery provenance. Current retrofits use direct
+procedure-coverage review and the deterministic linter/catalog checks; they do
+not need to manufacture scored scenarios.
 
 **Gate 2 deliverable order:**
 
 1. **`runbook-lint`** — linter + template validator in `aidotmarket/runbooks` repo, PR-blocking. §K.1 + §K.3.
-2. **Stateless-agent harness scaffold** — `aidotmarket/runbooks/harness/` with MP dispatch invocation, scoring script, scenario-YAML grammar. §K.2.
+2. **Stateless-agent harness scaffold** — historical diagnostic implementation; automated execution and conformance use were retired in S1413. §K.2.
 3. **Runbook index** — `aidotmarket/runbooks/README.md` listing adoption targets + statuses.
-4. **Initial reference — Infisical runbook** — authored from scratch by Vulcan using only this standard. Validated by `runbook-lint` + harness ≥ 0.80.
+4. **Initial reference — Infisical runbook** — historical reference implementation from the original ratification cycle.
 5. **G4 falsifiability — AIM Node runbook** — authored by Vulcan against **frozen standard**, no Infisical reference, evaluated on MP + AG hidden scenario set. See §7 G4.
 6. **Retrofit Phase — CRM** — `crm-target-state.md` restructured to §A–§K. Required artifacts: trace matrix, word-count delta, MP orphan review.
 7. **Retrofit Phase — Celery** — same procedure as CRM.
@@ -535,8 +642,8 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 - **Trace matrix** — table with columns `Legacy Section | New §A–§K | Notes`. Every legacy section maps to a new section OR is explicitly marked `REMOVED` with rationale.
 - **Word-count delta** — before/after word count per section. Warn threshold ±15%; explicit justification required if exceeded.
 - **MP orphan review** — content in legacy not represented in retrofit is preserved or explicitly removed with rationale; silent drops are FAIL.
-- **Harness coverage proof** — every legacy section with procedural content (operate / isolate / repair instructions, decision trees, step-by-step procedures) must be represented by at least one harness scenario in the new runbook's §I scenario set. The retrofit PR includes a `procedural-coverage-matrix` with columns `Legacy Procedural Section | Scenario ID(s) in new runbook`. MP reviews this matrix for unmapped procedural content. Unmapped procedural content is a FAIL — either add a scenario covering it, restructure to preserve the content, or explicitly justify why the procedural content is obsolete with the new design.
-- **Harness score** — must match or exceed legacy harness score (if one existed). For CRM/Celery, harness must pass at ≥ 0.80 AND procedural-coverage-matrix must be complete.
+- **Procedure coverage proof** — every legacy section with operational content maps directly to its current §E, §F, §G, or §H destination in a `procedural-coverage-matrix`. Unmapped content is a review failure unless the change records evidence that the procedure is obsolete. A §I example may clarify a genuinely ambiguous case but is never required merely to fill the matrix.
+- **Verification** — reviewers inspect the mapped current procedures against their owning code, live schema, configuration, or retained incident evidence. Historical harness scores are not migration acceptance criteria.
 
 ---
 
@@ -548,7 +655,10 @@ The index itself conforms to a micro-version of this standard (§A header + tabl
 
 ---
 
-## 11. Review Targets
+## 11. Historical Review Targets
+
+This section and §12 preserve the original design-review brief. They do not
+override the implemented current contract in §4 or §K.
 
 **MP R3 (primary review, read-only).** Verify R2 STILL_OPEN items closed:
 - F2 (consumer model mechanical implementability): §3 now defers to §4; §4 prescribes one required form per section with a defined schema. Verify the linter contract is unambiguous.
@@ -563,7 +673,7 @@ Also verify R2 NEW risks closed: §3/§4 taxonomy unification, §I weighting rul
 
 ---
 
-## 12. Gate Boundaries (Gate 1 vs Gate 2)
+## 12. Historical Gate Boundaries (Gate 1 vs Gate 2)
 
 MP R2 raised several asks that are appropriate at Gate 2 (implementation) rather than Gate 1 (design). This section draws the line explicitly so future reviews do not scope-creep Gate 1.
 

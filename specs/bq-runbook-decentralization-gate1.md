@@ -131,7 +131,7 @@ The measurable outcomes are the AC1-AC9 set from `build:bq-runbook-decentralizat
 1. This BQ does not revise `BQ-RUNBOOK-STANDARD` content requirements, required sections, linter checks, harness score thresholds, or template grammar.
 2. This BQ does not retrofit any individual operational runbook to `§A` through `§K`; it designs where retrofits land and how migration becomes safe.
 3. This BQ does not move, rewrite, or delete files in this Gate 1 commit.
-4. This BQ does not touch dated operational evidence files such as [ops/briefing-verification-2026-04-25.md](/Users/max/Projects/runbooks/ops/briefing-verification-2026-04-25.md:1) except to define that evidence can stay central.
+4. This BQ does not touch dated operational evidence files such as [archive/evidence/briefing-verification-2026-04-25.md](../archive/evidence/briefing-verification-2026-04-25.md) except to define that evidence can stay central.
 5. This BQ does not implement the PR-time impact gate internals; that belongs to `BQ-RUNBOOK-IMPACT-GATE`.
 6. This BQ does not require every markdown file in a service repo `/docs` directory to be a conformant runbook. Only files marked as `runbook: true` by frontmatter or manifest entry participate.
 7. This BQ does not decide whether the standard eventually needs a lite tier. AG raised that risk at [/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:68](/Users/max/.gemini/tmp/runbooks/runbook-audit-ag-2026-04-25.md:68), but this migration proceeds with the current standard.

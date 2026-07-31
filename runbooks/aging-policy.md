@@ -36,9 +36,9 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Seven-day stale classification | SHIPPED | `state_bq_status` | Session-open standup | 2026-07-17 |
-| Fourteen-day critical-stale classification | SHIPPED | `state_bq_status` | Session-open standup | 2026-07-17 |
-| Repeat-incident promotion | SHIPPED | `state_event` | Queue decision audit | 2026-07-17 |
+| Seven-day stale classification | SHIPPED | `state_request(action=bq_status)` | Session-open standup | 2026-07-17 |
+| Fourteen-day critical-stale classification | SHIPPED | `state_request(action=bq_status)` | Session-open standup | 2026-07-17 |
+| Repeat-incident promotion | SHIPPED | `state_request(action=event)` | Queue decision audit | 2026-07-17 |
 | WIP and anti-duplication constraints | SHIPPED | `build:bq-*` | Pre-dispatch checks | 2026-07-17 |
 | Close carry accountability | SHIPPED | `infra:handoff:instance=*` | Session close verification | 2026-07-17 |
 
@@ -46,9 +46,9 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Queue Status | `state_bq_status` | Living State BQ entities | Session-open standup | Source for approvals, dispatch state, priority, and age. |
+| Queue Status | `state_request(action=bq_status)` | Living State BQ entities | Session-open standup | Source for approvals, dispatch state, priority, and age. |
 | Aging Classifier | CORE §6 thresholds | Derived at open | Queue decisions | Seven days is stale; fourteen days is critical-stale. |
-| Repeat Incident Control | `state_event` | Incident and decision events | Priority and freeze actions | Second repeat promotes P0; third freezes new domain work. |
+| Repeat Incident Control | `state_request(action=event)` | Incident and decision events | Priority and freeze actions | Second repeat promotes P0; third freezes new domain work. |
 | WIP Control | Active build records | Build Queue and Living State | Dispatch preflight | Infrastructure/ops limit one; total limit three. |
 | Close Carry | `infra:handoff:instance=*` | Database-only handoff | Next session | Aging obligations lead when approved work remains undispatched. |
 
@@ -56,6 +56,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
+<!-- catalog:historical -->
 > - **7-day threshold:** Any BQ item that has passed Gate 2 (or Gate 1 with no Gate 2 required) and has not been dispatched for build within 7 days is STALE.
 > - **14-day threshold:** Any stale item older than 14 days is CRITICAL-STALE.
 > - **Repeat incident rule:** If a production failure recurs in a domain where an approved BQ fix exists but was never built:
@@ -81,12 +82,19 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 > - Items carried forward more than 3 sessions without dispatch require escalation to Max with explicit "dispatch or cancel" recommendation
 
 > Before creating any new BQ entity, search Living State (`state_bq_status`) for existing items in the same domain. If an approved-but-unbuilt item covers the same problem space, dispatch it instead of creating a new spec.
+<!-- /catalog:historical -->
+
+The projection above is retained as source provenance because its tool names are
+no longer callable. Its aging thresholds, WIP limits, escalation rules, and
+anti-duplication policy remain represented by the current §C–§H instructions
+below. Use `state_request(action=bq_status)` for queue reads and
+`state_request(action=event, ...)` for decision events.
 
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan or Mars | Classify and surface aging work | `state_bq_status` | Living State read | COMPLETE |
+| Vulcan or Mars | Classify and surface aging work | `state_request action=bq_status` | Living State read | COMPLETE |
 | MP | Build the selected approved item | `council_request mode=build` | Approved repository scope | COMPLETE |
 | Max | Explicitly override queue ordering or decide dispatch versus cancel | Human decision | Final authority | COMPLETE |
 
@@ -96,7 +104,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 - id: E-01
   trigger: Session open must classify approved but undispatched work.
   pre_conditions: [bq_status_available, approval_dates_available]
-  tool_or_endpoint: state_bq_status
+  tool_or_endpoint: state_request(action=bq_status)
   argument_sourcing: {age: compute from approval timestamp to current UTC time, incidents: read recorded repeat count}
   idempotency: IDEMPOTENT
   expected_success: {shape: priority list with stale and critical-stale labels, verification: recompute age and compare dispatch state}
@@ -106,8 +114,8 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 - id: E-02
   trigger: A new directive competes with stale approved work.
   pre_conditions: [stale_items_known, new_directive_known]
-  tool_or_endpoint: state_event
-  argument_sourcing: {decision: record deferred item risk and explicit override when given}
+  tool_or_endpoint: state_request(action=event, title=<title>, event_type=decision, actor=<instance>, entity_key=<BQ-key>, payload=<decision>, source_ref=<source>, session_id=<session>, dedupe_key=<key>)
+  argument_sourcing: {decision: record deferred item risk and explicit override when given, identity: derive actor session source and BQ key from the active session and selected entity}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(session + deferred_items + directive_digest)
   expected_success: {shape: auditable queue override decision, verification: read the event and confirm all deferred items are named}
@@ -117,8 +125,8 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 - id: E-03
   trigger: Session close carries approved work that was not dispatched.
   pre_conditions: [handoff_writable, aging_items_recomputed]
-  tool_or_endpoint: state_patch("infra:handoff:instance=*")
-  argument_sourcing: {aging_obligations: include code title days incidents and next action before priorities}
+  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<summary>, handoff_content=<database_handoff>, runbook_exit=<current_structured_exit>)
+  argument_sourcing: {aging_obligations: include code title days incidents and next action before priorities, instance: active Mars or Vulcan identity, session: active registered session, reason: one accepted close reason from the live schema, summary: measured work outcome, current_structured_exit: evidence-backed current compatibility payload until structured runbook_impact replaces it}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(instance + session + aging_obligations_digest)
   expected_success: {shape: confirmed database handoff with leading aging obligations, verification: read back handoff and decision events}
@@ -141,7 +149,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   symptom_ref: F-01
   component_ref: Aging Classifier
   root_cause: Approved work aged beyond its dispatch threshold without an executed or explicit queue decision.
-  repair_entry_point: state_bq_status and build dispatch preflight
+  repair_entry_point: state_request(action=bq_status) and build dispatch preflight
   change_pattern: Recompute age and incidents, apply priority or freeze rules, then dispatch the oldest eligible item or record Max override.
   rollback_procedure: Cancel an ineligible dispatch and restore the prior queue state without erasing aging evidence.
   integrity_check: Queue status, event record, WIP, and dispatch target agree.
@@ -149,7 +157,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   symptom_ref: F-02
   component_ref: Queue Status
   root_cause: Existing same-domain approved scope was not searched before authoring.
-  repair_entry_point: state_bq_status
+  repair_entry_point: state_request(action=bq_status)
   change_pattern: Stop successor authoring and route the need to the existing approved BQ unless scope evidence proves a distinct problem.
   rollback_procedure: Abandon the duplicate draft without altering the approved BQ.
   integrity_check: One authoritative BQ covers the problem and its next action is explicit.

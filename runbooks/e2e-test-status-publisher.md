@@ -20,6 +20,8 @@ authoritative_scope: The harness-side status publisher in aidotmarket/e2e-harnes
 linter_version: 1.0.0
 ---
 
+<!-- Canonical source path: runbooks/e2e-test-status-publisher.md -->
+
 # E2E Test-Status Publisher
 
 > The reporting seam of the E2E programme. A harness run already produces a report on disk and files tickets; this is the piece (c6, shipped S1314) that also writes a single redacted, bounded coverage record to Living State so Max has one honest place to see how much of the product is actually proven. The record lives at `infra:e2e-test-status`; the ops.ai.market Test page reads it read-only and renders it. The publisher is deliberately fail-soft: it never changes a run's outcome and never blocks a run, and it stays dormant unless the sanctioned harness runtime activates it. Owner BQ: `BQ-E2E-TESTING-FRAMEWORK-S1152` (c6 Test page); coverage catalog from `BQ-E2E-BROWSER-RUNNER-S1194`.
@@ -69,11 +71,11 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan/Mars | Read and verify the published status | `state_request action=get key=infra:e2e-test-status` | Living State read | COMPLETE |
+| Vulcan/Mars | Read and verify the published status | `state_request(action=get, key=infra:e2e-test-status)` | Living State read | COMPLETE |
 | Vulcan/Mars | Run a harness charter that then publishes | `shell_request` on Titan-1: `e2e-harness run` under the sanctioned env | Titan-1 shell | COMPLETE |
 | Vulcan/Mars | Edit the coverage manifest and map a charter | `shell_request` edit `docs/coverage.json` (+`.md`), then Council review | Titan-1 shell + Council dispatch | COMPLETE |
 | MP (Codex) | Build publisher/manifest changes | `council_request mode=build` against a dedicated worktree | Council dispatch | COMPLETE — diff-inspect at file:line; commit messages over-claim |
-| DS / GLM | Review publisher/manifest changes | `council_request mode=review` (builder excluded) | Council dispatch | COMPLETE |
+| CC / Kimi / GLM | Review publisher/manifest changes when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
 | launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run that publishes, at 02:15 local | plist + `scripts/run-nightly.sh` (sources `harness-env.sh`, which activates publishing) | Titan-1 | COMPLETE — the nightly is the routine writer of the record |
 
 ## §E. Operate
@@ -83,7 +85,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
   trigger: Read the current published test status (what the ops Test page is showing)
   pre_conditions:
     - Living State reachable
-  tool_or_endpoint: "state_request action=get key=infra:e2e-test-status"
+  tool_or_endpoint: "state_request(action=get, key=infra:e2e-test-status)"
   argument_sourcing:
     key: constant infra:e2e-test-status
   idempotency: IDEMPOTENT
@@ -102,7 +104,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
   pre_conditions:
     - a completed run id
     - the run went through the sanctioned env (scripts/run-nightly.sh or a shell that sourced scripts/harness-env.sh)
-  tool_or_endpoint: "state_request action=get key=infra:e2e-test-status; compare last_run_id"
+  tool_or_endpoint: "state_request(action=get, key=infra:e2e-test-status); compare last_run_id"
   argument_sourcing:
     run_id: from the run output or the newest report under $E2E_HARNESS_ROOT/reports
   idempotency: IDEMPOTENT
@@ -263,7 +265,10 @@ scenario_set:
     scenario: You want to see, in one place, how much of the product the harness has actually proven. What do you read?
     expected_answers:
       - kind: human_action
-        action: 'state_request get on infra:e2e-test-status; read coverage - passed is proven, partial is not, never_run has not been exercised'
+        verb: read
+        object: coverage states
+        target: infra:e2e-test-status via state_request get
+        rationale: 'passed is proven, partial is not, and never_run has not been exercised'
     weight: 0.090909091
   - id: I-02
     type: operate
@@ -271,7 +276,10 @@ scenario_set:
     scenario: You ran a charter and want to confirm it published. What proves it?
     expected_answers:
       - kind: human_action
-        action: the record's last_run_id equals your run and it heads recent_runs, and the version incremented by one
+        verb: verify
+        object: last_run_id, recent_runs head, and version increment
+        target: published record for the completed run
+        rationale: the record's last_run_id equals your run and it heads recent_runs, and the version incremented by one
     weight: 0.090909091
   - id: I-03
     type: operate
@@ -279,7 +287,10 @@ scenario_set:
     scenario: A journey keeps showing never_run and you want a run to start moving it. What is the correct change?
     expected_answers:
       - kind: human_action
-        action: add the item id to a charter's covers (or covers_partial) in docs/coverage.json, keep the manifest at exactly 30 items, and take it through review
+        verb: map-and-review
+        object: catalog item id in charter covers or covers_partial
+        target: docs/coverage.json with exactly 30 items
+        rationale: add the item id to a charter's covers (or covers_partial) in docs/coverage.json, keep the manifest at exactly 30 items, and take it through review
     weight: 0.090909091
   - id: I-04
     type: isolate
@@ -287,7 +298,10 @@ scenario_set:
     scenario: The record never updates and the log says publishing is disabled. Bug in the publisher?
     expected_answers:
       - kind: human_action
-        action: no - publishing is dormant because the state URL/credential was absent; run under the sanctioned env (run-nightly.sh / harness-env.sh), never hardcode the URL or paste the credential
+        verb: run
+        object: publisher with injected state URL and credential
+        target: sanctioned run-nightly.sh or harness-env.sh environment
+        rationale: no - publishing is dormant because the state URL/credential was absent; run under the sanctioned env (run-nightly.sh / harness-env.sh), never hardcode the URL or paste the credential
     weight: 0.090909091
   - id: I-05
     type: isolate
@@ -295,7 +309,10 @@ scenario_set:
     scenario: The Test page banner shows a failed staging-health run and Max asks why the page looks broken. Assessment?
     expected_answers:
       - kind: human_action
-        action: the decommissioned staging-health charter 404s every run and became the newest recent_runs entry; retire or retarget charters/staging-health.json - it is cosmetic, not a data problem
+        verb: retire-or-retarget
+        object: decommissioned staging-health charter
+        target: charters/staging-health.json
+        rationale: the decommissioned staging-health charter 404s every run and became the newest recent_runs entry; retire or retarget charters/staging-health.json - it is cosmetic, not a data problem
     weight: 0.090909091
   - id: I-06
     type: isolate
@@ -303,7 +320,10 @@ scenario_set:
     scenario: Publishing stopped right after someone edited the coverage manifest. First check?
     expected_answers:
       - kind: human_action
-        action: validate docs/coverage.json - schema_version 1 and exactly 30 MAX/ADDITIONS items with unique ids; the publisher refuses an invalid manifest
+        verb: validate
+        object: schema version, item count, and unique ids
+        target: docs/coverage.json
+        rationale: validate docs/coverage.json - schema_version 1 and exactly 30 MAX/ADDITIONS items with unique ids; the publisher refuses an invalid manifest
     weight: 0.090909091
   - id: I-07
     type: repair
@@ -311,7 +331,10 @@ scenario_set:
     scenario: A publish failed because the payload exceeded 64 KiB. How do you fix it?
     expected_answers:
       - kind: human_action
-        action: bound the growth in build_body (the ring is 20, the catalog is 30); never raise the 64 KiB ceiling to hide unbounded growth, and never make publish re-raise
+        verb: bound
+        object: build_body growth
+        target: 20-entry recent-run ring and 30-item catalog below 64 KiB
+        rationale: bound the growth in build_body (the ring is 20, the catalog is 30); never raise the 64 KiB ceiling to hide unbounded growth, and never make publish re-raise
     weight: 0.090909091
   - id: I-08
     type: repair
@@ -319,7 +342,10 @@ scenario_set:
     scenario: An item shows never_run but you are sure the journey ran. Someone suggests hand-editing the record to mark it passed. Response?
     expected_answers:
       - kind: human_action
-        action: do not hand-edit; map the item to a charter's covers so a real run moves it - a checked item must mean a charter actually proved it
+        verb: map
+        object: never_run item to a charter's covers
+        target: a real proving run rather than a hand-edited status record
+        rationale: do not hand-edit; map the item to a charter's covers so a real run moves it - a checked item must mean a charter actually proved it
     weight: 0.090909091
   - id: I-09
     type: evolve
@@ -327,7 +353,7 @@ scenario_set:
     scenario: A change makes publish re-raise its errors so failures are visible. Classify.
     expected_answers:
       - kind: classification
-        verdict: BREAKING
+        label: BREAKING
     weight: 0.090909091
   - id: I-10
     type: evolve
@@ -335,7 +361,7 @@ scenario_set:
     scenario: A change adds a charter-level cadence field so agentic charters publish weekly and recorded replays nightly. Classify.
     expected_answers:
       - kind: classification
-        verdict: REVIEW
+        label: REVIEW
     weight: 0.090909091
   - id: I-11
     type: ambiguous
@@ -345,7 +371,10 @@ scenario_set:
       - kind: classification
         label: TRANSIENT_EXPECTED_CONTENTION
       - kind: human_action
-        action: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under §H.6
+        verb: monitor-and-escalate
+        object: optimistic-lock version conflict
+        target: next publish, escalating only persistent contention under §H.6
+        rationale: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under §H.6
     weight: 0.090909091
 ```
 

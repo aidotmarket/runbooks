@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from contextlib import ExitStack
 import json
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
-from click.testing import CliRunner
 import pytest
 import yaml
+from click.testing import CliRunner
 
 from runbook_tools.cli import (
     _resolve_external_source,
     harness_cmd,
 )
-from runbook_tools.harness.dispatch import DispatchResult, make_council_request_fn
+from runbook_tools.harness.dispatch import DispatchResult
 from runbook_tools.harness.loader import (
     ConfigurationError,
     ScenarioLoadConfig,
@@ -24,7 +24,6 @@ from runbook_tools.harness.loader import (
 from runbook_tools.harness.runner import run_dispatch_for_scenario
 from runbook_tools.harness.scorer import score_response
 from tests.conftest import FIXTURES_DIR
-
 
 CONFORMANT_RUNBOOK = FIXTURES_DIR / "conformant.md"
 SCENARIOS_DIR = FIXTURES_DIR / "harness_scenarios"
@@ -40,7 +39,7 @@ def _copy_fixture_scenarios(target_dir: Path) -> list[Path]:
     return files
 
 
-def test_external_set_skips_si_mirror_check(tmp_path: Path) -> None:
+def test_explicit_external_set_is_independent_of_inline_i(tmp_path: Path) -> None:
     external_dir = tmp_path / "ext"
     _copy_fixture_scenarios(external_dir)
     runbook_without_si = tmp_path / "headless.md"
@@ -111,7 +110,7 @@ def test_external_set_rejects_if_weights_dont_sum_to_1(tmp_path: Path) -> None:
         )
 
 
-def test_normal_mode_still_fails_if_si_mirror_breaks(tmp_path: Path) -> None:
+def test_normal_mode_ignores_unselected_external_directory(tmp_path: Path) -> None:
     scenario_root = tmp_path / "infisical-secrets"
     scenario_root.mkdir(parents=True)
     for source in sorted((SCENARIOS_DIR / "infisical-secrets").glob("*.yaml")):
@@ -130,8 +129,10 @@ def test_normal_mode_still_fails_if_si_mirror_breaks(tmp_path: Path) -> None:
         "weight: 0.08333333333333333\n"
     )
 
-    with pytest.raises(ConfigurationError, match="orphan_yaml:I-99"):
-        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
+    scenarios = load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
+
+    assert len(scenarios) == 12
+    assert "I-99" not in {scenario.id for scenario in scenarios}
 
 
 def test_external_scenarios_from_state_materializes_and_loads(tmp_path: Path) -> None:
@@ -351,6 +352,7 @@ def test_default_state_reader_raises_when_mcp_url_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from click import UsageError
+
     from runbook_tools.cli import _default_state_reader
 
     monkeypatch.delenv("KOSKADEUX_MCP_URL", raising=False)
@@ -403,6 +405,7 @@ def test_default_state_reader_surfaces_unsuccessful_envelope(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from click import UsageError
+
     from runbook_tools.cli import _default_state_reader
 
     monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
@@ -429,6 +432,7 @@ def test_default_state_reader_rejects_non_json_envelope_result(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from click import UsageError
+
     from runbook_tools.cli import _default_state_reader
 
     monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
@@ -456,6 +460,7 @@ def test_default_state_reader_surfaces_transport_failure_as_usage_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from click import UsageError
+
     from runbook_tools.cli import _default_state_reader
 
     monkeypatch.setenv("KOSKADEUX_MCP_URL", "https://example.invalid/mcp")
@@ -581,47 +586,3 @@ def test_external_mode_invalid_set_exits_2(tmp_path: Path) -> None:
 
     assert result.exit_code == 2, result.output
     assert "expected >= 10" in result.output
-
-
-def _copy_fixtures_under(tmp_path: Path) -> Path:
-    scenario_root = tmp_path / "infisical-secrets"
-    scenario_root.mkdir(parents=True)
-    for source in sorted((SCENARIOS_DIR / "infisical-secrets").glob("*.yaml")):
-        (scenario_root / source.name).write_text(source.read_text())
-    return scenario_root
-
-
-def test_normal_mode_type_mismatch_fails(tmp_path: Path) -> None:
-    """Spec §5.3/AC7: normal mode still rejects YAML type ≠ §I type."""
-    scenario_root = _copy_fixtures_under(tmp_path)
-    target = scenario_root / "I-01.yaml"
-    loaded = yaml.safe_load(target.read_text())
-    loaded["type"] = "isolate"
-    target.write_text(yaml.safe_dump(loaded))
-
-    with pytest.raises(ConfigurationError, match="type:I-01"):
-        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
-
-
-def test_normal_mode_refs_mismatch_fails(tmp_path: Path) -> None:
-    """Spec §5.3/AC7: normal mode still rejects YAML refs ≠ §I refs."""
-    scenario_root = _copy_fixtures_under(tmp_path)
-    target = scenario_root / "I-01.yaml"
-    loaded = yaml.safe_load(target.read_text())
-    loaded["refs"] = ["E-99"]
-    target.write_text(yaml.safe_dump(loaded))
-
-    with pytest.raises(ConfigurationError, match="refs:I-01"):
-        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)
-
-
-def test_normal_mode_runbook_name_mismatch_fails(tmp_path: Path) -> None:
-    """Spec §5.3/AC7: normal mode still rejects YAML.runbook ≠ runbook being validated."""
-    scenario_root = _copy_fixtures_under(tmp_path)
-    target = scenario_root / "I-01.yaml"
-    loaded = yaml.safe_load(target.read_text())
-    loaded["runbook"] = "other-system.md"
-    target.write_text(yaml.safe_dump(loaded))
-
-    with pytest.raises(ConfigurationError, match="runbook:I-01"):
-        load_scenarios_for_runbook(CONFORMANT_RUNBOOK, tmp_path)

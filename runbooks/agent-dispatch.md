@@ -83,6 +83,7 @@ point is that new dispatch failure surfaces are filed as revisions to this
 runbook rather than as new build-queue items. Current revisions follow the live
 CC/Kimi/GLM review panel from `infra:council-comms`.
 
+<!-- catalog:historical -->
 >
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for agent dispatch reliability after the S612 consolidation that collapsed ~20 process BQs into BQ-PROCESS-AGENT-DISPATCH-RELIABILITY-S612 (P0). Per MP review mandate, content is organized under four explicit sub-sections; existing body sections map into these per the survivor BQ body.absorbed_bqs subsection field. Future failure surfaces file as revisions to this runbook, NOT as new BQs.
 >
@@ -93,6 +94,7 @@ CC/Kimi/GLM review panel from `infra:council-comms`.
 > - **§D Agent-specific behaviors** — DS verdict emission + enum drift + spec mandate cleanup + diff access; AG review auto-chunking + sandbox writes + streaming generation + review depth security; MP codex CLI streaming wrapper regression.
 >
 > Revisions require Council R1 review-mode approval. Filed under S612.
+<!-- /catalog:historical -->
 
 ## §B. Capability Matrix
 
@@ -119,7 +121,9 @@ Carried from the retired root copy and corrected at S1351 against live `infra:co
 
 **Gate voter panel: CC + Kimi + GLM — exactly three** (Max direct directive S1319; CORE v9.13 names CC, Kimi and GLM in the amendment gate). ACTIVATION STATUS: ACTIVE. Kimi replaced the DeepSeek seat at the S1319 cutover (koskadeux-mcp `1a7d9c6e`, deployed at `2257a367`, gateway restarted 2026-07-24). `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` in `council_gate_runner.py` are exactly {cc, kimi, glm}. The deployed gateway enforces this panel.
 
+<!-- catalog:historical -->
 > HISTORICAL, superseded: the panel was CC + DeepSeek + GLM from S1213, activated at S1223 (49739a44 merged to koskadeux-mcp main as d370d65c, gateway restarted on the merged SHA, live per-voter proof CC/DeepSeek/GLM all APPROVE plus fail-closed quorum verification inside the Chunk 5 freeze; Vulcan ratification peer msg #1178). That record is retained as history and must not be read as current roster state. Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
+<!-- /catalog:historical -->
 
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
@@ -140,7 +144,11 @@ This section documents the S1213 roster change and discharges the S1221 waived r
 
 Dispatch is a gateway-controlled routing layer. Operators submit a task, target agent, mode, working directory, and evidence references; the gateway chooses the agent backend, applies mode constraints, and returns either a synchronous result or a background task id.
 
-Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder. Current operational truth is the block above: MP is mandatory builder, CC/Kimi/GLM are the gate voters, AG is paused, and DeepSeek is retired.
+<!-- catalog:historical -->
+Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder.
+<!-- /catalog:historical -->
+
+Current operational truth is the block above: MP is mandatory builder, CC/Kimi/GLM are the gate voters, AG is paused, and DeepSeek is retired.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -300,7 +308,7 @@ Timeout knobs:
 | AG | dispatch from `antigravity_client.py` | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
-| Kimi | dispatch through the shared provider read-only review loop | Moonshot API (OpenAI-compatible) / kimi-k3 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read and binding-verdict proof `2db3201d` |
+| Kimi | dispatch through the shared provider read-only review loop | Kimi Code subscription transport / exact deployed registry model | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — exact-SHA read path covered; verify endpoint/model in the live contract and receipt |
 | GLM | dispatch through the shared provider read-only review loop | OpenRouter / z-ai/glm-5.2 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read, terminal repair, and binding-verdict proof `ff0f2f67` |
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
@@ -315,15 +323,16 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 ```yaml operate
 - id: E-01
   trigger: A BQ chunk requires MP to build a dispatch-scoped change.
-  pre_conditions: [feature_branch_exists, target_repo_clean_or_intentionally_dirty, relevant_specs_read, BQ_entity_has_body_summary]
-  tool_or_endpoint: dispatch_mp_build(task=<prompt>, cwd=<repo>, branch=<branch>, timeout=300)
+  pre_conditions: [feature_branch_exists, target_repo_clean_or_intentionally_dirty, relevant_specs_read, BQ_entity_has_body_summary, peer_lane_confirmed_free, current_runbook_context_available]
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<mars|vulcan>, dispatch_class=structural, session_id=<session>, runbook_refs=<deployed_contract_appropriate_refs>)
   argument_sourcing:
     prompt: derive from the BQ chunk ACs, required context, and verification plan
     cwd: use the target repo absolute path
-    branch: use the active feature branch
-    timeout: use the configured MP background timeout unless the BQ states otherwise
+    bq_code: use the canonical Build Queue code
+    caller_instance_and_session: use the authenticated active operator session
+    runbook_refs: inspect the exact signed deployed capability first; use server-issued objective-bound references only when that capability and the connected schema prove they exist, otherwise supply exact caller-authored legacy path/section references read at one immutable runbooks SHA (or a truthful recorded miss), treating the field as compatibility input rather than evidence of reading
   idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: hash(branch + prompt_digest + target_commit)
+  idempotency_key: hash(bq_code + prompt_digest + target_commit)
   expected_success: {shape: background task id plus committed artifact, verification: "compare git HEAD, task transcript, and BQ build summary"}
   expected_failures:
     - {signature: gateway_timeout, cause: task exceeded synchronous endpoint limit}
@@ -348,7 +357,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_failure: Use F-02 or narrow the prompt; do not substitute AG, MP, or DeepSeek for an active gate voter.
 - id: E-03
   trigger: A gate review needs Kimi's required voter coverage.
-  pre_conditions: [Kimi_provider_healthy, review_scope_is_read_only, exact_dispatch_sha_known, dispatch_cost_cap_available]
+  pre_conditions: [Kimi_provider_healthy, review_scope_is_read_only, exact_dispatch_sha_known, dispatch_cost_cap_available, client_tool_schema_lists_kimi]
   tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>)
   argument_sourcing:
     review_prompt: derive from gate ACs and changed-file list
@@ -360,6 +369,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   expected_success: {shape: strict review result with verdict, findings, and at-SHA read evidence, verification: ensure exact-model/schema validation and required-file coverage passed}
   expected_failures:
     - {signature: health_failure, cause: provider unavailable or credential missing}
+    - {signature: schema_roster_mismatch, cause: upstream advertises Kimi but the connected client cached an older council_request enum; refresh/reconnect before dispatch and do not substitute a voter}
     - {signature: schema_validation_failure, cause: result did not match required review shape}
     - {signature: repository_review_coverage_incomplete, cause: required exact-SHA files were not read completely}
   next_step_success: Add Kimi's verdict and immutable read evidence to the Council review set.
@@ -367,7 +377,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 - id: E-04
   trigger: After any change to the laptop-routing env-var deployment surface (KOSKADEUX_DISABLE_LAPTOP_ROUTING in com.koskadeux.council-hall.plist or related agents), the fix must be smoke-verified before claiming durable.
   pre_conditions: [plist_change_committed_to_disk, plist_passes_plutil_lint, council_hall_currently_running_or_intentionally_down]
-  tool_or_endpoint: shell + launchctl bootout/bootstrap + council_request(mode=open_response, cwd=<repo>)
+  tool_or_endpoint: shell + launchctl bootout/bootstrap + council_request(agent=mp, mode=open_response, task=<smoke_task>, cwd=<smoke_cwd>)
   argument_sourcing:
     plist_path: ~/Library/LaunchAgents/com.koskadeux.council-hall.plist (the dispatch process; NOT com.koskadeux.mcp.plist)
     domain: gui/$(id -u) where uid is the active user (typically 501 on Titan-1)
@@ -384,11 +394,14 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_success: Patch the relevant BQ body.s<session>_durability_fix_resolution with smoke evidence (new PID, response time, hostname, env var presence in both bash wrapper and python child); record plist backup path for rollback.
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
 - id: E-05
-  trigger: Any MP dispatch (dispatch_mp_build or council_request agent=mp) while Vulcan and Mars share the single Codex CLI lane.
+  trigger: Any MP build dispatch while Vulcan and Mars share the single Codex CLI lane.
   pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus]
-  tool_or_endpoint: peer_msg_send(kind=status, to=<peer>, ref_entity=<build_ref>) then dispatch_mp_build(...) or council_request(agent=mp, ...)
+  tool_or_endpoint: peer_msg_send(kind=claim, to=<peer>, ref_entity=<build_ref>, body=<lane_claim>) then council_request(agent=mp, mode=build, task=<build_task>, cwd=<absolute_repo>, bq_code=<bq_code>, caller_instance=<self>, dispatch_class=structural, session_id=<session_id>, runbook_refs=<selection_refs>)
   argument_sourcing:
     lane_claim: announce BEFORE dispatch, naming the ref_entity, the work item, and the queued items behind it (established S1303, peer-bus msgs #1524-#1526)
+    build_task: derive the bounded implementation brief from the approved BQ/spec and include the required output manifest
+    absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base SHA before dispatch
+    selection_refs: inspect the exact signed deployed capability first; when it proves server-issued objective-bound selection references, carry only those references, but while the connected schema exposes caller-authored legacy runbook_refs, supply exact path/section references read at one immutable runbooks SHA or a truthful recorded miss; neither branch permits inventing a title, digest, or reading claim
     dispatch_order: strictly one MP task at a time across BOTH instances; queue everything else behind the active task
     release: announce lane release on the peer bus when the active task reaches a terminal state
   idempotency: NOT_IDEMPOTENT
@@ -411,9 +424,6 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: stale_task_state, cause: handoff-listed work already landed on origin via a late-finishing background task; re-dispatching it duplicates a completed fold}
   next_step_success: Proceed with claim/dispatch/close; announce lane claims per E-05.
   next_step_failure: Reconcile drift in the same session (update Living State/BQ note to the verified origin state) before dispatching anything that depends on it.
-```
-
-
 - id: E-07
   trigger: A GLM or Kimi provider readonly review (council_request agent=glm|kimi mode=review) returns status=failed with error_code strict_verdict_invalid or validation_error_type DispatchSchemaError.
   pre_conditions: [check_build_payload_collected]
@@ -422,12 +432,13 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     validation_error_type: type name of the exception parse_terminal raised; DispatchSchemaError has exactly ONE production raise site (council_output_schemas.py:402) - verdict APPROVED_WITH_MANDATES or REJECT with an EMPTY mandates array; ValidationError means Draft2020-12 schema mismatch (field_path in message); JSONDecodeError means non-JSON or fenced output (decode_strict_council_verdict tolerates no fencing or salvage)
     raw_completion: NOT PRESERVED on failure at koskadeux-mcp baacd2b7 - the legacy validation site (council_dispatch_middleware/provider_readonly_review.py:568-581) appends terminal content to the transcript only after successful parse, and _terminal_attempt_record stores only response_sha256 + character count; the discard is unauditable by construction until the s1382 harness fix lands (T-2026-000479)
     terminal_repair: GLM wires TerminalRepairPolicy(enabled=True) (zai_glm_client.py:864) and gets one schema-pinned conformance-repair attempt; the Kimi review call (kimi_shadow_eval.py:1492-1510, the LIVE kimi review path) passes NO policy, so one malformed terminal fails the whole review with zero repair attempts
-  idempotency: IDEMPOTENT (check_build reads)
+  idempotency: IDEMPOTENT
   expected_success: {shape: root cause classified from validation_error_type without redispatch, verification: "exception class name maps to exactly one of the three parse stages above"}
   expected_failures:
     - {signature: strict_verdict_invalid, cause: provider returned a terminal verdict that parsed as JSON and passed the schema but violated the semantic mandate-count rule (empty mandates on APPROVED_WITH_MANDATES/REJECT - the provider typically filed mandate content under findings), OR failed schema/JSON decode; the mandate-count rule itself is correct and must NOT be weakened}
   next_step_success: Do NOT blind-redispatch (two identical failures = two strikes; a third blind dispatch violates the S5 bounded-investigation rule). If the fix (Kimi TerminalRepairPolicy + bounded raw-completion preservation, owned by bq-council-review-harness-reform-s1382) has landed, redispatch once; otherwise escalate gate participation to Max.
   next_step_failure: File or update the ticket (pattern T-2026-000479) with the payload evidence and coordinate on the peer bus with the s1382 owner before touching harness code.
+```
 
 ## §F. Isolate
 
@@ -540,8 +551,9 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 ```
 
 
-### §G.1 Historical empty-completion incident (DeepSeek / former GLM inline path) — T-2026-000232
+### §G.1 Current empty-completion handling and historical provider incident
 
+<!-- catalog:historical -->
 Historical symptom: a review dispatch to DeepSeek or the former GLM inline path failed with a parse
 error and `raw_response_length=0`, e.g. `DeepSeekResponseParseError: ...
 (candidate_count=0, ..., raw_response_length=0)`, or a blank GLM verdict. A
@@ -554,6 +566,7 @@ spends the whole budget thinking and returns zero content tokens -> empty
 completion -> parse failure. This is already written down in
 `config:resource-registry` -> `secrets.OPENROUTER_API_KEY.notes`. Read the
 registry and TOPIC-ROUTER on the error string BEFORE reading code.
+<!-- /catalog:historical -->
 
 Current handling:
 
@@ -577,6 +590,7 @@ A merge to main is not live until `com.koskadeux.mcp` restarts onto the new
 commit. The retained DeepSeek service is outside the active roster and is not
 part of current gate verification.
 
+<!-- catalog:historical -->
 > **READ §X FIRST.** These two commands are correct but INCOMPLETE as written.
 > A bare kickstart taken while a Council panel or build is in flight destroys it
 > silently, and the automatic guard that is meant to prevent that cannot see our
@@ -593,6 +607,7 @@ after. Verify with a real review dispatch against a large diff, not a probe: a
 trivial probe passes even when the bug is fully present (verified live S1190 —
 GLM 39.5k-char prompt, 24,790 reasoning tokens, `finish_reason=stop`, full
 verdict envelope).
+<!-- /catalog:historical -->
 
 
 ### §G.2 Codex CLI progress and timeout error types (was root copy §G)
@@ -653,13 +668,13 @@ output file was written. This is expected and is the primary fix for the old
 ### §H.2 BREAKING predicates
 
 - Removing a dispatch tool such as `council_request`, `dispatch_mp_build`, or `council_hall` is BREAKING.
-- Granting write scope to AG or DeepSeek dispatch without a Council-approved role change is BREAKING.
-- Reactivating XAI as an active voter is BREAKING because retired-agent state and review order change.
+- Granting write scope to any review-only, paused, or retired dispatch backend without a Council-approved role change is BREAKING.
+- Reactivating any retired member as an active voter is BREAKING because deployed role projection and gate membership change.
 
 ### §H.3 REVIEW predicates
 
 - Adding a new dispatch tool is REVIEW.
-- Changing model frontiers for MP, AG, DeepSeek, or CC is REVIEW.
+- Changing the model frontier for any callable builder, reviewer, or Hall participant is REVIEW.
 - Changing default dispatch participants, review order, or Council Hall participant sets is REVIEW.
 - Replacing a backend server, CLI, or API client is REVIEW.
 
@@ -713,12 +728,15 @@ scenario_set:
     type: operate
     refs: [E-01, F-04, G-04]
     scenario: |
-      id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, and intentional bypass_reconcile rationale are available. tool_or_endpoint: dispatch_mp_build(task=<prompt>, cwd=<repo>, branch=<branch>, timeout=300, bypass_reconcile=true). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; branch from git status; bypass_reconcile from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on branch + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to reconcile before retrying or escalating.
+      id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, authenticated instance/session, current runbook context, and intentional bypass rationale are available. tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<instance>, dispatch_class=structural, session_id=<session>, runbook_refs=<deployed_contract_appropriate_refs>, bypass_reconcile=true, reconcile_justification=<approved_reason>). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; BQ code from Living State; session and instance from the authenticated caller; runbook_refs from server-issued immutable delivery refs only when a signed deployed contract and the connected schema prove that capability, otherwise from exact caller-authored legacy refs at one immutable runbooks origin/main SHA or an explicit honest miss, treated as compatibility input and never as reading evidence; bypass and justification from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on BQ code + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, missing bound context, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to reconcile before retrying or escalating.
     expected_answers:
       - kind: tool_call
-        tool: dispatch_mp_build
-        argument_keys: [task, cwd, branch, timeout, bypass_reconcile]
+        tool: council_request
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, bypass_reconcile, reconcile_justification]
         argument_values:
+          agent: mp
+          mode: build
+          dispatch_class: structural
           bypass_reconcile: true
     weight: 0.08333333333333333
   - id: I-03
@@ -870,6 +888,7 @@ word_count_delta: null
 The §K block records the strict-lint result; harness state is authoritative in §J.
 
 
+<!-- catalog:historical -->
 ## §L Historical DeepSeek Review-Round Completeness (superseded)
 
 The following terminal DeepSeek states are retained only to interpret historical
@@ -887,6 +906,7 @@ The former degraded-round rule allowed a primary verdict to carry after a
 terminal DeepSeek failure. It is not current gate authority. Current gate rounds
 require complete valid CC/Kimi/GLM participation; a missing, failed, malformed,
 model-mismatched, or incomplete active voter fails the gate closed.
+<!-- /catalog:historical -->
 
 ## §M Sandbox-Based Review-Mode Tool Restriction
 
@@ -948,6 +968,7 @@ not a fault.
 Positive lockdown is scoped to **BQ-PEER-BUS-GATEWAY-INSTANCE-IDENTITY-S843**. S858 neutralizes the
 clobber; it does not yet fully sandbox all agent writes.
 
+<!-- catalog:historical -->
 ## §N Historical DeepSeek Skip Rule (superseded)
 
 The former DeepSeek +1 process rejected "DeepSeek SKIPPED" outcomes. DeepSeek is
@@ -956,7 +977,9 @@ now retired, so current gate dispatches must not target it at all.
 Historical fanout regression coverage remains in
 `tests/integration/test_skip_fanout_regression.py`; it does not alter the current
 CC/Kimi/GLM roster or permit fallback.
+<!-- /catalog:historical -->
 
+<!-- catalog:historical -->
 ## §O Historical Structural Middleware Wiring
 
 This section records retained middleware plumbing from
@@ -1009,7 +1032,9 @@ Failure modes:
 - Ledger emission failure: caller policy decides whether the dispatch fails open
   or closed. Preserve the adapter result when fail-open is intentional, and make
   fail-closed behavior explicit in the caller.
+<!-- /catalog:historical -->
 
+<!-- catalog:historical -->
 ## §P Historical DeepSeek Context-Access Auto-Resolution Layer (superseded)
 
 Everything in this section documents retained pre-retirement behavior only.
@@ -1078,6 +1103,7 @@ Design references:
 
 - `specs/bq-council-deepseek-context-access-fix-gate1.md`
 - `specs/bq-council-deepseek-context-access-fix-gate2.md`
+<!-- /catalog:historical -->
 
 ## §Q — Build Dispatch CI-Workflow Verification and Recovery
 
@@ -1410,9 +1436,13 @@ direction recorded here — wire the live path onto the hardened
 `codex_cli_bridge.dispatch_codex_cli` — was **REJECTED** on evidence. Do not
 pursue it:
 
-- `dispatch_async` is **agent-generic** and serves AG, XAI and MP, while
-  `dispatch_codex_cli` is codex-only. Routing onto it would fix MP builds and
-  leave every other agent dispatch with the identical defect.
+- At revision `621dbedc`, `dispatch_async` was **agent-generic** and served AG,
+  XAI, and MP, while `dispatch_codex_cli` was Codex-only. That historical
+  routing distinction explained the S1340 decision; XAI has since been retired
+  and is absent from current schemas/routing, so this bullet must not be used as
+  a current roster or dispatch map. At that revision, routing onto the
+  Codex-only path would have fixed MP builds while leaving the other then-live
+  agent dispatches with the identical defect.
 - It is **fixed-deadline**, which is precisely what killed anon-visitor Chunk 1
   on `hard_timeout` at 1800s in S1265. The progress-aware streaming path exists
   to remove that failure.
@@ -1820,6 +1850,7 @@ At every session open, and again before any dispatch, merge, or close:
    ack what requires ack before proceeding with the turn's claim or dispatch.
 
 
+<!-- catalog:historical -->
 ## §Y Historical Plus-One Discipline (superseded)
 
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.
@@ -1829,9 +1860,19 @@ CC/Kimi/GLM panel from infra:council-comms; MP is builder-only, AG is paused, an
 neither MP, AG, nor DeepSeek can satisfy or supplement a missing gate vote.
 Conflict events from historical rounds remain readable, but their roster does
 not authorize a current dispatch.
+<!-- /catalog:historical -->
 
 
-## §Z Historical DeepSeek Conflict Adjudication Procedure (superseded)
+## §Z Current gate-voter disagreement routing
+
+Complete the exact CC/Kimi/GLM panel required by current Council policy. Any
+missing, malformed, model-mismatched, or disagreeing binding verdict keeps the
+gate closed and returns through the current Council process; unresolved
+disagreement escalates to Max. Do not substitute MP, AG, DeepSeek, XAI, a
+reduced quorum, or a legacy conflict event for any required current vote.
+
+<!-- catalog:historical -->
+### Historical DeepSeek Conflict Adjudication Procedure (superseded)
 
 This procedure applies only when interpreting legacy MP/AG plus DeepSeek rounds.
 It cannot unblock or authorize a current gate. Current CC/Kimi/GLM disagreement
@@ -1852,12 +1893,19 @@ Adjudication events use `verdict_conflict_adjudicated`. Emergency waivers use
 Only authorized adjudicators may unblock a conflict. The default authorized
 actor is `max`; non-authorized events are audit evidence only and do not unblock
 dispatch.
+<!-- /catalog:historical -->
 
 
 ## Retired-Agents Appendix
 
 ### XAI (Grok) - RETIRED S528
 
+Current status: XAI is retired and supplies no current Council vote or review
+coverage. Reactivation is Max-gated: it requires Max's explicit authorization,
+an updated canonical roster and schemas, a reviewed deployment, and live
+verification before any XAI result can count.
+
+<!-- catalog:historical -->
 XAI was Council's challenger/architect-only voter from S342-S528. It was retired due to consistent line-number fabrication on code audits, excluded from `gate3_post_build_audit` since S342 per BQ-COUNCIL-XAI-LINE-NUMBER-VERIFICATION, and DeepSeek graduation S528 superseded the architecture-only niche with broader review competence.
 
 Cold-storage state: preserved via `xai_client.py` and `grok_cli_bridge.py` in the koskadeux-mcp repo; reactivation runbook documented at `infra:council-comms.retired_agents.xai` Living State entity.
@@ -1865,6 +1913,7 @@ Cold-storage state: preserved via `xai_client.py` and `grok_cli_bridge.py` in th
 Reactivation procedure summary: see `infra:council-comms.retired_agents.xai.reactivation_procedure` for step-by-step. Trigger conditions are a model upgrade significantly improving line-number reliability or a specific audit niche that XAI uniquely fills.
 
 **Retirement completed in code (S1153, folded here at S1351 from the former standalone note).** XAI/Grok is retired in CODE as well as roster. Max-directed Codex cleanup @ koskadeux-mcp `d75abc40` removed xai from all active Council schemas/enums, KD routing, Council Hall, gate-write validation, cross-review registration, and seed state; `council_request(agent="xai")` returns a retirement error; `XAIClient` was removed from kd_clients while legacy `xai_client.py` and `grok_cli_bridge.py` remain on disk, unrouted. Post-hoc cross-review: AG APPROVE with one LOW finding, that the Council Hall seat enum was narrowed to {mp, ag} instead of widened to the active roster, fixed @ `c49fa6c9` with GLM APPROVE. Activation of both commits required an MCP server restart. HISTORICAL detail, do not read as current roster: the S1153 fixtures and hall seats referenced ag/mp/glm/deepseek/cc, which was the roster of that date. Roster canonical remains `infra:council-comms` (XAI retired since S528/S994).
+<!-- /catalog:historical -->
 
 
 ## Appendix - E-04 Canonical Smoke Sequence (laptop-routing durability fix)

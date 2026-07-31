@@ -6,19 +6,24 @@ import re
 import subprocess
 import tempfile
 from collections import Counter
+from collections.abc import Callable
 from contextlib import ExitStack
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import click
 import yaml
 
 from runbook_tools.catalog import CatalogError, check_catalog, generate_catalog
-from runbook_tools.catalog.model import REQUIRED_ACTIVE_FIELDS
 from runbook_tools.catalog.resolver import resolve_catalog_key
 from runbook_tools.catalog.search import search_catalog, search_catalog_many
 from runbook_tools.catalog.validator import active_catalog_paths, validate_catalog_ref
+from runbook_tools.corpus_manifest import (
+    CorpusManifestError,
+    pin_draft_promotion_evidence,
+)
+from runbook_tools.frontmatter import CATALOG_METADATA_FIELDS
 from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
@@ -37,6 +42,7 @@ from runbook_tools.lint.staleness import (
 )
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from runbook_tools.scaffold.template import generate_scaffold, validate_system_name
+from runbook_tools.strict_yaml import strict_yaml_load
 from runbook_tools.version import LINTER_VERSION
 
 README_STATUS_RE = re.compile(r"^\|\s*(?P<system>.+?)\s*\|\s*(?P<runbook>.+?)\s*\|\s*(?P<status>[A-Z0-9_]+)\s*\|")
@@ -52,6 +58,14 @@ VALID_README_STATUSES = {
     "LEGACY_NOT_UNDER_STANDARD",
     "DEPRECATED",
 }
+PROMOTION_AUTHORITY_UNAVAILABLE = (
+    "promotion unavailable: trusted claim-bound evidence and independent review "
+    "authority are not deployed"
+)
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
 
 
 @click.group(name="runbook-catalog")
@@ -82,6 +96,54 @@ def catalog_check_cmd() -> None:
             click.echo(f"catalog drift: {path}", err=True)
         raise SystemExit(1)
     click.echo("catalog outputs are current")
+
+
+@catalog_cmd.command(name="promote")
+@click.argument("runbook")
+@click.option("--schemas-dir", type=click.Path(exists=True), default=None)
+def catalog_promote_cmd(runbook: str, schemas_dir: str | None) -> None:
+    """Refuse authority until trusted claim-bound promotion is deployed."""
+
+    root = Path.cwd().resolve()
+    del schemas_dir
+    try:
+        target = _resolve_draft_path(root, runbook)
+        _promoted_markdown(target.read_text(encoding="utf-8"))
+        raise ValueError(PROMOTION_AUTHORITY_UNAVAILABLE)
+    except (CatalogError, OSError, ValueError) as exc:
+        click.echo(str(exc), err=True)
+        raise SystemExit(1)
+
+
+@catalog_cmd.command(name="pin-evidence")
+@click.argument("runbook")
+@click.option("--schemas-dir", type=click.Path(exists=True), default=None)
+def catalog_pin_evidence_cmd(runbook: str, schemas_dir: str | None) -> None:
+    """Fill exact local-blob digests in a DRAFT promotion-evidence block."""
+
+    root = Path.cwd().resolve()
+    resolved_schemas = (
+        Path(schemas_dir).resolve() if schemas_dir is not None else root / "schemas"
+    )
+    try:
+        target = _resolve_draft_path(root, runbook)
+        pinned = pin_draft_promotion_evidence(
+            root,
+            target,
+            target.read_text(encoding="utf-8"),
+            resolved_schemas,
+        )
+        _write_fail_safe_promotion({target: pinned.encode()})
+    except (CorpusManifestError, OSError, ValueError) as exc:
+        click.echo(str(exc), err=True)
+        raise SystemExit(1)
+
+    click.echo(
+        f"pinned preparatory local digests in {target.relative_to(root).as_posix()}; "
+        "preparatory only—this does not verify claims or authorize promotion; "
+        "commit the DRAFT and evidence sources, then refresh CORPUS-MANIFEST.yaml "
+        "from that exact content commit for future receipt work"
+    )
 
 
 @catalog_cmd.command(name="validate")
@@ -157,19 +219,6 @@ def catalog_select_cmd(mode: str) -> None:
 @click.option("--format", "output_format", type=click.Choice(["text", "json", "github"]), default="text")
 @click.option("--fix-hints/--no-fix-hints", default=True)
 @click.option(
-    "--update-staleness",
-    is_flag=True,
-    default=False,
-    help="Write only the measured §J staleness-clock SET/CLEAR transition.",
-)
-@click.option(
-    "--update-lifecycle",
-    "legacy_update_lifecycle",
-    is_flag=True,
-    default=False,
-    help="Deprecated safe alias for --update-staleness.",
-)
-@click.option(
     "--refresh-harness-metadata",
     is_flag=True,
     default=False,
@@ -184,8 +233,6 @@ def lint_cmd(
     mode,
     output_format,
     fix_hints,
-    update_staleness,
-    legacy_update_lifecycle,
     refresh_harness_metadata,
     schemas_dir,
     readme,
@@ -194,13 +241,6 @@ def lint_cmd(
     if version:
         click.echo(LINTER_VERSION)
         raise SystemExit(0)
-
-    if legacy_update_lifecycle:
-        click.echo(
-            "warning: --update-lifecycle is deprecated; use --update-staleness",
-            err=True,
-        )
-    apply_staleness_update = update_staleness or legacy_update_lifecycle
 
     try:
         repo_root = Path.cwd()
@@ -231,7 +271,7 @@ def lint_cmd(
                 frontmatter = {
                     key: value
                     for key, value in frontmatter.items()
-                    if key not in REQUIRED_ACTIVE_FIELDS
+                    if key not in CATALOG_METADATA_FIELDS
                 }
             ctx = CheckContext(
                 schemas_dir=resolved_schemas_dir.resolve(),
@@ -239,8 +279,8 @@ def lint_cmd(
                 mode=mode or "strict",
                 frontmatter=frontmatter,
                 git_head=_git_head(repo_root),
-                now=datetime.now(timezone.utc),
-                update_lifecycle=apply_staleness_update,
+                now=_utc_now(),
+                raw_markdown=markdown,
             )
             findings: list[Finding] = []
             for check in ALL_CHECKS:
@@ -273,15 +313,19 @@ def lint_cmd(
 
 @click.command()
 @click.argument("system_name")
-@click.option("--owner", default="max")
+@click.option("--owner", required=True)
+@click.option("--domain", required=True)
 @click.option("--dry-run", is_flag=True)
-def new_cmd(system_name, owner, dry_run):
+def new_cmd(system_name, owner, domain, dry_run):
     if not validate_system_name(system_name):
         click.echo("invalid system_name: must match [a-z0-9][a-z0-9-]*[a-z0-9]", err=True)
         raise SystemExit(2)
+    if not validate_system_name(domain):
+        click.echo("invalid domain: must match [a-z0-9][a-z0-9-]*[a-z0-9]", err=True)
+        raise SystemExit(2)
 
-    output_path = Path.cwd() / f"{system_name}.md"
-    scaffold = generate_scaffold(system_name, owner)
+    output_path = Path.cwd() / "runbooks" / f"{system_name}.md"
+    scaffold = generate_scaffold(system_name, owner, domain)
     if dry_run:
         click.echo(scaffold)
         raise SystemExit(0)
@@ -290,6 +334,7 @@ def new_cmd(system_name, owner, dry_run):
         click.echo(f"refusing to overwrite existing file: {output_path}", err=True)
         raise SystemExit(1)
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(scaffold)
     click.echo(str(output_path))
     raise SystemExit(0)
@@ -322,8 +367,8 @@ def harness_cmd(mode, session, runbook, external_scenario_set, external_scenario
 
     try:
         repo_root = Path.cwd()
-        session_id = session or f"LOCAL-{datetime.now(timezone.utc):%Y%m%d%H%M%S}"
-        run_started_at = datetime.now(timezone.utc)
+        session_id = session or f"LOCAL-{_utc_now():%Y%m%d%H%M%S}"
+        run_started_at = _utc_now()
         runbook_paths = (
             [Path(runbook)]
             if runbook
@@ -389,6 +434,10 @@ def _run_harness_loop(
             overall_exit = 1
             continue
 
+        if not scenarios:
+            click.echo(f"SKIP_NO_EVIDENCE_BACKED_SCENARIOS {runbook_path}")
+            continue
+
         scenario_results: list[dict[str, Any]] = []
         aggregate_score = 0.0
         result = "PASS"
@@ -427,7 +476,7 @@ def _run_harness_loop(
                 "runbook": runbook_path.name,
                 "linter_version": LINTER_VERSION,
                 "run_started_at": run_started_at.isoformat().replace("+00:00", "Z"),
-                "run_finished_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "run_finished_at": _utc_now().isoformat().replace("+00:00", "Z"),
                 "scenarios": scenario_results,
                 "aggregate_score": aggregate_score,
                 "pass_threshold": 0.80,
@@ -590,7 +639,15 @@ def _resolve_lint_targets(
         targets = active_catalog_paths(root)
         _emit_catalog_selection("lint-selection", targets, root, selected_to_stderr=True)
         return targets
-    return _runbooks_for_mode(readme_path, selected_mode)
+    root = (repo_root or readme_path.parent).resolve()
+    targets = _runbooks_for_mode(readme_path, selected_mode)
+    _emit_catalog_selection(
+        f"lint-{selected_mode}-selection",
+        targets,
+        root,
+        selected_to_stderr=True,
+    )
+    return targets
 
 
 def _resolve_harness_targets(
@@ -603,7 +660,15 @@ def _resolve_harness_targets(
         targets = active_catalog_paths(root)
         _emit_catalog_selection("harness-selection", targets, root, selected_to_stderr=True)
         return targets
-    return _runbooks_for_mode(readme_path, "probationary")
+    root = (repo_root or readme_path.parent).resolve()
+    targets = _runbooks_for_mode(readme_path, "probationary")
+    _emit_catalog_selection(
+        "harness-probationary-selection",
+        targets,
+        root,
+        selected_to_stderr=True,
+    )
+    return targets
 
 
 def _emit_catalog_selection(
@@ -627,10 +692,9 @@ def _emit_catalog_selection(
 
 
 def _default_scenarios_dir(repo_root: Path) -> Path:
-    primary = repo_root / "harness" / "scenarios"
-    if any(primary.rglob("*.yaml")):
-        return primary
-    return repo_root / "tests" / "fixtures" / "harness_scenarios"
+    # Compatibility-only path for ScenarioLoadConfig. Normal harness execution
+    # reads typed scenarios directly from §I and must never fall back to tests/.
+    return repo_root / "harness" / "scenarios"
 
 
 def _runbooks_for_mode(readme_path: Path, mode: str) -> list[Path]:
@@ -675,6 +739,91 @@ def _extract_runbook_path(cell: str, base_dir: Path) -> Path | None:
     if stripped.endswith(".md"):
         return (base_dir / stripped).resolve()
     return None
+
+
+def _resolve_draft_path(repo_root: Path, raw_target: str) -> Path:
+    requested = Path(raw_target)
+    if len(requested.parts) == 1:
+        filename = requested.name if requested.suffix == ".md" else f"{requested.name}.md"
+        target = repo_root / "runbooks" / filename
+    else:
+        target = requested if requested.is_absolute() else repo_root / requested
+        if target.suffix != ".md":
+            target = target.with_suffix(".md")
+    target = target.resolve()
+    runbooks_root = (repo_root / "runbooks").resolve()
+    try:
+        target.relative_to(runbooks_root)
+    except ValueError as exc:
+        raise ValueError("promotion refused: target must be inside runbooks/") from exc
+    if not target.is_file():
+        raise ValueError(f"promotion refused: draft not found: {target}")
+    return target
+
+
+def _promoted_markdown(markdown: str) -> str:
+    match = re.match(r"\A---\s*\n(.*?)\n---\s*(?:\n|$)", markdown, re.DOTALL)
+    if match is None:
+        raise ValueError("promotion refused: YAML frontmatter is required")
+    try:
+        frontmatter = strict_yaml_load(match.group(1))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"promotion refused: invalid YAML frontmatter: {exc}") from exc
+    if not isinstance(frontmatter, dict) or frontmatter.get("status") != "DRAFT":
+        raise ValueError("promotion refused: source status must be DRAFT")
+
+    promoted_frontmatter, replacements = re.subn(
+        r"(?m)^status\s*:\s*(?:DRAFT|'DRAFT'|\"DRAFT\")\s*(?:#.*)?$",
+        "status: ACTIVE",
+        match.group(1),
+        count=1,
+    )
+    if replacements != 1:
+        raise ValueError("promotion refused: could not replace the DRAFT status field")
+    return markdown[: match.start(1)] + promoted_frontmatter + markdown[match.end(1) :]
+
+
+def _write_fail_safe_promotion(payloads: dict[Path, bytes]) -> None:
+    """Write source before authority and roll back ordinary write failures.
+
+    Each rename is atomic, but the set is not a filesystem transaction. The
+    caller deliberately inserts the conformant source first and generated
+    authority afterward: a process crash can therefore leave detectable catalog
+    drift, never a catalog entry pointing at an unpromoted source.
+    """
+    originals = {
+        path: path.read_bytes() if path.exists() else None for path in payloads
+    }
+    staged: dict[Path, Path] = {}
+    try:
+        for path, payload in payloads.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                delete=False,
+                dir=str(path.parent),
+            ) as temp_file:
+                temp_file.write(payload)
+                staged[path] = Path(temp_file.name)
+        for path, staged_path in staged.items():
+            staged_path.replace(path)
+    except Exception:
+        for path, original in originals.items():
+            if original is None:
+                path.unlink(missing_ok=True)
+                continue
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                delete=False,
+                dir=str(path.parent),
+            ) as restore_file:
+                restore_file.write(original)
+                restore_path = Path(restore_file.name)
+            restore_path.replace(path)
+        raise
+    finally:
+        for staged_path in staged.values():
+            staged_path.unlink(missing_ok=True)
 
 
 def _emit_findings(findings_by_path: dict[Path, list[Finding]], *, output_format: str, summary: bool, fix_hints: bool) -> None:
@@ -737,7 +886,7 @@ def _response_to_dict(response: Response) -> dict[str, Any]:
 def _git_head(workdir: Path) -> str | None:
     try:
         completed = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
+            ["git", "rev-parse", "HEAD"],
             cwd=workdir,
             capture_output=True,
             check=True,

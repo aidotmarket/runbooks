@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # CORPUS-MANIFEST.yaml pins an inventory commit and verifies every
+          # declared blob against that tree; a depth-1 checkout cannot prove it.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - name: Install
@@ -29,5 +33,3 @@ jobs:
         run: |
           runbook-catalog select --mode lint-selection
           runbook-lint --mode strict --format github
-      - name: Lint in-progress runbooks (probationary)
-        run: runbook-lint --mode probationary --format github || true

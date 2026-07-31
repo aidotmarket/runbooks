@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
-from click.testing import CliRunner
 import pytest
 import yaml
+from click.testing import CliRunner
 
 from runbook_tools.catalog.generator import generate_catalog
 from runbook_tools.cli import (
@@ -13,7 +14,7 @@ from runbook_tools.cli import (
     harness_cmd,
     lint_cmd,
 )
-
+from tests.conftest import FIXTURES_DIR
 
 SCHEMAS_DIR = Path(__file__).parent.parent / "schemas"
 
@@ -28,7 +29,8 @@ def _metadata(runbook_id: str) -> dict:
         "error_signatures": [],
         "supersedes": [],
         "superseded_by": [],
-        "owner": "test-owner",
+        "owner": "sysadmin",
+        "owner_agent": "sysadmin",
         "last_verified_at": "2026-07-17",
     }
 
@@ -44,16 +46,27 @@ def _write_readme(root: Path) -> None:
 def _write_member(root: Path, runbook_id: str) -> Path:
     path = root / "runbooks" / f"{runbook_id}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
+    source = (FIXTURES_DIR / "conformant.md").read_text()
+    _, raw_frontmatter, body = source.split("---", 2)
+    frontmatter = yaml.safe_load(raw_frontmatter)
+    metadata = _metadata(runbook_id)
+    metadata["authoritative_for"] = [
+        {
+            "topic": f"{runbook_id}-topic",
+            "section": "§C. Architecture & Interactions",
+        }
+    ]
+    frontmatter.update(metadata)
+    frontmatter["system_name"] = runbook_id
     path.write_text(
-        "---\n"
-        + yaml.safe_dump(_metadata(runbook_id), sort_keys=False)
-        + f"---\n\n# {runbook_id}\n\n## Overview\n\nFixture.\n"
+        "---\n" + yaml.safe_dump(frontmatter, sort_keys=False) + "---" + body
     )
     return path
 
 
 def _generated_repo(root: Path, count: int) -> list[Path]:
     _write_readme(root)
+    shutil.copytree(SCHEMAS_DIR, root / "schemas")
     members = [_write_member(root, f"member-{index}") for index in range(count)]
     generate_catalog(root)
     return members
@@ -88,6 +101,29 @@ def test_default_lint_and_harness_zero_targets_fail_nonvacuously(
     assert harness_result.exit_code == 1
     assert "ZERO_TARGETS_SELECTED" in lint_result.output
     assert "ZERO_TARGETS_SELECTED" in harness_result.output
+
+
+@pytest.mark.parametrize(
+    ("command", "args"),
+    [
+        (lint_cmd, ["--mode", "probationary", "--schemas-dir", str(SCHEMAS_DIR)]),
+        (lint_cmd, ["--mode", "legacy", "--schemas-dir", str(SCHEMAS_DIR)]),
+        (harness_cmd, ["--mode", "probationary"]),
+    ],
+)
+def test_every_auto_selected_mode_rejects_zero_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    command,
+    args: list[str],
+) -> None:
+    _generated_repo(tmp_path, 0)
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(command, args)
+
+    assert result.exit_code == 1
+    assert "ZERO_TARGETS_SELECTED" in result.output
 
 
 @pytest.mark.parametrize("catalog_state", ["missing", "invalid"])
@@ -157,14 +193,24 @@ def test_conformant_harness_selects_logs_and_attempts_all_five_active_paths(
 def test_selected_harness_target_configuration_failure_is_not_skipped(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    _generated_repo(tmp_path, 1)
+    from runbook_tools.harness.loader import ConfigurationError
+
+    members = _generated_repo(tmp_path, 1)
+    attempted: list[Path] = []
+
+    def rejecting_loader(config):
+        attempted.append(config.runbook_path)
+        raise ConfigurationError("inline §I configuration rejected")
+
+    monkeypatch.setattr("runbook_tools.cli.load_scenarios", rejecting_loader)
     monkeypatch.chdir(tmp_path)
 
     result = CliRunner().invoke(harness_cmd, ["--mode", "conformant", "--session", "TEST"])
 
     assert result.exit_code == 1
     assert "SELECTED_TARGET_COUNT=1" in result.output
-    assert "missing a valid §I acceptance payload" in result.output
+    assert "inline §I configuration rejected" in result.output
+    assert attempted == [members[0].resolve()]
 
 
 def test_catalog_check_cli_exits_one_on_generated_catalog_drift(
@@ -172,7 +218,7 @@ def test_catalog_check_cli_exits_one_on_generated_catalog_drift(
 ) -> None:
     _generated_repo(tmp_path, 1)
     catalog = tmp_path / "CATALOG.json"
-    catalog.write_text(catalog.read_text().replace('"schema_version": 1', '"schema_version": 2'))
+    catalog.write_text(catalog.read_text().replace('"schema_version": 2', '"schema_version": 1'))
     monkeypatch.chdir(tmp_path)
 
     result = CliRunner().invoke(catalog_check_cmd)

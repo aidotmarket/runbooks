@@ -58,4 +58,4 @@ Everything else (subtask progress, item-started, drift, budget warnings, worker 
 
 ## §K. Conformance
 - Authored to BQ-RUNBOOK-STANDARD §A–§K. Registered in TOPIC-ROUTER.md.
-- Related: allai-agents.md, peer-instance-discipline.md, activation-verification.md.
+- Related: allai-agents.md, runbooks/peer-instance-discipline.md, activation-verification.md.

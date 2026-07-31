@@ -156,6 +156,7 @@ Max authorized the recommendations from the S1413 gate/corpus audit for implemen
 6. **No author self-certification.** AI may rank, summarize, and propose documentation. Material current-state claims require `verified_against` evidence, and high-risk runbook changes require an independent truth-focused reviewer.
 7. **Pin mechanism A is selected.** CI advances the coupled boot-pin triple through the normal reviewed path. A freshness check fails when the pin is more than five runbooks-main commits behind; the implementation target is exact current-main pinning.
 8. **Unknown is better than invented.** The A-through-K structure remains the current standard, but unsupported operational detail must be explicitly `UNKNOWN` with an owner/evidence gap rather than filled speculatively. The automated LLM conformance exam remains retired.
+9. **Executable guidance cannot outrun the deployed contract.** The gateway publishes an immutable machine-readable tool-and-Council contract for its exact deployed SHA. ACTIVE current guidance is validated against a pinned digest of that artifact; a connector cache, mutable `latest` response, shared checkout, or historical Living State prose is not contract evidence.
 
 ### 12.2 Authoritative consultation record
 
@@ -165,6 +166,45 @@ The replacement planning flow is two-stage without requiring a new planning-safe
 2. It returns `RUNBOOK_CONTEXT_SELECTION_REQUIRED` with zero to three `ConsultationCandidate` records per objective and leaves the boot gate in PLANNING. Each record contains `consultation_id`, `catalog_sha`, `runbook_id`, stable `section_id`, exact path, heading, bounded verbatim excerpt, excerpt SHA-256, rank, and machine-readable match evidence. Every objective also receives an honest `gap_id`.
 3. The agent resubmits the unchanged plan using only delivered `consultation_id` or `gap_id` values. The gateway recomputes membership and accepts IDs only for the same session, instance, normalized objectives, work type, amendment marker, catalog SHA, and excerpt hash. Caller-supplied paths, headings, scores, excerpts, and coverage claims are not identity.
 4. Optional `plan_delta` prose may record the constraint or first safe action that influenced the plan, but remains telemetry rather than gate truth. Rejecting all candidates through the delivered `gap_id` records the server-produced query, candidates, and scores; it does not append close debt. Repeated misses deduplicate into the discovery-gap queue.
+
+The consultation token binds both the raw request and the search projection. Its
+canonical request digest covers every behavior-affecting plan field: exact
+ordered objective strings, instance, session, work type, amendment and plan
+revision, delegation strategy, override reason, incident reference,
+triviality/routine class, and any later semantic field. Search normalization has
+a separate digest and cannot authorize changed raw input. Tokens are
+algorithm-fixed authenticated envelopes with a version, `kid`, issuer,
+audience, issued/expiry times, bounded clock skew, selection-set identity,
+objective index, policy/config revision, runbooks commit, catalog digest, and
+section/blob/excerpt hashes. Mixed selection sets, cross-objective use,
+cross-session use, expired keys, unknown algorithms, and replay after successful
+consumption fail without mutation. Amendment acceptance uses a plan-revision
+CAS.
+
+The first response is a typed non-success outcome, never a success-looking text
+string. Every MCP, HTTP, and in-process entry path must leave the session in
+`PLANNING` and perform zero semantic writes for
+`RUNBOOK_CONTEXT_SELECTION_REQUIRED`. The successful resubmission atomically
+persists the accepted plan revision and delivery receipt while moving
+`PLANNING` to `OPERATIONAL`; post-processing cannot infer acceptance by matching
+response prose.
+
+The complete selection envelope must fit below the deployed transport's
+50,000-character truncation boundary. The initial hard limit is 40,000 UTF-8
+bytes and characters, including metadata, with `complete=true`, exact byte
+count, and a canonical payload digest. The resolver drops lower-ranked
+candidates deterministically before serialization. Multi-objective packing is
+breadth-first: one fitting candidate per objective before any objective receives
+a second or third. If positive candidates exist for an objective but none fits,
+that objective returns `no_usable_candidate_id_response_budget`; the selection
+set has no usable completion receipt and the plan remains non-operational until
+a smaller retry supplies a candidate or honest gap for every objective. Natural
+runbook-authoring tasks may also receive the pinned README authoring procedure,
+but it is labeled non-catalog context and is never eligible as a consultation
+ID or authority. If a complete envelope or a
+high-risk operative section cannot fit, it returns a small typed
+`RUNBOOK_CONTEXT_RESPONSE_TOO_LARGE` failure with no usable IDs; head/tail
+truncated JSON is never a consultation receipt.
 
 The initial ranking implementation is deterministic and dependency-light: normalized token/phrase scoring over IDs, aliases, topics, error signatures, paths, and headings read from the pinned Git snapshot. All objectives are searched in one validated snapshot load. Catalog-declared `section_id` values are authoritative only when their adjacent anchors validate; other headings remain discoverable under an explicit `legacy-derived` identity until promoted. A raw anchor that is absent from catalog metadata never claims catalog identity. Semantic/vector ranking may be added as a derived reranker only after shadow evaluation; it is never the authority or a new blocking dependency.
 
@@ -194,6 +234,44 @@ reason: <required for not_required or uncertain>
 
 The server owns repository and diff evidence; agent-supplied copies are compared with it rather than trusted. A declared update is valid only when the commit exists, is an ancestor of runbooks `origin/main`, changes the declared runbook paths/sections, and corresponds to the measured behavior delta. Instance author names and `git cat-file -e` alone are not evidence. Missing legacy input maps to `uncertain` during compatibility rollout and never becomes false `not_required` success.
 
+`runbook_impact.decision` is an agent proposal, not a truth source. The server
+captures per-repository baselines at session open and augments Git evidence with
+authenticated build, action, configuration, deployment, and external-state
+receipts. `not_required` is accepted only for a deterministic known
+behavior-preserving class; missing evidence becomes `uncertain`. Every
+`verified_against` entry is typed and resolvable. Free-text probes, unrelated
+ancestor SHAs, author names, and a runbook commit that does not change the
+declared stable section over a defined base-to-head range cannot satisfy impact
+or obligation evidence.
+
+The same distinction applies to catalog promotion. Syntax, placeholder removal,
+`last_verified_at`, prose in `verify_against`, an `UNKNOWN` decoration, exact
+blob identity, and an author-written test do not establish semantic truth. A
+DRAFT's §K projection and `pin-evidence` command are preparatory bookkeeping for
+a future claim-bound receipt, never local authority. Promotion is unavailable
+for every risk class until a deployed verifier authenticates evidence-to-claim
+bindings and an independent reviewer bound to the exact candidate digest, with
+freshness and revocation checks. A receipt ID or unsigned file authored in this
+repository is never a trust source.
+
+During this closed bootstrap, every Git repository must contain exact rollout
+commit `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and pinned
+validation SHAs must descend from it with replacement objects disabled. Catalog
+v2 freezes the exact 20-member population plus the digest-pinned reviewed
+discovery projection: IDs, approved canonical moves, topics, sections and
+section IDs, aliases, signatures, and supersession fields. An alternate or
+unrelated history, missing member, new field value, dirty projection policy, or
+replace ref fails closed. Existing ACTIVE sources and content changes remain
+integrity-only assist/shadow material with no semantic verification, authority
+admission, or action authority. The corpus `--promotion-bar` must stay NO-GO
+rather than rename empty or locally decorated evidence as verified.
+
+B0 remains one external deployment condition: the gateway must provide a
+claim-bound evidence verifier and independent-review authority bound to the
+exact candidate digest, using a pinned trusted validator/schema/projection
+package digest with freshness and revocation checks. Until all of B0 is deployed, promotion and all
+semantic/action-authority flags remain false.
+
 ### 12.4 Obligation contract
 
 The append-only free-text waiver pile is replaced by canonical obligations:
@@ -214,16 +292,124 @@ satisfied_by: <verified runbooks commit, when complete>
 
 Retries update the same record. Closing a session is never the mechanism that forces prose into a runbook. Explicit deferral of a high-risk required update still needs Max approval, but the session transaction remains recoverable and the obligation remains visible.
 
+Close authority lives in one backend database transaction, not the local
+registry, an in-memory fallback, a mutable upsert, or a best-effort sequence of
+Living State calls. `PREPARED` atomically places the session in `CLOSING` and
+records an immutable request digest. One commit then writes the database-only
+handoff, session state, deduplicated obligation occurrences, outbox events, and
+the immutable `COMMITTED` receipt. Constraints reject a reused request ID with
+a different digest, more than one active close per instance/session, duplicate
+`(obligation_id, close_request_id)` occurrences, mutation of a committed row,
+and duplicate outbox delivery. Claims and role slots release only after commit.
+Local files and registry rows are recoverable caches reconciled from backend
+truth. Crash/retry at every boundary returns one receipt and one occurrence; a
+failed prepare leaves the session open and obligations invisible. Existing
+dirty/unpushed checks remain, but session close does not reintroduce a Git-based
+handoff push.
+
+Obligation identity uses versioned, delimited canonical input including the
+server-derived component, contract kind, normalized subject, and evidence
+fingerprint. A retry cannot increment occurrences twice. High-risk deferral is
+accepted only through an expiring, exact-obligation-bound Max authorization.
+
 ### 12.5 Rollout order
 
-1. **Contain harm:** change routine plan/close behavior to warn/assist; stop failed-plan debt and generic `runbook_exit` accumulation; freeze C7–C9 hard-gate expansion.
-2. **Establish Git truth:** resolve and excerpt via `git show <origin-main-sha>:<path>`; reject loose inline § cross-references as section definitions; align agent and gate on the same SHA.
-3. **Deliver discovery:** deterministic top-three search, immutable consultation IDs, two-stage plan compatibility, and dispatch-time context injection retained.
-4. **Replace close semantics:** structured impact, server-owned diff evidence, remote ancestry/path/section verification, canonical obligations, and legacy-input compatibility warnings.
-5. **Repair the corpus controls:** current boot pin, complete critical-runbook registration, CI on PR and main push, zero lint-red ACTIVE members, and retirement or repair of the misleading harness.
-6. **Shadow and sample:** relevance/impact decisions run in shadow and are independently sampled before any new blocking promotion. Blocking is enabled only per gate point with recorded precision/false-block evidence.
+1. **Bootstrap schema coherence:** publish the signed deployed contract, make the proxy invalidate on its complete digest rather than tool-name changes, repair stale descriptions, and prove Kimi is visible through upstream, proxy, and a newly listed client schema before changing gate behavior.
+2. **Contain harm:** change routine plan/close behavior to warn/assist; permanently stop failed-plan debt, waiver, `no_entry_found` tickets, and generic `runbook_exit` accumulation; freeze C7–C9 hard-gate expansion. Rollback must not re-enable those writers.
+3. **Establish Git truth:** use a locked service-owned bare mirror fetched from an allowlisted immutable remote URL. Disable hooks, alternates, and file protocol; preflight per-blob and aggregate sizes; record remote identity, `FETCH_HEAD`, full commit, catalog blob digest, and fetch time. Catalog, schemas, and excerpts come from that one object graph. Fetch/object failure is infrastructure failure, not an honest gap or stale fallback.
+4. **Deliver discovery:** deterministic top-three search, immutable consultation IDs, two-stage plan compatibility, bounded complete envelopes, and dispatch-time context injection retained.
+5. **Protect actions:** add server-owned risk metadata for every tool and subaction. Every mutation without an explicit class defaults high-risk. Generic shell, write, state, deploy, recovery, secrets, billing, auth, and production-data actions require a second no-side-effect context response followed by an expiring one-use receipt bound to the exact canonical tool arguments, session, component, and policy revision. Caller-supplied `work_type` or `dispatch_class` never lowers risk; emergency override is a signed exact-action Max authorization, not a boolean.
+6. **Replace close semantics:** structured impact, server-owned Git and action evidence, remote ancestry/path/section verification, canonical obligations, and the backend transaction/outbox contract above. Obligations remain shadow until crash/retry probes pass.
+7. **Repair the corpus controls:** current boot pin, complete critical-runbook registration, CI on PR and main push, zero lint-red ACTIVE members, and retirement or repair of the misleading harness. Corpus changes use a two-commit invariant: first commit the exact content/archive snapshot; then run the deterministic manifest refresher against that full checked-out `HEAD` and commit the validated ledger as its direct descendant. Agents never type blob IDs or select a stale inventory commit by hand.
+8. **Shadow and sample:** relevance/impact decisions run in shadow and are independently sampled before any new blocking promotion. Blocking is enabled only per gate point with recorded precision/false-block evidence.
 
-### 12.6 Promotion bar
+### 12.6 Deployed tool-and-Council contract
+
+Every gateway build/deployment must publish a content-addressed, machine-readable contract artifact generated from the exact code and configuration being deployed. The artifact is pinned by both the full gateway commit/deployment identity and its SHA-256 digest; consumers must reject a missing artifact, a digest mismatch, an artifact naming a different deployed SHA, or an unpinned `latest` lookup. At minimum it contains:
+
+- the artifact format version, full upstream handler SHA/release identity, full proxy release identity, policy/config revision, and schema digest;
+- each exposed tool's exact name, title/description, input and output/result JSON Schemas, annotations, `_meta`, and server-owned effect/risk projection, including argument names, required keys, action/mode enums, agent/member enums, a multi-action discriminator where applicable, explicit action classifications, and a mutating/high-risk fallthrough for an unrecognized action;
+- the deployed Council gate constants (`REQUIRED_MEMBERS` and `VALID_MEMBER_IDS`), Hall `VALID_AGENTS` and `DEFAULT_AGENTS`, and a machine-readable current role projection identifying builders, voters, paused members, and retired members; and
+- a machine-readable runbook-lifecycle projection naming the plan/close tools and protocol family, typed first-plan outcome and zero-semantic-write property, immutable consultation binding, deployed candidate/legacy delivery modes, close receipt and obligation-transaction protocol, and action-context receipts bound to exact canonical arguments; and
+- source identifiers sufficient to reproduce every projected constant without reading a mutable working tree.
+
+The artifact format is versioned. Version 2 requires `outputSchema` and effect
+metadata for every tool. Effect and risk are separate: a whole-tool mutation may
+be explicitly low, medium, or high risk, while a multi-action tool must classify
+every advertised discriminator value and default any unrecognized/future value
+to mutating/high risk. The effect projection states at both the tool default and
+each action whether an exact-argument receipt is required. Under the target
+lifecycle, every declared high-risk mutation and the default-high action
+fallthrough requires it; explicitly classified low/medium plan and close
+mutations do not acquire a circular pre-plan receipt requirement.
+
+The version-2 target result contract is substantive rather than a discriminator
+label. `kd_session_plan` exposes optional `consultation_ids` and `gap_ids` as
+unique arrays of non-empty strings; its typed
+results include both `RUNBOOK_CONTEXT_SELECTION_REQUIRED` and `PLAN_ACCEPTED`.
+The selection result carries selection-set identity, catalog SHA and digest,
+singleton `complete=true`, a 0–40,000 exact byte count, delivery digest, and a candidate/gap record
+for every objective; every candidate carries consultation, runbook, stable
+section, path, heading, bounded excerpt/digest, rank, and match-evidence fields.
+The accepted result carries plan revision, session, instance, objective digest,
+work type, selection-set ID, catalog SHA, request digest, and delivery digest.
+`kd_session_close` exposes `runbook_impact`; its
+`COMMITTED` result carries a singleton-`COMMITTED`, singleton-immutable
+transaction-, close-request-, request-
+digest-, and session-scoped receipt plus typed per-obligation outcomes. A schema
+that only lists the discriminator literals is not proof of these protocols;
+each outcome conditionally requires its corresponding payload fields.
+
+For each high-risk/default-high tool or action, the target input schema exposes
+an optional, satisfiable non-empty string `action_receipt`, the output discriminator includes the zero-semantic-write
+`ACTION_CONTEXT_REQUIRED` result, and `action_context` carries context identity,
+canonical-argument digest, session, component, policy revision, and expiry. A
+global action-receipt claim cannot compensate for a missing per-tool or
+per-action binding.
+
+Outcome-to-payload conditions must be exact and satisfiable. An `if` branch
+with extra narrowing predicates, an enum that admits `complete=false` or
+`immutable=false`, or required lifecycle fields typed as null is not rollout
+evidence even when the corresponding field names are present.
+
+Integrity and rollout readiness are distinct verdicts. An honestly labeled
+legacy artifact may be correctly signed and integrity-valid while projecting
+caller-authored `runbook_consultation`, legacy `runbook_exit`, and no typed
+selection/committed/action receipts; its deterministic assessment is
+`NOT_READY`. Target readiness requires coherent target plan/close schemas and
+capabilities, `candidate_delivery_mode=required`,
+`legacy_consultation_mode=reject`, a positive bounded candidate limit, and all
+per-tool high-risk receipt bindings. A target label over legacy inputs,
+discriminator-only results, or an unbound high-risk mutation is invalid. The
+deployment/rollout check invokes the validator's explicit readiness requirement;
+a valid signature alone never enables target behavior.
+
+Artifact generation is part of deployment, not a documentation job. The gateway deployment check fails closed when a required gate member is absent from the callable dispatch schema, a role projection contradicts the deployed constants, or Hall defaults are not members of Hall `VALID_AGENTS`. A successful deployment publishes the artifact before its schema is treated as current; the runbooks repository advances its artifact SHA/digest pin through the normal reviewed path.
+
+Artifact bytes use RFC 8785 JSON Canonicalization Scheme and an algorithm-fixed
+Ed25519 signature envelope containing `kid`, issuer, audience, artifact digest,
+and signing-key validity metadata. Verification is mandatory and has no
+unsigned or optional-dependency fallback. Key rotation uses an explicit overlap
+window and revocation list; an unknown/revoked key, noncanonical payload,
+algorithm substitution, or signature mismatch is a hard contract failure. The
+content-addressed artifact is immutable and is never recovered through a
+mutable alias.
+
+The upstream `/health` and `/api/tools` responses, proxy health and tool-list
+responses, and boot/context envelope all expose the same handler SHA, proxy
+release identity, and contract digest. Proxy cache identity is that complete
+digest, not the set of tool names. Any digest change invalidates cached schemas
+and emits `notifications/tools/list_changed`. A refresh or signature failure
+puts the proxy in `SCHEMA_CONTRACT_STALE`: health is degraded, new sessions and
+mutating calls fail closed, and the prior schema is never presented as current.
+Accepted mutating calls bind the client-observed contract digest so a connection
+that has not relisted cannot silently cross a schema change.
+
+Runbooks CI on pull requests and main pushes validates every ACTIVE, non-historical executable example against that pinned artifact. The validation scope includes structured calls in §E and §I, their `expected_answers` tool calls, and any other example explicitly marked executable. Tool names and argument keys must exist; required keys must be represented; literal enum values must be accepted. Placeholders may defer only value validation, never validate an unknown argument. The same job validates current Council roster and role assertions in §C, §D, and operative scenarios against the artifact's structured Council projection. Current role claims must be represented in a deterministic machine-readable assertion/table shape; uncheckable current-role prose is a lint failure rather than silently trusted.
+
+Content inside a balanced `<!-- catalog:historical -->` ... `<!-- /catalog:historical -->` span is explicitly exempt from deployed-contract comparison because it intentionally preserves obsolete calls and roster snapshots. Historical content still receives ordinary Markdown/structure checks, and an unbalanced or nested historical marker is a CI failure. The exemption never applies to frontmatter, §E current operations, §H current invariants, or the current scenario set unless those bytes are wholly enclosed by a valid historical span.
+
+### 12.7 Promotion bar
 
 - 100% of surviving operational documents are ACTIVE and cataloged; anything else is recoverably archived.
 - Catalog, router, README, boot pin, and section index are generated and current.
@@ -234,3 +420,9 @@ Retries update the same record. Closing a session is never the mechanism that fo
 - At least 90% precision and recall for `runbook update required` on an independently reviewed sample.
 - Zero false blocking decisions in the shadow-to-block promotion window.
 - Fresh-agent evaluations measure the correct first safe action after content delivery; they do not treat an author's self-written LLM exam as proof.
+- The pinned deployed-contract artifact resolves to the running gateway SHA and digest, and its Council contract is internally coherent.
+- The signed artifact is format version 2 and the deterministic runbook-lifecycle readiness check returns `READY`; integrity-valid legacy artifacts remain `NOT_READY` and cannot pass the target-rollout flag.
+- 100% of ACTIVE non-historical executable tool examples and current Council roster/role assertions pass the deployed-contract CI check; historical spans are excluded only through balanced markers.
+- Upstream, proxy, boot, and a freshly listed client report one contract digest; a description-only, enum-only, `_meta`-only, or policy-only change invalidates the cache and produces a relist notification.
+- Contract signature/key-rotation negative tests, stale-cache mutation refusal, typed first-plan no-write tests, replay/CAS tests, response-size tests, and every close-transaction crash boundary pass against a disposable namespace.
+- High-risk action receipts are proven one-use and exact-argument-bound; unclassified mutations fail high-risk, and rollback never re-enables legacy attestation/debt writers.

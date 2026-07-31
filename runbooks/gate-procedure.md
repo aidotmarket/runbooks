@@ -114,8 +114,8 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 - id: E-01
   trigger: A BQ needs design authority before implementation planning.
   pre_conditions: [problem_written, scope_known, bq_exists]
-  tool_or_endpoint: state_request action=bq_update gate=1
-  argument_sourcing: {status: derive from complete valid reviewer verdicts, mandates: preserve explicit unresolved requirements}
+  tool_or_endpoint: state_request(action=bq_update, bq_code=<code>, gate=1, status=<status>, note=<verdict_and_mandate_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>)
+  argument_sourcing: {code: read from the BQ entity, status: derive from complete valid reviewer verdicts, note: preserve immutable verdict references and explicit unresolved mandates, session: active registered session, version: immediately preceding entity read}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(bq + gate1 + verdict_set_digest)
   expected_success: {shape: approved design or explicit mandates or rejection, verification: read back Gate 1 and mandate text}
@@ -125,8 +125,8 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 - id: E-02
   trigger: Approved design needs a bounded implementation specification.
   pre_conditions: [gate1_approved, files_known, tests_known]
-  tool_or_endpoint: specs/BQ-*-GATE2.md plus state_request action=bq_update gate=2
-  argument_sourcing: {spec: derive chunks and acceptance from approved design, status: derive from complete spec review}
+  tool_or_endpoint: specs/BQ-*-GATE2.md plus state_request(action=bq_update, bq_code=<code>, gate=2, status=<status>, note=<spec_review_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>)
+  argument_sourcing: {spec: derive chunks and acceptance from approved design, code: read from the BQ entity, status: derive from complete spec review, note: bind the committed spec and panel receipts, session: active registered session, version: immediately preceding entity read}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(bq + gate2 + spec_commit)
   expected_success: {shape: reviewed chunk spec with files risks tests and ACs, verification: compare BQ Gate 2 state with committed spec}
@@ -136,8 +136,8 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 - id: E-03
   trigger: A committed chunk needs independent audit then production verification.
   pre_conditions: [commit_known, builder_recorded, gate2_approved]
-  tool_or_endpoint: council_request mode=review then state_request action=bq_complete
-  argument_sourcing: {audit: bind Gate 3 to commit and approved specs, verification: use customer-perspective production evidence}
+  tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<sha>) once for each active voter, then state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<production_evidence>)
+  argument_sourcing: {agent: exact deployed voter projection with no substitutions, audit_prompt: bind Gate 3 to commit and approved specs, repo: repository containing the full commit SHA, code: BQ entity, summary: measured completion result, links: immutable Gate 3 and Gate 4 evidence, session: active registered session, production_evidence: customer-perspective verification}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(bq + commit + gate3_verdicts + gate4_evidence)
   expected_success: {shape: Gate 3 pass followed by Gate 4 verified completion, verification: confirm reviewer minus builder is non-empty and evidence is production-facing}

@@ -2,22 +2,25 @@ from runbook_tools.scaffold.template import generate_scaffold, validate_system_n
 
 
 def test_generate_scaffold_substitutes_system_name() -> None:
-    scaffold = generate_scaffold("infisical-secrets", "sysadmin")
+    scaffold = generate_scaffold("infisical-secrets", "sysadmin", "infrastructure")
 
     assert "infisical-secrets" in scaffold
+    assert "domain: infrastructure" in scaffold
+    assert "status: DRAFT" in scaffold
 
 
 def test_generate_scaffold_preserves_placeholders() -> None:
-    scaffold = generate_scaffold("infisical-secrets", "sysadmin")
+    scaffold = generate_scaffold("infisical-secrets", "sysadmin", "infrastructure")
 
     assert "<<PURPOSE_SENTENCE:required>>" in scaffold
 
 
 def test_generate_scaffold_substitutes_owner_agent() -> None:
-    scaffold = generate_scaffold("infisical-secrets", "vulcan")
+    scaffold = generate_scaffold("infisical-secrets", "vulcan", "infrastructure")
 
     assert "<<OWNER_AGENT:required>>" not in scaffold
     assert "owner_agent: vulcan" in scaffold
+    assert "owner: vulcan" in scaffold
 
 
 def test_validate_system_name_accepts_valid() -> None:

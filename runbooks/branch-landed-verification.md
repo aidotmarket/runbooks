@@ -248,7 +248,7 @@ owner_agent: mars
 refresh_triggers: [dispatch brief schema changes, push guardrail behaviour changes, squash-on-dispatch practice changes, git remote access mechanism changes]
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-27T23:09:41Z
+last_harness_date: 2026-07-27T23:12:01.048286Z
 first_staleness_detected_at: null
 ```
 

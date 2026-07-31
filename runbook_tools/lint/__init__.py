@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-
 Severity = Literal["FAIL", "WARN", "INFO"]
 
 
@@ -26,7 +25,7 @@ class CheckContext:
     frontmatter: dict | None
     git_head: str | None = None
     now: datetime | None = None
-    update_lifecycle: bool = False
+    raw_markdown: str | None = None
     form_cache: dict[str, Any] = field(default_factory=dict)
 
 

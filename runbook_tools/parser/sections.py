@@ -1,16 +1,21 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import re
+from collections import Counter
+from dataclasses import dataclass
 
 import yaml
 
+from runbook_tools.catalog.sections import (
+    FENCE_CLOSE_RE,
+    FENCE_OPEN_RE,
+    parse_markdown_document,
+)
 from runbook_tools.parser.markdown_ast import parse_markdown
+from runbook_tools.strict_yaml import strict_yaml_load
 
-
-SECTION_HEADING_RE = re.compile(r"^##\s+§([A-K])\.\s+(.+?)\s*$", re.MULTILINE)
+SECTION_HEADING_RE = re.compile(r"^§([A-K])\.\s+(.+?)\s*$")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*(?:\n|$)", re.DOTALL)
-FENCED_YAML_BLOCK_RE = r"^```yaml\s+{info_marker}\s*\n(.*?)\n```[ \t]*$"
 
 
 @dataclass(slots=True)
@@ -24,23 +29,28 @@ class Section:
 
 
 def extract_sections(markdown_text: str) -> list[Section]:
+    # Reuse the rendered-heading projection rather than rescanning active text.
+    # Fenced code remains available inside a real section (forms are fenced YAML),
+    # but heading-shaped examples inside backtick or tilde fences cannot create
+    # conformance sections. Historical/comment projection also preserves source
+    # line numbers through MarkdownSection.heading_line.
+    document = parse_markdown_document(markdown_text)
     sections: list[Section] = []
-    matches = list(SECTION_HEADING_RE.finditer(markdown_text))
-    lines = markdown_text.splitlines()
-
-    for index, match in enumerate(matches):
-        start_offset = match.start()
-        end_offset = matches[index + 1].start() if index + 1 < len(matches) else len(markdown_text)
-        heading = match.group(0)
-        raw_markdown = markdown_text[start_offset:end_offset].rstrip()
-        line_start = markdown_text.count("\n", 0, start_offset) + 1
+    for candidate in document.sections:
+        if candidate.level != 2:
+            continue
+        match = SECTION_HEADING_RE.fullmatch(candidate.heading)
+        if match is None:
+            continue
+        raw_markdown = candidate.text.rstrip()
+        line_start = candidate.heading_line
         section_line_count = len(raw_markdown.splitlines()) or 1
         line_end = line_start + section_line_count - 1
 
         sections.append(
             Section(
                 letter=match.group(1),
-                heading=heading,
+                heading=f"## {candidate.heading}",
                 raw_markdown=raw_markdown,
                 ast_subtree=parse_markdown(raw_markdown),
                 line_start=line_start,
@@ -57,25 +67,36 @@ def extract_yaml_frontmatter(markdown_text: str) -> dict | None:
         return None
 
     try:
-        loaded = yaml.safe_load(match.group(1))
+        loaded = strict_yaml_load(match.group(1))
     except yaml.YAMLError:
         return None
     return loaded if isinstance(loaded, dict) else None
 
 
 def extract_fenced_yaml_block(section: Section, info_marker: str) -> dict | list | None:
-    pattern = re.compile(
-        FENCED_YAML_BLOCK_RE.format(info_marker=re.escape(info_marker)),
-        re.MULTILINE | re.DOTALL,
-    )
-    matches = pattern.findall(section.raw_markdown)
-    if not matches:
+    # Mistune emits only rendered code blocks as block_code tokens. A literal
+    # inner ```yaml form inside a longer outer example therefore remains raw
+    # text on the outer token and cannot masquerade as a current form.
+    blocks = [
+        token.get("raw")
+        for token in section.ast_subtree
+        if token.get("type") == "block_code"
+        and token.get("style") == "fenced"
+        and str(token.get("attrs", {}).get("info", "")).split()
+        == ["yaml", info_marker]
+        and isinstance(token.get("raw"), str)
+    ]
+    closed_count = _closed_fence_info_counts(section.raw_markdown)[
+        ("yaml", info_marker)
+    ]
+    blocks = blocks[:closed_count]
+    if not blocks:
         return None
 
     parsed_blocks = []
-    for block in matches:
+    for block in blocks:
         try:
-            parsed_blocks.append(yaml.safe_load(block))
+            parsed_blocks.append(strict_yaml_load(block))
         except yaml.YAMLError:
             return None
     if all(isinstance(block, list) for block in parsed_blocks):
@@ -90,3 +111,28 @@ def extract_fenced_yaml_block(section: Section, info_marker: str) -> dict | list
             return parsed
 
     return None
+
+
+def _closed_fence_info_counts(markdown: str) -> Counter[tuple[str, ...]]:
+    counts: Counter[tuple[str, ...]] = Counter()
+    active: tuple[str, int, tuple[str, ...]] | None = None
+    for line in markdown.splitlines():
+        if active is not None:
+            closing = FENCE_CLOSE_RE.fullmatch(line)
+            if closing is None:
+                continue
+            marks = closing.group("marks")
+            if marks[0] == active[0] and len(marks) >= active[1]:
+                counts[active[2]] += 1
+                active = None
+            continue
+
+        opening = FENCE_OPEN_RE.match(line)
+        if opening is None:
+            continue
+        marks = opening.group("marks")
+        info = opening.group("info")
+        if marks[0] == "`" and "`" in info:
+            continue
+        active = (marks[0], len(marks), tuple(info.split()))
+    return counts
