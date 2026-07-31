@@ -1,6 +1,6 @@
 # RUNBOOK-ORGANIZATION-PLAN-S1387
 
-Status: DRAFT for Max. On acceptance this becomes the Gate 1 amendment input to BQ-RUNBOOK-CATALOG-VALIDATOR-S1229 (per CORE S16 it amends the existing item, it does not open a new one). Author: Mars, S1387. Base: runbooks main 3d4f018a, koskadeux-mcp main 645018f3.
+Status: AUTHORIZED FOR IMPLEMENTATION by Max in S1413. This document, including the S1413 amendment in §12, is the Gate 1 amendment input to BQ-RUNBOOK-CATALOG-VALIDATOR-S1229 and BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146; it does not open a new umbrella item. Author: Mars, S1387; implementation amendment: Mars, S1413. Original measurement base: runbooks main 3d4f018a, koskadeux-mcp main 645018f3. S1413 implementation base: runbooks main a6d7534a35d921138c139bdf69aaeddd0faec100, koskadeux-mcp main 8e2bc8b9345f06c37d769421e67a3daf1a90a2eb.
 
 ## 1. What this is
 
@@ -141,3 +141,96 @@ Max's own test leads, the rest support it:
 ## 11. Costs and risks
 
 Builder time is the real cost: roughly 14 to 26 MP dispatches end to end, dominated by Phase 2, spread over weeks at normal cadence. Compute cost of the embedding layer is negligible at this corpus size. Main risks: invention during rewrites (mitigated by the S1265 truth-preservation brief and machine-verified content-containment where scripted merges apply); triage deleting something load-bearing (mitigated by archive/ being recoverable and excluded rather than deleted); and the standing risk of doing nothing, which the record shows compounds: false attestations in the permanent record, instruments that pass while testing nothing, and two operators repeatedly rediscovering the same lessons the estate already contains.
+
+## 12. S1413 implementation amendment — truth before ceremony
+
+Max authorized the recommendations from the S1413 gate/corpus audit for implementation through completion. This section resolves the decisions in §10 and supersedes any earlier requirement that a free-form plan or close attestation is, by itself, evidence of consultation or documentation quality.
+
+### 12.1 Binding decisions
+
+1. **Routine plan and close gates become assistive while the replacement rolls out.** They may warn, deliver context, and record telemetry, but may not block merely because an agent cannot name a runbook or because documentation impact is uncertain. Gateway/database unavailability and verified high-risk action protections remain fail closed.
+2. **The gate proves delivery, not reading claims.** The server resolves one immutable `origin/main` snapshot, searches it using the task language, returns ranked section excerpts, and records which exact bytes were delivered. An agent must not be asked to guess a filename before receiving this result.
+3. **Action-time protection remains blocking where harm is plausible.** Deploy, rollback, secrets, production-data mutation, migration, recovery, billing, authentication/authorization, and other explicitly configured high-risk operations require a delivered current section or an audited emergency override.
+4. **Completion is behavior-impact based.** A runbook update is required only when work changes an operational contract, configuration default, deployment/recovery procedure, failure signature, ownership boundary, customer-visible behavior, or creates a durable function with no current owner. Tests-only changes, generated output, formatting, and behavior-preserving internal refactors do not require an update.
+5. **Uncertainty creates one nonblocking obligation.** `required` without a landed update and `uncertain` produce or refresh one canonical obligation keyed by component plus behavior subject. Failed/retried plan submissions never create obligations. Obligation creation is transactional with the successful operation and idempotent.
+6. **No author self-certification.** AI may rank, summarize, and propose documentation. Material current-state claims require `verified_against` evidence, and high-risk runbook changes require an independent truth-focused reviewer.
+7. **Pin mechanism A is selected.** CI advances the coupled boot-pin triple through the normal reviewed path. A freshness check fails when the pin is more than five runbooks-main commits behind; the implementation target is exact current-main pinning.
+8. **Unknown is better than invented.** The A-through-K structure remains the current standard, but unsupported operational detail must be explicitly `UNKNOWN` with an owner/evidence gap rather than filled speculatively. The automated LLM conformance exam remains retired.
+
+### 12.2 Authoritative consultation record
+
+The replacement planning flow is two-stage without requiring a new planning-safe tool:
+
+1. The first `kd_session_plan` call accepts objectives but no consultation IDs. Before any plan, intent, debt, or session-status write, the server pins the latest fetched `origin/main` SHA and searches all objectives against that one snapshot.
+2. It returns `RUNBOOK_CONTEXT_SELECTION_REQUIRED` with zero to three `ConsultationCandidate` records per objective and leaves the boot gate in PLANNING. Each record contains `consultation_id`, `catalog_sha`, `runbook_id`, stable `section_id`, exact path, heading, bounded verbatim excerpt, excerpt SHA-256, rank, and machine-readable match evidence. Every objective also receives an honest `gap_id`.
+3. The agent resubmits the unchanged plan using only delivered `consultation_id` or `gap_id` values. The gateway recomputes membership and accepts IDs only for the same session, instance, normalized objectives, work type, amendment marker, catalog SHA, and excerpt hash. Caller-supplied paths, headings, scores, excerpts, and coverage claims are not identity.
+4. Optional `plan_delta` prose may record the constraint or first safe action that influenced the plan, but remains telemetry rather than gate truth. Rejecting all candidates through the delivered `gap_id` records the server-produced query, candidates, and scores; it does not append close debt. Repeated misses deduplicate into the discovery-gap queue.
+
+The initial ranking implementation is deterministic and dependency-light: normalized token/phrase scoring over IDs, aliases, topics, error signatures, paths, and headings read from the pinned Git snapshot. All objectives are searched in one validated snapshot load. Catalog-declared `section_id` values are authoritative only when their adjacent anchors validate; other headings remain discoverable under an explicit `legacy-derived` identity until promoted. A raw anchor that is absent from catalog metadata never claims catalog identity. Semantic/vector ranking may be added as a derived reranker only after shadow evaluation; it is never the authority or a new blocking dependency.
+
+Rollout uses independent configuration controls rather than overloading the legacy global switch: `candidate_delivery_mode=off|shadow|assist|required`, `legacy_consultation_mode=allow|warn|reject`, and a bounded candidate limit. Existing per-gate keys are `kd_session_plan`, `kd_session_plan_amendment`, `kd_session_close`, `council_request`, and `bq_complete`.
+
+### 12.3 Authoritative completion record
+
+`kd_session_close` accepts an optional structured `runbook_impact`:
+
+```yaml
+decision: required | not_required | uncertain
+changed_components: [canonical component identifiers]
+behavior_changes: [short externally or operationally observable deltas]
+evidence:
+  touched_repos: [repo identifiers measured by the server]
+  base_sha: <server-measured SHA>
+  head_sha: <server-measured SHA>
+  changed_paths: [server-measured paths]
+consultations: [consultation_id values delivered during the session]
+runbook_update:
+  commit_sha: <optional 40-hex SHA>
+  runbook_ids: [affected runbook identifiers]
+  section_ids: [affected stable sections]
+verified_against: [source SHA, config version, probe, or tested command references]
+reason: <required for not_required or uncertain>
+```
+
+The server owns repository and diff evidence; agent-supplied copies are compared with it rather than trusted. A declared update is valid only when the commit exists, is an ancestor of runbooks `origin/main`, changes the declared runbook paths/sections, and corresponds to the measured behavior delta. Instance author names and `git cat-file -e` alone are not evidence. Missing legacy input maps to `uncertain` during compatibility rollout and never becomes false `not_required` success.
+
+### 12.4 Obligation contract
+
+The append-only free-text waiver pile is replaced by canonical obligations:
+
+```yaml
+obligation_id: sha256(component + normalized_subject)
+component: <canonical component>
+subject: <normalized behavior/documentation gap>
+status: open | satisfied | explicitly_deferred
+first_seen_session: <session>
+last_seen_session: <session>
+occurrences: <integer>
+owner: <agent or Max>
+due_trigger: <condition, not invented calendar precision>
+search_evidence: <catalog SHA, query, candidates>
+satisfied_by: <verified runbooks commit, when complete>
+```
+
+Retries update the same record. Closing a session is never the mechanism that forces prose into a runbook. Explicit deferral of a high-risk required update still needs Max approval, but the session transaction remains recoverable and the obligation remains visible.
+
+### 12.5 Rollout order
+
+1. **Contain harm:** change routine plan/close behavior to warn/assist; stop failed-plan debt and generic `runbook_exit` accumulation; freeze C7–C9 hard-gate expansion.
+2. **Establish Git truth:** resolve and excerpt via `git show <origin-main-sha>:<path>`; reject loose inline § cross-references as section definitions; align agent and gate on the same SHA.
+3. **Deliver discovery:** deterministic top-three search, immutable consultation IDs, two-stage plan compatibility, and dispatch-time context injection retained.
+4. **Replace close semantics:** structured impact, server-owned diff evidence, remote ancestry/path/section verification, canonical obligations, and legacy-input compatibility warnings.
+5. **Repair the corpus controls:** current boot pin, complete critical-runbook registration, CI on PR and main push, zero lint-red ACTIVE members, and retirement or repair of the misleading harness.
+6. **Shadow and sample:** relevance/impact decisions run in shadow and are independently sampled before any new blocking promotion. Blocking is enabled only per gate point with recorded precision/false-block evidence.
+
+### 12.6 Promotion bar
+
+- 100% of surviving operational documents are ACTIVE and cataloged; anything else is recoverably archived.
+- Catalog, router, README, boot pin, and section index are generated and current.
+- At least 90% top-three retrieval on a reviewed task-language benchmark; the historical waiver subjects are the initial corpus.
+- Zero obligations from failed or retried plan calls; zero duplicate obligation IDs.
+- Zero ACTIVE strict-lint failures.
+- At least 95% first-attempt plan success after context delivery.
+- At least 90% precision and recall for `runbook update required` on an independently reviewed sample.
+- Zero false blocking decisions in the shadow-to-block promotion window.
+- Fresh-agent evaluations measure the correct first safe action after content delivery; they do not treat an author's self-written LLM exam as proof.

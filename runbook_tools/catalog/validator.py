@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import json
-from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import tempfile
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from runbook_tools.catalog.generator import (
     CATALOG_PATH,
@@ -17,7 +18,7 @@ from runbook_tools.catalog.generator import (
     render_outputs,
 )
 from runbook_tools.catalog.model import CatalogError
-
+from runbook_tools.catalog.sections import declared_section_errors
 
 CATALOG_REF_RE = re.compile(
     r"\Agit:aidotmarket/runbooks@(?P<sha>[0-9a-f]{40}):CATALOG\.json\Z"
@@ -226,6 +227,7 @@ def _validate_pinned_entries(
             active_text = ""
         errors.extend(_stale_claim_errors(active_text, path))
         headings = _headings(markdown)
+        declared_rows: list[tuple[str, str | None]] = []
         for collection in ("authoritative_for", "error_signatures"):
             rows = entry.get(collection)
             if not isinstance(rows, list):
@@ -239,6 +241,14 @@ def _validate_pinned_entries(
                 section = row["section"]
                 if section not in headings:
                     errors.append(f"{path}: dangling section {section!r}")
+                section_id = row.get("section_id")
+                if section_id is not None and not isinstance(section_id, str):
+                    errors.append(
+                        f"{path}: section_id {section_id!r} must be a string"
+                    )
+                    continue
+                declared_rows.append((section, section_id))
+        errors.extend(declared_section_errors(markdown, path, declared_rows))
     return errors, checked_sections
 
 
@@ -278,9 +288,16 @@ def _active_text(markdown: str, path: str) -> str:
 
 def _stale_claim_errors(active_text: str, path: str) -> list[str]:
     patterns = (
-        ("primary/worker instance-slot claim", re.compile(r"\b(?:primary|worker)(?:\s+instance)?\s+slot\b|\bprimary\s*/\s*worker\b", re.I)),
-        ("Vulcan/Mars assignment or close-order claim", re.compile(r"\b(?:Vulcan|Mars)\b[^\n]{0,100}\b(?:assign(?:s|ed|ment)?|approv\w*|clos\w*\s+(?:before|after))\b[^\n]{0,100}\b(?:Vulcan|Mars)\b", re.I)),
-        ("XAI current Council-voter claim", re.compile(r"\bXAI\s+is\s+(?:an?\s+)?(?:active|current)\s+(?:Council\s+)?voter\b|\bactive\s+(?:Council\s+)?voters?\s*:[^\n]*\bXAI\b", re.I)),
+        (
+            "primary/worker instance-slot claim",
+            re.compile(
+                r"\bprimary(?:\s+instance)?\s+slot\b[^\n]{0,100}"
+                r"\bworker(?:\s+instance)?\s+slot\b",
+                re.IGNORECASE,
+            ),
+        ),
+        ("Vulcan/Mars assignment or close-order claim", re.compile(r"\b(?:Vulcan|Mars)\b[^\n]{0,100}\b(?:assign(?:s|ed|ment)?|approv\w*|clos\w*\s+(?:before|after))\b[^\n]{0,100}\b(?:Vulcan|Mars)\b", re.IGNORECASE)),
+        ("XAI current Council-voter claim", re.compile(r"\bXAI\s+is\s+(?:an?\s+)?(?:active|current)\s+(?:Council\s+)?voter\b|\bactive\s+(?:Council\s+)?voters?\s*:[^\n]*\bXAI\b", re.IGNORECASE)),
     )
     errors: list[str] = []
     for label, pattern in patterns:
@@ -331,6 +348,7 @@ def _git_show(repo_root: Path, sha: str, path: str) -> bytes:
     completed = subprocess.run(
         ["git", "show", f"{sha}:{path}"],
         cwd=repo_root,
+        check=False,
         capture_output=True,
     )
     if completed.returncode != 0:
@@ -343,6 +361,7 @@ def _run_git(repo_root: Path, arguments: list[str]) -> subprocess.CompletedProce
     completed = subprocess.run(
         ["git", *arguments],
         cwd=repo_root,
+        check=False,
         capture_output=True,
         text=True,
     )

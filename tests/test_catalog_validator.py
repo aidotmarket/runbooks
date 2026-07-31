@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 import yaml
@@ -11,7 +11,6 @@ import yaml
 from runbook_tools.catalog.generator import generate_catalog
 from runbook_tools.catalog.model import CatalogError
 from runbook_tools.catalog.validator import parse_catalog_ref, validate_catalog_ref
-
 
 KERNEL_FIXTURES = Path(__file__).parent / "fixtures" / "catalog" / "kernel_companions"
 
@@ -127,9 +126,7 @@ def test_authority_and_identity_conflicts_fail_atomically(
 ) -> None:
     root, _, _ = _valid_repo(tmp_path)
     first = yaml.safe_load((root / "runbooks/member.md").read_text().split("---", 2)[1])
-    if field == "authoritative_for":
-        first[field] = value
-    elif field == "error_signatures":
+    if field == "authoritative_for" or field == "error_signatures":
         first[field] = value
     second = _metadata("second", topic="shared-topic" if field == "authoritative_for" else None)
     if field == "error_signatures":
@@ -181,15 +178,152 @@ def test_dangling_section_and_frontmatter_catalog_drift_fail(tmp_path: Path) -> 
     path = root / "runbooks/member.md"
     text = path.read_text().replace("section: Overview", "section: Missing")
     path.write_text(text)
-    generate_catalog(root)
-    sha = _commit(root, "dangling section")
     with pytest.raises(CatalogError, match="dangling section"):
-        validate_catalog_ref(root, f"git:aidotmarket/runbooks@{sha}:CATALOG.json")
+        generate_catalog(root)
 
     path.write_text(path.read_text().replace("section: Missing", "section: Overview"))
+    generate_catalog(root)
+    path.write_text(path.read_text().replace("owner: test-owner", "owner: changed-owner"))
     sha = _commit(root, "catalog drift")
     with pytest.raises(CatalogError, match="differs from ACTIVE frontmatter"):
         validate_catalog_ref(root, f"git:aidotmarket/runbooks@{sha}:CATALOG.json")
+
+
+def _add_stable_overview_metadata(metadata: dict) -> None:
+    metadata["authoritative_for"][0]["section_id"] = "overview"
+    metadata["error_signatures"] = [
+        {
+            "signature": "EXACT_ERROR",
+            "section": "Overview",
+            "section_id": "overview",
+        }
+    ]
+
+
+def _add_overview_anchor(path: Path) -> None:
+    path.write_text(
+        path.read_text().replace(
+            "## Overview",
+            '<a id="rb-section-overview"></a>\n## Overview',
+        )
+    )
+
+
+def test_stable_section_anchor_and_shared_metadata_identity_validate(
+    tmp_path: Path,
+) -> None:
+    _init_repo(tmp_path)
+    metadata = _metadata("member")
+    _add_stable_overview_metadata(metadata)
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    _add_overview_anchor(path)
+
+    _, catalog_ref = _generate_commit(tmp_path, "stable section")
+
+    assert validate_catalog_ref(tmp_path, catalog_ref).status == "pass"
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing", "is missing"),
+        ("separated", "must immediately precede"),
+        ("duplicate", "duplicate section anchor"),
+    ],
+)
+def test_missing_misplaced_and_duplicate_stable_anchors_fail_before_generation(
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    _init_repo(tmp_path)
+    metadata = _metadata("member")
+    _add_stable_overview_metadata(metadata)
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    if mutation != "missing":
+        _add_overview_anchor(path)
+    if mutation == "separated":
+        path.write_text(path.read_text().replace("</a>\n##", "</a>\n\n##"))
+    if mutation == "duplicate":
+        path.write_text(
+            path.read_text()
+            + '\n<a id="rb-section-overview"></a>\n## Appendix\n'
+        )
+
+    with pytest.raises(CatalogError, match=message):
+        generate_catalog(tmp_path)
+
+
+def test_one_section_id_cannot_map_to_conflicting_headings(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    metadata = _metadata("member")
+    metadata["authoritative_for"][0]["section_id"] = "shared"
+    metadata["error_signatures"] = [
+        {
+            "signature": "EXACT_ERROR",
+            "section": "Appendix",
+            "section_id": "shared",
+        }
+    ]
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    path.write_text(
+        path.read_text().replace(
+            "## Overview",
+            '<a id="rb-section-shared"></a>\n## Overview',
+        )
+        + "\n## Appendix\n"
+    )
+
+    with pytest.raises(CatalogError, match="maps to conflicting headings"):
+        generate_catalog(tmp_path)
+
+
+def test_mixed_stable_and_legacy_identity_for_one_heading_fails(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    metadata = _metadata("member")
+    metadata["authoritative_for"][0]["section_id"] = "overview"
+    metadata["error_signatures"] = [
+        {"signature": "EXACT_ERROR", "section": "Overview"}
+    ]
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    _add_overview_anchor(path)
+
+    with pytest.raises(CatalogError, match="mixes stable and legacy"):
+        generate_catalog(tmp_path)
+
+
+def test_two_stable_ids_for_one_heading_fail(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    metadata = _metadata("member")
+    metadata["authoritative_for"][0]["section_id"] = "overview"
+    metadata["error_signatures"] = [
+        {
+            "signature": "EXACT_ERROR",
+            "section": "Overview",
+            "section_id": "other-overview",
+        }
+    ]
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    _add_overview_anchor(path)
+
+    with pytest.raises(CatalogError, match="multiple section_ids"):
+        generate_catalog(tmp_path)
+
+
+def test_duplicate_orphan_anchors_do_not_invalidate_legacy_metadata(
+    tmp_path: Path,
+) -> None:
+    _init_repo(tmp_path)
+    path = _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+    path.write_text(
+        path.read_text()
+        + '\n<a id="rb-section-orphan"></a>\n'
+        + '<a id="rb-section-orphan"></a>\n'
+    )
+
+    _, catalog_ref = _generate_commit(tmp_path, "legacy orphan anchors")
+
+    assert validate_catalog_ref(tmp_path, catalog_ref).status == "pass"
 
 
 @pytest.mark.parametrize(
@@ -217,6 +351,19 @@ def test_stale_active_claim_fails_and_explicit_historical_span_passes(
     )
     _, valid_ref = _generate_commit(tmp_path, "historical claim")
     assert validate_catalog_ref(tmp_path, valid_ref).status == "pass"
+
+
+def test_stale_scan_does_not_reject_an_explicit_retirement_statement(tmp_path: Path) -> None:
+    _init_repo(tmp_path)
+    _write_doc(
+        tmp_path,
+        "runbooks/member.md",
+        _metadata("member"),
+        "This runbook supersedes the retired Primary/Worker discipline.",
+    )
+    _, catalog_ref = _generate_commit(tmp_path, "retirement statement")
+
+    assert validate_catalog_ref(tmp_path, catalog_ref).status == "pass"
 
 
 def test_stale_scan_applies_only_to_active_catalog_members(tmp_path: Path) -> None:

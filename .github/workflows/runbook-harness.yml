@@ -1,14 +1,13 @@
-name: runbook-harness
+name: runbook-harness-diagnostic
 on:
-  schedule:
-    - cron: '0 7 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   harness:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,9 +17,7 @@ jobs:
         run: runbook-catalog check
       - name: Validate catalog at checked-out commit
         run: runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
-      - name: Update §J grace-clock (persists stale predicates from Gate 1 §J)
-        run: runbook-lint --mode strict --update-lifecycle
-      - name: Run harness against all conformant runbooks
+      - name: Run optional diagnostic harness against all conformant runbooks
         env:
           KOSKADEUX_MCP_URL: ${{ secrets.KOSKADEUX_MCP_URL }}
           KOSKADEUX_MCP_TOKEN: ${{ secrets.KOSKADEUX_MCP_TOKEN }}
@@ -31,10 +28,3 @@ jobs:
           else
             runbook-harness --mode conformant --session "CI-$(date -u +%Y%m%d)"
           fi
-      - name: Commit updates
-        run: |
-          git config user.name "runbook-harness"
-          git config user.email "noreply@ai.market"
-          git add .
-          git commit -m "harness: nightly $(date -u +%Y-%m-%d)" || exit 0
-          git push

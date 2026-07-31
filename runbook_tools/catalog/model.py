@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date
-import re
 from typing import Any
-
 
 KEBAB_CASE_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -30,18 +29,26 @@ class CatalogError(ValueError):
 class Authority:
     topic: str
     section: str
+    section_id: str | None = None
 
     def as_dict(self) -> dict[str, str]:
-        return {"section": self.section, "topic": self.topic}
+        row = {"section": self.section, "topic": self.topic}
+        if self.section_id is not None:
+            row["section_id"] = self.section_id
+        return row
 
 
 @dataclass(frozen=True, slots=True)
 class ErrorSignature:
     signature: str
     section: str
+    section_id: str | None = None
 
     def as_dict(self) -> dict[str, str]:
-        return {"section": self.section, "signature": self.signature}
+        row = {"section": self.section, "signature": self.signature}
+        if self.section_id is not None:
+            row["section_id"] = self.section_id
+        return row
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,10 +98,18 @@ class CatalogEntry:
             runbook_id=runbook_id,
             domain=domain,
             status="ACTIVE",
-            authoritative_for=tuple(sorted(authoritative_for, key=lambda row: (row.topic, row.section))),
+            authoritative_for=tuple(
+                sorted(
+                    authoritative_for,
+                    key=lambda row: (row.topic, row.section, row.section_id or ""),
+                )
+            ),
             aliases=tuple(sorted(_kebab_list(frontmatter["aliases"], f"{path}: aliases"))),
             error_signatures=tuple(
-                sorted(error_signatures, key=lambda row: (row.signature, row.section))
+                sorted(
+                    error_signatures,
+                    key=lambda row: (row.signature, row.section, row.section_id or ""),
+                )
             ),
             supersedes=tuple(
                 sorted(_kebab_list(frontmatter["supersedes"], f"{path}: supersedes"))
@@ -129,10 +144,26 @@ def _authority_rows(value: Any, path: str) -> list[Authority]:
     rows: list[Authority] = []
     for index, row in enumerate(value):
         label = f"{path}: authoritative_for[{index}]"
-        if not isinstance(row, dict) or set(row) != {"topic", "section"}:
-            raise CatalogError(f"{label} must contain exactly topic and section")
+        if not isinstance(row, dict) or set(row) not in (
+            {"topic", "section"},
+            {"topic", "section", "section_id"},
+        ):
+            raise CatalogError(
+                f"{label} must contain exactly topic and section, plus optional section_id"
+            )
         section = _nonempty_string(row["section"], f"{label}.section")
-        rows.append(Authority(topic=_kebab(row["topic"], f"{label}.topic"), section=section))
+        section_id = (
+            _kebab(row["section_id"], f"{label}.section_id")
+            if "section_id" in row
+            else None
+        )
+        rows.append(
+            Authority(
+                topic=_kebab(row["topic"], f"{label}.topic"),
+                section=section,
+                section_id=section_id,
+            )
+        )
     _reject_duplicates((row.topic for row in rows), f"{path}: authoritative_for topics")
     return rows
 
@@ -143,12 +174,23 @@ def _error_rows(value: Any, path: str) -> list[ErrorSignature]:
     rows: list[ErrorSignature] = []
     for index, row in enumerate(value):
         label = f"{path}: error_signatures[{index}]"
-        if not isinstance(row, dict) or set(row) != {"signature", "section"}:
-            raise CatalogError(f"{label} must contain exactly signature and section")
+        if not isinstance(row, dict) or set(row) not in (
+            {"signature", "section"},
+            {"signature", "section", "section_id"},
+        ):
+            raise CatalogError(
+                f"{label} must contain exactly signature and section, plus optional section_id"
+            )
+        section_id = (
+            _kebab(row["section_id"], f"{label}.section_id")
+            if "section_id" in row
+            else None
+        )
         rows.append(
             ErrorSignature(
                 signature=_nonempty_string(row["signature"], f"{label}.signature"),
                 section=_nonempty_string(row["section"], f"{label}.section"),
+                section_id=section_id,
             )
         )
     _reject_duplicates((row.signature for row in rows), f"{path}: error signatures")

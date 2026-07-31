@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
 import json
 import os
-from pathlib import Path
 import re
 import tempfile
+from collections.abc import Iterable
+from pathlib import Path
 from typing import Any
 
 import yaml
 
 from runbook_tools.catalog.model import CatalogEntry, CatalogError
-
+from runbook_tools.catalog.sections import declared_section_errors
 
 SCHEMA_VERSION = 1
 CATALOG_PATH = "CATALOG.json"
@@ -68,7 +68,18 @@ def build_catalog(repo_root: Path) -> tuple[dict[str, Any], int]:
             raise CatalogError(f"{relative}: catalog opt-in is missing required status")
         if frontmatter.get("status") != "ACTIVE":
             continue
-        entries.append(CatalogEntry.from_frontmatter(frontmatter, relative))
+        entry = CatalogEntry.from_frontmatter(frontmatter, relative)
+        section_errors = declared_section_errors(
+            path.read_text(),
+            relative,
+            [
+                (row.section, row.section_id)
+                for row in (*entry.authoritative_for, *entry.error_signatures)
+            ],
+        )
+        if section_errors:
+            raise CatalogError("; ".join(dict.fromkeys(section_errors)))
+        entries.append(entry)
 
     entries.sort(key=lambda entry: entry.runbook_id)
     _validate_conflicts(entries)
@@ -166,18 +177,41 @@ def _build_indexes(entries: list[CatalogEntry]) -> dict[str, dict[str, dict[str,
     topics: dict[str, dict[str, str]] = {}
     signatures: dict[str, dict[str, str]] = {}
     for entry in entries:
-        default_section = entry.authoritative_for[0].section
+        default_authority = entry.authoritative_for[0]
         for alias in entry.aliases:
-            aliases[alias] = {"runbook_id": entry.runbook_id, "section": default_section}
+            aliases[alias] = _index_target(
+                entry.runbook_id,
+                default_authority.section,
+                default_authority.section_id,
+            )
         for row in entry.authoritative_for:
-            topics[row.topic] = {"runbook_id": entry.runbook_id, "section": row.section}
+            topics[row.topic] = _index_target(
+                entry.runbook_id,
+                row.section,
+                row.section_id,
+            )
         for row in entry.error_signatures:
-            signatures[row.signature] = {"runbook_id": entry.runbook_id, "section": row.section}
+            signatures[row.signature] = _index_target(
+                entry.runbook_id,
+                row.section,
+                row.section_id,
+            )
     return {
         "aliases": dict(sorted(aliases.items())),
         "error_signatures": dict(sorted(signatures.items())),
         "topics": dict(sorted(topics.items())),
     }
+
+
+def _index_target(
+    runbook_id: str,
+    section: str,
+    section_id: str | None,
+) -> dict[str, str]:
+    target = {"runbook_id": runbook_id, "section": section}
+    if section_id is not None:
+        target["section_id"] = section_id
+    return target
 
 
 def _render_router(catalog: dict[str, Any]) -> str:
@@ -207,7 +241,7 @@ def _index_rows(index: dict[str, dict[str, str]], entries: dict[str, dict[str, A
     rows: list[str] = []
     for key, target in index.items():
         entry = entries[target["runbook_id"]]
-        link = _section_link(entry["path"], target["section"])
+        link = _section_link(entry["path"], target["section"], target.get("section_id"))
         rows.append(f"| `{_escape_cell(key)}` | `{entry['runbook_id']}` (`{entry['path']}`) | [{_escape_cell(target['section'])}]({link}) |")
     return rows
 
@@ -226,7 +260,7 @@ def _render_readme(readme: str, catalog: dict[str, Any], grandfathered_count: in
     ]
     for entry in catalog["entries"]:
         authorities = "; ".join(
-            f"`{row['topic']}` → [{_escape_cell(row['section'])}]({_section_link(entry['path'], row['section'])})"
+            f"`{row['topic']}` → [{_escape_cell(row['section'])}]({_section_link(entry['path'], row['section'], row.get('section_id'))})"
             for row in entry["authoritative_for"]
         )
         block_lines.append(
@@ -249,7 +283,9 @@ def _render_readme(readme: str, catalog: dict[str, Any], grandfathered_count: in
     return rendered.rstrip() + "\n"
 
 
-def _section_link(path: str, section: str) -> str:
+def _section_link(path: str, section: str, section_id: str | None = None) -> str:
+    if section_id is not None:
+        return f"{path}#rb-section-{section_id}"
     anchor = section.casefold().replace("§", "")
     anchor = re.sub(r"[^\w\- ]", "", anchor)
     anchor = anchor.replace(" ", "-")

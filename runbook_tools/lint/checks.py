@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from datetime import timezone
 import math
 import re
+from collections.abc import Callable
+from datetime import timezone
 from typing import Any
 
 from runbook_tools.lint import CheckContext, Finding, retag_findings
 from runbook_tools.lint.forms import (
     collect_b_rule_findings,
-    extract_b_rows,
     extract_c_rows,
     extract_f_rows,
     extract_g_entries,
@@ -24,14 +23,15 @@ from runbook_tools.lint.forms import (
 from runbook_tools.lint.staleness import (
     PENDING_HARNESS_TOOLING,
     _normalize_iso_value,
-    _parse_datetime as _parse_staleness_datetime,
     evaluate_staleness,
     newest_harness_result,
     write_lifecycle_update,
 )
+from runbook_tools.lint.staleness import (
+    _parse_datetime as _parse_staleness_datetime,
+)
 from runbook_tools.parser.sections import Section
 from runbook_tools.version import LINTER_VERSION
-
 
 CheckFn = Callable[[list[Section], CheckContext], list[Finding]]
 
@@ -381,14 +381,25 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
     if is_stale and prev_first is None and recommended_action == "SET":
         findings.append(
             Finding(
-                severity="WARN",
+                severity="FAIL",
                 check=15,
-                message=f"§J.first_staleness_detected_at must be set to {new_first_detected_at}",
+                message=(
+                    "§J.first_staleness_detected_at must be set in a reviewed "
+                    f"change (current measured value: {new_first_detected_at})"
+                ),
             )
         )
     elif is_stale and prev_first is not None and recommended_action == "NONE":
         days = _grace_days(ctx.now, prev_first)
-        if days <= 30:
+        if days < 0:
+            findings.append(
+                Finding(
+                    severity="FAIL",
+                    check=15,
+                    message="§J.first_staleness_detected_at cannot be in the future",
+                )
+            )
+        elif days <= 30:
             findings.append(
                 Finding(
                     severity="WARN",
@@ -407,9 +418,12 @@ def check_15_staleness_grace_workflow(sections: list[Section], ctx: CheckContext
     elif (not is_stale) and prev_first is not None and recommended_action == "CLEAR":
         findings.append(
             Finding(
-                severity="WARN",
+                severity="FAIL",
                 check=15,
-                message="§J.first_staleness_detected_at requires clear to null (all stale predicates fell)",
+                message=(
+                    "§J.first_staleness_detected_at must be cleared to null in a "
+                    "reviewed change (all stale predicates fell)"
+                ),
             )
         )
 

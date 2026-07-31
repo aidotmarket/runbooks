@@ -7,7 +7,10 @@ from click.testing import CliRunner
 
 from runbook_tools.cli import lint_cmd
 from runbook_tools.lint import CheckContext
-from runbook_tools.lint.checks import check_21_harness_claim_matches_result
+from runbook_tools.lint.checks import (
+    check_15_staleness_grace_workflow,
+    check_21_harness_claim_matches_result,
+)
 from runbook_tools.lint.staleness import PENDING_HARNESS_TOOLING
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
@@ -93,11 +96,19 @@ def test_check_21_measured_result_must_match_score_and_utc_date(
     assert "measured 0.25" in score_findings[0].message
 
 
-def test_update_lifecycle_rewrites_measured_harness_fields(
+def test_refresh_harness_metadata_rewrites_measured_harness_fields_only(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     runbook_path = _write_runbook(tmp_path, stem="measured")
+    retained_clock = "2026-05-01T03:04:05Z"
+    runbook_path.write_text(
+        runbook_path.read_text().replace(
+            "first_staleness_detected_at: null",
+            f"first_staleness_detected_at: {retained_clock}",
+            1,
+        )
+    )
     _write_result(
         tmp_path,
         runbook_path.stem,
@@ -112,7 +123,7 @@ def test_update_lifecycle_rewrites_measured_harness_fields(
         lint_cmd,
         [
             str(runbook_path),
-            "--update-lifecycle",
+            "--refresh-harness-metadata",
             "--schemas-dir",
             str(SCHEMAS_DIR),
         ],
@@ -122,13 +133,40 @@ def test_update_lifecycle_rewrites_measured_harness_fields(
     updated = runbook_path.read_text()
     assert "last_harness_pass_rate: 0.375" in updated
     assert "last_harness_date: 2026-07-18T08:36:20.840312Z" in updated
+    assert f"first_staleness_detected_at: {retained_clock}" in updated
 
 
-def test_update_lifecycle_rewrites_no_result_as_pending_and_null(
+def test_refresh_harness_metadata_rewrites_no_result_as_pending_and_null(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     runbook_path = _write_runbook(tmp_path, stem="never-harnessed")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("runbook_tools.cli.ALL_CHECKS", [])
+
+    result = CliRunner().invoke(
+        lint_cmd,
+        [
+            str(runbook_path),
+            "--refresh-harness-metadata",
+            "--schemas-dir",
+            str(SCHEMAS_DIR),
+        ],
+    )
+
+    assert result.exit_code == 0
+    updated = runbook_path.read_text()
+    assert f"last_harness_pass_rate: {PENDING_HARNESS_TOOLING}" in updated
+    assert "last_harness_date: null" in updated
+    assert "first_staleness_detected_at: null" in updated
+
+
+def test_deprecated_update_lifecycle_alias_cannot_overwrite_harness_metadata(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runbook_path = _write_runbook(tmp_path, stem="safe-legacy-alias")
+    before = runbook_path.read_text()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("runbook_tools.cli.ALL_CHECKS", [])
 
@@ -143,9 +181,37 @@ def test_update_lifecycle_rewrites_no_result_as_pending_and_null(
     )
 
     assert result.exit_code == 0
+    assert "deprecated" in result.output
+    assert runbook_path.read_text() == before
+
+
+def test_update_staleness_writes_only_the_clock(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    runbook_path = _write_runbook(tmp_path, stem="clock-only")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "runbook_tools.cli.ALL_CHECKS",
+        [check_15_staleness_grace_workflow],
+    )
+    monkeypatch.setattr("runbook_tools.cli._git_head", lambda _: "different-head")
+
+    result = CliRunner().invoke(
+        lint_cmd,
+        [
+            str(runbook_path),
+            "--update-staleness",
+            "--schemas-dir",
+            str(SCHEMAS_DIR),
+        ],
+    )
+
+    assert result.exit_code == 0
     updated = runbook_path.read_text()
-    assert f"last_harness_pass_rate: {PENDING_HARNESS_TOOLING}" in updated
-    assert "last_harness_date: null" in updated
+    assert "first_staleness_detected_at: null" not in updated
+    assert "last_harness_pass_rate: 1.0" in updated
+    assert "last_harness_date: 2026-04-20T02:00:00Z" in updated
 
 
 def _write_runbook(tmp_path: Path, *, stem: str = "demo") -> Path:

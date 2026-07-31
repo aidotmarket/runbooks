@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from pathlib import Path
 
 import pytest
 import yaml
@@ -11,7 +11,7 @@ from runbook_tools.catalog.model import CatalogError
 from runbook_tools.catalog.resolver import resolve_catalog_key
 
 
-def _repository(root: Path) -> tuple[str, str]:
+def _repository(root: Path, *, stable: bool = False) -> tuple[str, str]:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
@@ -27,12 +27,16 @@ def _repository(root: Path) -> tuple[str, str]:
         "owner": "test-owner",
         "last_verified_at": "2026-07-17",
     }
+    if stable:
+        metadata["authoritative_for"][0]["section_id"] = "overview"
     path = root / "runbooks" / "member.md"
     path.parent.mkdir(parents=True)
     path.write_text(
         "---\n"
         + yaml.safe_dump(metadata, sort_keys=False)
-        + "---\n\n# Member\n\n## Overview\n\nOverview.\n\n## Repair\n\nRepair.\n"
+        + "---\n\n# Member\n\n"
+        + ('<a id="rb-section-overview"></a>\n' if stable else "")
+        + "## Overview\n\nOverview.\n\n## Repair\n\nRepair.\n"
     )
     (root / "README.md").write_text(
         "# Fixture\n\n## Adoption status\n\n"
@@ -85,6 +89,24 @@ def test_missing_uncataloged_and_path_or_basename_queries_have_no_fallback(
 
     with pytest.raises(CatalogError, match="catalog key not found"):
         resolve_catalog_key(tmp_path, catalog_ref, query)
+
+
+def test_resolver_propagates_explicit_section_id_without_changing_legacy_shape(
+    tmp_path: Path,
+) -> None:
+    sha, catalog_ref = _repository(tmp_path, stable=True)
+
+    resolved = resolve_catalog_key(tmp_path, catalog_ref, "member-topic")
+
+    assert resolved == {
+        "catalog_sha": sha,
+        "match_type": "topic",
+        "path": "runbooks/member.md",
+        "query": "member-topic",
+        "runbook_id": "member",
+        "section": "Overview",
+        "section_id": "overview",
+    }
 
 
 @pytest.mark.parametrize(

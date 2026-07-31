@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
 import json
-from pathlib import Path
 import re
 import tempfile
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 from dateutil import parser as dateparser
@@ -40,13 +40,6 @@ def evaluate_staleness(sections: list[Section], now: datetime, git_head: str) ->
     )
     if commit_drift and date_expired:
         predicates.append("commit_drift_60d")
-
-    last_harness_at = _parse_datetime(j.get("last_harness_date"))
-    if (
-        last_harness_at is not None
-        and (now_utc - last_harness_at) > timedelta(days=90)
-    ):
-        predicates.append("harness_90d")
 
     if b_rows_unverified:
         predicates.append("unverified_b_rows")

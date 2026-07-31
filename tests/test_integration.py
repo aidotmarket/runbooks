@@ -2,11 +2,12 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 from runbook_tools.cli import harness_cmd, lint_cmd, new_cmd
+from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 
 
 def test_lint_conformant_runbook_passes(monkeypatch) -> None:
+    monkeypatch.setattr("runbook_tools.cli._git_head", lambda _: "ea70326")
     monkeypatch.setattr(
         "runbook_tools.lint.checks.newest_harness_result",
         lambda _: (

@@ -17,24 +17,10 @@ from runbook_tools.catalog.generator import (
     render_outputs,
     source_paths,
 )
-from runbook_tools.catalog.model import CatalogError, REQUIRED_ACTIVE_FIELDS
-
+from runbook_tools.catalog.model import REQUIRED_ACTIVE_FIELDS, CatalogError
 
 REPO_ROOT = Path(__file__).parent.parent
 KERNEL_FIXTURES = Path(__file__).parent / "fixtures" / "catalog" / "kernel_companions"
-SEED_IDS = [
-    "agent-dispatch",
-    "build-queue-reconciliation",
-    "council",
-    "council-gate-process",
-    "council-hall-deliberation",
-    "policy-kernel-enforcement",
-]
-E2E_IDS = [
-    "e2e-programme-integrity",
-    "e2e-test-status-publisher",
-    "e2e-video-review",
-]
 KERNEL_IDS = [
     "agent-completeness",
     "aging-policy",
@@ -91,33 +77,37 @@ def _digest_outputs(root: Path) -> dict[str, str]:
     }
 
 
-def test_live_catalog_has_six_seed_and_seven_kernel_companion_members() -> None:
+def test_live_catalog_contains_every_active_source_without_a_brittle_roster() -> None:
     catalog, grandfathered = build_catalog(REPO_ROOT)
 
-    assert [entry["runbook_id"] for entry in catalog["entries"]] == sorted(
-        SEED_IDS + KERNEL_IDS + E2E_IDS
-    )
-    assert {entry["path"] for entry in catalog["entries"]} == {
-        "runbooks/agent-completeness.md",
-        "runbooks/agent-dispatch.md",
-        "runbooks/aging-policy.md",
-        "runbooks/build-queue-reconciliation.md",
-        "runbooks/constitution-history.md",
-        "runbooks/council-gate-process.md",
-        "runbooks/council-hall-deliberation.md",
-        "runbooks/council-roster-quirks.md",
-        "runbooks/council.md",
-        "runbooks/gate-procedure.md",
-        "runbooks/infrastructure-discovery.md",
-        "runbooks/policy-kernel-enforcement.md",
-        "runbooks/product-elaboration.md",
-        "e2e-programme-integrity.md",
-        "e2e-test-status-publisher.md",
-        "e2e-video-review.md",
-    }
-    # 82 since S1348: the repo-root agent-dispatch.md duplicate was merged into
-    # runbooks/agent-dispatch.md and deleted (Max option A, BQ-RUNBOOK-CATALOG-VALIDATOR-S1229).
-    assert grandfathered == 82
+    expected: dict[str, str] = {}
+    expected_grandfathered = 0
+    for path in source_paths(REPO_ROOT):
+        text = path.read_text()
+        if not text.startswith("---\n"):
+            expected_grandfathered += 1
+            continue
+        closing = text.find("\n---", 4)
+        raw_frontmatter = text[4:closing] if closing >= 0 else ""
+        if not any(line.startswith("runbook_id:") for line in raw_frontmatter.splitlines()):
+            expected_grandfathered += 1
+            continue
+        metadata = yaml.safe_load(raw_frontmatter)
+        if metadata.get("status") == "ACTIVE":
+            expected[metadata["runbook_id"]] = path.relative_to(REPO_ROOT).as_posix()
+
+    actual = {entry["runbook_id"]: entry["path"] for entry in catalog["entries"]}
+    assert actual == expected
+    assert grandfathered == expected_grandfathered
+    assert len(actual) >= 20
+    assert grandfathered <= 81
+    assert {
+        "agent-dispatch",
+        "build-queue-reconciliation",
+        "council",
+        "infrastructure-discovery",
+        "peer-instance-discipline",
+    } <= actual.keys()
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
 
@@ -217,6 +207,65 @@ def test_router_and_readme_are_rendered_from_catalog(tmp_path: Path) -> None:
     assert "Grandfathered source documents" in readme
     assert "Every runbook conforms" not in readme
     assert "Hand-authored help remains outside" in readme
+
+
+def test_optional_stable_section_id_is_serialized_and_used_for_links(
+    tmp_path: Path,
+) -> None:
+    _write_readme(tmp_path)
+    metadata = _metadata("member", topic="catalog-topic")
+    metadata["aliases"] = ["member-alias"]
+    metadata["authoritative_for"][0]["section_id"] = "overview"
+    metadata["error_signatures"] = [
+        {
+            "signature": "CATALOG_BROKEN",
+            "section": "Overview",
+            "section_id": "overview",
+        }
+    ]
+    path = _write_doc(tmp_path, "runbooks/member.md", metadata)
+    path.write_text(
+        path.read_text().replace(
+            "## Overview",
+            '<a id="rb-section-overview"></a>\n## Overview',
+        )
+    )
+
+    outputs = render_outputs(tmp_path)
+    catalog = json.loads(outputs[CATALOG_PATH])
+    entry = catalog["entries"][0]
+
+    assert catalog["schema_version"] == 1
+    assert entry["authoritative_for"][0]["section_id"] == "overview"
+    assert entry["error_signatures"][0]["section_id"] == "overview"
+    assert catalog["indexes"]["topics"]["catalog-topic"]["section_id"] == "overview"
+    assert catalog["indexes"]["aliases"]["member-alias"]["section_id"] == "overview"
+    assert "runbooks/member.md#rb-section-overview" in outputs[ROUTER_PATH].decode()
+    assert "runbooks/member.md#rb-section-overview" in outputs[README_PATH].decode()
+
+
+def test_legacy_metadata_omits_section_id_without_schema_or_link_drift(
+    tmp_path: Path,
+) -> None:
+    _write_readme(tmp_path)
+    _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+
+    outputs = render_outputs(tmp_path)
+    catalog = json.loads(outputs[CATALOG_PATH])
+
+    assert catalog["schema_version"] == 1
+    assert "section_id" not in json.dumps(catalog)
+    assert "runbooks/member.md#overview" in outputs[ROUTER_PATH].decode()
+    assert "rb-section" not in outputs[ROUTER_PATH].decode()
+
+
+def test_optional_section_id_must_be_lowercase_kebab_case(tmp_path: Path) -> None:
+    metadata = _metadata("member")
+    metadata["authoritative_for"][0]["section_id"] = "Not Stable"
+    _write_doc(tmp_path, "runbooks/member.md", metadata)
+
+    with pytest.raises(CatalogError, match="section_id.*lowercase kebab-case"):
+        build_catalog(tmp_path)
 
 
 @pytest.mark.parametrize("drifted_path", [CATALOG_PATH, ROUTER_PATH, README_PATH])

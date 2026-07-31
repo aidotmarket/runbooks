@@ -19,11 +19,14 @@ def resolve_catalog_key(repo_root: Path, catalog_ref: str, query: str) -> dict[s
     match_type: str | None = None
     runbook_id: str | None = None
     section: str | None = None
+    section_id: str | None = None
     if query in entries:
         match_type = "runbook_id"
         runbook_id = query
         authorities = entries[query].get("authoritative_for", [])
-        section = authorities[0].get("section") if authorities else None
+        if authorities:
+            section = authorities[0].get("section")
+            section_id = authorities[0].get("section_id")
     else:
         for index_name, label in (
             ("aliases", "alias"),
@@ -35,12 +38,13 @@ def resolve_catalog_key(repo_root: Path, catalog_ref: str, query: str) -> dict[s
                 match_type = label
                 runbook_id = target["runbook_id"]
                 section = target["section"]
+                section_id = target.get("section_id")
                 break
 
     if match_type is None or runbook_id is None or section is None:
         raise CatalogError(f"catalog key not found: {query!r}")
     entry = entries[runbook_id]
-    return {
+    result = {
         "catalog_sha": validated.report.catalog_sha,
         "match_type": match_type,
         "path": entry["path"],
@@ -48,3 +52,6 @@ def resolve_catalog_key(repo_root: Path, catalog_ref: str, query: str) -> dict[s
         "runbook_id": runbook_id,
         "section": section,
     }
+    if section_id is not None:
+        result["section_id"] = section_id
+    return result

@@ -40,8 +40,8 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Entity default-DENY admission at producers | PLANNED | — | — | 2026-07-30 |
 | Corpus control plane (six classes, flags off) | PLANNED | — | — | 2026-07-30 |
 | Structure-fingerprint moat capture (S1396) | PLANNED | — | — | 2026-07-30 |
-| Outbox done-row retention sweep | GAP | — | — | 2026-07-30 |
-| Embedding cost/volume attribution alarm | GAP | — | — | 2026-07-30 |
+| Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
+| Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
 Status notes: "Entity default-DENY admission" is BQ-CORPUS-CAPTURE-TAXONOMY-S1299 Chunk 2 (spec `specs/BQ-CORPUS-CAPTURE-TAXONOMY-S1299-GATE2.md` at c233c9597aa1e812ba957d7139649cb0ec762917 in ai-market-backend). "Corpus control plane" is S1299 Chunk 1, dispatched to MP 2026-07-30 (task 4f658f20). The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
@@ -83,7 +83,7 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 
 ### §C.5 Retention of the transport queue
 
-`qdrant_sync_outbox` is transport, not record. Rows with status done are purgeable after a short buffer; dead_letter rows are kept for diagnosis until their root cause is closed. One-shot purge executed 2026-07-30 under Max GO (event d0052189): 498,000 processed rows removed, 1.3 GB, canonical tables untouched. No automatic sweep exists yet (§B GAP); until one ships, run §E E-03 under the same gating.
+`qdrant_sync_outbox` is transport, not record. Rows with status done are purgeable after a short buffer; dead_letter rows are kept for diagnosis until their root cause is closed. One-shot purge executed 2026-07-30 under Max GO (event d0052189): 498,000 processed rows removed, 1.3 GB, canonical tables untouched. No automatic sweep exists yet (the §B retention-sweep row is PLANNED with no owning build); until one ships, run §E E-03 under the same gating.
 
 ## §D. Agent Capability Map
 
@@ -154,10 +154,10 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Embedding or outbox volume spikes above policy expectations | new unfiltered producer, entity churn before S1299 Chunk 2, rule regression | run §E E-01; then `SELECT split_part(target_id,':',1), count(*), count(distinct target_id) FROM qdrant_sync_outbox WHERE created_at >= now() - interval '1 day' AND target_type='entity' GROUP BY 1 ORDER BY 2 DESC` to see namespace and repetition | §G G-03 | CONFIRMED |
-| F-02 | Quarantine backlog grows and stays open | weekly review not happening, genuinely novel event families | §E E-02 listing ordered by count | §G G-01 | CONFIRMED |
-| F-03 | Junk admitted through token matching | an operational event type contains an embed token such as decision or review | `SELECT event_type, count(*) FROM state_events WHERE indexing_disposition='embed' AND ts >= now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC` and judge each type against §C.1 | §G G-01 | HYPOTHESIZED |
-| F-04 | Google spend rises with no matching capture volume | generation-side spend (agents, mediation), not capture; or attribution gap hides the driver | compare §E E-01 volumes with GCP Monitoring aiplatform request_count; remember allai_cost_daily contains only zero rows and proves nothing | — | CONFIRMED |
+| F-01 | Embedding or outbox volume spikes above policy expectations | new unfiltered producer, entity churn before S1299 Chunk 2, rule regression | run §E E-01; then `SELECT split_part(target_id,':',1), count(*), count(distinct target_id) FROM qdrant_sync_outbox WHERE created_at >= now() - interval '1 day' AND target_type='entity' GROUP BY 1 ORDER BY 2 DESC` to see namespace and repetition | §G-03 | CONFIRMED |
+| F-02 | Quarantine backlog grows and stays open | weekly review not happening, genuinely novel event families | §E E-02 listing ordered by count | §G-01 | CONFIRMED |
+| F-03 | Junk admitted through token matching | an operational event type contains an embed token such as decision or review | `SELECT event_type, count(*) FROM state_events WHERE indexing_disposition='embed' AND ts >= now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC` and judge each type against §C.1 | §G-01 | HYPOTHESIZED |
+| F-04 | Google spend rises with no matching capture volume | generation-side spend (agents, mediation), not capture; or attribution gap hides the driver | compare §E E-01 volumes with GCP Monitoring aiplatform request_count; remember allai_cost_daily contains only zero rows and proves nothing |  | CONFIRMED |
 
 ## §G. Repair - Fixing Problems
 
@@ -200,23 +200,50 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 - Repetition is filtered at the producer, not the consumer: a filtered record writes no row at all.
 - The Event Ledger (state_events) itself remains an append-only audit record independent of capture; capture policy governs what is embedded and projected, not what is audited. Ledger retention belongs to BQ-DATABASE-CLEANUP-RETENTION-S1300.
 
-### §H.2 Change-class predicate tree
+### §H.2 BREAKING predicates
 
-BREAKING if any change captures raw customer data or PII, persists rejected content, adds a capture path that bypasses admission, makes Qdrant canonical, or removes the k>=5 gate from behavioral aggregates.
+- Any change that captures raw customer data or PII is BREAKING.
+- Any change that persists rejected content is BREAKING.
+- Any change that adds a capture path which bypasses admission is BREAKING.
+- Any change that makes Qdrant canonical is BREAKING.
+- Any change that removes the k>=5 gate from behavioral aggregates is BREAKING.
 
-REVIEW if any change adds or retires a capture class, changes admit/never event rules, changes denylist prefixes, changes retention windows, or adds a producer.
+### §H.3 REVIEW predicates
 
-SAFE if the change is documentation, adds tests, tightens a reject path, or adds content-free telemetry.
+- Adding or retiring a capture class requires REVIEW.
+- Changing admit/never event rules requires REVIEW.
+- Changing denylist prefixes requires REVIEW.
+- Changing retention windows requires REVIEW.
+- Adding a producer requires REVIEW.
 
-### §H.3 Boundary definitions
+### §H.4 SAFE predicates
 
-`module`: `app/services` for admission and policy, `app/allai/evolution` for legacy memory surfaces, migrations as a peer tree.
+- Documentation changes are SAFE when they do not change behavior.
+- Adding tests is SAFE when it does not change behavior.
+- Tightening a reject path is SAFE when it preserves the governing invariants.
+- Adding content-free telemetry is SAFE when it preserves the governing invariants.
 
-`public contract`: the six-class enum, admission reason codes, quarantine table shape, and the governing principle in §A.
+### §H.5 Boundary definitions
 
-`runtime dependency`: Postgres, embedding provider (swappable per CORE S6), Qdrant, Railway.
+#### module
 
-`config default`: QDRANT_ENTITY_DENYLIST_PREFIXES currently `infra:git-push-poller-cursor`; all S1299 class flags default false.
+`app/services` for admission and policy, `app/allai/evolution` for legacy memory surfaces, and migrations as a peer tree.
+
+#### public contract
+
+The six-class enum, admission reason codes, quarantine table shape, and the governing principle in §A.
+
+#### runtime dependency
+
+Postgres, embedding provider (swappable per CORE S6), Qdrant, and Railway.
+
+#### config default
+
+`QDRANT_ENTITY_DENYLIST_PREFIXES` is currently `infra:git-push-poller-cursor`; all S1299 class flags default false.
+
+### §H.6 Adjudication
+
+Evaluate §H.2 before §H.3, and §H.3 before §H.4. If the documented predicates do not resolve a classification, do not infer a new policy: escalate the unresolved case to Max and record the resulting ruling before implementation.
 
 ## §I. Acceptance Criteria
 
@@ -224,52 +251,106 @@ SAFE if the change is documentation, adds tests, tightens a reject path, or adds
 scenario_set:
   - id: I-01
     type: operate
-    refs: [§E E-01]
+    refs: [E-01]
     scenario: A Google budget alert arrives; establish whether capture volume is within policy.
-    expected_answers: [{kind: sql, query_contains: [qdrant_sync_outbox, "count(*)"]}]
-    weight: 0.125
+    expected_answers:
+      - kind: tool_call
+        tool: psql
+        argument_keys: [dsn, query]
+    weight: 0.09090909090909091
   - id: I-02
     type: operate
-    refs: [§E E-03]
+    refs: [E-03]
     scenario: The outbox table is 1.4 GB of processed rows; reduce it safely.
-    expected_answers: [{kind: human_instruction, action: obtain Max GO then run the E-03 purge with the one-hour buffer}]
-    weight: 0.125
+    expected_answers:
+      - kind: human_action
+        verb: obtain
+        object: explicit approval
+        target: Max before the E-03 purge
+    weight: 0.09090909090909091
   - id: I-03
     type: isolate
-    refs: [§F F-01]
+    refs: [F-01]
     scenario: Entity embeddings run at 30,000 per day; find what and how repetitive.
-    expected_answers: [{kind: sql, query_contains: [split_part, distinct target_id]}]
-    weight: 0.125
+    expected_answers:
+      - kind: tool_call
+        tool: psql
+        argument_keys: [dsn, query]
+    weight: 0.09090909090909091
   - id: I-04
     type: isolate
-    refs: [§F F-03]
+    refs: [F-03]
     scenario: An event type named budget_decision_poll floods the embed path.
-    expected_answers: [{kind: classification, verdict: token-match admission through decision; judge against §C.1 and repair via G-01}]
-    weight: 0.125
+    expected_answers:
+      - kind: tool_call
+        tool: psql
+        argument_keys: [dsn, query]
+    weight: 0.09090909090909091
   - id: I-05
     type: repair
-    refs: [§G G-01]
+    refs: [G-01]
     scenario: A high-count housekeeping event type sits open in quarantine.
-    expected_answers: [{kind: human_instruction, action: add to _NEVER_EXACT or _NEVER_PREFIXES via reviewed PR}]
-    weight: 0.125
+    expected_answers:
+      - kind: human_action
+        verb: add
+        object: event type
+        target: _NEVER_EXACT or _NEVER_PREFIXES via reviewed PR
+    weight: 0.09090909090909091
   - id: I-06
     type: repair
-    refs: [§G G-03]
+    refs: [G-03]
     scenario: Stop the internal entity embed bleed this week without waiting for Chunk 2.
-    expected_answers: [{kind: human_instruction, action: treat denylist extension as a Max-approved production-data change because Qdrant points are deleted with no rebuild tooling}]
-    weight: 0.125
+    expected_answers:
+      - kind: human_action
+        verb: obtain
+        object: explicit approval
+        target: Max before a broad denylist extension
+    weight: 0.09090909090909091
   - id: I-07
     type: evolve
     refs: [§H]
     scenario: Proposal to log rejected candidate text for debugging.
-    expected_answers: [{kind: classification, verdict: BREAKING}]
-    weight: 0.125
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.09090909090909091
   - id: I-08
     type: evolve
     refs: [§H]
     scenario: Ambiguous - a proposal to capture per-buyer search strings hashed with SHA-256 so they are "not raw data".
-    expected_answers: [{kind: classification, verdict: BREAKING - hashed customer identifiers and query content remain customer data and are a dropped class; only k-anonymous aggregates per market_demand_aggregate are permitted}]
-    weight: 0.125
+    expected_answers:
+      - kind: classification
+        label: BREAKING
+    weight: 0.09090909090909091
+  - id: I-09
+    type: operate
+    refs: [E-02]
+    scenario: The weekly quarantine review must classify high-volume unknown event types.
+    expected_answers:
+      - kind: tool_call
+        tool: psql
+        argument_keys: [dsn, query]
+    weight: 0.09090909090909091
+  - id: I-10
+    type: isolate
+    refs: [F-04]
+    scenario: Google spend rises while the capture tables show no corresponding volume increase.
+    expected_answers:
+      - kind: human_action
+        verb: compare
+        object: capture volume
+        target: GCP Monitoring aiplatform request_count
+    weight: 0.09090909090909091
+  - id: I-11
+    type: ambiguous
+    refs: [E-01, F-01, F-04]
+    scenario: Embedding spend rises, but the cause could be capture churn, generation traffic, or the known attribution gap.
+    expected_answers:
+      - kind: human_action
+        verb: compare
+        object: E-01 capture volume
+        target: GCP Monitoring aiplatform request_count
+    weight: 0.09090909090909091
 ```
 
 ## §J. Lifecycle
@@ -290,22 +371,13 @@ last_harness_date: 2026-07-30T12:00:00Z
 first_staleness_detected_at: null
 ```
 
-## §K. Linter / Compliance Metadata
+## §K. Conformance
 
-```yaml compliance
+```yaml conformance
 linter_version: 1.0.0
-standard_ref: specs/BQ-RUNBOOK-STANDARD.md
-sections_present: [A, B, C, D, E, F, G, H, I, J, K]
-agent_forms:
-  B: capability_matrix
-  C: architecture_table
-  D: agent_capability_map
-  E: operate_yaml
-  F: symptom_index
-  G: repair_yaml
-  H: predicate_tree
-  I: scenario_set
-  J: lifecycle_metadata
-router_registration: TOPIC-ROUTER.md
-last_lint_run: S1406 / 2026-07-30T12:00:00Z
+last_lint_run: S1413 / 2026-07-31T12:52:24Z
+last_lint_result: PASS
+retrofit: false
+trace_matrix_path: null
+word_count_delta: null
 ```

@@ -42,23 +42,27 @@ Grandfathered source documents (readable by explicit Git path, absent from catal
 - `GATE_2_IN_PROGRESS` — Gate 2 authoring and build
 - `GATE_3_IN_PROGRESS` — code audit underway
 - `GATE_4_IN_PROGRESS` — production verification
-- `CONFORMANT` — all four gates passed, lint + harness passing
+- `CONFORMANT` — all four gates passed and deterministic catalog/lint checks pass; retained harness claims, if any, match their artifacts
 - `RETROFIT_CANDIDATE` — pre-existing runbook needs structural rework (content stays valid)
 - `LEGACY_NOT_UNDER_STANDARD` — predates the standard, not on adoption roadmap
 - `DEPRECATED` — system is being retired; runbook kept for history
 
 ## Working on a runbook
 
+- Find governing context in task language: `runbook-catalog search --catalog-ref git:aidotmarket/runbooks@<full-sha>:CATALOG.json "<task>"`
+- Search several objectives against one immutable snapshot: repeat `--query` with `runbook-catalog search-many`
 - Create a new runbook: `runbook-new <system-name>`
 - Validate a runbook: `runbook-lint <path>`
-- Run the harness locally: `runbook-harness --runbook <path>`
+- Record a measured staleness-clock transition for review: `runbook-lint <path> --update-staleness`
+- Run the retired LLM exam only as an explicit diagnostic: `runbook-harness --runbook <path>`; its score is not freshness or conformance evidence
 
 ## Tooling
 
 This repository ships `runbook-tools`, a Python package providing:
-- `runbook-lint` — validates runbooks against the standard (20 checks per §K.1 of the spec)
+- `runbook-catalog` — generates, validates, resolves, and deterministically searches the SHA-pinned catalog
+- `runbook-lint` — validates runbooks against the standard; normal CI is read-only
 - `runbook-new` — generates a scaffold runbook
-- `runbook-harness` — runs the stateless-agent legibility harness nightly
+- `runbook-harness` — retains the old stateless-agent exam as a manual diagnostic, never as an automatic compliance writer
 
 Installation: `pip install -e .` (Python 3.11+).
 

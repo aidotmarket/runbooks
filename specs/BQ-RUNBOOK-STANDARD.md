@@ -260,21 +260,22 @@ Authoritative refresh tracking. §A Header is a display summary; §J is the sour
 - `owner_agent` — agent responsible for refresh cycles
 - `refresh_triggers` — list (BQ completion, gate approval, incident, scheduled cadence)
 - `scheduled_cadence` — e.g., `90 days` (optional; must be set if not event-driven)
-- `last_harness_pass_rate` — most recent §I harness score
-- `last_harness_date` — ISO timestamp of last harness run
-- `first_staleness_detected_at` — ISO timestamp; initialized `null`; set by linter when STALE transitions `true`; cleared by linter ONLY when all stale predicates re-evaluate to `false` (see non-compliance workflow below)
+- `last_harness_pass_rate` — most recent §I harness score, or the explicit pending-tooling value when no valid result exists; retained as historical diagnostic evidence
+- `last_harness_date` — ISO timestamp of the most recent harness run, or `null`; retained as historical diagnostic evidence
+- `first_staleness_detected_at` — ISO timestamp; initialized `null`; the explicit `--update-staleness` helper proposes the measured transition when STALE becomes `true`, and clears it ONLY when all stale predicates re-evaluate to `false`; the resulting diff is reviewed and committed (see non-compliance workflow below)
 
 **Staleness detection (STALE true if ANY of):**
 - `last_refresh_commit != current HEAD of system's primary repo` AND `now - last_refresh_date > 60 days`
-- `now - last_harness_date > 90 days`
 - Any §B row has `UNVERIFIED` overlay
 
-**Non-compliance workflow:**
-1. On STALE transition `false → true`: linter sets `first_staleness_detected_at = now` and emits `WARN` (not PR-blocking).
-2. If `now - first_staleness_detected_at > 30 days` AND any stale predicate is still true: linter emits `FAIL` (PR-blocking).
-3. On metadata refresh (author updates `last_refresh_*` fields OR re-runs the harness OR re-verifies a §B cell): linter **re-evaluates all stale predicates**. `first_staleness_detected_at` is cleared to `null` ONLY if every stale predicate is false. If any predicate remains true (e.g., `last_harness_date` still > 90d, or a §B cell still `UNVERIFIED`), `first_staleness_detected_at` is preserved and the grace clock continues — the runbook is not considered re-freshed for grace-workflow purposes until the underlying staleness is cured.
+The automated LLM harness exam was retired in S1413. Harness scores and dates remain auditable historical claims: check #21 still verifies them against any retained result artifact, but harness age is not a freshness predicate and must not be refreshed merely to keep a runbook compliant. `--refresh-harness-metadata` is the only command that rewrites those two claims; it is explicit and separate from the staleness clock.
 
-**Rationale:** without this rule, a metadata-only refresh could wipe the grace clock while the runbook remained substantively stale, defeating the non-compliance mechanism.
+**Non-compliance workflow:**
+1. On STALE transition `false → true`: read-only CI emits `FAIL` until `first_staleness_detected_at` is persisted in the reviewed change. An author may run `runbook-lint --update-staleness` to write the actual invocation timestamp locally; CI never writes or pushes it. The deprecated `--update-lifecycle` alias is clock-only and cannot rewrite harness claims.
+2. If `now - first_staleness_detected_at > 30 days` AND any stale predicate is still true: linter emits `FAIL` (PR-blocking).
+3. On metadata refresh (author updates `last_refresh_*` fields or re-verifies a §B cell), linter **re-evaluates all stale predicates**. When every predicate becomes false, read-only CI emits `FAIL` until the reviewed change clears `first_staleness_detected_at` to `null`. If any predicate remains true (for example, a §B cell is still `UNVERIFIED`), `first_staleness_detected_at` is preserved and the grace clock continues — the runbook is not considered re-freshed for grace-workflow purposes until the underlying staleness is cured.
+
+**Rationale:** without this rule, a metadata-only refresh could wipe the grace clock while the runbook remained substantively stale, defeating the non-compliance mechanism. Requiring the transition in a reviewed diff also avoids a scheduled workflow manufacturing lifecycle or harness data and pushing it directly.
 
 Other linter `FAIL` triggers (always PR-blocking, no grace period):
 - Any §A–§K section missing

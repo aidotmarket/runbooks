@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 from runbook_tools.lint import CheckContext
 from runbook_tools.lint.checks import (
     check_01_sections_present_and_ordered,
@@ -27,6 +26,7 @@ from runbook_tools.lint.checks import (
     check_20_b_exact_columns,
 )
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
+from tests.conftest import FIXTURES_DIR, SCHEMAS_DIR
 
 
 def test_check_01_sections_present_and_ordered() -> None:
@@ -166,14 +166,14 @@ def test_check_15_staleness_emission_table() -> None:
         ),
     )
 
-    assert any(f.severity == "WARN" and "must be set to" in f.message for f in row1)
+    assert any(f.severity == "FAIL" and "must be set" in f.message for f in row1)
     assert any(f.severity == "WARN" and "grace clock at 10/30 days" in f.message for f in row2)
     assert any(f.severity == "FAIL" and "grace period exceeded" in f.message for f in row3)
     assert row4 == []
-    assert any(f.severity == "WARN" and "requires clear to null" in f.message for f in row5)
+    assert any(f.severity == "FAIL" and "must be cleared to null" in f.message for f in row5)
 
 
-def test_check_15_dual_path_pr_mode(tmp_path) -> None:
+def test_check_15_read_only_mode_fails_an_unpersisted_transition(tmp_path) -> None:
     source = FIXTURES_DIR / "stale_commit_drift.md"
     runbook_path = tmp_path / "runbook.md"
     original = source.read_text()
@@ -187,11 +187,11 @@ def test_check_15_dual_path_pr_mode(tmp_path) -> None:
         readme_path=runbook_path,
     )
 
-    assert any(f.severity == "WARN" for f in findings)
+    assert any(f.severity == "FAIL" for f in findings)
     assert runbook_path.read_text() == original
 
 
-def test_check_15_dual_path_nightly(tmp_path) -> None:
+def test_check_15_explicit_update_helper_writes_the_measured_transition(tmp_path) -> None:
     runbook_path = tmp_path / "runbook.md"
     runbook_path.write_text((FIXTURES_DIR / "stale_commit_drift.md").read_text())
 
@@ -206,6 +206,21 @@ def test_check_15_dual_path_nightly(tmp_path) -> None:
 
     assert any(f.severity == "INFO" for f in findings)
     assert 'first_staleness_detected_at: "2026-04-21T00:00:00+00:00"' in runbook_path.read_text()
+
+
+def test_check_15_rejects_a_future_grace_clock() -> None:
+    findings = _run_check(
+        check_15_staleness_grace_workflow,
+        "stale_commit_drift.md",
+        now=datetime(2026, 4, 21, tzinfo=timezone.utc),
+        git_head="ea70326",
+        transform=lambda markdown: markdown.replace(
+            "first_staleness_detected_at: null",
+            "first_staleness_detected_at: 2026-05-01T00:00:00Z",
+        ),
+    )
+
+    assert any(f.severity == "FAIL" and "future" in f.message for f in findings)
 
 
 def test_check_16_linter_version_compat(monkeypatch) -> None:

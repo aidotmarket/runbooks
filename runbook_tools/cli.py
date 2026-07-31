@@ -1,23 +1,24 @@
 from __future__ import annotations
 
-from collections import Counter
-from contextlib import ExitStack
-from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import re
 import subprocess
 import tempfile
+from collections import Counter
+from contextlib import ExitStack
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable
 
 import click
 import yaml
 
 from runbook_tools.catalog import CatalogError, check_catalog, generate_catalog
-from runbook_tools.catalog.resolver import resolve_catalog_key
-from runbook_tools.catalog.validator import active_catalog_paths, validate_catalog_ref
 from runbook_tools.catalog.model import REQUIRED_ACTIVE_FIELDS
+from runbook_tools.catalog.resolver import resolve_catalog_key
+from runbook_tools.catalog.search import search_catalog, search_catalog_many
+from runbook_tools.catalog.validator import active_catalog_paths, validate_catalog_ref
 from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
@@ -37,7 +38,6 @@ from runbook_tools.lint.staleness import (
 from runbook_tools.parser.sections import extract_sections, extract_yaml_frontmatter
 from runbook_tools.scaffold.template import generate_scaffold, validate_system_name
 from runbook_tools.version import LINTER_VERSION
-
 
 README_STATUS_RE = re.compile(r"^\|\s*(?P<system>.+?)\s*\|\s*(?P<runbook>.+?)\s*\|\s*(?P<status>[A-Z0-9_]+)\s*\|")
 VALID_README_STATUSES = {
@@ -107,6 +107,34 @@ def catalog_resolve_cmd(catalog_ref: str, query: str) -> None:
     click.echo(json.dumps(resolved, sort_keys=True))
 
 
+@catalog_cmd.command(name="search")
+@click.option("--catalog-ref", required=True)
+@click.option("--limit", type=click.IntRange(1, 10), default=3, show_default=True)
+@click.argument("query")
+def catalog_search_cmd(catalog_ref: str, limit: int, query: str) -> None:
+    """Rank citable sections from one validated full-SHA catalog snapshot."""
+    try:
+        result = search_catalog(Path.cwd(), catalog_ref, query, limit=limit)
+    except (CatalogError, OSError) as exc:
+        click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
+        raise SystemExit(1)
+    click.echo(json.dumps(result, sort_keys=True))
+
+
+@catalog_cmd.command(name="search-many")
+@click.option("--catalog-ref", required=True)
+@click.option("--limit", type=click.IntRange(1, 10), default=3, show_default=True)
+@click.option("--query", "queries", multiple=True, required=True)
+def catalog_search_many_cmd(catalog_ref: str, limit: int, queries: tuple[str, ...]) -> None:
+    """Rank multiple objectives against one validated full-SHA snapshot."""
+    try:
+        result = search_catalog_many(Path.cwd(), catalog_ref, queries, limit=limit)
+    except (CatalogError, OSError) as exc:
+        click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
+        raise SystemExit(1)
+    click.echo(json.dumps(result, sort_keys=True))
+
+
 @catalog_cmd.command(name="select")
 @click.option(
     "--mode",
@@ -128,14 +156,51 @@ def catalog_select_cmd(mode: str) -> None:
 @click.option("--mode", type=click.Choice(["strict", "probationary", "legacy"]), default=None)
 @click.option("--format", "output_format", type=click.Choice(["text", "json", "github"]), default="text")
 @click.option("--fix-hints/--no-fix-hints", default=True)
-@click.option("--update-lifecycle", is_flag=True, default=False)
+@click.option(
+    "--update-staleness",
+    is_flag=True,
+    default=False,
+    help="Write only the measured §J staleness-clock SET/CLEAR transition.",
+)
+@click.option(
+    "--update-lifecycle",
+    "legacy_update_lifecycle",
+    is_flag=True,
+    default=False,
+    help="Deprecated safe alias for --update-staleness.",
+)
+@click.option(
+    "--refresh-harness-metadata",
+    is_flag=True,
+    default=False,
+    help="Refresh only §J harness claims from local result artifacts.",
+)
 @click.option("--schemas-dir", type=click.Path(exists=False), default=None)
 @click.option("--readme", type=click.Path(exists=False), default=None)
 @click.option("--summary", is_flag=True, default=False)
-def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, schemas_dir, readme, summary):
+def lint_cmd(
+    paths,
+    version,
+    mode,
+    output_format,
+    fix_hints,
+    update_staleness,
+    legacy_update_lifecycle,
+    refresh_harness_metadata,
+    schemas_dir,
+    readme,
+    summary,
+):
     if version:
         click.echo(LINTER_VERSION)
         raise SystemExit(0)
+
+    if legacy_update_lifecycle:
+        click.echo(
+            "warning: --update-lifecycle is deprecated; use --update-staleness",
+            err=True,
+        )
+    apply_staleness_update = update_staleness or legacy_update_lifecycle
 
     try:
         repo_root = Path.cwd()
@@ -152,7 +217,7 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
 
         for target in target_paths:
             path = target.resolve()
-            if update_lifecycle:
+            if refresh_harness_metadata:
                 harness_pass_rate, harness_date = harness_lifecycle_values(path)
                 write_lifecycle_update(
                     path,
@@ -175,7 +240,7 @@ def lint_cmd(paths, version, mode, output_format, fix_hints, update_lifecycle, s
                 frontmatter=frontmatter,
                 git_head=_git_head(repo_root),
                 now=datetime.now(timezone.utc),
-                update_lifecycle=update_lifecycle,
+                update_lifecycle=apply_staleness_update,
             )
             findings: list[Finding] = []
             for check in ALL_CHECKS:
