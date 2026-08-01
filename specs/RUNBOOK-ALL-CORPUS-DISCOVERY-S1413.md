@@ -208,6 +208,15 @@ agent is allowed to act.
 Caller-authored paths, section names, attestations, `no_entry_found` prose,
 or free-text waivers MUST NOT substitute for server-selected search results.
 
+Before every non-ACTIVE excerpt, the gateway MUST render a non-truncatable
+warning: **DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY**. The warning MUST
+precede the document text and show catalog state, manifest risk,
+`requires_ground_truth_verification`, and the bounded `verify_against`
+requirements. The excerpt is quoted evidence, not an executable instruction:
+it MUST NOT be injected at system/developer precedence or automatically
+translated into action steps. This ordering is required because pending
+documents can contain destructive or internally contradictory procedures.
+
 Selecting an ACTIVE candidate follows the authority policy in force for that
 candidate. A grandfathered lead enters this server-bound handshake:
 
@@ -274,7 +283,9 @@ following at a committed snapshot:
 16. a grandfathered-only objective returns a lead and authoritative-gap label,
     remains in the read-only planning phase, rejects a caller-minted lead ID or
     prose receipt, and unlocks action only with a valid bound verification
-    receipt.
+    receipt; and
+17. every pending/archived excerpt is preceded by the non-truncatable discovery
+    warning and remains quoted evidence at non-instruction precedence.
 
 For the four probes, acceptable direct matches include the named domain
 documents in section 1 or a subsequently promoted replacement that demonstrably
