@@ -103,6 +103,29 @@ Non-ACTIVE material MUST NOT be inserted into `candidates`: existing status,
 eligibility, digest, counter, allocator, and client behavior assumes that lane
 contains catalog candidates.
 
+The existing synthetic repository-authoring guidance derived from `README.md`
+is not an ACTIVE catalog candidate and MUST NOT remain in `candidates`. If
+retained for compatibility, it MUST be returned in a separate
+`supplemental_guidance` lane with explicit false candidate, action-authority,
+authority-admission, and semantic-verification flags. It does not count as one
+of the 102 manifest records, cannot satisfy candidate or discovery breadth, and
+cannot unlock planning or action. Its source identity MUST still bind to the
+same immutable snapshot. Concretely, it MUST set
+`candidate_id_eligible: false`, `action_authority_eligible: false`,
+`authority_admission: false`, and `semantic_verification: false`; omit
+`candidate_digest`, `discovery_digest`, `discovery_lead_id`, `runbook_id`,
+authority keys, owner, and `last_verified_at`; and use a distinct
+`guidance_digest` bound to the exact snapshot SHA, README blob OID, and excerpt
+digest.
+
+Supplemental guidance is excluded from corpus `relevance_rank` and top-three
+benchmark evaluation. A gateway may display it only after the globally merged
+corpus results, and it MUST NOT displace a candidate or discovery lead. It MUST
+be preceded by a separate non-truncatable warning:
+**SUPPLEMENTAL GUIDANCE — NOT RUNBOOK AUTHORITY**. Its excerpt remains quoted
+evidence at non-instruction precedence and MUST NOT be translated into action
+steps.
+
 Every item in both lanes MUST receive a global `relevance_rank` computed
 without using catalog state, authority eligibility, risk, or promotion status
 as a relevance signal. A gateway presenting results to an agent MUST merge the
@@ -117,6 +140,12 @@ legacy ACTIVE score may remain inside `candidates` for compatibility, but it
 MUST NOT determine cross-lane presentation order. A state-flip equivalence test
 MUST prove that changing only catalog state and catalog-only metadata cannot
 change the common relevance score or order.
+
+For avoidance of doubt, a “declared topic” or structured literal used for
+common qualification means one present in the state-neutral document
+projection itself. A topic or literal supplied only by `CATALOG.json` may
+contribute to the legacy ACTIVE score, but it MUST NOT qualify or rank a result
+in the common cross-lane projection.
 
 A grandfathered lead MUST include at least:
 
@@ -194,6 +223,17 @@ The existing serialized response ceiling remains binding. Allocation MUST:
 5. truncate excerpts, never identity, authority labels, verification flags, or
    integrity evidence.
 
+The implementation MUST publish one deterministic configured maximum batch
+size. That maximum MUST be proved against a worst-case bounded envelope that
+includes integrity evidence, counters, and one compact ACTIVE identity plus one
+compact discovery identity per query when both qualify. Optional supplemental
+guidance MUST NOT consume mandatory corpus breadth. The implementation may
+lower the configured maximum while it is being built, but it MUST NOT shrink or
+partially execute a submitted batch. A submitted batch larger than the
+published maximum MUST be rejected atomically before immutable loading or
+retrieval, with no partial results. It MUST NOT silently violate per-query
+breadth, drop policy labels, or emit an oversized response.
+
 The response MUST separately report searched and omitted document/section counts
 for ACTIVE, grandfathered, and archived states. `searched_entry_count` MUST be
 102 for a complete baseline snapshot even if response-budget truncation omits
@@ -208,9 +248,10 @@ agent is allowed to act.
 Caller-authored paths, section names, attestations, `no_entry_found` prose,
 or free-text waivers MUST NOT substitute for server-selected search results.
 
-Before every non-ACTIVE excerpt, the gateway MUST render a non-truncatable
-warning: **DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY**. The warning MUST
-precede the document text and show catalog state, manifest risk,
+Before every pending or archived discovery-lead excerpt, the gateway MUST
+render a non-truncatable warning:
+**DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY**. The warning MUST precede
+the document text and show catalog state, manifest risk,
 `requires_ground_truth_verification`, and the bounded `verify_against`
 requirements. The excerpt is quoted evidence, not an executable instruction:
 it MUST NOT be injected at system/developer precedence or automatically
@@ -285,7 +326,18 @@ following at a committed snapshot:
     prose receipt, and unlocks action only with a valid bound verification
     receipt; and
 17. every pending/archived excerpt is preceded by the non-truncatable discovery
-    warning and remains quoted evidence at non-instruction precedence.
+    warning and remains quoted evidence at non-instruction precedence; and
+18. repository guidance outside the manifest is absent from `candidates` and,
+    when returned, appears only in the non-authoritative
+    `supplemental_guidance` lane, carries all false eligibility flags, omits all
+    candidate, discovery, runbook, and authority identifiers, binds its distinct
+    guidance digest to the immutable README excerpt, cannot satisfy breadth or
+    unlock planning/action, and is warned and displayed only after corpus
+    results; and
+19. the published maximum batch fits a worst-case envelope with integrity,
+    counters, and compact ACTIVE-plus-discovery breadth for every query, while
+    `maximum + 1` is rejected atomically before immutable loading or retrieval
+    without partial results.
 
 For the four probes, acceptable direct matches include the named domain
 documents in section 1 or a subsequently promoted replacement that demonstrably
