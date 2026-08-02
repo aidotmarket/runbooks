@@ -1,6 +1,6 @@
 # S1413 — All-corpus runbook discovery before authority promotion
 
-Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 5**
+Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 6**
 
 Date: 2026-08-02
 
@@ -44,6 +44,14 @@ Revision history:
   variants required for exact session accounting. It claims no implementation,
   review approval, benchmark pass, gateway delivery, merge, deployment, or
   activation.
+- Revision 6 folds the four binding mandates from exact-identity CC review
+  `a72644d6`: issuer-valid handle vectors, an acyclic mint/serialize/persist
+  order, terminal confirmation-receipt transitions, and atomic concurrent
+  byte/slot admission predicates. The three additional editorial findings from
+  that review are nonbinding. Revision 6 changes no production field or byte
+  maximum; it republishes only the SHA-256 vectors whose fixed 192-J handle
+  fixture bytes changed. It claims no implementation, review approval,
+  benchmark pass, gateway delivery, merge, deployment, or activation.
 
 This contract amends `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md`. Where that
 plan delays discovery until documents are promoted, or makes grandfathered
@@ -368,15 +376,24 @@ comes first. Every record has `schema_version=1`.
   `evidence_digest`, `outcome` (`confirmed_for_objective`, `contradicted`, or
   `insufficient`), `created_at`, `expires_at`, and `cas_revision`.
 
-Claim payload fields are immutable after creation. Legal state transitions are
+Claim payload fields are immutable after creation. Legal claim transitions are
 bundle `issued` to `fetched`, lead `issued` to `confirmed`, or any live claim to
-`expired`/`revoked`; no transition reverses. Receipt identity and digest fields
-are immutable; only the named state and `cas_revision` may move.
+`expired`/`revoked`; no transition reverses. Every
+`bundle_fetch_receipt_v1.confirmation_state` starts as `unconfirmed` and one
+successful proof-consuming CAS may move it exactly once to `confirmed`,
+`contradicted`, or `insufficient`. Those three outcomes are terminal: a second
+confirmation attempt fails closed as `disallowed-replay`, and no outcome may
+reverse or change to another outcome. Receipt identity and digest fields are
+immutable; only an explicitly legal state transition and its `cas_revision`
+may move. A `verification_receipt_v1` has no post-creation transition, so every
+field, including its initial `cas_revision`, remains immutable until terminal
+audit-TTL deletion.
 
 `discovery_lead_id` and `verification_bundle_ref` are authenticated opaque
-handles, not self-contained claim tokens. Their closed lexical form is 1..192 J
-of unpadded base64url ASCII `[A-Za-z0-9_-]`; the existing 192-J maximum vector
-therefore remains valid. Every issuer-produced decoded value is a versioned
+handles, not self-contained claim tokens. Their closed lexical form is 67..192
+J of unpadded base64url ASCII `[A-Za-z0-9_-]`, excluding lengths congruent to 1
+modulo 4; the 192-J maximum vector therefore remains valid. Every
+issuer-produced decoded value is a versioned
 binary container with a handle-kind discriminator, at least a 16-byte
 cryptographically random server nonce, a 32-byte HMAC-SHA-256 authentication
 tag, and optional authenticated opaque padding within the lexical maximum. The
@@ -387,10 +404,14 @@ handle carries no caller-readable or caller-selected claim.
 
 The gateway handshake remains server-bound and has four steps:
 
-1. The first-plan search returns server-selected results. After the canonical
-   payload and every digest are fixed, but before any corpus text is emitted,
-   Kóska atomically reserves its objective slots and canonical delivered-content
-   bytes and persists the immutable lead and bundle claims. A discovery result
+1. The first-plan search returns server-selected results and derives every
+   server claim except the opaque handle bytes. Kóska then mints the lead and
+   bundle handle bytes and supplies them as inputs to the pure runbooks
+   serializer. After that serializer fixes the canonical payload and every
+   digest, but before any corpus text is emitted, Kóska atomically reserves its
+   objective slots and canonical delivered-content bytes and persists the
+   immutable lead and bundle claim records for those already-minted handles. A
+   discovery result
    receives a `discovery_lead_id` whose server record binds session, objective
    digest, `catalog_sha` (the runbooks search SHA), inventory SHA, manifest
    digest, blob, discovery digest,
@@ -840,7 +861,8 @@ serialized bytes. Digest-valued fields occupy 64 lowercase hex bytes, SHA
 fields occupy their exact length, integers use the maximum value permitted by
 the concrete shape and cross-field equations, portable paths are 192 bytes, and
 canonical-J strings use escape-bearing input whose serialized payload reaches
-the exact maximum. Returned ranks are the valid distinct top three plus the
+the exact maximum, except that opaque handle fields use the valid base64url
+fixtures pinned below. Returned ranks are the valid distinct top three plus the
 missing-class rank rather than duplicated numeric maxima. Standalone result
 vectors use the 2,400-J residual excerpt maximum. Objective and response
 vectors use the mandatory 600-J corpus excerpt, all other shape-permitted field
@@ -851,43 +873,62 @@ and the named minimum or maximum legal evidence policy. Delivery digests are
 populated by the section-6 zero-substitution rule before the final vector
 digest is measured.
 
-Revision 5 changes no pre-existing payload field, maximum, or vector input;
-rerunning the Revision-4 precursor reproduces every pre-existing count and
-digest below exactly. The two added session-control vectors use all applicable
-field maxima. In both, session binding is 64 `a` bytes and objective digest is
-64 `b` bytes. The confirmation vector uses 64 `c`, `d`, and `e` bytes for
-activation, bundle, and requirement-set digests respectively and 192 `V` bytes
-for the receipt ID. The compact-replay vector uses 64 `c` bytes for the replayed
-delivery digest, the longest reference-kind enum, and 192 `V` bytes for its
-value. Each `serialized_bytes` value is its exact final length; each delivery
-digest is populated by zero substitution before the final SHA-256 is measured.
+Revision 5 changed no pre-existing payload field or maximum. Revision 6 changes
+only the opaque-handle vector fixture bytes so the proof inputs are values a
+conforming issuer can mint; every published U count is unchanged and every
+affected SHA-256 below is remeasured. The handle fixture key is 32 ASCII `K`
+bytes, the session binding is 64 ASCII `a` bytes, and the HMAC input is ASCII
+`runbook-reference-vector-v1`, one NUL byte, the version and kind bytes as
+domain discriminators, that session binding, then the 112-byte body. The body
+is version byte `0x01`, kind byte `0x01` for a lead, `0x02` for a bundle, or
+`0x03` for a verification receipt, a 16-byte repeated seed, and 94 bytes of
+`0x4c` for a lead, `0x52` for a bundle, or `0x56` for a receipt. Appending the
+32-byte HMAC-SHA-256 tag and unpadded
+base64url-encoding the resulting 144 bytes produces exactly 192 J. Standalone
+discovery, bundle, confirmation-receipt, and compact receipt-replay vectors use
+seed `0x01`; objective vectors use seed
+`objective_ordinal * 8 + discovery_ordinal_within_lane`. This algorithm pins
+every handle byte, preserves uniqueness within a response, and excludes handle
+fields from the generic escape-bearing filler rule. A handle is inserted before
+the enclosing delivery is finalized, so zero substitution recomputes that
+delivery's inner `delivery_digest` as well as the table's outer SHA-256.
+
+The two added session-control vectors use all applicable field maxima. In both,
+session binding is 64 `a` bytes and objective digest is 64 `b` bytes. The
+confirmation vector uses 64 `c`, `d`, and `e` bytes for activation, bundle, and
+requirement-set digests respectively and the receipt-kind fixture above for the
+receipt ID. The compact-replay vector uses 64 `c` bytes for the replayed
+delivery digest, the longest reference-kind enum, and that same receipt-kind
+fixture for its value. Each
+`serialized_bytes` value is its exact final length; each delivery digest is
+populated by zero substitution before the final SHA-256 is measured.
 
 | Concrete vector | Exact U | SHA-256 test-vector digest |
 |---|---:|---|
 | maximum ACTIVE result | 4,803 | `b46d0e477dc25cc475c2568ee7df359419992f0a31526820efa21b1dbf8ff3f6` |
-| maximum compact discovery result | 5,585 | `26e91cd8506257ac98bb0391c1913bebe28a6975168c4cc5821a70758f5e5577` |
-| objective: 3 ACTIVE + 1 discovery | 14,920 | `3bd3a5c05f2ec42573b43fbfb69e034b5438edba2cc9f425196b51960fa31f28` |
-| objective: 1 ACTIVE + 3 discovery | 16,484 | `54fb080adcb0ed5630c05c6990871b5db6b306138db375bce5b161f93d30db76` |
-| two objectives: 3A+1D then 1A+3D | 31,921 | `8578e0f09dccf1de516e7c4c4853f692e22d5683802207286fe72186ee995ec7` |
-| two objectives: 1A+3D then 3A+1D | 31,921 | `3eb04e3f806a7a047f2444dcc645e95c42b0aa3ef066c3b553b2a6cf300b8ac9` |
+| maximum compact discovery result | 5,585 | `c167e7c24d58211e4b00197633632a2d8020e8a08ce0aac8b20b2be83a3f6c99` |
+| objective: 3 ACTIVE + 1 discovery | 14,920 | `8bf3bfcab5edecf2a51fcf7838d25ba91fff02473856e351aaefa4bd739fefc7` |
+| objective: 1 ACTIVE + 3 discovery | 16,484 | `f44dc11fb8a260a6f1efca5d3ddbdfb55e836ff7ecc8831e02f8fdc16a666526` |
+| two objectives: 3A+1D then 1A+3D | 31,921 | `1961dfb06102805e7b9d81b067c09217ec056526c2db14fdaea919e3f32d707e` |
+| two objectives: 1A+3D then 3A+1D | 31,921 | `2445942c4f41ce01a0fbcd78955d033e9d0ef561b53d5d6b1f73bab186bbc8ab` |
 | maximum changed-path control response | 20,375 | `30208ccc9817934c1e61dd323760cf145c2921c2721af62bd9208983cf4281ac` |
-| maximum confirmation receipt | 898 | `5d58ee31455d6fc12dfb67e084846cfbd32e25e5ec4eb70933559cbed26c2e51` |
-| maximum compact replay receipt | 709 | `1a95fa9b84b5d1e23ebe684afdd91fcad1e87356bb5be6675f581909b2bb1fd9` |
+| maximum confirmation receipt | 898 | `472a8520b4cbea98859ac4f2c47583f8373568c65843a5b5be80018331e22cc6` |
+| maximum compact replay receipt | 709 | `a1a7c43c0e2a3dc0ffc640e3450ac4057dc74aa8141ba36322b595ea4ce95601` |
 | private exact 32,001-U fault object | 32,001 | `c6133529150ae7de4b5502e9e2540df52aea1cdb433cc03b2e70362edf739cc8` |
-| bundle `git_object_v1`, minimum policy | 4,080 | `75ef5497b2d757c13a6527db1526cf7d23f5753809d50c05a4d046db6adcf2e9` |
-| bundle `git_object_v1`, maximum policy | 4,170 | `2d3662429dcc8a0a467603164e0298bc69ce0c813280737f4c6a33cd2445d918` |
-| bundle `json_schema_v1`, minimum policy | 4,527 | `d4411f117657fd7d903a3128ad8a9435d05b874cd1aab2fbec91523d37251b7f` |
-| bundle `json_schema_v1`, maximum policy (largest bundle) | 4,617 | `70537cbcc93d33c6b169bbff879eede1fb037f7d5ac8101c0e24cbc60b07ebe1` |
-| bundle `health_probe_v1`, minimum policy | 3,447 | `32ddc44c6debd50275f0293ef0c707fbcb1f2ff398277b37ea5b3bb65ba388bc` |
-| bundle `health_probe_v1`, maximum policy | 3,537 | `aff09f41171d701473a315893b69f5afd85745add5007a304c2d2db8d0c1b0ca` |
-| bundle `test_result_v1`, minimum policy | 3,882 | `b9daa73ea607b412beebde8fbeb2ffacfe7e7aeffb210a82e191fe0f208111fc` |
-| bundle `test_result_v1`, maximum policy | 3,972 | `e7272a16b3e15c9cf2bd4f125b00dfca6f85b255b6ab56321832d5e97aa710dc` |
-| bundle `state_read_v1`, minimum policy | 4,173 | `d155e8c9d7dced1b2b965ebe7b1c7f37a1ebd8fca59b27b0c9fad892f8c7d5f9` |
-| bundle `state_read_v1`, maximum policy | 4,263 | `69d04325c425fd37d9d6ad6e42d3f40b9c2d8ff42ff8ea6a96d16dca46dd805f` |
-| bundle `production_probe_v1`, minimum policy | 3,459 | `419797a8c26653f88b33b67dd9858cc888b8205400a31944cd588dfa1dfad435` |
-| bundle `production_probe_v1`, maximum policy | 3,549 | `4441c22a827771ef1e99d7dfb5dee5d6d24f80cd70648d05a3e24fb425b29e5c` |
-| bundle `unmapped_prose`, minimum policy | 2,805 | `549582afd4965663aabd5b6fa1159b06992358b846cd5cf2352743f0047c7436` |
-| bundle `unmapped_prose`, maximum policy | 2,895 | `4e55d56fa78f2bf5fac41e575e6ba91128570f43902b7df9da4b43ed2fa95575` |
+| bundle `git_object_v1`, minimum policy | 4,080 | `b54e6df2ec9c5621a653c8726f0828ca1a9dd4ed74d21b97edd8b4a88c2ac8a3` |
+| bundle `git_object_v1`, maximum policy | 4,170 | `290dc856d8f8c9a8bc84ca9a3185668c42d694cc314fdf2317d7713782bdb043` |
+| bundle `json_schema_v1`, minimum policy | 4,527 | `21811e027c38424c835dbf655cf0796bd8ffdbf4b8c72446d0959ca8b17b1963` |
+| bundle `json_schema_v1`, maximum policy (largest bundle) | 4,617 | `33dee72ed6c01415e7cb81b909ee11fa6ffcc7094fced749b8bdbd888c51ca1d` |
+| bundle `health_probe_v1`, minimum policy | 3,447 | `b5f5ea43cf2675cd1e3d57c6347afef38289af7f2c09e9aab3e3d309b56966e3` |
+| bundle `health_probe_v1`, maximum policy | 3,537 | `21086708e29dbe74f5103af297a1919744152b5d9b3348ebd10d8b652a7a5f14` |
+| bundle `test_result_v1`, minimum policy | 3,882 | `196e4cdd9fb9404e5e70f9c8d1af2756e64f6ee54a9e546ba5a99610170808c7` |
+| bundle `test_result_v1`, maximum policy | 3,972 | `cea36500629a389da5a498af736c599dc140b800cf83ee74a475ea2372f9e64b` |
+| bundle `state_read_v1`, minimum policy | 4,173 | `0bcf41e35ecbc7e3a5b11f613bb7dfed1756ae481c3aaf981c3fa283bec5b2c1` |
+| bundle `state_read_v1`, maximum policy | 4,263 | `7960fed7ce2ac3ac076e6021daac4a56293c7d35a7b8183cb673262f26094a85` |
+| bundle `production_probe_v1`, minimum policy | 3,459 | `8fdb0321446d6751a2b44c083bd22e1500cfcd395c2d69c46897dbc82f507c8e` |
+| bundle `production_probe_v1`, maximum policy | 3,549 | `0681a5c0873f59328c89b433116974388074995efc66daa3a43aaac96fed3808` |
+| bundle `unmapped_prose`, minimum policy | 2,805 | `0ee5d589be02c30197e70efa20f89f1e28be7cd5535394d3c590c6ed5a365cff` |
+| bundle `unmapped_prose`, maximum policy | 2,895 | `bded71010fd823b8bf0e2d44e282643cd9a5b330e3ea08c4626b180b1c20e095` |
 
 The 31,921-U real two-objective maximum is below the 32,000-U build target and
 the 40,000-U production cap. The largest full bundle is 4,617 U, below its
@@ -969,9 +1010,21 @@ ceiling and does not make outer framing chargeable.
 After the exact payload is fixed and before any corpus text is emitted, Kóska
 atomically creates `delivery_reservation_v1` and reserves prospective objective
 slots and canonical content bytes, or returns a bounded control error containing
-no corpus result. Durable admission of the complete unchanged payload is the
-single charge point: CAS changes that reservation from `reserved` to `admitted`
-and moves its bytes from reserved to delivered exactly once. The same CAS
+no corpus result. The reservation CAS succeeds only when both prospective
+predicates are true in the same authenticated-session record:
+
+- `delivered_content_bytes + reserved_content_bytes + payload_bytes <= 120000`;
+  and
+- the cardinality of distinct objective digests whose slot is admitted or has
+  `reservation_count > 0`, after unioning every absent digest in
+  `new_objective_digests`, is at most 8.
+
+An idempotent reuse of the same live reservation adds neither bytes nor slots.
+Every other concurrent request is tested against the already-reserved bytes and
+slots, so in-flight work cannot overshoot either ceiling. Durable admission of
+the complete unchanged payload is the single charge point: CAS changes that
+reservation from `reserved` to `admitted` and moves its bytes from reserved to
+delivered exactly once. The same CAS
 decrements each slot's reservation count and marks newly admitted digests;
 release decrements the count, removes only an unadmitted zero-count slot, and
 revokes every never-admitted claim with the same `issuing_delivery_id`. A
@@ -1007,9 +1060,11 @@ the corpus, choose or serialize the first-plan corpus response, sign
 caller-selected corpus payloads, or mint its session references.
 
 For every first plan, `_handle_kd_session_plan` MUST authenticate and normalize
-the objectives, invoke the immutable runbooks search/serializer, fix the exact
-canonical payload and claims, reserve session-control quota and claims, and
-durably admit the canonical `TextContent.text` before invoking
+the objectives, invoke immutable runbooks search and server-claim derivation,
+have Kóska mint the opaque handles, supply those handles to the pure runbooks
+serializer, fix the exact canonical payload and digests, atomically persist the
+claim records with the session-control quota reservation, and durably admit the
+canonical `TextContent.text` before invoking
 `_runbook_plan_gate`, `_compute_and_record_runbook_plan_impact_signal`,
 `_persist_runbook_plan_acceptance`, any plan-file write, or any intent write.
 Those business operations remain after successful runbook-first delivery. A
@@ -1177,18 +1232,24 @@ committed snapshot:
     business-authority write; only the closed authenticated Kóska session-control
     records may reserve quota and persist claims, accounting, fetch, and replay
     state. Exact-source tests prove `_handle_kd_session_plan` completes
-    selection, opaque issuance, quota accounting, and typed first-plan injection
-    before `_runbook_plan_gate`,
+    selection and claim derivation, opaque issuance, handle-supplied pure
+    serialization, atomic claim/quota persistence, durable admission, and typed
+    first-plan injection in that order before `_runbook_plan_gate`,
     `_compute_and_record_runbook_plan_impact_signal`,
     `_persist_runbook_plan_acceptance`, plan-file writes, and intent writes; the
     backend neither duplicates the corpus nor signs caller-selected payloads.
     Independent gateway tests cover 8 objective digests exact/+1 and
     120,000 canonical `TextContent.text` UTF-8 bytes exact/+1 across first-plan,
     bundle-fetch, verification, control, mixed cached+new batches, split
-    batches, compact and full replay, and new lead IDs. Crash-before/after
+    batches, compact and full replay, and new lead IDs. Concurrent-reservation
+    tests prove the atomic reserved-plus-delivered byte predicate and the
+    reserved-or-admitted distinct-slot predicate at exact and +1 boundaries.
+    Crash-before/after
     reservation, durable admission, fetch-receipt CAS, confirmation, and replay
     prove release/reconciliation, fetched-state ordering, and exactly-once
-    charge per delivery ID. Splitting the bundle never resets accounting.
+    charge per delivery ID. Confirmation tests prove the one legal
+    `unconfirmed`-to-terminal CAS, rejection of a second attempt, and immutable
+    verification receipts. Splitting the bundle never resets accounting.
     Prospective overflow emits a bounded corpus-free control error.
 14. **Every record is searchable.** Grouped exact `path:` probes prove all 102
     records contribute at least one searchable unit, including H1-only
