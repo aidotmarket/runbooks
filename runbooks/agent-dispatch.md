@@ -157,17 +157,19 @@ Current operational truth is the block above: MP is mandatory builder, CC/Kimi/G
 | MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | CC, Kimi, GLM, retained DeepSeek backend | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
 | Kimi review path | shared `provider_readonly_review.py` loop | immutable Git objects, evidence ledger, returned envelope | Kimi | Reads authorized files only through `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show` at the pinned commit. |
 | git push guardrail, pre-push hook | repository pre-push hook and environment resolution | local ref, remote ref, push environment | git remote | Guards main pushes; remote-ref equality is authoritative for the push outcome. |
-| MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, git branch, build task record | Codex CLI / GPT-5.5 | Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
+| MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, ChatGPT session, git branch, build task record | Codex CLI / configured frontier model | Every lane account config sets exact `forced_login_method = "chatgpt"`; every MP operation uses authenticated ChatGPT Pro/Codex subscription access through the CLI. Metered OpenAI API keys, direct API transports, and fallbacks are forbidden. Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
 | AG Backend | `koskadeux-mcp/ag_server.py` -> `antigravity_client.py` | AG server task record, Vertex auth env | Gemini CLI / Gemini 3.1 Pro | Read-only review prompts must state no file modification. |
 | DeepSeek Backend | `koskadeux-mcp/deepseek_server.py` -> `deepseek_client.py` | DeepSeek task record, API token env | DeepSeek API / deepseek-v4-pro | Retained, technically callable review path; retired from active gate voting. |
 | CC Backend | `koskadeux-mcp/tools/agents.py:_handle_call_cc` | background review task id, immutable review evidence | Claude Code / Opus | Active gate voter through the read-only review path; never a BQ/development builder. |
-| Environment Loader | launch scripts and LaunchAgents | PATH, Infisical-backed tokens, local config | Codex CLI, Gemini, DeepSeek, Claude Code | `gemini` must be on PATH; provider tokens must come from approved secret sources. |
+| Environment Loader | launch scripts and LaunchAgents | PATH, Infisical-backed tokens, local config | Codex CLI, Gemini, DeepSeek, Claude Code | `gemini` must be on PATH; provider tokens must come from approved secret sources. MP/Codex child environments must remove `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY` regardless of parent-process state. |
 | MCP Tool Prefix | dispatched prompt or MCP tool invocation | tool-call transcript | Koskadeux MCP bridge | Tool prefix casing must use capitalized `Koskadeux:`; lowercase can silently fail. |
 | Peer Bus | `koskadeux-mcp/tools/peer_messages.py:_handle_peer_msg_send` | peer message rows, per-instance ack state | Vulcan, Mars | Coordination channel between the two peer instances. `kind` drives the ack requirement; send dedupes on `(from_instance, to_instance, kind, ref_entity)`. See F-07/G-07. |
 | Cross-Runbook IDs | runbook prose convention | same-file IDs, file-qualified IDs | §F and §G references | Same-file references use `F-01`; cross-runbook references use `agent-dispatch:F-01`. |
 | Structural Worktree Retirement | `tools/agents.py:_teardown_structural_build_worktree` | retained worktree, quarantine journal, terminal receipt | `tools/structural_quarantine.py`, Git worktree registry, Codex invocation lease | Staged no-loss path; an ambiguous retirement is retained for operator recovery, never deleted. |
 
 Agent processes require a clean working directory when the task may write, a readable repo when the task is review-only, provider credentials in the approved environment, and PATH entries for backend CLIs. `run_background` style dispatch must explicitly export required PATH segments because it does not inherit the interactive shell environment.
+
+**OpenAI payment and authentication boundary (Max, S1414).** Every OpenAI-backed operation controlled by this runbook, including MP build, author, review, and open-response modes, must run through Codex CLI authenticated to Max's ChatGPT Pro account. Every Codex account configuration used by a build lane must set exact `forced_login_method = "chatgpt"`; `codex login status` must confirm ChatGPT authentication and the selected auth mode must be `chatgpt`. No such operation may create, inherit, select, or fall back to an OpenAI Platform API key or a direct OpenAI SDK, Responses API, or Chat Completions API transport. Missing, expired, or mismatched ChatGPT authentication, a missing/wrong forced-login setting, and exhausted subscription capacity fail closed; they never trigger a metered reroute, voter substitution, or reduced panel. OpenAI documents ChatGPT sign-in as subscription access, API-key sign-in as separately billed usage-based access, and `forced_login_method = "chatgpt"` as the restriction that logs out and exits on mismatched credentials in [Codex authentication](https://learn.chatgpt.com/docs/auth). This boundary does not change Kimi or GLM transport rules or their separately authorized per-review spending caps.
 
 The structural no-loss wrapper described here is **STAGED, not deployed**. At terminal handling it does not recursively remove a build worktree. It chooses a server-owned retained destination on the same filesystem and performs a no-replace rename, so an existing destination cannot be overwritten and the directory inode—including tracked changes, untracked files, and writes through an already-open file descriptor—moves intact. It fsyncs both parent directories and verifies the old path is gone and the retained device/inode match the source.
 
@@ -312,7 +314,7 @@ Timeout knobs:
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | mandatory build dispatch from Codex CLI | Codex CLI / GPT-5.5 | full repo write only in explicit build/author mode | COMPLETE |
+| MP | mandatory build dispatch from Codex CLI | Codex CLI / configured frontier model | ChatGPT Pro/Codex session only; full repo write only in explicit build/author mode; no metered OpenAI API credential or transport | COMPLETE |
 | AG | dispatch from `antigravity_client.py` | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
@@ -403,21 +405,24 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
 - id: E-05
   trigger: Any MP build dispatch while Vulcan and Mars share the single Codex CLI lane.
-  pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus]
+  pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus, forced_chatgpt_login_configured, chatgpt_pro_auth_verified, metered_openai_api_route_absent]
   tool_or_endpoint: peer_msg_send(kind=claim, to=<peer>, ref_entity=<build_ref>, body=<lane_claim>) then council_request(agent=mp, mode=build, task=<build_task>, cwd=<absolute_repo>, bq_code=<bq_code>, caller_instance=<self>, dispatch_class=structural, session_id=<session_id>, runbook_refs=<selection_refs>)
   argument_sourcing:
     lane_claim: announce BEFORE dispatch, naming the ref_entity, the work item, and the queued items behind it (established S1303, peer-bus msgs #1524-#1526)
     build_task: derive the bounded implementation brief from the approved BQ/spec and include the required output manifest
     absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base SHA before dispatch
     selection_refs: inspect the exact signed deployed capability first; when it proves server-issued objective-bound selection references, carry only those references, but while the connected schema exposes caller-authored legacy runbook_refs, supply exact path/section references read at one immutable runbooks SHA or a truthful recorded miss; neither branch permits inventing a title, digest, or reading claim
+    openai_payment_route: require the selected lane account's Codex config to contain exact `forced_login_method = "chatgpt"`, require `codex login status` to confirm ChatGPT authentication, require the MP envelope to report `api_path=codex_cli_streaming`, and prove the Codex child environment excludes `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY`; inspect credential names and auth mode only, never secret values
     dispatch_order: strictly one MP task at a time across BOTH instances; queue everything else behind the active task
     release: announce lane release on the peer bus when the active task reaches a terminal state
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: exactly one MP task active system-wide with a matching prior bus claim, verification: "check_build shows a single in-flight MP task; peer bus shows claim before dispatch timestamp"}
+  expected_success: {shape: exactly one MP task active system-wide with a matching prior bus claim and ChatGPT-authenticated Codex CLI route, verification: "check_build shows a single in-flight MP task with api_path=codex_cli_streaming; peer bus shows claim before dispatch timestamp; no banned OpenAI API credential name reaches the child"}
   expected_failures:
     - {signature: mp_busy, cause: a second MP dispatch entered the shared Codex CLI lane while a task was in flight; the harness progress guard kills a task at ~900s, losing whichever build it lands on}
+    - {signature: chatgpt_auth_unavailable, cause: ChatGPT Pro/Codex authentication is missing, expired, or mismatched; fail closed and restore ChatGPT authentication without creating or using an OpenAI API key}
+    - {signature: openai_metered_route_forbidden, cause: a banned OpenAI API credential, direct API transport, or fallback route is present or reachable; fail before provider action and remove the route under G-13}
   next_step_success: Dispatch the next queued lane item and announce the new claim.
-  next_step_failure: check_build both task_ids to establish which survived; after the lane clears, re-dispatch the killed task; never retry into an occupied lane.
+  next_step_failure: For mp_busy, check_build both task_ids to establish which survived and re-dispatch the killed task only after the lane clears. For either auth/payment failure, apply G-13 and keep MP stopped; never retry into an occupied lane or through a metered OpenAI route.
 - id: E-06
   trigger: A Vulcan/Mars session opens, or is about to dispatch, merge, or close, and must synchronize with its peer before acting.
   pre_conditions: [session_registered_in_registry, peer_bus_reachable]
@@ -480,6 +485,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-10 | HISTORICAL (superseded at deployed `fdf50693`): Kimi timed out while receiving one unbounded inlined diff | Before the shared at-SHA review loop, Kimi received the full inline diff under a latency cap | Historical failures remain diagnostic records; current Kimi verification requires a pinned dispatch SHA, complete paginated at-SHA reads, and a binding strict verdict | G-10 | CONFIRMED |
 | F-11 | `git push` to main prints a guardrail refusal and `error: failed to push some refs`, while the same stderr block also prints a successful ref update, and the commit is in fact on the remote | The pre-push guardrail appears to evaluate `KD_ALLOW_MAIN_PUSH` in a context where it is not visible, prints a refusal, and returns non-zero while the push itself completes; the precise mechanism is not established; observed live in S1326 on koskadeux-mcp when `KD_ALLOW_MAIN_PUSH=1 git push origin main` printed the refusal and error alongside `2257a367..2961f03d main -> main` (T-2026-000367) | Never conclude a push outcome from `git push` output; run `git fetch`, then compare `git rev-parse` against the remote ref, or use `git ls-remote`, and check `git rev-list --left-right --count` against the remote branch | G-11 | CONFIRMED |
 | F-12 | A structural build terminal receipt says `worktree_retirement_ambiguous`, `retained_recovery_required`, or names a retained worktree after a forced failure. | The same-filesystem move, Git registration repair/proof, invocation retirement, or exactly-once disposition did not complete unambiguously. | Read the exact terminal receipt and quarantine journal; inspect only its named recovery path; verify tracked/untracked bytes, top-level, common directory, and receipt device/inode. A local path miss outside the gateway view is not deletion evidence. | G-12 | CONFIRMED |
+| F-13 | An MP/OpenAI dispatch is not locked to ChatGPT authentication, inherits an OpenAI API credential, selects a direct API transport, or attempts a metered fallback. | `forced_login_method` is missing or not exact `chatgpt`; ChatGPT authentication is missing/expired/mismatched; an MP child inherited `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, or `CODEX_API_KEY`; or a legacy OpenAI SDK/Responses/Chat Completions route remains reachable. | Verify exact `forced_login_method = "chatgpt"` in the selected lane account's Codex config; run `codex login status`; inspect the selected auth mode and credential names only; assert the task reports `api_path=codex_cli_streaming`; use a key-name-only injection probe to prove the child scrub and provider selector fail closed without making an OpenAI API request. Never print credential values. | G-13 | CONFIRMED |
 
 
 ## §G. Repair
@@ -581,6 +587,14 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   change_pattern: Stop cleanup and duplicate builds; use the exact receipt path; verify git status, top-level, common directory, tracked content, and untracked content. If registration alone failed after the move, run git worktree repair on that exact retained path under the repository lock and repeat both proofs. Recover or commit the artifact before authorizing any final clear.
   rollback_procedure: Leave the worktree and quarantine journal in place. Never run git worktree prune, git worktree remove, or physical deletion while work remains retained or the receipt is ambiguous.
   integrity_check: The recovered bytes match the intended artifact, Git resolves the retained top-level and common directory correctly, durable commit/push evidence exists when required, and only then does the final-disposition owner clear the hold.
+- id: G-13
+  symptom_ref: F-13
+  component_ref: MP Backend
+  root_cause: The dispatch boundary did not prove ChatGPT subscription authentication or allowed a banned OpenAI API credential or direct metered transport to reach provider selection.
+  repair_entry_point: koskadeux-mcp Codex child-environment constructors, MP provider selection, launch configuration, and the persisted Codex login
+  change_pattern: Set exact `forced_login_method = "chatgpt"` in every lane account's Codex config and fail closed unless `codex login status` confirms ChatGPT authentication and selected auth mode is `chatgpt`; centrally remove `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY` from every Codex child; reject direct OpenAI SDK, Responses API, Chat Completions API, and fallback selection before provider construction. Activate and independently verify this fail-closed code/config at a zero-child restart boundary first; only then remove the banned credentials from MP launch/config/secret sources without exposing their values. Re-login through ChatGPT when Max interaction is required; never create an API key as recovery.
+  rollback_procedure: Stop MP and revert only to the last reviewed ChatGPT-authenticated Codex CLI path. Never restore an OpenAI API key, direct API transport, or silent fallback as rollback.
+  integrity_check: 'Every selected lane account has exact `forced_login_method = "chatgpt"`; `codex login status` confirms ChatGPT; normal MP smoke reports `api_path=codex_cli_streaming`; all Codex child environments omit the three banned names; key-name-only injection, wrong/missing forced-login configuration, and missing/expired-auth probes fail before any OpenAI API network action. Kimi and GLM retain their separately governed transport and per-review cap rules.'
 ```
 
 
@@ -695,12 +709,14 @@ output file was written. This is expected and is the primary fix for the old
 ### §H.1 Invariants
 
 - Dispatch mode must preserve read-only versus write-capable auth boundaries.
+- Every OpenAI-backed dispatch under this runbook uses the authenticated ChatGPT Pro/Codex subscription path, with exact `forced_login_method = "chatgpt"` in every lane account configuration. Metered OpenAI API credentials, direct API transports, and silent fallbacks are forbidden; missing/wrong enforcement, unavailable authentication, or unavailable plan capacity fails closed. This rule does not alter Kimi or GLM's separately governed transports or per-review spending caps.
 - Live model frontiers, dispatch participants, timeout defaults, and retired-agent state remain authoritative in `infra:council-comms`.
 - Same-file §F/§G references use bare IDs; cross-runbook references use file-qualified IDs.
 
 ### §H.2 BREAKING predicates
 
 - Removing a dispatch tool such as `council_request`, `dispatch_mp_build`, or `council_hall` is BREAKING.
+- Introducing or re-enabling a metered OpenAI API credential, direct API transport, or fallback for MP/Codex is BREAKING and blocked by the S1414 payment boundary; it cannot be activated as a routine availability repair.
 - Granting write scope to any review-only, paused, or retired dispatch backend without a Council-approved role change is BREAKING.
 - Reactivating any retired member as an active voter is BREAKING because deployed role projection and gate membership change.
 
@@ -861,14 +877,14 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: ambiguous
-    refs: [F-01, F-03, F-05, G-01, G-03, G-05]
+    refs: [F-01, F-03, F-05, F-13, G-01, G-03, G-05, G-13]
     scenario: |
-      id: AMB-01. trigger: A dispatch failed silently and the operator cannot tell whether the cause is auth, gateway timeout, mutex contention, or malformed task/cwd. pre_conditions: submitted payload, auth context, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available. tool_or_endpoint: compare gateway logs, auth/token state, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: token source from launch env; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: branch the ambiguity into concrete §F symptoms: auth/token outside this runbook's provider setup, F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, assuming auth without timing evidence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching §G repair and preserve the failed transcript. next_step_failure: escalate with payload and log excerpts.
+      id: AMB-01. trigger: An MP dispatch failed silently and the operator cannot tell whether the cause is ChatGPT authentication/payment routing, gateway timeout, mutex contention, lowercase tool prefix, or malformed task/cwd. pre_conditions: submitted payload, selected lane account's `forced_login_method`, `codex login status`, selected auth mode, key-name-only parent/child environment inventory, reported api_path, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available; no credential value is read or printed. tool_or_endpoint: compare exact `forced_login_method = "chatgpt"`, ChatGPT auth evidence, and api_path against gateway logs, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: forced login method from the selected lane account's Codex config; auth method from `codex login status` and non-secret auth metadata; banned-name presence from a key-name-only inventory of `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY`; api_path from the task envelope; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify missing/wrong forced-login configuration, missing/expired/mismatched ChatGPT authentication, or any direct/metered OpenAI API route as F-13, otherwise branch to F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, creating or using an API key as fallback, printing credential values, treating login status as sufficient while `forced_login_method` is absent/wrong, assuming auth from key presence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching §G repair and preserve the failed transcript; G-13 restores exact ChatGPT-only enforcement and authenticated Codex CLI, never a metered route. next_step_failure: keep MP stopped and escalate with sanitized payload and log excerpts.
     expected_answers:
       - kind: human_action
         verb: triage
         object: silent dispatch failure
-        target: auth versus F-01/F-03/F-05 versus malformed task or cwd
+        target: F-13/G-13 forced_login_method=chatgpt and ChatGPT-only fail-closed routing versus F-01/F-03/F-05 or malformed task/cwd
     weight: 0.08333333333333333
   - id: I-12
     type: ambiguous

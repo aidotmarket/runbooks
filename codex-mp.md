@@ -12,6 +12,8 @@ linter_version: 1.0.0
 
 **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/Kimi/GLM — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path (S1213/CORE 9.8 supersedes the S1148 MP-vs-CC build split for code work; CC's role is gate voting via its read-only review path). MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
+**Payment/auth boundary (Max, S1414):** every MP/Codex operation uses the Codex CLI authenticated to Max's ChatGPT Pro account. Every Codex account configuration used by a build lane must set exact `forced_login_method = "chatgpt"`; `codex login status` must confirm ChatGPT authentication and persisted auth must select `auth_mode: chatgpt`. `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY`, direct OpenAI SDK/Responses/Chat Completions transports, and automatic or silent fallback to them are forbidden for MP. A missing/wrong forced-login setting, missing/expired/mismatched ChatGPT authentication, and exhausted subscription capacity fail closed; they do not trigger an API-key reroute, voter substitution, or reduced panel. OpenAI documents ChatGPT sign-in as subscription access, API-key sign-in as separately billed usage-based access, and `forced_login_method = "chatgpt"` as the restriction that logs out and exits on mismatched credentials in [Codex authentication](https://learn.chatgpt.com/docs/auth). Kimi and GLM remain under their own transport rules and separately authorized per-review spending caps; this OpenAI policy neither removes nor raises those caps.
+
 ## §A. Header
 
 YAML frontmatter above is authoritative for the §A header fields.
@@ -39,10 +41,10 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Council dispatch handler | tools/agents.py:_handle_call_mp | task meta/output files under /var/tmp/koskadeux/; Event Ledger (review verdicts per agent-dispatch.md §S) | Koskadeux gateway (council_request tool), runbook gate (tools/runbook_ref.py), structural middleware | Routes mode=build/review/author/open_response; applies runbook-refs gate before dispatch (BLOCK mode since S1150). |
 | Codex CLI bridge | codex_cli_bridge.py:run_codex_cli | CODEX_LOCK_FILE /var/tmp/koskadeux/codex_cli.lock (fcntl) | Codex CLI binary (codex exec) | Streaming path dispatch_codex_cli_streaming is production; nonstreaming legacy retained. OS-level timeout backstop from MP_HARD_UPPER_BOUND_S; progress-stall abort at MP_PROGRESS_WINDOW_S. Legacy dispatch_codex_cli (~L899) still contains a dead hardcoded `timeout 600` wrapper — zero live callers, remove on next bridge cleanup. |
-| Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.6-sol" (frontier-only policy; S1200 per Max directive, T-2026-000197). **The served string is `gpt-5.6-sol` — NOT `gpt-5.6`, NOT `gpt-5.6-codex`; both 400 on our ChatGPT account tier.** Two surfaces must agree: this file AND koskadeux-mcp/.env `MP_MODEL` (the bridge passes `-m MODEL` from the env explicitly). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.3. |
+| Codex CLI + auth | ~/.codex/config.toml and ~/.codex/auth.json | ChatGPT OAuth session (`auth_mode: chatgpt`) | OpenAI Codex service through ChatGPT subscription access | Every lane account's config sets exact `forced_login_method = "chatgpt"`. model = "gpt-5.6-sol" (frontier-only policy; S1200 per Max directive, T-2026-000197). **The served string is `gpt-5.6-sol` — NOT `gpt-5.6`, NOT `gpt-5.6-codex`; both 400 on our ChatGPT account tier.** Two model surfaces must agree: this file AND koskadeux-mcp/.env `MP_MODEL` (the bridge passes `-m MODEL` from the env explicitly). Every MP child must omit the three banned API-key names and provider selection must reject direct OpenAI API transports before construction. MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.3. |
 | Structural middleware (§O) | council_dispatch_middleware/ | builder-output manifests | ci_verification.py pre-push gate, SchemaRepair | Fires only when caller passes dispatch_class=structural. Terminal state push_failed is a DESIGNED guardrail: verified commit preserved, instance reviews then merges with KD_ALLOW_MAIN_PUSH=1 (S1150). |
 | Runbook-refs gate | tools/runbook_ref.py:RunbookRefResolver | config:resource-registry (runbooks repo path); runbook_gate ledger events; config:runbook-gate-config | aidotmarket/runbooks checkout | BLOCK mode: mode=build/author REQUIRES runbook_refs (RunbookRef {path, section, synthesis} or Attestation {no_entry_found, subject, reason} — attestation creates dischargeable session debt). |
-| Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see §G-05). |
+| Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see §G-05). Reference estimates never authorize an OpenAI API transport or imply that MP is billed through Platform; the active MP payment route remains the ChatGPT Pro subscription. |
 
 ## §D. Agent Capability Map
 
@@ -62,6 +64,9 @@ YAML frontmatter above is authoritative for the §A header fields.
   trigger: A BQ chunk or ticket fix needs a code build in a Titan-1 repo
   pre_conditions:
     - open Koskadeux session (kd_session_open + kd_session_plan done)
+    - 'the selected lane account Codex config contains exact `forced_login_method = "chatgpt"`'
+    - '`codex login status` confirms ChatGPT authentication and selected auth mode is `chatgpt`'
+    - 'MP provider route is `codex_cli_streaming`; every Codex child environment scrubs `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY`'
     - runbook_refs prepared (path+section must resolve in aidotmarket/runbooks; BLOCK mode)
     - target repo fetched (git fetch origin main) if the dispatch pins a SHA committed via GitHub API
     - spec committed at a pinned SHA when spec-grounded (agent-dispatch.md §T — reference path@SHA, never paste long specs)
@@ -79,6 +84,8 @@ YAML frontmatter above is authoritative for the §A header fields.
       cause: missing/unresolvable runbook_refs (see §F-08)
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (§F-01)
+    - signature: 'chatgpt_auth_unavailable / openai_metered_route_forbidden'
+      cause: ChatGPT auth is unavailable or a banned API credential/direct transport/fallback is present; fail before provider action and apply §G-14 without creating or using an API key
   next_step_success: gated cross-review by the voter panel CC+Kimi+GLM with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult §F symptom table BEFORE diagnosing from code
 - id: E-02
@@ -152,6 +159,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (§G-11 step 1); compare handler `ps lstart` (LOCAL time — Titan-1 is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | §G-11 | CONFIRMED |
 | F-14 | All Codex sessions 401 Unauthorized on wss endpoints; `codex login status` = Not logged in | `~/.codex/auth.json` missing or its refresh-token chain burned ("refresh token was already used") — stale backups do NOT recover it because refresh tokens rotate | `ls ~/.codex/auth.json` + `codex login status` | §G-12 | CONFIRMED (S1185) |
 | F-15 | MP repeatedly introduces new defects while fixing prior ones on a hard/safety-critical component (fix N creates defect N+1) | Default reasoning effort too low for the component's complexity | Count audit rounds: ≥2 REVISE rounds where the fix itself introduced a NEW defect (S1186 escalation spine: uuid4 dedup regression, ack leaks, benign-false storms) | §G-13 | CONFIRMED (S1186) |
+| F-16 | An MP dispatch is not locked to ChatGPT authentication, inherits an OpenAI API credential, selects a direct API transport, or attempts a metered fallback | `forced_login_method` is missing or not exact `chatgpt`; ChatGPT authentication is missing/expired/mismatched; a child inherited `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, or `CODEX_API_KEY`; or a legacy OpenAI SDK/Responses/Chat Completions path remains reachable | Verify exact `forced_login_method = "chatgpt"` in the selected lane account's Codex config; run `codex login status`; inspect selected auth mode and credential names only; assert the task reports `api_path=codex_cli_streaming`; use a key-name-only injection probe to prove failure before any OpenAI API network request; never print values | §G-14 | CONFIRMED |
 
 ## §G. Repair
 
@@ -204,6 +212,14 @@ YAML frontmatter above is authoritative for the §A header fields.
   change_pattern: 'Pass reasoning_effort=<value> per dispatch. Accepted enum: none | low | medium | high | xhigh (invalid → ValueError). **`minimal` was REMOVED at S1205** — gpt-5.6-sol returns a hard 400 on it ("Unsupported value: minimal is not supported with the gpt-5.6-sol-1p-codexswic-ev3 model. Supported values are: none, low, medium, high, and xhigh"). The accepted set is MODEL-SPECIFIC: re-probe it on every model swap and prune the enum in codex_cli_bridge.ALLOWED_REASONING_EFFORTS and both tool schemas in the same change, or dispatches selecting a dropped value fail outright. OMIT reasoning_effort and behavior is unchanged — ~/.codex/config.toml governs exactly as before (backward compatible). When set, the bridge injects `-c model_reasoning_effort=<value>` into the codex exec args. xhigh is the ceiling. USE xhigh for safety-critical work (anything where a defect can silently drop an alert, lose money, or expose customer data) and for components where MP has previously regressed. NOTE: a newly merged dial does NOT take effect until the gateway reloads (both instances idle) — same F-13 trap as a model swap.'
   rollback_procedure: omit the parameter (no-op; config.toml governs) — the dial is additive and reversible by not passing it
   integrity_check: dispatch succeeds and model_matched=true; omitting the param reproduces pre-0bc68129 behavior
+- id: G-14
+  symptom_ref: F-16
+  component_ref: Codex CLI + auth
+  root_cause: The MP boundary did not prove ChatGPT subscription authentication or allowed a banned OpenAI API credential or direct metered transport to reach provider selection.
+  repair_entry_point: koskadeux-mcp Codex child-environment constructors, MP provider selection, launch configuration, and the persisted Codex login
+  change_pattern: 'Set exact `forced_login_method = "chatgpt"` in every lane account Codex config and fail closed unless `codex login status` confirms ChatGPT authentication and selected auth mode is `chatgpt`; centrally remove `OPENAI_API_KEY`, `OPENAI_API_KEY_FALLBACK`, and `CODEX_API_KEY` from every Codex child; reject direct OpenAI SDK, Responses API, Chat Completions API, and fallback selection before provider construction. Activate and independently verify this fail-closed code/config at a zero-child restart boundary first; only then remove banned credentials from MP launch/config/secret sources without exposing their values. If Max interaction is required, re-login through ChatGPT; never create an API key as recovery.'
+  rollback_procedure: Stop MP and revert only to the last reviewed ChatGPT-authenticated Codex CLI path. Never restore an OpenAI API key, direct API transport, or silent fallback as rollback.
+  integrity_check: 'Every selected lane account has exact `forced_login_method = "chatgpt"`; `codex login status` confirms ChatGPT; a normal MP smoke reports `api_path=codex_cli_streaming`; every Codex child omits the three banned names; key-name-only injection, wrong/missing forced-login configuration, and missing/expired-auth probes fail before any OpenAI API network action. Kimi and GLM retain their separately governed transport and per-review cap rules.'
 - id: G-06
   symptom_ref: F-05
   component_ref: Codex CLI bridge
@@ -268,6 +284,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 - MP is the mandatory primary builder for BQ/development code builds; CC is ticket-fixes only (Max S1148); CC is NEVER a BQ/spec build path.
 - Builder ≠ reviewer, always. Auth/security/customer-data/money changes require unanimous Council.
+- Every MP/OpenAI operation uses authenticated ChatGPT Pro/Codex subscription access, with exact `forced_login_method = "chatgpt"` in every lane account configuration. Metered OpenAI API credentials, direct API transports, and silent fallbacks are forbidden; missing/wrong enforcement, unavailable auth, or unavailable plan capacity fails closed. Kimi and GLM transports and per-review spending caps remain separately governed.
 - Frontier-only model policy: MP runs exactly ONE configured model, the current OpenAI frontier (Max S516). No fallback tiers in production dispatch.
 - Spec-grounded dispatches reference the committed spec path @ pinned SHA (agent-dispatch.md §T); never paste long specs inline.
 - Gates are never bypassed with break_glass; the runbook gate's attestation/debt mechanism is the only sanctioned "no runbook" path.
@@ -280,6 +297,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 ### §H.2 BREAKING predicates
 
 - Changes the council_request tool contract for agent=mp (argument names/shapes) without a shim.
+- Introduces or re-enables a metered OpenAI API credential, direct API transport, or fallback for MP/Codex. The S1414 payment boundary blocks this as an availability repair.
 - Removes or weakens the runbook-refs gate, the CI verification gate, or the builder≠reviewer rule.
 - Changes the mutex/serialization semantics of the Codex CLI bridge.
 
@@ -327,7 +345,7 @@ scenario_set:
       - kind: tool_call
         tool: council_request
         argument_keys: [agent, mode, task, cwd, session_id, runbook_refs]
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-02
     type: operate
     refs: [E-03]
@@ -336,7 +354,7 @@ scenario_set:
       - kind: tool_call
         tool: council_request
         argument_keys: [agent, mode, dispatch_sha, task, cwd, session_id]
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-03
     type: operate
     refs: [E-04]
@@ -344,7 +362,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: verify availability on our Codex CLI auth tier via a smoke dispatch BEFORE any config change
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-04
     type: isolate
     refs: [F-02]
@@ -352,7 +370,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: check ground truth in the build cwd (git log/status) before redispatching
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-05
     type: isolate
     refs: [F-03]
@@ -360,7 +378,7 @@ scenario_set:
     expected_answers:
       - kind: classification
         action: manifest-stage wrapper failure with delivered work; recover per agent-dispatch.md §U, do not rebuild
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-06
     type: isolate
     refs: [F-08]
@@ -368,7 +386,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: grep the cited runbook for exact headings and correct the section value
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-07
     type: repair
     refs: [G-07]
@@ -376,7 +394,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: reset/revert the unauthorized remediation, keep only the verdict, and note the S452 quirk in the review record
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-08
     type: repair
     refs: [G-06]
@@ -384,7 +402,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: git fetch origin main in the target repo, then redispatch
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-09
     type: evolve
     refs: [§H]
@@ -392,7 +410,7 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: BREAKING
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-11
     type: evolve
     refs: [§H]
@@ -400,7 +418,7 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: REVIEW
-    weight: 0.09090909
+    weight: 0.08333333333333333
   - id: I-10
     type: ambiguous
     refs: [§H, G-05]
@@ -409,7 +427,17 @@ scenario_set:
       - kind: classification
         verdict: REVIEW
         action: prefer per-dispatch timeout_s=3600 on that one build over changing the env default
-    weight: 0.09090909
+    weight: 0.08333333333333333
+  - id: I-12
+    type: ambiguous
+    refs: [F-16, G-14, §H]
+    scenario: Codex ChatGPT authentication has expired, but an OpenAI API key is available in the parent environment. What does the MP path do?
+    expected_answers:
+      - kind: human_action
+        verb: fail closed
+        object: MP dispatch
+        target: restore exact forced_login_method=chatgpt and authenticated ChatGPT Pro/Codex access without creating, inheriting, selecting, or falling back to an OpenAI API key or direct API transport
+    weight: 0.08333333333333333
 ```
 
 ## §J. Lifecycle
