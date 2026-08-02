@@ -1,6 +1,6 @@
 # S1413 — All-corpus runbook discovery before authority promotion
 
-Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 4**
+Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 5**
 
 Date: 2026-08-02
 
@@ -30,6 +30,18 @@ Revision history:
   fetch, publishing executable serializer vectors, making the compatibility
   omission counter exact, and separating state-neutral retrieval identity from
   state-dependent policy and response identities. It claims no implementation,
+  review approval, benchmark pass, gateway delivery, merge, deployment, or
+  activation.
+- Revision 5 is the bounded integration correction discovered by independent
+  exact-source tracing. It permits only crash-safe authenticated Kóska
+  session-control writes before business-authority writes, makes the short
+  lead and bundle values opaque handles backed by immutable server claims,
+  defines quota bytes as the canonical content placed in MCP
+  `TextContent.text`, and assigns first-plan integration to the actual Kóska
+  owner. It changes no pre-existing closed payload field, field maximum, vector
+  input, or digest rule, so the Revision-4 byte counts and vector digests remain
+  the binding vectors; it adds the closed confirmation and compact-replay
+  variants required for exact session accounting. It claims no implementation,
   review approval, benchmark pass, gateway delivery, merge, deployment, or
   activation.
 
@@ -170,7 +182,13 @@ The following production constants are reviewed, frozen, and non-configurable:
 | production two-objective worst-case proof | at most 32,000 UTF-8 bytes |
 
 There is no separate character ceiling and no 2,048 raw-byte
-`verify_against` boundary. Optional early raw checks may reject only values
+`verify_against` boundary. `serialized_bytes` and every `U` response measure
+mean `len(text.encode("utf-8"))` for the exact canonical serializer output,
+including its final newline, placed byte-for-byte in MCP `TextContent.text`.
+JSON-RPC, HTTP, MCP-envelope, request-ID, and other outer transport framing are
+not part of this deterministic delivered-content quota. Outer framing may wrap
+the text but MUST NOT prefix, truncate, re-encode, or otherwise modify
+`TextContent.text`. Optional early raw checks may reject only values
 that necessarily violate a binding limit; they are not acceptance boundaries.
 Exact-limit and limit-plus-one tests target each binding measure and failure
 stage once.
@@ -292,35 +310,119 @@ reviewer name, attestation, caller prose, or free-form evidence may manufacture
 a mapping. Future mappings require immutable manifest/schema review and remain
 one-to-one and digest-bound.
 
-The gateway handshake remains server-bound and has three steps:
+The authenticated Kóska session-control store is the sole state-writing
+exception before runbook-first delivery. Search and delivery perform zero
+Living State, Event Ledger, runbook-debt, waiver, plan-acceptance, intent, or
+other business-authority writes before the corpus payload is fixed and
+admitted. The control store MAY atomically reserve quota and persist immutable
+opaque-reference claims, delivery accounting, fetch state, and replay state
+needed by this contract. Those records grant no runbook authority, are never
+populated from or overridden by raw caller fields, and have bounded TTL,
+authenticated-session binding, crash-safe compare-and-swap, and idempotent
+recovery. The server recomputes the objective digest from the validated
+normalized objective and derives every remaining claim from its selected
+immutable corpus state; caller verification prose, adapter data, paths, IDs, or
+claimed digests are never claim sources.
 
-1. The first plan search returns server-selected results and performs zero
-   state writes. A discovery result receives an authenticated
-   `discovery_lead_id` bound to session, objective digest, runbooks SHA,
-   inventory SHA, manifest digest, blob, discovery digest, retrieval digest,
-   excerpt digest, discovery rank, and expiry. Its compact warning contains
-   `requirement_count`, `verification_bundle_digest`, and a separate
-   authenticated `verification_bundle_ref` bound to that same session,
-   objective, catalog SHA, inventory SHA, manifest digest, source blob,
-   discovery lead, bundle digest, and expiry. The reference accepts no caller
-   verification prose or adapter data, grants no authority, and is bounded to
-   192 J.
-2. A separate read-only server call accepts only the unmodified authenticated
-   `verification_bundle_ref`. It validates the signature, expiry, session, and
-   every immutable binding before returning the complete ordered one-to-one
-   bundle described in section 6.5. It returns all one through three
+The closed control-store records contain exactly the fields below; unlisted
+fields fail. Every digest is lowercase 64-hex SHA-256, every time is canonical
+UTC RFC-3339, every integer is non-negative, and `expires_at` is no later than
+the authenticated session expiry or 86,400 seconds after `created_at`, whichever
+comes first. Every record has `schema_version=1`.
+
+- `session_quota_v1`: `schema_version`, authenticated `session_binding`, an
+  ordered array `objective_slots` of at most eight closed objects containing
+  `objective_digest`, `reservation_count`, and `admitted`, plus
+  `reserved_content_bytes`, `delivered_content_bytes`, `created_at`,
+  `expires_at`, and `cas_revision`;
+- `delivery_reservation_v1`: `schema_version`, server `delivery_id`,
+  `request_idempotency_digest`, `session_binding`, `response_kind`,
+  ordered-unique `objective_digests`, exact canonical `payload_digest`,
+  `payload_bytes`, ordered-unique `new_objective_digests`,
+  `state` (`reserved`, `admitted`, or `released`), `created_at`, state-consistent
+  nullable `admitted_at` and `released_at`, `expires_at`, and CAS revision. This
+  record also distinguishes an idempotent retry of one delivery from a later
+  logical replay, which receives a new `delivery_id` and byte reservation;
+- `opaque_reference_claim_v1`: `schema_version`, `claim_kind` (`lead` or
+  `bundle`), `handle_digest`, `nonce_digest`, `mac_key_id`, `session_binding`,
+  `objective_digest`, `catalog_sha` (the runbooks search SHA), `inventory_sha`,
+  `manifest_sha256`, `activation_digest`, `source_blob_oid`,
+  `discovery_digest`, `retrieval_digest`, `excerpt_digest`, `discovery_rank`,
+  `requirement_count`, exact `verification_bundle_digest`, ordered
+  `requirement_set_digest`, `issuing_delivery_id`, bundle-only
+  `linked_lead_handle_digest`, `state` (`issued`, `fetched`, `confirmed`,
+  `expired`, or `revoked`), `created_at`, `expires_at`, and `cas_revision`.
+  `linked_lead_handle_digest` is absent for a lead claim; `fetched` is
+  bundle-only and `confirmed` is lead-only;
+- `bundle_fetch_receipt_v1`: `schema_version`, `session_binding`,
+  `bundle_handle_digest`, `lead_handle_digest`, exact
+  `verification_bundle_digest`, canonical `payload_digest`, `payload_bytes`,
+  admitting `delivery_id`, `fetched_at`, `confirmation_state` (`unconfirmed`,
+  `confirmed`, `contradicted`, or `insufficient`), `created_at`, `expires_at`,
+  and `cas_revision`; and
+- `verification_receipt_v1`: `schema_version`, `receipt_id_digest`,
+  `nonce_digest`, `mac_key_id`, `session_binding`, `objective_digest`,
+  `activation_digest`, `source_blob_oid`, `discovery_digest`,
+  `retrieval_digest`, exact `verification_bundle_digest`, ordered
+  `requirement_set_digest`,
+  `evidence_digest`, `outcome` (`confirmed_for_objective`, `contradicted`, or
+  `insufficient`), `created_at`, `expires_at`, and `cas_revision`.
+
+Claim payload fields are immutable after creation. Legal state transitions are
+bundle `issued` to `fetched`, lead `issued` to `confirmed`, or any live claim to
+`expired`/`revoked`; no transition reverses. Receipt identity and digest fields
+are immutable; only the named state and `cas_revision` may move.
+
+`discovery_lead_id` and `verification_bundle_ref` are authenticated opaque
+handles, not self-contained claim tokens. Their closed lexical form is 1..192 J
+of unpadded base64url ASCII `[A-Za-z0-9_-]`; the existing 192-J maximum vector
+therefore remains valid. Every issuer-produced decoded value is a versioned
+binary container with a handle-kind discriminator, at least a 16-byte
+cryptographically random server nonce, a 32-byte HMAC-SHA-256 authentication
+tag, and optional authenticated opaque padding within the lexical maximum. The
+MAC is domain-separated by version and handle kind and binds the encoded
+version, kind, nonce, padding, and authenticated session (all container bytes
+other than the tag). The server record supplies the key ID and all claims. The
+handle carries no caller-readable or caller-selected claim.
+
+The gateway handshake remains server-bound and has four steps:
+
+1. The first-plan search returns server-selected results. After the canonical
+   payload and every digest are fixed, but before any corpus text is emitted,
+   Kóska atomically reserves its objective slots and canonical delivered-content
+   bytes and persists the immutable lead and bundle claims. A discovery result
+   receives a `discovery_lead_id` whose server record binds session, objective
+   digest, `catalog_sha` (the runbooks search SHA), inventory SHA, manifest
+   digest, blob, discovery digest,
+   retrieval digest, excerpt digest, discovery rank, exact bundle digest, and
+   expiry. Its compact warning contains `requirement_count`,
+   `verification_bundle_digest`, and a separate `verification_bundle_ref`
+   whose record binds that same session, objective, catalog SHA, inventory SHA,
+   manifest digest, source blob, discovery lead, bundle digest, and expiry.
+   Neither handle accepts verification prose or adapter data or grants
+   authority.
+2. A separate bounded server call accepts only the exact opaque
+   `verification_bundle_ref`. It validates the MAC and session, resolves the
+   immutable record, and revalidates expiry, state, objective, activation,
+   source, lead, and bundle digest before returning the complete ordered
+   one-to-one bundle described in section 6.5. It returns all one through three
    requirements in one closed response. Omission, truncation, paraphrase,
-   caller substitution, and pagination are forbidden in this release. A
-   failed fetch mints no usable verification state. While a selected discovery
-   lead is unconfirmed, the session permits only this bounded read and
-   registered production-safe verification.
-3. A dedicated confirmation call accepts the lead ID, the exact fetched
+   caller substitution, and pagination are forbidden. Only after the complete
+   bundle payload is durably admitted for delivery may CAS create the
+   server-owned `bundle_fetch_receipt_v1`. A failed or partial fetch creates no
+   fetched state. While a selected discovery lead is unconfirmed, the session
+   permits only this bounded fetch and registered production-safe verification.
+3. A dedicated confirmation call accepts the lead handle, the exact fetched
    `verification_bundle_digest`, immutable `requirement_id` values, and adapter
-   receipts. Server state MUST prove that this exact bundle was fetched and
-   validated for the same live binding before any receipt is evaluated. The
-   call validates exact requirement bindings, freshness, remote identity,
-   evidence policy, and one distinct result per requirement. It returns a
-   signed `discovery_verification_receipt_id` with outcome
+   receipts. It resolves and revalidates the lead claim. The exact live
+   `bundle_fetch_receipt_v1`, not possession of either handle, MUST prove that
+   the matching bundle was completely admitted and validated for the same
+   session and activation before any receipt is evaluated. The call validates
+   exact requirement bindings, freshness, remote identity, evidence policy,
+   and one distinct result per requirement. Missing, expired, disallowed-replay,
+   wrong-session, wrong-objective, mismatched-digest, stale-activation, or
+   ambiguous claim records fail closed. It returns an authenticated server-owned
+   `discovery_verification_receipt_id` with outcome
    `confirmed_for_objective`, `contradicted`, or `insufficient`.
 4. Confirmation requires fresh sufficient trusted evidence for every mapped
    requirement, no unmapped item, and no missing, stale, reused, substituted,
@@ -331,20 +433,23 @@ The gateway handshake remains server-bound and has three steps:
 Archived leads can never be confirmed as current instructions. Contradicted or
 insufficient leads expose the authoritative gap and remain read-only.
 
-## 6. Normative production gateway wire schema and maxima
+## 6. Normative production canonical-content schema and maxima
 
 This section is the production contract, not an implementation note. The exact
 serializer is `json.dumps(envelope, ensure_ascii=True, sort_keys=True,
-separators=(",", ":")) + "\n"`. Objects are closed: a field not listed below
-is forbidden. There are no wildcard rows, caller-provided maps, or unbounded
-strings/lists. `J` means canonical string bytes from section 3; `U` means total
-UTF-8 bytes in the exact serializer. Integers are canonical non-negative JSON
-integers with no leading zeros. Fixed enums are serialized exactly as listed.
+separators=(",", ":")) + "\n"`. Its complete output is the canonical payload
+placed unchanged in MCP `TextContent.text`; its UTF-8 length is `U` and
+`serialized_bytes`. Outer transport framing is excluded as defined in section
+3. Objects are closed: a field not listed below is forbidden. There are no
+wildcard rows, caller-provided maps, or unbounded strings/lists. `J` means
+canonical string bytes from section 3. Integers are canonical non-negative
+JSON integers with no leading zeros. Fixed enums are serialized exactly as
+listed.
 
 Digest bindings form two explicit layers:
 
-- `delivery_digest`: SHA-256 of the final wire envelope with that value replaced
-  by 64 ASCII zeroes;
+- `delivery_digest`: SHA-256 of the final canonical content envelope with that
+  value replaced by 64 ASCII zeroes;
 - `retrieval_digest`: a domain-separated SHA-256 of only the state-neutral
   retrieval projection: source blob, path, unit kind and unit identity,
   qualification and match evidence, common score, global rank/order, exact
@@ -386,8 +491,8 @@ digest from an old authority state MUST fail under the new state.
 | `response_budget_bytes` | integer `40000` | 5 digits | mandatory once | no | delivery | frozen limits singleton |
 | `response_budget_truncated` | boolean | 5 bytes | mandatory once | no | delivery + corpus | corpus allocator only |
 | `dropped_candidate_count` | integer 0..1999998 | 7 digits | mandatory once; deprecated compatibility counter | no | delivery + corpus | exact equation below |
-| `serialized_bytes` | integer 0..40000 | 5 digits | mandatory once | no | delivery | exact final wire |
-| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | self rule above | exact final wire |
+| `serialized_bytes` | integer 0..40000 | 5 digits | mandatory once | no | delivery | exact canonical `TextContent.text` UTF-8 bytes |
+| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | self rule above | exact canonical `TextContent.text` |
 
 | Literal objective field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
@@ -422,9 +527,9 @@ digest from an old authority state MUST fail under the new state.
 
 The two lane arrays have a joint maximum of four corpus results per objective;
 neither array's individual maximum permits more than four in their union. The
-validated request `query` is deliberately not echoed by the final gateway; its
-4,000-J input boundary is enforced before reads and `objective_digest` is the
-wire identity.
+validated request `query` is deliberately not echoed by the final canonical
+content; its 4,000-J input boundary is enforced before reads and
+`objective_digest` is the delivered-content identity.
 
 For objective `o`, each state obeys
 `state_omitted_count = state_qualifying_count - state_returned_count`, and
@@ -519,7 +624,7 @@ adapter parameters, evidence policy, receipt, or caller field.
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
 | `discovery_digest` | lowercase hex string | 64 J | mandatory once/discovery | no | state-dependent discovery self digest + corpus response | immutable discovery policy identity |
-| `discovery_lead_id` | authenticated string | 192 J | mandatory once/delivered discovery | no | discovery + corpus response | gateway issuer |
+| `discovery_lead_id` | authenticated opaque handle | 192 J | mandatory once/delivered discovery | no | discovery + corpus response | Kóska session-control claim issuer |
 | `requires_ground_truth_verification` | boolean, always true | 4 bytes | mandatory once/discovery | no | discovery + corpus response | fixed policy |
 | `historical_only` | boolean | 5 bytes | mandatory once/discovery | no | discovery + corpus response | manifest state |
 | `manifest_risk` | enum `P0`, `P1`, `P2`, `P3` | 2 J | mandatory once/discovery | no | discovery + corpus response | manifest record |
@@ -538,37 +643,38 @@ The compact warning object contains every listed field and no others:
 | `requires_ground_truth_verification` | boolean true | 4 bytes | mandatory once/warning | no | warning + discovery + corpus response | fixed policy |
 | `requirement_count` | integer 1..3 | 1 digit | mandatory once/warning | no | warning + bundle + discovery + corpus response | validated manifest list count |
 | `verification_bundle_digest` | lowercase hex string | 64 J | mandatory once/warning | no | warning + discovery + corpus response | closed ordered bundle projection |
-| `verification_bundle_ref` | authenticated string | 192 J | mandatory once/warning | no | warning + discovery + corpus response | gateway issuer using section 5 claims |
+| `verification_bundle_ref` | authenticated opaque handle | 192 J | mandatory once/warning | no | warning + discovery + corpus response | Kóska session-control claim issuer using section 5 |
 
 Discovery results MUST omit `candidate_digest`, `runbook_id`, `owner`,
 `last_verified_at`, `authority_keys`, `authority_keys_truncated`, `rank`, and
 the full `verification_requirements` array. The compact reference and digest
 are not verification evidence and grant no authority.
 
-### 6.5 Complete read-only verification-bundle response
+### 6.5 Complete bounded verification-bundle response
 
-The bundle-fetch response uses the same exact serializer as the first-plan
-response but is a separate closed envelope with a hard maximum of 8,192 U,
-including its final newline. It contains every field below and no first-plan,
-supplemental, control, receipt, or unknown field:
+The bundle-fetch response uses the same exact canonical-content serializer as
+the first-plan response and is placed unchanged in `TextContent.text`. It is a
+separate closed envelope with a hard maximum of 8,192 U, including its final
+newline. It contains every field below and no first-plan, supplemental,
+control, receipt, or unknown field:
 
 | Literal bundle-envelope field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Digest binding | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `schema_version` | integer `1` | 1 digit | mandatory once | no | delivery + bundle | frozen bundle wire schema |
+| `schema_version` | integer `1` | 1 digit | mandatory once | no | delivery + bundle | frozen bundle canonical-content schema |
 | `response_kind` | exact `verification_bundle` | 19 J | mandatory once | no | delivery + bundle | fixed server value |
-| `catalog_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `manifest_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `inventory_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `objective_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `source_blob_oid` | lowercase Git OID | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `discovery_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
-| `discovery_lead_id` | authenticated string | 192 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `catalog_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `manifest_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `inventory_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `objective_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `source_blob_oid` | lowercase Git OID | 64 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `discovery_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
+| `discovery_lead_id` | authenticated opaque handle | 192 J | mandatory once | no | delivery + bundle | resolved immutable opaque-reference claim |
 | `verification_bundle_ref_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | exact presented authenticated reference bytes |
 | `verification_bundle_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle self projection | rule below |
 | `requirement_count` | integer 1..3 | 1 digit | mandatory once | no | delivery + bundle | exact array length |
 | `verification_requirements` | ordered array of closed objects below | 1..3 items | mandatory once | no | delivery + bundle | validated immutable manifest mapping |
-| `serialized_bytes` | integer 0..8192 | 4 digits | mandatory once | no | delivery | exact final wire |
-| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest rule in section 6 | exact final wire |
+| `serialized_bytes` | integer 0..8192 | 4 digits | mandatory once | no | delivery | exact canonical `TextContent.text` UTF-8 bytes |
+| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest rule in section 6 | exact canonical `TextContent.text` |
 
 Every requirement contains all fields below. The ordered array has a 120-J
 aggregate prose cap. No requirement or subobject truncates.
@@ -624,6 +730,48 @@ three maximal instances of every adapter shape. The largest proven response is
 below 8,192 U; a fourth item, 121-J aggregate prose, omission, pagination, or
 unknown field fails closed before any bundle delivery.
 
+### 6.5.1 Closed confirmation and compact-replay content
+
+Confirmation and compact replay use the section-6 serializer and canonical
+`TextContent.text` rule. They do not use an informal acknowledgement, generic
+map, or outer transport size. Each is one of the following two closed variants;
+fields from the other variant and every unknown field fail before admission.
+Both have a hard 1,024-U maximum including the final newline.
+
+The `activation_digest` is a domain-separated SHA-256 over catalog SHA,
+manifest digest, inventory SHA, source blob OID, discovery digest, and retrieval
+digest. `requirement_set_digest` binds the ordered immutable requirement IDs.
+The receipt ID is an authenticated server-owned opaque base64url value of at
+most 192 J. It uses the section-5 versioned container and authentication rules
+with handle kind `receipt` and resolves only to `verification_receipt_v1`; it
+does not carry caller-selected claims. The compact replay `reference_value` is the exact
+already-issued lead, bundle, or verification-receipt value named by
+`reference_kind`; it creates no new authority or fetch state.
+
+| Literal field | Confirmation receipt | Compact replay receipt | Maximum | Truncation | Production source of truth |
+|---|---|---|---:|---|---|
+| `schema_version` | integer `1`, mandatory | integer `1`, mandatory | 1 digit | no | frozen canonical-content schema |
+| `response_kind` | exact `discovery_verification_receipt` | exact `compact_replay_receipt` | 30 J | no | fixed Kóska value |
+| `session_binding_sha256` | lowercase hex, mandatory | lowercase hex, mandatory | 64 J | no | authenticated session |
+| `objective_digest` | lowercase hex, mandatory | lowercase hex, mandatory | 64 J | no | immutable session-control claim |
+| `activation_digest` | lowercase hex, mandatory | forbidden | 64 J | no | rule above |
+| `verification_bundle_digest` | lowercase hex, mandatory | forbidden | 64 J | no | fetched bundle receipt |
+| `requirement_set_digest` | lowercase hex, mandatory | forbidden | 64 J | no | ordered requirement IDs |
+| `outcome` | enum `confirmed_for_objective`, `contradicted`, `insufficient`, mandatory | forbidden | 23 J | no | verification evaluator |
+| `discovery_verification_receipt_id` | authenticated opaque value, mandatory | forbidden | 192 J | no | `verification_receipt_v1` issuer |
+| `replay_of_delivery_digest` | forbidden | lowercase hex, mandatory | 64 J | no | admitted cached delivery |
+| `reference_kind` | forbidden | enum `discovery_lead_id`, `verification_bundle_ref`, `discovery_verification_receipt_id`, mandatory | 33 J | no | cached response kind |
+| `reference_value` | forbidden | authenticated opaque value, mandatory | 192 J | no | exact cached server value |
+| `serialized_bytes` | integer 0..1024, mandatory | integer 0..1024, mandatory | 4 digits | no | exact canonical `TextContent.text` UTF-8 bytes |
+| `delivery_digest` | lowercase hex, mandatory | lowercase hex, mandatory | 64 J | no | section-6 zero-substitution rule |
+
+A compact replay is legal only when the cached response exposes exactly one of
+the listed server values; otherwise replay returns the full cached canonical
+payload and is charged at full size. A confirmation receipt is emitted only
+after the exact fetched-state and evidence checks in section 5. Both variants
+are independently quota-reserved and charged exactly once by their
+`delivery_id`.
+
 ### 6.6 Supplemental guidance fields and production exclusions
 
 Supplemental guidance is one closed object:
@@ -647,9 +795,9 @@ Supplemental guidance is one closed object:
 | `warning_code` | exact `SUPPLEMENTAL_GUIDANCE_NOT_AUTHORITY` | 35 J | mandatory once | no | guidance + delivery | fixed policy |
 | `warning_message` | exact `SUPPLEMENTAL GUIDANCE — NOT RUNBOOK AUTHORITY` | 50 J | mandatory once | no | guidance + delivery | fixed policy |
 
-The production gateway adapter MUST use an explicit closed allowlist and test
+The production Kóska adapter MUST use an explicit closed allowlist and test
 that these current library-fragment compatibility fields are not serialized in
-the final gateway envelope: objective field `query`; repeated objective fields
+the final canonical content: objective field `query`; repeated objective fields
 `catalog_sha`, `searched_entry_count`, and `searched_section_count` (normalized
 once to the envelope); and supplemental fields `candidate_digest`,
 `discovery_digest`,
@@ -661,7 +809,7 @@ once to the envelope); and supplemental fields `candidate_digest`,
 `match_evidence`, `excerpt_start_line`, `excerpt_end_line`, and
 `excerpt_end_column_exclusive`. The adapter proof serializes a library object containing
 sentinel values for every excluded literal and asserts none reaches the final
-gateway wire envelope. No generic passthrough is permitted.
+canonical `TextContent.text`. No generic passthrough is permitted.
 
 ### 6.7 Typed non-success envelope
 
@@ -676,8 +824,8 @@ also subject to the exact production serializer and delivery-digest rule.
 | `error_code` | enum `batch_size_invalid`, `query_limit_exceeded`, `manifest_parse_failed`, `manifest_validation_failed`, `corpus_history_unavailable`, `corpus_inventory_stale`, `mandatory_corpus_envelope_too_large`, `response_budget_exceeded`, `session_objective_budget_exceeded`, `session_wire_budget_exceeded`, `invalid_limits_override` | 35 J | mandatory once | no | delivery | typed failing stage |
 | `message` | fixed server-owned message selected by error code | 256 J | mandatory once | no | delivery | frozen error catalog |
 | `changed_paths` | ordered unique portable-path array | 0..102 items; 192 UTF-8 bytes/item; 20,000 U aggregate | mandatory only for `corpus_inventory_stale`; otherwise absent | no | delivery | immutable old/new inventory diff |
-| `serialized_bytes` | integer 0..24000 | 5 digits | mandatory once | no | delivery | exact control wire |
-| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest-binding rule in section 6 | exact control wire |
+| `serialized_bytes` | integer 0..24000 | 5 digits | mandatory once | no | delivery | exact canonical control-content bytes |
+| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest-binding rule in section 6 | exact canonical control content |
 
 The control envelope is at most 24,000 U and contains no caller prose. The
 192-byte portable-path and 102-record bounds make the complete changed-path set
@@ -703,6 +851,17 @@ and the named minimum or maximum legal evidence policy. Delivery digests are
 populated by the section-6 zero-substitution rule before the final vector
 digest is measured.
 
+Revision 5 changes no pre-existing payload field, maximum, or vector input;
+rerunning the Revision-4 precursor reproduces every pre-existing count and
+digest below exactly. The two added session-control vectors use all applicable
+field maxima. In both, session binding is 64 `a` bytes and objective digest is
+64 `b` bytes. The confirmation vector uses 64 `c`, `d`, and `e` bytes for
+activation, bundle, and requirement-set digests respectively and 192 `V` bytes
+for the receipt ID. The compact-replay vector uses 64 `c` bytes for the replayed
+delivery digest, the longest reference-kind enum, and 192 `V` bytes for its
+value. Each `serialized_bytes` value is its exact final length; each delivery
+digest is populated by zero substitution before the final SHA-256 is measured.
+
 | Concrete vector | Exact U | SHA-256 test-vector digest |
 |---|---:|---|
 | maximum ACTIVE result | 4,803 | `b46d0e477dc25cc475c2568ee7df359419992f0a31526820efa21b1dbf8ff3f6` |
@@ -712,6 +871,8 @@ digest is measured.
 | two objectives: 3A+1D then 1A+3D | 31,921 | `8578e0f09dccf1de516e7c4c4853f692e22d5683802207286fe72186ee995ec7` |
 | two objectives: 1A+3D then 3A+1D | 31,921 | `3eb04e3f806a7a047f2444dcc645e95c42b0aa3ef066c3b553b2a6cf300b8ac9` |
 | maximum changed-path control response | 20,375 | `30208ccc9817934c1e61dd323760cf145c2921c2721af62bd9208983cf4281ac` |
+| maximum confirmation receipt | 898 | `5d58ee31455d6fc12dfb67e084846cfbd32e25e5ec4eb70933559cbed26c2e51` |
+| maximum compact replay receipt | 709 | `1a95fa9b84b5d1e23ebe684afdd91fcad1e87356bb5be6675f581909b2bb1fd9` |
 | private exact 32,001-U fault object | 32,001 | `c6133529150ae7de4b5502e9e2540df52aea1cdb433cc03b2e70362edf739cc8` |
 | bundle `git_object_v1`, minimum policy | 4,080 | `75ef5497b2d757c13a6527db1526cf7d23f5753809d50c05a4d046db6adcf2e9` |
 | bundle `git_object_v1`, maximum policy | 4,170 | `2d3662429dcc8a0a467603164e0298bc69ce0c813280737f4c6a33cd2445d918` |
@@ -790,24 +951,82 @@ The gateway independently enforces both current-release authenticated session
 ceilings, whichever would be reached first:
 
 - at most 8 distinct objective digests; and
-- at most 120,000 actual serialized wire bytes delivered.
+- at most 120,000 UTF-8 bytes of canonical payload admitted unchanged as MCP
+  `TextContent.text`, including each payload's final newline.
 
 There is no response-count ceiling. Every first-plan, bundle-fetch, replay,
-control, and verification/confirmation delivery charges its actual serialized
-wire bytes to the same authenticated-session ceiling. Splitting a complete
-bundle into its read-only call does not reset or create a ceiling. Exact
-same-session objective-digest replay consumes no new digest slot, but returns
-either a compact cached receipt/reference of at most 1,024 wire bytes and
-charges those bytes, or a full cached payload and charges the full payload.
-There is no free full replay.
+control, and verification/confirmation delivery charges exactly
+`len(TextContent.text.encode("utf-8"))` once to the same authenticated-session
+ceiling. Outer transport framing is never charged. Splitting a complete bundle
+into its bounded call does not reset or create a ceiling. Exact same-session
+objective-digest replay consumes no new digest slot, but returns either the
+closed compact replay envelope in section 6.5.1 at no more than 1,024 U and
+charges those canonical content bytes, or a full cached canonical payload and
+charges its full content bytes. There is no free full replay. The compatibility
+error literal `session_wire_budget_exceeded` means this canonical-content
+ceiling and does not make outer framing chargeable.
 
-Before any corpus text is emitted, the gateway atomically reserves prospective
-digest slots and delivery bytes or returns a bounded control error containing
-no corpus result. Caller prose, batch splitting, compact versus full replay, or
-new lead IDs cannot reset either ceiling. These ceilings are separate from the
-library's batch=2 and per-response 40,000-U contract.
+After the exact payload is fixed and before any corpus text is emitted, Kóska
+atomically creates `delivery_reservation_v1` and reserves prospective objective
+slots and canonical content bytes, or returns a bounded control error containing
+no corpus result. Durable admission of the complete unchanged payload is the
+single charge point: CAS changes that reservation from `reserved` to `admitted`
+and moves its bytes from reserved to delivered exactly once. The same CAS
+decrements each slot's reservation count and marks newly admitted digests;
+release decrements the count, removes only an unadmitted zero-count slot, and
+revokes every never-admitted claim with the same `issuing_delivery_id`. A
+serialization or admission failure CAS-releases it. Recovery after a crash
+before reservation finds no record; after reservation it checks the durable
+admission record and either completes the exact charge or releases the
+reservation; after admission it observes an already charged delivery and
+cannot charge it again.
+
+For bundle fetch, `bundle_fetch_receipt_v1` is created only after that bundle's
+complete payload is durably admitted. A crash between admission and receipt
+creation is reconciled from the admitted `delivery_id` by idempotent CAS; a
+crash before admission cannot create fetched state. An idempotent retry with the
+same request digest and `delivery_id` reuses the terminal state without another
+charge. A later compact or full logical replay receives a new `delivery_id`, is
+reserved and charged for its own canonical content, and cannot alter the
+original fetch receipt. Expiry recovery applies these same transitions and may
+delete only released or terminal records after their bounded audit TTL. Caller
+prose, batch splitting, compact versus full replay, or new lead IDs cannot reset
+either ceiling. These ceilings are separate from the library's batch=2 and
+per-response 40,000-U contract.
 
 ## 9. Gateway presentation and operating boundary
+
+Ownership and order in this section are normative for this release. The
+runbooks repository owns immutable object loading, all-corpus search, ranking,
+closed serialization, and its pure acceptance harness; it owns no authenticated
+session state. Kóska owns runbook selection, opaque-reference issuance, quota
+accounting, bundle/fetch/replay control state, and first-plan injection in
+`tools/session.py:_handle_kd_session_plan`. The backend MAY enforce a separate
+contain-or-reject boundary for business-authority writes, but MUST NOT duplicate
+the corpus, choose or serialize the first-plan corpus response, sign
+caller-selected corpus payloads, or mint its session references.
+
+For every first plan, `_handle_kd_session_plan` MUST authenticate and normalize
+the objectives, invoke the immutable runbooks search/serializer, fix the exact
+canonical payload and claims, reserve session-control quota and claims, and
+durably admit the canonical `TextContent.text` before invoking
+`_runbook_plan_gate`, `_compute_and_record_runbook_plan_impact_signal`,
+`_persist_runbook_plan_acceptance`, any plan-file write, or any intent write.
+Those business operations remain after successful runbook-first delivery. A
+failure before admission performs no Living State, Event Ledger, runbook-debt,
+waiver, plan-acceptance, intent, or other business-authority write and follows
+the reservation recovery rules in section 8.
+
+The Kóska adapter MUST carry this payload through a dedicated typed result from
+`_handle_kd_session_plan` through `koskadeux_server.py` and
+`gateway_server.py`. That route bypasses generic `safe_response` prefixing and
+truncation and places the canonical payload byte-for-byte in MCP
+`TextContent.text`. JSON-RPC, HTTP, MCP-envelope, and request-ID framing may wrap
+it but cannot modify or enter its quota. End-to-end tests through all three
+layers assert exact text equality, the final newline, no prefix, truncation,
+double encoding, or fallback coercion, and one charge of
+`len(text.encode("utf-8"))` for first-plan, full replay, bundle, confirmation,
+compact replay, verification, and control payloads.
 
 The first planning interaction for a session searches the complete pinned
 corpus for every objective and delivers the globally ordered excerpts before
@@ -817,7 +1036,7 @@ waivers, or lead IDs cannot substitute for server selection.
 The gateway merges `candidates` and `discovery_leads` by `relevance_rank` for
 display while preserving their separate policy lanes. Discovery warnings
 precede their excerpts. Before any verification action for a lead, the gateway
-performs and validates the complete read-only bundle fetch; it never asks the
+performs and validates the complete bounded bundle fetch; it never asks the
 agent to reconstruct requirements from the compact result. Supplemental
 guidance, when present, displays after all corpus results and at non-instruction
 precedence. The boot payload SHOULD expose the exact pin and 20/81/1 counts but
@@ -840,7 +1059,7 @@ paths must rank in the global top three; generic/title-only or archived results
 cannot satisfy a current label.
 
 Every report binds implementation commit, fixture path, replacement-disabled
-fixture blob OID, recomputed SHA-256, and measured per-case wire results.
+fixture blob OID, recomputed SHA-256, and measured per-case canonical-content results.
 Implementation-authored tests and prose are regression evidence only.
 
 Held-out acceptance requires three distinct authenticated identities:
@@ -903,7 +1122,7 @@ committed snapshot:
    duty; no partial new snapshot is searched.
 5. **Mixed policy query.** A qualifying mixed query returns ACTIVE and
    grandfathered classes in one unchanged global order, with all common and
-   kind-specific immutable identities from the wire table.
+   kind-specific immutable identities from the canonical-content table.
 6. **Discovery-only hit.** A grandfathered-only hit is a discovery result with
    authoritative gap, not `no_entry_found`, and cannot mint an ACTIVE candidate
    ID.
@@ -912,8 +1131,9 @@ committed snapshot:
 8. **Authority enforcement.** Non-ACTIVE results, supplemental guidance, caller
    paths/prose/IDs, attestations, and waivers cannot pass consultation or action
    authority validation, discharge debt, or promote content.
-9. **Closed wire schema and allocator.** The final gateway envelope—not a
-   library fragment—enumerates only section 6 fields, enforces every per-item,
+9. **Closed canonical-content schema and allocator.** The final canonical
+   `TextContent.text`—not a library fragment or outer envelope—enumerates only
+   section 6 fields, enforces every per-item,
    count, aggregate, path, heading, identifier, declaration, authority-key,
    match-evidence, warning, adapter, policy, counter, query, batch, object, and
    response maximum, and rejects unknown fields. Every production entrypoint
@@ -925,7 +1145,9 @@ committed snapshot:
    typed non-success. Production never exceeds 40,000 U; the real worst-case
    proof is exactly the section-6.8 31,921-U vector and the private 32,001-U
    fault fails as build proof. The omission counter equation passes zero,
-   exact 1,999,998, and 1,999,999 overflow tests without clamping.
+   exact 1,999,998, and 1,999,999 overflow tests without clamping. End-to-end
+   Kóska/server/gateway tests prove the dedicated typed path preserves every
+   canonical payload exactly and bypasses `safe_response` mutation.
 10. **Generic and single-token qualification.** Each frozen generic token alone,
     generic-only phrase/literal cases, substring cases, body-only single-token
     cases, and ambiguous non-strong cases miss or remain honestly ambiguous.
@@ -948,12 +1170,25 @@ committed snapshot:
     every expected top-three, policy, exclusion, and anti-duplication check
     satisfies this clause; revise/error/partial/missing/mixed/self-authored or
     prose-only evidence does not.
-13. **First plan and session ceilings.** First-plan delivery includes pinned
-    excerpts, compact bundle identities/references, and performs zero state
-    writes. Independent gateway tests cover 8 objective digests exact/+1 and
-    120,000 actual wire bytes exact/+1 across first-plan, bundle-fetch,
-    verification, control, mixed cached+new batches, split batches, compact and
-    full replay, and new lead IDs. Splitting the bundle never resets accounting.
+13. **First plan, control writes, and session ceilings.** First-plan delivery
+    includes pinned excerpts and compact opaque bundle identities/references.
+    Before its payload is fixed and admitted it performs no Living State, Event
+    Ledger, runbook-debt, waiver, plan-acceptance, intent, or other
+    business-authority write; only the closed authenticated Kóska session-control
+    records may reserve quota and persist claims, accounting, fetch, and replay
+    state. Exact-source tests prove `_handle_kd_session_plan` completes
+    selection, opaque issuance, quota accounting, and typed first-plan injection
+    before `_runbook_plan_gate`,
+    `_compute_and_record_runbook_plan_impact_signal`,
+    `_persist_runbook_plan_acceptance`, plan-file writes, and intent writes; the
+    backend neither duplicates the corpus nor signs caller-selected payloads.
+    Independent gateway tests cover 8 objective digests exact/+1 and
+    120,000 canonical `TextContent.text` UTF-8 bytes exact/+1 across first-plan,
+    bundle-fetch, verification, control, mixed cached+new batches, split
+    batches, compact and full replay, and new lead IDs. Crash-before/after
+    reservation, durable admission, fetch-receipt CAS, confirmation, and replay
+    prove release/reconciliation, fetched-state ordering, and exactly-once
+    charge per delivery ID. Splitting the bundle never resets accounting.
     Prospective overflow emits a bounded corpus-free control error.
 14. **Every record is searchable.** Grouped exact `path:` probes prove all 102
     records contribute at least one searchable unit, including H1-only
@@ -968,11 +1203,15 @@ committed snapshot:
     No digest or receipt from the old authority state validates under the new
     state; only the explicitly state-neutral retrieval digest survives.
 16. **Buildable verification and independent ACTIVE authority.** A discovery
-    lead projects the compact count, bundle digest, and authenticated reference;
-    the read-only fetch then returns every 1..3 prose item verbatim, ordered,
+    lead projects the compact count, bundle digest, and authenticated opaque
+    lead/bundle handles backed by complete immutable session-control claims;
+    the bounded fetch then returns every 1..3 prose item verbatim, ordered,
     one-to-one in one closed <=8,192-U response before verification. Fetch state,
-    exact bundle digest, and immutable requirement IDs are mandatory for the
-    receipt call. Mapped positive adapter evidence can confirm; unfetched or
+    created only after complete durable admission, its exact bundle digest, and
+    immutable requirement IDs are mandatory for the receipt call; handle
+    possession never infers a fetch. Wrong-session, wrong-objective, expired,
+    replayed, digest-mismatched, stale-activation, ambiguous, or missing claim
+    records fail closed. Mapped positive adapter evidence can confirm; unfetched or
     unmapped prose, unknown adapter, parameter substitution, mapping-digest
     mismatch, missing-one, reused-result, stale evidence, caller prose,
     truncation, omission, or pagination cannot. Every adapter maximum and both
@@ -991,7 +1230,7 @@ committed snapshot:
     result selection, order, fields, warnings, excerpt depths/truncation,
     counters, statuses, and `corpus_response_digest` values—with only supplemental fields and
     deterministic whole-response size/digest allowed to differ.
-19. **Exact batch contract and production envelope.** The library accepts only
+19. **Exact batch contract and production content.** The library accepts only
     sizes 1 and 2 and rejects 0, 3, 4, and a large batch atomically before any
     corpus/README read, retrieval, partial output, or write. The exact production
     serializer proves the two-objective maximum shapes in both orders, all
@@ -999,8 +1238,10 @@ committed snapshot:
     possible mandatory corpus identities, 600-J initial excerpts, and maximal
     residual guidance serialize to exactly 31,921 U. The separately committed
     vector generator also proves every bundle adapter/policy shape, maximum
-    control response, standalone result, and 32,001-U fault digest. Supplemental
-    guidance is considered only after final corpus allocation.
+    changed-path control response, 898-U confirmation receipt, 709-U compact
+    replay receipt, standalone result, and 32,001-U fault digest. All dedicated
+    paths reject unknown fields, and compact replay never exceeds 1,024 U.
+    Supplemental guidance is considered only after final corpus allocation.
 
 For the four probes, acceptable direct matches include the named domain
 documents in section 1 or a later promoted replacement demonstrably owning the
@@ -1014,9 +1255,14 @@ This order supersedes any earlier sequence postponing corpus discovery:
 
 1. repair the structural build wrapper so verified builds are not discarded;
 2. land immutable all-corpus search, the closed serializer, and ranking fixes;
-3. wire zero-write server-selected discovery into the first plan response;
-4. retire caller-authored gate/debt/waiver writers;
-5. establish backend write freezes and receipts after zero-writer evidence;
+3. in Kóska `tools/session.py:_handle_kd_session_plan`, land the authenticated
+   session-control store, selection, opaque handles, quota accounting, and
+   dedicated canonical `TextContent.text` path before the named gate, impact,
+   acceptance, plan-file, and intent writes;
+4. establish the backend's separate contain-or-reject business-authority write
+   boundary without duplicating corpus, selection, serialization, or signing;
+5. retire caller-authored gate/debt/waiver writers after exact ordering,
+   byte-preservation, crash-recovery, fetch-state, and replay evidence passes;
 6. perform the appropriate C→M or metadata-only inventory refresh, fully
    validate and verify remote objects, then atomically CAS old-M→new-M without
    activating C; and
