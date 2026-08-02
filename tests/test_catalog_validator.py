@@ -22,6 +22,7 @@ from runbook_tools.catalog.validator import (
     parse_catalog_ref,
     validate_catalog_ref,
 )
+from runbook_tools.corpus_manifest import PURPOSE, SOURCE_SELECTOR
 from tests.catalog_test_support import (
     conformant_catalog_document,
     ensure_catalog_schemas,
@@ -87,6 +88,74 @@ def _generate_commit(root: Path, message: str = "fixture") -> tuple[str, str]:
     generate_catalog(root)
     sha = _commit(root, message)
     return sha, f"git:aidotmarket/runbooks@{sha}:CATALOG.json"
+
+
+def _generate_search_commit(root: Path, message: str) -> tuple[str, str]:
+    """Commit one valid immutable corpus snapshot for search-specific fixtures."""
+
+    inventory_sha, _ = _generate_commit(root, message)
+    path = "runbooks/member.md"
+    blob_oid = subprocess.run(
+        ["git", "rev-parse", f"{inventory_sha}:{path}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    manifest = {
+        "manifest_version": 2,
+        "purpose": PURPOSE,
+        "inventory": {
+            "repository": "aidotmarket/runbooks",
+            "base_sha": inventory_sha,
+            "inventory_sha": inventory_sha,
+            "blob_oid_scope": "Pinned inventory tree blob.",
+            "inventory_path_semantics": (
+                "inventory_path selects the pinned tree path."
+            ),
+            "source_selector": SOURCE_SELECTOR,
+            "refresh_required_before_execution": True,
+            "counts": {
+                "operational_documents": 1,
+                "source_documents": 1,
+                "active": 1,
+                "grandfathered": 0,
+                "archived": 0,
+            },
+        },
+        "policy": {
+            "pending_is_not_authority": True,
+            "manifest_grants_no_authority": True,
+            "archive_is_recoverable": True,
+            "promotion_requires_ground_truth_verification": True,
+            "merge_or_archive_requires_section_coverage": True,
+            "high_risk_requires_independent_review": True,
+        },
+        "risk_scale": {
+            risk: f"Fixture definition for {risk}."
+            for risk in ("P0", "P1", "P2", "P3")
+        },
+        "documents": [
+            {
+                "path": path,
+                "git_blob_oid": blob_oid,
+                "catalog_state": "active",
+                "status": "active",
+                "proposed_disposition": "retain_active",
+                "batch": "validator-fixture",
+                "risk": "P3",
+                "target_paths": [path],
+                "evidence": [],
+                "verify_against": ["fixture source text"],
+                "independent_review_required": False,
+            }
+        ],
+    }
+    (root / "CORPUS-MANIFEST.yaml").write_text(
+        yaml.safe_dump(manifest, sort_keys=False)
+    )
+    search_sha = _commit(root, "pinned corpus manifest")
+    return search_sha, f"git:aidotmarket/runbooks@{search_sha}:CATALOG.json"
 
 
 def _valid_repo(tmp_path: Path) -> tuple[Path, str, str]:
@@ -998,10 +1067,13 @@ def test_prohibitive_retirement_guidance_remains_active_and_searchable(
 ) -> None:
     _init_repo(tmp_path)
     _write_doc(tmp_path, "runbooks/member.md", _metadata("member"), guidance)
-    _, catalog_ref = _generate_commit(tmp_path, "retirement safety guidance")
+    _, catalog_ref = _generate_search_commit(
+        tmp_path,
+        "retirement safety guidance",
+    )
 
     assert validate_catalog_ref(tmp_path, catalog_ref).status == "integrity_pass_unverified"
-    result = search_catalog(tmp_path, catalog_ref, "deprecated retired hierarchy")
+    result = search_catalog(tmp_path, catalog_ref, guidance)
     assert any(guidance in row["excerpt"] for row in result["candidates"])
 
 

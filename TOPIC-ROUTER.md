@@ -2,6 +2,7 @@
 # Runbook Topic Router
 
 `CATALOG.json` is the sole machine authority. This file is a generated display surface.
+The router intentionally lists only ACTIVE authority keys. Agents must first use the immutable all-corpus search; pending and archived documents are discoverable there with warnings but never appear here as authority.
 
 ## Topics
 

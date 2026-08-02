@@ -17,7 +17,7 @@ import yaml
 
 from runbook_tools.catalog import CatalogError, check_catalog, generate_catalog
 from runbook_tools.catalog.resolver import resolve_catalog_key
-from runbook_tools.catalog.search import search_catalog, search_catalog_many
+from runbook_tools.catalog.search import search_catalog_delivery
 from runbook_tools.catalog.validator import active_catalog_paths, validate_catalog_ref
 from runbook_tools.corpus_manifest import (
     CorpusManifestError,
@@ -171,30 +171,34 @@ def catalog_resolve_cmd(catalog_ref: str, query: str) -> None:
 
 @catalog_cmd.command(name="search")
 @click.option("--catalog-ref", required=True)
-@click.option("--limit", type=click.IntRange(1, 10), default=3, show_default=True)
+@click.option("--limit", type=click.IntRange(1, 3), default=3, show_default=True)
 @click.argument("query")
 def catalog_search_cmd(catalog_ref: str, limit: int, query: str) -> None:
     """Rank citable sections from one validated full-SHA catalog snapshot."""
     try:
-        result = search_catalog(Path.cwd(), catalog_ref, query, limit=limit)
+        delivery = search_catalog_delivery(
+            Path.cwd(), catalog_ref, [query], limit=limit
+        )
     except (CatalogError, OSError) as exc:
         click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
         raise SystemExit(1)
-    click.echo(json.dumps(result, sort_keys=True))
+    click.echo(delivery.text, nl=False)
 
 
 @catalog_cmd.command(name="search-many")
 @click.option("--catalog-ref", required=True)
-@click.option("--limit", type=click.IntRange(1, 10), default=3, show_default=True)
+@click.option("--limit", type=click.IntRange(1, 3), default=3, show_default=True)
 @click.option("--query", "queries", multiple=True, required=True)
 def catalog_search_many_cmd(catalog_ref: str, limit: int, queries: tuple[str, ...]) -> None:
     """Rank multiple objectives against one validated full-SHA snapshot."""
     try:
-        result = search_catalog_many(Path.cwd(), catalog_ref, queries, limit=limit)
+        delivery = search_catalog_delivery(
+            Path.cwd(), catalog_ref, queries, limit=limit
+        )
     except (CatalogError, OSError) as exc:
         click.echo(json.dumps({"error": str(exc), "status": "fail"}, sort_keys=True))
         raise SystemExit(1)
-    click.echo(json.dumps(result, sort_keys=True))
+    click.echo(delivery.text, nl=False)
 
 
 @catalog_cmd.command(name="select")

@@ -8,10 +8,13 @@ import pytest
 import yaml
 
 import runbook_tools.corpus_manifest as corpus_manifest_module
+from runbook_tools.catalog.canonical_content import requirement_mapping_digest
 from runbook_tools.corpus_manifest import (
+    MAX_PINNED_BATCH_BYTES,
     PURPOSE,
     SOURCE_SELECTOR,
     CorpusManifestError,
+    load_pinned_corpus_manifest,
     refresh_corpus_manifest,
     validate_corpus_manifest,
 )
@@ -62,7 +65,7 @@ def _single_source_repository(tmp_path: Path) -> tuple[Path, Path]:
     sha = _run_git(root, "rev-parse", "HEAD")
     oid = _run_git(root, "rev-parse", "HEAD:legacy.md")
     manifest = {
-        "manifest_version": 1,
+        "manifest_version": 2,
         "purpose": PURPOSE,
         "inventory": {
             "repository": "example/runbooks",
@@ -109,6 +112,17 @@ def _single_source_repository(tmp_path: Path) -> tuple[Path, Path]:
     }
     manifest_path = root / "CORPUS-MANIFEST.yaml"
     manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    _run_git(root, "add", "CORPUS-MANIFEST.yaml")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "manifest",
+    )
     return root, source
 
 
@@ -129,6 +143,286 @@ def test_repository_manifest_passes_default_check() -> None:
         for document in manifest["documents"]
     )
     assert report.promotion_bar is False
+
+
+def test_pinned_manifest_loader_reads_one_immutable_complete_snapshot() -> None:
+    sha = _run_git(REPO_ROOT, "rev-parse", "HEAD")
+
+    pinned = load_pinned_corpus_manifest(REPO_ROOT, sha)
+
+    assert pinned.search_sha == sha
+    assert pinned.operational_documents == 102
+    assert pinned.source_documents == 101
+    assert pinned.active == 20
+    assert pinned.grandfathered == 81
+    assert pinned.archived == 1
+    assert len(pinned.documents) == 102
+    assert len(pinned.manifest_sha256) == 64
+    assert {
+        document.catalog_state for document in pinned.documents
+    } == {"active", "grandfathered", "archived"}
+
+
+def test_pinned_manifest_loader_ignores_dirty_worktree_bytes(tmp_path: Path) -> None:
+    root, source = _single_source_repository(tmp_path)
+    sha = _run_git(root, "rev-parse", "HEAD")
+    before = load_pinned_corpus_manifest(root, sha)
+    source.write_text("# Dirty replacement\n")
+
+    after = load_pinned_corpus_manifest(root, sha)
+
+    assert after == before
+    assert after.documents[0].markdown == "# Legacy\n"
+    assert len(after.documents[0].verification_mappings) == 1
+    assert after.documents[0].verification_mappings[0].adapter_type == (
+        "unmapped_prose"
+    )
+    assert len(after.documents[0].verification_mappings[0].mapping_digest) == 64
+
+
+def test_manifest_v2_accepts_one_closed_digest_bound_mapping_per_prose_item(
+    tmp_path: Path,
+) -> None:
+    root, _ = _single_source_repository(tmp_path)
+    manifest_path = root / "CORPUS-MANIFEST.yaml"
+    manifest = strict_yaml_load(manifest_path.read_text())
+    assert isinstance(manifest, dict)
+    policy = {
+        "minimum_receipts": 1,
+        "maximum_receipts": 1,
+        "freshness_seconds": 0,
+        "allowed_evidence_kinds": ["git"],
+        "require_remote_identity": False,
+        "require_distinct_sources": False,
+    }
+    manifest["documents"][0]["verification_mappings"] = [
+        {
+            "schema_version": 2,
+            "ordinal": 1,
+            "mapping_digest": requirement_mapping_digest(
+                adapter_type="unmapped_prose",
+                adapter_parameters={},
+                evidence_policy=policy,
+            ),
+            "adapter_type": "unmapped_prose",
+            "adapter_parameters": {},
+            "evidence_policy": policy,
+        }
+    ]
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    _run_git(root, "add", "CORPUS-MANIFEST.yaml")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "mapped manifest",
+    )
+
+    pinned = load_pinned_corpus_manifest(root, _run_git(root, "rev-parse", "HEAD"))
+
+    mapping = pinned.documents[0].verification_mappings[0]
+    assert mapping.ordinal == 1
+    assert mapping.adapter_type == "unmapped_prose"
+    assert mapping.adapter_parameters == {}
+    assert mapping.evidence_policy == policy
+
+
+def test_manifest_v2_rejects_mapping_digest_mismatch(tmp_path: Path) -> None:
+    root, _ = _single_source_repository(tmp_path)
+    manifest_path = root / "CORPUS-MANIFEST.yaml"
+    manifest = strict_yaml_load(manifest_path.read_text())
+    assert isinstance(manifest, dict)
+    manifest["documents"][0]["verification_mappings"] = [
+        {
+            "schema_version": 2,
+            "ordinal": 1,
+            "mapping_digest": "0" * 64,
+            "adapter_type": "unmapped_prose",
+            "adapter_parameters": {},
+            "evidence_policy": {
+                "minimum_receipts": 1,
+                "maximum_receipts": 1,
+                "freshness_seconds": 0,
+                "allowed_evidence_kinds": ["git"],
+                "require_remote_identity": False,
+                "require_distinct_sources": False,
+            },
+        }
+    ]
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    _run_git(root, "add", "CORPUS-MANIFEST.yaml")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "bad mapping digest",
+    )
+
+    with pytest.raises(CorpusManifestError, match="mapping_digest is"):
+        load_pinned_corpus_manifest(root, _run_git(root, "rev-parse", "HEAD"))
+
+
+@pytest.mark.parametrize(
+    ("verify_against", "message"),
+    [
+        (["\x01"], "contains a control character"),
+        (["\\" * 61], "120-byte JSON-wire limit"),
+        (["a" * 40, "b" * 40, "c" * 41], "JSON-wire aggregate limit"),
+        (["one", "two", "three", "four"], "3-item limit"),
+    ],
+)
+def test_pinned_manifest_loader_rejects_unbounded_verify_against_wire_values(
+    tmp_path: Path,
+    verify_against: list[str],
+    message: str,
+) -> None:
+    root, _source = _single_source_repository(tmp_path)
+    manifest_path = root / "CORPUS-MANIFEST.yaml"
+    manifest = strict_yaml_load(manifest_path.read_text())
+    assert isinstance(manifest, dict)
+    manifest["documents"][0]["verify_against"] = verify_against
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
+    _run_git(root, "add", "CORPUS-MANIFEST.yaml")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "adversarial verification projection",
+    )
+
+    with pytest.raises(CorpusManifestError, match=message):
+        load_pinned_corpus_manifest(root, _run_git(root, "rev-parse", "HEAD"))
+
+
+@pytest.mark.parametrize(
+    ("verify_against", "message"),
+    [
+        (["\x01"], "contains a control character"),
+        (["\\" * 61], "120-byte JSON-wire limit"),
+    ],
+)
+def test_worktree_validator_enforces_verify_against_wire_bounds(
+    tmp_path: Path,
+    verify_against: list[str],
+    message: str,
+) -> None:
+    manifest = _manifest()
+    manifest["documents"][0]["verify_against"] = verify_against
+
+    with pytest.raises(CorpusManifestError, match=message):
+        validate_corpus_manifest(REPO_ROOT, _write_manifest(tmp_path, manifest))
+
+
+def test_batch_identifier_size_is_bounded_in_both_manifest_loaders(
+    tmp_path: Path,
+) -> None:
+    oversized_batch = "b" * (MAX_PINNED_BATCH_BYTES + 1)
+    manifest = _manifest()
+    manifest["documents"][0]["batch"] = oversized_batch
+    with pytest.raises(CorpusManifestError, match="batch exceeds the 128-byte limit"):
+        validate_corpus_manifest(REPO_ROOT, _write_manifest(tmp_path, manifest))
+
+    root, _source = _single_source_repository(tmp_path)
+    manifest_path = root / "CORPUS-MANIFEST.yaml"
+    pinned_manifest = strict_yaml_load(manifest_path.read_text())
+    assert isinstance(pinned_manifest, dict)
+    pinned_manifest["documents"][0]["batch"] = oversized_batch
+    manifest_path.write_text(yaml.safe_dump(pinned_manifest, sort_keys=False))
+    _run_git(root, "add", "CORPUS-MANIFEST.yaml")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "oversized batch",
+    )
+    with pytest.raises(CorpusManifestError, match="batch exceeds the 128-byte limit"):
+        load_pinned_corpus_manifest(root, _run_git(root, "rev-parse", "HEAD"))
+
+
+def test_pinned_blob_aggregate_limit_counts_each_document_reference(
+    tmp_path: Path,
+) -> None:
+    root, _source = _single_source_repository(tmp_path)
+    oid = _run_git(root, "rev-parse", "HEAD:legacy.md")
+    size = len(b"# Legacy\n")
+    errors: list[str] = []
+
+    payloads = corpus_manifest_module._read_pinned_blob_batch(
+        root,
+        [oid, oid],
+        per_blob_limit=size,
+        aggregate_limit=(size * 2) - 1,
+        label="duplicate-reference fixture",
+        errors=errors,
+    )
+
+    assert payloads == {}
+    assert errors == [
+        f"duplicate-reference fixture exceeds the {(size * 2) - 1}-byte aggregate limit"
+    ]
+
+
+def test_pinned_manifest_loader_rejects_search_tree_blob_drift(
+    tmp_path: Path,
+) -> None:
+    root, source = _single_source_repository(tmp_path)
+    source.write_text("# Changed after inventory\n")
+    _run_git(root, "add", "legacy.md")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "drift",
+    )
+    sha = _run_git(root, "rev-parse", "HEAD")
+
+    with pytest.raises(CorpusManifestError, match="search path.*expected"):
+        load_pinned_corpus_manifest(root, sha)
+
+
+def test_pinned_manifest_loader_rejects_an_uninventoried_search_source(
+    tmp_path: Path,
+) -> None:
+    root, _source = _single_source_repository(tmp_path)
+    (root / "extra.md").write_text("# Uninventoried source\n")
+    _run_git(root, "add", "extra.md")
+    _run_git(
+        root,
+        "-c",
+        "user.name=Corpus Test",
+        "-c",
+        "user.email=corpus@example.invalid",
+        "commit",
+        "-qm",
+        "unmanifested source",
+    )
+    sha = _run_git(root, "rev-parse", "HEAD")
+
+    with pytest.raises(
+        CorpusManifestError,
+        match="search source document set mismatch: extra=extra.md",
+    ):
+        load_pinned_corpus_manifest(root, sha)
 
 
 def test_source_selector_symlink_failure_is_reported_as_manifest_error(
@@ -227,7 +521,13 @@ def test_empty_inventory_tree_still_checks_entry_paths(tmp_path: Path) -> None:
         "empty inventory",
     )
     empty_inventory_sha = _run_git(root, "rev-parse", "HEAD")
-    assert _run_git(root, "ls-tree", "-r", "--name-only", empty_inventory_sha) == ""
+    assert "legacy.md" not in _run_git(
+        root,
+        "ls-tree",
+        "-r",
+        "--name-only",
+        empty_inventory_sha,
+    ).splitlines()
     source.write_text("# Legacy\n")
     manifest["inventory"]["inventory_sha"] = empty_inventory_sha
     manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
@@ -284,8 +584,7 @@ def test_inventory_commit_must_be_ancestor_of_detached_head(tmp_path: Path) -> N
     manifest_path = root / "CORPUS-MANIFEST.yaml"
     manifest = strict_yaml_load(manifest_path.read_text())
     assert isinstance(manifest, dict)
-    inventory_sha = manifest["inventory"]["inventory_sha"]
-    tree = _run_git(root, "rev-parse", f"{inventory_sha}^{{tree}}")
+    tree = _run_git(root, "rev-parse", "HEAD^{tree}")
     sibling_head = _run_git(
         root,
         "-c",
@@ -311,6 +610,7 @@ def test_git_replace_cannot_substitute_inventory_identity(tmp_path: Path) -> Non
     manifest_path = root / "CORPUS-MANIFEST.yaml"
     manifest = strict_yaml_load(manifest_path.read_text())
     assert isinstance(manifest, dict)
+    search_sha = _run_git(root, "rev-parse", "HEAD")
     inventory_sha = manifest["inventory"]["inventory_sha"]
     inventoried_blob = manifest["documents"][0]["git_blob_oid"]
 
@@ -327,7 +627,7 @@ def test_git_replace_cannot_substitute_inventory_identity(tmp_path: Path) -> Non
         "replacement commit",
     )
     replacement_commit = _run_git(root, "rev-parse", "HEAD")
-    _run_git(root, "checkout", "--detach", "-q", inventory_sha)
+    _run_git(root, "checkout", "--detach", "-q", search_sha)
     _run_git(root, "replace", inventory_sha, replacement_commit)
     replacement_visible_blob = _run_git(root, "rev-parse", f"{inventory_sha}:legacy.md")
     assert replacement_visible_blob != inventoried_blob
@@ -928,7 +1228,7 @@ def test_strict_yaml_rejects_duplicate_mapping_keys(tmp_path: Path) -> None:
     source = MANIFEST_PATH.read_text()
     path.write_text(
         source.replace(
-            "manifest_version: 1\n", "manifest_version: 1\nmanifest_version: 1\n", 1
+            "manifest_version: 2\n", "manifest_version: 2\nmanifest_version: 2\n", 1
         )
     )
 

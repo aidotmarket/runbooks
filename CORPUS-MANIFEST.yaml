@@ -1,4 +1,4 @@
-manifest_version: 1
+manifest_version: 2
 purpose: Exhaustive adjudication ledger for the operational Markdown corpus; only conformant ACTIVE runbooks
   grant catalog authority.
 inventory:

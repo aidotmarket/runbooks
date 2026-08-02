@@ -19,6 +19,8 @@ import stat
 import subprocess
 import sys
 import tempfile
+import unicodedata
+from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -28,12 +30,17 @@ import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
+from runbook_tools.catalog.canonical_content import (
+    canonical_string_bytes,
+    requirement_mapping_digest,
+)
 from runbook_tools.catalog.generator import (
     _frontmatter,
     is_admitted_source_tree_path,
     is_source_relative_path,
     source_paths,
 )
+from runbook_tools.catalog.limits import PRODUCTION_LIMITS
 from runbook_tools.catalog.model import CatalogError
 from runbook_tools.parser.sections import (
     extract_fenced_yaml_block,
@@ -43,7 +50,22 @@ from runbook_tools.parser.sections import (
 from runbook_tools.strict_yaml import strict_yaml_load
 
 MANIFEST_NAME = "CORPUS-MANIFEST.yaml"
-MANIFEST_VERSION = 1
+MANIFEST_VERSION = 2
+MAX_PINNED_MANIFEST_BYTES = PRODUCTION_LIMITS.manifest_bytes
+MAX_PINNED_CORPUS_BLOB_BYTES = PRODUCTION_LIMITS.document_bytes
+MAX_PINNED_CORPUS_BYTES = PRODUCTION_LIMITS.aggregate_document_bytes
+MAX_PINNED_PATH_BYTES = PRODUCTION_LIMITS.path_utf8_bytes
+MAX_PINNED_BATCH_BYTES = PRODUCTION_LIMITS.batch_id_j
+MAX_PINNED_BATCH_WIRE_BYTES = PRODUCTION_LIMITS.batch_id_j
+MAX_PINNED_VERIFY_AGAINST_ITEMS = PRODUCTION_LIMITS.verify_against_items
+MAX_PINNED_VERIFY_AGAINST_ITEM_BYTES = PRODUCTION_LIMITS.verify_against_item_j
+MAX_PINNED_VERIFY_AGAINST_BYTES = PRODUCTION_LIMITS.verify_against_aggregate_j
+MAX_PINNED_VERIFY_AGAINST_ITEM_WIRE_BYTES = (
+    PRODUCTION_LIMITS.verify_against_item_j
+)
+MAX_PINNED_VERIFY_AGAINST_WIRE_BYTES = (
+    PRODUCTION_LIMITS.verify_against_aggregate_j
+)
 PURPOSE = (
     "Exhaustive adjudication ledger for the operational Markdown corpus; only "
     "conformant ACTIVE runbooks grant catalog authority."
@@ -52,6 +74,7 @@ SOURCE_SELECTOR = "runbook_tools.catalog.generator.source_paths"
 HEX_OID_RE = re.compile(r"\A[0-9a-f]{40}\Z")
 BATCH_RE = re.compile(r"\A[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
 SHA256_RE = re.compile(r"\A[0-9a-f]{64}\Z")
+PORTABLE_PATH_RE = re.compile(r"\A[A-Za-z0-9._/-]+\Z")
 RECEIPT_ID_RE = re.compile(r"\Arunbook-promotion:[a-zA-Z0-9._:-]{1,200}\Z")
 PROMOTION_EVIDENCE_SCHEMA = "runbook_promotion_evidence.schema.json"
 PROMOTION_RECEIPT_SCHEMA = "runbook_promotion_receipt.schema.json"
@@ -117,11 +140,62 @@ DOCUMENT_FIELDS = frozenset(
         "archive_path",
         "evidence",
         "verify_against",
+        "verification_mappings",
         "independent_review_required",
     }
 )
-REQUIRED_DOCUMENT_FIELDS = DOCUMENT_FIELDS - {"inventory_path", "archive_path"}
+REQUIRED_DOCUMENT_FIELDS = DOCUMENT_FIELDS - {
+    "inventory_path",
+    "archive_path",
+    "verification_mappings",
+}
 EVIDENCE_FIELDS = frozenset({"ref", "finding"})
+VERIFICATION_MAPPING_FIELDS = frozenset(
+    {
+        "schema_version",
+        "ordinal",
+        "mapping_digest",
+        "adapter_type",
+        "adapter_parameters",
+        "evidence_policy",
+    }
+)
+EVIDENCE_POLICY_FIELDS = frozenset(
+    {
+        "minimum_receipts",
+        "maximum_receipts",
+        "freshness_seconds",
+        "allowed_evidence_kinds",
+        "require_remote_identity",
+        "require_distinct_sources",
+    }
+)
+ADAPTER_PARAMETER_FIELDS: dict[str, frozenset[str]] = {
+    "git_object_v1": frozenset(
+        {"repository", "commit_sha", "path", "expected_object_oid"}
+    ),
+    "json_schema_v1": frozenset(
+        {
+            "repository",
+            "commit_sha",
+            "path",
+            "json_pointer",
+            "expected_value_sha256",
+        }
+    ),
+    "health_probe_v1": frozenset({"service_id", "probe_id", "max_age_seconds"}),
+    "test_result_v1": frozenset(
+        {"repository", "commit_sha", "test_id", "report_sha256"}
+    ),
+    "state_read_v1": frozenset(
+        {"namespace", "entity_key", "field_path", "expected_value_sha256"}
+    ),
+    "production_probe_v1": frozenset(
+        {"service_id", "probe_id", "max_age_seconds"}
+    ),
+    "unmapped_prose": frozenset(),
+}
+EVIDENCE_KINDS = ("git", "schema", "health", "test", "state", "probe")
 DISPOSITIONS = frozenset(
     {
         "adjudicate_operational_or_spec",
@@ -158,12 +232,536 @@ class CorpusManifestReport:
     promotion_bar: bool
 
 
+@dataclass(frozen=True, slots=True)
+class PinnedCorpusDocument:
+    """One immutable operational-document record and its verified blob bytes."""
+
+    path: str
+    inventory_path: str
+    git_blob_oid: str
+    catalog_state: str
+    status: str
+    proposed_disposition: str
+    batch: str
+    risk: str
+    verify_against: tuple[str, ...]
+    verification_mappings: tuple[PinnedVerificationMapping, ...]
+    markdown: str
+
+
+@dataclass(frozen=True, slots=True)
+class PinnedVerificationMapping:
+    """One reviewed schema-v2 prose-to-adapter mapping."""
+
+    ordinal: int
+    mapping_digest: str
+    adapter_type: str
+    adapter_parameters: dict[str, Any]
+    evidence_policy: dict[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class PinnedCorpusManifest:
+    """Search-safe corpus projection loaded only from immutable Git objects."""
+
+    search_sha: str
+    manifest_blob_oid: str
+    manifest_sha256: str
+    base_sha: str
+    inventory_sha: str
+    operational_documents: int
+    source_documents: int
+    active: int
+    grandfathered: int
+    archived: int
+    documents: tuple[PinnedCorpusDocument, ...]
+
+
 class CorpusManifestError(ValueError):
     """One or more deterministic manifest validation failures."""
 
     def __init__(self, errors: Sequence[str]):
         self.errors = tuple(errors)
         super().__init__("\n".join(self.errors))
+
+
+def load_pinned_corpus_manifest(
+    repo_root: Path,
+    search_sha: str,
+) -> PinnedCorpusManifest:
+    """Load the exhaustive corpus from one full immutable Git commit.
+
+    Unlike :func:`validate_corpus_manifest`, this path deliberately has no
+    working-tree dependency.  It is used by retrieval, where a dirty checkout
+    and replacement refs must be unable to affect either inventory identity or
+    document bytes.
+    """
+
+    errors: list[str] = []
+    root = repo_root.resolve()
+    if type(search_sha) is not str or HEX_OID_RE.fullmatch(search_sha) is None:
+        raise CorpusManifestError(
+            ["search SHA must be a lowercase full 40-character Git object ID"]
+        )
+    resolved_search = _resolve_exact_commit(
+        root,
+        search_sha,
+        "search SHA",
+        errors,
+    )
+    if resolved_search is None:
+        raise CorpusManifestError(errors)
+
+    search_tree = _pinned_git_tree(root, search_sha, "search SHA", errors)
+    if search_tree is None:
+        raise CorpusManifestError(errors)
+    manifest_record = search_tree.get(MANIFEST_NAME)
+    if manifest_record is None:
+        raise CorpusManifestError(
+            [f"{MANIFEST_NAME} is absent from search SHA {search_sha}"]
+        )
+    if manifest_record[0] not in {"100644", "100755"} or manifest_record[1] != "blob":
+        raise CorpusManifestError(
+            [f"{MANIFEST_NAME} at search SHA must be a regular Git blob"]
+        )
+    manifest_blob_oid = manifest_record[2]
+    manifest_payloads = _read_pinned_blob_batch(
+        root,
+        [manifest_blob_oid],
+        per_blob_limit=MAX_PINNED_MANIFEST_BYTES,
+        aggregate_limit=MAX_PINNED_MANIFEST_BYTES,
+        label="corpus manifest",
+        errors=errors,
+    )
+    manifest_bytes = manifest_payloads.get(manifest_blob_oid)
+    if manifest_bytes is None:
+        raise CorpusManifestError(errors)
+    manifest = _load_manifest_bytes(
+        manifest_bytes,
+        Path(f"{search_sha}:{MANIFEST_NAME}"),
+        errors,
+    )
+    if manifest is None:
+        raise CorpusManifestError(errors)
+
+    _exact_keys(manifest, TOP_LEVEL_FIELDS, "manifest", errors)
+    _expect_exact(
+        manifest.get("manifest_version"),
+        MANIFEST_VERSION,
+        "manifest_version",
+        errors,
+    )
+    _expect_exact(manifest.get("purpose"), PURPOSE, "purpose", errors)
+    inventory = _mapping(manifest.get("inventory"), "inventory", errors)
+    policy = _mapping(manifest.get("policy"), "policy", errors)
+    risk_scale = _mapping(manifest.get("risk_scale"), "risk_scale", errors)
+    raw_documents = manifest.get("documents")
+    documents = raw_documents if type(raw_documents) is list else []
+    if type(raw_documents) is not list:
+        errors.append("documents must be a list")
+
+    counts: dict[str, Any] = {}
+    base_sha: str | None = None
+    inventory_sha: str | None = None
+    if inventory is not None:
+        _exact_keys(inventory, INVENTORY_FIELDS, "inventory", errors)
+        _nonempty_string(inventory.get("repository"), "inventory.repository", errors)
+        _nonempty_string(
+            inventory.get("blob_oid_scope"),
+            "inventory.blob_oid_scope",
+            errors,
+        )
+        _nonempty_string(
+            inventory.get("inventory_path_semantics"),
+            "inventory.inventory_path_semantics",
+            errors,
+        )
+        _expect_exact(
+            inventory.get("source_selector"),
+            SOURCE_SELECTOR,
+            "inventory.source_selector",
+            errors,
+        )
+        _expect_exact(
+            inventory.get("refresh_required_before_execution"),
+            True,
+            "inventory.refresh_required_before_execution",
+            errors,
+            exact_type=True,
+        )
+        for field in ("base_sha", "inventory_sha"):
+            value = inventory.get(field)
+            if type(value) is not str or HEX_OID_RE.fullmatch(value) is None:
+                errors.append(
+                    f"inventory.{field} must be a lowercase 40-character Git object ID"
+                )
+        if type(inventory.get("base_sha")) is str and HEX_OID_RE.fullmatch(
+            inventory["base_sha"]
+        ):
+            base_sha = inventory["base_sha"]
+        if type(inventory.get("inventory_sha")) is str and HEX_OID_RE.fullmatch(
+            inventory["inventory_sha"]
+        ):
+            inventory_sha = inventory["inventory_sha"]
+        parsed_counts = _mapping(inventory.get("counts"), "inventory.counts", errors)
+        if parsed_counts is not None:
+            counts = parsed_counts
+            _exact_keys(counts, COUNT_FIELDS, "inventory.counts", errors)
+            for field in sorted(COUNT_FIELDS):
+                value = counts.get(field)
+                if type(value) is not int or value < 0:
+                    errors.append(
+                        f"inventory.counts.{field} must be a non-negative integer"
+                    )
+
+    if policy is not None:
+        _exact_keys(policy, POLICY_FIELDS, "policy", errors)
+        for field in sorted(POLICY_FIELDS):
+            _expect_exact(
+                policy.get(field),
+                True,
+                f"policy.{field}",
+                errors,
+                exact_type=True,
+            )
+    if risk_scale is not None:
+        _exact_keys(risk_scale, RISK_LEVELS, "risk_scale", errors)
+        for risk in sorted(RISK_LEVELS):
+            _nonempty_string(risk_scale.get(risk), f"risk_scale.{risk}", errors)
+
+    projected: list[dict[str, Any]] = []
+    seen_paths: set[str] = set()
+    seen_inventory_paths: set[str] = set()
+    state_counts = {"active": 0, "grandfathered": 0, "archived": 0}
+    for index, raw_entry in enumerate(documents):
+        label = f"documents[{index}]"
+        entry = _mapping(raw_entry, label, errors)
+        if entry is None:
+            continue
+        _exact_keys(
+            entry,
+            DOCUMENT_FIELDS,
+            label,
+            errors,
+            required=REQUIRED_DOCUMENT_FIELDS,
+        )
+        path = _safe_markdown_path(entry.get("path"), f"{label}.path", errors)
+        if path is not None:
+            if len(path.encode("utf-8")) > MAX_PINNED_PATH_BYTES:
+                errors.append(
+                    f"{label}.path exceeds the {MAX_PINNED_PATH_BYTES}-byte limit"
+                )
+            if path in seen_paths:
+                errors.append(f"{label}.path duplicates manifest path {path!r}")
+            seen_paths.add(path)
+        inventory_path = _safe_markdown_path(
+            entry.get("inventory_path", path),
+            f"{label}.inventory_path",
+            errors,
+        )
+        if inventory_path is not None:
+            if len(inventory_path.encode("utf-8")) > MAX_PINNED_PATH_BYTES:
+                errors.append(
+                    f"{label}.inventory_path exceeds the "
+                    f"{MAX_PINNED_PATH_BYTES}-byte limit"
+                )
+            if inventory_path in seen_inventory_paths:
+                errors.append(
+                    f"{label}.inventory_path duplicates historical path "
+                    f"{inventory_path!r}"
+                )
+            seen_inventory_paths.add(inventory_path)
+
+        state = entry.get("catalog_state")
+        status = entry.get("status")
+        disposition = entry.get("proposed_disposition")
+        if state not in state_counts:
+            errors.append(
+                f"{label}.catalog_state must be active, grandfathered, or archived"
+            )
+        else:
+            state_counts[state] += 1
+        if status not in {"active", "pending_verification", "archived"}:
+            errors.append(f"{label}.status is not recognized")
+        if state == "active" and status != "active":
+            errors.append(f"{label}: active catalog_state requires status: active")
+        if state == "grandfathered" and status != "pending_verification":
+            errors.append(
+                f"{label}: grandfathered catalog_state requires "
+                "status: pending_verification"
+            )
+        if state == "archived":
+            if status != "archived":
+                errors.append(f"{label}: archived catalog_state requires status: archived")
+            if "inventory_path" not in entry:
+                errors.append(f"{label}: archived records require inventory_path")
+            if path is not None and not _under(path, "archive"):
+                errors.append(f"{label}.path must be under archive/ for archived records")
+        if type(disposition) is not str or disposition not in DISPOSITIONS:
+            errors.append(
+                f"{label}.proposed_disposition is not a recognized disposition"
+            )
+        if state == "active" and disposition != "retain_active":
+            errors.append(
+                f"{label}: active catalog_state requires "
+                "proposed_disposition: retain_active"
+            )
+        if state == "grandfathered" and disposition == "retain_active":
+            errors.append(f"{label}: grandfathered source cannot retain active authority")
+
+        blob_oid = entry.get("git_blob_oid")
+        if type(blob_oid) is not str or HEX_OID_RE.fullmatch(blob_oid) is None:
+            errors.append(
+                f"{label}.git_blob_oid must be a lowercase 40-character blob ID"
+            )
+        batch = _validated_batch(entry.get("batch"), f"{label}.batch", errors)
+        risk = entry.get("risk")
+        if risk not in RISK_LEVELS:
+            errors.append(f"{label}.risk must be one of P0, P1, P2, or P3")
+        target_paths = _path_list(
+            entry.get("target_paths"),
+            f"{label}.target_paths",
+            errors,
+        )
+        if state == "active" and path is not None and target_paths != [path]:
+            errors.append(
+                f"{label}: retained ACTIVE target_paths must contain only its current path"
+            )
+        archive_path: str | None = None
+        if "archive_path" in entry:
+            archive_path = _safe_markdown_path(
+                entry.get("archive_path"),
+                f"{label}.archive_path",
+                errors,
+            )
+            if archive_path is not None and not _under(archive_path, "archive"):
+                errors.append(f"{label}.archive_path must be under archive/")
+        if disposition in ARCHIVE_DISPOSITIONS and archive_path is None:
+            errors.append(f"{label}: {disposition} requires archive_path")
+        if disposition not in ARCHIVE_DISPOSITIONS and "archive_path" in entry:
+            errors.append(
+                f"{label}: archive_path is only valid for an archive disposition"
+            )
+        if state == "archived" and archive_path is not None and path != archive_path:
+            errors.append(f"{label}: archived path must equal archive_path")
+
+        evidence = entry.get("evidence")
+        if type(evidence) is not list:
+            errors.append(f"{label}.evidence must be a list")
+        else:
+            for evidence_index, raw_evidence in enumerate(evidence):
+                evidence_label = f"{label}.evidence[{evidence_index}]"
+                item = _mapping(raw_evidence, evidence_label, errors)
+                if item is None:
+                    continue
+                _exact_keys(item, EVIDENCE_FIELDS, evidence_label, errors)
+                _nonempty_string(item.get("ref"), f"{evidence_label}.ref", errors)
+                _nonempty_string(
+                    item.get("finding"),
+                    f"{evidence_label}.finding",
+                    errors,
+                )
+        verify_against = _validated_verify_against(
+            entry.get("verify_against"),
+            f"{label}.verify_against",
+            errors,
+        )
+        verification_mappings = _validated_verification_mappings(
+            entry.get("verification_mappings"),
+            verify_against,
+            f"{label}.verification_mappings",
+            errors,
+        )
+        review_required = entry.get("independent_review_required")
+        if type(review_required) is not bool:
+            errors.append(f"{label}.independent_review_required must be a boolean")
+        elif state == "grandfathered" and risk in {"P0", "P1"} and not review_required:
+            errors.append(f"{label}: pending {risk} work requires independent review")
+
+        if all(
+            value is not None
+            for value in (path, inventory_path, state, status, disposition, blob_oid, batch, risk)
+        ) and type(blob_oid) is str and HEX_OID_RE.fullmatch(blob_oid):
+            projected.append(
+                {
+                    "path": path,
+                    "inventory_path": inventory_path,
+                    "git_blob_oid": blob_oid,
+                    "catalog_state": state,
+                    "status": status,
+                    "proposed_disposition": disposition,
+                    "batch": batch,
+                    "risk": risk,
+                    "verify_against": tuple(verify_against),
+                    "verification_mappings": tuple(verification_mappings),
+                }
+            )
+
+    expected_counts = {
+        "operational_documents": len(documents),
+        "source_documents": sum(
+            type(entry) is dict and entry.get("catalog_state") != "archived"
+            for entry in documents
+        ),
+        "active": state_counts["active"],
+        "grandfathered": state_counts["grandfathered"],
+        "archived": state_counts["archived"],
+    }
+    for field, actual in expected_counts.items():
+        if type(counts.get(field)) is int and counts[field] != actual:
+            errors.append(
+                f"inventory.counts.{field} declares {counts[field]}, "
+                f"but the pinned manifest has {actual}"
+            )
+
+    inventory_tree: dict[str, tuple[str, str, str]] | None = None
+    if base_sha is not None:
+        _resolve_exact_commit(root, base_sha, "inventory.base_sha", errors)
+    if inventory_sha is not None:
+        _resolve_exact_commit(root, inventory_sha, "inventory.inventory_sha", errors)
+    if base_sha is not None and inventory_sha is not None:
+        _require_pinned_ancestry(
+            root,
+            base_sha,
+            inventory_sha,
+            "inventory.base_sha to inventory.inventory_sha",
+            errors,
+        )
+        _require_pinned_ancestry(
+            root,
+            inventory_sha,
+            search_sha,
+            "inventory.inventory_sha to search SHA",
+            errors,
+        )
+        inventory_tree = _pinned_git_tree(
+            root,
+            inventory_sha,
+            "inventory.inventory_sha",
+            errors,
+        )
+
+    if inventory_tree is not None:
+        expected_inventory_sources = {
+            entry["inventory_path"]
+            for entry in projected
+            if entry["catalog_state"] != "archived"
+        }
+        expected_search_sources = {
+            entry["path"]
+            for entry in projected
+            if entry["catalog_state"] != "archived"
+        }
+        for tree, expected, label in (
+            (inventory_tree, expected_inventory_sources, "inventory"),
+            (search_tree, expected_search_sources, "search"),
+        ):
+            actual = {
+                path for path in tree if is_source_relative_path(path)
+            }
+            if actual != expected:
+                missing = sorted(expected - actual)
+                extra = sorted(actual - expected)
+                details: list[str] = []
+                if missing:
+                    details.append("missing=" + ", ".join(missing))
+                if extra:
+                    details.append("extra=" + ", ".join(extra))
+                errors.append(
+                    f"{label} source document set mismatch: " + "; ".join(details)
+                )
+        for entry in projected:
+            for tree, path, label in (
+                (inventory_tree, entry["inventory_path"], "inventory path"),
+                (search_tree, entry["path"], "search path"),
+            ):
+                record = tree.get(path)
+                if record is None:
+                    errors.append(f"{label} {path!r} is absent")
+                    continue
+                mode, object_type, oid = record
+                if mode not in {"100644", "100755"} or object_type != "blob":
+                    errors.append(
+                        f"{label} {path!r} is mode {mode} {object_type}, "
+                        "not a regular file"
+                    )
+                elif oid != entry["git_blob_oid"]:
+                    errors.append(
+                        f"{label} {path!r} has blob {oid}, expected "
+                        f"{entry['git_blob_oid']}"
+                    )
+
+    if errors:
+        raise CorpusManifestError(errors)
+    assert base_sha is not None
+    assert inventory_sha is not None
+    blob_payloads = _read_pinned_blob_batch(
+        root,
+        [entry["git_blob_oid"] for entry in projected],
+        per_blob_limit=MAX_PINNED_CORPUS_BLOB_BYTES,
+        aggregate_limit=MAX_PINNED_CORPUS_BYTES,
+        label="operational corpus",
+        errors=errors,
+    )
+    pinned_documents: list[PinnedCorpusDocument] = []
+    for entry in sorted(projected, key=lambda value: value["path"]):
+        oid = entry["git_blob_oid"]
+        payload = blob_payloads.get(oid)
+        if payload is None:
+            continue
+        actual_oid = hashlib.sha1(
+            f"blob {len(payload)}\0".encode("ascii") + payload,
+            usedforsecurity=False,
+        ).hexdigest()
+        if actual_oid != oid:
+            errors.append(
+                f"operational corpus blob {oid} recomputes as {actual_oid}"
+            )
+            continue
+        try:
+            markdown = payload.decode("utf-8")
+        except UnicodeDecodeError:
+            errors.append(f"operational corpus path {entry['path']!r} is not UTF-8")
+            continue
+        pinned_documents.append(
+            PinnedCorpusDocument(
+                path=entry["path"],
+                inventory_path=entry["inventory_path"],
+                git_blob_oid=oid,
+                catalog_state=entry["catalog_state"],
+                status=entry["status"],
+                proposed_disposition=entry["proposed_disposition"],
+                batch=entry["batch"],
+                risk=entry["risk"],
+                verify_against=entry["verify_against"],
+                verification_mappings=entry["verification_mappings"],
+                markdown=markdown,
+            )
+        )
+    if errors:
+        raise CorpusManifestError(errors)
+    if len(pinned_documents) != len(documents):
+        raise CorpusManifestError(
+            [
+                (
+                    "pinned corpus materialization count differs from the manifest: "
+                    f"{len(pinned_documents)} != {len(documents)}"
+                )
+            ]
+        )
+    return PinnedCorpusManifest(
+        search_sha=search_sha,
+        manifest_blob_oid=manifest_blob_oid,
+        manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+        base_sha=base_sha,
+        inventory_sha=inventory_sha,
+        operational_documents=expected_counts["operational_documents"],
+        source_documents=expected_counts["source_documents"],
+        active=expected_counts["active"],
+        grandfathered=expected_counts["grandfathered"],
+        archived=expected_counts["archived"],
+        documents=tuple(pinned_documents),
+    )
 
 
 @dataclass(frozen=True)
@@ -617,9 +1215,7 @@ def validate_corpus_manifest(
                     "execution"
                 )
 
-        batch = entry.get("batch")
-        if type(batch) is not str or BATCH_RE.fullmatch(batch) is None:
-            errors.append(f"{label}.batch must be a lowercase kebab-case identifier")
+        _validated_batch(entry.get("batch"), f"{label}.batch", errors)
 
         risk = entry.get("risk")
         if risk not in RISK_LEVELS:
@@ -711,8 +1307,14 @@ def validate_corpus_manifest(
                     item.get("finding"), f"{evidence_label}.finding", errors
                 )
 
-        _nonempty_string_list(
+        verify_against = _validated_verify_against(
             entry.get("verify_against"), f"{label}.verify_against", errors
+        )
+        _validated_verification_mappings(
+            entry.get("verification_mappings"),
+            verify_against,
+            f"{label}.verification_mappings",
+            errors,
         )
 
     missing = sorted(selector_paths - ledger_source_paths)
@@ -1598,6 +2200,196 @@ def _working_classifications(
     return result
 
 
+def _pinned_git_tree(
+    root: Path,
+    sha: str,
+    label: str,
+    errors: list[str],
+) -> dict[str, tuple[str, str, str]] | None:
+    """Return an exact commit tree without consulting replacement objects."""
+
+    try:
+        raw_tree = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "-C",
+                str(root),
+                "ls-tree",
+                "-r",
+                "-z",
+                "--full-tree",
+                sha,
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout
+    except FileNotFoundError:
+        errors.append("git executable is required to load the pinned corpus")
+        return None
+    except subprocess.CalledProcessError as exc:
+        errors.append(
+            f"cannot read {label} tree {sha}: "
+            f"{exc.stderr.decode(errors='replace').strip()}"
+        )
+        return None
+    return _parse_git_tree(raw_tree, label, errors)
+
+
+def _require_pinned_ancestry(
+    root: Path,
+    ancestor: str,
+    descendant: str,
+    label: str,
+    errors: list[str],
+) -> None:
+    try:
+        completed = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "-C",
+                str(root),
+                "merge-base",
+                "--is-ancestor",
+                ancestor,
+                descendant,
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        errors.append("git executable is required to verify pinned ancestry")
+        return
+    if completed.returncode == 1:
+        errors.append(f"{label} is not an ancestor relationship")
+    elif completed.returncode != 0:
+        errors.append(f"cannot verify {label}: {completed.stderr.strip()}")
+
+
+def _read_pinned_blob_batch(
+    root: Path,
+    object_ids: Sequence[str],
+    *,
+    per_blob_limit: int,
+    aggregate_limit: int,
+    label: str,
+    errors: list[str],
+) -> dict[str, bytes]:
+    """Preflight an object batch before materializing any of its bytes."""
+
+    reference_counts = Counter(object_ids)
+    unique_ids = tuple(sorted(reference_counts))
+    if not unique_ids:
+        return {}
+    request = "".join(f"{oid}\n" for oid in unique_ids).encode("ascii")
+    try:
+        checked = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "-C",
+                str(root),
+                "cat-file",
+                "--batch-check=%(objectname) %(objecttype) %(objectsize)",
+            ],
+            input=request,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except FileNotFoundError:
+        errors.append("git executable is required to load pinned blobs")
+        return {}
+    except subprocess.CalledProcessError as exc:
+        errors.append(
+            f"cannot preflight {label}: {exc.stderr.decode(errors='replace').strip()}"
+        )
+        return {}
+
+    total = 0
+    for index, line in enumerate(checked.splitlines()):
+        try:
+            oid, object_type, raw_size = line.decode("ascii").split(" ", 2)
+            size = int(raw_size)
+        except (UnicodeError, ValueError):
+            errors.append(f"cannot parse {label} blob preflight row {index}")
+            continue
+        expected_oid = unique_ids[index] if index < len(unique_ids) else None
+        if oid != expected_oid or object_type != "blob":
+            errors.append(
+                f"{label} object {expected_oid} resolved as {oid} {object_type}"
+            )
+            continue
+        if size > per_blob_limit:
+            errors.append(
+                f"{label} blob {oid} exceeds the {per_blob_limit}-byte limit"
+            )
+        total += size * reference_counts[oid]
+        if total > aggregate_limit:
+            errors.append(
+                f"{label} exceeds the {aggregate_limit}-byte aggregate limit"
+            )
+            break
+    if len(checked.splitlines()) != len(unique_ids):
+        errors.append(f"{label} blob preflight returned an incomplete object set")
+    if errors:
+        return {}
+
+    try:
+        materialized = subprocess.run(
+            [
+                "git",
+                "--no-replace-objects",
+                "-C",
+                str(root),
+                "cat-file",
+                "--batch",
+            ],
+            input=request,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        detail = (
+            exc.stderr.decode(errors="replace").strip()
+            if isinstance(exc, subprocess.CalledProcessError)
+            else str(exc)
+        )
+        errors.append(f"cannot materialize {label}: {detail}")
+        return {}
+
+    result: dict[str, bytes] = {}
+    cursor = 0
+    for expected_oid in unique_ids:
+        newline = materialized.find(b"\n", cursor)
+        if newline < 0:
+            errors.append(f"{label} batch ended before object {expected_oid}")
+            break
+        header = materialized[cursor:newline]
+        cursor = newline + 1
+        try:
+            oid, object_type, raw_size = header.decode("ascii").split(" ", 2)
+            size = int(raw_size)
+        except (UnicodeError, ValueError):
+            errors.append(f"cannot parse materialized {label} header")
+            break
+        if oid != expected_oid or object_type != "blob":
+            errors.append(
+                f"materialized {label} object {expected_oid} as {oid} {object_type}"
+            )
+            break
+        end = cursor + size
+        if end >= len(materialized) or materialized[end : end + 1] != b"\n":
+            errors.append(f"materialized {label} object {oid} has invalid framing")
+            break
+        result[oid] = materialized[cursor:end]
+        cursor = end + 1
+    if cursor != len(materialized):
+        errors.append(f"materialized {label} batch has trailing or incomplete bytes")
+    return result
+
+
 def _git_tree(
     root: Path,
     inventory_sha: str,
@@ -1903,6 +2695,306 @@ def _nonempty_string(value: Any, label: str, errors: list[str]) -> str | None:
     return value
 
 
+def _json_string_payload_wire_bytes(value: str) -> int:
+    """Return the byte width of a string inside the CLI's ASCII JSON wire form."""
+
+    return len(json.dumps(value, ensure_ascii=True).encode("ascii")) - 2
+
+
+def _validated_batch(value: Any, label: str, errors: list[str]) -> str | None:
+    if type(value) is not str or BATCH_RE.fullmatch(value) is None:
+        errors.append(f"{label} must be a lowercase kebab-case identifier")
+        return None
+    valid = True
+    if len(value.encode("utf-8")) > MAX_PINNED_BATCH_BYTES:
+        errors.append(f"{label} exceeds the {MAX_PINNED_BATCH_BYTES}-byte limit")
+        valid = False
+    if _json_string_payload_wire_bytes(value) > MAX_PINNED_BATCH_WIRE_BYTES:
+        errors.append(
+            f"{label} exceeds the {MAX_PINNED_BATCH_WIRE_BYTES}-byte JSON-wire limit"
+        )
+        valid = False
+    return value if valid else None
+
+
+def _validated_verify_against(
+    value: Any,
+    label: str,
+    errors: list[str],
+) -> list[str]:
+    verify_against = _nonempty_string_list(value, label, errors)
+    if len(verify_against) > MAX_PINNED_VERIFY_AGAINST_ITEMS:
+        errors.append(
+            f"{label} exceeds the {MAX_PINNED_VERIFY_AGAINST_ITEMS}-item limit"
+        )
+    verify_bytes = sum(len(item.encode("utf-8")) for item in verify_against)
+    if verify_bytes > MAX_PINNED_VERIFY_AGAINST_BYTES:
+        errors.append(
+            f"{label} exceeds the {MAX_PINNED_VERIFY_AGAINST_BYTES}-byte aggregate limit"
+        )
+    verify_wire_bytes = sum(
+        _json_string_payload_wire_bytes(item) for item in verify_against
+    )
+    if verify_wire_bytes > MAX_PINNED_VERIFY_AGAINST_WIRE_BYTES:
+        errors.append(
+            f"{label} exceeds the "
+            f"{MAX_PINNED_VERIFY_AGAINST_WIRE_BYTES}-byte JSON-wire aggregate limit"
+        )
+    for index, item in enumerate(verify_against):
+        if len(item.encode("utf-8")) > MAX_PINNED_VERIFY_AGAINST_ITEM_BYTES:
+            errors.append(
+                f"{label}[{index}] exceeds the "
+                f"{MAX_PINNED_VERIFY_AGAINST_ITEM_BYTES}-byte limit"
+            )
+        if (
+            _json_string_payload_wire_bytes(item)
+            > MAX_PINNED_VERIFY_AGAINST_ITEM_WIRE_BYTES
+        ):
+            errors.append(
+                f"{label}[{index}] exceeds the "
+                f"{MAX_PINNED_VERIFY_AGAINST_ITEM_WIRE_BYTES}-byte JSON-wire limit"
+            )
+        if any(unicodedata.category(character) == "Cc" for character in item):
+            errors.append(f"{label}[{index}] contains a control character")
+    return verify_against
+
+
+def _validated_verification_mappings(
+    value: Any,
+    verify_against: list[str],
+    label: str,
+    errors: list[str],
+) -> list[PinnedVerificationMapping]:
+    """Validate the closed, ordinal-aligned schema-v2 adapter projection."""
+
+    if value is None:
+        fallback_policy = {
+            "minimum_receipts": 1,
+            "maximum_receipts": 1,
+            "freshness_seconds": 0,
+            "allowed_evidence_kinds": ["git"],
+            "require_remote_identity": False,
+            "require_distinct_sources": False,
+        }
+        fallback_digest = requirement_mapping_digest(
+            adapter_type="unmapped_prose",
+            adapter_parameters={},
+            evidence_policy=fallback_policy,
+        )
+        return [
+            PinnedVerificationMapping(
+                ordinal=index,
+                mapping_digest=fallback_digest,
+                adapter_type="unmapped_prose",
+                adapter_parameters={},
+                evidence_policy=copy.deepcopy(fallback_policy),
+            )
+            for index in range(1, len(verify_against) + 1)
+        ]
+    if type(value) is not list:
+        errors.append(f"{label} must be a list when present")
+        return []
+    if len(value) != len(verify_against):
+        errors.append(
+            f"{label} must contain exactly one mapping for each verify_against item"
+        )
+    result: list[PinnedVerificationMapping] = []
+    for index, raw_mapping in enumerate(value):
+        item_label = f"{label}[{index}]"
+        mapping = _mapping(raw_mapping, item_label, errors)
+        if mapping is None:
+            continue
+        _exact_keys(mapping, VERIFICATION_MAPPING_FIELDS, item_label, errors)
+        _expect_exact(
+            mapping.get("schema_version"),
+            2,
+            f"{item_label}.schema_version",
+            errors,
+            exact_type=True,
+        )
+        ordinal = mapping.get("ordinal")
+        if type(ordinal) is not int or ordinal != index + 1:
+            errors.append(f"{item_label}.ordinal must equal {index + 1}")
+        adapter_type = mapping.get("adapter_type")
+        expected_parameter_fields = ADAPTER_PARAMETER_FIELDS.get(adapter_type)
+        if expected_parameter_fields is None:
+            errors.append(f"{item_label}.adapter_type is not release-frozen")
+            expected_parameter_fields = frozenset()
+        parameters = _mapping(
+            mapping.get("adapter_parameters"),
+            f"{item_label}.adapter_parameters",
+            errors,
+        )
+        if parameters is not None:
+            _exact_keys(
+                parameters,
+                expected_parameter_fields,
+                f"{item_label}.adapter_parameters",
+                errors,
+            )
+            _validate_adapter_parameters(
+                adapter_type,
+                parameters,
+                f"{item_label}.adapter_parameters",
+                errors,
+            )
+        policy = _mapping(
+            mapping.get("evidence_policy"),
+            f"{item_label}.evidence_policy",
+            errors,
+        )
+        if policy is not None:
+            _exact_keys(
+                policy,
+                EVIDENCE_POLICY_FIELDS,
+                f"{item_label}.evidence_policy",
+                errors,
+            )
+            _validate_evidence_policy(
+                policy,
+                f"{item_label}.evidence_policy",
+                errors,
+            )
+        mapping_digest = mapping.get("mapping_digest")
+        if type(mapping_digest) is not str or SHA256_RE.fullmatch(mapping_digest) is None:
+            errors.append(f"{item_label}.mapping_digest must be lowercase 64-hex")
+        if (
+            type(adapter_type) is str
+            and parameters is not None
+            and policy is not None
+        ):
+            expected_digest = requirement_mapping_digest(
+                adapter_type=adapter_type,
+                adapter_parameters=parameters,
+                evidence_policy=policy,
+            )
+            if mapping_digest != expected_digest:
+                errors.append(
+                    f"{item_label}.mapping_digest is {mapping_digest!r}, "
+                    f"expected {expected_digest}"
+                )
+            if (
+                type(ordinal) is int
+                and ordinal == index + 1
+                and type(mapping_digest) is str
+                and SHA256_RE.fullmatch(mapping_digest) is not None
+            ):
+                result.append(
+                    PinnedVerificationMapping(
+                        ordinal=ordinal,
+                        mapping_digest=mapping_digest,
+                        adapter_type=adapter_type,
+                        adapter_parameters=copy.deepcopy(parameters),
+                        evidence_policy=copy.deepcopy(policy),
+                    )
+                )
+    return result
+
+
+def _validate_adapter_parameters(
+    adapter_type: Any,
+    parameters: dict[str, Any],
+    label: str,
+    errors: list[str],
+) -> None:
+    if adapter_type in {"git_object_v1", "json_schema_v1", "test_result_v1"}:
+        _bounded_j_string(parameters.get("repository"), 64, f"{label}.repository", errors)
+        commit = parameters.get("commit_sha")
+        if type(commit) is not str or HEX_OID_RE.fullmatch(commit) is None:
+            errors.append(f"{label}.commit_sha must be lowercase 40-hex")
+    if adapter_type in {"git_object_v1", "json_schema_v1"}:
+        path = _safe_portable_path(parameters.get("path"), f"{label}.path", errors)
+        if path is not None and len(path.encode("utf-8")) > MAX_PINNED_PATH_BYTES:
+            errors.append(f"{label}.path exceeds the {MAX_PINNED_PATH_BYTES}-byte limit")
+    if adapter_type == "git_object_v1":
+        _git_oid(parameters.get("expected_object_oid"), f"{label}.expected_object_oid", errors)
+    elif adapter_type == "json_schema_v1":
+        _bounded_j_string(parameters.get("json_pointer"), 128, f"{label}.json_pointer", errors)
+        _sha256(parameters.get("expected_value_sha256"), f"{label}.expected_value_sha256", errors)
+    elif adapter_type in {"health_probe_v1", "production_probe_v1"}:
+        _bounded_j_string(parameters.get("service_id"), 64, f"{label}.service_id", errors)
+        _bounded_j_string(parameters.get("probe_id"), 96, f"{label}.probe_id", errors)
+        _bounded_integer(parameters.get("max_age_seconds"), 0, 86_400, f"{label}.max_age_seconds", errors)
+    elif adapter_type == "test_result_v1":
+        _bounded_j_string(parameters.get("test_id"), 128, f"{label}.test_id", errors)
+        _sha256(parameters.get("report_sha256"), f"{label}.report_sha256", errors)
+    elif adapter_type == "state_read_v1":
+        _bounded_j_string(parameters.get("namespace"), 64, f"{label}.namespace", errors)
+        _bounded_j_string(parameters.get("entity_key"), 128, f"{label}.entity_key", errors)
+        _bounded_j_string(parameters.get("field_path"), 128, f"{label}.field_path", errors)
+        _sha256(parameters.get("expected_value_sha256"), f"{label}.expected_value_sha256", errors)
+
+
+def _validate_evidence_policy(
+    policy: dict[str, Any],
+    label: str,
+    errors: list[str],
+) -> None:
+    minimum = policy.get("minimum_receipts")
+    maximum = policy.get("maximum_receipts")
+    _bounded_integer(minimum, 1, 4, f"{label}.minimum_receipts", errors)
+    _bounded_integer(maximum, 1, 4, f"{label}.maximum_receipts", errors)
+    if type(minimum) is int and type(maximum) is int and maximum < minimum:
+        errors.append(f"{label}.maximum_receipts must be at least minimum_receipts")
+    _bounded_integer(
+        policy.get("freshness_seconds"),
+        0,
+        86_400,
+        f"{label}.freshness_seconds",
+        errors,
+    )
+    kinds = policy.get("allowed_evidence_kinds")
+    if type(kinds) is not list or not 1 <= len(kinds) <= 4:
+        errors.append(f"{label}.allowed_evidence_kinds must contain one through four items")
+    else:
+        recognized = all(
+            type(kind) is str and kind in EVIDENCE_KINDS for kind in kinds
+        )
+        if not recognized or kinds != sorted(set(kinds), key=EVIDENCE_KINDS.index):
+            errors.append(
+                f"{label}.allowed_evidence_kinds must be unique and in frozen enum order"
+            )
+        for kind in kinds:
+            if type(kind) is not str or kind not in EVIDENCE_KINDS:
+                errors.append(f"{label}.allowed_evidence_kinds contains an unknown kind")
+    for field in ("require_remote_identity", "require_distinct_sources"):
+        if type(policy.get(field)) is not bool:
+            errors.append(f"{label}.{field} must be a boolean")
+
+
+def _bounded_j_string(
+    value: Any,
+    maximum: int,
+    label: str,
+    errors: list[str],
+) -> None:
+    if type(value) is not str or not value:
+        errors.append(f"{label} must be a non-empty string")
+    elif len(canonical_string_bytes(value)) > maximum:
+        errors.append(f"{label} exceeds the {maximum}-J limit")
+
+
+def _bounded_integer(
+    value: Any,
+    minimum: int,
+    maximum: int,
+    label: str,
+    errors: list[str],
+) -> None:
+    if type(value) is not int or not minimum <= value <= maximum:
+        errors.append(f"{label} must be an integer from {minimum} to {maximum}")
+
+
+def _sha256(value: Any, label: str, errors: list[str]) -> None:
+    if type(value) is not str or SHA256_RE.fullmatch(value) is None:
+        errors.append(f"{label} must be lowercase 64-hex")
+
+
+def _git_oid(value: Any, label: str, errors: list[str]) -> None:
+    if type(value) is not str or re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value) is None:
+        errors.append(f"{label} must be a lowercase Git object ID")
+
+
 def _nonempty_string_list(value: Any, label: str, errors: list[str]) -> list[str]:
     if type(value) is not list or not value:
         errors.append(f"{label} must be a non-empty list")
@@ -1916,26 +3008,35 @@ def _nonempty_string_list(value: Any, label: str, errors: list[str]) -> list[str
 
 
 def _safe_markdown_path(value: Any, label: str, errors: list[str]) -> str | None:
+    parsed = _safe_portable_path(value, label, errors)
+    if parsed is None:
+        return None
+    candidate = PurePosixPath(parsed)
+    if candidate.suffix.lower() != ".md":
+        errors.append(f"{label} must name a Markdown file")
+        return None
+    return parsed
+
+
+def _safe_portable_path(value: Any, label: str, errors: list[str]) -> str | None:
     parsed = _nonempty_string(value, label, errors)
     if parsed is None:
         return None
-    if any(ord(character) < 32 or ord(character) == 127 for character in parsed):
-        errors.append(f"{label} contains a control character")
+    if len(parsed.encode("utf-8")) > MAX_PINNED_PATH_BYTES:
+        errors.append(f"{label} exceeds the {MAX_PINNED_PATH_BYTES}-byte limit")
         return None
-    if "\\" in parsed:
-        errors.append(f"{label} must use POSIX separators")
+    if PORTABLE_PATH_RE.fullmatch(parsed) is None:
+        errors.append(f"{label} contains a character outside the portable path alphabet")
         return None
     raw_parts = parsed.split("/")
     candidate = PurePosixPath(parsed)
     if (
         candidate.is_absolute()
+        or parsed.endswith("/")
         or any(part in {"", ".", "..", ".git"} for part in raw_parts)
         or candidate.as_posix() != parsed
     ):
         errors.append(f"{label} must be a normalized repository-relative path")
-        return None
-    if candidate.suffix.lower() != ".md":
-        errors.append(f"{label} must name a Markdown file")
         return None
     return parsed
 
