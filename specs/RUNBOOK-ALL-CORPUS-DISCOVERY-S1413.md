@@ -1,6 +1,6 @@
 # S1413 — All-corpus runbook discovery before authority promotion
 
-Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 6**
+Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 7**
 
 Date: 2026-08-02
 
@@ -52,6 +52,14 @@ Revision history:
   maximum; it republishes only the SHA-256 vectors whose fixed 192-J handle
   fixture bytes changed. It claims no implementation, review approval,
   benchmark pass, gateway delivery, merge, deployment, or activation.
+- Revision 7 corrects one integration contradiction found by exact catalog
+  validation: two ACTIVE entries are truthfully owned by `sysadmin`, while the
+  Revision-6 `owner` enum excluded that value. It admits `sysadmin`, widens only
+  that field's maximum from 6 J to 8 J, and republishes the five serializer
+  vectors affected by the longer maximal owner. It does not relabel source
+  data, change authority, or alter any other production field, maximum, vector,
+  or digest. It claims no implementation, review approval, benchmark pass,
+  gateway delivery, merge, deployment, or activation.
 
 This contract amends `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md`. Where that
 plan delays discovery until documents are promoted, or makes grandfathered
@@ -628,7 +636,7 @@ repeats at most once.
 |---|---|---:|---|---|---|---|
 | `candidate_digest` | lowercase hex string | 64 J | mandatory once/ACTIVE result | no | state-dependent candidate self digest + corpus response | immutable ACTIVE policy identity |
 | `runbook_id` | string | 64 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
-| `owner` | enum `vulcan`, `mars`, `kd`, `mp`, `max` | 6 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
+| `owner` | enum `vulcan`, `mars`, `kd`, `mp`, `max`, `sysadmin` | 8 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
 | `last_verified_at` | RFC-3339 full-date string | 10 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
 | `authority_keys` | ordered unique string array | 0..2; each 64 J; 128 J aggregate | mandatory once/ACTIVE result | entries/prefixes may truncate with flag | candidate + corpus response | catalog declarations |
 | `authority_keys_truncated` | boolean | 5 bytes | mandatory once/ACTIVE result | no | candidate + corpus response | authority-key bounding |
@@ -876,8 +884,11 @@ digest is measured.
 Revision 5 changed no pre-existing payload field or maximum. Revision 6 changes
 only the opaque-handle vector fixture bytes so the proof inputs are values a
 conforming issuer can mint; every published U count is unchanged and every
-affected SHA-256 below is remeasured. The handle fixture key is 32 ASCII `K`
-bytes, the session binding is 64 ASCII `a` bytes, and the HMAC input is ASCII
+affected SHA-256 below is remeasured. Revision 7 widens only the maximal ACTIVE
+`owner` fixture from 6 J to the truthful 8-J `sysadmin` value; the five affected
+rows are remeasured and every other row is unchanged. The handle fixture key is
+32 ASCII `K` bytes, the session binding is 64 ASCII `a` bytes, and the HMAC
+input is ASCII
 `runbook-reference-vector-v1`, one NUL byte, the version and kind bytes as
 domain discriminators, that session binding, then the 112-byte body. The body
 is version byte `0x01`, kind byte `0x01` for a lead, `0x02` for a bundle, or
@@ -905,12 +916,12 @@ populated by zero substitution before the final SHA-256 is measured.
 
 | Concrete vector | Exact U | SHA-256 test-vector digest |
 |---|---:|---|
-| maximum ACTIVE result | 4,803 | `b46d0e477dc25cc475c2568ee7df359419992f0a31526820efa21b1dbf8ff3f6` |
+| maximum ACTIVE result | 4,805 | `97b403f84c1a3b918e8b4e935946eca291be09cd9ee94330bf8510d3d2fb67af` |
 | maximum compact discovery result | 5,585 | `c167e7c24d58211e4b00197633632a2d8020e8a08ce0aac8b20b2be83a3f6c99` |
-| objective: 3 ACTIVE + 1 discovery | 14,920 | `8bf3bfcab5edecf2a51fcf7838d25ba91fff02473856e351aaefa4bd739fefc7` |
-| objective: 1 ACTIVE + 3 discovery | 16,484 | `f44dc11fb8a260a6f1efca5d3ddbdfb55e836ff7ecc8831e02f8fdc16a666526` |
-| two objectives: 3A+1D then 1A+3D | 31,921 | `1961dfb06102805e7b9d81b067c09217ec056526c2db14fdaea919e3f32d707e` |
-| two objectives: 1A+3D then 3A+1D | 31,921 | `2445942c4f41ce01a0fbcd78955d033e9d0ef561b53d5d6b1f73bab186bbc8ab` |
+| objective: 3 ACTIVE + 1 discovery | 14,926 | `4545668510d9b821f022fc0c13245da92893593354688aa59fc83fda352e2280` |
+| objective: 1 ACTIVE + 3 discovery | 16,486 | `3d61746e71973c1815f130a57ff00ffdd88d58551c8108bc716602cdccb767a9` |
+| two objectives: 3A+1D then 1A+3D | 31,929 | `74841b762544003dca2a612b74ae1a6ef138f8b4e8a441f53127aece56c5ff2e` |
+| two objectives: 1A+3D then 3A+1D | 31,929 | `7417e00693a46d3029933055a4e5a0ef2b159ebe339f4a61730f9da7a8440ec6` |
 | maximum changed-path control response | 20,375 | `30208ccc9817934c1e61dd323760cf145c2921c2721af62bd9208983cf4281ac` |
 | maximum confirmation receipt | 898 | `472a8520b4cbea98859ac4f2c47583f8373568c65843a5b5be80018331e22cc6` |
 | maximum compact replay receipt | 709 | `a1a7c43c0e2a3dc0ffc640e3450ac4057dc74aa8141ba36322b595ea4ce95601` |
@@ -930,7 +941,7 @@ populated by zero substitution before the final SHA-256 is measured.
 | bundle `unmapped_prose`, minimum policy | 2,805 | `0ee5d589be02c30197e70efa20f89f1e28be7cd5535394d3c590c6ed5a365cff` |
 | bundle `unmapped_prose`, maximum policy | 2,895 | `bded71010fd823b8bf0e2d44e282643cd9a5b330e3ea08c4626b180b1c20e095` |
 
-The 31,921-U real two-objective maximum is below the 32,000-U build target and
+The 31,929-U real two-objective maximum is below the 32,000-U build target and
 the 40,000-U production cap. The largest full bundle is 4,617 U, below its
 8,192-U cap. Eventual implementation acceptance MUST commit the exact vector
 generator and assert every byte count and digest above so the serializer,
@@ -1198,7 +1209,7 @@ committed snapshot:
    object sizes fail before materialization; manifest validation follows parse.
    Excerpts are truthful canonical prefixes. Mandatory-fields-do-not-fit returns
    typed non-success. Production never exceeds 40,000 U; the real worst-case
-   proof is exactly the section-6.8 31,921-U vector and the private 32,001-U
+   proof is exactly the section-6.8 31,929-U vector and the private 32,001-U
    fault fails as build proof. The omission counter equation passes zero,
    exact 1,999,998, and 1,999,999 overflow tests without clamping. End-to-end
    Kóska/server/gateway tests prove the dedicated typed path preserves every
@@ -1297,7 +1308,7 @@ committed snapshot:
     serializer proves the two-objective maximum shapes in both orders, all
     variable fields at normative maxima, complete compact warnings, eight
     possible mandatory corpus identities, 600-J initial excerpts, and maximal
-    residual guidance serialize to exactly 31,921 U. The separately committed
+    residual guidance serialize to exactly 31,929 U. The separately committed
     vector generator also proves every bundle adapter/policy shape, maximum
     changed-path control response, 898-U confirmation receipt, 709-U compact
     replay receipt, standalone result, and 32,001-U fault digest. All dedicated
