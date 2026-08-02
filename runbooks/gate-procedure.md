@@ -42,6 +42,8 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Gate 4 production verification | SHIPPED | `build:bq-*.gate4` | Customer-perspective verification | 2026-07-17 |
 | Council rounds and thresholds | SHIPPED | `infra:constitution` | Verdict-set validation | 2026-07-17 |
 | Author dispatch tokens and leases | SHIPPED | `council_request` | Binding and expiry validation | 2026-07-17 |
+| Server-selected all-corpus first-plan delivery (staged; inactive by default) | PLANNED | `koskadeux-mcp/tools/runbook_delivery.py` | `koskadeux-mcp/tests/test_runbook_first_delivery_s1413.py`, `tools/session.py:_handle_kd_session_plan`, and runbooks discovery-vector tests | 2026-08-02 |
+| Backend runbook-authority write boundary (staged rollout prerequisite) | PLANNED | `ai-market-backend/app/services/runbook_compat.py` | `ai-market-backend/tests/test_runbook_authority_write_boundary_s1413.py` plus guarded state-write and atomic-write coverage | 2026-08-02 |
 
 ## §C. Architecture & Interactions
 
@@ -54,6 +56,15 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Gate 4 Verification | `state_request action=bq_complete` | Production and customer evidence | Completion | Nothing completes without production verification and non-builder evidence. |
 | Council Rounds | `council_request` and Council Hall | Positions, debate, final verdicts | Gate records | At most three rounds; full valid panel precedes threshold evaluation. |
 | Author Binding | `dispatch_id` and `dispatch_token` | Bound dispatch id and gate lease | Author mode | UUIDv7 id, signed credential, target gate, start, expiry, and extension count are explicit. |
+| Runbook-first delivery | `tools/session.py:_handle_kd_session_plan` | Immutable catalog/manifest snapshot and Kóska-owned SQLite delivery controls | `runbook_tools.catalog.search:search_catalog_delivery` | Staged only. When enabled, server-selected content is admitted before plan acceptance or other business-authority writes. |
+
+**STAGED / INACTIVE BY DEFAULT — runbook-first planning.** This paragraph describes reviewed branch behavior, not a deployed capability. `KOSKADEUX_RUNBOOK_DELIVERY_MODE` defaults to `legacy`; only the exact value `runbook_first` selects the staged path. On the first `kd_session_plan`, Kóska derives one or two search objectives from the authenticated session plan, searches one immutable full-SHA snapshot of the complete runbook corpus, and returns the serializer's exact canonical text before plan acceptance, the plan file, intent, debt, waiver, or other business-authority writes. An `ACTIVE` match is a candidate to inspect. Pending-verification and archived matches are visibly discovery-only leads; archived material is historical-only. Neither class is proof that its operational claims are true, so every load-bearing fact still needs verification against its owning code, configuration, schema, probe, or live state.
+
+Caller prose grants no authority in this mode. Caller-supplied `runbook_consultation`, paths, references, attestations, waivers, and `no_entry_found` text are ignored for admission and cannot block the plan, mint a server reference, prove reading, or discharge debt. The old classifier runs only after durable server-selected admission, as non-blocking telemetry, and its output is not persisted as accepted consultation. This separation is the point of the rollout: the server finds relevant material first; an agent is never asked to invent documentation evidence merely to pass a gate.
+
+Do not enable this path until both prerequisites are true: the exact reviewed `runbook-tools` package and full-SHA catalog pin are installed, and backend A1's independent `RUNBOOK_AUTHORITY_WRITE_MODE=contain|reject` boundary is deployed and verified on every protected state/event route. The default backend mode is `contain`; `reject` is the stricter diagnostic mode. The legacy rollback is explicit: restore `KOSKADEUX_RUNBOOK_DELIVERY_MODE=legacy` and restart the gateway through the normal drained restart procedure. That rollback restores the old caller-evidence gate; it does not make caller prose trustworthy.
+
+Enabled mode fails closed. Operators should search logs and returned errors by the exact codes `runbook_delivery_mode_invalid`, `runbook_library_unavailable`, `runbook_reference_key_unavailable`, `runbook_catalog_pin_unavailable`, `runbook_library_contract_invalid`, `runbook_search_failed`, `response_budget_exceeded`, `session_objective_budget_exceeded`, `session_wire_budget_exceeded`, and the sanitized fallback `runbook_first_delivery_failed`. Bundle fetch, confirmation, and replay are not exposed in this staged slice; never simulate any of them or treat possession of an opaque handle as confirmation.
 
 ### Normative projection — CORE §5, CCP
 
@@ -144,7 +155,20 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
   expected_failures: [{signature: invalid_gate_promotion, cause: audit is tainted, mandates remain, or production evidence is absent}]
   next_step_success: Complete and record the BQ evidence.
   next_step_failure: Return REVISE or REJECT to Gate 2 or obtain valid Gate 4 evidence.
+- id: E-04
+  trigger: An operator is considering enabling the staged server-selected runbook-first path.
+  pre_conditions: [gateway_change_reviewed_but_not_assumed_deployed, backend_A1_boundary_verified_live, exact_runbook_tools_pin_known, immutable_catalog_full_SHA_known]
+  tool_or_endpoint: gateway deployment configuration plus one fresh authenticated kd_session_open and first kd_session_plan
+  argument_sourcing: {mode: require exact KOSKADEUX_RUNBOOK_DELIVERY_MODE value, package: read the installed runbook-tools source identity rather than a working checkout, catalog: require git:aidotmarket/runbooks@<40-lowercase-hex>:CATALOG.json, backend: verify RUNBOOK_AUTHORITY_WRITE_MODE and protected-route behavior from the running service, response: retain exact returned TextContent.text bytes}
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: hash(gateway_deployment + backend_deployment + catalog_full_SHA + session_id)
+  expected_success: {shape: exact canonical first-plan JSON with ACTIVE candidates and clearly separate discovery-only leads, verification: "prove the response bytes are unchanged, the catalog and inventory identities resolve, caller consultation prose was not accepted, and later plan writes occurred only after admission"}
+  expected_failures: [{signature: runbook_first_delivery_failed, cause: package, immutable catalog, signing key, serializer contract, quota store, or transport admission could not be proven}]
+  next_step_success: Keep rollout scoped and measure retrieval usefulness before restoring any broad blocking enforcement.
+  next_step_failure: Return to legacy mode, preserve the exact error and deployment identities, and repair the named prerequisite without fabricating a reference.
 ```
+
+Runbook maintenance uses two commits so content and activation evidence cannot be confused. First commit the final document set as content commit C, with no manifest, catalog, router, or README regeneration; C is staged and must never be activated. While exact C is checked out, run `python -m runbook_tools.corpus_manifest --refresh-from <full-C-sha>`, then `runbook-catalog generate`. Commit only `CORPUS-MANIFEST.yaml` and the corresponding generated catalog/router/README identity surfaces as direct child M. Confirm `git diff --name-only <C>..<M>` contains no document-content path. At M run `python -m runbook_tools.corpus_manifest`, `runbook-catalog check`, `runbook-catalog select --mode lint-selection`, and `runbook-lint --mode strict --format github`; then validate the committed snapshot with `runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@<full-M-sha>:CATALOG.json"`. Verify the remote has exact C and M objects and atomically move the deployed old-M pin to new M. A failed check, stale inventory, unexpected diff path, remote-object mismatch, or compare-and-swap loss leaves old M serving.
 
 ## §F. Isolate
 
@@ -152,6 +176,8 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 |---|---|---|---|---|---|
 | F-01 | Build dispatch eligibility cannot be proven. | A gate, claim, reconciliation, runbook, compliance, builder, or independence operand is unknown. | Read the BQ, approved specs, claim state, reconciliation result, runbook refs, and dispatch envelope. | G-01 | CONFIRMED |
 | F-02 | Gate 3 review changed files or used the builder. | Review mode or reviewer independence was violated. | Compare git status, dispatch mode, builder list, reviewer list, and target SHA. | G-02 | CONFIRMED |
+| F-03 | Staged runbook-first planning returns an exact `runbook_*` or budget error before plan acceptance. | The mode, installed package, immutable catalog pin, HMAC key, canonical library contract, durable quota, or byte budget is invalid or unavailable. | Preserve the exact error code; verify the running gateway configuration, installed package identity, full-SHA catalog and inventory objects, backend A1 mode, and SQLite control-store health. Do not submit invented caller evidence. | G-03 | CONFIRMED |
+| F-04 | A first-plan response exposes only discovery leads, or an ACTIVE candidate conflicts with current code/state. | Relevant material is pending/archived rather than ACTIVE, or an ACTIVE document is stale; retrieval is not semantic verification. | Read `catalog_state`, `historical_only`, `authoritative_gap`, and immutable source identities, then compare the claim with its owning live source. | G-04 | CONFIRMED |
 
 ## §G. Repair
 
@@ -172,6 +198,22 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
   change_pattern: Discard the tainted vote and redispatch an eligible non-builder with explicit read-only scope.
   rollback_procedure: Remove the invalid verdict from promotion evidence.
   integrity_check: Replacement review changes no files and binds to the intended commit.
+- id: G-03
+  symptom_ref: F-03
+  component_ref: Runbook-first delivery
+  root_cause: At least one exact package, configuration, catalog, serializer, quota, backend-boundary, or transport prerequisite is absent or contradictory.
+  repair_entry_point: koskadeux-mcp/tools/runbook_delivery.py and tools/session.py:_handle_kd_session_plan
+  change_pattern: Leave or restore KOSKADEUX_RUNBOOK_DELIVERY_MODE=legacy; repair the component named by the exact error; rerun focused gateway delivery and transport tests before a fresh authenticated first-plan probe.
+  rollback_procedure: Use legacy mode through the normal drained gateway restart; do not weaken a fail-closed error or substitute caller-authored evidence.
+  integrity_check: The fresh plan receives unchanged canonical bytes before business writes, the backend A1 boundary contains or rejects protected writes, and no caller prose appears as accepted consultation.
+- id: G-04
+  symptom_ref: F-04
+  component_ref: Runbook-first delivery
+  root_cause: Discovery found potentially useful material that has no current authority, or an ACTIVE claim failed ground-truth verification.
+  repair_entry_point: Owning runbook content plus the C to M inventory refresh procedure
+  change_pattern: Use the lead only to locate evidence; correct or draft grounded runbook content in C, create mechanical activation child M, and keep old M serving until every check and pin compare-and-swap succeeds.
+  rollback_procedure: Do not activate C or the failed M; retain the old catalog pin and record the gap without inventing a citation.
+  integrity_check: New M binds every changed path and blob to C, contains no document edit, validates at its full SHA, and the corrected operational claim matches its owning source.
 ```
 
 ## §H. Evolve

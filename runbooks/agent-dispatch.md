@@ -108,6 +108,7 @@ CC/Kimi/GLM review panel from `infra:council-comms`.
 | DeepSeek server/API backend | SHIPPED | `koskadeux-mcp/deepseek_server.py` | DeepSeek review-schema and server health coverage | 2026-04-29 |
 | Claude Code backend for CC | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_call_cc` | CC background task dispatch coverage | 2026-04-29 |
 | XAI Grok dispatch | DEPRECATED | `koskadeux-mcp/xai_client.py` | Retired S528; cold-storage only, no active dispatch coverage | 2026-04-29 |
+| Structural-build no-loss retirement and recovery (staged; not deployed) | PLANNED | `koskadeux-mcp/tools/agents.py` | `tools/structural_quarantine.py:safe_retire_worktree`, `tests/unit/test_pre_push_gate_composition.py`, and `tests/unit/test_structural_quarantine_journal.py` | 2026-08-02 |
 
 
 ### §B.1 Council roster (folded from the retired root copy)
@@ -164,8 +165,15 @@ Current operational truth is the block above: MP is mandatory builder, CC/Kimi/G
 | MCP Tool Prefix | dispatched prompt or MCP tool invocation | tool-call transcript | Koskadeux MCP bridge | Tool prefix casing must use capitalized `Koskadeux:`; lowercase can silently fail. |
 | Peer Bus | `koskadeux-mcp/tools/peer_messages.py:_handle_peer_msg_send` | peer message rows, per-instance ack state | Vulcan, Mars | Coordination channel between the two peer instances. `kind` drives the ack requirement; send dedupes on `(from_instance, to_instance, kind, ref_entity)`. See F-07/G-07. |
 | Cross-Runbook IDs | runbook prose convention | same-file IDs, file-qualified IDs | §F and §G references | Same-file references use `F-01`; cross-runbook references use `agent-dispatch:F-01`. |
+| Structural Worktree Retirement | `tools/agents.py:_teardown_structural_build_worktree` | retained worktree, quarantine journal, terminal receipt | `tools/structural_quarantine.py`, Git worktree registry, Codex invocation lease | Staged no-loss path; an ambiguous retirement is retained for operator recovery, never deleted. |
 
 Agent processes require a clean working directory when the task may write, a readable repo when the task is review-only, provider credentials in the approved environment, and PATH entries for backend CLIs. `run_background` style dispatch must explicitly export required PATH segments because it does not inherit the interactive shell environment.
+
+The structural no-loss wrapper described here is **STAGED, not deployed**. At terminal handling it does not recursively remove a build worktree. It chooses a server-owned retained destination on the same filesystem and performs a no-replace rename, so an existing destination cannot be overwritten and the directory inode—including tracked changes, untracked files, and writes through an already-open file descriptor—moves intact. It fsyncs both parent directories and verifies the old path is gone and the retained device/inode match the source.
+
+A linked worktree must remain usable after that move. Under the repository Git lock, the wrapper runs `git worktree repair <retained-path>`, then proves that the retained path reports itself as `--show-toplevel` and still resolves to the base repository's Git common directory. It deliberately does not run `git worktree prune` and does not remove the retained directory: either action can strand or destroy recoverable work. A successful retirement receipt has `status=completed`, `registration_status=repaired`, and exact `retained_path`/`recovery_worktree` fields.
+
+Failure is conservative. If the rename succeeded but registration repair/proof did not, the receipt becomes `status=retained_recovery_required`, `registration_status=repair_failed`, and carries the exact `recovery_worktree`; terminal disposition is `quarantined_retained` with `error=worktree_retirement_ambiguous`. If no retirement receipt exists, the original worktree path is retained. A provisioning exception returns `error_type=structural_worktree_provision_failed` with `provider_action_started=false`. If dispatch launch persistence fails and retirement was not proved complete, invocation teardown receives `preserve_worktree=true`. None of these states authorizes a rebuild, prune, remove, or cleanup.
 
 ### The background dispatch meta record
 
@@ -438,6 +446,22 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
     - {signature: strict_verdict_invalid, cause: provider returned a terminal verdict that parsed as JSON and passed the schema but violated the semantic mandate-count rule (empty mandates on APPROVED_WITH_MANDATES/REJECT - the provider typically filed mandate content under findings), OR failed schema/JSON decode; the mandate-count rule itself is correct and must NOT be weakened}
   next_step_success: Do NOT blind-redispatch (two identical failures = two strikes; a third blind dispatch violates the S5 bounded-investigation rule). If the fix (Kimi TerminalRepairPolicy + bounded raw-completion preservation, owned by bq-council-review-harness-reform-s1382) has landed, redispatch once; otherwise escalate gate participation to Max.
   next_step_failure: File or update the ticket (pattern T-2026-000479) with the payload evidence and coordinate on the peer bus with the s1382 owner before touching harness code.
+- id: E-08
+  trigger: A staged structural MP build reaches terminal handling or reports worktree_retirement_ambiguous, retained_recovery_required, structural_worktree_provision_failed, timeout, or dispatch-launch failure.
+  pre_conditions: [exact_terminal_receipt_preserved, base_repository_identified, no_cleanup_or_redispatch_started]
+  tool_or_endpoint: terminal receipt plus git -C <recovery_worktree> status --short, git -C <recovery_worktree> rev-parse --show-toplevel, and git -C <recovery_worktree> rev-parse --git-common-dir
+  argument_sourcing:
+    recovery_worktree: use retained.retirement.recovery_worktree, then retained.worktree, then the original invocation worktree only when the receipt itself names no moved path
+    expected_common_dir: resolve it independently from the base repository; never infer it from a local ENOENT outside the gateway filesystem view
+    content_check: inspect tracked and untracked files at the exact recovery path before deciding whether a commit or copy is needed
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: hash(task_id + terminal_receipt_digest + recovery_worktree)
+  expected_success: {shape: readable retained worktree with tracked and untracked bytes intact and Git registration proved, verification: "status lists expected changes; top-level equals recovery_worktree; common directory equals the base repository; receipt path and inode evidence agree"}
+  expected_failures:
+    - {signature: worktree_retirement_ambiguous, cause: move, repair, registration proof, or receipt finalization did not reach one proved terminal state}
+    - {signature: structural_worktree_provision_failed, cause: isolated worktree creation failed before provider action started}
+  next_step_success: Recover or commit the verified artifact from that exact path, then clear quarantine only through the final-disposition owner after durable proof.
+  next_step_failure: Preserve the named path and quarantine record, stop cleanup and redispatch, and repair registration or escalate with the exact receipt.
 ```
 
 ## §F. Isolate
@@ -455,6 +479,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-09 | HISTORICAL (superseded at deployed `fdf50693`): GLM or DeepSeek returned a countable verdict over a silently truncated inline diff | Before the shared at-SHA review loop, the GLM/DeepSeek inline path capped evidence at 40,000 characters; DeepSeek is now retired and GLM uses the four bounded exact-SHA tools | Historical verdicts remain unproven; current GLM verification requires a pinned dispatch SHA, complete required-file tool coverage, and a binding strict verdict | G-09 | CONFIRMED |
 | F-10 | HISTORICAL (superseded at deployed `fdf50693`): Kimi timed out while receiving one unbounded inlined diff | Before the shared at-SHA review loop, Kimi received the full inline diff under a latency cap | Historical failures remain diagnostic records; current Kimi verification requires a pinned dispatch SHA, complete paginated at-SHA reads, and a binding strict verdict | G-10 | CONFIRMED |
 | F-11 | `git push` to main prints a guardrail refusal and `error: failed to push some refs`, while the same stderr block also prints a successful ref update, and the commit is in fact on the remote | The pre-push guardrail appears to evaluate `KD_ALLOW_MAIN_PUSH` in a context where it is not visible, prints a refusal, and returns non-zero while the push itself completes; the precise mechanism is not established; observed live in S1326 on koskadeux-mcp when `KD_ALLOW_MAIN_PUSH=1 git push origin main` printed the refusal and error alongside `2257a367..2961f03d main -> main` (T-2026-000367) | Never conclude a push outcome from `git push` output; run `git fetch`, then compare `git rev-parse` against the remote ref, or use `git ls-remote`, and check `git rev-list --left-right --count` against the remote branch | G-11 | CONFIRMED |
+| F-12 | A structural build terminal receipt says `worktree_retirement_ambiguous`, `retained_recovery_required`, or names a retained worktree after a forced failure. | The same-filesystem move, Git registration repair/proof, invocation retirement, or exactly-once disposition did not complete unambiguously. | Read the exact terminal receipt and quarantine journal; inspect only its named recovery path; verify tracked/untracked bytes, top-level, common directory, and receipt device/inode. A local path miss outside the gateway view is not deletion evidence. | G-12 | CONFIRMED |
 
 
 ## §G. Repair
@@ -548,6 +573,14 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   change_pattern: Until the ticketed fix ships, confirm every push against the remote before acting on the result, and do not re-dispatch, re-commit, or repair on the strength of the printed error alone. The cost of believing it is redoing work that already landed, which is how a correct build was discarded in S1324.
   rollback_procedure: None.
   integrity_check: Remote head equals local head for the pushed branch and the working tree is clean.
+- id: G-12
+  symptom_ref: F-12
+  component_ref: Structural Worktree Retirement
+  root_cause: Retirement could not prove one safe terminal disposition, so the wrapper retained the worktree and quarantine authority instead of deleting uncertain bytes.
+  repair_entry_point: terminal receipt recovery_worktree and tools/agents.py:_teardown_structural_build_worktree
+  change_pattern: Stop cleanup and duplicate builds; use the exact receipt path; verify git status, top-level, common directory, tracked content, and untracked content. If registration alone failed after the move, run git worktree repair on that exact retained path under the repository lock and repeat both proofs. Recover or commit the artifact before authorizing any final clear.
+  rollback_procedure: Leave the worktree and quarantine journal in place. Never run git worktree prune, git worktree remove, or physical deletion while work remains retained or the receipt is ambiguous.
+  integrity_check: The recovered bytes match the intended artifact, Git resolves the retained top-level and common directory correctly, durable commit/push evidence exists when required, and only then does the final-disposition owner clear the hold.
 ```
 
 
