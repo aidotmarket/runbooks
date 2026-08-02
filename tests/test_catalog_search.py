@@ -47,9 +47,6 @@ DISCOVERY_BENCHMARK = (
     Path(__file__).parent / "fixtures" / "catalog" / "discovery_benchmark.yaml"
 )
 
-pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
-
-
 def _metadata(
     runbook_id: str,
     *,

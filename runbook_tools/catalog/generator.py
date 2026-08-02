@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
-import subprocess
 import tempfile
 from collections.abc import Iterable
-from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -19,7 +16,6 @@ from yaml.tokens import KeyToken, ScalarToken, ValueToken
 from runbook_tools.catalog.model import (
     CatalogEntry,
     CatalogError,
-    canonical_active_path,
 )
 from runbook_tools.catalog.sections import (
     declared_section_errors,
@@ -30,18 +26,6 @@ from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.strict_yaml import strict_yaml_load
 
 SCHEMA_VERSION = 2
-LEGACY_AUTHORITY_BASE_SHA = "a6d7534a35d921138c139bdf69aaeddd0faec100"
-LEGACY_PROJECTION_POLICY_PATH = "schemas/legacy_catalog_projection.policy.json"
-LEGACY_PROJECTION_POLICY_SHA256 = (
-    "d41a523f576e3b0a03ad386ede05ce3ceb44aa83138c6ebb6d1f6111dc11bcc0"
-)
-LEGACY_PROJECTION_FIELDS = (
-    "aliases",
-    "authoritative_for",
-    "error_signatures",
-    "superseded_by",
-    "supersedes",
-)
 CATALOG_PATH = "CATALOG.json"
 ROUTER_PATH = "TOPIC-ROUTER.md"
 README_PATH = "README.md"
@@ -69,12 +53,6 @@ RAW_CATALOG_WORD_RE = re.compile(
     + "|".join(re.escape(field) for field in sorted(CATALOG_METADATA_FIELDS))
     + r")(?![A-Za-z0-9_-])"
 )
-
-
-@dataclass(frozen=True, slots=True)
-class _ReviewedLegacyProjection:
-    expected: dict[str, dict[str, Any]]
-    allowed_paths: dict[str, frozenset[str]]
 
 NON_OPERATIONAL_MARKDOWN_TREES = frozenset(
     {
@@ -289,11 +267,6 @@ def build_catalog(
 
     entries.sort(key=lambda entry: entry.runbook_id)
     _validate_conflicts(entries)
-    projection = _reviewed_legacy_projection(root, revision="HEAD")
-    if projection is not None:
-        _enforce_reviewed_legacy_projection(
-            [entry.as_dict() for entry in entries], projection
-        )
     catalog = {
         "action_authority_eligible": False,
         "authority_admission": False,
@@ -305,283 +278,6 @@ def build_catalog(
         "status": "integrity_pass_unverified",
     }
     return catalog, grandfathered_count
-
-
-def _reviewed_legacy_projection(
-    repo_root: Path,
-    *,
-    revision: str,
-) -> _ReviewedLegacyProjection | None:
-    """Load the immutable baseline plus digest-pinned reviewed projection.
-
-    Non-Git directories are render-only fixtures and cannot produce immutable
-    authority. Every actual Git repository must contain the exact rollout
-    object, and the generation/pinned-validation revision must descend from it.
-    Tests that need unrelated synthetic Git history must monkeypatch this loader
-    explicitly; remote names, working manifests, and working catalogs are never
-    test or trust signals.
-    """
-
-    root = repo_root.resolve()
-    try:
-        top_level = subprocess.run(
-            [
-                "git",
-                "--no-replace-objects",
-                "-C",
-                str(root),
-                "rev-parse",
-                "--show-toplevel",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        return None
-    if Path(top_level).resolve() != root:
-        raise CatalogError(f"repo_root must be the Git worktree root ({top_level})")
-
-    baseline = _resolve_exact_git_commit(
-        root,
-        LEGACY_AUTHORITY_BASE_SHA,
-        "immutable legacy authority baseline",
-    )
-    target = _resolve_exact_git_commit(root, revision, "catalog revision")
-    ancestry = subprocess.run(
-        [
-            "git",
-            "--no-replace-objects",
-            "-C",
-            str(root),
-            "merge-base",
-            "--is-ancestor",
-            baseline,
-            target,
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if ancestry.returncode == 1:
-        raise CatalogError(
-            f"catalog revision {target} is not a descendant of immutable rollout "
-            f"baseline {baseline}"
-        )
-    if ancestry.returncode != 0:
-        raise CatalogError(
-            "cannot verify catalog baseline ancestry: "
-            + (ancestry.stderr.strip() or "git merge-base failed")
-        )
-
-    try:
-        raw_catalog = subprocess.run(
-            [
-                "git",
-                "--no-replace-objects",
-                "-C",
-                str(root),
-                "show",
-                f"{LEGACY_AUTHORITY_BASE_SHA}:{CATALOG_PATH}",
-            ],
-            check=True,
-            capture_output=True,
-        ).stdout
-        catalog = _strict_json_object(raw_catalog, "immutable legacy authority catalog")
-    except (subprocess.CalledProcessError, UnicodeError, json.JSONDecodeError) as exc:
-        raise CatalogError(
-            "cannot read immutable legacy authority catalog at "
-            f"{LEGACY_AUTHORITY_BASE_SHA}: {exc}"
-        ) from exc
-    if type(catalog.get("entries")) is not list:
-        raise CatalogError("immutable legacy authority catalog has invalid structure")
-    baseline_entries: dict[str, dict[str, Any]] = {}
-    baseline_paths: dict[str, str] = {}
-    for index, entry in enumerate(catalog["entries"]):
-        if type(entry) is not dict or type(entry.get("runbook_id")) is not str:
-            raise CatalogError(
-                f"immutable legacy authority catalog entry {index} has no runbook_id"
-            )
-        runbook_id = entry["runbook_id"]
-        if runbook_id in baseline_entries:
-            raise CatalogError(
-                "immutable legacy authority catalog IDs must be non-empty and unique"
-            )
-        if type(entry.get("path")) is not str:
-            raise CatalogError(
-                f"immutable legacy authority catalog entry {index} has no path"
-            )
-        baseline_entries[runbook_id] = {
-            field: entry.get(field) for field in LEGACY_PROJECTION_FIELDS
-        }
-        baseline_paths[runbook_id] = entry["path"]
-    if not baseline_entries:
-        raise CatalogError(
-            "immutable legacy authority catalog IDs must be non-empty and unique"
-        )
-    policy = _load_projection_policy(root / LEGACY_PROJECTION_POLICY_PATH)
-    if policy.get("rollout_base_sha") != baseline:
-        raise CatalogError("legacy projection policy rollout_base_sha is not exact")
-    expected_population = policy.get("expected_population")
-    if type(expected_population) is not int or expected_population != len(
-        baseline_entries
-    ):
-        raise CatalogError(
-            "legacy projection policy expected_population does not match baseline"
-        )
-    moves = policy.get("canonical_path_moves")
-    overrides = policy.get("entry_overrides")
-    if type(moves) is not list or not all(type(item) is str for item in moves):
-        raise CatalogError("legacy projection policy canonical_path_moves is invalid")
-    if len(moves) != len(set(moves)) or not set(moves) <= baseline_entries.keys():
-        raise CatalogError("legacy projection policy canonical_path_moves is not exact")
-    if type(overrides) is not dict or not set(overrides) <= baseline_entries.keys():
-        raise CatalogError("legacy projection policy entry_overrides is invalid")
-    for runbook_id, raw_override in overrides.items():
-        if type(raw_override) is not dict or set(raw_override) != set(
-            LEGACY_PROJECTION_FIELDS
-        ):
-            raise CatalogError(
-                f"legacy projection override {runbook_id!r} must define exactly "
-                + ", ".join(LEGACY_PROJECTION_FIELDS)
-            )
-        baseline_entries[runbook_id] = {
-            field: raw_override[field] for field in LEGACY_PROJECTION_FIELDS
-        }
-    allowed_paths = {
-        runbook_id: frozenset(
-            {
-                baseline_path,
-                *(
-                    [canonical_active_path(runbook_id)]
-                    if runbook_id in set(moves)
-                    else []
-                ),
-            }
-        )
-        for runbook_id, baseline_path in baseline_paths.items()
-    }
-    return _ReviewedLegacyProjection(
-        expected=baseline_entries,
-        allowed_paths=allowed_paths,
-    )
-
-
-def _resolve_exact_git_commit(root: Path, revision: str, label: str) -> str:
-    try:
-        resolved = subprocess.run(
-            [
-                "git",
-                "--no-replace-objects",
-                "-C",
-                str(root),
-                "rev-parse",
-                "--verify",
-                f"{revision}^{{commit}}",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    except subprocess.CalledProcessError as exc:
-        raise CatalogError(
-            f"{label} is unavailable: {exc.stderr.strip()}"
-        ) from exc
-    if re.fullmatch(r"[0-9a-f]{40}", revision) is not None and resolved != revision:
-        raise CatalogError(f"{label} resolves to {resolved}, expected exact {revision}")
-    return resolved
-
-
-def _load_projection_policy(path: Path) -> dict[str, Any]:
-    if path.is_symlink() or not path.is_file():
-        raise CatalogError(f"legacy projection policy must be a regular file: {path}")
-    try:
-        payload = path.read_bytes()
-        policy = _strict_json_object(payload, str(path))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise CatalogError(f"legacy projection policy is invalid: {exc}") from exc
-    digest = hashlib.sha256(payload).hexdigest()
-    if digest != LEGACY_PROJECTION_POLICY_SHA256:
-        raise CatalogError(
-            "legacy projection policy digest mismatch: trusted package projection "
-            f"requires {LEGACY_PROJECTION_POLICY_SHA256}, found {digest}"
-        )
-    expected_keys = {
-        "$schema",
-        "canonical_path_moves",
-        "contract_version",
-        "entry_overrides",
-        "expected_population",
-        "rollout_base_sha",
-    }
-    if set(policy) != expected_keys:
-        raise CatalogError("legacy projection policy fields are not exact")
-    if policy.get("contract_version") != "ai.market/legacy-catalog-projection/v1":
-        raise CatalogError("legacy projection policy contract_version is invalid")
-    return policy
-
-
-def _strict_json_object(payload: bytes, label: str) -> dict[str, Any]:
-    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        result: dict[str, Any] = {}
-        for key, value in pairs:
-            if key in result:
-                raise json.JSONDecodeError(f"duplicate key {key!r}", key, 0)
-            result[key] = value
-        return result
-
-    value = json.loads(payload, object_pairs_hook=reject_duplicates)
-    if type(value) is not dict:
-        raise json.JSONDecodeError(f"{label} must be a JSON object", "", 0)
-    return value
-
-
-def _enforce_reviewed_legacy_projection(
-    entries: list[dict[str, Any]],
-    projection: _ReviewedLegacyProjection,
-) -> None:
-    actual: dict[str, dict[str, Any]] = {}
-    for entry in entries:
-        runbook_id = entry.get("runbook_id")
-        if type(runbook_id) is not str:
-            raise CatalogError("catalog projection contains an invalid runbook_id")
-        if runbook_id in actual:
-            raise CatalogError(
-                f"catalog projection contains duplicate runbook_id {runbook_id!r}"
-            )
-        actual[runbook_id] = entry
-    expected_ids = set(projection.expected)
-    actual_ids = set(actual)
-    missing = sorted(expected_ids - actual_ids)
-    unexpected = sorted(actual_ids - expected_ids)
-    if missing or unexpected:
-        details: list[str] = []
-        if missing:
-            details.append("missing=" + ", ".join(missing))
-        if unexpected:
-            details.append("unexpected=" + ", ".join(unexpected))
-        raise CatalogError(
-            "catalog integrity-only legacy population differs from reviewed rollout "
-            "projection: "
-            + "; ".join(details)
-        )
-    errors: list[str] = []
-    for runbook_id in sorted(expected_ids):
-        entry = actual[runbook_id]
-        path = entry.get("path")
-        if path not in projection.allowed_paths[runbook_id]:
-            errors.append(
-                f"{runbook_id}.path {path!r} is not an explicitly reviewed legacy path"
-            )
-        for field in LEGACY_PROJECTION_FIELDS:
-            if entry.get(field) != projection.expected[runbook_id][field]:
-                errors.append(
-                    f"{runbook_id}.{field} differs from reviewed legacy projection"
-                )
-    if errors:
-        raise CatalogError(
-            "catalog integrity-only discovery projection drift: " + "; ".join(errors)
-        )
 
 
 def render_outputs(

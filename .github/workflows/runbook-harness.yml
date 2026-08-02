@@ -11,8 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Catalog admission proves ancestry from the rollout baseline with
-          # replacement objects disabled; a shallow checkout cannot do that.
+          # Exact-pin catalog and corpus validation needs complete ancestry and
+          # object history; a shallow checkout cannot provide that proof.
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}

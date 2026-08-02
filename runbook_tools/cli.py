@@ -24,6 +24,7 @@ from runbook_tools.corpus_manifest import (
     pin_draft_promotion_evidence,
 )
 from runbook_tools.frontmatter import CATALOG_METADATA_FIELDS
+from runbook_tools.git_exec import run_git
 from runbook_tools.harness.dispatch import make_council_request_fn
 from runbook_tools.harness.loader import (
     ConfigurationError,
@@ -889,8 +890,8 @@ def _response_to_dict(response: Response) -> dict[str, Any]:
 
 def _git_head(workdir: Path) -> str | None:
     try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
+        completed = run_git(
+            ["rev-parse", "HEAD"],
             cwd=workdir,
             capture_output=True,
             check=True,

@@ -69,7 +69,7 @@ directory symlinks are rejected rather than followed.
 - Replace every placeholder with grounded content. A strict §K `yaml promotion-evidence` block conforming to `schemas/runbook_promotion_evidence.schema.json` may record preparatory claim/evidence candidates and explicit visible `UNKNOWN` gaps. Free text, section mappings, exact blob identity, tests written by the same author, and the corpus ledger's `verify_against` list are not semantic verification or authority.
 - `runbook-catalog pin-evidence <runbook-id>` mechanically fills Git-blob and SHA-256 digests for preparatory code/test/schema/spec/workflow locators. It keeps the file DRAFT and cannot authorize promotion. If retained for future receipt work, commit the DRAFT and cited sources, add its non-authoritative pending ledger record, then refresh `CORPUS-MANIFEST.yaml` from that exact content commit.
 - `runbook-catalog promote <runbook-id>` is unavailable for every risk class in this snapshot. Trusted claim-bound evidence plus independent review authority is not deployed, so an author-supplied receipt ID/file, reviewer name, unsigned payload, local test, or `UNKNOWN` decoration cannot pass. The future signed receipt shape is `schemas/runbook_promotion_receipt.schema.json`; it intentionally contains no local key or trust pin.
-- Manually changing DRAFT to ACTIVE does not bypass the closure. Every Git repository must contain the exact immutable rollout commit `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and every pinned validation SHA must descend from it under `git --no-replace-objects`. Catalog v2 then requires the exact 20-ID population and the byte-digest-pinned reviewed projection in `schemas/legacy_catalog_projection.policy.json`: IDs, explicitly approved canonical path moves, topics, sections and stable section IDs, aliases, error signatures, and supersession fields are frozen. Any other repository/history, missing member, new ID/topic/signature/alias, unreviewed path, dirty policy bytes, or replacement-ref trick fails closed. Existing content changes remain assist/shadow material only and cannot create semantic or action authority.
+- Changing DRAFT to ACTIVE can make a conformant document mechanically discoverable, but cannot make its claims true or select it for live use. Catalog generation and exact-pin validation keep every semantic and action-authority flag false. The backend-owned activation boundary admits only one reviewed full commit, monotonically; neither a repository author, gateway caller, mutable checkout, nor local policy file can choose that pin. This permits useful runbooks to be added while keeping authorship separate from trust.
 - Validate a runbook: `runbook-lint <path>`
 - After committing source or archive changes, mechanically refresh the ledger from that exact content commit: `python -m runbook_tools.corpus_manifest --refresh-from <full-content-commit-sha>`. The SHA must equal checked-out `HEAD`; the command changes only derived paths, blob IDs, counts, and the inventory pin, validates a temporary candidate, then replaces the canonical ledger atomically. A repository lock plus optimistic compare-and-swap refuses concurrent evidence edits. It never invents or changes adjudication, risk, evidence, or disposition fields.
 - Validate the complete source estate and its pinned Git inventory: `python -m runbook_tools.corpus_manifest`. `CORPUS-MANIFEST.yaml` is a pending adjudication ledger, not authority; every source edit or move must refresh its declared blob and inventory snapshot.
@@ -107,12 +107,12 @@ is required before confirmation. Confirmation is one-shot: its first terminal
 changed or replayed.
 
 The validator's `integrity_pass_unverified` status proves only that a full SHA
-names a self-consistent Git snapshot descended from the rollout baseline and
-matching the frozen legacy discovery projection. The session gateway is the
-target authority for supplying an approved `origin/main` pin and binding
-consultation/gap identifiers to the session. The manual legacy-rollout fallback
-above is diagnostic and temporary, never authority for a caller-minted
-consultation receipt.
+names a self-consistent catalog and corpus snapshot. Runtime reads use the exact
+system Git binary, replacement objects disabled, a fixed non-interactive
+environment, and blobs from that commit; mutable checkout policy cannot alter
+the result. The backend activation service is the sole authority for selecting
+the reviewed live pin. Repository commands remain read-only diagnostics and
+cannot mint a consultation, activate a commit, or grant semantic authority.
 
 The remaining B0 dependency is external: deploy a gateway-controlled,
 claim-bound evidence verifier and independent-review authority bound to the

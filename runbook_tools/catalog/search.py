@@ -4,7 +4,6 @@ import hashlib
 import json
 import math
 import re
-import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -46,6 +45,7 @@ from runbook_tools.corpus_manifest import (
     PinnedCorpusManifest,
     load_pinned_corpus_manifest,
 )
+from runbook_tools.git_exec import run_git
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 _STOP_WORDS = {
@@ -3190,8 +3190,8 @@ def _allocate_batch_response(
 
 
 def _git_show_text(repo_root: Path, sha: str, path: str) -> str:
-    completed = subprocess.run(
-        ["git", "--no-replace-objects", "show", f"{sha}:{path}"],
+    completed = run_git(
+        ["show", f"{sha}:{path}"],
         cwd=repo_root,
         check=False,
         capture_output=True,
@@ -3206,10 +3206,8 @@ def _git_show_text(repo_root: Path, sha: str, path: str) -> str:
 
 
 def _git_blob_oid(repo_root: Path, sha: str, path: str) -> str:
-    completed = subprocess.run(
+    completed = run_git(
         [
-            "git",
-            "--no-replace-objects",
             "ls-tree",
             "-z",
             sha,

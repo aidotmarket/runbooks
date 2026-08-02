@@ -11,11 +11,11 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-import runbook_tools.catalog.generator as catalog_generator
 from runbook_tools.catalog.generator import (
     CATALOG_PATH,
     README_PATH,
     ROUTER_PATH,
+    SCHEMA_VERSION,
     build_catalog,
     is_admitted_source_tree_path,
     is_source_relative_path,
@@ -26,6 +26,7 @@ from runbook_tools.catalog.sections import (
     declared_section_errors,
     parse_markdown_document,
 )
+from runbook_tools.git_exec import run_git
 from runbook_tools.lint.forms import (
     extract_e_entries,
     extract_f_rows,
@@ -110,6 +111,7 @@ def validate_catalog_ref(repo_root: Path, catalog_ref: str) -> ValidationReport:
 def load_validated_catalog(repo_root: Path, catalog_ref: str) -> ValidatedCatalog:
     sha = parse_catalog_ref(catalog_ref)
     root = repo_root.resolve()
+    _require_git_worktree_root(root)
     tree_paths = _git_tree_paths(root, sha)
     if CATALOG_PATH not in tree_paths:
         raise CatalogError(f"{CATALOG_PATH} is missing at pinned SHA {sha}")
@@ -136,17 +138,6 @@ def load_validated_catalog(repo_root: Path, catalog_ref: str) -> ValidatedCatalo
         tree_paths,
         lambda path: _git_show(root, sha, path),
     )
-    entries = catalog.get("entries")
-    projection = catalog_generator._reviewed_legacy_projection(root, revision=sha)
-    if projection is not None and isinstance(entries, list):
-        try:
-            catalog_generator._enforce_reviewed_legacy_projection(
-                [entry for entry in entries if isinstance(entry, dict)],
-                projection,
-            )
-        except CatalogError as exc:
-            errors.append(str(exc))
-
     with tempfile.TemporaryDirectory(prefix="runbook-catalog-validate-") as temporary:
         snapshot = Path(temporary)
         for relative in materialized:
@@ -240,9 +231,9 @@ def _validate_pinned_entries(
     loader: Callable[[str], bytes],
 ) -> tuple[list[str], int]:
     errors: list[str] = []
-    if catalog.get("schema_version") != catalog_generator.SCHEMA_VERSION:
+    if catalog.get("schema_version") != SCHEMA_VERSION:
         errors.append(
-            f"schema_version must be {catalog_generator.SCHEMA_VERSION}"
+            f"schema_version must be {SCHEMA_VERSION}"
         )
     expected_catalog_labels: tuple[tuple[str, object], ...] = (
         ("status", "integrity_pass_unverified"),
@@ -694,11 +685,26 @@ def _git_commit_utc_datetime(repo_root: Path, sha: str) -> datetime:
     return datetime.fromtimestamp(timestamp, tz=UTC)
 
 
+def _require_git_worktree_root(repo_root: Path) -> None:
+    completed = run_git(
+        ["rev-parse", "--show-toplevel"],
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise CatalogError(
+            "catalog repository must be a Git worktree root: "
+            + completed.stderr.strip()
+        )
+    if Path(completed.stdout.strip()).resolve() != repo_root:
+        raise CatalogError("catalog repository path must be the Git worktree root")
+
+
 def _git_tree_paths(repo_root: Path, sha: str) -> set[str]:
-    completed = subprocess.run(
+    completed = run_git(
         [
-            "git",
-            "--no-replace-objects",
             "ls-tree",
             "-r",
             "-z",
@@ -750,8 +756,8 @@ def _git_blob_size(repo_root: Path, sha: str, path: str) -> int:
 
 
 def _git_show(repo_root: Path, sha: str, path: str) -> bytes:
-    completed = subprocess.run(
-        ["git", "--no-replace-objects", "show", f"{sha}:{path}"],
+    completed = run_git(
+        ["show", f"{sha}:{path}"],
         cwd=repo_root,
         check=False,
         capture_output=True,
@@ -763,8 +769,8 @@ def _git_show(repo_root: Path, sha: str, path: str) -> bytes:
 
 
 def _run_git(repo_root: Path, arguments: list[str]) -> subprocess.CompletedProcess[str]:
-    completed = subprocess.run(
-        ["git", "--no-replace-objects", *arguments],
+    completed = run_git(
+        arguments,
         cwd=repo_root,
         check=False,
         capture_output=True,
