@@ -271,7 +271,7 @@ def _promotion_repository(
     )
 
     manifest = {
-        "manifest_version": 1,
+        "manifest_version": 2,
         "purpose": PURPOSE,
         "inventory": {
             "repository": "example/runbooks",
