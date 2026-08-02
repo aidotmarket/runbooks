@@ -1521,7 +1521,7 @@ def test_mixed_active_and_pending_results_share_one_global_relevance_order(
 
     assert result["candidates"]
     assert result["discovery_leads"]
-    assert result["authoritative_gap"] is False
+    assert result["authoritative_gap"] is True
     merged = sorted(
         result["candidates"] + result["discovery_leads"],
         key=lambda item: item["relevance_rank"],
@@ -1529,10 +1529,87 @@ def test_mixed_active_and_pending_results_share_one_global_relevance_order(
     assert [item["relevance_rank"] for item in merged] == list(
         range(1, len(merged) + 1)
     )
+    assert merged[0]["catalog_state"] == "grandfathered"
     assert {item["catalog_state"] for item in merged} >= {
         "ACTIVE",
         "grandfathered",
     }
+
+
+def test_authoritative_gap_tracks_the_best_global_lane_after_allocation() -> None:
+    discovery_pool = [{"relevance_rank": 1}]
+    candidate_pool = [{"relevance_rank": 2}]
+    allocated = {
+        "candidates": [candidate_pool[0]],
+        "discovery_leads": [],
+        "eligible_candidate_count": 1,
+    }
+
+    assert catalog_search._authoritative_gap(candidate_pool, discovery_pool) is True
+    catalog_search._refresh_result_status(
+        allocated,
+        candidate_pool,
+        discovery_pool,
+    )
+    assert allocated["authoritative_gap"] is True
+
+    active_first = [{"relevance_rank": 1}]
+    discovery_second = [{"relevance_rank": 2}]
+    assert catalog_search._authoritative_gap(active_first, discovery_second) is False
+    assert catalog_search._authoritative_gap(active_first, []) is False
+    assert catalog_search._authoritative_gap([], []) is False
+
+
+def test_current_corpus_discovery_first_queries_keep_the_gap_on_the_wire(
+    tmp_path: Path,
+) -> None:
+    _, catalog_ref = _working_tree_pin(tmp_path)
+    cases = [
+        ("restart the MCP gateway safely", "grandfathered", True),
+        (
+            "recover a timed-out build without losing completed work",
+            "grandfathered",
+            True,
+        ),
+        ("deploy ai-market backend and verify it", "grandfathered", True),
+        ("rotate an Infisical secret safely", "grandfathered", True),
+        ("close an AI session after code changes", "grandfathered", True),
+        ("dispatch a peer agent and coordinate inbox messages", "ACTIVE", False),
+    ]
+
+    for start in range(0, len(cases), _MAX_BATCH_QUERIES):
+        group = cases[start : start + _MAX_BATCH_QUERIES]
+        delivery = search_catalog_delivery(
+            tmp_path,
+            catalog_ref,
+            [case[0] for case in group],
+            limit=1,
+        )
+        wire = canonical_json_bytes(delivery.payload, final_newline=True)
+
+        assert delivery.text.encode("utf-8") == wire
+        assert len(wire) == delivery.payload["serialized_bytes"]
+        assert len(wire) <= delivery.payload["response_budget_bytes"] == 40_000
+        assert json.loads(delivery.text) == delivery.payload
+
+        for case, objective in zip(group, delivery.payload["results"], strict=True):
+            query, expected_state, expected_gap = case
+            globally_ranked = sorted(
+                objective["candidates"] + objective["discovery_leads"],
+                key=lambda item: item["relevance_rank"],
+            )
+            assert objective["candidates"], query
+            assert objective["discovery_leads"], query
+            assert globally_ranked[0]["catalog_state"] == expected_state, query
+            assert objective["authoritative_gap"] is expected_gap, query
+            if not expected_gap:
+                continue
+            warning = globally_ranked[0]["warning"]
+            assert warning["code"] == "DISCOVERY_ONLY_NOT_VERIFIED"
+            assert warning["requires_ground_truth_verification"] is True
+            assert warning["message"] == (
+                "DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY"
+            )
 
 
 def test_catalog_manifest_active_set_drift_fails_closed(tmp_path: Path) -> None:

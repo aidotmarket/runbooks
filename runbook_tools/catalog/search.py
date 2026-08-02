@@ -377,6 +377,27 @@ _SECTION_INTENTS: dict[str, frozenset[str]] = {
 }
 
 
+def _authoritative_gap(
+    candidates: Sequence[Mapping[str, Any]],
+    discovery_leads: Sequence[Mapping[str, Any]],
+) -> bool:
+    """Return whether the best globally ranked match is discovery-only.
+
+    The presence of a weaker ACTIVE match does not fill an authority gap for a
+    more relevant grandfathered or archived lead.  Callers must pass the full
+    qualifying pools, rather than only the rows that survived response
+    allocation, so limit or budget decisions cannot erase that signal.
+    """
+
+    if not discovery_leads:
+        return False
+    best_discovery_rank = min(row["relevance_rank"] for row in discovery_leads)
+    if not candidates:
+        return True
+    best_candidate_rank = min(row["relevance_rank"] for row in candidates)
+    return best_discovery_rank < best_candidate_rank
+
+
 def search_catalog(
     repo_root: Path,
     catalog_ref: str,
@@ -935,7 +956,10 @@ def _assemble_r6_objective(
             if discovery_pool
             else "no_qualifying_discovery_lead"
         ),
-        "authoritative_gap": bool(discovery_pool and not candidate_pool),
+        "authoritative_gap": _authoritative_gap(
+            candidate_pool,
+            discovery_pool,
+        ),
         "qualifying_result_count": len(candidate_pool) + len(discovery_pool),
         "eligible_candidate_count": len(candidate_pool),
         "eligible_candidates_returned": len(candidates),
@@ -1528,7 +1552,10 @@ def _search_corpus(
             if discovery_leads
             else "no_discovery_leads_returned"
         ),
-        "authoritative_gap": bool(discovery_leads and not candidates),
+        "authoritative_gap": _authoritative_gap(
+            candidates,
+            discovery_leads,
+        ),
     }
 
 
@@ -2362,6 +2389,8 @@ def _authoring_intent_tokens(query: str) -> list[str]:
 
 def _refresh_result_status(
     result: dict[str, Any],
+    candidate_pool: Sequence[Mapping[str, Any]],
+    discovery_pool: Sequence[Mapping[str, Any]],
 ) -> None:
     candidates = result["candidates"]
     discovery_leads = result["discovery_leads"]
@@ -2376,7 +2405,10 @@ def _refresh_result_status(
         if discovery_leads
         else "no_discovery_leads_returned"
     )
-    result["authoritative_gap"] = bool(discovery_leads and not candidates)
+    result["authoritative_gap"] = _authoritative_gap(
+        candidate_pool,
+        discovery_pool,
+    )
 
 
 def _matching_declarations(
@@ -2822,7 +2854,7 @@ def _sync_result_budget_metadata(
         }
     )
     _sync_state_return_counts(result, candidate_pool, discovery_pool)
-    _refresh_result_status(result)
+    _refresh_result_status(result, candidate_pool, discovery_pool)
     return (
         candidate_budget_omitted
         + discovery_budget_omitted
