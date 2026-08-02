@@ -1,6 +1,6 @@
 # S1413 — All-corpus runbook discovery before authority promotion
 
-Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 3**
+Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 4**
 
 Date: 2026-08-02
 
@@ -18,6 +18,20 @@ Revision history:
   evidence.
 - Revision 3 folds the binding mandates without claiming implementation,
   benchmark acceptance, gateway delivery, activation, or approval.
+- Revision 3 was published at
+  `bef1ca06f6c35753cb451e566b3d3e4e169366a0`. Independent CC review
+  `d0fe03f6` returned raw **REJECT** because the verification-cardinality,
+  aggregate, and whole-response arithmetic could not satisfy the contract.
+  Mandatory MP review `0e98a3a8` independently returned raw **REVISE**,
+  confirmed the wire arithmetic defect, and identified the state/digest
+  contradiction; it found no unsafe authority expansion.
+- Revision 4 folds those binding findings by making the first-plan projection
+  compact, moving the complete verification bundle to a bounded read-only
+  fetch, publishing executable serializer vectors, making the compatibility
+  omission counter exact, and separating state-neutral retrieval identity from
+  state-dependent policy and response identities. It claims no implementation,
+  review approval, benchmark pass, gateway delivery, merge, deployment, or
+  activation.
 
 This contract amends `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md`. Where that
 plan delays discovery until documents are promoted, or makes grandfathered
@@ -148,10 +162,10 @@ The following production constants are reviewed, frozen, and non-configurable:
 | `path`, `effective_inventory_path` | 192 UTF-8 bytes each; portable ASCII Git-path alphabet |
 | manifest batch ID | 128 canonical string bytes |
 | objective query | 4,000 canonical string bytes |
-| `verify_against` | 1..8 items; 512 canonical string bytes each; 1,024 aggregate |
+| `verify_against` | 1..3 items; 120 canonical string bytes each and 120 aggregate |
 | normal corpus excerpt | 2,400 canonical string bytes per item |
 | initial mandatory corpus excerpt | min(full source, 600 canonical string bytes) |
-| supplemental excerpt | 1,200 canonical string bytes |
+| supplemental excerpt | 300 canonical string bytes |
 | exact production response | 40,000 UTF-8 bytes including final newline |
 | production two-objective worst-case proof | at most 32,000 UTF-8 bytes |
 
@@ -160,6 +174,13 @@ There is no separate character ceiling and no 2,048 raw-byte
 that necessarily violate a binding limit; they are not acceptance boundaries.
 Exact-limit and limit-plus-one tests target each binding measure and failure
 stage once.
+
+This release freezes manifest/mapping schema version 2 at one through three
+`verify_against` items per record. All 102 baseline records conform: 101 have
+exactly two, `bq-124-retro-verification.md` has exactly three, none has more
+than three, and the largest aggregate canonical JSON-string payload is 120 J.
+A future record requiring a fourth item or more requires a separately reviewed
+schema version and exact byte proof; it MUST NOT silently widen version 2.
 
 Aggregate resource accounting MUST charge each manifest record/path once even
 when two paths legally name the same OID. Transport may materialize one OID
@@ -235,8 +256,10 @@ fabricate, every section/heading/line field marked section-only in section 6.
 
 Each discovery lead carries the exact non-truncatable warning
 `DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY`, its manifest risk and
-batch, and the complete ordered `verify_against` projection. The warning
-precedes quoted document text at non-instruction precedence.
+batch, its requirement count, its verification-bundle digest, and an
+authenticated bounded bundle reference. The warning precedes quoted document
+text at non-instruction precedence. The first-plan response does not inline
+verification prose or adapter data.
 
 Free prose is preserved verbatim, ordered, and one-to-one but is not executable
 verification. Manifest schema version 2 MUST author and review a structured
@@ -269,23 +292,41 @@ reviewer name, attestation, caller prose, or free-form evidence may manufacture
 a mapping. Future mappings require immutable manifest/schema review and remain
 one-to-one and digest-bound.
 
-The gateway handshake remains server-bound:
+The gateway handshake remains server-bound and has three steps:
 
 1. The first plan search returns server-selected results and performs zero
    state writes. A discovery result receives an authenticated
    `discovery_lead_id` bound to session, objective digest, runbooks SHA,
-   manifest digest, blob, excerpt digest, and expiry.
-2. While a selected discovery lead is unconfirmed, the session permits only
-   bounded read-only inspection and registered production-safe verification.
-3. A dedicated call accepts the lead ID and adapter receipts. It validates
-   exact requirement bindings, freshness, remote identity, evidence policy,
-   and one distinct result per requirement.
-4. It returns a signed `discovery_verification_receipt_id` with outcome
+   inventory SHA, manifest digest, blob, discovery digest, retrieval digest,
+   excerpt digest, discovery rank, and expiry. Its compact warning contains
+   `requirement_count`, `verification_bundle_digest`, and a separate
+   authenticated `verification_bundle_ref` bound to that same session,
+   objective, catalog SHA, inventory SHA, manifest digest, source blob,
+   discovery lead, bundle digest, and expiry. The reference accepts no caller
+   verification prose or adapter data, grants no authority, and is bounded to
+   192 J.
+2. A separate read-only server call accepts only the unmodified authenticated
+   `verification_bundle_ref`. It validates the signature, expiry, session, and
+   every immutable binding before returning the complete ordered one-to-one
+   bundle described in section 6.5. It returns all one through three
+   requirements in one closed response. Omission, truncation, paraphrase,
+   caller substitution, and pagination are forbidden in this release. A
+   failed fetch mints no usable verification state. While a selected discovery
+   lead is unconfirmed, the session permits only this bounded read and
+   registered production-safe verification.
+3. A dedicated confirmation call accepts the lead ID, the exact fetched
+   `verification_bundle_digest`, immutable `requirement_id` values, and adapter
+   receipts. Server state MUST prove that this exact bundle was fetched and
+   validated for the same live binding before any receipt is evaluated. The
+   call validates exact requirement bindings, freshness, remote identity,
+   evidence policy, and one distinct result per requirement. It returns a
+   signed `discovery_verification_receipt_id` with outcome
    `confirmed_for_objective`, `contradicted`, or `insufficient`.
-5. Confirmation requires fresh sufficient trusted evidence for every mapped
+4. Confirmation requires fresh sufficient trusted evidence for every mapped
    requirement, no unmapped item, and no missing, stale, reused, substituted,
    contradicted, or insufficient outcome. The receipt is usable only for its
-   bound session, objective, snapshot, blob, and excerpt.
+   bound session, objective, activation identity, blob, retrieval digest,
+   bundle digest, requirement IDs, and excerpt.
 
 Archived leads can never be confirmed as current instructions. Contradicted or
 insufficient leads expose the authoritative gap and remain read-only.
@@ -300,23 +341,41 @@ strings/lists. `J` means canonical string bytes from section 3; `U` means total
 UTF-8 bytes in the exact serializer. Integers are canonical non-negative JSON
 integers with no leading zeros. Fixed enums are serialized exactly as listed.
 
-Digest bindings are:
+Digest bindings form two explicit layers:
 
 - `delivery_digest`: SHA-256 of the final wire envelope with that value replaced
   by 64 ASCII zeroes;
-- `corpus_projection_digest`: SHA-256 of the finalized corpus-only objective
-  projection, excluding supplemental guidance and whole-response size/digest;
+- `retrieval_digest`: a domain-separated SHA-256 of only the state-neutral
+  retrieval projection: source blob, path, unit kind and unit identity,
+  qualification and match evidence, common score, global rank/order, exact
+  delivered excerpt bytes and depth/truncation coordinates, and title/heading
+  identities. It excludes catalog commit, manifest/activation identity,
+  catalog state, status, owner, declarations, authority eligibility/admission,
+  warnings, ACTIVE/discovery kind, kind-specific identities, and every other
+  policy-derived field;
+- `candidate_digest`, `discovery_digest`, and `warning_id`: domain-separated
+  state-dependent digests binding the retrieval digest plus exact catalog SHA,
+  manifest digest, inventory activation identity, catalog state/status,
+  authority booleans, warning policy, and every applicable kind-specific field;
+- `corpus_response_digest`: SHA-256 of the finalized state-dependent corpus-only
+  objective projection, including its retrieval and policy/result digests but
+  excluding supplemental guidance and whole-response size/digest;
 - `objective_digest`: SHA-256 of the versioned normalized objective;
-- `candidate_digest`, `discovery_digest`, `guidance_digest`, warning IDs,
-  requirement IDs, and mapping digests: domain-separated SHA-256 over every
-  identity named for that object in this contract; and
+- `verification_bundle_digest`, requirement IDs, and mapping digests:
+  domain-separated SHA-256 over the exact closed ordered bundle or identity
+  named in sections 5 and 6.5; `guidance_digest` binds only the immutable README
+  identity and supplemental projection; and
 - all `*_sha256` fields: lowercase 64-hex SHA-256 of the exact named bytes.
+
+No state-dependent digest is valid under a different activation identity or
+catalog state, even when its retrieval digest is unchanged. A policy/result
+digest from an old authority state MUST fail under the new state.
 
 ### 6.1 Envelope and objective fields
 
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `schema_version` | integer `3` | 1 digit | mandatory once | no | delivery | frozen gateway schema |
+| `schema_version` | integer `4` | 1 digit | mandatory once | no | delivery | frozen gateway schema |
 | `catalog_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + corpus | resolved immutable search commit |
 | `manifest_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + corpus | manifest blob bytes |
 | `inventory_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + corpus | validated manifest inventory |
@@ -326,7 +385,7 @@ Digest bindings are:
 | `complete` | boolean, always true on success | 4 bytes | mandatory once | no | delivery + corpus | allocator |
 | `response_budget_bytes` | integer `40000` | 5 digits | mandatory once | no | delivery | frozen limits singleton |
 | `response_budget_truncated` | boolean | 5 bytes | mandatory once | no | delivery + corpus | corpus allocator only |
-| `dropped_candidate_count` | integer 0..8 | 1 digit | mandatory once; deprecated compatibility counter | no | delivery + corpus | sum of omitted corpus results |
+| `dropped_candidate_count` | integer 0..1999998 | 7 digits | mandatory once; deprecated compatibility counter | no | delivery + corpus | exact equation below |
 | `serialized_bytes` | integer 0..40000 | 5 digits | mandatory once | no | delivery | exact final wire |
 | `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | self rule above | exact final wire |
 
@@ -334,38 +393,54 @@ Digest bindings are:
 |---|---|---:|---|---|---|---|
 | `objective_ordinal` | integer 1..2 | 1 digit | mandatory once/objective | no | delivery + corpus | request order |
 | `objective_digest` | lowercase hex string | 64 J | mandatory once/objective | no | delivery + corpus | normalized objective |
-| `status` | enum: `candidates_returned_unverified`, `no_positive_candidate_in_active_catalog`, `no_usable_corpus_result_response_budget`, `no_relevant_result` | 44 J | mandatory once/objective | no | delivery + corpus | authority policy + allocator |
-| `discovery_status` | enum: `discovery_leads_returned_unverified`, `no_qualifying_discovery_lead` | 37 J | mandatory once/objective | no | delivery + corpus | discovery lane |
+| `status` | enum: `candidates_returned_unverified`, `no_positive_candidate_in_active_catalog`, `no_usable_corpus_result_response_budget`, `no_relevant_result` | 39 J | mandatory once/objective | no | delivery + corpus | authority policy + allocator |
+| `discovery_status` | enum: `discovery_leads_returned_unverified`, `no_qualifying_discovery_lead` | 35 J | mandatory once/objective | no | delivery + corpus | discovery lane |
 | `authoritative_gap` | boolean | 5 bytes | mandatory once/objective | no | delivery + corpus | ACTIVE/discovery qualification |
 | `qualifying_result_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
-| `eligible_candidate_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | ACTIVE policy evaluator |
+| `eligible_candidate_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | ACTIVE policy evaluator |
 | `eligible_candidates_returned` | integer 0..4 | 1 digit | mandatory once/objective | no | delivery + corpus | allocator |
-| `eligible_candidates_omitted_by_limit` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
-| `eligible_candidates_omitted_by_response_budget` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
+| `eligible_candidates_omitted_by_limit` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
+| `eligible_candidates_omitted_by_response_budget` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
 | `active_searched_count` | integer 0..20 | 2 digits | mandatory once/objective | no | delivery + corpus | snapshot/ranker |
-| `active_qualifying_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
+| `active_qualifying_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
 | `active_returned_count` | integer 0..4 | 1 digit | mandatory once/objective | no | delivery + corpus | allocator |
-| `active_omitted_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
+| `active_omitted_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
 | `grandfathered_searched_count` | integer 0..81 | 2 digits | mandatory once/objective | no | delivery + corpus | snapshot/ranker |
-| `grandfathered_qualifying_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
+| `grandfathered_qualifying_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
 | `grandfathered_returned_count` | integer 0..4 | 1 digit | mandatory once/objective | no | delivery + corpus | allocator |
-| `grandfathered_omitted_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
+| `grandfathered_omitted_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
 | `archived_searched_count` | integer 0..1 | 1 digit | mandatory once/objective | no | delivery + corpus | snapshot/ranker |
-| `archived_qualifying_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
+| `archived_qualifying_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | ranker |
 | `archived_returned_count` | integer 0..1 | 1 digit | mandatory once/objective | no | delivery + corpus | allocator |
-| `archived_omitted_count` | integer 0..999999 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
+| `archived_omitted_count` | integer 0..333333 | 6 digits | mandatory once/objective | no | delivery + corpus | allocator |
 | `candidates` | array of ACTIVE result objects | 0..4 items | mandatory once/objective | items no | delivery + corpus | global results filtered ACTIVE |
 | `discovery_leads` | array of discovery result objects | 0..4 items | mandatory once/objective | items no | delivery + corpus | global results filtered non-ACTIVE |
 | `supplemental_guidance` | array of supplemental objects | 0..1 item | mandatory once/objective | whole item may be omitted | delivery only | residual allocator |
 | `supplemental_guidance_returned` | boolean | 5 bytes | mandatory once/objective | no | delivery only | residual allocator |
 | `supplemental_guidance_omitted_by_response_budget` | boolean | 5 bytes | mandatory once/objective | no | delivery only | residual allocator |
-| `corpus_projection_digest` | lowercase hex string | 64 J | mandatory once/objective | no | delivery + corpus | frozen corpus serialization |
+| `corpus_response_digest` | lowercase hex string | 64 J | mandatory once/objective | no | delivery + corpus | frozen state-dependent corpus serialization |
 
 The two lane arrays have a joint maximum of four corpus results per objective;
 neither array's individual maximum permits more than four in their union. The
 validated request `query` is deliberately not echoed by the final gateway; its
 4,000-J input boundary is enforced before reads and `objective_digest` is the
 wire identity.
+
+For objective `o`, each state obeys
+`state_omitted_count = state_qualifying_count - state_returned_count`, and
+`qualifying_result_count` equals the sum of the three state qualifying counts
+and is at most 999,999. The envelope compatibility field is exactly
+`dropped_candidate_count = sum_o(active_omitted_count +
+grandfathered_omitted_count + archived_omitted_count)`. Its true two-objective
+maximum is 1,999,998. It MUST NOT be clamped, saturated, approximated, or
+disagree with any per-state counter. Zero, 1,999,998, and 1,999,999 overflow
+are exact tests.
+
+The ACTIVE compatibility counters also obey
+`eligible_candidate_count = eligible_candidates_returned +
+eligible_candidates_omitted_by_limit +
+eligible_candidates_omitted_by_response_budget`; neither omission field may
+double-count an ACTIVE result.
 
 ### 6.2 Common corpus result and evidence fields
 
@@ -375,135 +450,181 @@ are all present for `unit_kind=section` and all absent for
 
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `relevance_rank` | integer 1..999999 | 6 digits | mandatory once/result | no | result digest + corpus | state-neutral ranker |
-| `path` | portable ASCII Git-path string | 192 UTF-8 bytes | mandatory once/result | no | result digest + corpus | validated manifest/catalog path |
-| `candidate_kind` | enum: `active_catalog_section`, `active_catalog_document`, `grandfathered_discovery_lead`, `archived_discovery_lead` | 32 J | mandatory once/result | no | result digest + corpus | catalog/manifest state + unit |
-| `catalog_state` | enum `ACTIVE`, `grandfathered`, `archived` | 13 J | mandatory once/result | no | result digest + corpus | validated catalog/manifest |
-| `status` | enum `ACTIVE`, `pending_verification`, `archived` | 20 J | mandatory once/result | no | result digest + corpus | validated catalog/manifest |
-| `action_authority_eligible` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | catalog policy; false for discovery |
-| `authority_admission` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | catalog policy; false for discovery |
-| `candidate_id_eligible` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | catalog policy; false for discovery |
-| `catalog_declared` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | exact section declaration match |
-| `declaration_kinds` | ordered unique enum array of `topic`, `error_signature` | 0..2 items; 31 U | mandatory once/result | no | result digest + corpus | catalog declarations |
-| `integrity_only` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | catalog policy; true for discovery |
-| `integrity_status` | enum `integrity_pass_unverified` | 27 J | mandatory once/result | no | result digest + corpus | immutable loader |
-| `semantic_verification` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | catalog/verification policy |
-| `unit_kind` | enum `section`, `document` | 8 J | mandatory once/result | no | result digest + corpus | parser |
-| `document_title` | string | 160 J | mandatory once/result | longest source-faithful prefix allowed | result digest + corpus | exact H1/title |
-| `document_title_sha256` | lowercase hex string | 64 J | mandatory once/result | no | result digest + corpus | full untruncated H1/title |
-| `document_title_truncated` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | title bounding |
-| `heading` | string | 160 J | section-only once | longest source-faithful prefix allowed | result digest + corpus | exact Markdown heading |
-| `heading_sha256` | lowercase hex string | 64 J | section-only once | no | result digest + corpus | full heading |
-| `heading_truncated` | boolean | 5 bytes | section-only once | no | result digest + corpus | heading bounding |
-| `heading_line` | integer 1..999999 | 6 digits | section-only once | no | result digest + corpus | Markdown parser |
-| `section_id` | string | 96 J | section-only once | deterministic prefix+digest allowed | result digest + corpus | catalog ID or frozen derivation |
-| `section_id_source` | enum `catalog`, `legacy-derived` | 14 J | section-only once | no | result digest + corpus | catalog/parser |
-| `excerpt_start_line` | integer 1..999999 | 6 digits | mandatory once/result | no | result digest + corpus | source line map |
-| `excerpt_end_line` | integer 1..999999 | 6 digits | mandatory once/result | no | result digest + corpus | source line map |
-| `excerpt_end_column_exclusive` | integer 1..999999 | 6 digits | mandatory once/result | no | result digest + corpus | source line map |
-| `excerpt` | string | initial 600 J; residual growth to 2,400 J | mandatory once/result | source-faithful prefix only | excerpt digest + result + corpus | pinned source blob |
-| `excerpt_sha256` | lowercase hex string | 64 J | mandatory once/result | no | result digest + corpus | delivered excerpt bytes |
-| `excerpt_truncated` | boolean | 5 bytes | mandatory once/result | no | result digest + corpus | excerpt allocator |
-| `match_evidence` | array of match-evidence objects | 0..4 items; 512 U aggregate | mandatory once/result | list may truncate only after qualification; flag per object | result digest + corpus | production scorer |
-| `relevance_evidence` | array of enum `path`, `title`, `heading`, `phrase`, `structured_literal`, `token_threshold`, `single_strong_token` | 1..7 items; 128 U | mandatory once/result | no | result digest + corpus | state-neutral qualifier |
-| `score` | JSON number 0..999999.999999, max 6 decimals | 13 bytes | mandatory once/result | no | result digest + corpus | common scorer |
-| `catalog_sha` | lowercase hex string | 40 J | mandatory once/result | no | result digest + corpus | envelope search SHA |
-| `manifest_sha256` | lowercase hex string | 64 J | mandatory once/result | no | result digest + corpus | envelope manifest digest |
-| `inventory_sha` | lowercase hex string | 40 J | mandatory once/result | no | result digest + corpus | envelope inventory SHA |
-| `source_blob_oid` | lowercase SHA-1 or SHA-256 hex | 64 J | mandatory once/result | no | result digest + corpus | validated Git object |
+| `retrieval_digest` | lowercase hex string | 64 J | mandatory once/result | no | retrieval self digest + policy result + corpus response | state-neutral projection above |
+| `relevance_rank` | integer 1..999999 | 6 digits | mandatory once/result | no | retrieval + corpus response | state-neutral ranker |
+| `path` | portable ASCII Git-path string | 192 UTF-8 bytes | mandatory once/result | no | retrieval + corpus response | validated manifest/catalog path |
+| `candidate_kind` | enum: `active_catalog_section`, `active_catalog_document`, `grandfathered_discovery_lead`, `archived_discovery_lead` | 28 J | mandatory once/result | no | policy result + corpus response | catalog/manifest state + unit |
+| `catalog_state` | enum `ACTIVE`, `grandfathered`, `archived` | 13 J | mandatory once/result | no | policy result + corpus response | validated catalog/manifest |
+| `status` | enum `ACTIVE`, `pending_verification`, `archived` | 20 J | mandatory once/result | no | policy result + corpus response | validated catalog/manifest |
+| `action_authority_eligible` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | catalog policy; false for discovery |
+| `authority_admission` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | catalog policy; false for discovery |
+| `candidate_id_eligible` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | catalog policy; false for discovery |
+| `catalog_declared` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | exact section declaration match |
+| `declaration_kinds` | ordered unique enum array of `topic`, `error_signature` | 0..2 items; 27 U | mandatory once/result | no | policy result + corpus response | catalog declarations |
+| `integrity_only` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | catalog policy; true for discovery |
+| `integrity_status` | enum `integrity_pass_unverified` | 25 J | mandatory once/result | no | policy result + corpus response | immutable loader |
+| `semantic_verification` | boolean | 5 bytes | mandatory once/result | no | policy result + corpus response | catalog/verification policy |
+| `unit_kind` | enum `section`, `document` | 8 J | mandatory once/result | no | retrieval + corpus response | parser |
+| `document_title` | string | 64 J | mandatory once/result | longest source-faithful prefix allowed | retrieval + corpus response | exact H1/title |
+| `document_title_sha256` | lowercase hex string | 64 J | mandatory once/result | no | retrieval + corpus response | full untruncated H1/title |
+| `document_title_truncated` | boolean | 5 bytes | mandatory once/result | no | retrieval + corpus response | title bounding |
+| `heading` | string | 64 J | section-only once | longest source-faithful prefix allowed | retrieval + corpus response | exact Markdown heading |
+| `heading_sha256` | lowercase hex string | 64 J | section-only once | no | retrieval + corpus response | full heading |
+| `heading_truncated` | boolean | 5 bytes | section-only once | no | retrieval + corpus response | heading bounding |
+| `heading_line` | integer 1..999999 | 6 digits | section-only once | no | retrieval + corpus response | Markdown parser |
+| `section_id` | string | 64 J | section-only once | deterministic prefix+digest allowed | retrieval + corpus response | catalog ID or frozen derivation |
+| `section_id_source` | enum `catalog`, `legacy-derived` | 14 J | section-only once | no | retrieval + corpus response | catalog/parser |
+| `excerpt_start_line` | integer 1..999999 | 6 digits | mandatory once/result | no | retrieval + corpus response | source line map |
+| `excerpt_end_line` | integer 1..999999 | 6 digits | mandatory once/result | no | retrieval + corpus response | source line map |
+| `excerpt_end_column_exclusive` | integer 1..999999 | 6 digits | mandatory once/result | no | retrieval + corpus response | source line map |
+| `excerpt` | string | initial 600 J; residual growth to 2,400 J | mandatory once/result | source-faithful prefix only | retrieval + corpus response | pinned source blob |
+| `excerpt_sha256` | lowercase hex string | 64 J | mandatory once/result | no | retrieval + corpus response | delivered excerpt bytes |
+| `excerpt_truncated` | boolean | 5 bytes | mandatory once/result | no | retrieval + corpus response | excerpt allocator |
+| `match_evidence` | array of match-evidence objects | 0..1 item | mandatory once/result | list may truncate only after qualification; flag per object | retrieval + corpus response | production scorer |
+| `relevance_evidence` | array of enum `path`, `title`, `heading`, `phrase`, `structured_literal`, `token_threshold`, `single_strong_token` | 1..7 items; 96 U | mandatory once/result | no | retrieval + corpus response | state-neutral qualifier |
+| `score` | JSON number 0..999999.999999, max 6 decimals | 13 bytes | mandatory once/result | no | retrieval + corpus response | common scorer |
+| `source_blob_oid` | lowercase SHA-1 or SHA-256 hex | 64 J | mandatory once/result | no | retrieval + policy result + corpus response | validated Git object |
 
-Each `match_evidence` object is closed and contains exactly: `kind` (enum
-`path`, `title`, `heading`, `excerpt`, `structured_literal`, `intent`, or
-`legacy_active`, max 18 J); `matched_tokens` (0..12 strings, each max 32 J and
-256 J aggregate); `matched_tokens_truncated` (boolean); `value` (max 160 J,
-source-faithful prefix truncation allowed); and `weight` (JSON number
-0..9999.999999, max 11 bytes). It repeats at most four times and is bound by
-the result digest and corpus projection.
+Each `match_evidence` object is closed and contains every field below. It
+repeats at most once.
+
+| Literal match-evidence field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Digest binding | Production source of truth |
+|---|---|---:|---|---|---|---|
+| `kind` | enum `path`, `title`, `heading`, `excerpt`, `structured_literal`, `intent`, `legacy_active` | 18 J | mandatory once | no | retrieval + corpus response | production scorer |
+| `matched_tokens` | array of strings | 0..4 strings; 24 J/item and 96 J aggregate | mandatory once | items no | retrieval + corpus response | normalized query/source token intersection |
+| `matched_tokens_truncated` | boolean | 5 bytes | mandatory once | no | retrieval + corpus response | scorer evidence bounder |
+| `value` | string | 96 J | mandatory once | longest source-faithful prefix | retrieval + corpus response | pinned source/scorer evidence |
+| `weight` | JSON number 0..9999.999999, max 6 decimals | 11 bytes | mandatory once | no | retrieval + corpus response | frozen common scorer |
 
 ### 6.3 ACTIVE-only fields
 
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `candidate_digest` | lowercase hex string | 64 J | mandatory once/ACTIVE result | no | domain-separated self digest + corpus | immutable ACTIVE identity |
-| `runbook_id` | string | 96 J | mandatory once/ACTIVE result | no | candidate + corpus | validated catalog |
-| `owner` | enum `vulcan`, `mars`, `kd`, `mp`, `max` | 6 J | mandatory once/ACTIVE result | no | candidate + corpus | validated catalog |
-| `last_verified_at` | RFC-3339 full-date string | 10 J | mandatory once/ACTIVE result | no | candidate + corpus | validated catalog |
-| `authority_keys` | ordered unique string array | 0..8; each 128 J; 512 J aggregate | mandatory once/ACTIVE result | entries/prefixes may truncate with flag | candidate + corpus | catalog declarations |
-| `authority_keys_truncated` | boolean | 5 bytes | mandatory once/ACTIVE result | no | candidate + corpus | authority-key bounding |
-| `rank` | integer 1..999999 or null | 6 digits | mandatory once/ACTIVE result; legacy within-lane rank | no | candidate + corpus | compatibility ranker |
+| `candidate_digest` | lowercase hex string | 64 J | mandatory once/ACTIVE result | no | state-dependent candidate self digest + corpus response | immutable ACTIVE policy identity |
+| `runbook_id` | string | 64 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
+| `owner` | enum `vulcan`, `mars`, `kd`, `mp`, `max` | 6 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
+| `last_verified_at` | RFC-3339 full-date string | 10 J | mandatory once/ACTIVE result | no | candidate + corpus response | validated catalog |
+| `authority_keys` | ordered unique string array | 0..2; each 64 J; 128 J aggregate | mandatory once/ACTIVE result | entries/prefixes may truncate with flag | candidate + corpus response | catalog declarations |
+| `authority_keys_truncated` | boolean | 5 bytes | mandatory once/ACTIVE result | no | candidate + corpus response | authority-key bounding |
+| `rank` | integer 1..999999 or null | 6 digits | mandatory once/ACTIVE result; legacy within-lane rank | no | candidate + corpus response | compatibility ranker |
 
 ACTIVE results MUST omit all discovery-only fields.
 
-### 6.4 Discovery warning, identity, and verification fields
+### 6.4 Compact discovery warning and identity fields
 
-Each discovery result contains exactly one nested `warning`; because the
-warning is part of the lead object, its one canonical requirement projection
-is carried by both the warning and lead without byte-duplicating prose.
+Each discovery result contains exactly one compact nested `warning`. It carries
+the bundle identity and reference but no verification prose, adapter type,
+adapter parameters, evidence policy, receipt, or caller field.
 
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `discovery_digest` | lowercase hex string | 64 J | mandatory once/discovery | no | domain-separated self digest + corpus | immutable discovery identity |
-| `discovery_lead_id` | authenticated string | 192 J | mandatory once/delivered discovery | no | server signature + corpus | gateway issuer |
-| `requires_ground_truth_verification` | boolean, always true | 4 bytes | mandatory once/discovery | no | discovery + corpus | fixed policy |
-| `historical_only` | boolean | 5 bytes | mandatory once/discovery | no | discovery + corpus | manifest state |
-| `manifest_risk` | enum `P0`, `P1`, `P2`, `P3` | 2 J | mandatory once/discovery | no | discovery + corpus | manifest record |
-| `manifest_batch` | string | 64 J | mandatory once/discovery | no | discovery + corpus | manifest record |
-| `warning` | closed warning object below | 1 item | mandatory once/discovery | no | discovery + corpus | gateway policy renderer |
+| `discovery_digest` | lowercase hex string | 64 J | mandatory once/discovery | no | state-dependent discovery self digest + corpus response | immutable discovery policy identity |
+| `discovery_lead_id` | authenticated string | 192 J | mandatory once/delivered discovery | no | discovery + corpus response | gateway issuer |
+| `requires_ground_truth_verification` | boolean, always true | 4 bytes | mandatory once/discovery | no | discovery + corpus response | fixed policy |
+| `historical_only` | boolean | 5 bytes | mandatory once/discovery | no | discovery + corpus response | manifest state |
+| `manifest_risk` | enum `P0`, `P1`, `P2`, `P3` | 2 J | mandatory once/discovery | no | discovery + corpus response | manifest record |
+| `manifest_batch` | string | 128 J | mandatory once/discovery | no | discovery + corpus response | manifest record |
+| `warning` | closed compact warning object below | 1 item | mandatory once/discovery | no | warning + discovery + corpus response | gateway policy renderer |
 
-The warning object contains every listed field and no others:
+The compact warning object contains every listed field and no others:
 
 | Literal warning field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `warning_id` | lowercase hex string | 64 J | mandatory once/warning | no | warning self digest + corpus | gateway renderer |
-| `code` | enum `DISCOVERY_ONLY_NOT_VERIFIED` | 27 J | mandatory once/warning | no | warning + corpus | fixed policy |
-| `message` | exact `DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY` | 54 J | mandatory once/warning | no | warning + corpus | fixed policy |
-| `catalog_state` | enum `grandfathered`, `archived` | 13 J | mandatory once/warning | no | warning + corpus | parent discovery result |
-| `manifest_risk` | enum `P0`, `P1`, `P2`, `P3` | 2 J | mandatory once/warning | no | warning + corpus | manifest record |
-| `requires_ground_truth_verification` | boolean true | 4 bytes | mandatory once/warning | no | warning + corpus | fixed policy |
-| `verification_requirements` | ordered array of closed objects below | 1..8 items; 5,120 U aggregate | mandatory once/warning | no | warning + discovery + corpus | manifest mappings |
-
-Every `verification_requirement` contains all fields below. The array preserves
-the exact manifest order. Its prose aggregate is independently capped at 1,024
-J, adapter-parameter aggregate at 1,280 U, evidence-policy aggregate at 768 U,
-and whole requirement-array aggregate at 5,120 U per discovery result.
-
-| Literal requirement field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
-|---|---|---:|---|---|---|---|
-| `schema_version` | integer `1` | 1 digit | mandatory once/requirement | no | requirement + mapping | frozen mapping schema |
-| `ordinal` | integer 1..8 | 1 digit | mandatory once/requirement | no | requirement + mapping | manifest list position |
-| `prose` | string | 512 J; 1,024 J array aggregate | mandatory once/requirement | no | prose digest + requirement | verbatim `verify_against` item |
-| `prose_sha256` | lowercase hex string | 64 J | mandatory once/requirement | no | requirement + mapping | exact prose bytes |
-| `requirement_id` | lowercase hex string | 64 J | mandatory once/requirement | no | self + warning + discovery | path/ordinal/prose/manifest/blob/objective/session/SHA |
-| `mapping_digest` | lowercase hex string | 64 J | mandatory once/requirement | no | self + requirement | adapter type, params, policy, schema |
-| `adapter_type` | frozen enum from section 5 | 19 J | mandatory once/requirement | no | mapping + requirement | reviewed manifest mapping |
-| `adapter_parameters` | adapter-specific closed object | 640 U/item; 1,280 U array aggregate | mandatory once/requirement | no | mapping + requirement | reviewed manifest mapping |
-| `evidence_policy` | closed object below | 256 U/item; 768 U array aggregate | mandatory once/requirement | no | mapping + requirement | reviewed manifest mapping |
-
-Adapter parameter objects are closed by type:
-
-| `adapter_type` | Exact literal parameter fields and maxima |
-|---|---|
-| `git_object_v1` | `repository` string <=64 J; `commit_sha` 40 J lowercase hex; `path` portable ASCII <=192 UTF-8 bytes; `expected_object_oid` 40 or 64 J lowercase hex |
-| `json_schema_v1` | `repository` <=64 J; `commit_sha` 40 J; `path` portable ASCII <=192 UTF-8 bytes; `json_pointer` <=128 J; `expected_value_sha256` 64 J |
-| `health_probe_v1` | `service_id` <=64 J; `probe_id` <=96 J; `max_age_seconds` integer 0..86400 |
-| `test_result_v1` | `repository` <=64 J; `commit_sha` 40 J; `test_id` <=128 J; `report_sha256` 64 J |
-| `state_read_v1` | `namespace` <=64 J; `entity_key` <=128 J; `field_path` <=128 J; `expected_value_sha256` 64 J |
-| `production_probe_v1` | `service_id` <=64 J; `probe_id` <=96 J; `max_age_seconds` integer 0..86400 |
-| `unmapped_prose` | no fields; exact object `{}` |
-
-The 640-U per-item cap still applies; therefore a syntactically valid object
-whose listed maxima combine above 640 U is rejected during manifest validation,
-not truncated. The evidence-policy object contains exactly:
-`minimum_receipts` (integer 1..4), `maximum_receipts` (integer 1..4 and not less
-than minimum), `freshness_seconds` (integer 0..86400),
-`allowed_evidence_kinds` (ordered unique array of 1..4 enums `git`, `schema`,
-`health`, `test`, `state`, `probe`, 40 U aggregate),
-`require_remote_identity` (boolean), and `require_distinct_sources` (boolean).
+| `warning_id` | lowercase hex string | 64 J | mandatory once/warning | no | state-dependent warning self digest + discovery + corpus response | gateway renderer |
+| `code` | enum `DISCOVERY_ONLY_NOT_VERIFIED` | 27 J | mandatory once/warning | no | warning + discovery + corpus response | fixed policy |
+| `message` | exact `DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY` | 54 J | mandatory once/warning | no | warning + discovery + corpus response | fixed policy |
+| `catalog_state` | enum `grandfathered`, `archived` | 13 J | mandatory once/warning | no | warning + discovery + corpus response | parent discovery result |
+| `manifest_risk` | enum `P0`, `P1`, `P2`, `P3` | 2 J | mandatory once/warning | no | warning + discovery + corpus response | manifest record |
+| `requires_ground_truth_verification` | boolean true | 4 bytes | mandatory once/warning | no | warning + discovery + corpus response | fixed policy |
+| `requirement_count` | integer 1..3 | 1 digit | mandatory once/warning | no | warning + bundle + discovery + corpus response | validated manifest list count |
+| `verification_bundle_digest` | lowercase hex string | 64 J | mandatory once/warning | no | warning + discovery + corpus response | closed ordered bundle projection |
+| `verification_bundle_ref` | authenticated string | 192 J | mandatory once/warning | no | warning + discovery + corpus response | gateway issuer using section 5 claims |
 
 Discovery results MUST omit `candidate_digest`, `runbook_id`, `owner`,
-`last_verified_at`, `authority_keys`, `authority_keys_truncated`, and `rank`.
+`last_verified_at`, `authority_keys`, `authority_keys_truncated`, `rank`, and
+the full `verification_requirements` array. The compact reference and digest
+are not verification evidence and grant no authority.
 
-### 6.5 Supplemental guidance fields and production exclusions
+### 6.5 Complete read-only verification-bundle response
+
+The bundle-fetch response uses the same exact serializer as the first-plan
+response but is a separate closed envelope with a hard maximum of 8,192 U,
+including its final newline. It contains every field below and no first-plan,
+supplemental, control, receipt, or unknown field:
+
+| Literal bundle-envelope field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Digest binding | Production source of truth |
+|---|---|---:|---|---|---|---|
+| `schema_version` | integer `1` | 1 digit | mandatory once | no | delivery + bundle | frozen bundle wire schema |
+| `response_kind` | exact `verification_bundle` | 19 J | mandatory once | no | delivery + bundle | fixed server value |
+| `catalog_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `manifest_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `inventory_sha` | lowercase hex string | 40 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `objective_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `source_blob_oid` | lowercase Git OID | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `discovery_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `discovery_lead_id` | authenticated string | 192 J | mandatory once | no | delivery + bundle | authenticated reference claim |
+| `verification_bundle_ref_sha256` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle | exact presented authenticated reference bytes |
+| `verification_bundle_digest` | lowercase hex string | 64 J | mandatory once | no | delivery + bundle self projection | rule below |
+| `requirement_count` | integer 1..3 | 1 digit | mandatory once | no | delivery + bundle | exact array length |
+| `verification_requirements` | ordered array of closed objects below | 1..3 items | mandatory once | no | delivery + bundle | validated immutable manifest mapping |
+| `serialized_bytes` | integer 0..8192 | 4 digits | mandatory once | no | delivery | exact final wire |
+| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest rule in section 6 | exact final wire |
+
+Every requirement contains all fields below. The ordered array has a 120-J
+aggregate prose cap. No requirement or subobject truncates.
+
+The `verification_bundle_digest` is the domain-separated SHA-256 of the exact
+ordered requirements plus `schema_version`, `response_kind`, catalog SHA,
+manifest digest, inventory SHA, objective digest, source blob, discovery digest,
+and discovery lead ID. It excludes itself, the authenticated-reference digest,
+`serialized_bytes`, and `delivery_digest`; the authenticated reference then
+binds that already-finalized bundle digest. This order is acyclic and makes the
+compact and fetched digest byte-identical.
+
+| Literal requirement field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Digest binding | Production source of truth |
+|---|---|---:|---|---|---|---|
+| `schema_version` | integer `2` | 1 digit | mandatory once/requirement | no | requirement + mapping + bundle | frozen manifest mapping schema |
+| `ordinal` | integer 1..3 | 1 digit | mandatory once/requirement | no | requirement + mapping + bundle | manifest list position |
+| `prose` | string | 120 J/item and 120 J/array | mandatory once/requirement | no | prose digest + requirement + bundle | verbatim `verify_against` item |
+| `prose_sha256` | lowercase hex string | 64 J | mandatory once/requirement | no | requirement + bundle | exact prose bytes |
+| `requirement_id` | lowercase hex string | 64 J | mandatory once/requirement | no | requirement self digest + bundle | path/ordinal/prose/manifest/blob/objective/session/catalog/inventory |
+| `mapping_digest` | lowercase hex string | 64 J | mandatory once/requirement | no | mapping self digest + requirement + bundle | adapter type, parameters, policy, schema |
+| `adapter_type` | frozen enum from section 5 | 19 J | mandatory once/requirement | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `adapter_parameters` | adapter-specific closed object below | one object | mandatory once/requirement | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `evidence_policy` | closed object below | one object | mandatory once/requirement | no | mapping + requirement + bundle | reviewed manifest mapping |
+
+Adapter parameter objects are closed by type; each listed string maximum uses
+J and each integer maximum is inclusive:
+
+| `adapter_type` | Exact literal fields, types, and maxima | Presence | Truncation | Digest binding | Production source of truth |
+|---|---|---|---|---|---|
+| `git_object_v1` | `repository`: string <=64; `commit_sha`: 40-J lowercase hex; `path`: portable ASCII string <=192 bytes; `expected_object_oid`: 64-J lowercase hex | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `json_schema_v1` | `repository`: string <=64; `commit_sha`: 40-J lowercase hex; `path`: portable ASCII string <=192 bytes; `json_pointer`: string <=128 J; `expected_value_sha256`: 64-J lowercase hex | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `health_probe_v1` | `service_id`: string <=64 J; `probe_id`: string <=96 J; `max_age_seconds`: integer 0..86400 | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `test_result_v1` | `repository`: string <=64 J; `commit_sha`: 40-J lowercase hex; `test_id`: string <=128 J; `report_sha256`: 64-J lowercase hex | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `state_read_v1` | `namespace`: string <=64 J; `entity_key`: string <=128 J; `field_path`: string <=128 J; `expected_value_sha256`: 64-J lowercase hex | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `production_probe_v1` | `service_id`: string <=64 J; `probe_id`: string <=96 J; `max_age_seconds`: integer 0..86400 | every field mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `unmapped_prose` | no fields; exact object `{}` | mandatory empty object | no | mapping + requirement + bundle | deterministic fallback for absent mapping |
+
+The evidence-policy object is closed and contains every field below:
+
+| Literal evidence-policy field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Digest binding | Production source of truth |
+|---|---|---:|---|---|---|---|
+| `minimum_receipts` | integer 1..4 | 1 digit | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `maximum_receipts` | integer 1..4 and >= minimum | 1 digit | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `freshness_seconds` | integer 0..86400 | 5 digits | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `allowed_evidence_kinds` | ordered unique array of enums `git`, `schema`, `health`, `test`, `state`, `probe` | 1..4 items; 35 U | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `require_remote_identity` | boolean | 5 bytes | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+| `require_distinct_sources` | boolean | 5 bytes | mandatory once | no | mapping + requirement + bundle | reviewed manifest mapping |
+
+The minimum legal vector is 1/1/0, one `git` kind, and both booleans false; the
+maximum legal vector is 4/4/86400, the four longest allowed enum strings in
+frozen enum order, and both booleans true. Section 6.8 proves both policies for
+three maximal instances of every adapter shape. The largest proven response is
+below 8,192 U; a fourth item, 121-J aggregate prose, omission, pagination, or
+unknown field fails closed before any bundle delivery.
+
+### 6.6 Supplemental guidance fields and production exclusions
 
 Supplemental guidance is one closed object:
 
@@ -518,7 +639,7 @@ Supplemental guidance is one closed object:
 | `path` | exact `README.md` | 9 J | mandatory once | no | guidance + delivery | immutable README |
 | `catalog_sha` | lowercase hex string | 40 J | mandatory once | no | guidance + delivery | search SHA |
 | `source_blob_oid` | lowercase Git OID | 64 J | mandatory once | no | guidance + delivery | immutable README blob |
-| `excerpt` | string | 1,200 J | mandatory once | source-faithful prefix | excerpt + guidance + delivery | README section |
+| `excerpt` | string | 300 J | mandatory once | source-faithful prefix | excerpt + guidance + delivery | README section |
 | `excerpt_sha256` | lowercase hex string | 64 J | mandatory once | no | guidance + delivery | delivered excerpt |
 | `excerpt_truncated` | boolean | 5 bytes | mandatory once | no | guidance + delivery | residual allocator |
 | `guidance_digest` | lowercase hex string | 64 J | mandatory once | no | self + delivery | SHA, README OID, excerpt digest |
@@ -542,7 +663,7 @@ once to the envelope); and supplemental fields `candidate_digest`,
 sentinel values for every excluded literal and asserts none reaches the final
 gateway wire envelope. No generic passthrough is permitted.
 
-### 6.6 Typed non-success envelope
+### 6.7 Typed non-success envelope
 
 A non-success serializes this separate closed envelope and no success-envelope
 field, objective, warning, corpus result, excerpt, lead ID, or receipt. It is
@@ -550,39 +671,95 @@ also subject to the exact production serializer and delivery-digest rule.
 
 | Literal field | Type / canonical encoding | Maximum | Presence / repeats | Truncation | Bound by | Production source of truth |
 |---|---|---:|---|---|---|---|
-| `schema_version` | integer `3` | 1 digit | mandatory once | no | delivery | frozen gateway schema |
+| `schema_version` | integer `4` | 1 digit | mandatory once | no | delivery | frozen gateway schema |
 | `status` | exact string `fail` | 4 J | mandatory once | no | delivery | gateway control path |
-| `error_code` | enum `batch_size_invalid`, `query_limit_exceeded`, `manifest_parse_failed`, `manifest_validation_failed`, `corpus_history_unavailable`, `corpus_inventory_stale`, `mandatory_corpus_envelope_too_large`, `response_budget_exceeded`, `session_objective_budget_exceeded`, `session_wire_budget_exceeded`, `invalid_limits_override` | 36 J | mandatory once | no | delivery | typed failing stage |
+| `error_code` | enum `batch_size_invalid`, `query_limit_exceeded`, `manifest_parse_failed`, `manifest_validation_failed`, `corpus_history_unavailable`, `corpus_inventory_stale`, `mandatory_corpus_envelope_too_large`, `response_budget_exceeded`, `session_objective_budget_exceeded`, `session_wire_budget_exceeded`, `invalid_limits_override` | 35 J | mandatory once | no | delivery | typed failing stage |
 | `message` | fixed server-owned message selected by error code | 256 J | mandatory once | no | delivery | frozen error catalog |
 | `changed_paths` | ordered unique portable-path array | 0..102 items; 192 UTF-8 bytes/item; 20,000 U aggregate | mandatory only for `corpus_inventory_stale`; otherwise absent | no | delivery | immutable old/new inventory diff |
 | `serialized_bytes` | integer 0..24000 | 5 digits | mandatory once | no | delivery | exact control wire |
-| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | self rule in 6.0 | exact control wire |
+| `delivery_digest` | lowercase hex string | 64 J | mandatory once | no | digest-binding rule in section 6 | exact control wire |
 
 The control envelope is at most 24,000 U and contains no caller prose. The
 192-byte portable-path and 102-record bounds make the complete changed-path set
 fit; the serializer never emits a partial path list or corpus result.
 
+### 6.8 Executable exact-serializer proof vectors
+
+These vectors were constructed and measured atomically with exactly
+`json.dumps(envelope, ensure_ascii=True, sort_keys=True,
+separators=(",", ":")) + "\n"`; each table digest is SHA-256 of those final
+serialized bytes. Digest-valued fields occupy 64 lowercase hex bytes, SHA
+fields occupy their exact length, integers use the maximum value permitted by
+the concrete shape and cross-field equations, portable paths are 192 bytes, and
+canonical-J strings use escape-bearing input whose serialized payload reaches
+the exact maximum. Returned ranks are the valid distinct top three plus the
+missing-class rank rather than duplicated numeric maxima. Standalone result
+vectors use the 2,400-J residual excerpt maximum. Objective and response
+vectors use the mandatory 600-J corpus excerpt, all other shape-permitted field
+maxima, the exact counter equations, and one maximal 300-J strictly residual
+supplemental item per objective. Each three-item bundle uses a total of 120 J
+of prose (40 J per ordinal), one maximal adapter shape repeated three times,
+and the named minimum or maximum legal evidence policy. Delivery digests are
+populated by the section-6 zero-substitution rule before the final vector
+digest is measured.
+
+| Concrete vector | Exact U | SHA-256 test-vector digest |
+|---|---:|---|
+| maximum ACTIVE result | 4,803 | `b46d0e477dc25cc475c2568ee7df359419992f0a31526820efa21b1dbf8ff3f6` |
+| maximum compact discovery result | 5,585 | `26e91cd8506257ac98bb0391c1913bebe28a6975168c4cc5821a70758f5e5577` |
+| objective: 3 ACTIVE + 1 discovery | 14,920 | `3bd3a5c05f2ec42573b43fbfb69e034b5438edba2cc9f425196b51960fa31f28` |
+| objective: 1 ACTIVE + 3 discovery | 16,484 | `54fb080adcb0ed5630c05c6990871b5db6b306138db375bce5b161f93d30db76` |
+| two objectives: 3A+1D then 1A+3D | 31,921 | `8578e0f09dccf1de516e7c4c4853f692e22d5683802207286fe72186ee995ec7` |
+| two objectives: 1A+3D then 3A+1D | 31,921 | `3eb04e3f806a7a047f2444dcc645e95c42b0aa3ef066c3b553b2a6cf300b8ac9` |
+| maximum changed-path control response | 20,375 | `30208ccc9817934c1e61dd323760cf145c2921c2721af62bd9208983cf4281ac` |
+| private exact 32,001-U fault object | 32,001 | `c6133529150ae7de4b5502e9e2540df52aea1cdb433cc03b2e70362edf739cc8` |
+| bundle `git_object_v1`, minimum policy | 4,080 | `75ef5497b2d757c13a6527db1526cf7d23f5753809d50c05a4d046db6adcf2e9` |
+| bundle `git_object_v1`, maximum policy | 4,170 | `2d3662429dcc8a0a467603164e0298bc69ce0c813280737f4c6a33cd2445d918` |
+| bundle `json_schema_v1`, minimum policy | 4,527 | `d4411f117657fd7d903a3128ad8a9435d05b874cd1aab2fbec91523d37251b7f` |
+| bundle `json_schema_v1`, maximum policy (largest bundle) | 4,617 | `70537cbcc93d33c6b169bbff879eede1fb037f7d5ac8101c0e24cbc60b07ebe1` |
+| bundle `health_probe_v1`, minimum policy | 3,447 | `32ddc44c6debd50275f0293ef0c707fbcb1f2ff398277b37ea5b3bb65ba388bc` |
+| bundle `health_probe_v1`, maximum policy | 3,537 | `aff09f41171d701473a315893b69f5afd85745add5007a304c2d2db8d0c1b0ca` |
+| bundle `test_result_v1`, minimum policy | 3,882 | `b9daa73ea607b412beebde8fbeb2ffacfe7e7aeffb210a82e191fe0f208111fc` |
+| bundle `test_result_v1`, maximum policy | 3,972 | `e7272a16b3e15c9cf2bd4f125b00dfca6f85b255b6ab56321832d5e97aa710dc` |
+| bundle `state_read_v1`, minimum policy | 4,173 | `d155e8c9d7dced1b2b965ebe7b1c7f37a1ebd8fca59b27b0c9fad892f8c7d5f9` |
+| bundle `state_read_v1`, maximum policy | 4,263 | `69d04325c425fd37d9d6ad6e42d3f40b9c2d8ff42ff8ea6a96d16dca46dd805f` |
+| bundle `production_probe_v1`, minimum policy | 3,459 | `419797a8c26653f88b33b67dd9858cc888b8205400a31944cd588dfa1dfad435` |
+| bundle `production_probe_v1`, maximum policy | 3,549 | `4441c22a827771ef1e99d7dfb5dee5d6d24f80cd70648d05a3e24fb425b29e5c` |
+| bundle `unmapped_prose`, minimum policy | 2,805 | `549582afd4965663aabd5b6fa1159b06992358b846cd5cf2352743f0047c7436` |
+| bundle `unmapped_prose`, maximum policy | 2,895 | `4e55d56fa78f2bf5fac41e575e6ba91128570f43902b7df9da4b43ed2fa95575` |
+
+The 31,921-U real two-objective maximum is below the 32,000-U build target and
+the 40,000-U production cap. The largest full bundle is 4,617 U, below its
+8,192-U cap. Eventual implementation acceptance MUST commit the exact vector
+generator and assert every byte count and digest above so the serializer,
+tables, and tests cannot drift. The temporary R4 authoring generator is not a
+repository artifact.
+
 ## 7. Deterministic allocation and strictly residual guidance
 
-For one or two objectives, the allocator MUST first build and finalize the
-entire corpus result exactly as if supplemental guidance were disabled. This
-includes selected identities, global order, all policy/integrity/verification
-fields, warnings, initial and residual excerpt depths, truncation flags,
-counters, statuses, and every corpus-bound digest. That corpus serialization
-then becomes immutable.
+For one or two objectives, the allocator MUST first build the state-neutral
+retrieval projection exactly as if catalog state and supplemental guidance were
+absent. Every mandatory corpus result receives the longest source-faithful
+prefix that fits `min(full excerpt, 600 canonical string bytes)`. A shorter
+source is returned in full. No mandatory result may be shortened below that
+allocation to fit another field or guidance.
 
-Every mandatory corpus result first receives the longest source-faithful prefix
-that fits `min(full excerpt, 600 canonical string bytes)`. A shorter source is
-returned in full. No mandatory result may be shortened below that allocation to
-fit another field or guidance. After all at-most-eight mandatory batch results,
-identities, warnings, verification projection, counters, and response bindings
-fit, allocate remaining corpus headroom deterministically by objective order
-and global relevance rank to grow excerpts, each at most 2,400 J. The 2,400-J
-limit is only a per-item residual-growth cap. If mandatory fields and initial
-excerpts do not fit, return typed `mandatory_corpus_envelope_too_large`, emit no
-corpus text, and mint no usable ID or receipt.
+Residual excerpt depth is also state-neutral: the allocator charges the larger
+of the frozen ACTIVE and compact-discovery policy wrappers for every selected
+retrieval result, regardless of its current state, then allocates remaining
+32,000-U build-proof headroom deterministically by objective order and global
+rank, each excerpt at most 2,400 J. It records the resulting depth and
+`retrieval_digest` before reading catalog state. Therefore a metadata-only state
+flip cannot change excerpts or retrieval identity. A real policy wrapper may
+consume less than its conservative charge but never reallocates the released
+bytes to corpus text. After policy evaluation, the allocator finalizes compact
+bundle digest/reference projections, counters, statuses, warnings, policy
+digests, and `corpus_response_digest`. If the conservatively charged mandatory
+fields and initial excerpts do not fit, it returns typed
+`mandatory_corpus_envelope_too_large`, emits no corpus text, and mints no usable
+ID, reference, or receipt.
 
-Only after the corpus serialization and `corpus_projection_digest` are fixed
+Only after the corpus serialization and `corpus_response_digest` are fixed
 may the allocator attempt supplemental guidance in strictly residual response
 headroom. Guidance is all-or-nothing with its warning and fields. If it does not
 fit, omit it. It may never shorten or reallocate a corpus excerpt or change any
@@ -590,16 +767,17 @@ corpus identity, result, counter, digest, rank, status, or truncation flag. The
 only allowed enabled/disabled differences outside the supplemental lane are
 deterministic whole-response `serialized_bytes` and `delivery_digest`.
 
-The exact production serializer MUST prove both maximum four-result shapes in
-each objective position: 3 ACTIVE plus the highest-ranked missing discovery
-class, and 1 ACTIVE plus 3 discovery results. The proof suite swaps the shapes
-through both positions and includes the combined one-of-each maximum response.
-All variable fields are set to the table maxima, all
-warnings and verification metadata are complete, and every mandatory excerpt
-receives 600 J. This must serialize at or below 32,000 U. If it cannot, only
-repeated parent bindings may be normalized or reviewed field maxima tightened;
-the 600-J allocation, top-three-plus-missing-class breadth, 40,000-U production
-cap, and complete ordered verification projection MUST NOT be weakened.
+The exact production serializer vectors in section 6.8 prove both maximum
+four-result shapes: 3 ACTIVE plus the highest-ranked missing discovery class,
+and 1 ACTIVE plus 3 discovery results. The proof swaps the shapes through both
+objective positions. Every variable field uses its normative maximum, strings
+exercise canonical escaping, compact warnings are complete, and every
+mandatory result receives 600 J. The actual two-objective maximum MUST remain
+at or below 32,000 U and the production cap remains 40,000 U. The separate
+bundle response, not the first-plan result, carries the complete one-to-one
+projection before verification. Neither the 600-J allocation,
+top-three-plus-missing-class breadth, bundle fetch, nor response caps may be
+weakened.
 
 ## 8. Gateway batch and authenticated session bounds
 
@@ -614,11 +792,14 @@ ceilings, whichever would be reached first:
 - at most 8 distinct objective digests; and
 - at most 120,000 actual serialized wire bytes delivered.
 
-There is no response-count ceiling. Each delivery charges its actual wire
-bytes. Exact same-session objective-digest replay consumes no new digest slot,
-but returns either a compact cached receipt/reference of at most 1,024 wire
-bytes and charges those bytes, or a full cached payload and charges the full
-payload. There is no free full replay.
+There is no response-count ceiling. Every first-plan, bundle-fetch, replay,
+control, and verification/confirmation delivery charges its actual serialized
+wire bytes to the same authenticated-session ceiling. Splitting a complete
+bundle into its read-only call does not reset or create a ceiling. Exact
+same-session objective-digest replay consumes no new digest slot, but returns
+either a compact cached receipt/reference of at most 1,024 wire bytes and
+charges those bytes, or a full cached payload and charges the full payload.
+There is no free full replay.
 
 Before any corpus text is emitted, the gateway atomically reserves prospective
 digest slots and delivery bytes or returns a bounded control error containing
@@ -635,9 +816,12 @@ waivers, or lead IDs cannot substitute for server selection.
 
 The gateway merges `candidates` and `discovery_leads` by `relevance_rank` for
 display while preserving their separate policy lanes. Discovery warnings
-precede their excerpts. Supplemental guidance, when present, displays after all
-corpus results and at non-instruction precedence. The boot payload SHOULD expose
-the exact pin and 20/81/1 counts but SHOULD NOT inline the corpus.
+precede their excerpts. Before any verification action for a lead, the gateway
+performs and validates the complete read-only bundle fetch; it never asks the
+agent to reconstruct requirements from the compact result. Supplemental
+guidance, when present, displays after all corpus results and at non-instruction
+precedence. The boot payload SHOULD expose the exact pin and 20/81/1 counts but
+SHOULD NOT inline the corpus.
 
 When pending material matches but ACTIVE material does not, `status` remains
 `no_positive_candidate_in_active_catalog`, `discovery_status` is
@@ -739,7 +923,9 @@ committed snapshot:
    object sizes fail before materialization; manifest validation follows parse.
    Excerpts are truthful canonical prefixes. Mandatory-fields-do-not-fit returns
    typed non-success. Production never exceeds 40,000 U; the real worst-case
-   proof is <=32,000 U and the private 32,001-U fault fails as build proof.
+   proof is exactly the section-6.8 31,921-U vector and the private 32,001-U
+   fault fails as build proof. The omission counter equation passes zero,
+   exact 1,999,998, and 1,999,999 overflow tests without clamping.
 10. **Generic and single-token qualification.** Each frozen generic token alone,
     generic-only phrase/literal cases, substring cases, body-only single-token
     cases, and ambiguous non-strong cases miss or remain honestly ambiguous.
@@ -763,45 +949,58 @@ committed snapshot:
     satisfies this clause; revise/error/partial/missing/mixed/self-authored or
     prose-only evidence does not.
 13. **First plan and session ceilings.** First-plan delivery includes pinned
-    excerpts and performs zero state writes. Independent gateway tests cover
-    8 objective digests exact/+1 and 120,000 actual wire bytes exact/+1, mixed
-    cached+new batches, split batches, compact and full replay, and new lead IDs.
+    excerpts, compact bundle identities/references, and performs zero state
+    writes. Independent gateway tests cover 8 objective digests exact/+1 and
+    120,000 actual wire bytes exact/+1 across first-plan, bundle-fetch,
+    verification, control, mixed cached+new batches, split batches, compact and
+    full replay, and new lead IDs. Splitting the bundle never resets accounting.
     Prospective overflow emits a bounded corpus-free control error.
 14. **Every record is searchable.** Grouped exact `path:` probes prove all 102
     records contribute at least one searchable unit, including H1-only
     `session-lifecycle.md`, and that the archive is historical. The same harness
     covers staged refresh, shallow history, missing objects, stale records, and
     atomic pin behavior.
-15. **State-flip neutrality.** Changing only catalog state or catalog-only
-    metadata leaves qualification, common score, relevance evidence, global
-    order, excerpts, and corpus-bound digests unchanged.
+15. **State-neutral retrieval and state-dependent policy.** A metadata-only
+    ACTIVE↔grandfathered/archive flip preserves qualification, common score,
+    relevance evidence, global rank/order, excerpt bytes/depth, source and unit
+    identities, and `retrieval_digest`. It changes every applicable policy,
+    candidate/discovery, warning, `corpus_response_digest`, and delivery digest.
+    No digest or receipt from the old authority state validates under the new
+    state; only the explicitly state-neutral retrieval digest survives.
 16. **Buildable verification and independent ACTIVE authority.** A discovery
-    lead projects every prose item verbatim, ordered, one-to-one into the
-    versioned structured schema. Mapped positive adapter evidence can confirm;
+    lead projects the compact count, bundle digest, and authenticated reference;
+    the read-only fetch then returns every 1..3 prose item verbatim, ordered,
+    one-to-one in one closed <=8,192-U response before verification. Fetch state,
+    exact bundle digest, and immutable requirement IDs are mandatory for the
+    receipt call. Mapped positive adapter evidence can confirm; unfetched or
     unmapped prose, unknown adapter, parameter substitution, mapping-digest
-    mismatch, missing-one, reused-result, stale evidence, or caller prose cannot.
-    An unrelated independently selected ACTIVE candidate that passes existing
-    authority policy remains usable without relying on the unmapped discovery
-    result. Session digest/byte ceilings and replay accounting cannot be reset by
-    prose, batch splitting, or new IDs.
+    mismatch, missing-one, reused-result, stale evidence, caller prose,
+    truncation, omission, or pagination cannot. Every adapter maximum and both
+    evidence-policy extremes match section-6.8 vectors. An unrelated
+    independently selected ACTIVE candidate that passes existing authority
+    policy remains usable without relying on the discovery result.
 17. **Warning and precedence.** Every pending/archived excerpt is preceded by
     its exact non-truncatable warning carrying catalog state, risk, ground-truth
-    flag, and complete verification projection, and remains quoted evidence at
-    non-instruction precedence.
+    flag, requirement count, bundle digest, and authenticated bundle reference,
+    and remains quoted evidence at non-instruction precedence. No full
+    requirement is duplicated in the first-plan warning.
 18. **Strictly residual supplemental lane.** Repository guidance is absent from
     corpus lanes, has exactly the supplemental schema and exclusions, never
     satisfies breadth or authority, and appears last. Forced-fit and forced-omit
     single and batch tests prove byte-identical corpus projections—including
     result selection, order, fields, warnings, excerpt depths/truncation,
-    counters, statuses, and corpus digests—with only supplemental fields and
+    counters, statuses, and `corpus_response_digest` values—with only supplemental fields and
     deterministic whole-response size/digest allowed to differ.
 19. **Exact batch contract and production envelope.** The library accepts only
     sizes 1 and 2 and rejects 0, 3, 4, and a large batch atomically before any
     corpus/README read, retrieval, partial output, or write. The exact production
-    serializer proves the two-objective maximum shapes, all variable fields at
-    normative maxima, complete warnings/verification metadata, eight possible
-    mandatory corpus identities, and 600-J initial excerpts fit <=32,000 U.
-    Supplemental guidance is considered only after final corpus allocation.
+    serializer proves the two-objective maximum shapes in both orders, all
+    variable fields at normative maxima, complete compact warnings, eight
+    possible mandatory corpus identities, 600-J initial excerpts, and maximal
+    residual guidance serialize to exactly 31,921 U. The separately committed
+    vector generator also proves every bundle adapter/policy shape, maximum
+    control response, standalone result, and 32,001-U fault digest. Supplemental
+    guidance is considered only after final corpus allocation.
 
 For the four probes, acceptable direct matches include the named domain
 documents in section 1 or a later promoted replacement demonstrably owning the
