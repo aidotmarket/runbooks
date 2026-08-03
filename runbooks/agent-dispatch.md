@@ -31,10 +31,14 @@ error_signatures:
     section: §E. Operate
   - signature: strict_verdict_invalid
     section: §E. Operate
+  - signature: structural_gate_unknown
+    section: §X.8
+  - signature: cutover_admission_unknown
+    section: §X.8
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-26
+last_verified_at: 2026-08-03
 system_name: agent-dispatch
 purpose_sentence: Council dispatch mechanics for delegating tasks to agents (MP, CC, Kimi, GLM, and the paused AG) and managing dispatch surfaces (council_request, dispatch_mp_build, council_hall).
 owner_agent: vulcan
@@ -1994,3 +1998,150 @@ Discharges S1382-D1..D4.
 1. "No approval received" on peer_msg_send, council_request, or shell push paths under the s1374-line server means a client-side human authorization button is pending in Max's UI and timed out unanswered. It is not a code failure. Ask Max to check for a pending approval, then retry the identical call. Cost of not knowing this: four burned calls and a strike-track in one session (T-2026-000464).
 2. CC review dispatches fail with checkout_not_pinned unless the cwd checkout HEAD equals dispatch_sha. Point cwd at a worktree pinned to the exact review head, never at the main checkout.
 3. Until the push identity gate is roster-widened (T-2026-000464 defect C), athena cannot push. Relay pattern: her commits already sit in the shared object store; an operator names the SHA as a branch (git branch NAME SHA) and pushes the named branch under operator attribution. Commit authorship stays hers; athena sets git -c user.name=athena -c user.email=athena@ai.market when committing so authorship is not the machine default.
+
+## §X.8 — S1415 structural build/review gate replacement
+
+This section is the production operating contract for the S1415 replacement
+implemented in `aidotmarket/koskadeux-mcp`. It supersedes process-scan,
+numeric PID/PGID, reflog, mutable-worktree, and wrapper-result authority only
+when a root-owned activation descriptor selects a verified replacement
+closure. An absent descriptor or a verified `bootstrap_controller` descriptor
+retains the incumbent. Descriptor or closure ambiguity fails closed; it never
+falls back after replacement selection. `CODEX_SLOT_COUNT` stays exactly one,
+Lane B stays disabled and unprovisioned, and S1214 Phase 2 stays paused.
+
+### Architecture and invariants
+
+The gate separates three state machines, each with `PASS`, `FAIL`, and
+`UNKNOWN` outcomes:
+
+1. **Process truth.** `OwnedChildController` owns a gated direct child that is
+   also a fresh process-group leader, registers one retained Darwin
+   `EVFILT_PROC|NOTE_EXIT` event before release, and performs exactly one final
+   `waitpid`. The unreaped leader prevents PID/PGID reuse while group signals
+   remain possible. No process scan, stored numeric identity, empty snapshot,
+   or post-crash reconstruction grants signal authority. Pre-exit ESRCH,
+   EPERM, ECHILD, permission, event, owner, pipe, lock, or deadline ambiguity
+   is `UNKNOWN` and quarantines the unique scratch. A persistence failure
+   immediately before reap must still reap once and return typed `FAIL`.
+2. **Artifact truth.** The controller binds a clean base with
+   `GIT_NO_REPLACE_OBJECTS=1`, rejects replacement objects, alternates,
+   gitlinks, renames, copies, path escape, commits, and pushes by the provider,
+   and freezes one stable nonce/base/manifest-bound `--no-renames` binary patch.
+   It constructs one controller commit in a `--no-local --no-hardlinks`
+   private repository, publishes one no-overwrite bundle, verifies the full
+   closure in a second private store, imports under the canonical repository
+   lock, and immediately pins the exact commit by no-overwrite CAS. Wrapper
+   success or failure never changes artifact truth. Lost push acknowledgement
+   is `UNKNOWN`; there is no blind retry or compensating push.
+3. **Orchestration, review, and spend truth.** Every authority boundary uses
+   explicit, durable rows; an omitted or contradictory row is `UNKNOWN`.
+   Review composition validates schema equality, source lineage, complete
+   immutable descriptor coverage, exact model, and builder exclusion before
+   provider spend. Transport/schema failures are nonverdicts, not code
+   rejection. Kimi and GLM reserve their prospective maximum before transport,
+   keep cumulative per-call delivery and cost receipts, and fail closed at the
+   USD 3 exact-head/provider cap. Capacity is released only by a matched
+   process terminal, artifact-machine no-entry proof, orchestration terminal,
+   and durable release receipt.
+
+The OpenAI provider is the exact root-owned stock native Codex 0.146.0 binary,
+run as the owned direct child with a scrubbed environment and ChatGPT
+subscription authentication only. Do not use an OpenAI API key or API route.
+Do not pass `--dangerously-bypass-approvals-and-sandbox`, `--yolo`,
+`--sandbox`, `--add-dir`, `--oss`, local-provider, remote, search, or
+`--ignore-user-config`; the latter suppresses the named profile in this Codex
+version. The private `CODEX_HOME` contains auth plus the exact
+`structural-gate.config.toml`, whose named profile uses
+`forced_login_method="chatgpt"`, `approval_policy="never"`, and
+`default_permissions="structural-gate"`. Codex itself places every model
+command inside the reviewed macOS Seatbelt. That profile permits only required
+runtime reads and private-workspace writes; it denies auth/control/evidence,
+caller, candidate, sibling, `/tmp`/`TMPDIR`, socket, network, provider re-exec,
+and parent-process-environment access. The provider process itself is not
+outer-Seatbelted because nested Seatbelt initialization would prevent command
+confinement. `sandbox/structural_gate_outer.sb` is a deny-only causal test
+fixture, not the production wrapper.
+
+### Install and stage
+
+Use `scripts/structural_gate_control.py` only as the root maintenance operator
+with absolute paths. Never use its hidden non-root test option in production.
+
+1. Create a content-addressed manifest whose entries contain exactly `path`,
+   SHA-256, and mode `0444` or `0555`. The closure must include the exact native
+   Codex binary, owned-child shim, named permission profile, deny-only causal
+   fixture, runtime modules, operator CLI, and evidence schemas.
+2. Run `stage --source-root ROOT --manifest FILE --control-root
+   /var/tmp/koskadeux/control/structural-gate`. Require root ownership,
+   immutable modes, digest equality, directory fsync, and a durable stage
+   receipt. Re-staging identical bytes is idempotent; a conflicting path or
+   digest is `structural_gate_unknown`.
+3. Run `verify` against the staged descriptor. Before any Codex invocation,
+   verify the installed profile says `forced_login_method="chatgpt"` and
+   require `codex login status` to report ChatGPT. Missing subscription auth
+   fails closed.
+
+### Shadow and fault matrix
+
+Shadow consumes copied exact-commit inputs only. It may not spawn, signal,
+mutate Git or Living State, spend, release, push, publish a verdict, or change
+the descriptor. Preserve one immutable comparison bundle for the exact
+implementation commit. Require agreement with the incumbent on valid cases
+and an explicit reason for every intentional refusal difference.
+
+The executable matrix must cover normal completion plus fork storm,
+descendants surviving leader exit, attempted PID/PGID reuse, pre/post-exit
+ESRCH and EPERM, ECHILD, host load/deadline, controller crash, lost
+acknowledgement, stale or dirty worktree, replacement objects, binary patch,
+pin collision, provider commit/push attempt, incomplete review coverage,
+schema/model mismatch, spend cap, cleanup interruption, and recovery replay.
+Causal permission probes must attempt auth, caller/common Git,
+candidate/control/evidence, sibling, SSH/cloud/package, `/tmp`/`TMPDIR`, Unix
+socket, public/private network, provider re-exec, and parent environment
+access; each must record denial. Cleanup/recovery must be idempotent, and an
+unknown resource remains preserved rather than guessed clean.
+
+### Cutover and rollback
+
+Cut over only at a verified zero-structural-child boundary. Acquire the
+exclusive maintenance lock; reverify old and new closures, exact implementation
+and canonical runbook commits, immutable evidence, current ChatGPT login,
+slot one, disabled/unprovisioned Lane B, bootstrap quiescence, service health,
+shadow/fault PASS, and rollback readiness. Retire the bootstrap controller,
+publish the replacement descriptor by generation CAS plus file and directory
+fsync, verify process-free health and identity, then durably release the lock.
+
+After exclusive release, run exactly three ordered probes under separate
+shared locks: inert decision, disposable structural ChatGPT build, and bundle
+verification. Any missing prerequisite is `cutover_admission_unknown` and
+performs no activation. Any post-activation exception or false result must
+atomically publish the retained incumbent at the next generation, health-check
+it, receipt both the failed probe and rollback, and return failure. The
+separate `rollback` command is allowed only at a later proved zero-child
+boundary. Neither cutover nor rollback deletes closures, pins, bundles,
+evidence, quarantines, or user worktrees.
+
+### Troubleshooting and recovery
+
+- `PROCESS_UNKNOWN`: preserve scratch and receipts; never signal a remembered
+  PID/PGID. Resolve the missing owned-child/event/reap proof under the
+  maintenance protocol.
+- `TRANSACTION_UNKNOWN` or lost acknowledgement: preserve bundle, both private
+  stores, pin, repository hold, and delivery receipts. Do not retry import,
+  pin, or push.
+- `PIN_CONFLICT_QUARANTINED`: retain both objects and the conflicting ref; this
+  is not an artifact rejection and must not be overwritten.
+- `SPEND_UNKNOWN`: retain the greater financial hold and forbid a redrive for
+  that exact head/provider. Do not reinterpret it as code rejection.
+- Stale generation, held lock/pipe, missing event, conflicting cleanup marker,
+  or incomplete closure is `structural_gate_unknown`. Run read-only `verify`,
+  preserve all authority-bearing resources, and repair only from exact durable
+  evidence.
+
+Production evidence must cite the exact implementation SHA, exact canonical
+runbook SHA, closure and descriptor digests, shadow bundle, complete fault
+matrix, ChatGPT-login proof, health and zero-child receipts, ordered probes,
+rollback drill, Living State version, and Event Ledger decision. Future changes
+repeat stage, independent exact-head review, shadow, fault, cutover, and
+rollback proof; they never edit the active closure in place.
