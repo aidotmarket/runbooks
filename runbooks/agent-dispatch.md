@@ -2075,7 +2075,11 @@ with absolute paths. Never use its hidden non-root test option in production.
    evidence schemas, canonicalization fixtures, and verification evidence.
    Cutover and every replacement dispatch compare the deployed module bytes
    and replacement-object-free Git HEAD to this immutable closure and the
-   descriptor's exact implementation commit.
+   descriptor's exact implementation commit. The shim itself runs only under
+   the root-owned immutable platform interpreter `/usr/bin/python3`; a mutable
+   virtual-environment interpreter is forbidden. Gated READY has its own
+   bounded cold-start window under host load without extending the attempt's
+   hard deadline.
 2. Run `stage --source-root ROOT --manifest FILE --control-root
    '/Library/Application Support/ai.market/structural-gate'`. The descriptor,
    closure, lock, and every parent are root-owned and non-writable by group or
