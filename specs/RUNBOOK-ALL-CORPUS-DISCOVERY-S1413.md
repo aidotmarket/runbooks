@@ -1,12 +1,17 @@
 # S1413 — All-corpus runbook discovery before authority promotion
 
-Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 7**
+Status: **BINDING IMPLEMENTATION CONTRACT — REVISION 8**
 
 Date: 2026-08-02
 
 Repository baseline: `73ae00e4ae6760e40e00e6cea585d4b6d4399fac`
 
 Revision history:
+
+The agent names and review routes in Revisions 2–7 below are historical review
+provenance only. They do not describe the current Council. Current policy is MP
+as builder only, CC/Kimi/GLM as the exact voter/Hall panel, and AG/DeepSeek as
+inactive; the signed exact-release contract is runtime authority.
 
 - Revision 2 was published at `6549cf5a68de351529f5708ba6fd6389efdcce15`.
 - The controlling independent CC review `6aeccda7` returned raw verdict
@@ -60,6 +65,18 @@ Revision history:
   data, change authority, or alter any other production field, maximum, vector,
   or digest. It claims no implementation, review approval, benchmark pass,
   gateway delivery, merge, deployment, or activation.
+- Revision 8 corrects the authority boundary for the runbook-first redesign.
+  The backend owns the authenticated delivery ledger, quota reservations,
+  immutable opaque-reference claims, verification receipts, plan evidence,
+  impact decisions, and close obligations. Kóska is a transport adapter: it
+  can invoke the immutable runbooks library and carry exact payload bytes, but
+  it does not keep an authoritative local classifier, debt store, waiver store,
+  receipt signer, or fallback. This revision also requires every
+  integrity-verified ACTIVE result to be delivered as advisory first-read
+  guidance regardless of its action-authority booleans, adds search over
+  relevant OPEN-obligation subjects, and requires bounded exact section and
+  full-runbook continuation. It changes no Revision-7 serializer vector or
+  corpus ranking rule and claims no implementation, deployment, or activation.
 
 This contract amends `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md`. Where that
 plan delays discovery until documents are promoted, or makes grandfathered
@@ -281,8 +298,9 @@ ACTIVE sections remain the only authority candidates. Their authority policy
 is evaluated after retrieval. A pending result is a
 `grandfathered_discovery_lead`; an archived result is an
 `archived_discovery_lead` with `historical_only=true`. Neither may mint or
-satisfy a consultation candidate ID, unlock planning or action, discharge
-runbook debt, prove a procedure true, create a waiver, or be auto-promoted.
+satisfy an action-authority ID, discharge an obligation, prove a procedure
+true, or be auto-promoted. Its presence, absence, or verification state never
+blocks plan acceptance, advisory reading, diagnostics, or known routine work.
 
 Section evidence uses real heading, section, and line fields. Document evidence
 uses `unit_kind=document` plus the document title identity and MUST omit, not
@@ -319,20 +337,22 @@ The release-frozen adapter allowlist is:
 An absent mapping projects to `unmapped_prose`. An unknown adapter, wrong
 parameter shape, substituted parameter, or mapping-digest mismatch fails
 manifest validation. `unmapped_prose` never contributes to
-`confirmed_for_objective`; an action relying on that lead stays read-only.
+`confirmed_for_objective`; the specific action claim relying on that lead stays
+unauthorized. It does not make the session read-only.
 This does not veto a separately selected ACTIVE candidate that passes existing
 authority policy without relying on the unmapped lead. No human-judgement shim,
 reviewer name, attestation, caller prose, or free-form evidence may manufacture
 a mapping. Future mappings require immutable manifest/schema review and remain
 one-to-one and digest-bound.
 
-The authenticated Kóska session-control store is the sole state-writing
+The authenticated backend runbook-control ledger is the sole state-writing
 exception before runbook-first delivery. Search and delivery perform zero
 Living State, Event Ledger, runbook-debt, waiver, plan-acceptance, intent, or
 other business-authority writes before the corpus payload is fixed and
-admitted. The control store MAY atomically reserve quota and persist immutable
+admitted. The backend ledger MAY atomically reserve quota and persist immutable
 opaque-reference claims, delivery accounting, fetch state, and replay state
-needed by this contract. Those records grant no runbook authority, are never
+needed by this contract. Kóska has no authoritative local copy or fallback for
+these records. Those records grant no runbook authority, are never
 populated from or overridden by raw caller fields, and have bounded TTL,
 authenticated-session binding, crash-safe compare-and-swap, and idempotent
 recovery. The server recomputes the objective digest from the validated
@@ -413,12 +433,13 @@ handle carries no caller-readable or caller-selected claim.
 The gateway handshake remains server-bound and has four steps:
 
 1. The first-plan search returns server-selected results and derives every
-   server claim except the opaque handle bytes. Kóska then mints the lead and
-   bundle handle bytes and supplies them as inputs to the pure runbooks
-   serializer. After that serializer fixes the canonical payload and every
-   digest, but before any corpus text is emitted, Kóska atomically reserves its
-   objective slots and canonical delivered-content bytes and persists the
-   immutable lead and bundle claim records for those already-minted handles. A
+   server claim except the opaque handle bytes. The backend mints the lead and
+   bundle handle bytes; the gateway supplies them as inputs to the pure
+   runbooks serializer. After that serializer fixes the canonical payload and
+   every digest, but before any corpus text is emitted, the backend atomically
+   reserves its objective slots and canonical delivered-content bytes and
+   persists the immutable lead and bundle claim records for those
+   already-minted handles. A
    discovery result
    receives a `discovery_lead_id` whose server record binds session, objective
    digest, `catalog_sha` (the runbooks search SHA), inventory SHA, manifest
@@ -439,8 +460,10 @@ The gateway handshake remains server-bound and has four steps:
    caller substitution, and pagination are forbidden. Only after the complete
    bundle payload is durably admitted for delivery may CAS create the
    server-owned `bundle_fetch_receipt_v1`. A failed or partial fetch creates no
-   fetched state. While a selected discovery lead is unconfirmed, the session
-   permits only this bounded fetch and registered production-safe verification.
+   fetched state. An unconfirmed lead remains advisory evidence. The session
+   may proceed with planning, reading, diagnostics, and known routine work; only
+   a concrete load-bearing action that relies on a claim from that lead awaits
+   an exact trusted predicate and observation.
 3. A dedicated confirmation call accepts the lead handle, the exact fetched
    `verification_bundle_digest`, immutable `requirement_id` values, and adapter
    receipts. It resolves and revalidates the lead claim. The exact live
@@ -460,7 +483,12 @@ The gateway handshake remains server-bound and has four steps:
    bundle digest, requirement IDs, and excerpt.
 
 Archived leads can never be confirmed as current instructions. Contradicted or
-insufficient leads expose the authoritative gap and remain read-only.
+insufficient leads expose the authoritative gap and remain advisory. Broad
+free-text `verify_against` phrases are document-review prompts, not executable
+action predicates and never a plan-unlock checklist. A load-bearing action must
+name the precise claim it relies on and bind a typed, current observation at the
+action boundary; it never requires verification of an entire document merely
+because search returned it.
 
 ## 6. Normative production canonical-content schema and maxima
 
@@ -824,7 +852,7 @@ Supplemental guidance is one closed object:
 | `warning_code` | exact `SUPPLEMENTAL_GUIDANCE_NOT_AUTHORITY` | 35 J | mandatory once | no | guidance + delivery | fixed policy |
 | `warning_message` | exact `SUPPLEMENTAL GUIDANCE — NOT RUNBOOK AUTHORITY` | 50 J | mandatory once | no | guidance + delivery | fixed policy |
 
-The production Kóska adapter MUST use an explicit closed allowlist and test
+The production gateway adapter MUST use an explicit closed allowlist and test
 that these current library-fragment compatibility fields are not serialized in
 the final canonical content: objective field `query`; repeated objective fields
 `catalog_sha`, `searched_entry_count`, and `searched_section_count` (normalized
@@ -1018,10 +1046,12 @@ charges its full content bytes. There is no free full replay. The compatibility
 error literal `session_wire_budget_exceeded` means this canonical-content
 ceiling and does not make outer framing chargeable.
 
-After the exact payload is fixed and before any corpus text is emitted, Kóska
-atomically creates `delivery_reservation_v1` and reserves prospective objective
-slots and canonical content bytes, or returns a bounded control error containing
-no corpus result. The reservation CAS succeeds only when both prospective
+After the exact payload is fixed and before any corpus text is emitted, the
+backend atomically creates `delivery_reservation_v1` and reserves prospective
+objective slots and canonical content bytes, or returns a bounded control error
+containing no corpus result. The gateway cannot manufacture, replace, or
+locally recover this reservation. The reservation CAS succeeds only when both
+prospective
 predicates are true in the same authenticated-session record:
 
 - `delivered_content_bytes + reserved_content_bytes + payload_bytes <= 120000`;
@@ -1063,41 +1093,68 @@ per-response 40,000-U contract.
 Ownership and order in this section are normative for this release. The
 runbooks repository owns immutable object loading, all-corpus search, ranking,
 closed serialization, and its pure acceptance harness; it owns no authenticated
-session state. Kóska owns runbook selection, opaque-reference issuance, quota
-accounting, bundle/fetch/replay control state, and first-plan injection in
-`tools/session.py:_handle_kd_session_plan`. The backend MAY enforce a separate
-contain-or-reject boundary for business-authority writes, but MUST NOT duplicate
-the corpus, choose or serialize the first-plan corpus response, sign
-caller-selected corpus payloads, or mint its session references.
+session state. The backend is the sole authority for authenticated delivery
+reservations, session quota, opaque-reference claims, fetch/replay state,
+verification receipts, plan evidence, impact classification, close obligations,
+coverage, and signed receipts. Kóska owns only authentication-aware transport,
+invocation of the pinned pure library, and exact first-plan presentation in
+`tools/session.py:_handle_kd_session_plan`. It has no authoritative local
+SQLite/file ledger, classifier, debt or waiver writer, signing key, or direct
+child fallback. The backend MUST NOT accept caller-selected corpus payloads or
+duplicate the ranking implementation; it validates every admitted result and
+claim against the approved activation identity and exact library output.
 
 For every first plan, `_handle_kd_session_plan` MUST authenticate and normalize
-the objectives, invoke immutable runbooks search and server-claim derivation,
-have Kóska mint the opaque handles, supply those handles to the pure runbooks
-serializer, fix the exact canonical payload and digests, atomically persist the
-claim records with the session-control quota reservation, and durably admit the
-canonical `TextContent.text` before invoking
-`_runbook_plan_gate`, `_compute_and_record_runbook_plan_impact_signal`,
-`_persist_runbook_plan_acceptance`, any plan-file write, or any intent write.
-Those business operations remain after successful runbook-first delivery. A
-failure before admission performs no Living State, Event Ledger, runbook-debt,
-waiver, plan-acceptance, intent, or other business-authority write and follows
-the reservation recovery rules in section 8.
+the ordinary task objectives, obtain every relevant OPEN obligation subject
+from the backend using bounded cursor pagination, and invoke immutable runbooks
+search for both the objectives and those subjects. It drains the relevant
+obligation pages before admitting the plan; a missing page, repeated cursor,
+silent truncation, unrelated-subject substitution, or unavailable backend
+fails closed. Callers do not provide runbook paths, sections, consultations,
+impact declarations, obligation subjects, attestations, `no_entry_found`
+prose, waivers, or lead IDs.
 
-The Kóska adapter MUST carry this payload through a dedicated typed result from
-`_handle_kd_session_plan` through `koskadeux_server.py` and
+The gateway then supplies backend-minted opaque handles to the pure serializer,
+fixes the exact canonical payload and digests, and asks the backend to validate
+the activation identity and atomically reserve quota, persist immutable claims,
+and durably admit that exact payload. The backend signs only the validated
+admission. Kóska emits the admitted canonical `TextContent.text` before any
+plan-acceptance, intent, close, or other business-authority write. A failure
+before admission performs none of those writes and follows section 8 recovery.
+There is no legacy gate, local-authority retry, caller-attestation retry, or
+degraded path when the backend is unavailable.
+
+The gateway adapter MUST carry the admitted payload through a dedicated typed
+result from `_handle_kd_session_plan` through `koskadeux_server.py` and
 `gateway_server.py`. That route bypasses generic `safe_response` prefixing and
 truncation and places the canonical payload byte-for-byte in MCP
 `TextContent.text`. JSON-RPC, HTTP, MCP-envelope, and request-ID framing may wrap
-it but cannot modify or enter its quota. End-to-end tests through all three
-layers assert exact text equality, the final newline, no prefix, truncation,
-double encoding, or fallback coercion, and one charge of
-`len(text.encode("utf-8"))` for first-plan, full replay, bundle, confirmation,
-compact replay, verification, and control payloads.
+it but cannot modify or enter its quota. End-to-end tests through the backend
+and all three gateway layers assert exact text equality, the final newline, no
+prefix, truncation, double encoding, local reconstruction, or fallback
+coercion, and one charge of `len(text.encode("utf-8"))` for first-plan, full
+replay, bundle, confirmation, compact replay, verification, and control
+payloads.
 
 The first planning interaction for a session searches the complete pinned
-corpus for every objective and delivers the globally ordered excerpts before
-action. Caller-authored paths, sections, attestations, `no_entry_found` prose,
-waivers, or lead IDs cannot substitute for server selection.
+corpus for every objective and relevant OPEN-obligation subject and delivers
+the globally ordered excerpts before action. Every integrity-verified ACTIVE
+match is first-read advisory guidance even when `action_authority_eligible`,
+`authority_admission`, or `semantic_verification` is false. Those booleans may
+never suppress guidance and may never turn guidance into permission to mutate;
+load-bearing action authority comes from separately verified current system
+state and the backend action-evidence contract.
+
+Search results expose a stable exact-source continuation. A bounded fetch
+accepts only the pinned `catalog_sha`, source blob OID, path, unit identity, and
+server cursor and returns either the exact complete section or successive exact
+full-runbook byte ranges. Every page binds the total byte length, page bounds,
+page digest, whole-source digest, next cursor, and activation identity. The
+gateway exposes this fetch for ACTIVE guidance and labeled discovery evidence;
+it may not paraphrase, silently truncate, disable the fetch, substitute a
+working-tree file, or require the agent to guess a path. Completion is proven
+only by contiguous coverage from byte zero to the bound total and a matching
+whole-source digest.
 
 The gateway merges `candidates` and `discovery_leads` by `relevance_rank` for
 display while preserving their separate policy lanes. Discovery warnings
@@ -1105,8 +1162,8 @@ precede their excerpts. Before any verification action for a lead, the gateway
 performs and validates the complete bounded bundle fetch; it never asks the
 agent to reconstruct requirements from the compact result. Supplemental
 guidance, when present, displays after all corpus results and at non-instruction
-precedence. The boot payload SHOULD expose the exact pin and 20/81/1 counts but
-SHOULD NOT inline the corpus.
+precedence. The boot payload SHOULD expose the exact pin and current
+catalog-state counts but SHOULD NOT inline the corpus.
 
 When pending material matches but ACTIVE material does not, `status` remains
 `no_positive_candidate_in_active_catalog`, `discovery_status` is
@@ -1194,9 +1251,11 @@ committed snapshot:
    ID.
 7. **Archive policy.** An archived hit is visibly `historical_only`, is warned,
    and cannot be confirmed as current instruction.
-8. **Authority enforcement.** Non-ACTIVE results, supplemental guidance, caller
-   paths/prose/IDs, attestations, and waivers cannot pass consultation or action
-   authority validation, discharge debt, or promote content.
+8. **Authority enforcement without plan coercion.** Non-ACTIVE results,
+   supplemental guidance, caller paths/prose/IDs, attestations, and waivers
+   cannot authorize a load-bearing action, discharge an obligation, or promote
+   content. Their verification state cannot block plan acceptance, reading,
+   diagnostics, or known routine work.
 9. **Closed canonical-content schema and allocator.** The final canonical
    `TextContent.text`—not a library fragment or outer envelope—enumerates only
    section 6 fields, enforces every per-item,
@@ -1212,8 +1271,8 @@ committed snapshot:
    proof is exactly the section-6.8 31,929-U vector and the private 32,001-U
    fault fails as build proof. The omission counter equation passes zero,
    exact 1,999,998, and 1,999,999 overflow tests without clamping. End-to-end
-   Kóska/server/gateway tests prove the dedicated typed path preserves every
-   canonical payload exactly and bypasses `safe_response` mutation.
+   Backend/Kóska/server/gateway tests prove the dedicated typed path preserves
+   every canonical payload exactly and bypasses `safe_response` mutation.
 10. **Generic and single-token qualification.** Each frozen generic token alone,
     generic-only phrase/literal cases, substring cases, body-only single-token
     cases, and ambiguous non-strong cases miss or remain honestly ambiguous.
@@ -1238,18 +1297,19 @@ committed snapshot:
     prose-only evidence does not.
 13. **First plan, control writes, and session ceilings.** First-plan delivery
     includes pinned excerpts and compact opaque bundle identities/references.
-    Before its payload is fixed and admitted it performs no Living State, Event
-    Ledger, runbook-debt, waiver, plan-acceptance, intent, or other
-    business-authority write; only the closed authenticated Kóska session-control
-    records may reserve quota and persist claims, accounting, fetch, and replay
-    state. Exact-source tests prove `_handle_kd_session_plan` completes
-    selection and claim derivation, opaque issuance, handle-supplied pure
-    serialization, atomic claim/quota persistence, durable admission, and typed
-    first-plan injection in that order before `_runbook_plan_gate`,
-    `_compute_and_record_runbook_plan_impact_signal`,
-    `_persist_runbook_plan_acceptance`, plan-file writes, and intent writes; the
-    backend neither duplicates the corpus nor signs caller-selected payloads.
-    Independent gateway tests cover 8 objective digests exact/+1 and
+    It searches both the ordinary objectives and all relevant OPEN-obligation
+    subjects obtained through complete backend cursor pagination. Before its
+    payload is fixed and admitted it performs no Living State, Event Ledger,
+    plan-acceptance, intent, close, or other business-authority write; only the
+    closed authenticated backend runbook-control records may reserve quota and
+    persist claims, accounting, fetch, and replay state. Exact-source tests
+    prove `_handle_kd_session_plan` completes selection and claim derivation,
+    backend opaque issuance, handle-supplied pure serialization, backend atomic
+    claim/quota persistence, durable admission, and typed first-plan injection
+    in that order before plan acceptance or intent writes. The backend neither
+    duplicates ranking nor signs caller-selected payloads, and Kóska has no
+    local authority or fallback. Independent gateway tests cover 8 objective
+    digests exact/+1 and
     120,000 canonical `TextContent.text` UTF-8 bytes exact/+1 across first-plan,
     bundle-fetch, verification, control, mixed cached+new batches, split
     batches, compact and full replay, and new lead IDs. Concurrent-reservation
@@ -1274,7 +1334,7 @@ committed snapshot:
     candidate/discovery, warning, `corpus_response_digest`, and delivery digest.
     No digest or receipt from the old authority state validates under the new
     state; only the explicitly state-neutral retrieval digest survives.
-16. **Buildable verification and independent ACTIVE authority.** A discovery
+16. **Buildable verification, exact source, and independent ACTIVE authority.** A discovery
     lead projects the compact count, bundle digest, and authenticated opaque
     lead/bundle handles backed by complete immutable session-control claims;
     the bounded fetch then returns every 1..3 prose item verbatim, ordered,
@@ -1289,7 +1349,13 @@ committed snapshot:
     truncation, omission, or pagination cannot. Every adapter maximum and both
     evidence-policy extremes match section-6.8 vectors. An unrelated
     independently selected ACTIVE candidate that passes existing authority
-    policy remains usable without relying on the discovery result.
+    policy remains usable without relying on the discovery result. Every
+    integrity-verified matching ACTIVE section is still delivered as advisory
+    first-read guidance when its three action-authority booleans are false.
+    Exact-section and full-runbook continuation tests prove pinned contiguous
+    bytes, bounded cursor pagination, whole-source digest verification, and
+    rejection of gaps, overlaps, repeats, working-tree substitution, disabled
+    fetch, and silent truncation.
 17. **Warning and precedence.** Every pending/archived excerpt is preceded by
     its exact non-truncatable warning carrying catalog state, risk, ground-truth
     flag, requirement count, bundle digest, and authenticated bundle reference,
@@ -1327,19 +1393,27 @@ This order supersedes any earlier sequence postponing corpus discovery:
 
 1. repair the structural build wrapper so verified builds are not discarded;
 2. land immutable all-corpus search, the closed serializer, and ranking fixes;
-3. in Kóska `tools/session.py:_handle_kd_session_plan`, land the authenticated
-   session-control store, selection, opaque handles, quota accounting, and
-   dedicated canonical `TextContent.text` path before the named gate, impact,
-   acceptance, plan-file, and intent writes;
-4. establish the backend's separate contain-or-reject business-authority write
-   boundary without duplicating corpus, selection, serialization, or signing;
-5. retire caller-authored gate/debt/waiver writers after exact ordering,
-   byte-preservation, crash-recovery, fetch-state, and replay evidence passes;
-6. perform the appropriate C→M or metadata-only inventory refresh, fully
+3. land the backend-owned delivery ledger, opaque handles, quota accounting,
+   evidence collectors, intelligent impact classifier, coverage, stable
+   obligations, one-way activation, and signed idempotent close receipts;
+4. in Kóska `tools/session.py:_handle_kd_session_plan`, land automatic search
+   over objectives and paged OPEN-obligation subjects, exact ACTIVE advisory
+   delivery, bounded exact section/full-runbook fetch, action-registry
+   enforcement at the sole dispatch choke point, and the dedicated canonical
+   `TextContent.text` path;
+5. physically delete the legacy gate, caller runbook fields, local authority,
+   local classifier/debt/waiver writers, direct-child fallback, and legacy
+   signing or recovery routes; database freezes remain defense in depth rather
+   than a fallback;
+6. prove exact ordering, byte preservation, crash recovery, fetch state,
+   pagination, per-action remote publication, validator artifact identity,
+   unknown-action fail-closed behavior, and preservation of successful build
+   candidates under adversarial tests;
+7. perform the appropriate C→M or metadata-only inventory refresh, fully
    validate and verify remote objects, then atomically CAS old-M→new-M without
    activating C; and
-7. promote, merge, or archive pending documents in risk order and restore
-   narrowly scoped enforcement only after measured search quality, immutable
-   evidence, and non-vacuous validation are in production.
+8. promote, merge, or archive pending documents in risk order and enable the
+   one new path only after measured search quality, immutable evidence, and
+   non-vacuous validation are in production. There is no old path to restore.
 
 The immediate search release is reversible and grants no new authority.

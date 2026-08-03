@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://ai.market/schemas/deployed-tool-contract/v2",
+  "$id": "https://ai.market/schemas/deployed-tool-contract/v3",
   "title": "Signed deployed gateway tool and Council contract",
   "type": "object",
   "required": ["artifact", "signature", "signature_metadata"],
@@ -55,6 +55,10 @@
             "council.hall.default_agents",
             "council.current_roles",
             "runbook_lifecycle",
+            "action_registry",
+            "source_fetch",
+            "runtime_lock",
+            "cutover",
             "proxy"
           ]
         },
@@ -226,25 +230,28 @@
         "first_outcome_semantic_writes",
         "binding",
         "selection_envelope_property",
-        "accepted_receipt_property"
+        "accepted_receipt_property",
+        "context_property",
+        "automatic_child_context",
+        "obligation_subjects",
+        "exact_source_fetch"
       ],
       "additionalProperties": false,
       "properties": {
         "tool_name": {"$ref": "#/$defs/nonEmptyString"},
-        "protocol": {"enum": ["legacy_caller_authored", "server_delivered_two_stage"]},
+        "protocol": {"const": "server_delivered_one_call"},
         "first_outcome_discriminator": {"$ref": "#/$defs/nonEmptyString"},
-        "selection_required_outcome": {"enum": ["NONE", "RUNBOOK_CONTEXT_SELECTION_REQUIRED"]},
-        "accepted_outcome": {"enum": ["NONE", "PLAN_ACCEPTED"]},
-        "first_outcome_typed": {"type": "boolean"},
-        "first_outcome_semantic_writes": {"enum": ["not_applicable", "none", "possible"]},
-        "binding": {
-          "enum": [
-            "caller_authored_refs",
-            "server_issued_ids_bound_to_session_instance_objectives_work_type_revision_catalog_excerpt_digest"
-          ]
-        },
-        "selection_envelope_property": {"enum": ["NONE", "selection_set"]},
-        "accepted_receipt_property": {"enum": ["NONE", "accepted_plan_receipt"]}
+        "selection_required_outcome": {"const": "NONE"},
+        "accepted_outcome": {"const": "PLAN_ACCEPTED"},
+        "first_outcome_typed": {"const": true},
+        "first_outcome_semantic_writes": {"const": "atomic_after_delivery"},
+        "binding": {"const": "server_bound_session_instance_revision_request_activation_objectives_obligations_context_digest"},
+        "selection_envelope_property": {"const": "NONE"},
+        "accepted_receipt_property": {"const": "accepted_plan_receipt"},
+        "context_property": {"const": "runbook_context"},
+        "automatic_child_context": {"const": true},
+        "obligation_subjects": {"const": "backend_cursor_complete"},
+        "exact_source_fetch": {"const": "section_and_full_runbook_cursor"}
       }
     },
     "lifecycleDelivery": {
@@ -252,13 +259,17 @@
       "required": [
         "candidate_delivery_mode",
         "legacy_consultation_mode",
-        "candidate_limit"
+        "candidate_limit",
+        "active_guidance_mode",
+        "discovery_guidance_mode"
       ],
       "additionalProperties": false,
       "properties": {
         "candidate_delivery_mode": {"enum": ["off", "shadow", "assist", "required"]},
-        "legacy_consultation_mode": {"enum": ["allow", "warn", "reject"]},
-        "candidate_limit": {"type": "integer", "minimum": 0, "maximum": 3}
+        "legacy_consultation_mode": {"const": "absent"},
+        "candidate_limit": {"type": "integer", "minimum": 1, "maximum": 4},
+        "active_guidance_mode": {"const": "integrity_verified_advisory"},
+        "discovery_guidance_mode": {"const": "labeled_advisory_nonblocking"}
       }
     },
     "closeLifecycle": {
@@ -272,22 +283,28 @@
         "committed_receipt_property",
         "obligation_outcomes_property",
         "obligation_transaction",
-        "server_owned_evidence"
+        "server_owned_evidence",
+        "caller_runbook_fields",
+        "semantic_uncertainty",
+        "next_action_enforcement"
       ],
       "additionalProperties": false,
       "properties": {
         "tool_name": {"$ref": "#/$defs/nonEmptyString"},
-        "protocol": {"enum": ["legacy_runbook_exit", "structured_runbook_impact"]},
+        "protocol": {"const": "backend_evidence_atomic_close"},
         "outcome_discriminator": {"$ref": "#/$defs/nonEmptyString"},
         "committed_outcome": {"enum": ["NONE", "COMMITTED"]},
         "receipt": {"enum": ["none", "typed_transaction_scoped_committed"]},
         "committed_receipt_property": {"enum": ["NONE", "close_receipt"]},
         "obligation_outcomes_property": {"enum": ["NONE", "obligation_outcomes"]},
         "obligation_transaction": {"enum": ["none", "atomic_backend_transaction_outbox"]},
-        "server_owned_evidence": {"type": "boolean"}
+        "server_owned_evidence": {"const": true},
+        "caller_runbook_fields": {"const": "absent"},
+        "semantic_uncertainty": {"const": "commit_with_open_obligation"},
+        "next_action_enforcement": {"const": "component_behavior_change_only"}
       }
     },
-    "actionReceipts": {
+    "actionEvidence": {
       "type": "object",
       "required": [
         "protocol",
@@ -303,28 +320,71 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "protocol": {"enum": ["none", "two_stage_exact_arguments"]},
-        "context_required_outcome": {"enum": ["NONE", "ACTION_CONTEXT_REQUIRED"]},
+        "protocol": {"const": "backend_intent_and_terminal_observation"},
+        "context_required_outcome": {"const": "NONE"},
         "outcome_discriminator": {"enum": ["outcome"]},
-        "receipt_argument": {"enum": ["NONE", "action_receipt"]},
-        "context_property": {"enum": ["NONE", "action_context"]},
-        "context_outcome_typed": {"type": "boolean"},
-        "context_outcome_semantic_writes": {"enum": ["not_applicable", "none", "possible"]},
-        "one_use": {"type": "boolean"},
-        "expiring": {"type": "boolean"},
-        "binding": {"enum": ["none", "canonical_tool_arguments_session_component_policy_revision"]}
+        "receipt_argument": {"const": "NONE"},
+        "context_property": {"const": "NONE"},
+        "context_outcome_typed": {"const": false},
+        "context_outcome_semantic_writes": {"const": "backend_transaction"},
+        "one_use": {"const": true},
+        "expiring": {"const": true},
+        "binding": {"const": "session_actor_handler_canonical_arguments_component_policy_action_remote_candidate"}
+      }
+    },
+    "cutover": {
+      "type": "object",
+      "required": [
+        "state",
+        "activation_receipt_sha256",
+        "legacy_runtime_absent",
+        "local_authority_absent",
+        "fallback_absent",
+        "database_freeze_verified",
+        "rollback_mode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "state": {"const": "ACTIVE_ONE_WAY"},
+        "activation_receipt_sha256": {"$ref": "#/$defs/sha256"},
+        "legacy_runtime_absent": {"const": true},
+        "local_authority_absent": {"const": true},
+        "fallback_absent": {"const": true},
+        "database_freeze_verified": {"const": true},
+        "rollback_mode": {"const": "new_path_only"}
+      }
+    },
+    "runtimeIdentity": {
+      "type": "object",
+      "required": [
+        "verifier_tree_sha256",
+        "artifact_manifest_sha256",
+        "dependency_lock_sha256",
+        "python_runtime_sha256",
+        "module_origins_sha256",
+        "workflow_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "verifier_tree_sha256": {"$ref": "#/$defs/sha256"},
+        "artifact_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "dependency_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "python_runtime_sha256": {"$ref": "#/$defs/sha256"},
+        "module_origins_sha256": {"$ref": "#/$defs/sha256"},
+        "workflow_sha256": {"$ref": "#/$defs/sha256"}
       }
     },
     "runbookLifecycle": {
       "type": "object",
-      "required": ["profile", "plan", "delivery", "close", "action_receipts"],
+      "required": ["profile", "plan", "delivery", "close", "action_evidence", "cutover"],
       "additionalProperties": false,
       "properties": {
-        "profile": {"enum": ["legacy", "target"]},
+        "profile": {"const": "runbook_first_v2"},
         "plan": {"$ref": "#/$defs/planLifecycle"},
         "delivery": {"$ref": "#/$defs/lifecycleDelivery"},
         "close": {"$ref": "#/$defs/closeLifecycle"},
-        "action_receipts": {"$ref": "#/$defs/actionReceipts"}
+        "action_evidence": {"$ref": "#/$defs/actionEvidence"},
+        "cutover": {"$ref": "#/$defs/cutover"}
       }
     },
     "roleProjection": {
@@ -391,11 +451,12 @@
         "tools",
         "council",
         "runbook_lifecycle",
+        "runtime_identity",
         "source_identifiers"
       ],
       "additionalProperties": false,
       "properties": {
-        "artifact_format_version": {"const": "2"},
+        "artifact_format_version": {"const": "3"},
         "handler_sha": {"$ref": "#/$defs/gitSha"},
         "handler_release_identity": {"$ref": "#/$defs/nonEmptyString"},
         "proxy_release_identity": {"$ref": "#/$defs/nonEmptyString"},
@@ -408,9 +469,10 @@
         },
         "council": {"$ref": "#/$defs/council"},
         "runbook_lifecycle": {"$ref": "#/$defs/runbookLifecycle"},
+        "runtime_identity": {"$ref": "#/$defs/runtimeIdentity"},
         "source_identifiers": {
           "type": "array",
-          "minItems": 8,
+          "minItems": 12,
           "items": {"$ref": "#/$defs/sourceIdentifier"}
         }
       }

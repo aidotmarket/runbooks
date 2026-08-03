@@ -125,8 +125,8 @@ below. Use `state_request(action=bq_status)` for queue reads and
 - id: E-03
   trigger: Session close carries approved work that was not dispatched.
   pre_conditions: [handoff_writable, aging_items_recomputed]
-  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<summary>, handoff_content=<database_handoff>, runbook_exit=<current_structured_exit>)
-  argument_sourcing: {aging_obligations: include code title days incidents and next action before priorities, instance: active Mars or Vulcan identity, session: active registered session, reason: one accepted close reason from the live schema, summary: measured work outcome, current_structured_exit: evidence-backed current compatibility payload until structured runbook_impact replaces it}
+  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<summary>, handoff_content=<database_handoff>)
+  argument_sourcing: {aging_obligations: include code title days incidents and next action before priorities, instance: active Mars or Vulcan identity, session: active registered session, reason: one accepted close reason from the live schema, summary: measured work outcome; runbook impact and obligations are derived by the backend and have no caller field}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(instance + session + aging_obligations_digest)
   expected_success: {shape: confirmed database handoff with leading aging obligations, verification: read back handoff and decision events}

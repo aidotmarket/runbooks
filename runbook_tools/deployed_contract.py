@@ -6,12 +6,14 @@ with Ed25519 by a currently trusted key.  JSON numbers are serialized with the
 ECMAScript formatting thresholds required by RFC 8785; integers remain limited
 to I-JSON's exactly interoperable range.
 
-Artifact format version 2 signs each tool's input schema, output schema, and
-effect/risk projection plus a top-level runbook-lifecycle projection.  Artifact
-integrity and target rollout readiness are deliberately separate: an honestly
-labeled legacy lifecycle can verify successfully while assessing NOT_READY.
-Target readiness additionally proves complete typed plan/close payloads and
-per-tool exact-argument context receipts for every high-risk mutation.
+Artifact format version 3 signs each tool's input schema, output schema, and
+effect/risk projection plus the one-call runbook lifecycle, one-way cutover,
+single-choke-point action evidence, and exact verifier-runtime identities.
+There is no legacy lifecycle profile or fallback-valid artifact. Target
+readiness proves automatic plan context, caller-runbook-field absence,
+backend-observed close evidence, exact-source continuation, complete obligation
+pagination, and exact-argument binding for every high-risk mutation without a
+caller-supplied receipt.
 
 ACTIVE runbooks can make a checkable current Council assertion with a fenced
 block whose info string is ``yaml deployed-contract-roles``::
@@ -21,13 +23,13 @@ block whose info string is ``yaml deployed-contract-roles``::
       required_members: [cc, kimi, glm]
       valid_member_ids: [cc, kimi, glm]
       hall:
-        valid_agents: [ag, cc, glm, kimi, mp]
+        valid_agents: [cc, glm, kimi]
         default_agents: [cc, glm, kimi]
     current_roles:
       builders: [mp]
       voters: [cc, kimi, glm]
-      paused: [ag, deepseek]
-      retired: []
+      paused: [ag]
+      retired: [deepseek]
 
 The member sets are compared exactly without assigning semantics to list order.
 Current role prose in §C, §D, §E, §H, or §I is reported as an unchecked claim
@@ -116,6 +118,10 @@ _REQUIRED_SOURCE_PROJECTIONS = frozenset(
         "council.hall.default_agents",
         "council.current_roles",
         "runbook_lifecycle",
+        "action_registry",
+        "source_fetch",
+        "runtime_lock",
+        "cutover",
         "proxy",
     }
 )
@@ -1154,6 +1160,18 @@ def _require_input_properties(
         )
 
 
+def _require_absent_input_properties(
+    tool: dict[str, Any], property_names: Iterable[str]
+) -> None:
+    properties = tool["inputSchema"].get("properties", {})
+    forbidden = sorted(set(property_names) & set(properties))
+    if forbidden:
+        raise ContractFailure(
+            "LEGACY_LIFECYCLE_SURFACE_PRESENT",
+            f"tool {tool['name']} still exposes retired caller fields {forbidden}",
+        )
+
+
 def _require_typed_outcome(
     tool: dict[str, Any], *, discriminator: str, outcome: str, role: str
 ) -> None:
@@ -1544,6 +1562,333 @@ def _validate_target_plan_result_schema(
     )
 
 
+def _validate_one_call_plan_result_schema(
+    tool: dict[str, Any], plan: dict[str, Any]
+) -> None:
+    discriminator = plan["first_outcome_discriminator"]
+    accepted = plan["accepted_outcome"]
+    _require_typed_outcome(
+        tool,
+        discriminator=discriminator,
+        outcome=accepted,
+        role="one-call target plan",
+    )
+    if "RUNBOOK_CONTEXT_SELECTION_REQUIRED" in canonical_json(
+        tool["outputSchema"]
+    ).decode("utf-8"):
+        raise ContractFailure(
+            "LEGACY_LIFECYCLE_SURFACE_PRESENT",
+            "one-call plan output still advertises the retired selection round trip",
+        )
+
+    context_schema = _schema_property_schema(
+        tool,
+        "outputSchema",
+        plan["context_property"],
+        code="LIFECYCLE_SCHEMA_MISMATCH",
+    )
+    context_fields = (
+        "plan_revision",
+        "session_id",
+        "instance",
+        "request_digest_sha256",
+        "activation_sha",
+        "catalog_sha",
+        "catalog_digest_sha256",
+        "manifest_sha256",
+        "inventory_sha",
+        "search_projection_digest_sha256",
+        "complete",
+        "exact_byte_count",
+        "delivery_digest_sha256",
+        "obligations_complete",
+        "obligation_subjects_digest_sha256",
+        "objectives",
+    )
+    properties = _require_object_shape(
+        context_schema, context_fields, label="one-call runbook context"
+    )
+    objective_properties = _require_array_item_object_shape(
+        properties["objectives"],
+        ("objective_index", "objective_digest_sha256", "authoritative_gap", "candidates"),
+        label="one-call objective context",
+    )
+    candidate_properties = _require_array_item_object_shape(
+        objective_properties["candidates"],
+        (
+            "candidate_kind",
+            "catalog_state",
+            "path",
+            "section_id",
+            "heading",
+            "excerpt",
+            "excerpt_digest_sha256",
+            "source_blob_oid",
+            "rank",
+            "match_evidence",
+            "guidance_precedence",
+        ),
+        label="one-call runbook candidates",
+    )
+    candidate = {
+        "candidate_kind": _require_nonempty_string(
+            candidate_properties["candidate_kind"],
+            label="candidate kind",
+            preferred="active_catalog_section",
+        ),
+        "catalog_state": _require_nonempty_string(
+            candidate_properties["catalog_state"],
+            label="candidate catalog state",
+            preferred="ACTIVE",
+        ),
+        "path": _require_nonempty_string(
+            candidate_properties["path"],
+            label="candidate path",
+            preferred="runbooks/example.md",
+        ),
+        "section_id": _require_nonempty_string(
+            candidate_properties["section_id"],
+            label="candidate section ID",
+            preferred="operate",
+        ),
+        "heading": _require_nonempty_string(
+            candidate_properties["heading"],
+            label="candidate heading",
+            preferred="Operate",
+        ),
+        "excerpt": _require_nonempty_string(
+            candidate_properties["excerpt"],
+            label="candidate excerpt",
+            preferred="exact bounded excerpt",
+        ),
+        "excerpt_digest_sha256": _require_sha_string(
+            candidate_properties["excerpt_digest_sha256"],
+            label="candidate excerpt digest",
+            length=64,
+        ),
+        "source_blob_oid": _require_sha_string(
+            candidate_properties["source_blob_oid"],
+            label="candidate source blob OID",
+            length=40,
+        ),
+        "rank": _require_integer_bounds(
+            candidate_properties["rank"], label="candidate rank", minimum=1
+        ),
+        "match_evidence": _require_satisfiable_object(
+            candidate_properties["match_evidence"],
+            label="candidate match evidence",
+        ),
+        "guidance_precedence": _require_nonempty_string(
+            candidate_properties["guidance_precedence"],
+            label="candidate guidance precedence",
+            preferred="advisory",
+        ),
+    }
+    if candidate["guidance_precedence"] != "advisory":
+        raise ContractFailure(
+            "LIFECYCLE_SCHEMA_MISMATCH",
+            "runbook context candidates must be advisory rather than action authority",
+        )
+    objective = {
+        "objective_index": _require_integer_bounds(
+            objective_properties["objective_index"],
+            label="objective index",
+            minimum=1,
+        ),
+        "objective_digest_sha256": _require_sha_string(
+            objective_properties["objective_digest_sha256"],
+            label="objective digest",
+            length=64,
+        ),
+        "authoritative_gap": _require_boolean_schema(
+            objective_properties["authoritative_gap"],
+            label="objective authoritative gap",
+        ),
+        "candidates": [candidate],
+    }
+    _require_schema_accepts(
+        properties["objectives"], [objective], label="one-call objectives"
+    )
+
+    context = {
+        "plan_revision": _require_integer_bounds(
+            properties["plan_revision"], label="plan revision", minimum=1
+        ),
+        "session_id": _require_nonempty_string(
+            properties["session_id"], label="plan session ID"
+        ),
+        "instance": _require_nonempty_string(
+            properties["instance"], label="plan instance"
+        ),
+        "request_digest_sha256": _require_sha_string(
+            properties["request_digest_sha256"], label="plan request digest", length=64
+        ),
+        "activation_sha": _require_sha_string(
+            properties["activation_sha"], label="runbooks activation SHA", length=40
+        ),
+        "catalog_sha": _require_sha_string(
+            properties["catalog_sha"], label="catalog SHA", length=40
+        ),
+        "catalog_digest_sha256": _require_sha_string(
+            properties["catalog_digest_sha256"], label="catalog digest", length=64
+        ),
+        "manifest_sha256": _require_sha_string(
+            properties["manifest_sha256"], label="manifest digest", length=64
+        ),
+        "inventory_sha": _require_sha_string(
+            properties["inventory_sha"], label="inventory SHA", length=40
+        ),
+        "search_projection_digest_sha256": _require_sha_string(
+            properties["search_projection_digest_sha256"],
+            label="search projection digest",
+            length=64,
+        ),
+        "complete": True,
+        "exact_byte_count": _require_integer_bounds(
+            properties["exact_byte_count"],
+            label="plan exact byte count",
+            minimum=0,
+            maximum=40_000,
+        ),
+        "delivery_digest_sha256": _require_sha_string(
+            properties["delivery_digest_sha256"], label="delivery digest", length=64
+        ),
+        "obligations_complete": True,
+        "obligation_subjects_digest_sha256": _require_sha_string(
+            properties["obligation_subjects_digest_sha256"],
+            label="obligation subjects digest",
+            length=64,
+        ),
+        "objectives": [objective],
+    }
+    _require_true_literal(properties["complete"], label="plan context complete")
+    _require_true_literal(
+        properties["obligations_complete"], label="obligation pagination complete"
+    )
+    _require_schema_accepts(context_schema, context, label="one-call runbook context")
+
+    receipt_schema = _schema_property_schema(
+        tool,
+        "outputSchema",
+        plan["accepted_receipt_property"],
+        code="LIFECYCLE_SCHEMA_MISMATCH",
+    )
+    receipt_properties = _require_object_shape(
+        receipt_schema,
+        (
+            "status",
+            "plan_revision",
+            "session_id",
+            "instance",
+            "request_digest_sha256",
+            "context_digest_sha256",
+            "activation_sha",
+            "committed_at",
+            "immutable",
+        ),
+        label="one-call accepted-plan receipt",
+    )
+    _require_exact_const(
+        receipt_properties["status"], accepted, label="accepted-plan receipt status"
+    )
+    _require_true_literal(
+        receipt_properties["immutable"], label="accepted-plan receipt immutable"
+    )
+    receipt = {
+        "status": accepted,
+        "plan_revision": _require_integer_bounds(
+            receipt_properties["plan_revision"], label="receipt revision", minimum=1
+        ),
+        "session_id": _require_nonempty_string(
+            receipt_properties["session_id"], label="receipt session ID"
+        ),
+        "instance": _require_nonempty_string(
+            receipt_properties["instance"], label="receipt instance"
+        ),
+        "request_digest_sha256": _require_sha_string(
+            receipt_properties["request_digest_sha256"],
+            label="receipt request digest",
+            length=64,
+        ),
+        "context_digest_sha256": _require_sha_string(
+            receipt_properties["context_digest_sha256"],
+            label="receipt context digest",
+            length=64,
+        ),
+        "activation_sha": _require_sha_string(
+            receipt_properties["activation_sha"], label="receipt activation SHA", length=40
+        ),
+        "committed_at": _require_datetime_string(
+            receipt_properties["committed_at"], label="receipt commit time"
+        ),
+        "immutable": True,
+    }
+    _require_schema_accepts(
+        receipt_schema, receipt, label="one-call accepted-plan receipt"
+    )
+    for property_name in (plan["context_property"], plan["accepted_receipt_property"]):
+        _require_outcome_payload_binding(
+            tool["outputSchema"],
+            discriminator=discriminator,
+            outcome=accepted,
+            payload_property=property_name,
+            label="one-call accepted plan result",
+        )
+    _require_schema_accepts(
+        tool["outputSchema"],
+        {
+            discriminator: accepted,
+            plan["context_property"]: context,
+            plan["accepted_receipt_property"]: receipt,
+        },
+        label="one-call accepted plan result",
+    )
+
+
+def _validate_exact_source_fetch_tool(tools_by_name: dict[str, dict[str, Any]]) -> None:
+    tool = tools_by_name.get("runbook_context_fetch")
+    if tool is None:
+        raise ContractFailure(
+            "LIFECYCLE_SCHEMA_MISMATCH",
+            "target contract is missing runbook_context_fetch",
+        )
+    if tool["effect"]["mode"] != "read_only":
+        raise ContractFailure(
+            "LIFECYCLE_CAPABILITY_MISMATCH",
+            "runbook_context_fetch must be read-only",
+        )
+    _require_input_properties(
+        tool, ("catalog_sha", "source_blob_oid", "path", "unit_kind", "unit_id")
+    )
+    output = _require_object_shape(
+        tool["outputSchema"],
+        (
+            "complete",
+            "catalog_sha",
+            "source_blob_oid",
+            "path",
+            "byte_start",
+            "byte_end_exclusive",
+            "total_bytes",
+            "page_sha256",
+            "source_sha256",
+            "next_cursor",
+            "content",
+        ),
+        label="exact source fetch output",
+    )
+    _require_boolean_schema(output["complete"], label="source fetch complete")
+    for field_name in ("byte_start", "byte_end_exclusive", "total_bytes"):
+        _require_integer_bounds(
+            output[field_name], label=f"source fetch {field_name}", minimum=0
+        )
+    for field_name in ("page_sha256", "source_sha256"):
+        _require_sha_string(
+            output[field_name], label=f"source fetch {field_name}", length=64
+        )
+    _require_nonempty_string(output["content"], label="source fetch content")
+
+
 def _validate_target_close_result_schema(
     tool: dict[str, Any], close: dict[str, Any]
 ) -> None:
@@ -1627,7 +1972,7 @@ def _validate_target_close_result_schema(
         preferred="satisfied",
     )
     status_values = _schema_literal_values(obligation_properties["status"])
-    allowed_statuses = {"open", "satisfied", "explicitly_deferred"}
+    allowed_statuses = {"OPEN", "SATISFIED"}
     if (
         not status_values
         or not all(isinstance(value, str) for value in status_values)
@@ -1795,6 +2140,39 @@ def _validate_target_action_receipt_bindings(
             _validate_action_context_schema(tool, action_receipts)
 
 
+def _validate_backend_action_evidence_bindings(
+    tools_by_name: dict[str, dict[str, Any]]
+) -> None:
+    for tool in tools_by_name.values():
+        _require_absent_input_properties(tool, ("action_receipt", "runbook_refs"))
+        output_bytes = canonical_json(tool["outputSchema"])
+        if b"ACTION_CONTEXT_REQUIRED" in output_bytes or b'"action_context"' in output_bytes:
+            raise ContractFailure(
+                "LEGACY_LIFECYCLE_SURFACE_PRESENT",
+                f"tool {tool['name']} still exposes the retired caller action-context round trip",
+            )
+        effect = tool["effect"]
+        if (
+            effect["default_effect"] == "mutating"
+            and effect["default_risk"] == "high"
+            and effect["default_receipt_requirement"] != "exact_arguments"
+        ):
+            raise ContractFailure(
+                "LIFECYCLE_CAPABILITY_MISMATCH",
+                f"high-risk default effect for {tool['name']} lacks backend exact-argument binding",
+            )
+        for action in effect["actions"]:
+            if (
+                action["effect"] == "mutating"
+                and action["risk"] == "high"
+                and action["receipt_requirement"] != "exact_arguments"
+            ):
+                raise ContractFailure(
+                    "LIFECYCLE_CAPABILITY_MISMATCH",
+                    f"high-risk action {tool['name']}.{action['value']} lacks backend exact-argument binding",
+                )
+
+
 def _validate_runbook_lifecycle(
     artifact: dict[str, Any], tools_by_name: dict[str, dict[str, Any]]
 ) -> None:
@@ -1802,7 +2180,7 @@ def _validate_runbook_lifecycle(
     profile = lifecycle["profile"]
     plan = lifecycle["plan"]
     close = lifecycle["close"]
-    action_receipts = lifecycle["action_receipts"]
+    action_evidence = lifecycle["action_evidence"]
     plan_tool = tools_by_name.get(plan["tool_name"])
     close_tool = tools_by_name.get(close["tool_name"])
     if plan_tool is None or close_tool is None:
@@ -1814,122 +2192,79 @@ def _validate_runbook_lifecycle(
     _require_mutating_lifecycle_tool(plan_tool, role="plan")
     _require_mutating_lifecycle_tool(close_tool, role="close")
 
-    if profile == "legacy":
-        _require_projection_values(
-            plan,
-            {
-                "protocol": "legacy_caller_authored",
-                "selection_required_outcome": "NONE",
-                "accepted_outcome": "NONE",
-                "first_outcome_typed": False,
-                "first_outcome_semantic_writes": "not_applicable",
-                "binding": "caller_authored_refs",
-                "selection_envelope_property": "NONE",
-                "accepted_receipt_property": "NONE",
-            },
-            label="legacy plan projection",
+    if profile != "runbook_first_v2":
+        raise ContractFailure(
+            "LEGACY_LIFECYCLE_PROFILE",
+            "only the one-way runbook_first_v2 lifecycle is valid",
         )
-        _require_projection_values(
-            close,
-            {
-                "protocol": "legacy_runbook_exit",
-                "committed_outcome": "NONE",
-                "receipt": "none",
-                "committed_receipt_property": "NONE",
-                "obligation_outcomes_property": "NONE",
-                "obligation_transaction": "none",
-                "server_owned_evidence": False,
-            },
-            label="legacy close projection",
-        )
-        _require_projection_values(
-            action_receipts,
-            {
-                "protocol": "none",
-                "context_required_outcome": "NONE",
-                "outcome_discriminator": "outcome",
-                "receipt_argument": "NONE",
-                "context_property": "NONE",
-                "context_outcome_typed": False,
-                "context_outcome_semantic_writes": "not_applicable",
-                "one_use": False,
-                "expiring": False,
-                "binding": "none",
-            },
-            label="legacy action-receipt projection",
-        )
-        delivery = lifecycle["delivery"]
-        if (
-            delivery["candidate_delivery_mode"] == "required"
-            or delivery["legacy_consultation_mode"] == "reject"
-        ):
-            raise ContractFailure(
-                "LIFECYCLE_CAPABILITY_MISMATCH",
-                "legacy caller-authored planning cannot advertise required target delivery or rejection of its legacy input",
-            )
-        _require_input_properties(plan_tool, ("runbook_consultation",))
-        _require_input_properties(close_tool, ("runbook_exit",))
-        return
 
     _require_projection_values(
         plan,
         {
-            "protocol": "server_delivered_two_stage",
-            "selection_required_outcome": "RUNBOOK_CONTEXT_SELECTION_REQUIRED",
+            "protocol": "server_delivered_one_call",
+            "selection_required_outcome": "NONE",
             "accepted_outcome": "PLAN_ACCEPTED",
             "first_outcome_typed": True,
-            "first_outcome_semantic_writes": "none",
-            "binding": "server_issued_ids_bound_to_session_instance_objectives_work_type_revision_catalog_excerpt_digest",
-            "selection_envelope_property": "selection_set",
+            "first_outcome_semantic_writes": "atomic_after_delivery",
+            "binding": "server_bound_session_instance_revision_request_activation_objectives_obligations_context_digest",
+            "selection_envelope_property": "NONE",
             "accepted_receipt_property": "accepted_plan_receipt",
+            "context_property": "runbook_context",
+            "automatic_child_context": True,
+            "obligation_subjects": "backend_cursor_complete",
+            "exact_source_fetch": "section_and_full_runbook_cursor",
         },
         label="target plan projection",
     )
     _require_projection_values(
         close,
         {
-            "protocol": "structured_runbook_impact",
+            "protocol": "backend_evidence_atomic_close",
             "committed_outcome": "COMMITTED",
             "receipt": "typed_transaction_scoped_committed",
             "committed_receipt_property": "close_receipt",
             "obligation_outcomes_property": "obligation_outcomes",
             "obligation_transaction": "atomic_backend_transaction_outbox",
             "server_owned_evidence": True,
+            "caller_runbook_fields": "absent",
+            "semantic_uncertainty": "commit_with_open_obligation",
+            "next_action_enforcement": "component_behavior_change_only",
         },
         label="target close projection",
     )
     _require_projection_values(
-        action_receipts,
+        action_evidence,
         {
-            "protocol": "two_stage_exact_arguments",
-            "context_required_outcome": "ACTION_CONTEXT_REQUIRED",
+            "protocol": "backend_intent_and_terminal_observation",
+            "context_required_outcome": "NONE",
             "outcome_discriminator": "outcome",
-            "receipt_argument": "action_receipt",
-            "context_property": "action_context",
-            "context_outcome_typed": True,
-            "context_outcome_semantic_writes": "none",
+            "receipt_argument": "NONE",
+            "context_property": "NONE",
+            "context_outcome_typed": False,
+            "context_outcome_semantic_writes": "backend_transaction",
             "one_use": True,
             "expiring": True,
-            "binding": "canonical_tool_arguments_session_component_policy_revision",
+            "binding": "session_actor_handler_canonical_arguments_component_policy_action_remote_candidate",
         },
         label="target action-receipt projection",
     )
-    for property_name in ("consultation_ids", "gap_ids"):
-        _require_optional_unique_nonempty_string_array(plan_tool, property_name)
-    _validate_target_plan_result_schema(plan_tool, plan)
-    runbook_impact_schema = _schema_property_schema(
-        close_tool,
-        "inputSchema",
+    retired_fields = (
+        "runbook_consultation",
+        "runbook_refs",
+        "consultation_ids",
+        "gap_ids",
+        "no_entry_found",
         "runbook_impact",
-        code="LIFECYCLE_SCHEMA_MISMATCH",
+        "runbook_exit",
+        "waiver",
+        "discharges",
     )
-    _require_optional_input_property(close_tool, "runbook_impact")
-    _require_satisfiable_object(
-        runbook_impact_schema,
-        label="target close runbook impact",
-    )
+    _require_absent_input_properties(plan_tool, retired_fields)
+    _require_absent_input_properties(close_tool, retired_fields)
+    _validate_one_call_plan_result_schema(plan_tool, plan)
     _validate_target_close_result_schema(close_tool, close)
-    _validate_target_action_receipt_bindings(tools_by_name, action_receipts)
+    _validate_exact_source_fetch_tool(tools_by_name)
+    _validate_backend_action_evidence_bindings(tools_by_name)
 
 
 def assess_runbook_lifecycle_readiness(
@@ -1937,11 +2272,11 @@ def assess_runbook_lifecycle_readiness(
 ) -> RunbookLifecycleReadiness:
     lifecycle = artifact["runbook_lifecycle"]
     reasons: list[ContractFinding] = []
-    if lifecycle["profile"] != "target":
+    if lifecycle["profile"] != "runbook_first_v2":
         reasons.append(
             ContractFinding(
                 "LEGACY_LIFECYCLE_PROFILE",
-                "signed lifecycle projection honestly describes the legacy protocol",
+                "signed lifecycle projection is not the one-way runbook_first_v2 protocol",
                 severity="INFO",
             )
         )
@@ -1955,11 +2290,11 @@ def assess_runbook_lifecycle_readiness(
                     severity="INFO",
                 )
             )
-        if delivery["legacy_consultation_mode"] != "reject":
+        if delivery["legacy_consultation_mode"] != "absent":
             reasons.append(
                 ContractFinding(
-                    "LEGACY_CONSULTATION_NOT_REJECTED",
-                    "legacy_consultation_mode is not reject",
+                    "LEGACY_INPUT_SURFACE_PRESENT",
+                    "legacy consultation input is not physically absent",
                     severity="INFO",
                 )
             )
@@ -1968,6 +2303,22 @@ def assess_runbook_lifecycle_readiness(
                 ContractFinding(
                     "CANDIDATE_LIMIT_ZERO",
                     "target delivery has no usable candidate capacity",
+                    severity="INFO",
+                )
+            )
+        cutover = lifecycle["cutover"]
+        if (
+            cutover["state"] != "ACTIVE_ONE_WAY"
+            or not cutover["legacy_runtime_absent"]
+            or not cutover["local_authority_absent"]
+            or not cutover["fallback_absent"]
+            or not cutover["database_freeze_verified"]
+            or cutover["rollback_mode"] != "new_path_only"
+        ):
+            reasons.append(
+                ContractFinding(
+                    "ONE_WAY_CUTOVER_NOT_PROVEN",
+                    "signed contract does not prove the legacy runtime, local authority, and fallback are absent",
                     severity="INFO",
                 )
             )
@@ -2036,11 +2387,13 @@ def _validate_internal_contract(artifact: dict[str, Any]) -> dict[str, dict[str,
     required_members = set(council["required_members"])
     valid_members = set(council["valid_member_ids"])
     voters = set(roles["voters"])
-    if not required_members.issubset(voters) or not voters.issubset(valid_members):
+    if required_members != voters or voters != valid_members:
         raise ContractFailure(
             "ROLE_PROJECTION_CONTRADICTION",
-            "Council membership must satisfy required_members ⊆ current voters ⊆ valid_member_ids",
+            "Council required_members, current voters, and valid_member_ids must be the same exact set",
         )
+    active_members = set(roles["builders"]) | voters
+    inactive_members = set(roles["paused"]) | set(roles["retired"])
 
     dispatch_name = council["dispatch_tool_name"]
     dispatch_tool = tools_by_name.get(dispatch_name)
@@ -2053,10 +2406,10 @@ def _validate_internal_contract(artifact: dict[str, Any]) -> dict[str, dict[str,
         _enum_values(_tool_property(dispatch_tool, council["member_argument"])),
         label="Council dispatch member enum",
     )
-    if not required_members.issubset(dispatch_enum):
+    if set(dispatch_enum) != active_members:
         raise ContractFailure(
-            "COUNCIL_SCHEMA_MISMATCH",
-            "Council dispatch member enum omits a required gate member",
+            "ROLE_PROJECTION_CONTRADICTION",
+            "Council dispatch enum must equal active builders plus voters and exclude inactive members",
         )
 
     hall = council["hall"]
@@ -2081,16 +2434,20 @@ def _validate_internal_contract(artifact: dict[str, Any]) -> dict[str, dict[str,
             "ROLE_PROJECTION_CONTRADICTION",
             "Hall DEFAULT_AGENTS are not a subset of VALID_AGENTS",
         )
-    if set(hall["default_agents"]) & (set(roles["paused"]) | set(roles["retired"])):
+    if set(hall["valid_agents"]) != required_members:
         raise ContractFailure(
             "ROLE_PROJECTION_CONTRADICTION",
-            "Hall defaults include a paused or retired member",
+            "Hall VALID_AGENTS must equal the exact active voter panel",
         )
-    retired = set(roles["retired"])
-    if retired & set(dispatch_enum) or retired & set(hall["valid_agents"]):
+    if set(hall["default_agents"]) != required_members:
         raise ContractFailure(
             "ROLE_PROJECTION_CONTRADICTION",
-            "retired Council members remain callable through dispatch or Hall",
+            "Hall DEFAULT_AGENTS must equal the exact active voter panel",
+        )
+    if inactive_members & (set(dispatch_enum) | set(hall["valid_agents"])):
+        raise ContractFailure(
+            "ROLE_PROJECTION_CONTRADICTION",
+            "inactive Council backends remain callable through ordinary dispatch or Hall",
         )
     schema_default = hall_property.get("default")
     if schema_default is not None:
@@ -2102,6 +2459,27 @@ def _validate_internal_contract(artifact: dict[str, Any]) -> dict[str, dict[str,
                 "COUNCIL_SCHEMA_MISMATCH",
                 "Hall tool schema default contradicts DEFAULT_AGENTS",
             )
+
+    runtime_identity = artifact["runtime_identity"]
+    runtime_digests = list(runtime_identity.values())
+    label_only_digest = hashlib.sha256(
+        b"runbook-evidence-verifier-v2-r1"
+    ).hexdigest()
+    if any(value == "0" * 64 for value in runtime_digests):
+        raise ContractFailure(
+            "RUNTIME_IDENTITY_PLACEHOLDER",
+            "verifier runtime identity contains an all-zero placeholder",
+        )
+    if runtime_identity["verifier_tree_sha256"] == label_only_digest:
+        raise ContractFailure(
+            "RUNTIME_IDENTITY_LABEL_ONLY",
+            "verifier tree digest hashes a contract label rather than verifier bytes",
+        )
+    if len(set(runtime_digests)) != len(runtime_digests):
+        raise ContractFailure(
+            "RUNTIME_IDENTITY_COLLAPSED",
+            "independent verifier, manifest, lock, runtime, module-origin, and workflow identities collapsed to repeated labels",
+        )
 
     identifiers = artifact["source_identifiers"]
     projections = [identifier["projection"] for identifier in identifiers]

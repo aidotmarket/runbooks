@@ -18,26 +18,44 @@ close complete. Use `session-registry-recovery.md` if the instance row is stale 
 partially completes.
 
 Runbook completion is determined by operational behavior impact, not by producing
-prose that satisfies a close field. Detect the exact deployed close contract from
-the signed connected schema:
+prose that satisfies a close field. The current `kd_session_close` schema has no
+runbook decision, impact, evidence, reference, consultation, debt, discharge,
+waiver, or no-change input. Submit the ordinary session, instance, summary,
+reason, and handoff only.
 
-- When structured `runbook_impact` is deployed, the agent proposes
-  `required|not_required|uncertain`, but the server owns repository baselines,
-  changed paths, action/config/deploy receipts, remote ancestry, and section
-  verification. `not_required` is valid only for a deterministic known
-  behavior-preserving class. Missing evidence becomes `uncertain` and creates or
-  refreshes one deduplicated nonblocking obligation; it does not force filler.
-- While the connected schema still exposes only legacy `runbook_exit`, pass the
-  truthful compatibility declaration required by that exact schema. A legacy
-  commit/created/no-change/waiver value is not evidence of impact and must not
-  induce an unrelated runbook edit. Preserve any resulting legacy debt for
-  migration rather than inventing facts to discharge it.
-- A typed committed close receipt is the only success signal. Response prose,
-  local handoff files, mutable registry rows, author names, and `git cat-file`
-  existence alone are not close truth.
+Before PREPARE, the backend collects the session-open activation/obligation
+snapshot, lazy target-specific baselines captured at action intent, current
+session-bound remote candidate
+refs, provider audit outcomes, exact runbook activation, and existing
+obligations. It does not scan unrelated repositories/providers. Agent and
+gateway claims cannot replace those sources. A trusted
+collector outage, missing/deleted publication ref, invalid ancestry, digest or
+policy mismatch, duplicate identity, or corpus/runtime integrity failure leaves
+the session open and writes no freeze, obligation, handoff, outbox, or receipt.
 
-The intended current roles are MP as builder/non-voter, CC + Kimi + GLM as
-voters, AG paused, and DeepSeek retired. The exact signed deployed
+After trusted collection succeeds, PREPARE freezes the evidence and request
+under the session lock. COMMIT revalidates current remote and provider truth,
+then atomically writes the backend handoff, session close, deduplicated
+obligation occurrences, outbox, and immutable signed receipt. A REQUIRED change
+without verified coverage and semantic UNCERTAIN evidence create or refresh one
+visible OPEN obligation but do not block COMMIT. Known routine transactions
+under an unchanged operating contract do not create documentation obligations.
+
+An OPEN obligation blocks the next behavior-changing action for its component,
+not the truthful close. Read/search/test diagnostics and runbook remediation,
+review, coverage, and activation remain allowed; urgent continuation requires a
+fresh one-use Max authorization bound to the exact obligation and action.
+
+A typed signed `COMMITTED` receipt is the only success signal. Response prose,
+local handoff files, mutable registry rows, author names, default branch heads,
+local commits, and `git cat-file` existence alone are not close truth. The old
+`runbook_exit`/debt/waiver gate, local SQLite/HMAC journal, and fallback close
+path are physically retired. If a freshly listed client exposes any of them,
+stop and repair the incomplete one-way cutover rather than using them.
+
+The intended current roles are MP as builder/non-voter and CC + Kimi + GLM as
+the exact voters/Hall panel. AG and DeepSeek are inactive and rejected from
+ordinary Council surfaces. The exact signed deployed
 tool-and-Council contract is runtime authority. If it is absent or the connected
 schema contradicts it, stop roster-dependent work; historical Living State
 prose is not a substitute.

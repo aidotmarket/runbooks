@@ -23,18 +23,18 @@ cases:
   - id: session-plan-context-first
     area: central-plan-close-runbook-context
     expectation: top3_actionable_section
-    query: after session open obtain authoritative runbook context before kd_session_plan without inventing a consultation
+    query: after session open use the first kd_session_plan to receive server-selected runbook context without caller consultation
     expected_runbook_id: peer-instance-discipline
     expected_heading: §E. Operate
-    required_action_tokens: [RUNBOOK_CONTEXT_SELECTION_REQUIRED, runbook_consultation, signed deployed contract]
+    required_action_tokens: [response_kind=first_plan, open_obligations, guidance_action_authority]
 
   - id: session-close-impact-evidence
     area: central-plan-close-runbook-context
     expectation: top3_actionable_section
-    query: close a session with truthful runbook impact evidence without inventing documentation or filler
+    query: close a session with no caller runbook declaration while the server derives truthful impact evidence
     expected_runbook_id: peer-instance-discipline
     expected_heading: §E. Operate
-    required_action_tokens: [runbook_exit, runbook_impact, compatibility input]
+    required_action_tokens: [server owns, prepare_blocked, PREPARED, committed_receipt, COMMITTED]
 
   - id: credential-disclosure-repair
     area: infrastructure-discovery
@@ -50,7 +50,7 @@ cases:
     query: start a Council Hall deliberation with an explicit participant list
     expected_runbook_id: council-hall-deliberation
     expected_heading: §E. Operate
-    required_action_tokens: [council_hall, action=start]
+    required_action_tokens: [council_hall, action=start, CC, Kimi, GLM]
 
   - id: hall-no-quorum
     area: council-roles-and-schema
@@ -58,7 +58,7 @@ cases:
     query: diagnose no quorum in a Council Hall deliberation
     expected_runbook_id: council-hall-deliberation
     expected_heading: §F. Isolate
-    required_action_tokens: [No quorum, Hall start]
+    required_action_tokens: [No quorum, CC, Kimi, GLM, never substitute]
 
   - id: peer-open-drain
     area: peer-coordination
@@ -82,15 +82,15 @@ cases:
     query: diagnose a live council_request schema mismatch for a required reviewer
     expected_runbook_id: council
     expected_heading: §F. Isolate
-    required_action_tokens: [live callable, required-member constants]
+    required_action_tokens: [live callable, required-member constants, CC, Kimi, GLM, never substitute]
 
   - id: dispatch-gateway-timeout
     area: deployment-and-recovery
     expectation: top3_actionable_section
-    query: diagnose an agent dispatch gateway timeout and inspect whether a background task exists
-    expected_runbook_id: agent-dispatch
-    expected_heading: §F. Isolate
-    required_action_tokens: [Gateway timeout, background task id]
+    query: reconcile a durable Council task ID after a gateway timeout without dispatching duplicate work
+    expected_runbook_id: council
+    expected_heading: §E. Operate
+    required_action_tokens: [task_id, check_build, never dispatch duplicate work]
 
   - id: build-queue-reconcile
     area: central-plan-close-runbook-context
