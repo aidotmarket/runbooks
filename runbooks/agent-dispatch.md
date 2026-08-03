@@ -2073,10 +2073,14 @@ with absolute paths. Never use its hidden non-root test option in production.
    Codex binary, owned-child shim, named permission profile, deny-only causal
    fixture, runtime modules, operator CLI, and evidence schemas.
 2. Run `stage --source-root ROOT --manifest FILE --control-root
-   /var/tmp/koskadeux/control/structural-gate`. Require root ownership,
-   immutable modes, digest equality, directory fsync, and a durable stage
-   receipt. Re-staging identical bytes is idempotent; a conflicting path or
-   digest is `structural_gate_unknown`.
+   '/Library/Application Support/ai.market/structural-gate'`. The descriptor,
+   closure, lock, and every parent are root-owned and non-writable by group or
+   other; `/tmp` and `/var/tmp` are forbidden authority roots. Mutable
+   dispatch receipts and registries remain under
+   `/var/tmp/koskadeux/structural-gate-evidence` and confer no executable or
+   activation authority. Require immutable file modes, digest equality,
+   directory fsync, and a durable stage receipt. Re-staging identical bytes is
+   idempotent; a conflicting path or digest is `structural_gate_unknown`.
 3. Run `verify` against the staged descriptor. Before any Codex invocation,
    verify the installed profile says `forced_login_method="chatgpt"` and
    require `codex login status` to report ChatGPT. Missing subscription auth
