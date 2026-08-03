@@ -1,9 +1,6 @@
 {
-  "action_authority_eligible": false,
-  "authority_admission": false,
   "entries": [
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -11,7 +8,6 @@
           "topic": "agent-completeness"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -19,19 +15,15 @@
           "signature": "incomplete_agent_surface"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/agent-completeness.md",
       "runbook_id": "agent-completeness",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -39,12 +31,15 @@
           "topic": "agent-dispatch"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
           "section": "\u00a7E. Operate",
           "signature": "bootout_without_plist_patch"
+        },
+        {
+          "section": "\u00a7X.8",
+          "signature": "cutover_admission_unknown"
         },
         {
           "section": "\u00a7E. Operate",
@@ -83,6 +78,10 @@
           "signature": "strict_verdict_invalid"
         },
         {
+          "section": "\u00a7X.8",
+          "signature": "structural_gate_unknown"
+        },
+        {
           "section": "\u00a7E. Operate",
           "signature": "tr_truncation_false_negative"
         },
@@ -91,19 +90,15 @@
           "signature": "unsupported_line_claim"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-07-26",
+      "last_verified_at": "2026-08-03",
       "owner": "vulcan",
       "path": "runbooks/agent-dispatch.md",
       "runbook_id": "agent-dispatch",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -111,7 +106,6 @@
           "topic": "aging-policy"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -119,19 +113,15 @@
           "signature": "stale_queue_undispatched"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/aging-policy.md",
       "runbook_id": "aging-policy",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -139,7 +129,6 @@
           "topic": "branch-landed-verification"
         }
       ],
-      "authority_admission": false,
       "domain": "build-queue",
       "error_signatures": [
         {
@@ -159,19 +148,15 @@
           "signature": "unlanded_branch_believed_landed"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "mars",
       "path": "runbooks/branch-landed-verification.md",
       "runbook_id": "branch-landed-verification",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -179,7 +164,6 @@
           "topic": "build-queue-reconciliation"
         }
       ],
-      "authority_admission": false,
       "domain": "build-queue",
       "error_signatures": [
         {
@@ -187,19 +171,15 @@
           "signature": "unsupported_target_repo"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-26",
       "owner": "vulcan",
       "path": "runbooks/build-queue-reconciliation.md",
       "runbook_id": "build-queue-reconciliation",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -207,7 +187,6 @@
           "topic": "constitution-history"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -215,19 +194,15 @@
           "signature": "constitution_source_drift"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "max",
       "path": "runbooks/constitution-history.md",
       "runbook_id": "constitution-history",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [
         "allai-corpus-policy"
       ],
@@ -237,22 +212,17 @@
           "topic": "corpus-capture-policy"
         }
       ],
-      "authority_admission": false,
       "domain": "allai-corpus",
       "error_signatures": [],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-30",
       "owner": "sysadmin",
       "path": "runbooks/corpus-capture-policy.md",
       "runbook_id": "corpus-capture-policy",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -268,7 +238,6 @@
           "topic": "council-schema-drift"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -304,19 +273,15 @@
           "signature": "timeout"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/council.md",
       "runbook_id": "council",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -324,7 +289,6 @@
           "topic": "council-gate-process"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -368,19 +332,15 @@
           "signature": "unresolved_mandates"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "mp",
       "path": "runbooks/council-gate-process.md",
       "runbook_id": "council-gate-process",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -388,7 +348,6 @@
           "topic": "council-hall-deliberation"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -416,19 +375,15 @@
           "signature": "premature_cross_poll"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/council-hall-deliberation.md",
       "runbook_id": "council-hall-deliberation",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [
         "council-verdict-collection",
         "gate-recording"
@@ -439,7 +394,6 @@
           "topic": "council-review-collection"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -475,19 +429,15 @@
           "signature": "review_preload_unresolved"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-30",
       "owner": "mars",
       "path": "runbooks/council-review-collection.md",
       "runbook_id": "council-review-collection",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -495,7 +445,6 @@
           "topic": "council-roster-quirks"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -503,19 +452,15 @@
           "signature": "stale_roster_snapshot"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/council-roster-quirks.md",
       "runbook_id": "council-roster-quirks",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -523,22 +468,17 @@
           "topic": "e2e-programme-integrity"
         }
       ],
-      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-programme-integrity.md",
       "runbook_id": "e2e-programme-integrity",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -546,22 +486,17 @@
           "topic": "e2e-test-status-publisher"
         }
       ],
-      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-test-status-publisher.md",
       "runbook_id": "e2e-test-status-publisher",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -569,22 +504,17 @@
           "topic": "e2e-video-review"
         }
       ],
-      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-video-review.md",
       "runbook_id": "e2e-video-review",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -592,7 +522,6 @@
           "topic": "gate-procedure"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -600,19 +529,15 @@
           "signature": "gate_eligibility_unknown"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/gate-procedure.md",
       "runbook_id": "gate-procedure",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -628,7 +553,6 @@
           "topic": "security-secret-disclosure"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -644,19 +568,15 @@
           "signature": "secret_disclosure"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "sysadmin",
       "path": "runbooks/infrastructure-discovery.md",
       "runbook_id": "infrastructure-discovery",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [
         "peer-bus",
         "peer-message-bus"
@@ -679,7 +599,6 @@
           "topic": "session-plan-runbook-context"
         }
       ],
-      "authority_admission": false,
       "domain": "peer-coordination",
       "error_signatures": [
         {
@@ -711,19 +630,15 @@
           "signature": "unread_request_or_alert_at_dispatch"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-31",
       "owner": "mars",
       "path": "runbooks/peer-instance-discipline.md",
       "runbook_id": "peer-instance-discipline",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -731,7 +646,6 @@
           "topic": "policy-kernel-enforcement"
         }
       ],
-      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -755,19 +669,15 @@
           "signature": "policy_kernel_preflight_indeterminate"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/policy-kernel-enforcement.md",
       "runbook_id": "policy-kernel-enforcement",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -775,7 +685,6 @@
           "topic": "product-elaboration"
         }
       ],
-      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -783,13 +692,10 @@
           "signature": "product_boundary_conflict"
         }
       ],
-      "integrity_only": true,
-      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "max",
       "path": "runbooks/product-elaboration.md",
       "runbook_id": "product-elaboration",
-      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -874,6 +780,10 @@
       "cross_review_block": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
+      },
+      "cutover_admission_unknown": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7X.8"
       },
       "default_cwd_false_positive": {
         "runbook_id": "agent-dispatch",
@@ -1071,6 +981,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "structural_gate_unknown": {
+        "runbook_id": "agent-dispatch",
+        "section": "\u00a7X.8"
+      },
       "timeout": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -1211,8 +1125,5 @@
       }
     }
   },
-  "integrity_only": true,
-  "schema_version": 2,
-  "semantic_verification": false,
-  "status": "integrity_pass_unverified"
+  "schema_version": 1
 }
