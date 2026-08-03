@@ -2071,7 +2071,11 @@ with absolute paths. Never use its hidden non-root test option in production.
 1. Create a content-addressed manifest whose entries contain exactly `path`,
    SHA-256, and mode `0444` or `0555`. The closure must include the exact native
    Codex binary, owned-child shim, named permission profile, deny-only causal
-   fixture, runtime modules, operator CLI, and evidence schemas.
+   fixture, controller/runtime/Git/dispatch/review modules, operator CLI,
+   evidence schemas, canonicalization fixtures, and verification evidence.
+   Cutover and every replacement dispatch compare the deployed module bytes
+   and replacement-object-free Git HEAD to this immutable closure and the
+   descriptor's exact implementation commit.
 2. Run `stage --source-root ROOT --manifest FILE --control-root
    '/Library/Application Support/ai.market/structural-gate'`. The descriptor,
    closure, lock, and every parent are root-owned and non-writable by group or
