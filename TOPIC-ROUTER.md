@@ -17,20 +17,29 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C\. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture-interactions) |
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C\. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture-interactions) |
+| `council-member-cc` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `council-member-glm` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.4 GLM — read-only voter](runbooks/council-roster-quirks.md#c4-glm-read-only-voter) |
+| `council-member-interaction-policy` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
+| `council-member-kimi` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.3 Kimi — read-only voter](runbooks/council-roster-quirks.md#c3-kimi-read-only-voter) |
+| `council-member-mp` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.1 MP — mandatory builder](runbooks/council-roster-quirks.md#c1-mp-mandatory-builder) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions) |
 | `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
 | `council-roster-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
-| `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
 | `council-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `e2e-programme-integrity` | `e2e-programme-integrity` (`runbooks/e2e-programme-integrity.md`) | [§C\. Architecture & Interactions](runbooks/e2e-programme-integrity.md#c-architecture-interactions) |
 | `e2e-test-status-publisher` | `e2e-test-status-publisher` (`runbooks/e2e-test-status-publisher.md`) | [§C\. Architecture & Interactions](runbooks/e2e-test-status-publisher.md#c-architecture-interactions) |
 | `e2e-video-review` | `e2e-video-review` (`runbooks/e2e-video-review.md`) | [§C\. Architecture & Interactions](runbooks/e2e-video-review.md#c-architecture-interactions) |
 | `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C\. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture-interactions) |
+| `inactive-council-backend-ag` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.5 AG — inactive backend](runbooks/council-roster-quirks.md#c5-ag-inactive-backend) |
+| `inactive-council-backend-deepseek` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.6 DeepSeek — inactive retired backend](runbooks/council-roster-quirks.md#c6-deepseek-inactive-retired-backend) |
 | `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C\. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture-interactions) |
 | `instance-peer-topology` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-bus-coordination` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C\. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture-interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C\. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture-interactions) |
+| `runbook-content-activation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-first-session-planning` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-impact-and-obligations` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§C\. Architecture & Interactions](runbooks/runbook-first-gates.md#c-architecture-interactions) |
 | `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
@@ -45,12 +54,14 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `candidate ref missing or deleted` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
 | `cc_verdict_parse_failure` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `clean_tree_read_as_current` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `completion_truncated` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F\. Isolate](runbooks/constitution-history.md#f-isolate) |
 | `council_roster_drift` | `council` (`runbooks/council.md`) | [§G\. Repair](runbooks/council.md#g-repair) |
+| `council_schema_contract_mismatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F\. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `council_schema_drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `credential_exposed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -83,6 +94,8 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `peer_message_silently_deduped` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `peer_msg_silent_dedupe` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `peer_runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `peer_runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `policy_kernel_enforcement_setting_invalid` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `policy_kernel_not_evaluable` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `policy_kernel_preflight_indeterminate` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
@@ -92,8 +105,11 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
-| `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `runbook evidence unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook obligation due before behavior change` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_context_delivery_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_impact_evidence_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_library_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
 | `schema_roster_mismatch` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `secret_disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
@@ -115,8 +131,26 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 
 | Alias | Runbook | Section |
 |---|---|---|
+| `ag-do-not-dispatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
 | `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
+| `council-member-interactions` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `deepseek-do-not-dispatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `documentation-obligation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `how-to-use-cc` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-glm` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-kimi` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-mp` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `no-runbook-update-needed` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `old-runbook-obligation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `preserve-successful-build` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `read-runbooks-before-starting-work` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-authoring` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-close` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-maintenance` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `update-runbook-after-work` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `why-ag-is-inactive` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `why-deepseek-is-inactive` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |

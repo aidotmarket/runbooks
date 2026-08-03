@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 744f0fb6640e9f2814d070713dd41b24eb06bc17
+  inventory_sha: 790dddf3e5f4fe44ecbc03176f8cfa9d6e3da032
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -14,8 +14,8 @@ inventory:
   counts:
     operational_documents: 102
     source_documents: 101
-    active: 20
-    grandfathered: 81
+    active: 21
+    grandfathered: 80
     archived: 1
 policy:
   pending_is_not_authority: true
@@ -416,7 +416,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: codex-mp.md
-    git_blob_oid: c0f6a54dbabdcedbe99a16040d3e615937b61181
+    git_blob_oid: 7d7b2515564d0c8151de4e167d6269cde267b65b
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -831,7 +831,7 @@ documents:
       - deployed customer surface and current feature flags
     independent_review_required: false
   - path: max-reporting.md
-    git_blob_oid: 70d4848cac988dd3921bbe60ba1276c5d65981cb
+    git_blob_oid: 0e17be9dc32d7a38b395b6b35c4172bf70dc7ff1
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -845,7 +845,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: mcp-gateway.md
-    git_blob_oid: 98c01c3d96f7d5a15d3c085a7bdb8dc3e2026817
+    git_blob_oid: f7f7a9e91ccaeeb0054ca8f89596b3cb5f503066
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -925,7 +925,7 @@ documents:
       - production-safe behavior probes and canonical state
     independent_review_required: true
   - path: runbooks/peer-instance-discipline.md
-    git_blob_oid: 1bb703448d23c1a7d25929a44a16240a59060c6b
+    git_blob_oid: ce970b83d7014db387933541c1711ef60f8a4081
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1026,18 +1026,18 @@ documents:
       - live process table and health endpoints
       - DNS, tunnel, provider, and host configuration
     independent_review_required: false
-  - path: runbook-first-gates.md
-    git_blob_oid: b4984003551196435b268dded5d54e0226cbe44b
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: promote
+  - path: runbooks/runbook-first-gates.md
+    git_blob_oid: 369582b9627b748ecab3b43cdcc92e35e4f0ef2f
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
     batch: governance
     risk: P0
     target_paths:
       - runbooks/runbook-first-gates.md
     evidence:
-      - ref: runbook-first-gates.md:13
-        finding: documents the blocking runbook-attestation design being replaced
+      - ref: runbooks/runbook-first-gates.md:13
+        finding: documents the active replacement for the blocking runbook-attestation design
     verify_against:
       - deployed gateway tool schema and canonical state
       - current CORE and policy-kernel sources
@@ -1057,7 +1057,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: 0f235e7a753594eedc1047a2f0783b180be3bcd6
+    git_blob_oid: 131b72d96b6cbf6c56bc5dc05e0265533c2cddd4
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1071,7 +1071,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/aging-policy.md
-    git_blob_oid: ccc0e41023584729268b70cd6e48df04ec00149f
+    git_blob_oid: c44cf41afb5cbcce99e5616668f198e2592ee5b9
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1115,7 +1115,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/build-queue-reconciliation.md
-    git_blob_oid: 4929cdd06678e8f50e6be0c605ee90f5ef70481c
+    git_blob_oid: cb43ec685e6a5a064276b29c23836109b7ec5f98
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1143,7 +1143,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council-gate-process.md
-    git_blob_oid: 88c78387c99420c17f51694d145ae2e19e2556a2
+    git_blob_oid: 9016dc1c2e0f046a7c94a9e1af8a7bc8d6683850
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1157,7 +1157,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council-hall-deliberation.md
-    git_blob_oid: efa58dbf80f28792672e80372fac766f6760b6d6
+    git_blob_oid: d7ce8672e25b0ccc1a80da4de70d3f91f97a0feb
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1171,7 +1171,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council-review-collection.md
-    git_blob_oid: dc418d7a2fd118e9e810527f33079266763a1d3a
+    git_blob_oid: bd85d96154f4815693334fba3dd266db0f937d79
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1185,7 +1185,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council-roster-quirks.md
-    git_blob_oid: 03f48a41f9a5e4413fcbe8d339bcc4dbbbf31eb1
+    git_blob_oid: 391cfe2021ceca642f7bf628ea7b1f99134ad64d
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1199,7 +1199,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: f6d13b768500a80597eb9cb523d7edf7a0b2d43b
+    git_blob_oid: c5b80897919246be7bcc11e47dc6ee5b5c1bc716
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1213,7 +1213,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/gate-procedure.md
-    git_blob_oid: 8d35613772fcc8ac284c67d5c59d78e67781fffa
+    git_blob_oid: 9a92941a8b9e071c997bb0779c4be45bba1f4427
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1325,7 +1325,7 @@ documents:
       - deployed customer surface and current feature flags
     independent_review_required: false
   - path: session-close-protocol.md
-    git_blob_oid: 034f36bad0b13c7b8f5c11a732d7177662a4fa91
+    git_blob_oid: a7daa8626bdd8a73bf0baf4cfa90aac8737b6daf
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1358,7 +1358,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: session-open-protocol.md
-    git_blob_oid: e2132eb3ababdaf908b2d3bd3352335de69090af
+    git_blob_oid: 81d2338a361b08a2b4ddc2b85a2986c15c8102ed
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
