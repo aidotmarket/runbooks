@@ -36,14 +36,14 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Event Ledger admission (embed/never/quarantine) | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-07-30 |
 | Event outbox write conditional on admission | SHIPPED | `app/services/state_service.py` | `tests/test_qdrant_sync_worker_s1194.py` | 2026-07-30 |
 | Quarantine counter and classification cooldown | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-07-30 |
-| Entity churn-prefix denylist | PARTIAL | `app/services/state_service.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-30 |
+| Entity churn-prefix denylist | SHIPPED | `app/services/state_service.py` | `tests/test_entity_embed_churn_denylist_s1447.py` | 2026-08-06 |
 | Entity default-DENY admission at producers | PLANNED | — | — | 2026-07-30 |
-| Corpus control plane (six classes, flags off) | PLANNED | — | — | 2026-07-30 |
+| Corpus control plane (six classes, flags off) | SHIPPED | `app/services/corpus_policy.py` | `tests/test_corpus_{schema,models,reject_metrics}.py` | 2026-08-06 |
 | Structure-fingerprint moat capture (S1396) | PLANNED | — | — | 2026-07-30 |
 | Outbox done-row retention sweep | GAP | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | GAP | — | — | 2026-07-30 |
 
-Status notes: "Entity default-DENY admission" is BQ-CORPUS-CAPTURE-TAXONOMY-S1299 Chunk 2 (spec `specs/BQ-CORPUS-CAPTURE-TAXONOMY-S1299-GATE2.md` at c233c9597aa1e812ba957d7139649cb0ec762917 in ai-market-backend). "Corpus control plane" is S1299 Chunk 1, dispatched to MP 2026-07-30 (task 4f658f20). The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: "Entity default-DENY admission" is BQ-CORPUS-CAPTURE-TAXONOMY-S1299 Chunk 2 (spec `specs/BQ-CORPUS-CAPTURE-TAXONOMY-S1299-GATE2.md` at c233c9597aa1e812ba957d7139649cb0ec762917 in ai-market-backend). "Corpus control plane" is S1299 Chunk 1, MERGED TO MAIN (verified S1447 at origin/main by file presence, not by note). All eight CORPUS_* flags default False, so the landed code is dormant and nothing is being captured. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
 ## §C. Architecture & Interactions
 
@@ -51,13 +51,13 @@ Status notes: "Entity default-DENY admission" is BQ-CORPUS-CAPTURE-TAXONOMY-S129
 |---|---|---|---|---|
 | Event admission | `app/services/qdrant_event_admission.py` | `state_events`, `qdrant_event_type_quarantine` | StateService.record_event | classify_event_type returns embed, never, or quarantine; only embed writes an outbox row; unknown types increment a content-free quarantine counter awaiting human classification. |
 | Entity indexing gate | `app/services/state_service.py` | `state_entities`, `qdrant_sync_outbox` | Qdrant sync consumer | Today: config denylist QDRANT_ENTITY_DENYLIST_PREFIXES only; denylisted entities are marked not semantically indexable and their Qdrant points are deleted by the consumer. After S1299 Chunk 2: default-DENY admit() at every producer, no outbox row for non-admitted writes. |
-| Corpus control plane | `app/services/corpus_policy.py` | corpus tables per S1299 §4.1 | admission service, curator workflow | S1299 Chunk 1, in build. All classes and workers default off. Postgres is corpus of record; Qdrant is a derived projection. |
+| Corpus control plane | `app/services/corpus_policy.py` | corpus tables per S1299 §4.1 | admission service, curator workflow | S1299 Chunk 1, LANDED on main (S1447). All classes and workers default off. Postgres is corpus of record; Qdrant is a derived projection. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
 ### §C.1 What we KEEP - current, live today
 
 1. **Events, admit-list only.** Event types whose meaning is decision-grade for operating the platform: decisions, approvals and verdicts, incidents and resolutions, architecture and commitments, security events, deployment failures, lifecycle transitions, ACL violations, identity-assertion mismatches, reviews and cross-reviews. Verified live volume after admission shipped: 79 embedded events in the 7 days to 2026-07-30, versus roughly 30,000 per day before.
-2. **Entities, until S1299 Chunk 2 lands.** Everything except the configured denylist prefixes still embeds on every write. This is a known temporary non-compliance with the governing principle, measured at roughly 30,000 internal embeddings per day, and is exactly what Chunk 2 removes.
+2. **Entities, until S1299 Chunk 2 lands.** Everything except the configured denylist prefixes still embeds on every write. S1447 added `build:`, `bq:` and `config:` to that denylist as an interim control after measuring 100,378 entity embedding calls in 7 days, 97.5% of them `build:` records re-embedded ~106 times each. Live embedding volume after the change: zero. **Do not trust this paragraph. Run `python3 scripts/corpus_state.py` in ai-market-backend; it reads git and production and answers this in five seconds.** This is a known temporary non-compliance with the governing principle, measured at roughly 30,000 internal embeddings per day, and is exactly what Chunk 2 removes.
 
 ### §C.2 What we KEEP - the corpus, as S1299 chunks land
 
