@@ -1,4 +1,20 @@
 ---
+runbook_id: e2e-browser-runner
+domain: e2e-testing
+status: ACTIVE
+authoritative_for:
+  - topic: e2e-browser-runner
+    section: §C. Architecture & Interactions
+aliases: []
+error_signatures:
+  - signature: browser_journey_preflight_not_allowlisted
+    section: §F. Isolate
+  - signature: browser_journey_harness_error_no_artifacts
+    section: §F. Isolate
+supersedes: []
+superseded_by: []
+owner: mars
+last_verified_at: 2026-08-05
 system_name: e2e-browser-runner
 purpose_sentence: Operate, diagnose and evolve the browser_journey charter kind in the e2e-harness - the real Chromium browser, driven from Titan-1 via Playwright, that walks ai.market the way a customer does and turns what it finds into reports and tickets.
 owner_agent: mars
@@ -33,19 +49,19 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| `browser_journey` charter kind accepted through the existing JSONL queue and CLI | SHIPPED | `e2e-harness src/e2e_harness/queue.py`, `cli.py` (unchanged; generic `kind`) | `tests/test_queue.py` | 2026-07-12 |
-| Real Chromium launch via Playwright, per-run profile dir | SHIPPED | `src/e2e_harness/browser.py:BrowserJourneyRunner._walk_public_page` | `tests/test_runtime.py` | 2026-07-12 (live walk of https://ai.market, S1196) |
+| `browser_journey` charter kind accepted through the existing JSONL queue and CLI | SHIPPED | `src/e2e_harness/queue.py` | `tests/test_queue.py` | 2026-07-12 |
+| Real Chromium launch via Playwright, per-run profile dir | SHIPPED | `src/e2e_harness/browser.py:BrowserJourneyRunner._walk_public_page` | `tests/test_runtime.py` | 2026-07-12 |
 | Anonymous public production walk (Phase 1): signs into nothing, writes nothing | SHIPPED | `src/e2e_harness/browser.py:BrowserJourneyRunner.run` | `tests/test_runtime.py` | 2026-07-12 |
 | Fail-closed param handling: malformed charter reports without opening a browser | SHIPPED | `browser.py:_harness_error` | `tests/test_runtime.py` | 2026-07-12 |
-| Config-only production URL, fail-closed when unset | SHIPPED | `src/e2e_harness/runtime.py` (`browser_journey` dispatch branch) | `tests/test_runtime.py` | 2026-07-12 |
+| Config-only production URL, fail-closed when unset | SHIPPED | `src/e2e_harness/runtime.py` | `tests/test_runtime.py` | 2026-07-12 |
 | Narrow production-guard exemption (no accounts AND `requires_mutation` falsy AND `anonymous: true`) | SHIPPED | `runtime.py:_is_anonymous_browser_preflight_exempt` | `tests/test_runtime.py` | 2026-07-12 |
-| Artifact policy: redacted step transcript AND redacted trace zip persisted; screenshots still WITHHELD (no pixel masking exists) | SHIPPED (S1197: zip-aware redaction) | `browser.py:_redact_and_cleanup`, `src/e2e_harness/redaction.py:redact_zip` | `tests/test_redaction_retention.py` | 2026-07-12 |
-| Zip-aware trace redaction: NDJSON entries redacted line-by-line, `resources/` response bodies and all binary/non-UTF-8 entries WITHHELD, `redaction-manifest.json` records every entry, any failure raises (harness_error, no artifacts) | SHIPPED | `redaction.py:redact_zip`, `_redact_zip_entry` | `tests/test_redaction_retention.py` | 2026-07-12 |
+| Artifact policy: redacted step transcript AND redacted trace zip persisted; screenshots still WITHHELD (no pixel masking exists); zip-aware redaction landed S1197 | SHIPPED | `src/e2e_harness/browser.py:_redact_and_cleanup` | `tests/test_redaction_retention.py` | 2026-07-12 |
+| Zip-aware trace redaction: NDJSON entries redacted line-by-line, `resources/` response bodies and all binary/non-UTF-8 entries WITHHELD, `redaction-manifest.json` records every entry, any failure raises (harness_error, no artifacts) | SHIPPED | `src/e2e_harness/redaction.py:redact_zip` | `tests/test_redaction_retention.py` | 2026-07-12 |
 | Harness production environment, S1201: the targeting opt-in, the two sanctioned URLs and the backend internal API key, loaded from one place; the key is fetched from Infisical at runtime and never written to the plist or the repo | SHIPPED | `scripts/harness-env.sh` | live production verification, §E-02 | 2026-07-13 |
-| Preflight arming for the Phase 2 buyer, S1201: `E2E_RESET_ALLOWED_ACCOUNT_IDS` on the production backend holds buyer-01 and nothing else, so preflight allows that one account and refuses every other. Reset and teardown routes remain 404 because `E2E_TEST_ROUTES_ENABLED` is false — nothing is armed | SHIPPED | — | live production verification, §E-02 | 2026-07-13 |
+| Preflight arming for the Phase 2 buyer, S1201: `E2E_RESET_ALLOWED_ACCOUNT_IDS` on the production backend holds buyer-01 and nothing else, so preflight allows that one account and refuses every other. Reset and teardown routes remain 404 because `E2E_TEST_ROUTES_ENABLED` is false — nothing is armed | SHIPPED | `src/e2e_harness/preflight.py` | live production verification, §E-02 | 2026-07-13 |
 | Phase 2: authenticated buyer read-only journey to the pay boundary. Login blocker REMOVED S1293 — all ten pool accounts now log in through the customer login endpoint (BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292, queued S1292 / executed S1293, Gate-1 unanimous + Max GO; all ten verified live, HTTP 200). The journey ITSELF is not built yet. Preflight caveat: only buyer-01 is in `E2E_RESET_ALLOWED_ACCOUNT_IDS`, so only buyer-01 passes preflight today; the other nine need their id added before a browser will open. Reset/teardown routes remain 404 (`E2E_TEST_ROUTES_ENABLED` false); the pay boundary itself still needs the Stripe sandbox order router (s1196). | PLANNED | `app/e2e/synthetic_accounts.py` | live login verification S1293 | 2026-07-20 |
-| Phase 3: mutating seller journey (publish a listing); pay step blocked on the Stripe sandbox order router | PLANNED — `build:bq-stripe-sandbox-order-router-s1196` gates the pay step | n/a | n/a | n/a |
-| Phase 4: recorded/deterministic nightly replay, agentic re-walk policy | PLANNED | n/a | n/a | n/a |
+| Phase 3: mutating seller journey (publish a listing); the pay step is gated by `build:bq-stripe-sandbox-order-router-s1196` | PLANNED | — | — | — |
+| Phase 4: recorded/deterministic nightly replay, agentic re-walk policy | PLANNED | — | — | — |
 
 ## §C. Architecture & Interactions
 
@@ -103,7 +119,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     - E2E_PROD_TARGETING_ENABLED is set
     - the backend read-only preflight route is enabled (E2E_PREFLIGHT_ROUTES_ENABLED=true on ai-market-backend; it is DORMANT by default and is independent of E2E_TEST_ROUTES_ENABLED, which still gates the reset/teardown mutation routes)
     - E2E_INTERNAL_API_KEY is set in the harness environment (the preflight route requires the X-Internal-API-Key header since S1197; the harness refuses the run locally, before any network call, when the key is absent). Do NOT set it by hand and do NOT put it in the plist - source scripts/harness-env.sh, which fetches it from Infisical at runtime (S1201)
-    - the account id is in E2E_RESET_ALLOWED_ACCOUNT_IDS on the production backend. Preflight reads the RESET allowlist; an account that is not in it is refused with 403 not_allowlisted even though it is a real is_test pool account. Adding an id to that allowlist does NOT arm anything: the reset and teardown routes stay absent while E2E_TEST_ROUTES_ENABLED is false
+    - 'the account id is in E2E_RESET_ALLOWED_ACCOUNT_IDS on the production backend. Preflight reads the RESET allowlist; an account that is not in it is refused with 403 not_allowlisted even though it is a real is_test pool account. Adding an id to that allowlist does NOT arm anything: the reset and teardown routes stay absent while E2E_TEST_ROUTES_ENABLED is false'
     - the account can actually LOG IN. As of S1293 ALL TEN pool rows carry a real password_hash and sign in through the customer login endpoint (buyer-01 since S1202, the remaining nine since S1293; BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292). Login capability is now pool-wide, but preflight authorization is a SEPARATE gate; only ids in E2E_RESET_ALLOWED_ACCOUNT_IDS (currently buyer-01 only) pass preflight; every other pool account is refused 403 not_allowlisted before any browser opens, so a Phase 2+ charter for an account other than buyer-01 needs that id added to the allowlist first
   tool_or_endpoint: "e2e-harness run (the runtime calls GET /api/v1/e2e/preflight/{account_id} before any browser opens)"
   argument_sourcing:
@@ -315,7 +331,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: 'a browser_journey charter with params mode agentic, anonymous true, requires_mutation false, start_url frontend, and no account ids; then e2e-harness run'
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-02
     type: operate
     refs: [E-01]
@@ -323,7 +339,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: the redacted step transcript and the redacted trace zip; screenshots are still withheld by policy
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-03
     type: operate
     refs: [E-02]
@@ -331,7 +347,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: declared is_test pool account ids, E2E_PROD_TARGETING_ENABLED set, and per-account preflight returning allowed=true; the anonymous exemption must NOT be used
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-04
     type: isolate
     refs: [F-01]
@@ -339,7 +355,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: no - it is the designed fail-closed behaviour; set the config, never add a hardcoded host back
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-05
     type: isolate
     refs: [F-04]
@@ -347,7 +363,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: as of S1197 the trace IS persisted, redacted, by `redact_zip`. If it is missing, do NOT reach for `redact_artifact`'s text path - find out why redaction raised, because a raise means the run was classified harness_error and nothing was persisted, which is the intended fail-closed behaviour
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-06
     type: isolate
     refs: [F-06]
@@ -355,7 +371,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: that is an abuse of the exemption and a BREAKING change in effect - a mutating journey must take the full production guard
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-07
     type: repair
     refs: [G-05]
@@ -363,7 +379,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: run playwright install chromium in the harness virtualenv and keep the step documented in the harness README
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-08
     type: repair
     refs: [G-07]
@@ -371,7 +387,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: restore the classification rule - only outcome status failed creates a Finding; harness_error writes a report and files nothing
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-09
     type: evolve
     refs: [§H.2]
@@ -379,7 +395,7 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: BREAKING
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-10
     type: evolve
     refs: [§H.3]
@@ -387,7 +403,17 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: REVIEW
-    weight: 0.1
+    weight: 0.0909090909
+  - id: I-11
+    type: ambiguous
+    refs: [F-01, §E-02, §H.1]
+    scenario: A browser journey reports passed, but the artifact directory holds only the step transcript and no trace zip, and the charter declared requires_mutation false against production. The operator cannot tell whether redaction withheld the trace, the run never opened a browser under the anonymous preflight exemption, or the journey silently walked nothing.
+    expected_answers:
+      - kind: human_action
+        verb: triage
+        object: the run report and artifact manifest together
+        target: separate a redaction withholding from a preflight exemption from an empty walk before trusting the pass
+    weight: 0.0909090909
 ```
 
 ## §J. Lifecycle
@@ -403,9 +429,9 @@ refresh_triggers:
   - the Stripe sandbox order router going live (the pay boundary moves)
   - any change to the production guard or the anonymous exemption
 scheduled_cadence: 90d
-last_harness_pass_rate: NOT_RUN
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: 2026-07-12T14:40:00Z
-first_staleness_detected_at: null
+first_staleness_detected_at: 2026-08-05T16:52:16Z
 ```
 
 Refresh log:

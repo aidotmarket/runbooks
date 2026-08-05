@@ -441,6 +441,33 @@
       "authoritative_for": [
         {
           "section": "\u00a7C. Architecture & Interactions",
+          "topic": "e2e-browser-runner"
+        }
+      ],
+      "domain": "e2e-testing",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "browser_journey_harness_error_no_artifacts"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "browser_journey_preflight_not_allowlisted"
+        }
+      ],
+      "last_verified_at": "2026-08-05",
+      "owner": "mars",
+      "path": "e2e-browser-runner.md",
+      "runbook_id": "e2e-browser-runner",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "e2e-programme-integrity"
         }
       ],
@@ -693,6 +720,14 @@
       "break_glass_left_enabled": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
+      },
+      "browser_journey_harness_error_no_artifacts": {
+        "runbook_id": "e2e-browser-runner",
+        "section": "\u00a7F. Isolate"
+      },
+      "browser_journey_preflight_not_allowlisted": {
+        "runbook_id": "e2e-browser-runner",
+        "section": "\u00a7F. Isolate"
       },
       "cc_verdict_parse_failure": {
         "runbook_id": "council-review-collection",
@@ -978,6 +1013,10 @@
       },
       "council-roster-quirks": {
         "runbook_id": "council-roster-quirks",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "e2e-browser-runner": {
+        "runbook_id": "e2e-browser-runner",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "e2e-programme-integrity": {

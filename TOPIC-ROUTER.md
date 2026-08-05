@@ -19,6 +19,7 @@
 | `council-operations` | `council` (`runbooks/council.md`) | [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) |
 | `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
 | `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture--interactions) |
+| `e2e-browser-runner` | `e2e-browser-runner` (`e2e-browser-runner.md`) | [§C. Architecture & Interactions](e2e-browser-runner.md#c-architecture--interactions) |
 | `e2e-programme-integrity` | `e2e-programme-integrity` (`e2e-programme-integrity.md`) | [§C. Architecture & Interactions](e2e-programme-integrity.md#c-architecture--interactions) |
 | `e2e-test-status-publisher` | `e2e-test-status-publisher` (`e2e-test-status-publisher.md`) | [§C. Architecture & Interactions](e2e-test-status-publisher.md#c-architecture--interactions) |
 | `e2e-video-review` | `e2e-video-review` (`e2e-video-review.md`) | [§C. Architecture & Interactions](e2e-video-review.md#c-architecture--interactions) |
@@ -38,6 +39,8 @@
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `browser_journey_harness_error_no_artifacts` | `e2e-browser-runner` (`e2e-browser-runner.md`) | [§F. Isolate](e2e-browser-runner.md#f-isolate) |
+| `browser_journey_preflight_not_allowlisted` | `e2e-browser-runner` (`e2e-browser-runner.md`) | [§F. Isolate](e2e-browser-runner.md#f-isolate) |
 | `cc_verdict_parse_failure` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
 | `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `clean_tree_read_as_current` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
