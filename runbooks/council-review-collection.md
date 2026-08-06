@@ -240,11 +240,11 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   symptom_ref: F-08
   component_ref: Per-provider verdict validators
   root_cause: the terminal-normalization retry exists only on the CC path. GLM and Kimi each make a single strict decode call and return failure on any exception, so a valid verdict wrapped in prose is destroyed.
-  repair_entry_point: re-dispatch that seat instructing raw JSON as the first byte, no preamble and no markdown fences; the discarded completion remains retrievable from the original task receipt and is worth reading before re-running
+  repair_entry_point: re-dispatch that seat instructing raw JSON as the first byte, no preamble and no markdown fences. FIRST recover EVERY discarded attempt with check_build on each exact task id, not only the most recent one. Attempts on the same head can differ in substance, and the older attempt is often the richer, so taking only the latest silently loses review content that nobody will know existed. Observed live in S1444 on head 41415ae2, where the first discarded Kimi attempt carried three minor findings and the second carried none, both APPROVE with zero mandates
   change_pattern: prompt correction only; NEVER relax strict validation, and never hand-transcribe a verdict
   rollback_procedure: none; failed dispatches make no state change
   integrity_check: structured_payload parses on the fresh receipt and the seat is recorded
-  known_limit: mitigation only. The retry mechanism already exists and is proven on CC; it is simply not wired to the other two transports. Durable repair owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1.
+  known_limit: mitigation only, and not a deterministic one. The retry mechanism already exists and is proven on CC; it is simply not wired to the other two transports. Prompt hardening measurably shrinks the prose prefix but does not eliminate it, so a re-dispatch is better than even odds rather than a guarantee. State that odds calibration before spending a round on it. Durable repair owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1.
 ```
 
 ## §H. Evolve
