@@ -28,7 +28,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: mars
-last_verified_at: 2026-07-30
+last_verified_at: 2026-08-06
 system_name: council-review-collection
 purpose_sentence: Operating authority for collecting Council review verdicts reliably, folding mandates, recording gate results in Living State, and coordinating the shared MP builder lane between peer instances.
 owner_agent: mars
@@ -91,10 +91,14 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
     - the checkout has fetched the SHA
     - the connected client council_request enum contains the selected required voter; if upstream and client differ, refresh or reconnect before dispatch
     - review scoped within the reviewer cost cap; for Kimi 3-page deltas use max_tokens 20000 plus a summary word cap; for GLM multi-page reads quote the file path on its own line and instruct re-issuing identical args changing only offset
-  tool_or_endpoint: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>)
+    - turn budget sized to the width of the read, NOT left at defaults. GLM and Kimi read the pinned checkout themselves and spend a turn per small batch of reads. Defaults are max_turns 8 and max_calls_per_turn 4, and there is a hard ceiling of 24 turns that a caller CANNOT raise. A reviewer that reaches the ceiling is terminated mid-investigation and its entire evidence trail is discarded with no verdict. Raise max_calls_per_turn so the same reads finish in far fewer turns; that is the only lever a caller actually has
+  tool_or_endpoint: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>, max_calls_per_turn=<batch_size>, max_turns=<<=24>, timeout_s=<bound>)
   argument_sourcing:
     review_prompt: derive from the exact gate/spec questions and changed-file coverage, with explicit read-only scope
     cwd: absolute path of the repo checkout that contains the dispatch SHA; the resolver uses args.cwd or the server process cwd, and review_sources entries do NOT satisfy it (root-caused S1407, verified live on backend SHA 00a45639)
+    max_calls_per_turn: size from the number of files the reviewer must open. 16 is a sound default for a multi-file review; the default of 4 is only adequate for a narrow one. Observed live in S1443, a GLM review made 39 reads at roughly 1.6 calls per turn, consumed 25 turns and was killed at the ceiling (task fc0315e6)
+    max_turns: may be raised up to 24 and no further; hard_max_turns is a literal in the dispatcher. Setting it higher is silently ineffective, so never treat a raised max_turns as the mitigation on its own
+    review_sources.required_paths: mandatory evidence AND inlined into the material context, so they count against the shared inline limit. List only the fold files; name large anchors in the prose and let the reviewer open them with read-only tools. The repo and SHA in review_sources authorise the whole tree, not just required_paths (proven S1442)
   idempotency: IDEMPOTENT
   expected_success:
     shape: dispatch receipt with a running task id, preloaded review context, complete coverage, exact model match, and cost within cap
@@ -108,14 +112,18 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
       cause: default token budget too small for a Kimi 3-page delta; the terminal response is cut before the verdict
     - signature: glm_page_path_hallucination
       cause: on page 3 and later of long filenames GLM re-types and mutates the path, so the read fails or reads the wrong file
+    - signature: reviewer_turn_ceiling_exhausted
+      cause: the reviewer was reading the required files correctly but ran out of turns and was terminated mid-investigation. Receipt shows stop_reason tool_use, turns_used at or above 24, a healthy tool_calls list and a generic process-failed error code. NOT a filesystem, provider, model or cost fault, and NOT fixed by retrying unchanged
+    - signature: review_material_inline_limit_exceeded
+      cause: review_sources.required_paths are inlined; large mandatory paths breach the shared inline limit before the reviewer starts
   next_step_success: record the verdict per E-02
-  next_step_failure: apply the matching mitigation (pass cwd, raise max_tokens with a word cap, or quote the path with the offset-only protocol) and re-dispatch; two malformed terminal attempts fail closed and a verdict resting on incomplete coverage is invalid
+  next_step_failure: apply the matching mitigation (pass cwd, raise max_tokens with a word cap, quote the path with the offset-only protocol, raise max_calls_per_turn, or move large paths out of required_paths) and re-dispatch; two malformed terminal attempts fail closed and a verdict resting on incomplete coverage is invalid. Read the receipt before retrying, because a retry with unchanged arguments after a turn-ceiling termination will fail identically and burn the round
 - id: E-02
   trigger: A complete valid panel has been collected and the gate outcome must be recorded on the BQ entity.
   pre_conditions:
     - every required voter is terminal with exact model match
     - reviewer is not the builder
-    - for CC verdicts, the raw JSON envelope parsed; if CC emitted prose before the JSON, the round is re-dispatched instructing raw JSON with no preamble rather than scraping prose
+    - for CC verdicts, the raw JSON envelope parsed. CC now self-repairs prose-before-JSON. Its path re-prompts the model to reformat its own completion and re-validates, recorded as terminal_normalization_attempted and terminal_normalization_succeeded on the receipt. GLM and Kimi have NO equivalent retry and hard-fail the whole completion on the same condition, so a substantively complete GLM or Kimi verdict can be discarded outright. Never scrape a verdict out of prose on any provider
   tool_or_endpoint: "state_request(action=bq_update, bq_code=<code>, gate=<N>, status=<canonical>, note=<panel_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>); issue a separate bq_update with gate_status_update=false only when top-level lifecycle status must also change"
   argument_sourcing:
     expected_version: read the entity immediately before patching; optimistic lock
@@ -165,6 +173,8 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | F-04 | Gate dashboard still shows the old gate status after recording | `bq_update` omitted `gate_status_update=true` | `state_request(action=get, key=build:bq-*)` and compare body.gateN.status against the note | G-04 | CONFIRMED |
 | F-05 | Peer never reacted to a follow-up bus message | silent dedupe swallowed it | check peer_messages for a new row id after the send | G-05 | HYPOTHESIZED |
 | F-06 | MP dispatch refused or times out while the peer session is live | lane held by the peer, or the task silently completed | drain the bus for claims; check git status in the target repo before redispatch | G-06 | HYPOTHESIZED |
+| F-07 | Reviewer fails after several minutes of apparently healthy work, generic process-failed error, no verdict | turn ceiling reached while reading; work discarded | receipt shows stop_reason tool_use, turns_used at or above 24, and a populated tool_calls list of successful reads | G-07 | CONFIRMED |
+| F-08 | A complete, high-quality GLM or Kimi verdict is rejected as schema-invalid | the model wrote prose before the JSON and that provider has no normalization retry | compare the receipt against a CC receipt for the same condition: CC shows terminal_normalization_succeeded, GLM and Kimi show a bare schema-invalid error | G-08 | CONFIRMED |
 
 ## §G. Repair
 
@@ -217,6 +227,24 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   change_pattern: coordination only; no forced release except a genuine stale-claim reconciliation
   rollback_procedure: none
   integrity_check: dispatch proceeds without mp_busy and no duplicate build lands
+- id: G-07
+  symptom_ref: F-07
+  component_ref: Review dispatcher turn budget
+  root_cause: max_turns defaults to 8 and hard_max_turns is a literal 24 that a caller cannot raise, while max_calls_per_turn defaults to 4. A reviewer reading many files spends turns faster than the ceiling allows and is terminated with its evidence trail discarded.
+  repair_entry_point: re-dispatch with max_calls_per_turn raised to match the width of the read (16 for a multi-file review) and max_turns at 24; do NOT retry with unchanged arguments
+  change_pattern: dispatch-argument correction only; no code change and no server restart
+  rollback_procedure: none; failed dispatches make no state change
+  integrity_check: fresh receipt shows turns_used well below 24 and a parsed terminal verdict
+  known_limit: this is a mitigation, not a fix. The ceiling remains hard-coded and a wide enough review will still hit it. The durable repair is owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1.
+- id: G-08
+  symptom_ref: F-08
+  component_ref: Per-provider verdict validators
+  root_cause: the terminal-normalization retry exists only on the CC path. GLM and Kimi each make a single strict decode call and return failure on any exception, so a valid verdict wrapped in prose is destroyed.
+  repair_entry_point: re-dispatch that seat instructing raw JSON as the first byte, no preamble and no markdown fences; the discarded completion remains retrievable from the original task receipt and is worth reading before re-running
+  change_pattern: prompt correction only; NEVER relax strict validation, and never hand-transcribe a verdict
+  rollback_procedure: none; failed dispatches make no state change
+  integrity_check: structured_payload parses on the fresh receipt and the seat is recorded
+  known_limit: mitigation only. The retry mechanism already exists and is proven on CC; it is simply not wired to the other two transports. Durable repair owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1.
 ```
 
 ## §H. Evolve
