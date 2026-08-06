@@ -11,6 +11,9 @@
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
 | `branch-landed-verification` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§C. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture--interactions) |
+| `builder-controls` | `builder-controls` (`builder-controls.md`) | [§C. Architecture & Interactions](builder-controls.md#c-architecture--interactions) |
+| `builder-control-inventory` | `builder-controls` (`builder-controls.md`) | [§E. Operate](builder-controls.md#e-operate---the-indexed-control-inventory) |
+| `builder-failure-salvage` | `builder-controls` (`builder-controls.md`) | [§G. Repair](builder-controls.md#g-repair) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture--interactions) |
@@ -39,6 +42,9 @@
 
 | Signature | Runbook | Section |
 |---|---|---|
+| `RepairExhaustedError` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
+| `post_build_multiple_commits` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
+| `builder_output_claim_mismatch` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
 | `agent silence` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |

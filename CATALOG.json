@@ -180,6 +180,57 @@
       "supersedes": []
     },
     {
+      "aliases": [
+        "builder-gates",
+        "mp-build-controls",
+        "wrapper-controls"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "builder-controls"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "builder-control-inventory"
+        },
+        {
+          "section": "\u00a7G. Repair",
+          "topic": "builder-failure-salvage"
+        }
+      ],
+      "domain": "council-koskadeux-orchestration",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "RepairExhaustedError"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "post_build_multiple_commits"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "builder_output_claim_mismatch"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "hard_timeout_uncommitted_work"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "before_reap_persistence_failed"
+        }
+      ],
+      "last_verified_at": "2026-08-06",
+      "owner": "vulcan",
+      "path": "builder-controls.md",
+      "runbook_id": "builder-controls",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
       "aliases": [],
       "authoritative_for": [
         {
