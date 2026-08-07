@@ -231,11 +231,11 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   symptom_ref: F-07
   component_ref: Review dispatcher turn budget
   root_cause: max_turns defaults to 8 and hard_max_turns is a literal 24 that a caller cannot raise, while max_calls_per_turn defaults to 4. A reviewer reading many files spends turns faster than the ceiling allows and is terminated with its evidence trail discarded.
-  repair_entry_point: re-dispatch with max_calls_per_turn raised to match the width of the read (16 for a multi-file review) and max_turns at 24; do NOT retry with unchanged arguments
-  change_pattern: dispatch-argument correction only; no code change and no server restart
+  repair_entry_point: "TWO levers, and the argument alone is not enough. (1) Raise max_calls_per_turn to match the width of the read (16 for a multi-file review) and set max_turns to 24. (2) NARROW THE PROMPT, which is the cause rather than the symptom: name the exact read windows the reviewer needs, tell it to run the diff FIRST and let the diff scope the work, state the size of the change so it knows when to stop, and tell it explicitly that declaring itself unable to answer is a VALID outcome. A reviewer asked several broad questions against a very large file will page that file in and burn any ceiling you give it. Do NOT retry with unchanged arguments, and do not retry with the same broad prompt and only a bigger number."
+  change_pattern: dispatch-argument and prompt correction only; no code change and no server restart
   rollback_procedure: none; failed dispatches make no state change
   integrity_check: fresh receipt shows turns_used well below 24 and a parsed terminal verdict
-  known_limit: this is a mitigation, not a fix. The ceiling remains hard-coded and a wide enough review will still hit it. The durable repair is owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1.
+  known_limit: "this is a mitigation, not a fix. The ceiling remains hard-coded and a wide enough review will still hit it. Measured live in S1462: max_calls_per_turn was ALREADY set to 16 and GLM still died at turns_used 25 on 27 calls, because the prompt asked four broad questions against a 12,000-line file. The scoped re-dispatch passed on the first attempt. So the calls-per-turn lever bounds the symptom and prompt breadth drives the cause; a runbook that carries only the first lever will let a caller do everything it says and still lose the round. The durable repair is owned by BQ-COUNCIL-REVIEW-TRANSPORT-CONSOLIDATION-S1443 chunk C1."
 - id: G-08
   symptom_ref: F-08
   component_ref: Per-provider verdict validators
