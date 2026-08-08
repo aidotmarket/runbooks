@@ -30,14 +30,14 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: mp
-last_verified_at: 2026-07-27
+last_verified_at: 2026-08-02
 system_name: council-gate-process
 purpose_sentence: Council Build Queue gate-process runbook for operating the BQ four-gate flow and enforcing non-builder cross-review before completion.
 owner_agent: mp
 escalation_contact: vulcan
 lifecycle_ref: §J
 authoritative_scope: |
-  Stable BQ gate mechanics, gate-transition reasoning, cross-review enforcement, and symptom/repair patterns. Live Council membership, review order, dispatch participants, model frontiers, and exceptional overrides are canonically tracked in the infra:council-comms Living State entity.
+  Stable BQ gate mechanics, gate-transition reasoning, cross-review enforcement, and symptom/repair patterns. The signed exact-release runtime owns volatile Council facts, deployed gate constants own required voters, and runbooks/council-roster-quirks.md owns each member's interaction rationale. No local or legacy gate bypass is part of the public contract.
 
   Cross-runbook reference convention: same-file references use bare IDs such as `F-01` or `G-01`; cross-file references use `<file-stem>:<id>` such as `agent-dispatch:E-01`.
 linter_version: 1.0.0
@@ -60,7 +60,7 @@ The YAML frontmatter above defines the §A header. This runbook documents the st
 | Gate 4 production verification | SHIPPED | `build:bq-*.gate4` | Customer-perspective verification recorded before completion | 2026-04-29 |
 | Cross-review completion enforcement | SHIPPED | `cross_review_gate.py` | Non-builder reviewer check required before `state_request(action=bq_complete)` | 2026-04-29 |
 | Author-mode dispatch binding | PARTIAL | `dispatch_mp_build` | Provenance captured operationally; stricter tokenization remains a follow-up | 2026-04-29 |
-| Break-glass bypass | SHIPPED | `/var/tmp/koskadeux/break_glass` | Manual emergency path verified by operator cleanup procedure | 2026-04-29 |
+| Legacy local gate bypass | DEPRECATED | — | Source, schema, route, and filesystem-sentinel absence tests required at release | 2026-08-02 |
 
 ## §C. Architecture & Interactions
 
@@ -77,7 +77,7 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 | Gate 4 Verification | `build:bq-*.gate4` | production checks, customer-perspective verification | reviewer agents, Vulcan | Confirms the shipped behavior and closes the BQ only after review evidence exists. |
 | Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `state_request(action=bq_complete)`, Living State | Requires `approved_reviewers - builders` to be non-empty. |
 | Compliance Gate | `BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION` | gate status, author-mode provenance | dispatch surfaces, BQ state | Blocks build dispatch when Gate 1 mandates are unresolved or author/review mode is ambiguous. |
-| Break Glass | `/var/tmp/koskadeux/break_glass` | local filesystem sentinel | operator, completion path | Emergency-only bypass; must be removed immediately after use. |
+| Legacy Bypass Detector | release conformance scan | no state store | gateway, completion path, deployment artifact | Any local sentinel, legacy handler, old schema, or fallback route is a release failure; there is no emergency execution path. |
 
 The gate state shape is intentionally small: `gate1`, `gate2`, `gate3`, and `gate4` hold status and verdict evidence; `builders` records agents that modified files or authored commits; `reviewers` records agents that supplied review or verification verdicts. Verdict strings are accepted only when they communicate approval, verification, or pass semantics. Gate transitions should update the BQ entity and the human-readable handoff in the same session.
 
@@ -89,11 +89,11 @@ The gate state shape is intentionally small: `gate1`, `gate2`, `gate3`, and `gat
 | CC | active gate voter | Claude Code read-only review path | repository read | COMPLETE |
 | Kimi | active gate voter | shared provider read-only review loop / deployed registry-pinned Kimi Code model | bounded read-only at-SHA repository tools | COMPLETE |
 | GLM | active gate voter | shared provider read-only review loop / z-ai/glm-5.2 | bounded read-only at-SHA repository tools | COMPLETE |
-| AG | paused; explicit non-gate review only when live state permits | Gemini / Vertex | repository read | COMPLETE |
-| DeepSeek | retired from the active gate roster | retained dispatch backend | no current gate authority | COMPLETE |
+| AG | inactive; ordinary Council and Hall calls reject it | no Council tool | none | GAP — release must prove schema/runtime rejection |
+| DeepSeek | inactive and retired; ordinary Council and Hall calls reject it | no Council tool | none | GAP — release must prove schema/runtime rejection |
 | Vulcan | gate orchestrator and Living State operator | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 
-MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly CC, Kimi, and GLM; Kimi replaced DeepSeek at S1319, DeepSeek is retired from voting, and AG is paused. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. `infra:council-comms` remains canonical for live membership and model strings.
+MP is the mandatory builder and is excluded from voting on its own work. The active gate and Hall panel is exactly CC, Kimi, and GLM; AG and DeepSeek are inactive and absent from ordinary Council schemas. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its pinned read-only path. Vulcan and Mars orchestrate as equal-authority non-voters. Automatic context supplies the corresponding card from `council-roster-quirks:C.1` through `C.6`; the signed exact-release runtime owns volatile membership, model, provider, mode, and cap facts.
 
 ## §E. Operate
 
@@ -138,7 +138,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
     audit_prompt: include Gate 1, Gate 2, commit SHA, changed files, and explicit read-only review instructions
     commit_sha: use the build commit being promoted
     builder_recorded: read from BQ entity builders list or infer from dispatch transcript before patching state
-    reviewer_panel: read the exact active CC/Kimi/GLM roster from infra:council-comms; MP is the builder and cannot vote
+    reviewer_panel: verify exact CC/Kimi/GLM membership against deployed gate constants and the signed runtime; MP is the builder and cannot vote
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + gate3 + commit_sha + reviewer)
   expected_success: {shape: APPROVE, APPROVED_WITH_MANDATES, or REJECT verdict tied to the commit SHA, verification: verify cited file lines and attach the verdict}
@@ -150,7 +150,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   next_step_failure: Re-dispatch read-only review or return the chunk to build repair.
 - id: E-04
   trigger: Gate 3 has passed and the BQ is ready for production verification and completion.
-  pre_conditions: [gate3_passed, production_or_customer_perspective_check_defined, non_builder_reviewer_available, break_glass_absent]
+  pre_conditions: [gate3_passed, production_or_customer_perspective_check_defined, non_builder_reviewer_available, legacy_bypass_surfaces_absent]
   tool_or_endpoint: state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<customer_perspective_evidence>)
   argument_sourcing:
     verification: record endpoint checks, UI behavior, logs, or data validation from the customer perspective
@@ -161,7 +161,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   expected_success: {shape: BQ completed with Gate 4 PASS and non-builder reviewer evidence, verification: confirm `approved_reviewers - builders` is non-empty}
   expected_failures:
     - {signature: cross_review_block, cause: only builders supplied approval or verification}
-    - {signature: break_glass_left_enabled, cause: emergency sentinel was used and not removed}
+    - {signature: legacy_gate_surface_present, cause: a retired local sentinel, handler, schema, or fallback route still exists in the release}
   next_step_success: Close the session handoff with entity key, commit, and verification summary.
   next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current CC/Kimi/GLM panel; AG advice, MP, and DeepSeek cannot satisfy the gate.
 - id: E-05
@@ -192,7 +192,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 | F-02 | Gate 2 build dispatch blocked after Gate 1 APPROVED_WITH_MANDATES | Mandates were satisfied in prose but `gate1.status` was never patched from `APPROVED_WITH_MANDATES` to `APPROVED` | Read the BQ entity and compare Gate 1 mandate resolution notes to `gate1.status` | G-02 | CONFIRMED |
 | F-03 | Ghost entity or stale BQ state appears during promotion | Session patched a wrong key, stale entity version, or handoff referenced a superseded BQ slug | Read the target `build:bq-*` entity, recent event history, and git branch evidence before promoting | G-03 | CONFIRMED |
 | F-04 | Review-mode dispatch becomes authoring evidence | Prompt omitted read-only constraints or used builder dispatch for an audit task, triggering the authoring-distinction trap | Inspect dispatch transcript, file writes, and builder/reviewer lists for the same agent | G-04 | CONFIRMED |
-| F-05 | Break-glass bypass used or left enabled | Emergency sentinel was touched for a gate false positive and not removed after completion | Check `/var/tmp/koskadeux/break_glass` and session notes for bypass rationale | G-05 | CONFIRMED |
+| F-05 | Any legacy/local bypass surface is present | Old code, schema, route, deployment artifact, or filesystem sentinel survived the one-way cutover | Scan the exact release source and artifact and prove the retired path and sentinel are absent and uncallable | G-05 | CONFIRMED |
 | F-06 | Gate 3 audit contains unsupported line-number claims | Reviewer hallucinated line numbers or reviewed stale diff context | Verify every cited path and line against the commit under audit | G-06 | CONFIRMED |
 
 ## §G. Repair
@@ -232,12 +232,12 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   integrity_check: Verify no files changed during the replacement review dispatch.
 - id: G-05
   symptom_ref: F-05
-  component_ref: Break Glass
-  root_cause: Emergency bypass sentinel bypassed normal gate enforcement or remained after the incident.
-  repair_entry_point: /var/tmp/koskadeux/break_glass
-  change_pattern: Remove the sentinel immediately after the emergency action, document the reason, and rerun the gate check without bypass.
-  rollback_procedure: If completion depended solely on bypass, reopen the BQ state and collect normal review evidence.
-  integrity_check: Confirm the sentinel path is absent and the entity has a normal non-builder verifier.
+  component_ref: Legacy Bypass Detector
+  root_cause: A retired local authority or fallback survived the one-way cutover.
+  repair_entry_point: exact release source, generated schemas, routes, deployment manifest, and filesystem integration tests
+  change_pattern: Remove the old handler, schema, route, flag, sentinel check, and deployment artifact physically; add negative tests proving none is importable, advertised, or callable.
+  rollback_procedure: Stop rollout and restore the last coherent pre-cutover release as a whole; never reactivate the retired path beside the new gate.
+  integrity_check: Exact-release scans and runtime probes find no old authority or fallback, and ordinary gate failures remain closed.
 - id: G-06
   symptom_ref: F-06
   component_ref: Gate 3 Audit
@@ -254,7 +254,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 
 - Every BQ gate transition must leave auditable state on the `build:bq-*` entity.
 - Builder and reviewer provenance must remain separable.
-- Gate 4 completion requires non-builder review evidence unless Max explicitly authorizes emergency break-glass use.
+- Gate 4 completion requires non-builder review evidence; no local sentinel, caller flag, old handler, or legacy route can bypass it.
 - Same-file §F/§G references use bare IDs; cross-runbook references use file-qualified IDs such as `agent-dispatch:F-04`.
 
 ### §H.2 BREAKING predicates
@@ -295,7 +295,9 @@ A runtime dependency is any Living State surface, dispatch path, review transcri
 
 #### config default
 
-A config default is any Council review order, dispatch participant set, model frontier, cost cap, or bypass policy read from `infra:council-comms`.
+A config default is any Council participant set, model frontier, provider, mode,
+or cap read from the signed exact-release runtime. There is no bypass-policy
+default: legacy/local bypass surfaces are forbidden.
 
 ### §H.6 Adjudication
 
@@ -309,7 +311,7 @@ scenario_set:
     type: operate
     refs: [E-01, §C, agent-dispatch:E-03]
     scenario: |
-      id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, the live CC/Kimi/GLM panel is available, and no chunk spec has been promoted. tool_or_endpoint: state_request(action=bq_update, bq_code=<code>, gate=1, status=<status>, note=<panel_evidence_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>). argument_sourcing: BQ code and version from Living State; reviewer panel from infra:council-comms; status from the complete valid panel using APPROVED, APPROVED_WITH_MANDATES, or REJECTED; note from immutable verdict references. idempotency: IDEMPOTENT_WITH_KEY on BQ code + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and references to the complete CC/Kimi/GLM verdict set, including mandates, are attached to the BQ entity with design evidence. expected_failures: missing problem statement, missing/malformed/model-mismatched active voter, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure: return to design authoring or escalate ambiguous scope to Vulcan; never substitute MP, AG, or DeepSeek.
+      id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, the signed runtime and complete CC/Kimi/GLM panel are coherent, and no chunk spec has been promoted. tool_or_endpoint: state_request(action=bq_update, bq_code=<code>, gate=1, status=<status>, note=<panel_evidence_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>). argument_sourcing: BQ code and version from Living State; reviewer panel from deployed gate constants plus the signed runtime; status from the complete valid panel using APPROVED, APPROVED_WITH_MANDATES, or REJECTED; note from immutable verdict references. idempotency: IDEMPOTENT_WITH_KEY on BQ code + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and references to the complete CC/Kimi/GLM verdict set, including mandates, are attached to the BQ entity with design evidence. expected_failures: missing problem statement, schema-contract mismatch, missing/malformed/model-mismatched active voter, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure: return to design authoring or escalate ambiguous scope to Vulcan; never substitute MP, AG, or DeepSeek.
     expected_answers:
       - kind: tool_call
         tool: state_request
@@ -335,7 +337,7 @@ scenario_set:
     type: operate
     refs: [E-03, F-04, agent-dispatch:E-03]
     scenario: |
-      id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, the live CC/Kimi/GLM roster is confirmed, and every reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) once for each active voter. argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; reviewer panel comes from infra:council-comms; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: a complete valid CC/Kimi/GLM panel returns verdicts tied to the audited commit, with line claims verified before attachment. expected_failures: missing/malformed/model-mismatched voter, review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification only after the required panel passes. next_step_failure: redispatch the failed active voter read-only or return the chunk to build repair; never substitute MP, AG, or DeepSeek.
+      id: E-03. trigger: A chunk build commit has landed and Gate 3 must audit it against Gate 1 and Gate 2 evidence. pre_conditions: feature branch exists, commit SHA is known, Gate 2 spec is reviewed, builder is recorded, the signed runtime and exact CC/Kimi/GLM roster are coherent, and every reviewer dispatch is read-only. tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) once for each active voter. argument_sourcing: audit_prompt includes Gate 1, Gate 2, commit SHA, changed files, and explicit no-write instructions; reviewer panel comes from deployed gate constants plus the signed runtime; builder comes from BQ entity or dispatch transcript; commit comes from git rev-parse or the build handoff. idempotency: IDEMPOTENT_WITH_KEY on entity + gate3 + commit_sha + reviewer. expected_success: a complete valid CC/Kimi/GLM panel returns verdicts tied to the audited commit, with line claims verified before attachment. expected_failures: schema-contract mismatch, missing/malformed/model-mismatched voter, review-mode dispatch writes files and becomes authoring evidence, stale diff context, or fabricated line references. next_step_success: fix mandates or move to Gate 4 verification only after the required panel passes. next_step_failure: redispatch the failed active voter read-only or return the chunk to build repair; never substitute MP, AG, or DeepSeek.
     expected_answers:
       - kind: tool_call
         tool: council_request

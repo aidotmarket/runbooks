@@ -2,128 +2,155 @@
 # Runbook Topic Router
 
 `CATALOG.json` is the sole machine authority. This file is a generated display surface.
+The router intentionally lists only ACTIVE authority keys. Agents must first use the immutable all-corpus search; pending and archived documents are discoverable there with warnings but never appear here as authority.
 
 ## Topics
 
 | Topic | Runbook | Section |
 |---|---|---|
-| `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture--interactions) |
-| `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
-| `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
-| `branch-landed-verification` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§C. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture--interactions) |
-| `builder-controls` | `builder-controls` (`builder-controls.md`) | [§C. Architecture & Interactions](builder-controls.md#c-architecture--interactions) |
-| `builder-control-inventory` | `builder-controls` (`builder-controls.md`) | [§E. Operate](builder-controls.md#e-operate---the-indexed-control-inventory) |
-| `builder-failure-salvage` | `builder-controls` (`builder-controls.md`) | [§G. Repair](builder-controls.md#g-repair) |
-| `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
-| `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
-| `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture--interactions) |
-| `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture--interactions) |
-| `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture--interactions) |
-| `council-operations` | `council` (`runbooks/council.md`) | [§C. Architecture & Interactions](runbooks/council.md#c-architecture--interactions) |
-| `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
-| `council-roster-drift` | `council` (`runbooks/council.md`) | [§F. Isolate](runbooks/council.md#f-isolate) |
-| `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture--interactions) |
-| `council-schema-drift` | `council` (`runbooks/council.md`) | [§F. Isolate](runbooks/council.md#f-isolate) |
-| `e2e-programme-integrity` | `e2e-programme-integrity` (`runbooks/e2e-programme-integrity.md`) | [§C. Architecture & Interactions](runbooks/e2e-programme-integrity.md#c-architecture--interactions) |
-| `e2e-test-status-publisher` | `e2e-test-status-publisher` (`runbooks/e2e-test-status-publisher.md`) | [§C. Architecture & Interactions](runbooks/e2e-test-status-publisher.md#c-architecture--interactions) |
-| `e2e-video-review` | `e2e-video-review` (`runbooks/e2e-video-review.md`) | [§C. Architecture & Interactions](runbooks/e2e-video-review.md#c-architecture--interactions) |
-| `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture--interactions) |
-| `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture--interactions) |
-| `instance-peer-topology` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture--interactions) |
-| `peer-bus-coordination` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
-| `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture--interactions) |
-| `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture--interactions) |
-| `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G. Repair](runbooks/infrastructure-discovery.md#g-repair) |
-| `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G. Repair](runbooks/infrastructure-discovery.md#g-repair) |
-| `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
-| `session-plan-runbook-context` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
+| `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) |
+| `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) |
+| `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C\. Architecture & Interactions](runbooks/aging-policy.md#c-architecture-interactions) |
+| `branch-landed-verification` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§C\. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture-interactions) |
+| `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C\. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture-interactions) |
+| `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C\. Architecture & Interactions](runbooks/constitution-history.md#c-architecture-interactions) |
+| `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
+| `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C\. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture-interactions) |
+| `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C\. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture-interactions) |
+| `council-member-cc` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `council-member-glm` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.4 GLM — read-only voter](runbooks/council-roster-quirks.md#c4-glm-read-only-voter) |
+| `council-member-interaction-policy` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
+| `council-member-kimi` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.3 Kimi — read-only voter](runbooks/council-roster-quirks.md#c3-kimi-read-only-voter) |
+| `council-member-mp` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.1 MP — mandatory builder](runbooks/council-roster-quirks.md#c1-mp-mandatory-builder) |
+| `council-operations` | `council` (`runbooks/council.md`) | [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions) |
+| `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `council-roster-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `council-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `e2e-programme-integrity` | `e2e-programme-integrity` (`runbooks/e2e-programme-integrity.md`) | [§C\. Architecture & Interactions](runbooks/e2e-programme-integrity.md#c-architecture-interactions) |
+| `e2e-test-status-publisher` | `e2e-test-status-publisher` (`runbooks/e2e-test-status-publisher.md`) | [§C\. Architecture & Interactions](runbooks/e2e-test-status-publisher.md#c-architecture-interactions) |
+| `e2e-video-review` | `e2e-video-review` (`runbooks/e2e-video-review.md`) | [§C\. Architecture & Interactions](runbooks/e2e-video-review.md#c-architecture-interactions) |
+| `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C\. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture-interactions) |
+| `inactive-council-backend-ag` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.5 AG — inactive backend](runbooks/council-roster-quirks.md#c5-ag-inactive-backend) |
+| `inactive-council-backend-deepseek` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.6 DeepSeek — inactive retired backend](runbooks/council-roster-quirks.md#c6-deepseek-inactive-retired-backend) |
+| `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C\. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture-interactions) |
+| `instance-peer-topology` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `peer-bus-coordination` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
+| `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C\. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture-interactions) |
+| `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C\. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture-interactions) |
+| `runbook-content-activation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-first-session-planning` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-impact-and-obligations` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§C\. Architecture & Interactions](runbooks/runbook-first-gates.md#c-architecture-interactions) |
+| `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
+| `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
+| `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
+| `session-plan-runbook-context` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 
 ## Error signatures
 
 | Signature | Runbook | Section |
 |---|---|---|
-| `RepairExhaustedError` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
-| `post_build_multiple_commits` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
-| `builder_output_claim_mismatch` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
-| `agent silence` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `cc_verdict_parse_failure` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `clean_tree_read_as_current` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
-| `completion_truncated` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F. Isolate](runbooks/constitution-history.md#f-isolate) |
-| `council_roster_drift` | `council` (`runbooks/council.md`) | [§G. Repair](runbooks/council.md#g-repair) |
-| `council_schema_drift` | `council` (`runbooks/council.md`) | [§F. Isolate](runbooks/council.md#f-isolate) |
-| `credential_exposed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
-| `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `cutover_admission_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8](runbooks/agent-dispatch.md#x8) |
-| `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
-| `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `dispatch_sha_invalid` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `dispatch_terminal_state_missing_after_restart` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
-| `duplicate_claim_on_one_item` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F. Isolate](runbooks/gate-procedure.md#f-isolate) |
-| `gate_status_not_flipped` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `gateway_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `glm_page_path_hallucination` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `harness_bound_to_stale_code` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F. Isolate](runbooks/agent-completeness.md#f-isolate) |
-| `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
-| `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `missing dispatch token` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `mp_busy` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `mp_lane_held` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `no resolution` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `open_response_schema_mismatch` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `over_escalation_to_max` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `peer_message_silently_deduped` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `peer_msg_silent_dedupe` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `policy_kernel_enforcement_setting_invalid` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
-| `policy_kernel_not_evaluable` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
-| `policy_kernel_preflight_indeterminate` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
-| `premature_cross_poll` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `product_boundary_conflict` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§F. Isolate](runbooks/product-elaboration.md#f-isolate) |
-| `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
-| `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
-| `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `schema_roster_mismatch` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `secret_disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
-| `stale_build_base` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
-| `stale_handoff_trusted_at_open` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F. Isolate](runbooks/aging-policy.md#f-isolate) |
-| `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
-| `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8](runbooks/agent-dispatch.md#x8) |
-| `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
-| `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `unlanded_branch_believed_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
-| `unread_request_or_alert_at_dispatch` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `unsupported_line_claim` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§F. Isolate](runbooks/build-queue-reconciliation.md#f-isolate) |
+| `agent silence` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `candidate ref missing or deleted` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `cc_verdict_parse_failure` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `clean_tree_read_as_current` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
+| `completion_truncated` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F\. Isolate](runbooks/constitution-history.md#f-isolate) |
+| `council_roster_drift` | `council` (`runbooks/council.md`) | [§G\. Repair](runbooks/council.md#g-repair) |
+| `council_schema_contract_mismatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F\. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
+| `council_schema_drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `credential_exposed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `dispatch_sha_invalid` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `dispatch_terminal_state_missing_after_restart` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `duplicate_claim_on_one_item` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F\. Isolate](runbooks/gate-procedure.md#f-isolate) |
+| `gate_status_not_flipped` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `gateway_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `glm_page_path_hallucination` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `harness_bound_to_stale_code` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F\. Isolate](runbooks/agent-completeness.md#f-isolate) |
+| `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `missing dispatch token` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `mp_busy` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `mp_lane_held` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `no resolution` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `open_response_schema_mismatch` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `over_escalation_to_max` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `peer_message_silently_deduped` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `peer_msg_silent_dedupe` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `peer_runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `peer_runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `policy_kernel_enforcement_setting_invalid` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `policy_kernel_not_evaluable` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `policy_kernel_preflight_indeterminate` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
+| `premature_cross_poll` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `product_boundary_conflict` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§F\. Isolate](runbooks/product-elaboration.md#f-isolate) |
+| `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
+| `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `runbook evidence unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook obligation due before behavior change` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_context_delivery_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_impact_evidence_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `runbook_library_unavailable` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§F\. Isolate](runbooks/runbook-first-gates.md#f-isolate) |
+| `schema_roster_mismatch` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `secret_disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `stale_build_base` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
+| `stale_handoff_trusted_at_open` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F\. Isolate](runbooks/aging-policy.md#f-isolate) |
+| `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F\. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
+| `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `timeout` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `unlanded_branch_believed_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
+| `unread_request_or_alert_at_dispatch` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
+| `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `unsupported_line_claim` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§F\. Isolate](runbooks/build-queue-reconciliation.md#f-isolate) |
 
 ## Aliases
 
 | Alias | Runbook | Section |
 |---|---|---|
-| `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture--interactions) |
-| `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
-| `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
-| `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture--interactions) |
-| `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture--interactions) |
+| `ag-do-not-dispatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
+| `council-member-interactions` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `deepseek-do-not-dispatch` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `documentation-obligation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `how-to-use-cc` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-glm` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-kimi` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `how-to-use-mp` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `no-runbook-update-needed` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `old-runbook-obligation` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `preserve-successful-build` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `read-runbooks-before-starting-work` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-authoring` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-close` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `runbook-maintenance` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `update-runbook-after-work` | `runbook-first-gates` (`runbooks/runbook-first-gates.md`) | [§E\. Operate](runbooks/runbook-first-gates.md#e-operate) |
+| `why-ag-is-inactive` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |
+| `why-deepseek-is-inactive` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\.2 CC — read-only voter](runbooks/council-roster-quirks.md#c2-cc-read-only-voter) |

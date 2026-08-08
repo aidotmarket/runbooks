@@ -30,14 +30,14 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-27
+last_verified_at: 2026-08-02
 system_name: council
 purpose_sentence: A multi-agent build and review system with MP as mandatory builder and CC, Kimi, and GLM as the gate voter panel.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  Stable architecture, mechanics, and reasoning of the Council operating system. The deployed gateway schema owns callable dispatch arguments; deployed gate constants own required membership; the newest explicitly superseding infra:council-comms amendments supply role/model/retirement history and known quirks. Absent state fields are never inferred.
+  Stable architecture, mechanics, and reasoning of the Council operating system. The signed exact-release runtime contract owns volatile callable facts; deployed gate constants own required membership; runbooks/council-roster-quirks.md owns the human interaction card and rationale for each member. Truncated or historical Living State prose is discovery evidence only.
 
   Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` (e.g., `agent-dispatch:F-01` for symptom F-01 in `runbooks/agent-dispatch.md`). Same-file references retain bare `<id>` form. (AC8.)
 linter_version: 1.0.0
@@ -57,19 +57,22 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | Gate review (BQ 4-gate flow) | SHIPPED | `build:bq-* Living State entities` | Gate transition checks tracked in build entity review state | 2026-04-29 |
 | Council Hall multi-agent deliberation | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | Council Hall dispatch path exercised by deliberation sessions | 2026-04-29 |
 | Cross-review-gate enforcement | SHIPPED | `koskadeux-mcp gateway author-mode dispatch tokens` | Gateway author/read-only distinction reviewed in gate process audits | 2026-04-29 |
-| Living State config authority | SHIPPED | `infra:council-comms` | State freshness verified during Council runbook conformance chunks | 2026-04-29 |
+| Signed exact-release runtime authority | PLANNED | `contracts/deployed-tool-contract.pin.json` | Exact source, schema-digest, roster, model, provider, mode, and cap smoke required before SHIPPED | 2026-08-02 |
+| Per-member interaction cards | SHIPPED | `runbooks/council-roster-quirks.md` | Strict lint and exact member-topic/alias lookup | 2026-08-02 |
 | Retired-agent cold storage | DEPRECATED | — | XAI active-dispatch coverage retired; cold-storage state lives in `infra:council-comms.retired_agents.xai` | 2026-04-29 |
 
 ## §C. Architecture & Interactions
 
-`council_request` is the canonical dispatch entry point. A dispatch uses one `agent`, an intent-bearing `mode` (`review`, `build`, `author`, or `open_response`), and `task`; review/build calls add only keys exposed by the live tool schema, such as `cwd`, `dispatch_sha`, `base`, `head`, `bq_code`, `session_id`, `caller_instance`, and `runbook_refs`. `action` is reserved for build management (`check_build` or `list_builds`), not review/build dispatch.
+`council_request` is the canonical dispatch entry point. A dispatch uses one `agent`, an intent-bearing `mode` (`review`, `build`, `author`, or `open_response`), and `task`; review/build calls add only keys exposed by the live tool schema, such as `cwd`, `dispatch_sha`, `base`, `head`, `bq_code`, `session_id`, and `caller_instance`. Runbook context is derived and injected automatically at the common provider boundary; callers cannot supply or suppress it. `action` is reserved for build management (`check_build` or `list_builds`), not review/build dispatch.
 
-The current gate voter panel is CC + Kimi + GLM exactly. MP is the mandatory builder and
-is not a gate voter. AG is PAUSED, and XAI is RETIRED. Model assignments, dispatch caps,
-quirks, and any later roster change must be verified against deployed code, the
-live callable schema, and the newest explicitly superseding Living State amendment.
-The current `infra:council-comms` entity has no canonical `review_order` or
-`dispatch_patterns` field and contains historical records; do not invent those paths.
+The current gate voter panel and Hall participant set are CC + Kimi + GLM exactly. MP is the mandatory builder and
+is not a gate voter or Hall participant. AG and DeepSeek are INACTIVE, and XAI is RETIRED. Before any
+dispatch, automatic context supplies the matching interaction card from
+`council-roster-quirks:C.1` through `C.6`. That card explains the member's role,
+interaction pattern, rationale, and stop conditions. The signed exact-release runtime
+contract owns models, providers, modes, limits, and callable fields. The connected schema
+must match its digest. The large `infra:council-comms` value is truncated and historical;
+it is not a safe live authority and must not be used to fill missing fields.
 
 The current Codex connector schema in S1413 omits `kimi` even though the newer
 S1321 gate contract requires Kimi and Living State records later successful Kimi
@@ -85,21 +88,22 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 |---|---|---|---|---|
 | Council Dispatch | `koskadeux-mcp/tools/agents.py:_handle_call_*` | dispatch task records | One explicitly selected backend per call | Routes a singular `agent` under explicit `mode`; `action` manages existing build tasks only. |
 | Gate Review Flow | `build:bq-* Living State entities` | build entities, gate status fields, review verdicts | Council dispatch, author-mode tokens, runbook specs | Implements the BQ 4-gate flow and binds authoring/review mode to dispatch provenance. |
-| Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | Configured voter panel and synthesis | Runs multi-agent deliberation when independent reviews are insufficient. |
-| Gate Roster | `koskadeux-mcp/council_gate_runner.py` deployed constants plus newest `infra:council-comms` amendment | required member ids and policy history | Gate Review Flow, gateway schema | S1321 records exact `{cc,kimi,glm}` membership; code/schema/state disagreement fails closed. |
+| Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | Exact `{cc,kimi,glm}` voter panel and synthesis | MP, AG, and DeepSeek are rejected from ordinary Hall membership. |
+| Gate Roster | `koskadeux-mcp/council_gate_runner.py` deployed constants plus signed exact-release runtime contract | required member ids and policy history | Gate Review Flow, gateway schema | Measured deployed source `48996d8` requires exact `{cc,kimi,glm}` membership; code/schema/contract disagreement fails closed. |
 | Dispatch Contract | live `council_request` tool schema at the deployed gateway SHA | accepted argument names and enums | agents, runbooks, connector clients | Unknown or client-blocked arguments are schema drift, not an invitation to improvise. |
-| Policy History | `infra:council-comms` superseding amendment records | role/model/retirement history and quirks | operators, deployment verification | Read newest superseding records; absent fields such as `review_order` and `dispatch_patterns` are not valid state paths. |
+| Member Interaction Cards | `runbooks/council-roster-quirks.md` §C.1–§C.6 | versioned runbook corpus | operators, automatic dispatch context | Human operating context and rationale; never overrides the signed runtime contract. |
+| Policy History | `infra:council-comms` superseding amendment records | historical role/model/retirement evidence | audits only | The current value truncates mid-JSON. It is not the first-read runtime authority; absent fields such as `review_order` and `dispatch_patterns` are never invented. |
 
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | Roster status ACTIVE: mandatory build author; not a gate voter | Builder backend from `infra:council-comms` | repo write when author-mode is explicit | COMPLETE |
-| CC | Roster status ACTIVE: gate voter | Voter backend from `infra:council-comms` | repo read | COMPLETE |
+| MP | Roster status ACTIVE: mandatory build author; not a gate voter | `council-roster-quirks:C.1` plus signed runtime | exact dispatch-scoped repo write and preserved non-default candidate ref | COMPLETE |
+| CC | Roster status ACTIVE: gate voter | `council-roster-quirks:C.2` plus signed runtime | exact-SHA repo read only | COMPLETE |
 | Kimi | Roster status ACTIVE: gate voter | Shared provider read-only review loop | bounded read-only at-SHA repository tools | COMPLETE |
 | GLM | Roster status ACTIVE: gate voter | Shared provider read-only review loop | bounded read-only at-SHA repository tools | COMPLETE |
-| DeepSeek | Roster status RETIRED: no active gate role | Retained dispatch backend | none for current gates | COMPLETE |
-| AG | Roster status PAUSED: no active gate role | Paused backend metadata in `infra:council-comms` | none for current gates | COMPLETE |
+| DeepSeek | INACTIVE and retired: absent from ordinary Council dispatch and Hall | `council-roster-quirks:C.6` | none | GAP — close with exact schema/runtime rejection tests |
+| AG | INACTIVE: absent from ordinary Council dispatch and Hall | `council-roster-quirks:C.5` | none | GAP — close with exact schema/runtime rejection tests |
 | XAI | Roster status RETIRED: no active gate role | Retirement metadata in `infra:council-comms` | none | PARTIAL — retired; see `infra:council-comms.retired_agents.xai` for cold storage and reactivation procedure |
 | Vulcan + Mars | Roster status ACTIVE: equal-authority peer orchestration and state management | Koskadeux MCP | gateway, Living State, repos | COMPLETE |
 
@@ -134,14 +138,14 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
   next_step_failure: Preserve the transcript; on `schema_roster_mismatch` reload or refresh the gateway/connector and re-probe, never substitute a member
 - id: E-02
   trigger: An approved BQ chunk needs an MP structural build.
-  pre_conditions: [build entity reconciled, approved spec readable, clean dedicated branch or wrapper worktree available, runbook context selected]
-  tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_build_prompt>, cwd=<repo>, bq_code=<BQ-code>, caller_instance=<mars|vulcan>, dispatch_class=structural, session_id=<session>, runbook_refs=<exact_refs>, verifier_subtype=<type>, timeout_s=<seconds>)
+  pre_conditions: [build entity reconciled, approved spec readable, clean dedicated branch or wrapper worktree available, automatic context service available]
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_build_prompt>, cwd=<repo>, bq_code=<BQ-code>, caller_instance=<mars|vulcan>, dispatch_class=structural, session_id=<session>, verifier_subtype=<type>, timeout_s=<seconds>)
   argument_sourcing:
     task: derive from the approved chunk spec with exact parent, file scope, tests, and no-push instruction when the wrapper owns publication
     cwd: use the canonical repository root expected by the wrapper
     bq_code: use the reconciled BQ code
     caller_instance: use the active peer instance
-    runbook_refs: use exact catalog/runbook section evidence required by the dispatch gate
+    runbook_context: do not supply it; the provider binds immutable context to the task and target before launch
     verifier_subtype: choose the manifest contract matching the artifact
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: bq_code + approved_parent + task_digest
@@ -250,7 +254,9 @@ repairs. They are historical evidence only, not current dispatch instructions.
 ### §H.1 Invariants
 
 - `council_request` remains the canonical code entry point for Council dispatch.
-- The live gateway schema is authoritative for callable arguments; deployed gate constants are authoritative for required members; newest superseding `infra:council-comms` amendments provide role/model/retirement history and quirks.
+- The signed exact-release contract is authoritative for volatile callable facts; deployed gate constants are authoritative for required members; the connected schema must match the signed digest before dispatch.
+- `council-roster-quirks:C.1` through `C.6` are the first human-readable instructions for MP, CC, Kimi, GLM, AG, and DeepSeek and explain why each boundary exists.
+- `infra:council-comms` is historical discovery evidence, not a safe first-read runtime authority, while its current response is truncated.
 - Missing Living State paths such as `review_order` or `dispatch_patterns` must not be inferred from historical narrative.
 - Read-only review agents must not receive repo write scope without explicit Council change review.
 
@@ -313,11 +319,11 @@ scenario_set:
     type: operate
     refs: [E-02, §D]
     scenario: |
-      id: E-02. trigger: An approved structural chunk needs the mandatory MP builder. pre_conditions: BQ is reconciled, dedicated branch is clean, approved parent and spec are exact, runbook refs are available, and no peer lane conflict exists. tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_prompt>, cwd=<repo>, bq_code=<BQ>, caller_instance=mars, dispatch_class=structural, session_id=<session>, runbook_refs=<refs>, verifier_subtype=general, timeout_s=1200). argument_sourcing: BQ/spec/parent from reviewed state and Git; caller/session from registry; refs from pinned runbook context; cwd from canonical repo. idempotency: IDEMPOTENT_WITH_KEY on BQ + parent + task_digest. expected_success: confirmed task id and wrapper-verified artifact. expected_failures: reconciliation failure, dirty branch, peer conflict, schema mismatch, timeout, or manifest failure. next_step_success: verify landed Git and send the commit to non-author review. next_step_failure: preserve task id and reconcile before any retry.
+      id: E-02. trigger: An approved structural chunk needs the mandatory MP builder. pre_conditions: BQ is reconciled, dedicated branch is clean, approved parent and spec are exact, automatic context delivery is available, and no peer lane conflict exists. tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_prompt>, cwd=<repo>, bq_code=<BQ>, caller_instance=mars, dispatch_class=structural, session_id=<session>, verifier_subtype=general, timeout_s=1200). argument_sourcing: BQ/spec/parent from reviewed state and Git; caller/session from registry; cwd from the validated canonical repo; context is automatically derived and injected. idempotency: IDEMPOTENT_WITH_KEY on BQ + parent + task_digest. expected_success: confirmed task id and wrapper-verified artifact preserved on the exact target-repository session/action-bound remote candidate ref. expected_failures: reconciliation failure, dirty branch, peer conflict, schema mismatch, context failure, cross-repo scope violation, unpreserved candidate, timeout, or manifest failure. next_step_success: verify remote preservation and send the commit to non-author review. next_step_failure: preserve task id and recoverable work before any retry.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, verifier_subtype, timeout_s]
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, verifier_subtype, timeout_s]
         argument_values: {agent: mp, mode: build, dispatch_class: structural}
     weight: 0.09090909090909091
   - id: I-03

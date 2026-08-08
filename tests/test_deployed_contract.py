@@ -154,16 +154,6 @@ def _require_payload_for_outcome(
 
 
 def _bind_exact_argument_receipt(tool: dict[str, Any]) -> None:
-    tool["inputSchema"]["properties"]["action_receipt"] = {
-        "type": "string",
-        "minLength": 1,
-    }
-    outcome = tool["outputSchema"]["properties"]["outcome"]
-    values = outcome.setdefault("enum", [])
-    if "ACTION_CONTEXT_REQUIRED" not in values:
-        values.append("ACTION_CONTEXT_REQUIRED")
-    tool["outputSchema"]["properties"]["action_context"] = _action_context_schema()
-    _require_payload_for_outcome(tool, "ACTION_CONTEXT_REQUIRED", "action_context")
     effect = tool["effect"]
     if effect["default_effect"] == "mutating" and effect["default_risk"] == "high":
         effect["default_receipt_requirement"] = "exact_arguments"
@@ -172,8 +162,185 @@ def _bind_exact_argument_receipt(tool: dict[str, Any]) -> None:
             action["receipt_requirement"] = "exact_arguments"
 
 
+def _one_call_plan_tool() -> dict[str, Any]:
+    candidate_fields = {
+        "candidate_kind": {"type": "string", "enum": ["active_catalog_section"]},
+        "catalog_state": {"type": "string", "enum": ["ACTIVE"]},
+        "path": {"type": "string", "minLength": 1},
+        "section_id": {"type": "string", "minLength": 1},
+        "heading": {"type": "string", "minLength": 1},
+        "excerpt": {"type": "string", "minLength": 1},
+        "excerpt_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_blob_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "rank": {"type": "integer", "minimum": 1},
+        "match_evidence": {"type": "object"},
+        "guidance_precedence": {"type": "string", "const": "advisory"},
+    }
+    objective_fields = {
+        "objective_index": {"type": "integer", "minimum": 1},
+        "objective_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "authoritative_gap": {"type": "boolean"},
+        "candidates": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": candidate_fields,
+                "required": list(candidate_fields),
+                "additionalProperties": False,
+            },
+        },
+    }
+    context_fields = {
+        "plan_revision": {"type": "integer", "minimum": 1},
+        "session_id": {"type": "string", "minLength": 1},
+        "instance": {"type": "string", "minLength": 1},
+        "request_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "activation_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "catalog_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "catalog_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "inventory_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "search_projection_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "complete": {"const": True},
+        "exact_byte_count": {"type": "integer", "minimum": 0, "maximum": 40000},
+        "delivery_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "obligations_complete": {"const": True},
+        "obligation_subjects_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "objectives": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": objective_fields,
+                "required": list(objective_fields),
+                "additionalProperties": False,
+            },
+        },
+    }
+    receipt_fields = {
+        "status": {"const": "PLAN_ACCEPTED"},
+        "plan_revision": {"type": "integer", "minimum": 1},
+        "session_id": {"type": "string", "minLength": 1},
+        "instance": {"type": "string", "minLength": 1},
+        "request_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "context_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "activation_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "committed_at": {"type": "string", "format": "date-time"},
+        "immutable": {"const": True},
+    }
+    tool = _tool(
+        "kd_session_plan",
+        {
+            "session_id": {"type": "string"},
+            "objectives": {"type": "array", "items": {"type": "string"}},
+        },
+        ["session_id", "objectives"],
+        output_properties={
+            "outcome": {"type": "string", "enum": ["PLAN_ACCEPTED"]},
+            "runbook_context": {
+                "type": "object",
+                "properties": context_fields,
+                "required": list(context_fields),
+                "additionalProperties": False,
+            },
+            "accepted_plan_receipt": {
+                "type": "object",
+                "properties": receipt_fields,
+                "required": list(receipt_fields),
+                "additionalProperties": False,
+            },
+        },
+        output_required=["outcome"],
+    )
+    _require_payload_for_outcome(
+        tool, "PLAN_ACCEPTED", "runbook_context", "accepted_plan_receipt"
+    )
+    return tool
+
+
+def _one_call_close_tool() -> dict[str, Any]:
+    receipt_fields = {
+        "status": {"const": "COMMITTED"},
+        "transaction_id": {"type": "string", "minLength": 1},
+        "close_request_id": {"type": "string", "minLength": 1},
+        "request_digest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "session_id": {"type": "string", "minLength": 1},
+        "committed_at": {"type": "string", "format": "date-time"},
+        "immutable": {"const": True},
+    }
+    obligation_fields = {
+        "obligation_id": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["OPEN", "SATISFIED"]},
+        "occurrence_recorded": {"type": "boolean"},
+    }
+    tool = _tool(
+        "kd_session_close",
+        {"session_id": {"type": "string"}},
+        ["session_id"],
+        output_properties={
+            "outcome": {"type": "string", "enum": ["COMMITTED"]},
+            "close_receipt": {
+                "type": "object",
+                "properties": receipt_fields,
+                "required": list(receipt_fields),
+                "additionalProperties": False,
+            },
+            "obligation_outcomes": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": obligation_fields,
+                    "required": list(obligation_fields),
+                    "additionalProperties": False,
+                },
+            },
+        },
+        output_required=["outcome"],
+    )
+    _require_payload_for_outcome(tool, "COMMITTED", "close_receipt", "obligation_outcomes")
+    return tool
+
+
+def _source_fetch_tool() -> dict[str, Any]:
+    output_fields = {
+        "complete": {"type": "boolean"},
+        "catalog_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "source_blob_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "path": {"type": "string", "minLength": 1},
+        "byte_start": {"type": "integer", "minimum": 0},
+        "byte_end_exclusive": {"type": "integer", "minimum": 0},
+        "total_bytes": {"type": "integer", "minimum": 0},
+        "page_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "next_cursor": {"type": ["string", "null"]},
+        "content": {"type": "string", "minLength": 1},
+    }
+    return _tool(
+        "runbook_context_fetch",
+        {
+            "catalog_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "source_blob_oid": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "path": {"type": "string", "minLength": 1},
+            "unit_kind": {"type": "string", "enum": ["section", "document"]},
+            "unit_id": {"type": "string", "minLength": 1},
+            "cursor": {"type": "string", "minLength": 1},
+        },
+        ["catalog_sha", "source_blob_oid", "path", "unit_kind", "unit_id"],
+        output_properties=output_fields,
+        output_required=list(output_fields),
+        effect={
+            "mode": "read_only",
+            "default_effect": "read_only",
+            "default_risk": "none",
+            "default_receipt_requirement": "none",
+            "action_discriminator": None,
+            "actions": [],
+        },
+    )
+
+
 def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
-    callable_members = ["mp", "cc", "kimi", "glm", "ag"]
+    dispatch_members = ["mp", "cc", "kimi", "glm"]
+    hall_members = ["cc", "kimi", "glm"]
     state_tool = _tool(
         "state_request",
         {
@@ -457,44 +624,36 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
             },
             output_required=["outcome"],
         )
-        _require_payload_for_outcome(
-            plan_tool,
-            "RUNBOOK_CONTEXT_SELECTION_REQUIRED",
-            "selection_set",
-        )
-        _require_payload_for_outcome(
-            plan_tool,
-            "PLAN_ACCEPTED",
-            "accepted_plan_receipt",
-        )
-        _require_payload_for_outcome(
-            close_tool,
-            "COMMITTED",
-            "close_receipt",
-            "obligation_outcomes",
-        )
+        plan_tool = _one_call_plan_tool()
+        close_tool = _one_call_close_tool()
         lifecycle = {
-            "profile": "target",
+            "profile": "runbook_first_v2",
             "plan": {
                 "tool_name": "kd_session_plan",
-                "protocol": "server_delivered_two_stage",
+                "protocol": "server_delivered_one_call",
                 "first_outcome_discriminator": "outcome",
-                "selection_required_outcome": "RUNBOOK_CONTEXT_SELECTION_REQUIRED",
+                "selection_required_outcome": "NONE",
                 "accepted_outcome": "PLAN_ACCEPTED",
                 "first_outcome_typed": True,
-                "first_outcome_semantic_writes": "none",
-                "binding": "server_issued_ids_bound_to_session_instance_objectives_work_type_revision_catalog_excerpt_digest",
-                "selection_envelope_property": "selection_set",
+                "first_outcome_semantic_writes": "atomic_after_delivery",
+                "binding": "server_bound_session_instance_revision_request_activation_objectives_obligations_context_digest",
+                "selection_envelope_property": "NONE",
                 "accepted_receipt_property": "accepted_plan_receipt",
+                "context_property": "runbook_context",
+                "automatic_child_context": True,
+                "obligation_subjects": "backend_cursor_complete",
+                "exact_source_fetch": "section_and_full_runbook_cursor",
             },
             "delivery": {
                 "candidate_delivery_mode": "required",
-                "legacy_consultation_mode": "reject",
-                "candidate_limit": 3,
+                "legacy_consultation_mode": "absent",
+                "candidate_limit": 4,
+                "active_guidance_mode": "integrity_verified_advisory",
+                "discovery_guidance_mode": "labeled_advisory_nonblocking",
             },
             "close": {
                 "tool_name": "kd_session_close",
-                "protocol": "structured_runbook_impact",
+                "protocol": "backend_evidence_atomic_close",
                 "outcome_discriminator": "outcome",
                 "committed_outcome": "COMMITTED",
                 "receipt": "typed_transaction_scoped_committed",
@@ -502,18 +661,30 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
                 "obligation_outcomes_property": "obligation_outcomes",
                 "obligation_transaction": "atomic_backend_transaction_outbox",
                 "server_owned_evidence": True,
+                "caller_runbook_fields": "absent",
+                "semantic_uncertainty": "commit_with_open_obligation",
+                "next_action_enforcement": "component_behavior_change_only",
             },
-            "action_receipts": {
-                "protocol": "two_stage_exact_arguments",
-                "context_required_outcome": "ACTION_CONTEXT_REQUIRED",
+            "action_evidence": {
+                "protocol": "backend_intent_and_terminal_observation",
+                "context_required_outcome": "NONE",
                 "outcome_discriminator": "outcome",
-                "receipt_argument": "action_receipt",
-                "context_property": "action_context",
-                "context_outcome_typed": True,
-                "context_outcome_semantic_writes": "none",
+                "receipt_argument": "NONE",
+                "context_property": "NONE",
+                "context_outcome_typed": False,
+                "context_outcome_semantic_writes": "backend_transaction",
                 "one_use": True,
                 "expiring": True,
-                "binding": "canonical_tool_arguments_session_component_policy_revision",
+                "binding": "session_actor_handler_canonical_arguments_component_policy_action_remote_candidate",
+            },
+            "cutover": {
+                "state": "ACTIVE_ONE_WAY",
+                "activation_receipt_sha256": "9" * 64,
+                "legacy_runtime_absent": True,
+                "local_authority_absent": True,
+                "fallback_absent": True,
+                "database_freeze_verified": True,
+                "rollback_mode": "new_path_only",
             },
         }
     elif lifecycle_profile == "legacy":
@@ -570,7 +741,7 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
                 "obligation_transaction": "none",
                 "server_owned_evidence": False,
             },
-            "action_receipts": {
+            "action_evidence": {
                 "protocol": "none",
                 "context_required_outcome": "NONE",
                 "outcome_discriminator": "outcome",
@@ -591,7 +762,7 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
         _tool(
             "council_request",
             {
-                "agent": {"type": "string", "enum": list(callable_members)},
+                "agent": {"type": "string", "enum": list(dispatch_members)},
                 "mode": {
                     "type": "string",
                     "enum": ["build", "review", "open_response"],
@@ -606,7 +777,7 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
             {
                 "agents": {
                     "type": "array",
-                    "items": {"type": "string", "enum": list(callable_members)},
+                    "items": {"type": "string", "enum": list(hall_members)},
                     "default": ["cc", "kimi", "glm"],
                 },
                 "prompt": {"type": "string"},
@@ -616,9 +787,10 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
         state_tool,
         plan_tool,
         close_tool,
+        _source_fetch_tool(),
     ]
     artifact: dict[str, Any] = {
-        "artifact_format_version": "2",
+        "artifact_format_version": "3",
         "handler_sha": HANDLER_SHA,
         "handler_release_identity": "gateway-production-2026-07-31.1",
         "proxy_release_identity": PROXY_IDENTITY,
@@ -633,7 +805,7 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
             "hall": {
                 "tool_name": "council_hall",
                 "agents_argument": "agents",
-                "valid_agents": list(callable_members),
+                "valid_agents": list(hall_members),
                 "default_agents": ["cc", "kimi", "glm"],
             },
             "current_roles": {
@@ -644,6 +816,14 @@ def _artifact(*, lifecycle_profile: str = "target") -> dict[str, Any]:
             },
         },
         "runbook_lifecycle": lifecycle,
+        "runtime_identity": {
+            "verifier_tree_sha256": "4" * 64,
+            "artifact_manifest_sha256": "5" * 64,
+            "dependency_lock_sha256": "6" * 64,
+            "python_runtime_sha256": "7" * 64,
+            "module_origins_sha256": "8" * 64,
+            "workflow_sha256": "a" * 64,
+        },
         "source_identifiers": [],
     }
     artifact["schema_digest_sha256"] = hashlib.sha256(
@@ -829,21 +1009,62 @@ def test_rfc8032_vector_and_signed_fixture_pass(tmp_path: Path) -> None:
     assert report.runbook_lifecycle_readiness == "READY"
 
 
-def test_honest_legacy_artifact_is_integrity_valid_but_not_ready(
-    tmp_path: Path,
+def test_label_only_verifier_digest_is_not_a_runtime_identity(tmp_path: Path) -> None:
+    artifact = _artifact()
+    artifact["runtime_identity"]["verifier_tree_sha256"] = hashlib.sha256(
+        b"runbook-evidence-verifier-v2-r1"
+    ).hexdigest()
+    pin_path = _resign_artifact(tmp_path, artifact)
+
+    assert _codes(_verify(tmp_path, pin_path)) == {"RUNTIME_IDENTITY_LABEL_ONLY"}
+
+
+def test_runtime_identity_components_cannot_collapse_to_one_label(tmp_path: Path) -> None:
+    artifact = _artifact()
+    artifact["runtime_identity"]["dependency_lock_sha256"] = artifact[
+        "runtime_identity"
+    ]["verifier_tree_sha256"]
+    pin_path = _resign_artifact(tmp_path, artifact)
+
+    assert _codes(_verify(tmp_path, pin_path)) == {"RUNTIME_IDENTITY_COLLAPSED"}
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["legacy_runtime_absent", "local_authority_absent", "fallback_absent"],
+)
+def test_one_way_cutover_absence_proofs_are_required(
+    tmp_path: Path, field: str
 ) -> None:
+    artifact = _artifact()
+    artifact["runbook_lifecycle"]["cutover"][field] = False
+    pin_path = _resign_artifact(tmp_path, artifact)
+
+    assert _codes(_verify(tmp_path, pin_path)) == {"CONTRACT_SCHEMA_INVALID"}
+
+
+def test_exact_source_fetch_tool_is_required(tmp_path: Path) -> None:
+    artifact = _artifact()
+    artifact["tools"] = [
+        tool for tool in artifact["tools"] if tool["name"] != "runbook_context_fetch"
+    ]
+    _refresh_schema_digest(artifact)
+    pin_path = _resign_artifact(tmp_path, artifact)
+
+    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+
+
+def test_legacy_artifact_is_not_a_valid_fallback_contract(tmp_path: Path) -> None:
     pin_path = _resign_artifact(tmp_path, _artifact(lifecycle_profile="legacy"))
 
     report = _verify(tmp_path, pin_path)
 
-    assert report.ok, report.findings
-    assert report.runbook_lifecycle_readiness == "NOT_READY"
-    assert {
-        finding.code for finding in report.runbook_lifecycle_readiness_reasons
-    } == {"LEGACY_LIFECYCLE_PROFILE"}
+    assert not report.ok
+    assert _codes(report) == {"CONTRACT_SCHEMA_INVALID"}
+    assert report.runbook_lifecycle_readiness is None
 
 
-def test_readiness_requirement_rejects_honest_legacy_artifact(tmp_path: Path) -> None:
+def test_readiness_requirement_rejects_legacy_before_assessment(tmp_path: Path) -> None:
     pin_path = _resign_artifact(tmp_path, _artifact(lifecycle_profile="legacy"))
 
     report = dc.validate_deployed_contract(
@@ -855,32 +1076,36 @@ def test_readiness_requirement_rejects_honest_legacy_artifact(tmp_path: Path) ->
         require_runbook_lifecycle_ready=True,
     )
 
-    assert report.runbook_lifecycle_readiness == "NOT_READY"
-    assert _codes(report) == {"RUNBOOK_LIFECYCLE_NOT_READY"}
+    assert report.runbook_lifecycle_readiness is None
+    assert _codes(report) == {"CONTRACT_SCHEMA_INVALID"}
 
 
-@pytest.mark.parametrize(
-    ("field", "value", "reason"),
-    [
-        ("candidate_delivery_mode", "assist", "CANDIDATE_DELIVERY_NOT_REQUIRED"),
-        ("legacy_consultation_mode", "warn", "LEGACY_CONSULTATION_NOT_REJECTED"),
-        ("candidate_limit", 0, "CANDIDATE_LIMIT_ZERO"),
-    ],
-)
-def test_target_delivery_modes_are_part_of_deterministic_readiness(
-    tmp_path: Path, field: str, value: Any, reason: str
-) -> None:
+def test_assist_only_delivery_is_signed_but_not_cutover_ready(tmp_path: Path) -> None:
     artifact = _artifact()
-    artifact["runbook_lifecycle"]["delivery"][field] = value
+    artifact["runbook_lifecycle"]["delivery"]["candidate_delivery_mode"] = "assist"
     pin_path = _resign_artifact(tmp_path, artifact)
 
     report = _verify(tmp_path, pin_path)
 
     assert report.ok, report.findings
     assert report.runbook_lifecycle_readiness == "NOT_READY"
-    assert [
-        finding.code for finding in report.runbook_lifecycle_readiness_reasons
-    ] == [reason]
+    assert [finding.code for finding in report.runbook_lifecycle_readiness_reasons] == [
+        "CANDIDATE_DELIVERY_NOT_REQUIRED"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("legacy_consultation_mode", "warn"), ("candidate_limit", 0)],
+)
+def test_legacy_or_zero_capacity_delivery_is_schema_invalid(
+    tmp_path: Path, field: str, value: Any
+) -> None:
+    artifact = _artifact()
+    artifact["runbook_lifecycle"]["delivery"][field] = value
+    pin_path = _resign_artifact(tmp_path, artifact)
+
+    assert _codes(_verify(tmp_path, pin_path)) == {"CONTRACT_SCHEMA_INVALID"}
 
 
 def test_input_only_signed_artifact_is_invalid(tmp_path: Path) -> None:
@@ -899,7 +1124,9 @@ def test_legacy_plan_and_close_schemas_cannot_advertise_target_readiness(
     artifact["runbook_lifecycle"] = _artifact()["runbook_lifecycle"]
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
 def test_legacy_projection_cannot_claim_target_delivery_modes(tmp_path: Path) -> None:
@@ -907,15 +1134,13 @@ def test_legacy_projection_cannot_claim_target_delivery_modes(tmp_path: Path) ->
     artifact["runbook_lifecycle"]["delivery"].update(
         {
             "candidate_delivery_mode": "required",
-            "legacy_consultation_mode": "reject",
-            "candidate_limit": 3,
+            "legacy_consultation_mode": "absent",
+            "candidate_limit": 4,
         }
     )
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {
-        "LIFECYCLE_CAPABILITY_MISMATCH"
-    }
+    assert _codes(_verify(tmp_path, pin_path)) == {"CONTRACT_SCHEMA_INVALID"}
 
 
 def test_action_discriminated_unknown_fallthrough_must_remain_high_risk(
@@ -987,7 +1212,7 @@ def test_target_unrelated_high_risk_tool_requires_exact_argument_receipt(
 @pytest.mark.parametrize(
     ("tool_name", "required_outcome"),
     [
-        ("kd_session_plan", "RUNBOOK_CONTEXT_SELECTION_REQUIRED"),
+        ("kd_session_plan", "PLAN_ACCEPTED"),
         ("kd_session_close", "COMMITTED"),
     ],
 )
@@ -1009,7 +1234,7 @@ def test_target_result_schema_must_expose_typed_lifecycle_outcomes(
 @pytest.mark.parametrize(
     ("tool_name", "payload_property"),
     [
-        ("kd_session_plan", "selection_set"),
+        ("kd_session_plan", "runbook_context"),
         ("kd_session_plan", "accepted_plan_receipt"),
         ("kd_session_close", "close_receipt"),
         ("kd_session_close", "obligation_outcomes"),
@@ -1051,7 +1276,8 @@ def test_outcome_binding_condition_cannot_be_made_impossible(tmp_path: Path) -> 
 @pytest.mark.parametrize(
     ("tool_name", "container", "field"),
     [
-        ("kd_session_plan", "selection_set", "complete"),
+        ("kd_session_plan", "runbook_context", "complete"),
+        ("kd_session_plan", "runbook_context", "obligations_complete"),
         ("kd_session_close", "close_receipt", "immutable"),
         ("kd_session_close", "close_receipt", "status"),
     ],
@@ -1077,11 +1303,15 @@ def test_lifecycle_singleton_literals_cannot_admit_false_or_noncommitted_values(
 @pytest.mark.parametrize(
     "field",
     [
-        "selection_set_id",
+        "activation_sha",
         "catalog_sha",
         "catalog_digest_sha256",
+        "manifest_sha256",
+        "inventory_sha",
+        "search_projection_digest_sha256",
         "exact_byte_count",
         "delivery_digest_sha256",
+        "obligation_subjects_digest_sha256",
     ],
 )
 def test_plan_selection_essentials_cannot_be_null_typed(
@@ -1091,7 +1321,7 @@ def test_plan_selection_essentials_cannot_be_null_typed(
     plan_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_plan"
     )
-    plan_tool["outputSchema"]["properties"]["selection_set"]["properties"][field] = {
+    plan_tool["outputSchema"]["properties"]["runbook_context"]["properties"][field] = {
         "type": "null"
     }
     _refresh_schema_digest(artifact)
@@ -1105,7 +1335,7 @@ def test_plan_exact_byte_count_requires_the_transport_bound(tmp_path: Path) -> N
     plan_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_plan"
     )
-    plan_tool["outputSchema"]["properties"]["selection_set"]["properties"][
+    plan_tool["outputSchema"]["properties"]["runbook_context"]["properties"][
         "exact_byte_count"
     ].pop("maximum")
     _refresh_schema_digest(artifact)
@@ -1114,38 +1344,46 @@ def test_plan_exact_byte_count_requires_the_transport_bound(tmp_path: Path) -> N
     assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
 
 
-@pytest.mark.parametrize("property_name", ["consultation_ids", "gap_ids"])
-def test_plan_receipt_id_arrays_must_remain_optional_unique_nonempty_strings(
+@pytest.mark.parametrize(
+    "property_name",
+    [
+        "runbook_consultation",
+        "runbook_refs",
+        "consultation_ids",
+        "gap_ids",
+        "no_entry_found",
+    ],
+)
+def test_plan_caller_runbook_fields_are_physically_forbidden(
     tmp_path: Path, property_name: str
 ) -> None:
     artifact = _artifact()
     plan_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_plan"
     )
-    plan_tool["inputSchema"]["required"].append(property_name)
+    plan_tool["inputSchema"]["properties"][property_name] = {"type": "string"}
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
-@pytest.mark.parametrize("defect", ["duplicates", "empty_item"])
-def test_plan_receipt_id_array_shape_is_substantive(
-    tmp_path: Path, defect: str
-) -> None:
+def test_retired_selection_round_trip_is_rejected_even_if_typed(tmp_path: Path) -> None:
     artifact = _artifact()
     plan_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_plan"
     )
-    schema = plan_tool["inputSchema"]["properties"]["consultation_ids"]
-    if defect == "duplicates":
-        schema["uniqueItems"] = False
-    else:
-        schema["items"].pop("minLength")
+    plan_tool["outputSchema"]["properties"]["outcome"]["enum"].append(
+        "RUNBOOK_CONTEXT_SELECTION_REQUIRED"
+    )
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
 def test_action_discriminator_enum_values_must_be_reachable_strings(
@@ -1164,71 +1402,69 @@ def test_action_discriminator_enum_values_must_be_reachable_strings(
     assert _codes(_verify(tmp_path, pin_path)) == {"TOOL_EFFECT_MISMATCH"}
 
 
-@pytest.mark.parametrize("defect", ["required", "empty", "impossible"])
-def test_action_receipt_must_be_optional_satisfiable_nonempty_string(
+@pytest.mark.parametrize("defect", ["required", "optional", "impossible"])
+def test_caller_action_receipt_is_physically_forbidden(
     tmp_path: Path, defect: str
 ) -> None:
     artifact = _artifact()
     state_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "state_request"
     )
+    state_tool["inputSchema"]["properties"]["action_receipt"] = (
+        {"type": "string", "not": {}}
+        if defect == "impossible"
+        else {"type": "string"}
+    )
     if defect == "required":
         state_tool["inputSchema"]["required"].append("action_receipt")
-    elif defect == "empty":
-        state_tool["inputSchema"]["properties"]["action_receipt"] = {
-            "type": "string"
-        }
-    else:
-        state_tool["inputSchema"]["properties"]["action_receipt"] = {
-            "type": "string",
-            "not": {},
-        }
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
-@pytest.mark.parametrize("defect", ["required", "not_object", "impossible"])
-def test_runbook_impact_must_be_optional_and_admit_an_object(
+@pytest.mark.parametrize("defect", ["required", "optional", "impossible"])
+def test_caller_runbook_impact_is_physically_forbidden(
     tmp_path: Path, defect: str
 ) -> None:
     artifact = _artifact()
     close_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_close"
     )
+    close_tool["inputSchema"]["properties"]["runbook_impact"] = (
+        {"type": "object", "not": {}}
+        if defect == "impossible"
+        else {"type": "object"}
+    )
     if defect == "required":
         close_tool["inputSchema"]["required"].append("runbook_impact")
-    elif defect == "not_object":
-        close_tool["inputSchema"]["properties"]["runbook_impact"] = {
-            "type": "null"
-        }
-    else:
-        close_tool["inputSchema"]["properties"]["runbook_impact"] = {
-            "type": "object",
-            "not": {},
-        }
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
 @pytest.mark.parametrize(
-    "missing_proof",
+    "legacy_surface",
     ["receipt_argument", "typed_context_outcome", "action_context"],
 )
-def test_high_risk_tool_schema_must_prove_action_context_protocol(
-    tmp_path: Path, missing_proof: str
+def test_high_risk_tool_schema_rejects_old_action_context_protocol(
+    tmp_path: Path, legacy_surface: str
 ) -> None:
     artifact = _artifact()
     state_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "state_request"
     )
-    if missing_proof == "receipt_argument":
-        state_tool["inputSchema"]["properties"].pop("action_receipt")
-    elif missing_proof == "typed_context_outcome":
-        state_tool["outputSchema"]["properties"]["outcome"]["enum"].remove(
+    if legacy_surface == "receipt_argument":
+        state_tool["inputSchema"]["properties"]["action_receipt"] = {
+            "type": "string"
+        }
+    elif legacy_surface == "typed_context_outcome":
+        state_tool["outputSchema"]["properties"]["outcome"]["enum"].append(
             "ACTION_CONTEXT_REQUIRED"
         )
     else:
@@ -1240,21 +1476,26 @@ def test_high_risk_tool_schema_must_prove_action_context_protocol(
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
-def test_lifecycle_capability_must_match_plan_input_schema(tmp_path: Path) -> None:
+def test_one_call_lifecycle_rejects_renamed_caller_refs(tmp_path: Path) -> None:
     artifact = _artifact()
     plan_tool = next(
         tool for tool in artifact["tools"] if tool["name"] == "kd_session_plan"
     )
-    plan_tool["inputSchema"]["properties"]["server_refs"] = plan_tool[
-        "inputSchema"
-    ]["properties"].pop("consultation_ids")
+    plan_tool["inputSchema"]["properties"]["runbook_refs"] = {
+        "type": "array",
+        "items": {"type": "object"},
+    }
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
 
-    assert _codes(_verify(tmp_path, pin_path)) == {"LIFECYCLE_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {
+        "LEGACY_LIFECYCLE_SURFACE_PRESENT"
+    }
 
 
 def test_rfc8032_second_vector_and_strict_negative_cases() -> None:
@@ -1633,7 +1874,7 @@ def test_source_identifier_must_name_handler_sha(tmp_path: Path) -> None:
     assert _codes(_verify(tmp_path, pin_path)) == {"SOURCE_PROJECTION_MISMATCH"}
 
 
-def test_dispatch_and_hall_capability_sets_are_not_role_union(tmp_path: Path) -> None:
+def test_inactive_backends_cannot_reenter_dispatch_or_hall(tmp_path: Path) -> None:
     artifact = _artifact()
     dispatch = next(
         tool for tool in artifact["tools"] if tool["name"] == "council_request"
@@ -1657,14 +1898,14 @@ def test_dispatch_and_hall_capability_sets_are_not_role_union(tmp_path: Path) ->
     artifact["council"]["hall"]["default_agents"] = ["glm", "mp"]
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
-    assert _verify(tmp_path, pin_path).ok
+    assert _codes(_verify(tmp_path, pin_path)) == {"ROLE_PROJECTION_CONTRADICTION"}
 
 
-def test_required_members_may_be_subset_of_valid_current_voters(tmp_path: Path) -> None:
+def test_required_members_must_equal_valid_current_voters(tmp_path: Path) -> None:
     artifact = _artifact()
     artifact["council"]["required_members"] = ["cc", "glm"]
     pin_path = _resign_artifact(tmp_path, artifact)
-    assert _verify(tmp_path, pin_path).ok
+    assert _codes(_verify(tmp_path, pin_path)) == {"ROLE_PROJECTION_CONTRADICTION"}
 
 
 def test_required_member_must_be_callable(tmp_path: Path) -> None:
@@ -1675,25 +1916,28 @@ def test_required_member_must_be_callable(tmp_path: Path) -> None:
     dispatch["inputSchema"]["properties"]["agent"]["enum"].remove("kimi")
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
-    assert _codes(_verify(tmp_path, pin_path)) == {"COUNCIL_SCHEMA_MISMATCH"}
+    assert _codes(_verify(tmp_path, pin_path)) == {"ROLE_PROJECTION_CONTRADICTION"}
 
 
 @pytest.mark.parametrize("surface", ["dispatch", "hall"])
-def test_retired_member_must_not_remain_callable(tmp_path: Path, surface: str) -> None:
+@pytest.mark.parametrize("member", ["ag", "deepseek"])
+def test_inactive_member_must_not_remain_callable(
+    tmp_path: Path, surface: str, member: str
+) -> None:
     artifact = _artifact()
     if surface == "dispatch":
         dispatch = next(
             tool for tool in artifact["tools"] if tool["name"] == "council_request"
         )
-        dispatch["inputSchema"]["properties"]["agent"]["enum"].append("deepseek")
+        dispatch["inputSchema"]["properties"]["agent"]["enum"].append(member)
     else:
         hall_tool = next(
             tool for tool in artifact["tools"] if tool["name"] == "council_hall"
         )
         hall_tool["inputSchema"]["properties"]["agents"]["items"]["enum"].append(
-            "deepseek"
+            member
         )
-        artifact["council"]["hall"]["valid_agents"].append("deepseek")
+        artifact["council"]["hall"]["valid_agents"].append(member)
     _refresh_schema_digest(artifact)
     pin_path = _resign_artifact(tmp_path, artifact)
     assert _codes(_verify(tmp_path, pin_path)) == {"ROLE_PROJECTION_CONTRADICTION"}
@@ -2109,7 +2353,7 @@ council:
   required_members: [cc, kimi, glm]
   valid_member_ids: [cc, kimi, glm]
   hall:
-    valid_agents: [mp, cc, kimi, glm, ag]
+    valid_agents: [cc, kimi, glm]
     default_agents: [cc, kimi, glm]
 current_roles:
   builders: [mp]
@@ -2488,7 +2732,7 @@ def test_module_entrypoint_readiness_flag_is_deterministic(
     payload = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
-    assert payload["runbook_lifecycle_readiness"] == "NOT_READY"
+    assert payload["runbook_lifecycle_readiness"] is None
     assert [finding["code"] for finding in payload["findings"]] == [
-        "RUNBOOK_LIFECYCLE_NOT_READY"
+        "CONTRACT_SCHEMA_INVALID"
     ]

@@ -41,8 +41,9 @@ canonical artifact-payload digest are pinned. Binary64 values use RFC 8785's
 ECMAScript number presentation; integers are limited to I-JSON's exact safe
 range. Non-finite values and unsafe integers fail closed.
 
-Artifact format version `2` separates cryptographic integrity from runbook
-lifecycle rollout readiness. Every tool descriptor contains both its exact
+Artifact format version `3` admits only the one-way runbook-first lifecycle.
+There is no signature-valid legacy lifecycle profile. Every tool descriptor
+contains both its exact
 `inputSchema` and exact `outputSchema`, plus server-owned `effect` metadata:
 
 - `read_only` has a `none` default risk;
@@ -52,63 +53,65 @@ lifecycle rollout readiness. Every tool descriptor contains both its exact
   action exactly once, and makes any unrecognized/future action fall through to
   `mutating` / `high`.
 
-The effect object and every action also state whether an exact-argument context
-receipt is required. In a target lifecycle artifact, each declared high-risk
-mutation and the high-risk action-discriminator fallthrough must use
-`exact_arguments`. Its tool input exposes an optional, satisfiable non-empty
-string `action_receipt`; making that token required would prevent the first
-stage from obtaining context. Its result
-has required `outcome` including `ACTION_CONTEXT_REQUIRED`; and its
-`action_context` schema requires `context_id`, the canonical-argument SHA-256,
-session, component, policy revision, and expiry. Explicit low/medium mutations
-are not silently promoted to high risk, which prevents plan or close from
-requiring a circular action receipt before their own protocol can run.
+The effect object and every action also state whether backend exact-argument
+binding is required. Every declared high-risk mutation and the high-risk
+action-discriminator fallthrough uses `exact_arguments`, but callers never pass
+an `action_receipt` and tools never return `ACTION_CONTEXT_REQUIRED`. The
+trusted shared execution boundary records intent before execution and the
+provider-observed terminal result afterward, bound to session, actor, handler,
+canonical arguments, component, policy revision, action identity, and exact
+non-default remote candidate when applicable. Background work remains pending
+until its supervisor records a terminal outcome. Explicit low/medium mutations
+are not silently promoted to high risk.
 
 The top-level `runbook_lifecycle` projection is also signed. It names the exact
-plan and close tools, protocol family, deployed delivery modes, typed outcomes,
-no-write claims, binding class, receipt fields, obligation transaction, and
-exact-argument action-receipt capability. The version-2 target field contract is:
+plan and close tools, one-call automatic delivery, exact-retry behavior,
+physical legacy absence, typed outcomes, no-prior-write claims, binding class,
+  receipt fields, obligation transaction, action evidence, exact-source fetch,
+  complete obligation pagination, verifier runtime identity, and one-way
+  cutover proof. The version-3 target field contract is:
 
-- `kd_session_plan` accepts optional `consultation_ids` and `gap_ids` as unique
-  arrays of non-empty strings, so the first-stage request remains callable. Its required
-  `outcome` includes `RUNBOOK_CONTEXT_SELECTION_REQUIRED` and `PLAN_ACCEPTED`.
-  The output schema conditionally requires the corresponding payload for each
-  outcome; the condition must be the exact required outcome discriminator and
-  the complete outcome-plus-payload instance must be satisfiable. Merely
-  declaring the discriminator values or hiding an impossible condition behind
-  `if` is insufficient.
-  `selection_set` requires selection-set identity, catalog SHA and digest,
-  singleton `complete: true`, exact byte count bounded to 40,000 bytes,
-  delivery digest, and per-objective
-  candidate/gap records. Each candidate carries a consultation ID, runbook and
-  stable-section identity, path, heading, bounded excerpt and digest, rank, and
-  match evidence. `accepted_plan_receipt` requires the plan revision, session,
-  instance, objective digest, work type, selection-set ID, catalog SHA, request
-  digest, and delivery digest.
-- `kd_session_close` accepts an optional, satisfiable object `runbook_impact`.
-  Its required `outcome` includes
-  `COMMITTED`, which conditionally requires both `close_receipt` and
-  `obligation_outcomes`. `close_receipt` requires `COMMITTED` status, transaction ID,
-  close-request ID, request digest, session ID, commit time, and
-  singleton `immutable: true`. The receipt status is singleton `COMMITTED`, not
-  an enum that also admits a non-committed state. `obligation_outcomes` requires an obligation ID, status,
-  and occurrence-recorded result for every returned row.
-- Target delivery is rollout-ready only with
-  `candidate_delivery_mode=required`, `legacy_consultation_mode=reject`, and a
-  positive bounded candidate limit. The plan IDs bind session, instance,
-  objectives, work type, revision, catalog, and excerpt digest. Close uses a
-  typed transaction-scoped receipt and the atomic backend obligation/outbox
-  transaction. Action receipts are one-use, expiring, and bound to canonical
-  tool arguments, session, component, and policy revision.
+- `kd_session_plan` accepts no runbook path, reference, consultation, gap,
+  attestation, waiver, synthesis, or desired-impact field. Its required
+  `PLAN_ACCEPTED` result conditionally requires both the accepted plan receipt
+  and complete runbook context. The context carries exact activation, catalog,
+  manifest, inventory and response identities, singleton `complete: true`, an
+  exact byte count bounded to 40,000 bytes, delivery digest, complete paged
+  OPEN-obligation subjects, and a ranked record for every objective. Each
+  candidate carries stable section/source identity, path, heading, bounded
+  excerpt/digest, rank, policy lane, advisory precedence, and match evidence.
+  The accepted receipt binds plan revision, session, instance, request/context
+  digests, activation, time, and immutability. The
+  contract asserts byte-identical response content for an unchanged lost-response
+  retry and rejection of a changed request.
+- `kd_session_close` accepts no runbook decision, impact, evidence, exit,
+  discharge, or waiver object. Its `COMMITTED` outcome conditionally requires
+  both `close_receipt` and `obligation_outcomes`. `close_receipt` requires
+  singleton `COMMITTED` status, transaction ID, close-request ID, request and
+  evidence-freeze digests, session ID, commit time, signature identity, and
+  singleton `immutable: true`. Obligation outcomes bind the canonical obligation,
+  status, occurrence result, and coverage result when present.
+- `runbook_context_fetch` is read-only and returns exact pinned section or
+  full-runbook pages with byte bounds, page and whole-source digests, total
+  length, and a stable continuation cursor.
+- Target delivery is rollout-ready only with automatic delivery required,
+  legacy inputs absent, a positive bounded context limit, unconditional
+  public signed cutover-status validation, and every high-risk/action
+  publication binding. The signed cutover proves legacy runtime, local
+  authority, and fallback absence, database freeze, and `new_path_only`
+  rollback. Close uses a typed transaction-scoped receipt and the atomic backend
+  obligation/outbox transaction.
+- `runtime_identity` separately binds the exact verifier tree, artifact
+  manifest, dependency lock, Python runtime, verified module origins, and
+  workflow. Hashing a contract label is not an artifact identity.
 
-An honestly labeled `legacy` projection still requires real input and output
-schemas and effect metadata. It names caller-authored `runbook_consultation`,
-legacy `runbook_exit`, no typed selection/committed receipt, and no action
-receipt protocol. A valid signature over that truth is integrity-valid but its
-deterministic lifecycle assessment is `NOT_READY`; a signature is never rollout
-evidence by itself. Conversely, a `target` projection over legacy tool schemas,
-minimal discriminator-only outputs, or an unbound high-risk mutation is an
-invalid contract rather than a readiness waiver.
+A pre-cutover artifact that names caller-authored `runbook_consultation`,
+`runbook_refs`, `runbook_impact`, legacy `runbook_exit`, local authority, or the
+old selection/action-context round trips is schema-invalid even if its old
+signature verifies. It cannot be selected before or after one-way activation.
+Conversely, a target projection over legacy tool schemas, minimal
+discriminator-only outputs, an optional startup guard, or an unbound high-risk
+mutation is invalid rather than a readiness waiver.
 
 Runbooks that state a current Council roster or role in §C, §D, §E, §H, or §I
 must include one `yaml deployed-contract-roles` fenced block. The complete

@@ -11,7 +11,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-import runbook_tools.catalog.generator as catalog_generator
 import runbook_tools.catalog.validator as catalog_validator
 from runbook_tools.catalog.generator import generate_catalog
 from runbook_tools.catalog.model import CatalogError
@@ -29,9 +28,6 @@ from tests.catalog_test_support import (
 )
 
 KERNEL_FIXTURES = Path(__file__).parent / "fixtures" / "catalog" / "kernel_companions"
-
-pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
-
 
 def _metadata(runbook_id: str, *, topic: str | None = None) -> dict:
     return {
@@ -185,6 +181,17 @@ def test_pinned_validation_records_full_sha_digest_and_all_sections(tmp_path: Pa
     assert report.action_authority_eligible is False
 
 
+def test_pinned_validation_rejects_a_subdirectory_that_discovers_parent_git(
+    tmp_path: Path,
+) -> None:
+    root, _sha, catalog_ref = _valid_repo(tmp_path)
+    nested = root / "nested"
+    nested.mkdir()
+
+    with pytest.raises(CatalogError, match="must be the Git worktree root"):
+        validate_catalog_ref(nested, catalog_ref)
+
+
 def test_pinned_validator_requires_catalog_v2_integrity_only_labels(
     tmp_path: Path,
 ) -> None:
@@ -222,26 +229,17 @@ def test_pinned_validator_requires_catalog_v2_integrity_only_labels(
         assert any(field in error for error in errors)
 
 
-def test_pinned_catalog_cannot_bypass_closed_authority_baseline(
+def test_pinned_catalog_admits_a_conformant_new_member_as_integrity_only(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root, _sha, catalog_ref = _valid_repo(tmp_path)
-    projection = catalog_generator._ReviewedLegacyProjection(
-        expected={},
-        allowed_paths={},
-    )
-    monkeypatch.setattr(
-        catalog_generator,
-        "_reviewed_legacy_projection",
-        lambda _root, *, revision: projection,
-    )
 
-    with pytest.raises(
-        CatalogError,
-        match="legacy population differs.*unexpected=member",
-    ):
-        validate_catalog_ref(root, catalog_ref)
+    report = validate_catalog_ref(root, catalog_ref)
+
+    assert report.integrity_only is True
+    assert report.semantic_verification is False
+    assert report.authority_admission is False
+    assert report.action_authority_eligible is False
 
 
 def test_pinned_validation_materializes_new_nested_source_directories(

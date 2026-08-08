@@ -11,57 +11,54 @@ def test_boot_facing_open_protocol_does_not_present_attestation_as_truth() -> No
     protocol = _read("session-open-protocol.md")
     normalized = " ".join(protocol.split())
 
-    assert "RUNBOOK_CONTEXT_SELECTION_REQUIRED" in protocol
-    assert "caller-authored proof of reading" in normalized
-    assert "Bounded legacy compatibility" in normalized
-    assert "never invent a path, section, synthesis, or runbook" in normalized
-    assert "not evidence that a runbook update is useful" in normalized
+    assert "automatic server-delivered context" in normalized
+    assert "one active form and no compatibility fallback" in normalized
+    assert "Do not add a runbook path, section, reference" in normalized
+    assert "complete ranked runbook context" in normalized
+    assert "physically retired" in normalized
 
 
 def test_boot_facing_close_protocol_uses_server_measured_impact() -> None:
     protocol = _read("session-close-protocol.md")
     normalized = " ".join(protocol.split())
 
-    assert "structured `runbook_impact`" in protocol
-    assert "the server owns repository baselines" in normalized
-    assert "does not force filler" in normalized
-    assert "legacy `runbook_exit`" in protocol
-    assert "A typed committed close receipt is the only success signal" in normalized
+    assert "has no runbook decision, impact, evidence" in normalized
+    assert "the backend collects the session-open activation/obligation snapshot" in normalized
+    assert "create or refresh one visible OPEN obligation but do not block COMMIT" in normalized
+    assert "old `runbook_exit`/debt/waiver gate" in normalized
+    assert "A typed signed `COMMITTED` receipt is the only success signal" in protocol
 
 
-def test_legacy_gate_runbook_is_explicitly_non_authoritative_for_redesign() -> None:
-    runbook = _read("runbook-first-gates.md")
+def test_active_gate_runbook_has_one_way_no_fallback_design() -> None:
+    runbook = _read("runbooks/runbook-first-gates.md")
     normalized = " ".join(runbook.split())
 
-    assert "LEGACY COMPATIBILITY — DO NOT EXTEND" in runbook
-    assert "forcing a reference, attestation, waiver, or close" in normalized
-    assert "Do not enable another blocking surface" in normalized
-    assert "server delivers immutable context first" in normalized
+    assert "retired caller-attestation gate is physically absent" in normalized
+    assert "retired caller-attestation gate is physically absent" in normalized
+    assert "Automatic first-plan context" in normalized
+    assert "OPEN obligation" in runbook
 
 
 def test_active_session_owner_branches_on_the_exact_deployed_capability() -> None:
     runbook = _read("runbooks/peer-instance-discipline.md")
     normalized = " ".join(runbook.split())
 
-    assert "Target branch — PLANNED and currently UNAVAILABLE" in runbook
-    assert "Deployed compatibility branch — current and harmful" in runbook
-    assert "RUNBOOK_CONTEXT_SELECTION_REQUIRED" in runbook
-    assert "caller-authored `runbook_consultation`" in runbook
-    assert "server-owned `runbook_impact`" in normalized
-    assert "compatibility input, never evidence" in normalized
+    assert "First action after `kd_session_open`" in runbook
+    assert "one ordinary `kd_session_plan` request" in normalized
+    assert "complete immutable context" in normalized
+    assert "The server owns baselines" in normalized
+    assert "There is no compatibility branch" in normalized
 
 
 def test_dispatch_refs_are_conditional_on_the_signed_deployed_capability() -> None:
     runbook = _read("runbooks/agent-dispatch.md")
     normalized = " ".join(runbook.split())
 
-    assert "inspect the exact signed deployed capability first" in normalized
-    assert "only when that capability and the connected schema prove they exist" in normalized
-    assert "caller-authored legacy path/section references" in normalized
-    assert "compatibility input rather than evidence of reading" in normalized
-    assert "runbook_refs=<deployed_contract_appropriate_refs>" in runbook
+    assert "Automatic context supplies" in normalized
+    assert "callers do not" in normalized and "runbook" in normalized
+    assert "AG and DeepSeek are inactive" in normalized
+    assert "ordinary calls reject AG/DeepSeek" in normalized
     assert "runbook_refs=<delivered_refs>" not in runbook
-    assert "runbook_refs from gateway delivery" not in normalized
 
 
 def test_active_owner_exposes_roster_mismatch_without_claiming_kimi_dispatch() -> None:
@@ -69,8 +66,9 @@ def test_active_owner_exposes_roster_mismatch_without_claiming_kimi_dispatch() -
     normalized = " ".join(runbook.split())
 
     assert "connected `council_request` omits Kimi" in normalized
-    assert "full-roster-dependent review and promotion as UNAVAILABLE" in normalized
+    assert "roster-dependent work as UNAVAILABLE" in normalized
     assert "required full panel is not currently callable" in normalized
+    assert "inactive AG/DeepSeek" in normalized
     assert "koskadeux-mcp/tools/session.py:kd_session_open" not in runbook
 
 

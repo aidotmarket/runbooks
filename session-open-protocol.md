@@ -15,44 +15,37 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 
 ### O.2.1 kd_session_plan context contract
 
-The intended contract is server-delivered context, not caller-authored proof of
-reading. Detect the deployed contract from the exact connected tool schema and
-contract digest; do not infer rollout state from this file, a prior session, or
-response prose.
+The contract is automatic server-delivered context, not caller-authored proof of
+reading. It has one active form and no compatibility fallback:
 
-**When typed context delivery is deployed:**
+1. Submit one ordinary objective-bearing `kd_session_plan` request. Do not add a
+   runbook path, section, reference, consultation ID, gap ID, attestation,
+   synthesis, waiver, or desired documentation outcome.
+2. Before any plan, intent, debt, status, or business-authority write, the
+   gateway validates the backend-approved exact runbooks activation, searches
+   the complete immutable corpus, and builds one bounded context result for all
+   objectives.
+3. A successful `PLAN_ACCEPTED` response contains both the accepted plan receipt
+   and the complete ranked runbook context. Read the excerpts and their ACTIVE
+   versus discovery-only labels before calling work tools. Verify load-bearing
+   instructions against their owning code, schema, deployed configuration,
+   provider state, or safe probe. Amend the plan before acting when that evidence
+   changes the approach.
+4. If the response is lost, resend the exact unchanged request. The returned
+   response bytes must be identical even when the original call already moved
+   the instance to OPERATIONAL. A changed request is not a retry and must fail
+   the old request binding or use an explicit plan amendment.
 
-1. Submit the objective-bearing plan without consultation IDs. Before any plan,
-   debt, or status mutation, the server resolves one immutable runbooks
-   `origin/main` SHA and returns the typed non-success outcome
-   `RUNBOOK_CONTEXT_SELECTION_REQUIRED` with ranked bounded excerpts and an
-   honest gap ID for every objective. The instance remains PLANNING.
-2. Resubmit the unchanged plan using only the server-delivered consultation IDs
-   or gap IDs. Caller-supplied paths, excerpts, scores, coverage claims, and
-   reading attestations are not authority. The server binds each ID to this
-   session, instance, objective set, catalog SHA, and excerpt digest.
-3. A gap ID records a search miss; it does not prove that no runbook exists and
-   does not force an agent to manufacture documentation. A changed objective or
-   incomplete/truncated envelope requires a fresh selection response.
-4. Proceed only after a typed accepted result atomically records the delivery
-   receipt and moves the instance to OPERATIONAL.
+An incomplete, truncated, unverified, or over-budget context envelope is a typed
+infrastructure failure with zero semantic writes. Stop and repair it. Never fall
+back to a local checkout, stale catalog, caller-supplied citation, or invented
+runbook. Child agents receive task-relevant context automatically through the
+common dispatch provider; callers do not pass `runbook_refs`.
 
-**Bounded legacy compatibility, while the connected schema still exposes only
-`runbook_consultation`:** resolve a freshly fetched full `origin/main` SHA in a
-trusted clean checkout and search every objective against that one snapshot as
-documented in the runbooks README. Submit exact existing `{path, section,
-covers?}` references. Use `{no_entry_found: true, subject, reason, covers?}` only
-after a recorded search miss; never invent a path, section, synthesis, or
-runbook merely to satisfy the gate. Legacy debt/waiver rows are rollout
-telemetry, not evidence that a runbook update is useful. A rejected or retried
-plan must not be treated as a documentation obligation. If the legacy gateway
-does create such a row, preserve it for migration and do not write filler to
-discharge it.
-
-In the legacy schema, `covers` contains 1-based objective numbers and every
-objective must be covered. A RunbookRef section must be an exact heading, anchor,
-or present § token. Incident synthesis, where the deployed schema still demands
-it, is explanatory telemetry only and never proof that the source was read.
+The old consultation, no-entry, debt, waiver, and close-declaration protocol is
+physically retired. If a freshly listed client still exposes those fields, the
+one-way cutover is incomplete: stop mutation and repair the gateway deployment
+rather than using them.
 
 ## O.3 Peer open sequence
 Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
@@ -77,10 +70,14 @@ After open, each peer independently works the highest-leverage item it can claim
 
 ## O.5 Stale registry reconciliation
 If `kd_session_open` returns evidence of a stale prior instance row:
-1. Check the instance row in `/var/tmp/koskadeux/registry.db`.
-2. Verify via `ps -ef` that the prior session's processes are not actually running.
-3. Prefer `kd_session_close` for that stale session. Direct SQL is an audited last resort.
-4. Re-attempt `kd_session_open(instance=...)` if needed.
+1. Read the canonical backend session/close status for the exact instance and
+   session. Treat `/var/tmp/koskadeux/registry.db` as a gateway cache only.
+2. Verify via `ps -ef` that the prior session's local processes are not actually
+   running, and compare any action-bound remote candidate refs before cleanup.
+3. Reconcile the cache from backend truth or retry the exact open/close request.
+   Do not use direct local SQL to manufacture lifecycle state.
+4. Re-attempt `kd_session_open(instance=...)` only after canonical state and
+   recoverable work agree.
 
 ## O.6 Retired lock entity
 `infra:active-session-lock`, parent ids, and role-keyed status are retired from the open protocol. Do not recreate them for reconciliation.

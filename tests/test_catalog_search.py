@@ -47,9 +47,6 @@ DISCOVERY_BENCHMARK = (
     Path(__file__).parent / "fixtures" / "catalog" / "discovery_benchmark.yaml"
 )
 
-pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
-
-
 def _metadata(
     runbook_id: str,
     *,
@@ -322,10 +319,35 @@ def _working_tree_pin(root: Path) -> tuple[str, str]:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
     source_manifest = yaml.safe_load((REPO_ROOT / "CORPUS-MANIFEST.yaml").read_text())
-    states = {
+    declared_states = {
         entry["path"]: entry["catalog_state"]
         for entry in source_manifest["documents"]
     }
+    current_sources = {
+        source.relative_to(REPO_ROOT).as_posix(): source
+        for source in source_paths(REPO_ROOT)
+    }
+    states = {
+        path: declared_states[path]
+        for path in current_sources
+        if path in declared_states
+    }
+    states.update(
+        {
+            path: state
+            for path, state in declared_states.items()
+            if state == "archived"
+        }
+    )
+    for path, source in current_sources.items():
+        if path in states:
+            continue
+        frontmatter = source.read_text(encoding="utf-8").split("---", 2)
+        states[path] = (
+            "active"
+            if len(frontmatter) == 3 and "\nstatus: ACTIVE\n" in frontmatter[1]
+            else "grandfathered"
+        )
     for path, state in states.items():
         if state != "archived":
             continue
@@ -1199,6 +1221,53 @@ def test_operational_drift_queries_reach_catalog_declared_repair_sections(
     )
 
 
+def test_current_council_member_cards_are_top_three_and_explicit(
+    tmp_path: Path,
+) -> None:
+    sha, catalog_ref = _working_tree_pin(tmp_path)
+    probes = [
+        ("how to use MP as a Council member", "§C.1 MP", {"mandatory builder", "never a reviewer"}),
+        ("how to use CC as a Council member", "§C.2 CC", {"read-only voter", "exact review SHA"}),
+        ("how to use Kimi as a Council member", "§C.3 Kimi", {"read-only voter", "max_tokens"}),
+        ("how to use GLM as a Council member", "§C.4 GLM", {"read-only voter", "direct z.ai"}),
+        ("why AG is inactive and must not be dispatched", "§C.5 AG", {"inactive", "do not dispatch AG"}),
+        ("why DeepSeek is inactive and must not be dispatched", "§C.6 DeepSeek", {"inactive and retired", "do not dispatch DeepSeek"}),
+    ]
+
+    results: list[dict] = []
+    for start in range(0, len(probes), _MAX_BATCH_QUERIES):
+        group = probes[start : start + _MAX_BATCH_QUERIES]
+        response = search_catalog_many(
+            tmp_path,
+            catalog_ref,
+            [query for query, _, _ in group],
+        )
+        results.extend(response["results"])
+    pinned_document = subprocess.run(
+        ["git", "show", f"{sha}:runbooks/council-roster-quirks.md"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.casefold()
+
+    for result, (_, heading_prefix, required_tokens) in zip(
+        results, probes, strict=True
+    ):
+        globally_ordered = sorted(
+            result["candidates"] + result["discovery_leads"],
+            key=lambda candidate: candidate["relevance_rank"],
+        )[:3]
+        matching = [
+            candidate
+            for candidate in globally_ordered
+            if candidate.get("runbook_id") == "council-roster-quirks"
+        ]
+        assert matching
+        assert matching[0]["heading"].startswith(heading_prefix)
+        assert all(token.casefold() in pinned_document for token in required_tokens)
+
+
 def test_catalog_module_is_a_clean_checkout_cli_fallback() -> None:
     completed = subprocess.run(
         [sys.executable, "-m", "runbook_tools.catalog", "--help"],
@@ -1217,16 +1286,16 @@ def test_catalog_module_is_a_clean_checkout_cli_fallback() -> None:
     ("query", "required_tokens"),
     [
         (
-            "after session open obtain authoritative runbook context before kd_session_plan without inventing a consultation",
+            "after session open use the first kd_session_plan to receive server-selected runbook context without caller consultation",
             {
-                "RUNBOOK_CONTEXT_SELECTION_REQUIRED",
-                "runbook_consultation",
-                "signed deployed contract",
+                "response_kind=first_plan",
+                "open_obligations",
+                "guidance_action_authority",
             },
         ),
         (
-            "close a session with truthful runbook impact evidence without inventing documentation or filler",
-            {"runbook_exit", "runbook_impact", "compatibility input"},
+            "close a session with no caller runbook declaration while the server derives truthful impact evidence",
+            {"server owns", "prepare_blocked", "PREPARED", "committed_receipt", "COMMITTED"},
         ),
     ],
 )
@@ -1413,7 +1482,7 @@ def test_complete_pinned_corpus_counts_and_every_exact_path_is_retrievable(
         manifest.active,
         manifest.grandfathered,
         manifest.archived,
-    ) == (102, 20, 81, 1)
+    ) == (102, 21, 80, 1)
     assert len(snapshot) == 102
 
     seen_paths: set[str] = set()
@@ -1500,7 +1569,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
     assert {
         state: state_counts[state]["searched_document_count"]
         for state in ("active", "grandfathered", "archived")
-    } == {"active": 20, "grandfathered": 81, "archived": 1}
+    } == {"active": 21, "grandfathered": 80, "archived": 1}
     assert state_counts["grandfathered"]["qualifying_document_count"] == 1
     assert state_counts["grandfathered"]["returned_document_count"] == 1
     assert state_counts["grandfathered"]["omitted_document_count"] == 0
@@ -1521,7 +1590,7 @@ def test_mixed_active_and_pending_results_share_one_global_relevance_order(
 
     assert result["candidates"]
     assert result["discovery_leads"]
-    assert result["authoritative_gap"] is False
+    assert result["authoritative_gap"] is True
     merged = sorted(
         result["candidates"] + result["discovery_leads"],
         key=lambda item: item["relevance_rank"],
@@ -1529,10 +1598,87 @@ def test_mixed_active_and_pending_results_share_one_global_relevance_order(
     assert [item["relevance_rank"] for item in merged] == list(
         range(1, len(merged) + 1)
     )
+    assert merged[0]["catalog_state"] == "grandfathered"
     assert {item["catalog_state"] for item in merged} >= {
         "ACTIVE",
         "grandfathered",
     }
+
+
+def test_authoritative_gap_tracks_the_best_global_lane_after_allocation() -> None:
+    discovery_pool = [{"relevance_rank": 1}]
+    candidate_pool = [{"relevance_rank": 2}]
+    allocated = {
+        "candidates": [candidate_pool[0]],
+        "discovery_leads": [],
+        "eligible_candidate_count": 1,
+    }
+
+    assert catalog_search._authoritative_gap(candidate_pool, discovery_pool) is True
+    catalog_search._refresh_result_status(
+        allocated,
+        candidate_pool,
+        discovery_pool,
+    )
+    assert allocated["authoritative_gap"] is True
+
+    active_first = [{"relevance_rank": 1}]
+    discovery_second = [{"relevance_rank": 2}]
+    assert catalog_search._authoritative_gap(active_first, discovery_second) is False
+    assert catalog_search._authoritative_gap(active_first, []) is False
+    assert catalog_search._authoritative_gap([], []) is False
+
+
+def test_current_corpus_discovery_first_queries_keep_the_gap_on_the_wire(
+    tmp_path: Path,
+) -> None:
+    _, catalog_ref = _working_tree_pin(tmp_path)
+    cases = [
+        ("restart the MCP gateway safely", "grandfathered", True),
+        (
+            "recover a timed-out build without losing completed work",
+            "grandfathered",
+            True,
+        ),
+        ("deploy ai-market backend and verify it", "grandfathered", True),
+        ("rotate an Infisical secret safely", "grandfathered", True),
+        ("close an AI session after code changes", "grandfathered", True),
+        ("dispatch a peer agent and coordinate inbox messages", "ACTIVE", False),
+    ]
+
+    for start in range(0, len(cases), _MAX_BATCH_QUERIES):
+        group = cases[start : start + _MAX_BATCH_QUERIES]
+        delivery = search_catalog_delivery(
+            tmp_path,
+            catalog_ref,
+            [case[0] for case in group],
+            limit=1,
+        )
+        wire = canonical_json_bytes(delivery.payload, final_newline=True)
+
+        assert delivery.text.encode("utf-8") == wire
+        assert len(wire) == delivery.payload["serialized_bytes"]
+        assert len(wire) <= delivery.payload["response_budget_bytes"] == 40_000
+        assert json.loads(delivery.text) == delivery.payload
+
+        for case, objective in zip(group, delivery.payload["results"], strict=True):
+            query, expected_state, expected_gap = case
+            globally_ranked = sorted(
+                objective["candidates"] + objective["discovery_leads"],
+                key=lambda item: item["relevance_rank"],
+            )
+            assert objective["candidates"], query
+            assert objective["discovery_leads"], query
+            assert globally_ranked[0]["catalog_state"] == expected_state, query
+            assert objective["authoritative_gap"] is expected_gap, query
+            if not expected_gap:
+                continue
+            warning = globally_ranked[0]["warning"]
+            assert warning["code"] == "DISCOVERY_ONLY_NOT_VERIFIED"
+            assert warning["requires_ground_truth_verification"] is True
+            assert warning["message"] == (
+                "DISCOVERY ONLY — NOT VERIFIED OPERATING AUTHORITY"
+            )
 
 
 def test_catalog_manifest_active_set_drift_fails_closed(tmp_path: Path) -> None:

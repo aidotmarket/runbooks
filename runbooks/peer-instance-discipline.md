@@ -25,20 +25,20 @@ error_signatures:
     section: §F. Isolate
   - signature: over_escalation_to_max
     section: §F. Isolate
-  - signature: runbook_context_delivery_unavailable
+  - signature: peer_runbook_context_delivery_unavailable
     section: §F. Isolate
-  - signature: runbook_impact_evidence_unavailable
+  - signature: peer_runbook_impact_evidence_unavailable
     section: §F. Isolate
 supersedes: []
 superseded_by: []
 owner: mars
 last_verified_at: 2026-07-31
 system_name: peer-instance-discipline
-purpose_sentence: Peer-symmetric session lifecycle and coordination discipline for the trusted Vulcan and Mars instances, including the deployed-versus-target runbook context and close-impact boundary.
+purpose_sentence: Peer-symmetric session lifecycle and coordination discipline for the trusted Vulcan and Mars instances, including automatic runbook context and backend-owned close evidence.
 owner_agent: mars
 escalation_contact: max
 lifecycle_ref: §J
-authoritative_scope: Equal-authority instance behavior; verified deployed-versus-target open, plan, and close behavior; claim-before-work coordination; peer-message bus delivery semantics; boot-state verification; and escalation boundaries.
+authoritative_scope: Equal-authority instance behavior; automatic plan and child runbook delivery; backend-owned close evidence; claim-before-work coordination; peer-message bus delivery semantics; boot-state verification; and escalation boundaries.
 linter_version: 1.0.0
 ---
 
@@ -54,11 +54,10 @@ The YAML frontmatter above is the §A header. This runbook supersedes the retire
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Independent instance open/plan/close surface | SHIPPED | `connected kd_session_open, kd_session_plan, and kd_session_close schemas` | Exact connected-schema plus read-only gateway-health probes | 2026-07-31 |
-| Legacy caller-authored plan consultation (harmful compatibility pending retirement) | SHIPPED | `connected kd_session_plan schema; config:runbook-gate-config v3` | Exact connected schema and config read | 2026-07-31 |
-| Server-delivered objective-bound plan context (UNAVAILABLE) | PLANNED | — | No deployed lifecycle test | 2026-07-31 |
-| Legacy caller-authored close declaration (harmful compatibility pending retirement) | SHIPPED | `connected kd_session_close schema; kd_session_close_status` | Exact connected schema and read-only close-status probe | 2026-07-31 |
-| Server-measured runbook impact plus transaction-scoped committed receipt (UNAVAILABLE) | PLANNED | — | No deployed close-transaction test | 2026-07-31 |
+| Independent instance open/plan/close surface | SHIPPED | `koskadeux-mcp/tools/session.py` | Exact connected-schema plus read-only gateway-health probes | 2026-07-31 |
+| Automatic one-call plan context and exact retry | PLANNED | `koskadeux-mcp/tools/runbook_delivery.py` | Immutable corpus, byte-identical retry, and no-prior-write tests | 2026-08-02 |
+| Backend-measured impact, obligations, and transaction-scoped committed receipt | PLANNED | `ai-market-backend/app/services/runbook_close_v2_service.py` | Trusted collector, remote-ref, crash/retry, obligation, and receipt tests | 2026-08-02 |
+| Physical retirement of caller consultation/refs/exit and local gate authority | PLANNED | `koskadeux-mcp/tools/session.py` | Fresh-schema and no-old-symbol/file/store/fallback tests | 2026-08-02 |
 | Peer message bus | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_send` | Manual drain verified S835 | 2026-06-16 |
 | Peer bus inbox drain | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_inbox` | Manual drain verified S835 | 2026-06-16 |
 | Instance status lookup | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_status` | Manual status lookup verified S835 | 2026-06-16 |
@@ -70,11 +69,11 @@ The YAML frontmatter above is the §A header. This runbook supersedes the retire
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Peer Instance | `kd_session_open(instance=vulcan or mars)` | `registry.db` instance rows, per-instance handoff | Living State, shell, git, Council dispatch | Either instance may open first, plan independently, work any item, and close independently. |
-| Plan Context Boundary | Connected `kd_session_plan` schema | Current legacy consultation input; future immutable delivery receipt | SHA-pinned runbook retrieval | Current deployment asks the caller to supply `runbook_consultation`; the server-delivered two-stage contract is PLANNED and must not be inferred from this runbook. |
-| Close Impact Boundary | Connected `kd_session_close` schema and close-status surface | Current legacy exit declaration; future server-owned evidence transaction | Repository baselines, action receipts, runbooks remote | Current deployment exposes `runbook_exit`; structured `runbook_impact` and a transaction-scoped `COMMITTED` receipt are PLANNED and UNAVAILABLE. |
+| Plan Context Boundary | Connected `kd_session_plan` schema | Immutable delivery and accepted-plan receipt | Backend-approved exact runbook activation and all-corpus search | One ordinary request supplies complete context and accepts the plan; unchanged lost-response retry is byte-identical. No caller runbook fields exist. |
+| Close Impact Boundary | Connected `kd_session_close` schema and close-status surface | Backend session/action evidence, obligations, handoff, outbox, signed receipt | GitHub, Railway, database/provider audit state, runbooks remote | Gateway transports PREPARE/COMMIT. Semantic obligations are nonblocking; trusted mechanical failures write nothing. No caller impact/exit fields or local authority exist. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages keyed by recipient, sender, kind, and ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
-| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; connected `council_request` enum (`ag`, `mp`, `deepseek`, `glm`, `cc`); policy target CC/Kimi/GLM voters | Policy and connected schema currently disagree because the enum omits Kimi. Treat full-roster-dependent review and promotion as UNAVAILABLE; do not claim a successful full-panel dispatch until a signed deployed contract and the connected schema both prove the required roster. |
+| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; exact CC/Kimi/GLM voters | The measured connected schema is stale because it omits Kimi and exposes inactive AG/DeepSeek. Treat roster-dependent work as UNAVAILABLE until the signed runtime and refreshed schema prove MP build-only, exact CC/Kimi/GLM review/Hall, and AG/DeepSeek rejection. |
 | Git/Shell Surface | shell plus git CLI | local worktree, `origin/main`, branches | target repos | Either peer may inspect, commit, merge, and push within the same authority boundaries. |
 | Max Escalation | direct user thread | strategic decision record, BQ notes | Max | Used only for strategic forks or cross-instance unblocks agents cannot resolve. |
 
@@ -88,41 +87,47 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 | Mars | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="mars")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | PARTIAL — lifecycle authority is available; full-roster-dependent work is unavailable during the policy/schema mismatch |
 | MP | Mandatory delegated builder; never a vote on its own work | `council_request(mode=build)`, `dispatch_mp_build` | Build scope | COMPLETE |
 | CC/Kimi/GLM | Policy-target independent active gate voters | `council_request(mode=review)` | Read-only review at the exact SHA | GAP — connected `council_request` omits Kimi, so the required full panel is not currently callable and roster-dependent work is UNAVAILABLE |
-| AG | Paused from the active panel; advisory only when current state explicitly permits | `council_request(mode=review)` | Non-gate read-only advice | PARTIAL — callable advisory path retained; active-panel coverage intentionally absent |
-| DeepSeek | Retained callable backend, retired from active voting | `council_request` | Non-voter only | PARTIAL — callable backend retained; active-voter coverage intentionally retired |
+| AG | Inactive; ordinary Council and Hall reject it | no Council tool | None | GAP — release must prove schema/runtime rejection |
+| DeepSeek | Inactive and retired; ordinary Council and Hall reject it | no Council tool | None | GAP — release must prove schema/runtime rejection |
 | Max | Strategic adjudication | direct instruction | Business/product owner | COMPLETE |
 
 ## §E. Operate
 
 ### First action after `kd_session_open`
 
-Inspect the exact connected `kd_session_plan` input schema and the exact signed
-deployed-contract capability before choosing a planning path. Never infer rollout
-state from this runbook, a prior session, or success-looking response prose.
+Submit one ordinary `kd_session_plan` request with objectives and routing. The
+accepted response automatically contains complete immutable context; read it
+before calling work tools and amend the plan when verified guidance changes the
+approach. Do not pass runbook paths, sections, references, consultations, gap
+IDs, attestations, waivers, or desired impact outcomes. An unchanged
+lost-response retry must return identical bytes. Child dispatch context is also
+automatic and cannot be supplied or suppressed by the caller.
 
-- **Target branch — PLANNED and currently UNAVAILABLE.** Use this branch only
-  when a valid signed deployed contract and the connected schema both expose
-  objective-bound consultation IDs and gap IDs. The first plan attempt supplies
-  objectives but no IDs and must return the typed non-success
-  `RUNBOOK_CONTEXT_SELECTION_REQUIRED` without changing session state. Read the
-  delivered excerpts, then resubmit the unchanged plan using only those
-  server-issued IDs. A typed accepted receipt is the success signal.
-- **Deployed compatibility branch — current and harmful.** The schema verified on
-  2026-07-31 exposes caller-authored `runbook_consultation` and no consultation or
-  gap IDs; the live gate configuration is block mode. Before planning, resolve a
-  freshly fetched immutable runbooks `origin/main` SHA, search every objective
-  against that one pin, read the returned ACTIVE excerpts, and submit exact
-  existing path/section references. Use a truthful no-entry declaration only
-  after an honest recorded miss. The declaration is compatibility input, not
-  evidence that anything was read, and it must never trigger an invented path,
-  synthesis, runbook, or filler update.
+The first accepted response identifies itself with `response_kind=first_plan`,
+returns the exact `open_obligations` snapshot searched with the plan, and labels
+safe-to-read but semantically unverified excerpts with
+`guidance_action_authority=false`. Read those excerpts as grounded guidance,
+then verify any load-bearing action against its owning system; the label must
+never be promoted by caller assertion.
 
-At close, make the same capability check. Structured server-owned
-`runbook_impact` and a transaction-scoped `COMMITTED` receipt are target behavior
-only. The current connected schema exposes legacy `runbook_exit`; provide only
-the truthful compatibility value it requires. A reason string, author name, or
-locally existing commit is not evidence of operational impact and must not cause
-an unrelated documentation edit.
+Close a session with no caller runbook declaration while the server derives
+truthful impact evidence. Pass only the ordinary session, instance, summary,
+reason, and handoff.
+The server owns baselines, action/provider evidence, impact classification,
+obligations, coverage, PREPARE/COMMIT, and the signed receipt. A REQUIRED or
+semantic UNCERTAIN result creates one visible nonblocking obligation; it does not
+force filler or block the truthful close. That OPEN obligation does block the
+next behavior-changing action for its component while diagnostics and runbook
+remediation remain allowed.
+
+A mechanical evidence failure returns `prepare_blocked` and writes no partial
+close state. A successful PREPARE is `PREPARED`; only the matching exact COMMIT
+may produce the `committed_receipt` and final `COMMITTED` state.
+
+There is no compatibility branch. If a freshly listed schema exposes
+`runbook_consultation`, `runbook_refs`, `runbook_impact`, or `runbook_exit`, or a
+gateway process can use local gate/journal state, stop mutation and repair the
+incomplete one-way cutover.
 
 ```yaml operate
 - id: E-01
@@ -241,35 +246,33 @@ an unrelated documentation edit.
   next_step_failure: Treat peer liveness as unknown and take no action that a live peer would not tolerate.
 - id: E-09
   trigger: An instance has opened and must obtain relevant runbook context before its plan can become operational.
-  pre_conditions: [connected_plan_schema_inspected, exact_runbooks_origin_main_sha_resolved, objectives_known]
-  tool_or_endpoint: kd_session_plan(session_id=<session>, objectives=<objectives>, delegation_strategy=<strategy>, tool_budget=<budget>, runbook_consultation=<truthful_legacy_refs_or_recorded_misses>)
+  pre_conditions: [connected_plan_schema_inspected, signed_cutover_status_verified, objectives_known]
+  tool_or_endpoint: kd_session_plan(session_id=<session>, objectives=<objectives>, delegation_strategy=<strategy>, tool_budget=<budget>)
   argument_sourcing:
-    schema_branch: use the current compatibility call shown here only while the connected schema lacks server-issued consultation and gap IDs
-    runbook_consultation: search every objective against one freshly fetched immutable origin/main pin; cite exact read path and section bytes, or record an honest miss without inventing content
-    target_transition: when and only when the signed deployed capability exists, follow the typed two-stage branch above instead of this legacy input
+    objectives_and_strategy: use the assigned task and intended routing without adding a runbook filename citation or desired impact result
+    runbook_context: do not supply it; the gateway validates the backend-approved exact activation searches every objective and returns complete context in the accepted response
   idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: session_id + exact ordered objectives + catalog SHA
+  idempotency_key: session_id + exact canonical request digest + plan revision
   expected_success:
-    shape: current compatibility plan is accepted only after truthful references or recorded misses cover the objectives
-    verification: confirm the typed gate state is OPERATIONAL; response prose and the caller-authored consultation are not reading evidence
-  expected_failures: [{signature: runbook_context_delivery_unavailable, cause: the connected schema has no server-issued consultation or gap IDs, or a signed capability cannot be verified}]
+    shape: one PLAN_ACCEPTED response_kind=first_plan result contains complete immutable context, open_obligations, guidance_action_authority labels, and the accepted receipt
+    verification: read the context before work confirm exact activation/request/response identities and prove an unchanged lost-response retry is byte-identical
+  expected_failures: [{signature: peer_runbook_context_delivery_unavailable, cause: exact activation runtime corpus signed status or complete response could not be verified}]
   next_step_success: Drain the peer inbox with E-01, then act only on context and load-bearing facts that were actually read and verified.
-  next_step_failure: Stay in PLANNING; use G-09 and do not create a citation, attestation, or runbook merely to pass the gate.
+  next_step_failure: Stay in PLANNING; use G-09 and do not add caller evidence or use a local/stale fallback.
 - id: E-10
-  trigger: An instance is ready to close and must report runbook impact without turning an unsupported declaration into evidence.
-  pre_conditions: [peer_inbox_drained, changed_repositories_measured, connected_close_schema_inspected]
-  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<measured_summary>, handoff_content=<database_handoff>, runbook_exit=<truthful_legacy_compatibility_value>)
+  trigger: An instance is ready to close and the backend must derive impact from trusted evidence.
+  pre_conditions: [peer_inbox_drained, owned_work_preserved_on_action_bound_remote_refs, connected_close_schema_inspected]
+  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<measured_summary>, handoff_content=<database_handoff>)
   argument_sourcing:
-    schema_branch: use runbook_exit only while the exact connected schema lacks structured runbook_impact and a transaction-scoped committed receipt
-    runbook_exit: state only what is true under the legacy schema; a free-text reason or commit identifier is compatibility input and never semantic impact evidence
-    target_transition: use structured impact only after the signed deployed capability proves it and the server supplies repository, action, configuration, and deployment evidence
+    ordinary_close_fields: derive from the named instance and verified work result without adding a runbook decision evidence waiver or discharge claim
+    backend_evidence: the backend owns session baselines action/provider observations evaluator obligations coverage and PREPARE/COMMIT
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: session_id + exact close request digest
   expected_success:
-    shape: legacy close returns success for the named instance without converting unsupported prose into a documentation claim
-    verification: verify instance-scoped close state; only a future transaction-scoped COMMITTED receipt can establish target close truth
-  expected_failures: [{signature: runbook_impact_evidence_unavailable, cause: structured impact or a scoped committed receipt was assumed from a legacy schema or unscoped close-status row}]
-  next_step_success: Preserve any genuine documentation gap as a deduplicated follow-up; do not write filler after close.
+    shape: PREPARED evidence is revalidated and one signed immutable transaction-scoped committed_receipt establishes COMMITTED plus typed nonblocking obligation outcomes
+    verification: verify backend signature session request evidence freeze transaction handoff obligations and outbox identities; local files and prose are not truth
+  expected_failures: [{signature: prepare_blocked, cause: trusted collector publication ref or mechanical integrity evidence failed before PREPARE and therefore wrote nothing}, {signature: peer_runbook_impact_evidence_unavailable, cause: exact COMMIT revalidation failed after PREPARED}]
+  next_step_success: Report any visible OPEN obligation without writing filler; it will constrain the next behavior-changing action for that component.
   next_step_failure: Keep the session recoverable, inspect close status, and use G-10 without inventing an impact decision.
 ```
 
@@ -293,8 +296,8 @@ Delivery semantics that are easy to get wrong, all observed in use:
 | F-06 | Max is asked to resolve routine execution details | Peer treated Max as dispatcher/approver instead of strategic owner | Review unresolved facts; check whether peer/status/request could answer | G-06 | CONFIRMED |
 | F-07 | A peer message was sent successfully but the peer never received it | Send matched an earlier message on sender, recipient, kind, and ref_entity, so it was silently deduped | Compare the returned message id against the previous send; an unchanged or absent new id means the row was dropped | G-07 | CONFIRMED |
 | F-08 | A dispatch is refused before any task is created | An unacknowledged peer request or alert is pending against this instance | Drain the inbox and check for rows carrying requires_ack that have no acked_at | G-08 | CONFIRMED |
-| F-09 | `runbook_context_delivery_unavailable`, or planning expects server-issued IDs that the connected schema does not expose | Target guidance was mistaken for deployed capability, the client schema is stale, or the signed contract pin is absent | Inspect the exact connected `kd_session_plan` schema and signed deployed contract; current compatibility exposes `runbook_consultation` only | G-09 | CONFIRMED |
-| F-10 | `runbook_impact_evidence_unavailable`, or close status cannot prove one scoped committed transaction | Target close semantics were inferred from prose, a legacy `runbook_exit`, or an old/unscoped pending row | Inspect the exact connected `kd_session_close` schema and instance/session-scoped status; require target fields and receipt type before claiming rollout | G-10 | CONFIRMED |
+| F-09 | `peer_runbook_context_delivery_unavailable`, incomplete context, or changed bytes on an unchanged retry. | Activation/runtime/corpus/status identity failed, response exceeded its complete budget, or retry identity omitted a semantic field. | Inspect exact request, signed status, activation/catalog/manifest/inventory/source/runtime identities, byte count and response digest; prove zero prior semantic writes. | G-09 | CONFIRMED |
+| F-10 | `peer_runbook_impact_evidence_unavailable`, or close status cannot prove one scoped committed transaction. | Trusted collector/publication/mechanical validation failed, COMMIT remote state drifted, or an unscoped/local row was treated as authority. | Inspect backend PREPARE/COMMIT status and provider/ref evidence; verify failure wrote no freeze/obligation/handoff/outbox/receipt or that a retry returns the same committed receipt. | G-10 | CONFIRMED |
 
 ## §G. Repair
 
@@ -366,26 +369,26 @@ Delivery semantics that are easy to get wrong, all observed in use:
 - id: G-09
   symptom_ref: F-09
   component_ref: Plan Context Boundary
-  root_cause: The server-delivered context contract is not deployed or cannot be authenticated, while the current block-mode compatibility gate still expects caller-authored consultation input.
-  repair_entry_point: exact connected kd_session_plan schema plus one freshly fetched runbooks origin/main snapshot
-  change_pattern: Remain on the legacy branch; search each objective against the same full SHA, read the returned excerpt, and cite its exact path and section or record an honest miss. Never mint a consultation ID, claim a target receipt, or write filler to discharge legacy debt.
-  rollback_procedure: Discard any caller-minted ID or unsupported citation and resubmit only grounded compatibility input.
-  integrity_check: Every submitted reference resolves at the recorded full SHA, every miss has recorded search output, and no target capability is claimed.
+  root_cause: The one-call immutable context contract or exact retry identity cannot be authenticated or completed.
+  repair_entry_point: connected kd_session_plan adapter signed cutover status and pinned runbook runtime/corpus
+  change_pattern: remain in PLANNING repair the exact named status runtime object budget or request-digest defect and retry the unchanged ordinary request without caller runbook fields
+  rollback_procedure: use a previously signed version-2 deployment only if it preserves the one-way freeze; never restore a legacy field or stale/local corpus path
+  integrity_check: the ordinary plan returns complete context before semantic writes and an unchanged lost-response retry returns byte-identical content
 - id: G-10
   symptom_ref: F-10
   component_ref: Close Impact Boundary
-  root_cause: Legacy close input or an unscoped status row was treated as server-measured impact or a transaction-scoped committed receipt.
-  repair_entry_point: exact connected kd_session_close schema and instance/session-scoped close-status evidence
-  change_pattern: Use only the truthful legacy compatibility value, keep unsupported impact uncertain, and preserve a genuine gap as follow-up rather than changing unrelated documentation. Do not claim target completion until the signed schema and scoped COMMITTED receipt both exist.
-  rollback_procedure: Retract the unsupported impact claim; leave the session recoverable and the documentation unchanged while evidence is missing.
-  integrity_check: The close claim matches the deployed schema and scoped state, and no reason string, author name, or local object is treated as semantic evidence.
+  root_cause: Trusted mechanical evidence or transaction revalidation failed or local/caller state was mistaken for backend close truth.
+  repair_entry_point: backend close-v2 collector PREPARE COMMIT and signed receipt status through the gateway adapter
+  change_pattern: leave the session open repair the exact collector ref credential role or drift failure and retry the identical close request; semantic uncertainty remains a nonblocking OPEN obligation
+  rollback_procedure: no semantic rollback exists for a zero-write failed PREPARE; never substitute local journal state or caller impact prose
+  integrity_check: one signed scoped COMMITTED receipt covers handoff obligations outbox and session close atomically and unchanged retry returns it
 ```
 
 ## §H. Evolve
 
 ### §H.1 Invariants
 
-Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. A target plan or close shape is never treated as deployed until the exact signed contract and connected schema both prove it. Legacy consultation and exit declarations are compatibility input, never evidence that an agent read a runbook or that a documentation change was useful.
+Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. Automatic context and backend close truth are accepted only from the exact signed deployed contract and scoped receipts. Caller consultation, refs, impact, exit, waiver, local journal, and legacy fallback surfaces remain absent.
 
 ### §H.2 BREAKING predicates
 
@@ -447,8 +450,8 @@ scenario_set:
   - {id: I-11, type: repair, refs: [G-08], scenario: A pending acknowledgement is blocking a dispatch., expected_answers: [{kind: human_action, verb: acknowledge, object: the pending message, target: by its id before retrying the dispatch}], weight: 0.0666666667}
   - {id: I-12, type: evolve, refs: [§H], scenario: A proposal reintroduces close ordering between the two instances., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0666666667}
   - {id: I-13, type: ambiguous, refs: [§H.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
-  - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and the connected plan schema exposes only caller-authored runbook_consultation., expected_answers: [{kind: human_action, verb: search, object: every objective at one immutable origin/main SHA, target: exact excerpts and truthful legacy references without invented content}], weight: 0.0666666667}
-  - {id: I-15, type: operate, refs: [E-10], scenario: Close exposes only legacy runbook_exit while structured impact and a scoped committed receipt are unavailable., expected_answers: [{kind: human_action, verb: declare, object: only the truthful compatibility value, target: no unrelated runbook edit or unsupported impact claim}], weight: 0.0666666662}
+  - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and the agent knows objectives but no runbook filename., expected_answers: [{kind: human_action, verb: submit, object: one ordinary objective-bearing plan with no runbook fields, target: automatic complete context in PLAN_ACCEPTED}], weight: 0.0666666667}
+  - {id: I-15, type: operate, refs: [E-10], scenario: Close finds semantic uncertainty after all trusted mechanical evidence succeeds., expected_answers: [{kind: classification, label: COMMIT_WITH_ONE_VISIBLE_OPEN_OBLIGATION_AND_NO_FILLER}], weight: 0.0666666662}
 ```
 
 ## §J. Lifecycle

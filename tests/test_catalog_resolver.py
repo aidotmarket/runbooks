@@ -13,8 +13,6 @@ from tests.catalog_test_support import (
     ensure_catalog_schemas,
 )
 
-pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
-
 
 def _repository(root: Path, *, stable: bool = False) -> tuple[str, str]:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)

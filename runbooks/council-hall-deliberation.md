@@ -22,14 +22,14 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-08-02
 system_name: council-hall-deliberation
 purpose_sentence: Council Hall deliberation process for unbiased multi-agent assessment, synthesis, and cross-pollination across the participant set explicitly bound when each Hall starts.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  Stable mechanics, reasoning, and repair patterns for the Council Hall deliberation slice. Deployed council_hall VALID_AGENTS and DEFAULT_AGENTS govern participant validation/defaulting. Current model frontiers, gate review order, cost caps, and retired-agent policy are tracked in infra:council-comms; that entity does not currently expose a canonical Hall participant-selection field.
+  Stable mechanics, reasoning, and repair patterns for the Council Hall deliberation slice. Deployed council_hall VALID_AGENTS and DEFAULT_AGENTS govern participant validation/defaulting; the signed exact-release runtime owns volatile callable facts, and runbooks/council-roster-quirks.md owns per-member interaction rationale. Truncated or historical Living State prose is not participant authority.
 
   Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` for references outside this file, such as `agent-dispatch:F-01`. Same-file references retain bare `<id>` form.
 linter_version: 1.0.0
@@ -59,7 +59,14 @@ Council Hall is a deliberation workflow, not a generic dispatch tool. It is used
 
 Strategic why: the three-phase pattern exists to preserve independent reasoning before consensus pressure appears. Independent assessment comes first because showing one agent another agent's answer creates anchoring and role bias. Collection/synthesis comes second because the orchestrating peer/operator needs a faithful comparison table before deciding whether the disagreement is real or just wording. Cross-pollination comes after synthesis because agents should respond to concrete competing claims, not to vague disagreement summaries.
 
-The `agents` argument on `council_hall(action=start, ...)` selects Hall participants and the deployed Hall code validates it against `VALID_AGENTS`. If `agents` is omitted, the deployed `DEFAULT_AGENTS` applies. The live tool schema currently accepts `mp`, `ag`, `glm`, `deepseek`, and `cc`; backend support is not the same as current policy authorization. The last code-bound record in `infra:council-comms` (S1153, commit `c49fa6c9`) reports `VALID_AGENTS={mp,ag,glm,deepseek,cc}` and `DEFAULT_AGENTS=[mp,ag,glm]`. Verify the deployed code or start receipt before relying on those defaults after a Hall configuration change. Do not invent a participant list from an absent Living State field.
+The `agents` argument on `council_hall(action=start, ...)` selects Hall
+participants and deployed Hall code validates it against `VALID_AGENTS`. The
+current authoritative target is exact: both `VALID_AGENTS` and
+`DEFAULT_AGENTS` are `{cc,kimi,glm}`. MP is the builder, not a Hall voter; AG
+and DeepSeek are inactive. Measured source `48996d8` still admits
+`{mp,ag,glm,deepseek,kimi,cc}` and therefore records a release defect, not a
+usable current default. Hall work remains blocked until exact source, signed
+runtime, and connected schema all expose only CC/Kimi/GLM.
 
 For the rest of a Hall, use the participant set bound by the successful start call. Read it from the returned/status state when that surface exposes it; otherwise retain the exact explicit input or verified deployed default with the deliberation record. Never reconstruct membership from examples, old session notes, or gate-voter constants.
 
@@ -83,12 +90,12 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Start-bound participant | Independent assessment and cross-poll response when selected by explicit `agents` or the verified deployed default | Backend selected through `council_request` | Read-oriented Hall evidence scope | COMPLETE |
+| Start-bound participant | Independent assessment and cross-poll response for CC, Kimi, or GLM | Backend selected through `council_request` | Read-only exact-SHA Hall evidence | COMPLETE |
 | Hall orchestrator | Neutral prompt construction, participant binding, synthesis, escalation | MCP tools and Living State | Gateway, Living State, evidence repositories | COMPLETE |
-| Current gate-voter panel | Gate review outside Hall deliberation for the S1321 `{cc, kimi, glm}` panel | Current voter backend from `infra:council-comms` | Read-only gate evidence scope | COMPLETE |
-| MP | Mandatory builder; not a gate voter | Builder backend from `infra:council-comms` | Repository write only through authorized build flow | COMPLETE |
-| AG | Paused; no current gate-voting authority | Paused backend metadata in `infra:council-comms` | None for current gates | COMPLETE |
-| DeepSeek | Retired from valid gate voting | Retained historical backend metadata | None for current gates | COMPLETE |
+| Current gate-voter panel | Gate review outside Hall deliberation for exact `{cc, kimi, glm}` | signed runtime plus `council-roster-quirks:C.2`–`C.4` | Read-only exact-SHA gate evidence | COMPLETE |
+| MP | Mandatory builder; not a gate voter | signed runtime plus `council-roster-quirks:C.1` | Repository write only through authorized build flow | COMPLETE |
+| AG | Inactive; rejected from ordinary Council and Hall | `council-roster-quirks:C.5` | None | GAP — release must prove rejection |
+| DeepSeek | Inactive and retired; rejected from ordinary Council and Hall | `council-roster-quirks:C.6` | None | GAP — release must prove rejection |
 
 The capability map reports role boundaries; it is not a participant-selection source. At Hall start, pass an explicit policy-authorized `agents` list or deliberately accept the verified deployed default. After start, use only that bound set.
 
@@ -102,7 +109,7 @@ The capability map reports role boundaries; it is not a participant-selection so
   argument_sourcing:
     topic: use the blocking decision title from the BQ, spec, or operator request
     neutral_prompt: include background, proposal, decision dimensions, and requested structured output without assigning roles
-    participants: pass an explicit policy-authorized list accepted by the live tool schema, or omit only when deliberately accepting the verified deployed DEFAULT_AGENTS
+    participants: pass exactly [cc, kimi, glm], or omit only when deliberately accepting a verified default that is exactly the same complete set; subsets and substitutions are invalid
     evidence_refs: include specs, commits, transcripts, and Living State keys that every agent can inspect
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(topic + prompt_digest + sorted(evidence_refs))
@@ -157,7 +164,7 @@ The capability map reports role boundaries; it is not a participant-selection so
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | No quorum after Hall start | Participant backend unavailable, dispatch failed, participant set includes retired or unreachable agent | Compare the explicit input or verified default with Hall status and dispatch records; do not assume an undocumented state-key shape | G-01 | CONFIRMED |
+| F-01 | No quorum after Hall start | CC, Kimi, or GLM failed, or the start-bound set was not exactly the complete panel | Compare the exact CC/Kimi/GLM start receipt with Hall status and dispatch records; never substitute MP, AG, DeepSeek, or a reduced panel | G-01 | CONFIRMED |
 | F-02 | Late-arriver response after synthesis began | The orchestrating peer/operator moved to synthesis before timeout policy resolved, backend completed after expected window, duplicate dispatch returned late | Check timestamps on response record, synthesis note, and dispatch task id | G-02 | CONFIRMED |
 | F-03 | Premature cross-pollination | Cross-poll bundle generated before independent responses reached quorum or before late-arriver decision was recorded | Inspect phase, response counts, and bundle transcript for missing independent answers | G-03 | CONFIRMED |
 | F-04 | Agent-disagreement deadlock | Participants disagree on value judgment, evidence is incomplete, or no decision owner was named | Compare final positions, evidence gaps, confidence levels, and Max escalation criteria | G-04 | CONFIRMED |
@@ -224,7 +231,7 @@ The capability map reports role boundaries; it is not a participant-selection so
 - Independent assessment must happen before any participant sees another participant's answer.
 - Cross-pollination must use a bundle that contains every eligible independent assessment exactly once.
 - The orchestrating peer/operator's synthesis must separate agent positions from the orchestrator's own assessment.
-- At Hall start, the explicit `agents` argument or verified deployed `DEFAULT_AGENTS` binds membership; `infra:council-comms` supplies policy and backend context but currently has no canonical Hall participant-selection field.
+- At Hall start, the explicit signed-policy-authorized `agents` argument or verified deployed `DEFAULT_AGENTS` binds membership; `infra:council-comms` is historical discovery evidence and cannot supply missing participant facts.
 - After start, use the bound participant set from the start receipt/status evidence or the retained exact input; do not infer membership from prose.
 - Gate voter constants are not Hall participant defaults and must not be used to reconstruct a Hall session.
 - Cross-pollination is capped at 4 rounds; persistent no-consensus after round 4 escalates to Max and does not loop further.
@@ -267,7 +274,10 @@ A runtime dependency is any agent backend, MCP gateway endpoint, Living State st
 
 #### config default
 
-A config default is a deployed `council_hall.py` participant/quorum default or a model frontier, cost cap, timeout, or retired-agent policy read from its actual owning source. Do not infer a Hall participant default from `infra:council-comms` unless that entity gains and documents such a field.
+A config default is a deployed `council_hall.py` participant/quorum default or a
+model frontier, cost cap, timeout, or retired-agent policy from the signed
+exact-release runtime. Never infer a Hall participant default from truncated
+Living State prose.
 
 ### §H.6 Adjudication
 

@@ -1,6 +1,6 @@
 # Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 
-> Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude
+> Canonical operations runbook for the **internal Koskadeux MCP** that the two AI
 > instances (Vulcan + Mars, peers) drive Titan-1 through. For the **public/customer** MCP
 > that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` —
 > that is a different system.
@@ -48,14 +48,19 @@ handlers require restarting `koskadeux_server.py` (`com.koskadeux.mcp`), not the
 | `koskadeux_server.py` | 8765 | `com.koskadeux.mcp` | REAL HANDLER — imports `tools/agents.py`; all tool implementations execute here. |
 | `gateway_server.py` | 8767 | `com.koskadeux.gateway` | MCP-protocol proxy → `:8765` via HTTP (`KOSKADEUX_URL=http://localhost:8765`). |
 | `cloudflared` | — | `com.koskadeux.cloudflared` | **Public transport for `mcp.ai.market`** (`cloudflared tunnel run koskadeux`). LOAD-BEARING — do not remove. |
-| `ag_server` | 8766 | `com.koskadeux.ag_server` | Legacy AG backend — AG is PAUSED and is not a current gate voter. Loopback only. |
-| `deepseek_server` | 8768 | `com.koskadeux.deepseek_server` | Council voter — DeepSeek. Loopback only. |
+| `ag_server` | 8766 | `com.koskadeux.ag_server` | Legacy inactive compatibility process. It is outside ordinary Council/Hall authority and must not emit, persist, or count a Council verdict. |
+| `deepseek_server` | 8768 | `com.koskadeux.deepseek_server` | Legacy inactive retired compatibility process. It is outside ordinary Council/Hall authority and must not emit, persist, or count a Council verdict. |
 | `lilly_server.py` | — | `com.koskadeux.lilly` | Companion service. |
 | `council-hall` | — | `com.koskadeux.council-hall` | Council hall service. |
 
-The current gate voter panel is CC + DeepSeek + GLM exactly. MP is the mandatory builder,
-not a gate voter; AG is PAUSED; XAI is RETIRED. `infra:council-comms` is canonical for the
-live roster, model assignments, and dispatch configuration.
+The current gate voter and Hall panel is exactly CC + Kimi + GLM. MP is the
+mandatory builder and is never a reviewer, voter, or Hall participant. AG and
+DeepSeek are inactive; their legacy processes, if still present, confer no
+Council authority. The signed exact-release contract owns callable roster,
+roles, models, providers, limits, and schema digest. Read
+`runbooks/council-roster-quirks.md` for the human interaction card and rationale
+for each role. Historical `infra:council-comms` prose is discovery evidence,
+not live authority.
 
 ## Transport: why cloudflared (not Tailscale Funnel)
 
@@ -85,10 +90,12 @@ launchctl kickstart -k gui/$(id -u)/com.koskadeux.gateway
 # Public transport (if mcp.ai.market is unreachable but :8767 is healthy)
 launchctl kickstart -k gui/$(id -u)/com.koskadeux.cloudflared
 
-# Council-related backends (AG paused; DeepSeek is a current voter)
-launchctl kickstart -k gui/$(id -u)/com.koskadeux.ag_server
-launchctl kickstart -k gui/$(id -u)/com.koskadeux.deepseek_server
 ```
+
+There is no ordinary Council restart path for AG or DeepSeek. Do not restore a
+legacy process to repair a Council gate or Hall failure. A required review uses
+the exact CC/Kimi/GLM panel; schema disagreement blocks roster-dependent work
+until the signed release and connected schema agree.
 
 **Verify the restart actually bounced the process — `kickstart` can silently no-op.**
 `launchctl kickstart -k` returns exit 0 (the command "fired") even when it does NOT replace
@@ -142,17 +149,33 @@ are no role-based lanes, lifecycle slots, parent-session dependency, or close or
 ```
 kd_session_open(session_id, instance=vulcan|mars)
   → returns CORE.md + that instance's handoff + BQ status + service health
-  → registers only the named instance's session
+  → registers only the named instance's canonical backend session and captures
+    its repository/provider/obligation/runbook-activation baseline
 kd_session_plan(session_id, tool_budget, objectives, delegation_strategy)
-  → transitions that session's boot gate PLANNING → OPERATIONAL
+  → accepts one ordinary plan and returns complete immutable runbook context
+    before atomically transitioning that session PLANNING → OPERATIONAL
+  → an unchanged lost-response retry returns byte-identical content
 kd_session_close(session_id, instance=vulcan|mars, reason, summary, handoff_content)
-  → closes only the named instance and preserves the peer's session and handoff
+  → transports backend PREPARE/COMMIT using backend-observed action/provider
+    evidence; atomically closes only the named instance and preserves the peer
+  → returns the immutable signed COMMITTED receipt and typed obligations
 ```
 
-The local registry `sessions` table is authoritative for active-session resolution. A peer
-open or close must not mutate the other peer's registry row or boot-gate state. Coordinate a
-handler restart because it affects both live connections, but after restart each peer
-re-opens and re-plans independently.
+The backend session/close ledger is canonical. Local registry rows and handoff
+files are recoverable caches reconciled from backend truth; the gateway has no
+SQLite/HMAC close authority or fallback journal. A peer open or close must not
+mutate the other peer's canonical session, boot-gate state, claim, or handoff.
+Coordinate a handler restart because it affects both live connections, then use
+backend state and exact request retry/reopen semantics rather than inferring
+lifecycle state from a local file.
+
+Plan and dispatch callers never supply runbook references, attestations, or gap
+claims. Context is automatic at first plan and at the common child provider.
+Close callers never supply impact, exit, waiver, or discharge claims. Semantic
+uncertainty produces one visible nonblocking backend obligation; trusted
+mechanical evidence failure leaves the session open with zero close-side writes.
+The next behavior-changing action for a component with an OPEN obligation is
+blocked while diagnostics and runbook remediation remain available.
 
 <!-- catalog:historical -->
 ### Historical S733-S852 role-slot implementation record (retired)
@@ -228,29 +251,48 @@ repo). The legacy single-file `/var/tmp/koskadeux/HANDOFF.md` scheme was retired
 a worker boot reads `HANDOFF.worker.md` regardless of how it was written.
 <!-- /catalog:historical -->
 
-## Infisical token & auth refresh (S760)
+## Least-privilege secret launch boundary (S1413)
 
-All launchd-managed services (gateway, mcp, council-hall, AG/DeepSeek servers) start via `/Users/max/bin/launch_with_infisical.sh`, which injects prod secrets through `infisical run`. The Infisical access token is a short-lived JWT (~24h) stored at `~/.config/infisical/sysadmin-token`, minted from a universal-auth machine identity whose client-id/secret live in the macOS login keychain (account `infisical-sysadmin-agent`) via `/Users/max/bin/infisical_auth_refresh.sh` (idempotent; writes the JWT to the token file).
+The launcher authenticates to Infisical only long enough to fetch the explicit
+allowlist required by that service. It then removes the Infisical access JWT,
+universal-auth material, inherited broad project secrets, and unrelated agent or
+Git credentials before starting the child. It does not use `infisical run` to
+inject an entire project environment into arbitrary shell, Council, or builder
+processes. `SSH_AUTH_SOCK` and repository-write credentials are absent unless a
+narrow registered action explicitly requires them.
 
-**Failure mode (fixed S760):** the token file was refreshed only on-demand with no schedule, so the JWT could lapse. A service restart after expiry reads the stale token and fails to fetch secrets (`infisical run` -> 403 -> service comes up with empty env). Misleading symptom: secret reads via that token return empty/403 and can look like "secret missing in Infisical" — it is not. Re-mint the token first, then re-check.
+The gateway/backend channel, GitHub read collector, Railway/provider collector,
+signing verifier, and any branch-scoped publisher use separate named credentials
+with the smallest resource and operation scope. In particular, backend runbook
+verification uses a selected-repository, read-only GitHub credential; it is not
+a general developer token. Branch publication uses a separate credential bound
+to the exact authorized repository/ref action. No secret value or prefix may be
+printed, included in process arguments, persisted in task output, or delivered
+to an agent prompt.
 
-**Fix (S760):**
-- `launch_with_infisical.sh` now calls `infisical_auth_refresh.sh` before reading the token file, so every (re)start gets a fresh JWT. The refresh is **non-fatal**: if it fails, the wrapper falls back to the existing token file rather than blocking startup. Original wrapper backed up at `launch_with_infisical.sh.bak-S760`.
-- New LaunchAgent `com.koskadeux.infisical-token-refresh` runs the refresh every 6h (`StartInterval 21600`, `RunAtLoad`), keeping the file valid for any direct reader. stdout is discarded (it would print the JWT); errors go to `/var/tmp/koskadeux/token-refresh.err`.
+Startup fails closed when authentication, allowlisted fetch, signed cutover
+status, or required credential validation fails. There is no expired-token,
+cached-secret, empty-environment, direct-child, or arbitrary-shell fallback. The
+launcher records only redacted credential names, issuer identities, expiry
+metadata, and fetch/result digests needed for diagnosis.
 
-**Recovery (token expired / service can't fetch secrets):**
-- Re-mint now: `/Users/max/bin/infisical_auth_refresh.sh >/dev/null`
-- Confirm validity: decode the JWT `exp` in `~/.config/infisical/sysadmin-token`.
-- If the refresh errors with "Infisical creds missing from keychain", restore the universal-auth client-id/secret to keychain account `infisical-sysadmin-agent`.
+**Recovery:** repair or rotate the exact named credential at its owner, verify
+least-privilege scope without printing its value, drain the affected service,
+restart through the installed allowlist launcher, and prove the new PID has the
+expected redacted environment plus a healthy signed contract. A credential
+observed in process arguments or logs is compromised: revoke/rotate it at the
+coordinated zero-child boundary and do not reuse it merely because it is
+short-lived.
 
 ## Recovery
 
 - **Force recovery:** `touch /var/tmp/koskadeux/force_recovery` (or tell the instance "recover").
   `kd_session_open` then includes the recovery cache and deletes the trigger file.
 - **Legacy note:** the older "`kd_recovery_write` after every step / 30-tool-call stale-block"
-  discipline and `kd_recovery_cache.json` predate the disk-backed registry and are largely
-  superseded — durable session/boot state now lives in `registry.db`. Gate-hardening Unit D
-  hardens this further.
+  discipline, `kd_recovery_cache.json`, and local close journal are retired as
+  authority. Durable session, action, handoff, obligation, outbox, and close
+  truth lives in the backend ledger; local recovery material is diagnostic cache
+  reconciled from that source.
 
 ## Verifying the path end-to-end
 
@@ -275,7 +317,7 @@ A path failure localises by which step first stops returning 200 / active.
 | `mcp.ai.market` 502/504 but `:8767` healthy | Cloudflared tunnel down/misrouted | kickstart `com.koskadeux.cloudflared`; check `cloudflared tunnel info koskadeux` |
 | `mcp.ai.market` 401/403 | OAuth flow rejected the bearer | Verify the OAuth metadata endpoint issuer; re-auth from claude.ai |
 | "BOOT GATE / checkpoint required" | Session state expects open+plan after a restart | Re-run `kd_session_open` then `kd_session_plan` before any other tool |
-| `handoff_source` reads `file` when `db` was expected | DB handoff read or write failing; per-role file fallback served | Inspect the `_upsert_handoff_entity` DB write path (look for `handoff_db_write=warn`); confirm `infra:handoff:role=<role>` exists in Living State |
+| Backend handoff or close receipt is unavailable | Canonical backend ledger or narrow gateway/backend credential failed | Keep the session open, preserve the typed failure, repair the exact backend route/credential, and retry; local handoff files are cache and never a success fallback |
 | A call returns *another* call's output | Response cross-talk under concurrent load | See Known issues → "response cross-talk"; re-read (idempotent GET) to confirm true state |
 | `git push origin main` says "up-to-date" but no commit lands | Local `main` tracks `origin/HEAD` | `git push origin HEAD:main`; verify `git fetch origin && git log --oneline -3 origin/main` (S519) |
 

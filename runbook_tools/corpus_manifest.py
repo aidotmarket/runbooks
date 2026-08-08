@@ -42,6 +42,7 @@ from runbook_tools.catalog.generator import (
 )
 from runbook_tools.catalog.limits import PRODUCTION_LIMITS
 from runbook_tools.catalog.model import CatalogError
+from runbook_tools.git_exec import run_git
 from runbook_tools.parser.sections import (
     extract_fenced_yaml_block,
     extract_sections,
@@ -299,6 +300,9 @@ def load_pinned_corpus_manifest(
 
     errors: list[str] = []
     root = repo_root.resolve()
+    _require_pinned_git_worktree_root(root, errors)
+    if errors:
+        raise CorpusManifestError(errors)
     if type(search_sha) is not str or HEX_OID_RE.fullmatch(search_sha) is None:
         raise CorpusManifestError(
             ["search SHA must be a lowercase full 40-character Git object ID"]
@@ -1996,10 +2000,8 @@ def _resolve_local_evidence_blob(
         )
 
     try:
-        blob_bytes = subprocess.run(
+        blob_bytes = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "cat-file",
@@ -2209,10 +2211,8 @@ def _pinned_git_tree(
     """Return an exact commit tree without consulting replacement objects."""
 
     try:
-        raw_tree = subprocess.run(
+        raw_tree = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "ls-tree",
@@ -2236,6 +2236,27 @@ def _pinned_git_tree(
     return _parse_git_tree(raw_tree, label, errors)
 
 
+def _require_pinned_git_worktree_root(root: Path, errors: list[str]) -> None:
+    try:
+        completed = run_git(
+            ["rev-parse", "--show-toplevel"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        detail = (
+            exc.stderr.strip()
+            if isinstance(exc, subprocess.CalledProcessError)
+            else str(exc)
+        )
+        errors.append(f"corpus repository must be a Git worktree root: {detail}")
+        return
+    if Path(completed.stdout.strip()).resolve() != root:
+        errors.append("corpus repository path must be the Git worktree root")
+
+
 def _require_pinned_ancestry(
     root: Path,
     ancestor: str,
@@ -2244,10 +2265,8 @@ def _require_pinned_ancestry(
     errors: list[str],
 ) -> None:
     try:
-        completed = subprocess.run(
+        completed = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "merge-base",
@@ -2285,10 +2304,8 @@ def _read_pinned_blob_batch(
         return {}
     request = "".join(f"{oid}\n" for oid in unique_ids).encode("ascii")
     try:
-        checked = subprocess.run(
+        checked = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "cat-file",
@@ -2337,10 +2354,8 @@ def _read_pinned_blob_batch(
         return {}
 
     try:
-        materialized = subprocess.run(
+        materialized = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "cat-file",
@@ -2397,10 +2412,8 @@ def _git_tree(
     errors: list[str],
 ) -> _GitTrees | None:
     try:
-        top = subprocess.run(
+        top = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "rev-parse",
@@ -2424,10 +2437,8 @@ def _git_tree(
             )
             if resolved_base is None:
                 return None
-            ancestry = subprocess.run(
+            ancestry = run_git(
                 [
-                    "git",
-                    "--no-replace-objects",
                     "-C",
                     str(root),
                     "merge-base",
@@ -2454,10 +2465,8 @@ def _git_tree(
         head_sha = _resolve_commit(root, "HEAD", "checked-out HEAD", errors)
         if head_sha is None:
             return None
-        head_ancestry = subprocess.run(
+        head_ancestry = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "merge-base",
@@ -2482,10 +2491,8 @@ def _git_tree(
                 f"{head_ancestry.stderr.strip()}"
             )
             return None
-        raw_tree = subprocess.run(
+        raw_tree = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "ls-tree",
@@ -2500,10 +2507,8 @@ def _git_tree(
         raw_head_tree = (
             raw_tree
             if head_sha == inventory_sha
-            else subprocess.run(
+            else run_git(
                 [
-                    "git",
-                    "--no-replace-objects",
                     "-C",
                     str(root),
                     "ls-tree",
@@ -2610,10 +2615,8 @@ def _resolve_commit(
     errors: list[str],
 ) -> str | None:
     try:
-        resolved = subprocess.run(
+        resolved = run_git(
             [
-                "git",
-                "--no-replace-objects",
                 "-C",
                 str(root),
                 "rev-parse",

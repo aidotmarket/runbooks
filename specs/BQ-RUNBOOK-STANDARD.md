@@ -414,18 +414,16 @@ evidence that the documented first action is correct.
   The future RFC 8785/Ed25519 envelope is defined by
   `schemas/runbook_promotion_receipt.schema.json`, but no trust key, receipt, or
   verifier is locally invented.
-- Directly editing DRAFT to ACTIVE is also rejected. Every Git repository must
-  contain exact rollout commit
-  `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and pinned
-  validation SHAs must descend from it with replacement objects disabled.
-  Catalog v2 requires the exact 20-member population and the digest-pinned
-  reviewed projection of IDs, approved canonical moves, topics, sections and
-  section IDs, aliases, signatures, and supersession fields. Dirty manifests,
-  catalogs, or projection-policy bytes cannot expand or mutate that surface.
-  Existing entries and content edits are integrity-only discovery material:
+- Directly editing DRAFT to ACTIVE may add a conformant document to the
+  integrity-only catalog, but it cannot select a live pin or grant semantic or
+  action authority. Exact-pin validation reconstructs the generated catalog,
+  manifest, schemas, and source blobs from one commit with replacement objects
+  and ambient Git controls disabled. The backend activation service alone may
+  monotonically select a reviewed full commit. Catalog fields
   `semantic_verification`, `authority_admission`, and
-  `action_authority_eligible` remain false. This bootstrap closure remains until
-  trusted promotion provenance can replace it.
+  `action_authority_eligible` remain false; trusted claim-bound evidence and an
+  independent review receipt are separate requirements for satisfying a
+  runbook obligation.
 
 ---
 

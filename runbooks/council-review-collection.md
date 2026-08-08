@@ -35,7 +35,7 @@ owner_agent: mars
 escalation_contact: vulcan
 lifecycle_ref: §J
 authoritative_scope: |
-  The mechanics of running a review round on the live CC/Kimi/GLM panel: per-reviewer dispatch traps and their at-dispatch mitigations, verdict collection and repair, mandate folding into gate revisions, recording gate outcomes on build:bq-* entities (including the leaf-patch requirement for gateN.status), and peer-bus lane coordination for the single MP builder. NOT gate selection or the four-gate lifecycle itself; see council-gate-process.md. NOT roster composition or model pins; infra:council-comms in Living State is canonical for the live roster, models, cost caps, and per-agent activation state. NOT dispatch transport internals; see agent-dispatch.md.
+  The mechanics of running a review round on the exact CC/Kimi/GLM panel: per-reviewer dispatch traps and their at-dispatch mitigations, verdict collection and repair, mandate folding into gate revisions, recording gate outcomes on build:bq-* entities (including the leaf-patch requirement for gateN.status), and peer-bus lane coordination for the single MP builder. NOT gate selection or the four-gate lifecycle itself; see council-gate-process.md. NOT roster composition or model pins; the signed exact-release runtime owns roster, models, providers, caps, modes, and schema digest, while council-roster-quirks.md owns human interaction rationale. NOT dispatch transport internals; see agent-dispatch.md.
 linter_version: 1.0.0
 ---
 
@@ -51,7 +51,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Kimi review dispatch (read-only at-SHA) | SHIPPED | `tools/agents.py` | `provider_readonly_review` harness tests | 2026-07-30 |
 | GLM review dispatch (read-only at-SHA) | SHIPPED | `council_dispatch_middleware/` | live proof S1369 task ff0f2f67 | 2026-07-30 |
-| CC review dispatch (agentic audit) | SHIPPED | `council_hall/agent_adapters.py` | live use through S1407 | 2026-07-30 |
+| CC review dispatch (pinned read-only audit) | SHIPPED | `tools/agents.py` | exact-SHA, no-write, terminal-verdict smoke at the release pin | 2026-08-02 |
 | Gate result recording on BQ entities | SHIPPED | `state_service.py` | live use through S1407 | 2026-07-30 |
 | Peer-bus lane coordination | SHIPPED | `peer_bus.py` | live use through S1408 | 2026-07-30 |
 | Verdict-collection automation of this runbook as executable checks | PLANNED | — | — | 2026-07-30 |
@@ -63,14 +63,18 @@ Backing-code paths are relative to the koskadeux-mcp repository root.
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Review dispatcher | council_request(agent=..., mode=review) | dispatch receipts | koskadeux-mcp gateway | dispatch_sha resolves against cwd or the server process cwd; see E-01 |
-| Kimi reviewer | Kimi Code subscription transport via the shared provider_readonly_review harness | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | Verify plan endpoint/model in the live receipt and registry; exact model match mandatory; fails closed on coverage gaps |
-| GLM reviewer | OpenRouter pinned endpoint via the same harness | evidence ledger per dispatch | the same read-only tool set | USD 5 authorized live max; exact model match mandatory |
-| CC reviewer | council dispatch path, agentic | structured_payload in receipt | repo checkout at SHA | raw structured_payload is authoritative over legacy coercion |
+| Kimi reviewer | signed shared provider_readonly_review route | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | Provider/model/caps come from the signed runtime; exact match and complete coverage are mandatory |
+| GLM reviewer | direct z.ai endpoint via the same harness | evidence ledger per dispatch | the same paged read-only tool set | Provider/model/caps come from the signed runtime; exact match and complete pagination are mandatory |
+| CC reviewer | deployed pinned read-only dispatch path | structured_payload in receipt | isolated repo checkout at exact SHA | No write/build fallback; raw structured_payload is authoritative over legacy coercion |
 | Gate recorder | `state_request(action=bq_update)` | build:bq-* entities, Event Ledger | Living State | Set `gate_status_update=true` to update `body.gateN.status`; see E-02. |
 | Peer bus | peer_msg_send and peer_msg_inbox | peer_messages table | both instances | silent dedupe on (from, to, kind, ref_entity); see E-03 |
 | MP builder lane | dispatch_mp_build | MP mutex, Living State claims | single Codex CLI on Titan-1 | one lane; claim on the bus before dispatch and use the live required payload; see E-03 |
 
-Canonical live-roster reference: `state_request(action=get, key=infra:council-comms)`. Read it before any Council work in a session; this runbook does not restate roster, model pins, or cost caps.
+Before any Council work, automatic context supplies the selected member card from
+`council-roster-quirks:C.1` through `C.6`, and the gateway verifies the signed
+exact-release runtime projection. That compact contract owns roster, model,
+provider, mode, caps, and schema digest. The large `infra:council-comms` response
+currently truncates mid-JSON and is historical discovery evidence only.
 
 ## §D. Agent Capability Map
 
@@ -78,8 +82,8 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 |---|---|---|---|---|
 | mars | dispatch reviews, collect verdicts, record gates, coordinate lane | council_request, state_request, peer_msg tools | full operator | COMPLETE |
 | vulcan | same as mars (symmetric peer) | same | full operator | COMPLETE |
-| mp | builder only; excluded from reviewing its own work | dispatch_mp_build | build lane | COMPLETE |
-| cc, kimi, glm | review-only voters | per infra:council-comms | read-only at SHA | COMPLETE |
+| mp | builder only; never a reviewer, voter, or Hall participant | dispatch_mp_build | build lane | COMPLETE |
+| cc, kimi, glm | review-only voters | signed runtime plus `council-roster-quirks:C.2`–`C.4` | read-only at exact SHA | COMPLETE |
 
 ## §E. Operate
 
@@ -90,7 +94,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
     - dispatch SHA is a full 40-hex commit reachable in a local checkout
     - the checkout has fetched the SHA
     - the connected client council_request enum contains the selected required voter; if upstream and client differ, refresh or reconnect before dispatch
-    - review scoped within the reviewer cost cap; for Kimi 3-page deltas use max_tokens 20000 plus a summary word cap; for GLM multi-page reads quote the file path on its own line and instruct re-issuing identical args changing only offset
+    - review scoped within runtime-owned token/cost caps; Kimi must expose `max_tokens`, and GLM must page every partial repository result until the provider reports completion
   tool_or_endpoint: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>)
   argument_sourcing:
     review_prompt: derive from the exact gate/spec questions and changed-file coverage, with explicit read-only scope
@@ -109,7 +113,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
     - signature: glm_page_path_hallucination
       cause: on page 3 and later of long filenames GLM re-types and mutates the path, so the read fails or reads the wrong file
   next_step_success: record the verdict per E-02
-  next_step_failure: apply the matching mitigation (pass cwd, raise max_tokens with a word cap, or quote the path with the offset-only protocol) and re-dispatch; two malformed terminal attempts fail closed and a verdict resting on incomplete coverage is invalid
+  next_step_failure: apply the matching mitigation (pass cwd, narrow the task within the runtime-owned cap, or quote the path with the offset-only protocol) and re-dispatch; never override signed caps, two malformed terminal attempts fail closed, and a verdict resting on incomplete coverage is invalid
 - id: E-02
   trigger: A complete valid panel has been collected and the gate outcome must be recorded on the BQ entity.
   pre_conditions:
@@ -227,7 +231,9 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 - Security, auth, payments, production-data, and customer-data gates require the complete unanimous live panel; no reduced quorum, no substitute voter.
 - A verdict resting on incomplete file coverage, a model mismatch, or a malformed unrepaired terminal response is invalid and fails closed.
 - Gate status writes use the canonical vocabulary; free text is not a gate status.
-- infra:council-comms is canonical for roster, models, caps, and quirk updates; this runbook defers to it.
+- The signed exact-release runtime is canonical for roster, models, providers,
+  modes, caps, and callable schema; this runbook defers to it and to the matching
+  human interaction card.
 
 ### §H.2 BREAKING predicates
 
@@ -257,15 +263,20 @@ The E-block operate entries and the canonical gate-status vocabulary.
 
 #### runtime dependency
 
-koskadeux-mcp gateway, Living State, the peer bus, and the provider endpoints named in infra:council-comms.
+koskadeux-mcp gateway, Living State, the peer bus, and the provider endpoints
+bound by the signed exact-release runtime.
 
 #### config default
 
-Per-reviewer budgets and caps as recorded in infra:council-comms at dispatch time.
+Per-reviewer budgets and caps in the signed exact-release runtime at dispatch time.
 
 ### §H.6 Adjudication
 
-Ambiguity between this runbook and infra:council-comms resolves in favor of infra:council-comms for roster, model, and cap facts, and in favor of this runbook for collection procedure. Disputes escalate to the peer instance first, then to Max only for genuine forks.
+Ambiguity resolves in favor of the signed exact-release runtime for volatile
+machine facts, `council-roster-quirks.md` for human interaction rationale, and
+this runbook for collection procedure. A truncated or historical
+`infra:council-comms` fragment cannot resolve a conflict. Disputes escalate to
+the peer instance first, then to Max only for genuine forks.
 
 ## §I. Scenario Set
 
@@ -406,12 +417,13 @@ scenario_set:
 Initial registration at S1408. No harness run has been executed against this scenario set yet.
 
 ```yaml lifecycle
-last_refresh_session: S1408
-last_refresh_commit: 601bf93
-last_refresh_date: 2026-07-30T16:30:00Z
+last_refresh_session: S1413
+last_refresh_commit: 017763a
+last_refresh_date: 2026-08-02T00:00:00Z
 owner_agent: mars
 refresh_triggers:
-  - roster, model, or cap changes in infra:council-comms
+  - signed Council runtime, roster, model, provider, mode, cap, or schema-digest changes
+  - any member interaction-card or role-rationale change
   - dispatcher resolver or envelope-parser changes in koskadeux-mcp
   - peer-bus dedupe or claim protocol changes
   - runbook-lint or runbook-harness schema changes
