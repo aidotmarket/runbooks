@@ -242,6 +242,11 @@ failed verification are indistinguishable at the reader.
 - No regression test asserts that a seller onboarded through `stripe_connect.py` ends up with a `kyc_status` in `party_identity`.
 - No test exercises `account.updated` against a seller whose `seller_profiles.stripe_connect_id` is NULL.
 - `app/models/profile.py` `SellerProfile` does not declare `stripe_connect_id`, `stripe_connect_status`, `payout_enabled`, `kyc_status` or `kyc_verified_at`. Those columns exist in the database and are touched only by raw SQL, so the ORM gives no protection and no discoverability.
+- **The frontend has no onboarding-error redirect.** Recorded S1483, 2026-08-08, paired with the T-2026-000565 C2-A merge. `ai-market-frontend` used to carry a global axios response interceptor keyed on `detail.onboarding_url` that redirected any 403 of that shape to `/dashboard`, plus `getOnboardingStatus` against `/auth/onboarding/status` and two `skipOnboardingRedirect` opt-outs. All of it is deleted as of frontend `main` (chunk C2-A, base `a823e45a`, head `e37c595d`). Consequences for anyone working this surface: a backend 403 carrying `onboarding_url` now reaches the calling component as an ordinary rejected promise, so any new client-side gate must be built deliberately rather than assumed to exist. The dashboard catches its own fetch errors and renders a retry card; no other caller depended on the redirect. The only surviving `onboarding_url` references in the frontend are the Stripe-hosted Connect flow at `api/connect.ts:15-16` and its test, which are unrelated to the retired gate and must not be removed with it. The backend enforcers (`app/api/deps.py:_enforce_onboarding` and the second implementation at `app/api/v1/endpoints/listings.py:71`) are still in place and are retired in C2-B.
+
+### §H.3 Catalog debt
+
+This runbook is NOT registered in `CATALOG.json` and lives only on branch `runbook/stripe-connect-identity-t-2026-000572`, unmerged to `main`. It is therefore invisible to catalog lookups and to the runbook-first dispatch gate, so an agent working the Connect surface will not be routed here. Register it and land the branch. Recorded S1483 rather than fixed in place: registration is a catalog change with its own review path, not a documentation edit.
 
 ---
 
@@ -252,5 +257,6 @@ failed verification are indistinguishable at the reader.
 | Created | S1472, 2026-08-07, vulcan |
 | Ticket | T-2026-000572 |
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
+| Updated | S1483, 2026-08-08, vulcan — §H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); §H.3 catalog debt recorded |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |
