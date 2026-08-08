@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 7645cffe3055fad3a1c65302431d4af9426f2c5d
+  inventory_sha: 02db673795b8127b7d68198a26ddd29f0919b821
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 102
-    source_documents: 101
+    operational_documents: 103
+    source_documents: 102
     active: 21
-    grandfathered: 80
+    grandfathered: 81
     archived: 1
 policy:
   pending_is_not_authority: true
@@ -366,6 +366,20 @@ documents:
       - deployed gateway tool schema and canonical state
       - current CORE and policy-kernel sources
     independent_review_required: true
+  - path: builder-controls.md
+    git_blob_oid: 811d80c3e0f106a5d88917a1bd919aa97b71f37f
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: builder-controls
+    risk: P1
+    target_paths:
+      - runbooks/builder-controls.md
+    evidence: []
+    verify_against:
+      - deployed MP build path controls in koskadeux-mcp tools/agents.py
+      - observed control activation and refusal counts
+    independent_review_required: true
   - path: celery-infrastructure-deployment.md
     git_blob_oid: 8dd1ab93f2a91990a9e7a2cf09f1d0fbdfb63f77
     catalog_state: grandfathered
@@ -416,7 +430,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: codex-mp.md
-    git_blob_oid: 7d7b2515564d0c8151de4e167d6269cde267b65b
+    git_blob_oid: bcd5a2c980edb013ff0d5ad5a97a6ab834711599
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -911,7 +925,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: 6186bee61438b21cf95969de19304b8c11fcc09e
+    git_blob_oid: a5639192a064f78ca32fc92691ab5eb4b399e1ab
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1057,7 +1071,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: 131b72d96b6cbf6c56bc5dc05e0265533c2cddd4
+    git_blob_oid: d8d995605010dc96face0d2059aa9217be9d8e5e
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1269,7 +1283,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: schema-migration.md
-    git_blob_oid: 0ac4fd7a72a612214bec6fbc1c2405b7040790c4
+    git_blob_oid: bc316dd9345435b124543d9b94bf4cd5eb0c6d17
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
