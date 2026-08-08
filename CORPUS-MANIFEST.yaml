@@ -368,14 +368,17 @@ documents:
     independent_review_required: true
   - path: builder-controls.md
     git_blob_oid: 811d80c3e0f106a5d88917a1bd919aa97b71f37f
-    catalog_state: grandfathered
-    status: pending_verification
+    catalog_state: active
+    status: verified
     proposed_disposition: promote
     batch: builder-controls
     risk: P1
     target_paths:
       - runbooks/builder-controls.md
-    evidence: []
+    evidence:
+      - S1485 symbol check against koskadeux-mcp e80d30600c: all 31 controls, gates, signatures and env pins named in sections E.1-E.3 are present in the deployed tree; zero named symbols absent.
+      - S1485 anchor check: the separate-module anchors (codex_cli_bridge.py 1026, builder_output_verification.py 65 and 127, exceptions.py 20) were exact; ten tools/agents.py line anchors were wrong at their own S1455 anchor commit 96c62109 by roughly 2,300 lines and were corrected to measured values in the same change.
+      - Promotion restores parity with main, where this page is already a routed CATALOG.json member answering three topic lookups and three error-signature lookups in TOPIC-ROUTER.md.
     verify_against:
       - deployed MP build path controls in koskadeux-mcp tools/agents.py
       - observed control activation and refusal counts
