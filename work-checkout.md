@@ -301,6 +301,42 @@ scenario_set:
     weight: 0.0909091
 ```
 
+## §I.9 Resolving a merge conflict on a file the other side REWROTE (S1484)
+
+`git checkout --ours <file>` and `--theirs <file>` operate on the WHOLE FILE, not
+on the conflicted hunk. If the other side rewrote that file, the rewrite is
+discarded in full and git reports success. Nothing warns you.
+
+Measured in S1484 recovering the S1413 runbook candidate: `git checkout --ours`
+was used on `codex-mp.md` and `runbooks/agent-dispatch.md` to keep two newer
+lines from main. Both files had been rewritten by the candidate (167 and ~407
+changed lines). Both rewrites were silently reverted to main's version. The merge
+reported clean. The tell was arithmetic: merged `agent-dispatch.md` was 2159
+lines, exactly main's, against the candidate's 2018.
+
+### The check that catches it, before you commit
+
+Compare the merged line count against BOTH parents. If it equals one parent
+exactly, you took that parent wholesale:
+
+```
+for f in $(git diff --name-only HEAD); do
+  echo "$f merged=$(wc -l < "$f") ours=$(git show HEAD:"$f" | wc -l) theirs=$(git show MERGE_HEAD:"$f" | wc -l)"
+done
+```
+
+Equal to one side on a file both sides changed = re-resolve it hunk by hunk.
+
+### What to do instead
+
+Edit the conflict markers in place and keep both sides' intent, or use
+`git checkout --merge <file>` to restore the markers after a bad `--ours`.
+File-level `--ours`/`--theirs` is correct ONLY for generated artifacts you will
+regenerate anyway, and for those, regenerate rather than choose.
+
+A test caught this, not the operator. Runbook prose that a suite asserts on is
+worth more than prose nothing checks.
+
 ## §J. Lifecycle
 
 ```yaml lifecycle
