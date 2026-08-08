@@ -1,24 +1,4 @@
 ---
-runbook_id: builder-controls
-domain: koskadeux-build-path
-status: ACTIVE
-authoritative_for:
-  - topic: builder-controls
-    section: §C. Architecture & Interactions
-  - topic: builder-control-inventory
-    section: §E. Operate - the indexed control inventory
-  - topic: builder-failure-salvage
-    section: §G. Repair
-aliases:
-  - mp-build-controls
-error_signatures:
-  - {signature: RepairExhaustedError, cause: output-envelope schema repair exhausted; verify the work at git before believing the failure}
-  - {signature: post_build_multiple_commits, cause: correct fold arrived as more than one commit and was discarded}
-  - {signature: builder_output_claim_mismatch, cause: builder line-anchor claims failed a regex check on the manifest, not on the diff}
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-08
 system_name: builder-controls
 purpose_sentence: Indexed reference of every control on the MP/Codex builder path in koskadeux-mcp - what each control is, where it lives, what it does, why it exists, how often it has actually fired, and its status under the S1455 minimal-bridge rebuild - so a future builder knows exactly what is there and why.
 owner_agent: vulcan

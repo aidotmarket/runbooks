@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 02db673795b8127b7d68198a26ddd29f0919b821
+  inventory_sha: 368388fd2e3bf38e415d7472cf4b05c4a8a62419
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -14,8 +14,8 @@ inventory:
   counts:
     operational_documents: 103
     source_documents: 102
-    active: 21
-    grandfathered: 81
+    active: 22
+    grandfathered: 80
     archived: 1
 policy:
   pending_is_not_authority: true
@@ -367,21 +367,23 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: builder-controls.md
-    git_blob_oid: 811d80c3e0f106a5d88917a1bd919aa97b71f37f
-    catalog_state: active
-    status: active
-    proposed_disposition: retain_active
+    git_blob_oid: 5a113b3cfc696abe0578d100445c6e84fe709e36
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
     batch: builder-controls
     risk: P1
     target_paths:
-      - builder-controls.md
+      - runbooks/builder-controls.md
     evidence:
       - ref: koskadeux-mcp@e80d30600c
-        finding: All 31 controls, gates, error signatures and env pins named in sections E.1-E.3 are present in the deployed tree; zero named symbols absent.
+        finding: All 31 controls, gates, error signatures and env pins named in E.1-E.3 are present in the deployed tree; zero named symbols absent.
       - ref: koskadeux-mcp@96c62109
-        finding: Ten tools/agents.py line anchors were wrong at the page's own S1455 anchor commit by roughly 2,300 lines; corrected to measured values in the same change. Separate-module anchors were exact.
-      - ref: aidotmarket/runbooks@origin/main:TOPIC-ROUTER.md
-        finding: Page is already a routed CATALOG.json member on main serving three topic lookups and three error-signature lookups, so promotion restores parity rather than granting new authority.
+        finding: Ten tools/agents.py line anchors were wrong at the page's own S1455 anchor commit by roughly 2,300 lines; corrected to measured values. Separate-module anchors were exact.
+      - ref: aidotmarket/runbooks@origin/main:CATALOG.json
+        finding: On main this page is a fully routed catalog member with aliases, domain, authoritative_for and error_signatures, yet its own frontmatter declares none of them; that entry was hand-written into CATALOG.json rather than derived from the page. The candidate correctly reads the frontmatter and finds no opt-in.
+      - ref: S1485 promotion attempt
+        finding: Content verification PASSED; promotion is blocked on format, not on accuracy. Opting in requires relocation under runbooks/ plus roughly 25 deterministic conformance checks and a Status enum with no value able to express SHIPPED scheduled for replacement. Held at grandfathered pending the S1482 truth-layer decision on the conformance gate.
     verify_against:
       - deployed MP build path controls in koskadeux-mcp tools/agents.py
       - observed control activation and refusal counts
@@ -436,7 +438,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: codex-mp.md
-    git_blob_oid: bcd5a2c980edb013ff0d5ad5a97a6ab834711599
+    git_blob_oid: 3e94f93d8616b83d22eba0bc1e8c6af645397c3b
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1077,7 +1079,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: d8d995605010dc96face0d2059aa9217be9d8e5e
+    git_blob_oid: 780a3017057cbf9d84e9b472a9b6ab2b7c61ef2f
     catalog_state: active
     status: active
     proposed_disposition: retain_active
