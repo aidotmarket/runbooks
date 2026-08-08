@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 368388fd2e3bf38e415d7472cf4b05c4a8a62419
+  inventory_sha: 902bfc7ea8ae6ca55efe63a996a06f4412f1891e
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -14,8 +14,8 @@ inventory:
   counts:
     operational_documents: 103
     source_documents: 102
-    active: 22
-    grandfathered: 80
+    active: 21
+    grandfathered: 81
     archived: 1
 policy:
   pending_is_not_authority: true
@@ -367,7 +367,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: builder-controls.md
-    git_blob_oid: 5a113b3cfc696abe0578d100445c6e84fe709e36
+    git_blob_oid: e7827dd0ce7898b920770c08add5240aa0ba7cda
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -377,13 +377,21 @@ documents:
       - runbooks/builder-controls.md
     evidence:
       - ref: koskadeux-mcp@e80d30600c
-        finding: All 31 controls, gates, error signatures and env pins named in E.1-E.3 are present in the deployed tree; zero named symbols absent.
+        finding: All 31 controls, gates, error signatures and env pins named in E.1-E.3 are present in
+          the deployed tree; zero named symbols absent.
       - ref: koskadeux-mcp@96c62109
-        finding: Ten tools/agents.py line anchors were wrong at the page's own S1455 anchor commit by roughly 2,300 lines; corrected to measured values. Separate-module anchors were exact.
+        finding: Ten tools/agents.py line anchors were wrong at the page's own S1455 anchor commit by
+          roughly 2,300 lines; corrected to measured values. Separate-module anchors were exact.
       - ref: aidotmarket/runbooks@origin/main:CATALOG.json
-        finding: On main this page is a fully routed catalog member with aliases, domain, authoritative_for and error_signatures, yet its own frontmatter declares none of them; that entry was hand-written into CATALOG.json rather than derived from the page. The candidate correctly reads the frontmatter and finds no opt-in.
+        finding: On main this page is a fully routed catalog member with aliases, domain, authoritative_for
+          and error_signatures, yet its own frontmatter declares none of them; that entry was hand-written
+          into CATALOG.json rather than derived from the page. The candidate correctly reads the frontmatter
+          and finds no opt-in.
       - ref: S1485 promotion attempt
-        finding: Content verification PASSED; promotion is blocked on format, not on accuracy. Opting in requires relocation under runbooks/ plus roughly 25 deterministic conformance checks and a Status enum with no value able to express SHIPPED scheduled for replacement. Held at grandfathered pending the S1482 truth-layer decision on the conformance gate.
+        finding: Content verification PASSED; promotion is blocked on format, not on accuracy. Opting
+          in requires relocation under runbooks/ plus roughly 25 deterministic conformance checks and
+          a Status enum with no value able to express SHIPPED scheduled for replacement. Held at grandfathered
+          pending the S1482 truth-layer decision on the conformance gate.
     verify_against:
       - deployed MP build path controls in koskadeux-mcp tools/agents.py
       - observed control activation and refusal counts
