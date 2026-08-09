@@ -1,3 +1,10 @@
+> **SUPERSEDED 2026-08-09 (S1490). DO NOT USE.**
+> Replaced by `runbooks/crm.md`. This document describes fourteen `crm_*` tables as active in
+> production. All fourteen were deleted on 2026-07-03 by migration
+> `s1113_drop_legacy_crm_tables` under an explicit Max GO and unanimous Council approval.
+> Queries written from this document will fail with `UndefinedTable`, and its diagnostic advice
+> leads to recreating retired tables. Retained for history only.
+
 # CRM Pipeline
 
 > **Status:** S500 rewrite (2026-04-24). Prior revision was pre-S400 and referenced MCP tool names (`crm_create_contact`, `crm_upsert_contact`, `crm_get_contact_360`, `crm_log_interaction`, `crm_create_task`, `crm_cancel_task`, `crm_update_task`, `crm_search_interactions`) that no longer exist in the current surface. The current agent surface is the Koskadeux gateway CRM tool family (`crm_request` plus `crm_log_interaction` / `crm_search_interactions`), thin REST wrappers in `koskadeux-mcp/tools/crm.py`; the former `app/mcp/crm_remote.py` `/mcp/crm` endpoint was removed at S1099 (BQ-CRM-MCP-ENDPOINT-REMOVAL-S1098). Aligns with `crm-target-state.md` R6 and `crm-architecture.md` S1099.
