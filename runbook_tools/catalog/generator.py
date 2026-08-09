@@ -26,9 +26,14 @@ from runbook_tools.catalog.sections import (
     legacy_heading_anchor,
 )
 from runbook_tools.frontmatter import CATALOG_METADATA_FIELDS
+from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.strict_yaml import strict_yaml_load
 
 SCHEMA_VERSION = 2
+# A page may be untidy and still be indexed (Max directive S1491). It may not be
+# indexed while asserting something false about itself. Only findings whose
+# message matches one of these markers keep the power to refuse admission.
+INTEGRITY_CONFORMANCE_MARKERS = ("cannot be in the future",)
 LEGACY_AUTHORITY_BASE_SHA = "2e9c7026363eeead0385ac06c3f57f5a33ea64e2"
 LEGACY_PROJECTION_POLICY_PATH = "schemas/legacy_catalog_projection.policy.json"
 LEGACY_PROJECTION_POLICY_SHA256 = (
@@ -224,7 +229,7 @@ def build_catalog(
     entries: list[CatalogEntry] = []
     grandfathered_count = 0
     root = repo_root.resolve()
-    verification_clock, _unused_conformance_clock = _verification_clocks(
+    verification_clock, conformance_clock = _verification_clocks(
         current_utc_date,
         current_utc_datetime,
     )
@@ -262,11 +267,34 @@ def build_catalog(
         # Conformance is a convention, not an admission condition.
         # Max directive S1491, and AC9 of the approved runbook truth-layer design
         # (specs/RUNBOOK-TRUTH-LAYER-S1487.md): a page's shape must never decide
-        # whether it can be found. The deterministic A-K checks remain available
-        # through `runbook-lint`, where a failure is advice to the author rather
-        # than a refusal to index. Referential integrity of DECLARED metadata is
-        # a different thing and is still enforced below: a catalog row that
-        # points at a section which does not exist would make the index lie.
+        # whether it can be found. The deterministic A-K checks still run through
+        # `runbook-lint`, where a failure is advice to the author.
+        #
+        # INTEGRITY_CONFORMANCE_MARKERS is the narrow exception. Those findings are
+        # not untidiness, they are a page asserting something false about itself,
+        # and indexing a lie is worse than indexing a mess. Everything else is
+        # advice. Referential integrity of DECLARED metadata is enforced
+        # separately below, because a catalog row pointing at a section that does
+        # not exist makes the index lie rather than the page.
+        integrity_failures = [
+            finding
+            for finding in structural_conformance_failures(
+                markdown,
+                root / "schemas",
+                now=conformance_clock,
+            )
+            if any(
+                marker in finding.message
+                for marker in INTEGRITY_CONFORMANCE_MARKERS
+            )
+        ]
+        if integrity_failures:
+            details = "; ".join(
+                f"{relative}:{finding.line or '?'}: catalog integrity check "
+                f"{finding.check} failed: {finding.message}"
+                for finding in integrity_failures
+            )
+            raise CatalogError(details)
         section_errors = declared_section_errors(
             markdown,
             relative,
