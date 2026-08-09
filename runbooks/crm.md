@@ -178,10 +178,27 @@ whose `__tablename__` points at the deleted tables: `CRMEntity`, `CRMPerson`, `C
 `CRMRelationship`, `CRMInteraction`, `CRMPlaybook`, `CRMTask`, `CRMEmailDraft`,
 `CRMLearnedPreference`, `CRMPipelineStage`, `CRMContactPipeline`, `CRMPipelineHistory`,
 `CRMReferral`, `CRMConversationState`. Importing them is harmless. Executing a query built from
-them raises `UndefinedTable`. There are 33 such query sites left in live files: 14 in
-`crm_service.py`, 12 in `crm_steward_skills.py`, 5 in `endpoints/crm.py`, 2 in `crm_steward.py`.
-Most are unreachable because `legacy_fallback_enabled()` is hard-`False`; the three pipeline
-sites are not gated and are reachable, which is why §F-01 exists.
+them raises `UndefinedTable`. Repo-wide there are 43 such query sites, across 30 enclosing
+functions in 7 files: 16 in `app/services/crm_service.py`, 12 in
+`app/services/crm_steward_skills.py`, 5 in `app/api/v1/endpoints/crm.py`, 3 each in
+`app/allai/agents/crm_steward.py`, `app/services/crm_briefing_service_gmail.py` and
+`app/services/outreach_context_service.py`, and 2 in `app/domains/crm/core/service.py`. Counting
+every reference to a dead model class rather than only query sites gives 510 across 31 files.
+
+**Reachability is NOT settled, and this section will not pretend otherwise.** A first-pass scan
+looking for a `get_read_route`, `party_enabled` or `legacy_fallback_enabled` guard within twelve
+lines above each query found roughly half the sites with no visible guard, including whole
+functions such as `crm_service.py:merge_person_records`, `crm_service.py:get_task`,
+`crm_steward_skills.py:list_interactions`, `crm_steward_skills.py:search_interactions`,
+`crm_steward_skills.py:create_relationship`, `crm_steward_skills.py:_load_scoped_entity` and the
+three CRM Steward monitor helpers in `crm_steward.py`. That scan is a heuristic and a missing
+guard within twelve lines does not prove a site executes; the guard may sit further up the call
+chain. The honest position is that exactly one site is proven reachable, `get_pipeline_status`,
+reproduced failing live on 2026-08-09, and the rest are unproven in both directions. Treat an
+`UndefinedTable` from any CRM path as plausible rather than surprising, and see §F-02.
+
+Settling this is phase P0 of `build:bq-crm-code-reduction-s1490`, which will replace this
+paragraph with a proven per-site list.
 
 ### §C.2 Field dictionary
 
@@ -449,7 +466,7 @@ rows, so no consumer has ever exercised them (see §F-10).
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Any pipeline request fails, or `crm_request` returns `ok: true` with prose saying the pipeline stages feature is not set up and the migration may not have been run | `get_pipeline_status`, `move_contact_forward` and `bulk_move_contacts` query `CRMContactPipeline` and `CRMPipelineStage`, which map to `crm_contact_pipeline` and `crm_pipeline_stages`, deleted 2026-07-03. These three sites are not behind the disabled fallback, so they execute and raise `UndefinedTable`. | Call `crm_request` with a pipeline question and read `actions_taken`. Or run `SELECT to_regclass('public.crm_pipeline_stages')` and expect null. | §G-01 | CONFIRMED |
-| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming `crm_people`, from a CRM code path other than pipeline | One of the 33 legacy `select(CRM*)` sites became reachable, most likely because a caller bypassed `get_read_route` or someone re-enabled a fallback. | Find the query site by grepping for `select(CRMPerson`, `select(CRMOrganization`, `select(CRMEntity`, `select(CRMTask` and `select(CRMInteraction` across `crm_service.py`, `crm_steward_skills.py`, `endpoints/crm.py` and `crm_steward.py`. Confirm `legacy_fallback_enabled()` still returns False. | §G-02 | CONFIRMED |
+| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming `crm_people`, from a CRM code path other than pipeline | One of the 43 legacy `select(CRM*)` sites executed. Do not assume this is exotic: per §C.1 only one site's reachability is proven and the rest are unproven in both directions, so an ungated site running is a live hypothesis, not an anomaly. | Grep `select(CRM` across the seven files listed in §C.1 and find the enclosing function. Confirm `legacy_fallback_enabled()` still returns False, then check whether the failing site has any guard at all. | §G-02 | CONFIRMED |
 | F-03 | An agent proposes recreating `crm_entities`, `crm_people` or any other deleted table, or reports the CRM schema as broken | The agent is working from `crm-architecture.md`, `crm-pipeline.md` or `crm-target-state.md`, all superseded, which describe the deleted fourteen as "Active (production)". | Check whether the agent cites `crm_persons`, a table name that never existed. That phrasing is a reliable tell for the superseded documents. | §G-03 | CONFIRMED |
 | F-04 | A support ticket cannot be tied back to a CRM party, or `requester_party_id` is null on every ticket | `app/api/v1/endpoints/support.py:create_ticket` sets `requester_party_id` from the request for internal callers and from `principal.party_id` otherwise. `get_support_principal` returns a null `party_id` for internal actors, and internal callers do not pass one. Every ticket to date was opened by an internal actor. Nothing errors because `requester_key` falls back to the actor pair. | Count tickets where `requester_party_id` is not null against the total. Expect 0 of 580 as of 2026-08-09. | §G-04 | CONFIRMED |
 | F-05 | `party_person.last_interaction_at` stays null after interactions are logged | The party update after commit in the interaction write path did not run. Historically a regression in `log_interaction`. | Log an interaction via E-02, then read the party back via E-01 and compare `last_interaction_at`. | §G-05 | HYPOTHESIZED |
@@ -478,7 +495,7 @@ rows, so no consumer has ever exercised them (see §F-10).
   repair_entry_point: app/domains/crm/phase_b/read_flags.py:legacy_fallback_enabled
   change_pattern: Confirm the shim still returns False unconditionally. If it does, the caller reached the query without passing through get_read_route, so route it through the party path or delete the branch. Deleting a dead legacy branch is preferred over guarding it again, because the count of these sites should only ever fall.
   rollback_procedure: Revert the commit. Both states are non-functional for that path, so there is no data risk.
-  integrity_check: Re-run the failing operation and confirm no UndefinedTable in the trace. Then re-count the legacy select sites and confirm the total fell from 33.
+  integrity_check: Re-run the failing operation and confirm no UndefinedTable in the trace. Then re-count the legacy select sites and confirm the total fell from 43.
 - id: G-03
   symptom_ref: F-03
   component_ref: CRM service layer
@@ -530,7 +547,8 @@ rows, so no consumer has ever exercised them (see §F-10).
 - **Invariant 3. The `stripe_connect` party identity is the canonical seller payment identity.** `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written for compatibility. New code must not read them.
 - **Invariant 4. There is no external CRM MCP endpoint.** All agent CRM access goes through the Koskadeux gateway. The 404s on `api.ai.market/mcp/crm/mcp` and the root OAuth routes are deliberate and must not be reintroduced.
 - **Invariant 5. Nothing here creates tables at runtime.** The CRM must never rely on a fallback table-creation path. That pattern is what hid the loss of the money-path tables until a customer reported it.
-- **Invariant 6. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
+- **Invariant 6. The count of dead references only ever falls.** 510 references to model classes bound to deleted tables remain across 31 files, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
+- **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
 ### §H.2 BREAKING predicates
 
