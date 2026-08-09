@@ -30,10 +30,10 @@ from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.strict_yaml import strict_yaml_load
 
 SCHEMA_VERSION = 2
-LEGACY_AUTHORITY_BASE_SHA = "a6d7534a35d921138c139bdf69aaeddd0faec100"
+LEGACY_AUTHORITY_BASE_SHA = "60017caf4e86bf486a301709c2d7a083596914c9"
 LEGACY_PROJECTION_POLICY_PATH = "schemas/legacy_catalog_projection.policy.json"
 LEGACY_PROJECTION_POLICY_SHA256 = (
-    "d41a523f576e3b0a03ad386ede05ce3ceb44aa83138c6ebb6d1f6111dc11bcc0"
+    "465fe806232567d5314d48d01ea77c0a74bf3537972536ab4fc73c472e36e82f"
 )
 LEGACY_PROJECTION_FIELDS = (
     "aliases",
