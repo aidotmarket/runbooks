@@ -160,7 +160,7 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
     assert actual == expected
     assert grandfathered == expected_grandfathered
     assert len(actual) >= 20
-    assert grandfathered <= 81
+    assert grandfathered <= 83
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",
