@@ -1,7 +1,8 @@
 # Runbook Truth Layer — Gate 1 design
 
-Authored: mars / S1487, 2026-08-09. **Revision 2**, folding the unanimous CC/Kimi/GLM
-round-1 mandates. Measured at `origin/main` `6eed2d7055dc0edabf71d1cd31e98241d5cd001f`.
+Authored: mars / S1487, 2026-08-09. **Revision 3**, folding the unanimous CC/Kimi/GLM
+round-1 and round-2 mandates. Round 2 was unanimous APPROVED_WITH_MANDATES, no blocking defects;
+all three confirmed every round-1 fold as genuine rather than cosmetic. Measured at `origin/main` `6eed2d7055dc0edabf71d1cd31e98241d5cd001f`.
 Authority: Max directive S1487, recorded verbatim at `config:runbook-programme-exclusive-focus` v2.
 Round 1: CC `b74ebc42`, Kimi `74ec6af1`, GLM `1883970f` — all three approve the spine, all three
 mandate revision. Every mandate is folded or answered below; §10 records the disposition.
@@ -42,12 +43,21 @@ All figures read from the tree at `6eed2d7`, not asserted.
 
 | Fact | Value |
 |---|---|
-| Markdown anywhere in the repository | 157 |
+| Markdown anywhere in the repository | 156 at `6eed2d7`; 157 in the authoring checkout, which holds this draft |
 | Of which: `tests/` (mostly deliberately-broken linter fixtures) | 32 |
-| Of which: `specs/`, `templates/`, `audits/`, `contracts/`, `archive/` | 20 |
+| Of which: `specs/`, `templates/`, `audits/`, `contracts/`, `archive/` | 19 at `6eed2d7`; 20 with this draft |
 | Markdown at repository root | 83 (includes generated `README.md`, `TOPIC-ROUTER.md`) |
 | Markdown under `runbooks/` | 22 |
 | **Corpus in scope (root minus generated, plus `runbooks/`)** | **103** |
+| Of the corpus, indexed in `CATALOG.json` | 21 |
+| Of the corpus, **not** indexed | **82** (81 root + `runbooks/boot-kernel-companion-crosswalk.md`) |
+
+**On the number 82.** Three figures were in play and round 2 caught the document using them
+interchangeably. 83 is root markdown *including* the two generated index files, which are not
+invisible — they are the index. 81 is the root corpus. **82 is the unindexed corpus** and is the only
+one that answers "how much of our written knowledge is unreachable". 82 is used throughout from here.
+The measurement tree includes this draft; `specs/` is excluded, so the corpus figure is unaffected.
+*(Kimi and GLM minors, round 2.)*
 | `CATALOG.json` entries | 21 |
 | Catalog entries whose path is under `runbooks/` | 21 |
 | Catalog entries whose path is at root | 0 |
@@ -68,15 +78,15 @@ scored 0 of 8. Three of the eight *are* documented, and all three are in `runboo
 which is one of the 21 already indexed. The index failed on content it already held, because it
 indexes a hand-curated `error_signatures` list rather than the page body. The catalog declares
 roughly 72 signatures across all 21 pages; `agent-dispatch.md` alone contains 171 distinct
-snake_case identifiers. **Hand-curation is the bottleneck.** Making the other 83 visible without
+snake_case identifiers. **Hand-curation is the bottleneck.** Making the other 82 visible without
 fixing this would raise the score from 0 of 8 to 0 of 8.
 
 **Finding 3 — the machinery indexed its own paperwork and left the business undocumented.** The
-21 indexed and 83 unindexed pages have zero filename overlap and the split is not random. The
+21 indexed and 82 unindexed pages have zero filename overlap and the split is not random. The
 indexed set is almost entirely about how the AI machinery runs itself: council, gates, dispatch,
 policy, review collection. Every page describing the actual business — AWS, Qdrant, the backend,
 the frontend, Cloudflare, CRM, AIM Data, the seller publish journey, schema migration, the trust
-channel — is in the invisible 83. Search can reach our paperwork and not our product.
+channel — is in the invisible 82. Search can reach our paperwork and not our product.
 
 ## §2 All indexed (`1_all_indexed`)
 
@@ -86,7 +96,7 @@ Excluded by name and for stated reason, not by quality judgement:
 
 | Excluded | Count | Reason |
 |---|---|---|
-| `README.md`, `TOPIC-ROUTER.md`, `CATALOG.json` | 3 | Generated index artifacts; indexing the index is circular |
+| `README.md`, `TOPIC-ROUTER.md` | 2 markdown | Generated index artifacts; indexing the index is circular. `CATALOG.json` is generated too but is not markdown, so it sits outside this tally |
 | `tests/**` | 32 | Deliberately-broken linter fixtures, including the false pages AC17 itself creates. Indexing these routes search to anti-content |
 | `specs/**` | 16 | Design documents, not operating instructions. A separate question, deliberately deferred and named as deferred |
 | `templates/**`, `audits/**`, `contracts/**`, `archive/**` | 4 | Not operating instructions; `archive/**` is the historical layer AC8a keeps separate |
@@ -116,7 +126,7 @@ claim for itself.
 > frontmatter declares nothing. **That is false.** All three reviewers checked it independently and
 > the author re-verified: at `6eed2d7` the page is at the repository root, absent from
 > `CATALOG.json`, absent from `TOPIC-ROUTER.md`, and its frontmatter does declare `system_name`,
-> `purpose_sentence`, `owner_agent` and `authoritative_scope`. It is one of the invisible 81, not a
+> `purpose_sentence`, `owner_agent` and `authoritative_scope`. It is one of the invisible 82, not a
 > routed entry. The claim was inherited from an S1485 handoff and repeated as measured.
 >
 > This is the second time this exact failure has hit this programme: `build:bq-runbook-truth-layer-s1482`
@@ -219,13 +229,30 @@ hard part of the build. A literal is a claim if and only if it appears in one of
 | Backticked literal introduced by a naming verb — *returns, raises, emits, is named, is set to* | returns `` `checkout_not_pinned` `` | the system named in scope |
 | Frontmatter `error_signatures` / `authoritative_for` entry | declared row | the declaring page's system |
 | Explicit pin — `system @ sha`, `MODEL=x`, `PORT=n` | `koskadeux-mcp main @ 96c62109` | that system at that commit |
-| Fenced block tagged with a system | ```` ```yaml operate ```` | the tagged system |
+| Fenced block whose tag names a **registered system** | ```` ```yaml qdrant ```` | the tagged system. A section tag such as ```` ```yaml operate ```` is not a system and falls through to AC12a *(Kimi minor, round 2)* |
 
 Everything else is prose and resolves `UNKNOWN`. Bare words, unbackticked mentions and narrative are
-never claims. **The system a claim binds to is resolved from, in order:** an explicit pin on the
-claim; the page's frontmatter `system_name` or `authoritative_scope`; the nearest preceding heading
-that names a system. If none resolves, the claim is `UNKNOWN` with reason `unbound_system` — never
-guessed. *(CC M2, blocking.)*
+never claims. **AC12a — system binding, with precedence stated.** Round 2 pressed the grammar against real pages
+and found the binding rule contradicting itself: form 1 binds a path to "the system that owns that
+path", but path ownership appeared nowhere in the resolution order or the registry, so form 1 was
+unimplementable as written. This is not academic. On `builder-controls.md`, `system_name` is the page
+slug rather than a system, and the pin `koskadeux-mcp main @ 96c62109` sits in prose inside
+`authoritative_scope` where nothing parses it — so **every claim on the corpus's best cross-repo page
+resolved `UNKNOWN`**, inflating the exact figure AC18 publishes as how true our knowledge is. Binding
+order, highest precedence first:
+
+1. An explicit pin on the claim itself (`system @ sha`).
+2. **Path ownership** — the repo/system prefix of a backticked path, resolved against a
+   path→system ownership map that AC14a's registry must define. Ownership outranks frontmatter,
+   because a path naming another repository is a stronger signal than the page's own header.
+3. A pin parsed out of frontmatter `authoritative_scope`. The checker parses prose pins there rather
+   than requiring authors to restructure pages that already work.
+4. Frontmatter `system_name`, `authoritative_scope` or `authoritative_for` — but `system_name` is
+   ignored when it merely equals the page slug and matches no registry entry.
+5. The nearest preceding heading naming a registered system.
+
+If none resolves, the claim is `UNKNOWN`, reason `unbound_system` — never guessed.
+*(CC M2 round 1, blocking; CC M1 and Kimi M1 round 2.)*
 
 A claim resolves against its bound system at a named revision and returns exactly one of:
 
@@ -251,6 +278,33 @@ Resolution is by a named system registry mapping a system name to how it is read
   They are read by an explicit read-only probe, and the probe's response is recorded as evidence per
   AC15 with the timestamp standing in for the revision.
 - **Anything with no registry entry** — `UNKNOWN`, reason `system_unregistered`.
+
+The registry also carries the **path→system ownership map** that AC12a step 2 depends on. A registry
+entry without one cannot bind path-form claims.
+
+**AC14b — the live-probe safety contract. All three reviewers refused AC14a without one.** A
+nominally read-only checker, invokable by any agent through the MCP tool and running on a schedule,
+holding production credentials, is a materially larger blast radius than a git-only checker. It ships
+only with all five:
+
+1. **Dedicated least-privilege read-only credentials per system**, from Infisical. Never ambient
+   operator credentials, never a shared key. The checker has its own identity.
+2. **A per-system operation allowlist.** Only the named read operations for that system. Anything
+   not listed is refused rather than attempted.
+3. **Symmetric failure semantics.** Auth failure, timeout, rate limit or system-unavailable resolve
+   `UNKNOWN` with reason `probe_unavailable` — **never `CONTRADICTED`**, mirroring the git rule
+   already stated. A flaky probe must never manufacture evidence that a true page is false; that
+   poisons the trust AC17b exists to measure.
+4. **Bounded.** Per-probe timeout and a rate ceiling per system per run, both declared in the registry.
+5. **Sanitised evidence.** A probe response can carry account identifiers, ARNs, endpoints or
+   configuration. Evidence is scrubbed of secrets and sensitive metadata before it is written
+   anywhere, because AC15 evidence lands in a searchable catalogue. This is CORE S2 reaching the
+   checker: the tool built to verify our documentation must not become the thing that leaks it.
+
+**AC14c — the deployed backend keeps its commit.** It has a deploy SHA, so it registers as a git
+system whose revision is read from the live deployment, not as a commit-less probe target. Modelling
+it as commit-less would forfeit the pin-versus-deployed comparison §0 names as the standing residual
+risk, on exactly the pages where staleness bites hardest. *(Kimi minor, round 2.)*
 
 *(CC M3 and Kimi M4. Kimi's version is the sharper one and it is stated plainly here: Finding 3 says
 the missing knowledge is the business — AWS, Qdrant, Cloudflare, CRM, the publish journey — and
@@ -407,3 +461,22 @@ deferred or argued away.
 | Kimi M5 | No corpus re-check cadence | AC18b |
 | Kimi M6 | Derived ids do not survive relocation | AC2a: pinned at first index, old path retained as alias |
 | GLM M4, GLM M5 | Dangling `§1.4` reference; AC18a scope vs §8b | Reference removed; AC18a explicitly scoped out of Gate 1 |
+
+## §11 Round-2 mandate disposition
+
+Unanimous APPROVED_WITH_MANDATES from CC `94dafc05`, Kimi `4ed0da72`, GLM `42860baa`. No blocking
+defects. All three verified every round-1 fold as genuine. Two majors and five minors, all folded here.
+
+| Raised by | Mandate | Disposition |
+|---|---|---|
+| CC M2, GLM M1, Kimi M2 | Live probes ship with no credential model, no operation allowlist, no failure semantics, no evidence sanitisation | AC14b: five-part safety contract, all required before ship |
+| CC M1, Kimi M1 | Claim grammar contradicts itself; path ownership referenced but undefined; `system_name` is a page slug on root pages; prose pins never parsed | AC12a: five-step binding order with precedence stated; ownership map added to the registry |
+| Kimi, GLM, CC | The unindexed set stated three ways (83 / 82 / 81) | §1 fixes on 82, with the three sets defined and distinguished |
+| Kimi | Measured figures count the draft itself | §1 states both the pinned-commit and authoring-checkout figures |
+| CC, Kimi | `CATALOG.json` counted inside a markdown-only tally | AC1 exclusion table separates it |
+| Kimi | Form 6's example (`yaml operate`) is a section tag, not a system | Example replaced; section tags explicitly fall through to AC12a |
+| Kimi | Deployed backend modelled as commit-less, forfeiting pin-vs-deployed | AC14c registers it as a git system |
+
+Both majors were found the same way, and it is worth recording: the reviewers were asked to take a
+real page from the corpus and run the grammar over it by hand. Reading the design alone would not
+have surfaced either.
