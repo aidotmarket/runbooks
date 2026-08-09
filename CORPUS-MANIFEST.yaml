@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: c2cdc2ebb5c2e308321babf5960fd518808a2283
+  inventory_sha: 48bb27048f6e85342d8183dbd5136850964c7793
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -107,7 +107,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: ai-market-backend.md
-    git_blob_oid: 161c99b3b7652ce61ae95268bed7a5fb4c912ba9
+    git_blob_oid: ff4a795284446af9f2566dd84ce0048ac480195a
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -416,7 +416,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: codex-mp.md
-    git_blob_oid: c0f6a54dbabdcedbe99a16040d3e615937b61181
+    git_blob_oid: bcd5a2c980edb013ff0d5ad5a97a6ab834711599
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -492,8 +492,8 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-architecture.md
-    inventory_path: crm-architecture.md
-    git_blob_oid: ccee8bbacd5b525cf25fa63165641fac938b620e
+    inventory_path: archive/legacy-crm-s1490/crm-architecture.md
+    git_blob_oid: d2c55e84f2ceede0760c8842fc43475f7ec4a2db
     catalog_state: archived
     status: archived
     proposed_disposition: merge_then_archive
@@ -510,8 +510,8 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-pipeline.md
-    inventory_path: crm-pipeline.md
-    git_blob_oid: 644b259a6e65580e3880682fbd62d9176d4b3f89
+    inventory_path: archive/legacy-crm-s1490/crm-pipeline.md
+    git_blob_oid: 0aa9c6f2e47e32980663671ca0fbf50af0f1d729
     catalog_state: archived
     status: archived
     proposed_disposition: merge_then_archive
@@ -528,8 +528,8 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-target-state.md
-    inventory_path: crm-target-state.md
-    git_blob_oid: 0dc8fc432b15f9ba6387a5d0043286e188be2c03
+    inventory_path: archive/legacy-crm-s1490/crm-target-state.md
+    git_blob_oid: 248c418d3a4709972fc3037782bf9e8eda131183
     catalog_state: archived
     status: archived
     proposed_disposition: merge_then_archive
@@ -915,7 +915,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: 6186bee61438b21cf95969de19304b8c11fcc09e
+    git_blob_oid: a5639192a064f78ca32fc92691ab5eb4b399e1ab
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1314,7 +1314,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: schema-migration.md
-    git_blob_oid: 0ac4fd7a72a612214bec6fbc1c2405b7040790c4
+    git_blob_oid: bc316dd9345435b124543d9b94bf4cd5eb0c6d17
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1586,7 +1586,7 @@ documents:
       - deployed customer surface and current feature flags
     independent_review_required: false
   - path: work-checkout.md
-    git_blob_oid: 2bcc46c387efe76a9e99d895247b3d0eb6e0923a
+    git_blob_oid: d2f6aa3a78fffb15f6f38ad658136028a1c83667
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
