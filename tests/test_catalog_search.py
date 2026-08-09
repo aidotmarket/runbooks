@@ -1413,7 +1413,7 @@ def test_complete_pinned_corpus_counts_and_every_exact_path_is_retrievable(
         manifest.active,
         manifest.grandfathered,
         manifest.archived,
-    ) == (105, 21, 83, 1)
+    ) == (105, 22, 82, 1)
     assert len(snapshot) == 105
 
     seen_paths: set[str] = set()
@@ -1500,7 +1500,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
     assert {
         state: state_counts[state]["searched_document_count"]
         for state in ("active", "grandfathered", "archived")
-    } == {"active": 21, "grandfathered": 83, "archived": 1}
+    } == {"active": 22, "grandfathered": 82, "archived": 1}
     assert state_counts["grandfathered"]["qualifying_document_count"] == 1
     assert state_counts["grandfathered"]["returned_document_count"] == 1
     assert state_counts["grandfathered"]["omitted_document_count"] == 0
