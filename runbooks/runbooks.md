@@ -67,7 +67,7 @@ have surprised us before, each with the error string that announces it.
 
 **This page describes today, not the plan.** An approved design
 (`specs/RUNBOOK-TRUTH-LAYER-S1487.md`, Gate 1 APPROVED unanimously at `2fcf551e`) changes most
-of §B and §C: it indexes all 103 pages, derives signals from page bodies rather than
+of §B and §C: it indexes every page, derives signals from page bodies rather than
 hand-curated frontmatter, and removes template conformance as an admission condition. **None
 of it is built.** Until it is, what is written below is what you get.
 
@@ -78,9 +78,9 @@ Figures measured 2026-08-09 on `fix/runbooks-lint-red-s1487`. Recompute rather t
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Machine search reaches indexed pages only | PARTIAL | `runbook_tools/catalog/search.py` | Reaches 21 of 103 pages | 2026-08-09 |
+| Machine search reaches indexed pages only | PARTIAL | `runbook_tools/catalog/search.py` | Reaches 21 of 104 pages | 2026-08-09 |
 | Machine search on `main` | BROKEN | `runbook_tools/catalog/search.py` | Catalog fails validation before any result is produced, so every query errors and returns nothing | 2026-08-09 |
-| Corpus coverage | PARTIAL | `CATALOG.json` | 21 indexed, 82 unindexed, 1 archived, of 103 source documents | 2026-08-09 |
+| Corpus coverage | PARTIAL | `CATALOG.json` | 21 indexed, 83 unindexed, 1 archived, of 104 source documents | 2026-08-09 |
 | Retrieval quality, human router | PARTIAL | `TOPIC-ROUTER.md` | Recall 3 of 32, precision@5 0.019, on the AC8 set | 2026-08-09 |
 | Retrieval quality, machine index | BROKEN | `CATALOG.json` | Recall 0 of 32 on the same set; catalog invalid on main | 2026-08-09 |
 | Search result cap | SHIPPED | `runbook_tools/catalog/search.py` | Refuses limit above 3, so precision@5 is capped at 0.2 by the surface itself | 2026-08-09 |
@@ -99,7 +99,7 @@ The retrieval figures come from the frozen AC8 question set at
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| The corpus | `aidotmarket/runbooks` working tree | git | everything | 103 source documents. 22 under `runbooks/`, 81 at the repository root. Root pages are NOT indexed, whatever their content. |
+| The corpus | `aidotmarket/runbooks` working tree | git | everything | 104 source documents. 23 under `runbooks/`, 81 at the repository root. Root pages are NOT indexed, whatever their content. |
 | `CATALOG.json` | `runbook-catalog generate` | git | search, router, README | **Generated. Never hand-edit.** Sole machine authority for what is indexed and for which page owns which topic. |
 | `TOPIC-ROUTER.md` | `runbook-catalog generate` | git | humans | **Generated. Never hand-edit.** A display surface over `CATALOG.json`, nothing more. |
 | `CORPUS-MANIFEST.yaml` | `python3 -m runbook_tools.corpus_manifest --refresh-from <sha>` | git | CI lint | An inventory and adjudication ledger, NOT an authority. It pins a git blob OID per document, so editing any tracked page invalidates the pin until refreshed. |
@@ -157,7 +157,7 @@ The retrieval figures come from the frozen AC8 question set at
     - signature: search limit must be an integer from 1 to 3
       cause: "The surface refuses more than three results. Precision@5 is therefore capped at 0.2 by the surface itself."
   next_step_success: Read the page
-  next_step_failure: Fall back to E-01. Search covers 21 of 103 pages; grep covers all of them.
+  next_step_failure: Fall back to E-01. Search covers 21 of 104 pages; grep covers all of them.
 
 - id: E-03
   trigger: You need to write a new runbook
@@ -225,6 +225,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 | F-06 | `<path>: dangling section '§X.N'` | Frontmatter or a cross-reference names a section heading that does not exist in the page body | `grep -n "^#" <path>` and compare against the declared sections | G-03 | CONFIRMED |
 | F-07 | Search finds our councils, gates and dispatch procedures but nothing about AWS, Qdrant, the backend, the frontend, Cloudflare, CRM, AIM Data, seller publish or schema migration | Not a bug. The indexed 21 and the unindexed 82 have zero filename overlap: the machinery indexed its own paperwork. Search reaches our process and not our product. | Compare `CATALOG.json` paths against `ls *.md` | G-04 | CONFIRMED |
 | F-08 | Hand-curated error signatures do not match the errors you actually hit | Signatures are declared by hand in frontmatter. The index scored 0 of 8 on error strings taken from pages it already held (S1487). Indexing more hand-curated pages does not fix this; deriving signals from page bodies does, and that is unbuilt. | Try E-01 with the literal string | G-04 | CONFIRMED |
+| F-09 | A command line tool disagrees with the same check run as a module, e.g. `runbook-catalog validate` says `schema_version must be 1` while `python3 -m runbook_tools.catalog validate` passes | A stale global install of the console scripts shadows the working tree. CI installs the tree with `pip install -e '.[dev]'` and is unaffected, so this appears as a local-only phantom failure. | `which runbook-catalog` against `python3 -c "import runbook_tools;print(runbook_tools.__file__)"` | G-05 | CONFIRMED |
 
 ## §G. Repair
 
@@ -267,7 +268,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 - id: G-04
   symptom_ref: F-07
   component_ref: The corpus
-  root_cause: Search covers 21 of 103 pages and its signals are hand-declared, so a page can exist and still be unreachable by any query.
+  root_cause: Search covers 21 of 104 pages and its signals are hand-declared, so a page can exist and still be unreachable by any query.
   repair_entry_point: grep over the working tree
   change_pattern: >
     Search with the literal string rather than the index. If the page turns out to exist and
@@ -275,6 +276,18 @@ These are the things that have surprised sessions before. Each row is a real fai
     and regenerate. Do not conclude a subject is undocumented from a search miss alone.
   rollback_procedure: none - the repair is a read followed by an additive frontmatter edit.
   integrity_check: grep -rn "<string>" /Users/max/Projects/ai-market/runbooks --include='*.md'
+
+- id: G-05
+  symptom_ref: F-09
+  component_ref: Linter
+  root_cause: A globally installed copy of the console scripts shadows the checked-out working tree.
+  repair_entry_point: python3 -m runbook_tools.<module>
+  change_pattern: >
+    Prefer the module form over the console script for every check, or reinstall the working
+    tree with pip install -e '.[dev]'. Never diagnose a catalog or lint failure from the
+    console script alone without confirming which copy answered.
+  rollback_procedure: none - the repair is a change of invocation.
+  integrity_check: python3 -c "import runbook_tools;print(runbook_tools.__file__)"
 ```
 
 ## §H. Evolve
@@ -284,7 +297,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 - `CATALOG.json`, `TOPIC-ROUTER.md` and the generated block in `README.md` are outputs. Regenerate them; never hand-edit them.
 - `CORPUS-MANIFEST.yaml` is an inventory, never an authority. A page does not become true by being listed in it.
 - A page under the repository root is not indexed, whatever its content or frontmatter.
-- Grep reaches all 103 pages; search reaches 21. Never conclude something is undocumented on a search miss alone.
+- Grep reaches all 104 pages; search reaches 21. Never conclude something is undocumented on a search miss alone.
 - Recompute corpus figures. Do not quote them from a handoff, including this page: every figure here carries the date it was measured and the command that measures it.
 
 ### §H.2 BREAKING predicates
@@ -349,7 +362,7 @@ scenario_set:
     type: operate
     refs: [E-02, F-04]
     scenario: |
-      id: E-02. trigger: An operator runs an indexed search on main and every query returns an error rather than results. pre_conditions: none. tool_or_endpoint: runbook-catalog search. argument_sourcing: a question phrased in words that appear on the target page. idempotency: IDEMPOTENT. expected_success: at most three results. expected_failures: catalog validation failed, emitted before any result is produced, so the surface returns nothing rather than something poor. next_step_success: read the page. next_step_failure: fall back to grep, which reaches all 103 pages where search reaches 21.
+      id: E-02. trigger: An operator runs an indexed search on main and every query returns an error rather than results. pre_conditions: none. tool_or_endpoint: runbook-catalog search. argument_sourcing: a question phrased in words that appear on the target page. idempotency: IDEMPOTENT. expected_success: at most three results. expected_failures: catalog validation failed, emitted before any result is produced, so the surface returns nothing rather than something poor. next_step_success: read the page. next_step_failure: fall back to grep, which reaches all 104 pages where search reaches 21.
     expected_answers:
       - kind: classification
         label: catalog invalid, not a ranking problem
