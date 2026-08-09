@@ -87,8 +87,8 @@ gives the exact verification query.
 | Interaction log | SHIPPED | `app/domains/crm/core/models.py:CrmPartyInteraction` | 167 rows across 8 interaction types | 2026-08-09 |
 | Task lifecycle | SHIPPED | `app/domains/crm/core/models.py:CrmPartyTask` | 87 rows: 55 pending, 27 completed, 5 cancelled | 2026-08-09 |
 | Natural-language agent dispatch | SHIPPED | `app/allai/agents/crm_steward.py:CRMStewardAgent` | `crm_request` returned a structured envelope with `actions_taken` | 2026-08-09 |
-| CRM Steward skills | PARTIAL | `app/services/crm_steward_skills.py:CRM_SKILLS` | 29 registered skills, 9 read and 19 write; the 3 pipeline skills are BROKEN, see §F-01 | 2026-08-09 |
-| Pipeline stages and contact pipeline | BROKEN | `app/services/crm_steward_skills.py:get_pipeline_status` | Live call failed: backing tables deleted 2026-07-03, see §F-01 | 2026-08-09 |
+| CRM Steward skills | PARTIAL | `app/services/crm_steward_skills.py:CRM_SKILLS` | 29 registered skills, 10 read and 19 write; `get_pipeline_status` is BROKEN, see §F-01 | 2026-08-09 |
+| Pipeline stage reporting | BROKEN | `app/services/crm_steward_skills.py:get_pipeline_status` | Live call failed: backing tables deleted 2026-07-03, see §F-01 | 2026-08-09 |
 | Referrals | PARTIAL | `app/api/v1/endpoints/crm_referrals.py` | 3 rows in `crm_party_referral`; endpoint reads the party table, the legacy model object is dead | 2026-08-09 |
 | Email drafts | PARTIAL | `app/api/v1/endpoints/crm.py` | `crm_party_email_draft` has 0 rows in production; path is unexercised | 2026-08-09 |
 | Payments connector (party to Stripe Connect) | SHIPPED | `app/services/crm/stripe_connect_identity_reader.py` | 7 `stripe_connect` identities in production | 2026-08-09 |
@@ -107,7 +107,7 @@ gives the exact verification query.
 | CRM operations | `app/domains/crm/core/models.py` | `crm_party_task`, `crm_party_interaction`, `crm_party_email_draft`, `crm_party_playbook`, `crm_party_learned_preference`, `crm_party_conversation_state`, `crm_party_referral` | Party core by `party_id` | The work layer. Every row points at a party. `legacy_entity_id` on task and interaction is a dead pointer to a deleted table, kept for provenance only. |
 | CRM service layer | `app/services/crm_service.py:CRMEntityService` | Party core plus CRM operations | Steward skills, REST endpoints | Roughly 4,000 lines. Contains 14 surviving `select(CRM*)` sites against deleted tables, gated behind a hard-disabled fallback. |
 | CRM Steward agent | `app/allai/agents/crm_steward.py:CRMStewardAgent` | Reads and writes through the service layer | allAI, Koskadeux MCP tools | Parses natural language, chooses skills, returns a structured envelope with `ok`, `status`, `result`, `error`, `warnings`, `trace_id`, `actions_taken`. |
-| Steward skills | `app/services/crm_steward_skills.py:CRM_SKILLS` | Party core plus CRM operations | The steward agent | 29 skills: 9 read, 19 write, 1 health. Three pipeline skills are broken, see §F-01. |
+| Steward skills | `app/services/crm_steward_skills.py:CRM_SKILLS` | Party core plus CRM operations | The steward agent | 29 skills: 10 read (health is one of them) and 19 write. One skill, `get_pipeline_status`, is broken, see §F-01. |
 | REST surface | `app/api/v1/router.py` | Party core plus CRM operations | Frontend, internal callers, accounting | Mounted at `/api/v1/crm` behind `require_crm_auth_by_method` and `enforce_crm_permissions`. |
 | Read-route shim | `app/domains/crm/phase_b/read_flags.py:get_read_route` | none | Service layer, steward skills | Always returns `party_only`. `legacy_fallback_enabled()` returns `False` unconditionally. This is what keeps the 33 legacy select sites unreachable. |
 | Write-mode shim | `app/core/config.py:get_crm_v2_write_mode` | none | Service layer | Always returns party-authoritative. Named a compatibility shim in its own docstring. |
@@ -345,14 +345,16 @@ useless for joining.
 | CRM Steward | Relationships | `create_relationship` | write | COMPLETE |
 | CRM Steward | Merge and delete | `merge_contacts`, `delete_entity`, `delete_task` | write | COMPLETE |
 | CRM Steward | Pipeline read | `get_pipeline_status` | read | GAP — backing tables deleted 2026-07-03; closed by deleting the skill or rebuilding it on `crm_opportunity`, a Max decision. See §F-01. |
-| CRM Steward | Pipeline write | `move_contact_forward`, `bulk_move_contacts` | write | GAP — same cause and same closure as the pipeline read row. See §F-01. |
+| CRM Steward | Move a contact's open tasks forward by N days | `move_contact_forward`, `bulk_move_contacts` | write | COMPLETE |
 | Support agent | Open a ticket carrying a party link | `support_ticket_create` | internal or authenticated user | PARTIAL — internal callers resolve to a null party id; closed by resolving the requester party at creation. See §F-04. |
 | Accounting consumer | Read commission accruals and referrals | `GET /api/v1/accounting/crm/*` | `accounting:read` | PARTIAL — contract shipped but every backing table holds zero rows, so it is unexercised. See §F-10. |
 
-**Gap analysis.** `get_pipeline_status`, `move_contact_forward` and `bulk_move_contacts` are
-GAP because their backing tables were deleted on 2026-07-03; the gap closes by either removing
-the three skills or rebuilding them on `crm_opportunity`, and the choice is Max's (see §F-01
-and §G-01). Ticket creation is PARTIAL because internal callers resolve to a null party id, so
+**Gap analysis.** `get_pipeline_status` is GAP because its pipeline branch reads tables deleted
+on 2026-07-03; the gap closes by either removing the skill or rebuilding it on `crm_opportunity`,
+and the choice is Max's (see §F-01 and §G-01). Do not assume the two `move_*` skills share that
+fault. Despite the name, `move_contact_forward` and `bulk_move_contacts` move task due dates and
+run entirely on the live `crm_party_task` table via
+`CRMTaskService.move_entity_tasks_forward`. They are healthy. Ticket creation is PARTIAL because internal callers resolve to a null party id, so
 the ticket-to-party link is never written; the gap closes by resolving the requester's party
 from their email or user id at creation (see §F-04 and §G-04). The accounting read contracts
 are PARTIAL because the endpoints are mounted and correct but every backing table holds zero
