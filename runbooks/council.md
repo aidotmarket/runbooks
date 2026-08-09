@@ -58,6 +58,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | Council Hall multi-agent deliberation | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | Council Hall dispatch path exercised by deliberation sessions | 2026-04-29 |
 | Cross-review-gate enforcement | SHIPPED | `koskadeux-mcp gateway author-mode dispatch tokens` | Gateway author/read-only distinction reviewed in gate process audits | 2026-04-29 |
 | Living State config authority | SHIPPED | `infra:council-comms` | State freshness verified during Council runbook conformance chunks | 2026-04-29 |
+| Directory drop (`scripts/council_dir.py`) | SHIPPED | `koskadeux-mcp/scripts/council_dir.py`, `koskadeux-mcp/sandbox/council_member.sb` | Verified end to end S1496: glm 35s, kimi 57s, both confirmed the write fence from inside the sandbox | 2026-08-10 |
 | Retired-agent cold storage | DEPRECATED | — | XAI active-dispatch coverage retired; cold-storage state lives in `infra:council-comms.retired_agents.xai` | 2026-04-29 |
 
 ## §C. Architecture & Interactions
@@ -81,6 +82,49 @@ reviewer or remove Kimi from policy merely to make the call validate.
 Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring-gap detection per S526 Chunk 3B precedent. AG is cross-vote and secondary because Gemini 3.1 Pro is a frontier reviewer, but line-number fabrication risk on code audits per S499 excludes AG from `gate3_post_build_audit` since S342. DeepSeek is a full voter after graduating S528 with 94 dispatches, `success_rate=1.0`, `verdict_agreement_with_primary=1.0`, `fabricated_line_reference_rate=0.0`, and statistical_record_floor crushed 4.7x. CC is fallback builder because it gives a 300s MP Codex CLI timeout safety net, Opus-tier reasoning for complex multi-file builds, and a 600s default timeout.
 <!-- /catalog:historical -->
 
+### Directory drop: the S1477 replacement path
+
+There are now two ways to reach a Council member. `council_request` is the older one and
+is still the default. The directory drop is Max's design from S1477 and S1496, and it is
+what `council_request` is expected to be replaced by.
+
+The whole of it: each member owns a directory under `/Users/max/council/<member>/`. A
+request is a file placed in that directory. The answer is a file the member writes back
+to the same directory. The only moving part is a starter that points the member at the
+file, because CC, GLM and Kimi are command-line processes and none of them watches a
+folder. The instruction the member receives is one sentence: read this file in your
+directory and write your response to that file in the same directory.
+
+    scripts/council_dir.py ask  <member|all>  <file|->
+    scripts/council_dir.py run  <member|all>
+
+Read is unrestricted. Max, S1477: "I want council to make its own decisions on what it
+wants to read." Nothing curates a member's reading list, and a member that ignores any
+suggested list entirely and answers from something nobody mentioned must be accepted
+unchanged and unpenalised.
+
+Write is confined to the member's own directory by `sandbox/council_member.sb`, a macOS
+`sandbox-exec` profile applied at launch. Every repository on this machine is readable
+and none is writable. This is a fence, not a filter: it cannot refuse a review, discard
+an answer, or judge anything, which is why it is allowed to exist when the rest of the
+harness is not. Verified in S1496 by asking GLM and Kimi to write into `koskadeux-mcp`;
+both tried, both were refused by the kernel, and both reported it themselves.
+
+What is deliberately absent, with what each one cost on 2026-08-09 alone: JSON schema and
+structured-output validation (destroyed a GLM round in S1473); turn and call budgets
+(destroyed a Kimi round in S1471); cwd pinning and the workspace-mutation check (discarded
+a completed GLM verdict in S1496 and named GLM as the cause when the mutation was a peer's
+kernel repin); curated file lists and `review_sources` (handed Kimi a backend it could not
+reach in S1496, leaving three of four questions unanswerable); the verdict parser and the
+persistence push (both completed S1496 reviews returned `push_rejected`); and
+`dispatch_sha` / `verdict_target_branch` (killed three S1496 dispatches before any model
+ran). None of these has ever been shown to catch a bad review.
+
+Status: running alongside `council_request`, not wired into it. GLM and Kimi are verified.
+CC is unverified for one reason only - `ANTHROPIC_API_KEY` is not present in the process
+environment the way the Infisical-sourced GLM and Kimi credentials are. Same binary and
+same fence as GLM; nothing further to design.
+
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Council Dispatch | `koskadeux-mcp/tools/agents.py:_handle_call_*` | dispatch task records | One explicitly selected backend per call | Routes a singular `agent` under explicit `mode`; `action` manages existing build tasks only. |
@@ -88,6 +132,8 @@ Strategic why: MP is primary reviewer because Codex CLI automated; deeper wiring
 | Council Hall | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | deliberation IDs, response transcripts | Configured voter panel and synthesis | Runs multi-agent deliberation when independent reviews are insufficient. |
 | Gate Roster | `koskadeux-mcp/council_gate_runner.py` deployed constants plus newest `infra:council-comms` amendment | required member ids and policy history | Gate Review Flow, gateway schema | S1321 records exact `{cc,kimi,glm}` membership; code/schema/state disagreement fails closed. |
 | Dispatch Contract | live `council_request` tool schema at the deployed gateway SHA | accepted argument names and enums | agents, runbooks, connector clients | Unknown or client-blocked arguments are schema drift, not an invitation to improvise. |
+| Directory Drop | `koskadeux-mcp/scripts/council_dir.py` | request/response files under `/Users/max/council/<member>/` | GLM, Kimi and CC command-line binaries | Max's S1477 design. One sentence of instruction, no schema, no budgets, no curated inputs, no verdict parser, no push step. |
+| Member Write Fence | `koskadeux-mcp/sandbox/council_member.sb` | none | `sandbox-exec` at member launch | Read anywhere, write only the member's own directory, enforced by the kernel. Cannot refuse or discard work, only confine a write. |
 | Policy History | `infra:council-comms` superseding amendment records | role/model/retirement history and quirks | operators, deployment verification | Read newest superseding records; absent fields such as `review_order` and `dispatch_patterns` are not valid state paths. |
 
 ## §D. Agent Capability Map
@@ -165,6 +211,30 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
     - {signature: "no resolution", cause: wrapper state and Git evidence disagree}
   next_step_success: Continue waiting, verify terminal artifacts, or promote only after evidence agrees
   next_step_failure: Preserve the task and branch evidence and follow agent-dispatch reconciliation; do not blindly redispatch
+- id: E-04
+  trigger: A Council member is needed and the directory drop is being used instead of council_request.
+  pre_conditions: [member_credential_present_in_process_env, sandbox_profile_present, council_root_writable]
+  tool_or_endpoint: "koskadeux-mcp/scripts/council_dir.py ask <glm|kimi|cc|all> <request_file>"
+  argument_sourcing:
+    member: glm, kimi or cc; all asks the three in turn and a member that cannot start steps aside rather than aborting the others
+    request_file: a plain markdown file stating what is wanted; a suggested reading list is a hint only and must never be enforced
+  expected_result: a response-<stamp>.md written by the member into its own directory next to the request
+  verification: the response file exists in /Users/max/council/<member>/ and the starter prints its path and elapsed time
+  failure_modes:
+    - signature: "no response written after"
+      cause: the member started, read the request, and did not write; usually a missing tool grant or a credential the member could not use
+      repair: read the tail of the starter output printed alongside the message; it carries the member's own account
+    - signature: "operation not permitted"
+      cause: the member tried to write outside its own directory and the kernel refused
+      repair: none needed - this is the fence working as designed and is expected in fence tests
+    - signature: "is not set; source the credential first"
+      cause: the member's API credential is absent from the process environment
+      repair: source it; GLM and Kimi come through Infisical, CC's ANTHROPIC_API_KEY currently does not
+  notes: >-
+    No schema, no turn budget, no cost cap, no pinned commit, no curated file list, no
+    workspace-mutation check and no push step. Do not add any. Every one of them has
+    destroyed a completed review and none has been shown to catch a bad one.
+
 ```
 
 ## §F. Isolate
