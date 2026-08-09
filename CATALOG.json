@@ -180,57 +180,6 @@
       "supersedes": []
     },
     {
-      "aliases": [
-        "builder-gates",
-        "mp-build-controls",
-        "wrapper-controls"
-      ],
-      "authoritative_for": [
-        {
-          "section": "\u00a7C. Architecture & Interactions",
-          "topic": "builder-controls"
-        },
-        {
-          "section": "\u00a7E. Operate",
-          "topic": "builder-control-inventory"
-        },
-        {
-          "section": "\u00a7G. Repair",
-          "topic": "builder-failure-salvage"
-        }
-      ],
-      "domain": "council-koskadeux-orchestration",
-      "error_signatures": [
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "RepairExhaustedError"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "post_build_multiple_commits"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "builder_output_claim_mismatch"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "hard_timeout_uncommitted_work"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "before_reap_persistence_failed"
-        }
-      ],
-      "last_verified_at": "2026-08-06",
-      "owner": "vulcan",
-      "path": "builder-controls.md",
-      "runbook_id": "builder-controls",
-      "status": "ACTIVE",
-      "superseded_by": [],
-      "supersedes": []
-    },
-    {
       "aliases": [],
       "authoritative_for": [
         {
@@ -750,6 +699,48 @@
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
+    },
+    {
+      "aliases": [
+        "build-queue-runner",
+        "codex-queue"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "build-queue-operator-recovery"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "task-spooler-build-queue"
+        }
+      ],
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "Codex FIFO unavailable"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "dispatch refused before model execution"
+        },
+        {
+          "section": "\u00a7G. Repair",
+          "signature": "queued row with idle slot"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "tsp command not found"
+        }
+      ],
+      "last_verified_at": "2026-08-09",
+      "owner": "vulcan",
+      "path": "runbooks/task-spooler-build-queue.md",
+      "runbook_id": "task-spooler-build-queue",
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
     }
   ],
   "indexes": {
@@ -757,6 +748,14 @@
       "allai-corpus-policy": {
         "runbook_id": "corpus-capture-policy",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "build-queue-runner": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
+      },
+      "codex-queue": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
       },
       "council-verdict-collection": {
         "runbook_id": "council-review-collection",
@@ -776,6 +775,10 @@
       }
     },
     "error_signatures": {
+      "Codex FIFO unavailable": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
+      },
       "agent silence": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -847,6 +850,10 @@
       "directional_evidence_missing": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
+      },
+      "dispatch refused before model execution": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
       },
       "dispatch_sha_invalid": {
         "runbook_id": "council-review-collection",
@@ -980,6 +987,10 @@
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7F. Isolate"
       },
+      "queued row with idle slot": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7G. Repair"
+      },
       "read-only agent attempted write": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -1044,6 +1055,10 @@
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
       },
+      "tsp command not found": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
+      },
       "unlanded_branch_believed_landed": {
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7F. Isolate"
@@ -1081,6 +1096,10 @@
       "branch-landed-verification": {
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "build-queue-operator-recovery": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
       },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
@@ -1173,6 +1192,10 @@
       "session-plan-runbook-context": {
         "runbook_id": "peer-instance-discipline",
         "section": "\u00a7E. Operate"
+      },
+      "task-spooler-build-queue": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7C. Architecture & Interactions"
       }
     }
   },

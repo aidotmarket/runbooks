@@ -11,9 +11,7 @@
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture--interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C. Architecture & Interactions](runbooks/aging-policy.md#c-architecture--interactions) |
 | `branch-landed-verification` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§C. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture--interactions) |
-| `builder-controls` | `builder-controls` (`builder-controls.md`) | [§C. Architecture & Interactions](builder-controls.md#c-architecture--interactions) |
-| `builder-control-inventory` | `builder-controls` (`builder-controls.md`) | [§E. Operate](builder-controls.md#e-operate---the-indexed-control-inventory) |
-| `builder-failure-salvage` | `builder-controls` (`builder-controls.md`) | [§G. Repair](builder-controls.md#g-repair) |
+| `build-queue-operator-recovery` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture--interactions) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C. Architecture & Interactions](runbooks/constitution-history.md#c-architecture--interactions) |
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture--interactions) |
@@ -37,14 +35,13 @@
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `session-plan-runbook-context` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
+| `task-spooler-build-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§C. Architecture & Interactions](runbooks/task-spooler-build-queue.md#c-architecture--interactions) |
 
 ## Error signatures
 
 | Signature | Runbook | Section |
 |---|---|---|
-| `RepairExhaustedError` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
-| `post_build_multiple_commits` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
-| `builder_output_claim_mismatch` | `builder-controls` (`builder-controls.md`) | [§F. Isolate](builder-controls.md#f-isolate) |
+| `Codex FIFO unavailable` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
 | `agent silence` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E. Operate](runbooks/council-hall-deliberation.md#e-operate) |
@@ -63,6 +60,7 @@
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
+| `dispatch refused before model execution` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
 | `dispatch_sha_invalid` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
 | `dispatch_terminal_state_missing_after_restart` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `duplicate_claim_on_one_item` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
@@ -96,6 +94,7 @@
 | `product_boundary_conflict` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§F. Isolate](runbooks/product-elaboration.md#f-isolate) |
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
+| `queued row with idle slot` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§G. Repair](runbooks/task-spooler-build-queue.md#g-repair) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E. Operate](runbooks/council-review-collection.md#e-operate) |
 | `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
@@ -112,6 +111,7 @@
 | `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8](runbooks/agent-dispatch.md#x8) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `tsp command not found` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
 | `unlanded_branch_believed_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `unread_request_or_alert_at_dispatch` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -123,6 +123,8 @@
 | Alias | Runbook | Section |
 |---|---|---|
 | `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture--interactions) |
+| `build-queue-runner` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
+| `codex-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture--interactions) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture--interactions) |
