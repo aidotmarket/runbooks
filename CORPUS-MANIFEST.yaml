@@ -14,8 +14,8 @@ inventory:
   counts:
     operational_documents: 105
     source_documents: 104
-    active: 21
-    grandfathered: 83
+    active: 22
+    grandfathered: 82
     archived: 1
 policy:
   pending_is_not_authority: true
@@ -1284,10 +1284,10 @@ documents:
     independent_review_required: false
   - path: runbooks/runbooks.md
     git_blob_oid: 7729e10651d03af5a73ff9d84e742ebfeab7e629
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: promote
-    batch: recovery-data-integrity
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
     risk: P1
     target_paths:
       - runbooks/runbooks.md

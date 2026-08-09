@@ -1,7 +1,7 @@
 ---
 runbook_id: runbooks
 domain: runbooks
-status: DRAFT
+status: ACTIVE
 owner: mars
 system_name: runbooks
 purpose_sentence: How the runbook corpus actually works today - where a page has to live to be findable, how to write one, how to update one without breaking the pins, and how to check a claim against ground truth - written so no session has to rediscover it.
@@ -461,7 +461,7 @@ scenario_set:
 ```yaml lifecycle
 last_refresh_session: S1491
 last_refresh_commit: c1dc241
-last_refresh_date: 2026-08-09T16:30:00Z
+last_refresh_date: 2026-08-09T15:40:00Z
 owner_agent: mars
 refresh_triggers:
   - Any chunk of the truth-layer build lands; §B and §C change materially with each one
@@ -471,7 +471,7 @@ refresh_triggers:
   - Automated ground-truth checking ships; E-05 stops being manual
 scheduled_cadence: 30d
 last_harness_pass_rate: 0.0
-last_harness_date: 2026-08-09T16:30:00Z
+last_harness_date: 2026-08-09T15:40:00Z
 first_staleness_detected_at: null
 ```
 
@@ -479,7 +479,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1491 / 2026-08-09T16:30:00Z
+last_lint_run: S1491 / 2026-08-09T15:40:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
