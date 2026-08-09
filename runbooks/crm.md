@@ -11,7 +11,7 @@ lifecycle_ref: §J
 authoritative_scope: |
   The CRM data model and its operating surfaces: the party family (party, party_identity,
   party_person, party_organization, party_role_binding), the crm_party_* operations family,
-  the CRM Steward agent and its 29 skills, the three Koskadeux MCP tools, the REST surface
+  the CRM Steward agent and its 28 skills, the three Koskadeux MCP tools, the REST surface
   under /api/v1/crm and /api/v1/accounting/crm, and the two outward connectors (payments via
   party_identity provider stripe_connect, support tickets via support_ticket.requester_party_id).
   This runbook is the source of truth for which CRM tables exist in production and which were
@@ -106,11 +106,11 @@ gives the exact verification query.
 |---|---|---|---|---|
 | Party core | `app/domains/crm/core/models.py` | `party`, `party_person`, `party_organization`, `party_identity`, `party_role_binding` | Everything below; `users` via `party_identity(provider='auth_user')` | The canonical participant model. `party` is the spine, the detail tables hang off `party.id`, identities map external systems onto a party. |
 | CRM operations | `app/domains/crm/core/models.py` | `crm_party_task`, `crm_party_interaction`, `crm_party_email_draft`, `crm_party_playbook`, `crm_party_learned_preference`, `crm_party_conversation_state`, `crm_party_referral` | Party core by `party_id` | The work layer. Every row points at a party. `legacy_entity_id` on task and interaction is a dead pointer to a deleted table, kept for provenance only. |
-| CRM service layer | `app/services/crm_service.py:CRMEntityService` | Party core plus CRM operations | Steward skills, REST endpoints | Roughly 4,000 lines. Contains 14 surviving `select(CRM*)` sites against deleted tables, gated behind a hard-disabled fallback. |
+| CRM service layer | `app/services/crm_service.py:CRMEntityService` | Party core plus CRM operations | Steward skills, REST endpoints | Roughly 4,000 lines. Contains 15 surviving `select(CRM*)` sites against deleted tables. Most sit behind the hard-disabled read-route shim, but not all: see §C.1, where two sites in this file have no visible guard and reachability is unproven in both directions. Do not read this row as a guarantee. |
 | CRM Steward agent | `app/allai/agents/crm_steward.py:CRMStewardAgent` | Reads and writes through the service layer | allAI, Koskadeux MCP tools | Parses natural language, chooses skills, returns a structured envelope with `ok`, `status`, `result`, `error`, `warnings`, `trace_id`, `actions_taken`. |
 | Steward skills | `app/services/crm_steward_skills.py:CRM_SKILLS` | Party core plus CRM operations | The steward agent | 28 skills: 9 read (health is one of them) and 19 write. `get_pipeline_status` was removed at backend `5143235d`, see §F-01. |
 | REST surface | `app/api/v1/router.py` | Party core plus CRM operations | Frontend, internal callers, accounting | Mounted at `/api/v1/crm` behind `require_crm_auth_by_method` and `enforce_crm_permissions`. |
-| Read-route shim | `app/domains/crm/phase_b/read_flags.py:get_read_route` | none | Service layer, steward skills | Always returns `party_only`. `legacy_fallback_enabled()` returns `False` unconditionally. This is what keeps the 33 legacy select sites unreachable. |
+| Read-route shim | `app/domains/crm/phase_b/read_flags.py:get_read_route` | none | Service layer, steward skills | Always returns `party_only`. `legacy_fallback_enabled()` returns `False` unconditionally. This is what keeps most of the 37 legacy select sites unreachable. Exactly one site is proven reachable and the rest are unproven in both directions; see §C.1. |
 | Write-mode shim | `app/core/config.py:get_crm_v2_write_mode` | none | Service layer | Always returns party-authoritative. Named a compatibility shim in its own docstring. |
 | Payments connector | `app/services/crm/stripe_connect_identity_reader.py` | `party_identity` where `provider='stripe_connect'` | Stripe Connect, accounting endpoints | Canonical source for seller Stripe Connect identity. Legacy `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written but must not be read by new code. |
 | Accounting contracts | `app/api/v1/endpoints/accounting_crm.py` | `commission_accrual`, `crm_party_referral`, `party_identity` | Accounting consumers | Read-only, prefix `/api/v1/accounting/crm`, scope `accounting:read`. |
@@ -179,10 +179,14 @@ whose `__tablename__` points at the deleted tables: `CRMEntity`, `CRMPerson`, `C
 `CRMRelationship`, `CRMInteraction`, `CRMPlaybook`, `CRMTask`, `CRMEmailDraft`,
 `CRMLearnedPreference`, `CRMPipelineStage`, `CRMContactPipeline`, `CRMPipelineHistory`,
 `CRMReferral`, `CRMConversationState`. Importing them is harmless. Executing a query built from
-them raises `UndefinedTable`. Repo-wide there are 39 such query sites, in 6 files: 16 in
+them raises `UndefinedTable`. Repo-wide there are 37 such query sites, in 6 files: 15 in
 `app/services/crm_service.py`, 9 in `app/services/crm_steward_skills.py`, 5 in
-`app/api/v1/endpoints/crm.py`, 4 in `app/services/outreach_context_service.py`, 3 in
+`app/api/v1/endpoints/crm.py`, 3 in `app/services/outreach_context_service.py`, 3 in
 `app/services/crm_briefing_service_gmail.py` and 2 in `app/domains/crm/core/service.py`.
+Count the legacy sites with the model names that map to dropped tables, not with a bare
+`select(CRM` grep: the bare grep returns 41, because `CRMUserRole` and `CRMBriefingRun` point at
+`crm_user_roles` and `crm_briefing_runs`, both of which are LIVE. Those 4 sites are healthy and
+must not be deleted.
 Counting every reference to a dead model class rather than only query sites gives 460 across 31
 files. Chunk C1 of `build:bq-crm-code-reduction-s1490` removed 4 sites and 50 references at
 backend `5143235d` on 2026-08-09; the counts above are the post-deletion state.
@@ -474,7 +478,7 @@ ever exercised them (see §F-10).
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | An operator reports the CRM agent said the pipeline stages table does not exist, or that the migration may not have been run | RESOLVED 2026-08-09 at backend `5143235d`. Historical cause: `get_pipeline_status` queried `crm_contact_pipeline` and `crm_pipeline_stages`, deleted 2026-07-03, and narrated the `UndefinedTable` as a setup problem. The skill, the daily pipeline hygiene check, the stale contact check, the Telegram flow recovery and the whole daily maintenance timer are removed. If this symptom reappears, the deletion has been reverted or the prompt has regained a pipeline capability claim. | Ask `crm_request` a pipeline question. Correct behaviour is a clean statement that the CRM has no named pipeline stages, falling back to `crm_snapshot`. Verified live 2026-08-09 19:34Z. Or run `SELECT to_regclass('public.crm_pipeline_stages')` and expect null. | §G-01 | CONFIRMED |
-| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming `crm_people`, from a CRM code path other than pipeline | One of the 39 surviving legacy `select(CRM*)` sites executed. Do not assume this is exotic: per §C.1 only one site's reachability is proven and the rest are unproven in both directions, so an ungated site running is a live hypothesis, not an anomaly. | Grep `select(CRM` across the six files listed in §C.1 and find the enclosing function. Confirm `legacy_fallback_enabled()` still returns False, then check whether the failing site has any guard at all. | §G-02 | CONFIRMED |
+| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming `crm_people`, from a CRM code path other than pipeline | One of the 37 surviving legacy `select(CRM*)` sites executed. Do not assume this is exotic: per §C.1 only one site's reachability is proven and the rest are unproven in both directions, so an ungated site running is a live hypothesis, not an anomaly. | Grep `select(CRM` across the six files listed in §C.1 and find the enclosing function. Confirm `legacy_fallback_enabled()` still returns False, then check whether the failing site has any guard at all. | §G-02 | CONFIRMED |
 | F-03 | An agent proposes recreating `crm_entities`, `crm_people` or any other deleted table, or reports the CRM schema as broken | The agent is working from `crm-architecture.md`, `crm-pipeline.md` or `crm-target-state.md`, all superseded, which describe the deleted fourteen as "Active (production)". | Check whether the agent cites `crm_persons`, a table name that never existed. That phrasing is a reliable tell for the superseded documents. | §G-03 | CONFIRMED |
 | F-04 | A support ticket cannot be tied back to a CRM party, or `requester_party_id` is null on every ticket | `app/api/v1/endpoints/support.py:create_ticket` sets `requester_party_id` from the request for internal callers and from `principal.party_id` otherwise. `get_support_principal` returns a null `party_id` for internal actors, and internal callers do not pass one. Every ticket to date was opened by an internal actor. Nothing errors because `requester_key` falls back to the actor pair. | Count tickets where `requester_party_id` is not null against the total. Expect 0 of 580 as of 2026-08-09. | §G-04 | CONFIRMED |
 | F-05 | `party_person.last_interaction_at` stays null after interactions are logged | The party update after commit in the interaction write path did not run. Historically a regression in `log_interaction`. | Log an interaction via E-02, then read the party back via E-01 and compare `last_interaction_at`. | §G-05 | HYPOTHESIZED |
@@ -503,7 +507,7 @@ ever exercised them (see §F-10).
   repair_entry_point: app/domains/crm/phase_b/read_flags.py:legacy_fallback_enabled
   change_pattern: Confirm the shim still returns False unconditionally. If it does, the caller reached the query without passing through get_read_route, so route it through the party path or delete the branch. Deleting a dead legacy branch is preferred over guarding it again, because the count of these sites should only ever fall.
   rollback_procedure: Revert the commit. Both states are non-functional for that path, so there is no data risk.
-  integrity_check: Re-run the failing operation and confirm no UndefinedTable in the trace. Then re-count the legacy select sites and confirm the total fell from 39.
+  integrity_check: Re-run the failing operation and confirm no UndefinedTable in the trace. Then re-count the legacy select sites and confirm the total fell from 37.
 - id: G-03
   symptom_ref: F-03
   component_ref: CRM service layer
@@ -572,7 +576,7 @@ ever exercised them (see §F-10).
 - Adding a new `party_identity` provider value.
 - Changing which of `due_date` or `due_at` a surface reads.
 - Adding a new endpoint under `/api/v1/crm` or `/api/v1/accounting/crm`.
-- Deleting any of the 33 legacy select sites, because each deletion changes a live file.
+- Deleting any of the 37 legacy select sites, because each deletion changes a live file.
 
 ### §H.4 SAFE predicates
 
