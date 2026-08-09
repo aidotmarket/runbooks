@@ -11,7 +11,7 @@ lifecycle_ref: §J
 authoritative_scope: |
   The queueing and execution layer between "an operator dispatches a build" and "a builder process starts": the Task Spooler binary, socket-per-repository conventions, job lifecycle, and operator recovery commands. Build semantics after the builder starts (worktree creation, commit, secret scan, push) belong to the minimal bridge and are covered in builder-controls.md. Council review dispatch is agent-dispatch.md.
 authoritative_for:
-  - topic: task-spooler-build-queue
+  - topic: task-spooler-queue-architecture
     section: §C. Architecture & Interactions
   - topic: build-queue-operator-recovery
     section: §E. Operate

@@ -35,7 +35,7 @@
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `session-plan-runbook-context` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E. Operate](runbooks/peer-instance-discipline.md#e-operate) |
-| `task-spooler-build-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§C. Architecture & Interactions](runbooks/task-spooler-build-queue.md#c-architecture--interactions) |
+| `task-spooler-queue-architecture` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§C. Architecture & Interactions](runbooks/task-spooler-build-queue.md#c-architecture--interactions) |
 
 ## Error signatures
 

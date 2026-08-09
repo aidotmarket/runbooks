@@ -712,7 +712,7 @@
         },
         {
           "section": "\u00a7C. Architecture & Interactions",
-          "topic": "task-spooler-build-queue"
+          "topic": "task-spooler-queue-architecture"
         }
       ],
       "domain": "council-operations",
@@ -1193,7 +1193,7 @@
         "runbook_id": "peer-instance-discipline",
         "section": "\u00a7E. Operate"
       },
-      "task-spooler-build-queue": {
+      "task-spooler-queue-architecture": {
         "runbook_id": "task-spooler-build-queue",
         "section": "\u00a7C. Architecture & Interactions"
       }
