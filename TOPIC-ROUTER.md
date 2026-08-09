@@ -56,7 +56,7 @@
 | `council_schema_drift` | `council` (`runbooks/council.md`) | [§F. Isolate](runbooks/council.md#f-isolate) |
 | `credential_exposed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
-| `cutover_admission_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8](runbooks/agent-dispatch.md#x8) |
+| `cutover_admission_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8--s1415-structural-buildreview-gate-replacement) |
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -108,7 +108,7 @@
 | `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8](runbooks/agent-dispatch.md#x8) |
+| `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8--s1415-structural-buildreview-gate-replacement) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `tsp command not found` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |

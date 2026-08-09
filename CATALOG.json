@@ -38,7 +38,7 @@
           "signature": "bootout_without_plist_patch"
         },
         {
-          "section": "\u00a7X.8",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "cutover_admission_unknown"
         },
         {
@@ -78,7 +78,7 @@
           "signature": "strict_verdict_invalid"
         },
         {
-          "section": "\u00a7X.8",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "structural_gate_unknown"
         },
         {
@@ -837,7 +837,7 @@
       },
       "cutover_admission_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.8"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
       },
       "default_cwd_false_positive": {
         "runbook_id": "agent-dispatch",
@@ -1045,7 +1045,7 @@
       },
       "structural_gate_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.8"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
       },
       "timeout": {
         "runbook_id": "council",
