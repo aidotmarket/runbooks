@@ -470,8 +470,6 @@ refresh_triggers:
   - CI runbook-lint changes state on main
   - Automated ground-truth checking ships; E-05 stops being manual
 scheduled_cadence: 30d
-last_harness_pass_rate: 0.0
-last_harness_date: 2026-08-09T15:40:00Z
 first_staleness_detected_at: null
 ```
 

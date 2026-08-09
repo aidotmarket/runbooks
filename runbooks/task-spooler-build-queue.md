@@ -437,8 +437,6 @@ refresh_triggers:
   - Slot count moves away from 1, or the CODEX_HOME concurrency question is settled
   - The legacy SQLite queue in codex_cli_bridge.py is deleted; remove F-05 and G-02
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: 2026-08-09T10:20:00Z
 first_staleness_detected_at: null
 ```
 
