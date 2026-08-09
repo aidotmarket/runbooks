@@ -12,11 +12,11 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 102
+    operational_documents: 105
     source_documents: 101
-    active: 20
-    grandfathered: 81
-    archived: 1
+    active: 22
+    grandfathered: 79
+    archived: 4
 policy:
   pending_is_not_authority: true
   manifest_grants_no_authority: true
@@ -491,16 +491,16 @@ documents:
       - deployed koskadeux-mcp source and exact live tool schema
       - registry database behavior and production-safe session probes
     independent_review_required: true
-  - path: crm-architecture.md
+  - path: archive/legacy-crm-s1490/crm-architecture.md
     git_blob_oid: ccee8bbacd5b525cf25fa63165641fac938b620e
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: merge_then_archive
+    catalog_state: archived
+    status: archived
+    proposed_disposition: archived_superseded
     batch: crm-communications
     risk: P1
     target_paths:
-      - runbooks/crm-target-state.md
-    archive_path: archive/crm-architecture.md
+      - runbooks/crm.md
+    archive_path: archive/legacy-crm-s1490/crm-architecture.md
     evidence:
       - ref: crm-architecture.md:132
         finding: source itself recommends consolidation into a target-state model
@@ -508,16 +508,16 @@ documents:
       - deployed CRM schema and services
       - production-safe queries and current canonical state
     independent_review_required: true
-  - path: crm-pipeline.md
+  - path: archive/legacy-crm-s1490/crm-pipeline.md
     git_blob_oid: 644b259a6e65580e3880682fbd62d9176d4b3f89
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: merge_then_archive
+    catalog_state: archived
+    status: archived
+    proposed_disposition: archived_superseded
     batch: crm-communications
     risk: P1
     target_paths:
-      - runbooks/crm-target-state.md
-    archive_path: archive/crm-pipeline.md
+      - runbooks/crm.md
+    archive_path: archive/legacy-crm-s1490/crm-pipeline.md
     evidence:
       - ref: crm-pipeline.md:67
         finding: redirects the authoritative capability list to crm-target-state.md
@@ -525,15 +525,15 @@ documents:
       - deployed CRM schema and services
       - production-safe queries and current canonical state
     independent_review_required: true
-  - path: crm-target-state.md
+  - path: archive/legacy-crm-s1490/crm-target-state.md
     git_blob_oid: 0dc8fc432b15f9ba6387a5d0043286e188be2c03
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: promote
+    catalog_state: archived
+    status: archived
+    proposed_disposition: archived_superseded
     batch: crm-communications
     risk: P1
     target_paths:
-      - runbooks/crm-target-state.md
+      - runbooks/crm.md
     evidence:
       - ref: crm-target-state.md:3
         finding: claims system-wide CRM authority while current and historical migration chronology are
@@ -1193,6 +1193,47 @@ documents:
     risk: P0
     target_paths:
       - runbooks/council-roster-quirks.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: builder-controls.md
+    git_blob_oid: e2a48f2509d892fb9c4cceb965353a40610aa36c
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote_after_verification
+    batch: active-baseline
+    risk: P1
+    target_paths:
+      - runbooks/builder-controls.md
+    evidence: []
+    verify_against:
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: true
+  - path: runbooks/task-spooler-build-queue.md
+    git_blob_oid: 3733b2d19ab124d6787797ff521bf93ec879b806
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/task-spooler-build-queue.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
+  - path: runbooks/crm.md
+    git_blob_oid: cadcd792b2e07011ef2b6b17683845f384f86ffb
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/crm.md
     evidence: []
     verify_against:
       - existing ACTIVE catalog source at inventory_sha
