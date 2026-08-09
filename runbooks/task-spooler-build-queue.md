@@ -379,7 +379,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - H.2
+      - §H.2
     scenario: A proposed change makes the dispatch handler wait for the queue before returning its handle.
     expected_answers:
       - kind: classification
@@ -388,7 +388,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - H.3
+      - §H.3
     scenario: Someone proposes raising the slot count above one to run builds concurrently.
     expected_answers:
       - kind: classification
