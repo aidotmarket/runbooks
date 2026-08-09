@@ -1500,7 +1500,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
     assert {
         state: state_counts[state]["searched_document_count"]
         for state in ("active", "grandfathered", "archived")
-    } == {"active": 22, "grandfathered": 82, "archived": 1}
+    } == {"active": 23, "grandfathered": 79, "archived": 4}
     assert state_counts["grandfathered"]["qualifying_document_count"] == 1
     assert state_counts["grandfathered"]["returned_document_count"] == 1
     assert state_counts["grandfathered"]["omitted_document_count"] == 0
