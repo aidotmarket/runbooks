@@ -492,10 +492,11 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-architecture.md
+    inventory_path: crm-architecture.md
     git_blob_oid: ccee8bbacd5b525cf25fa63165641fac938b620e
     catalog_state: archived
     status: archived
-    proposed_disposition: archived_superseded
+    proposed_disposition: merge_then_archive
     batch: crm-communications
     risk: P1
     target_paths:
@@ -509,10 +510,11 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-pipeline.md
+    inventory_path: crm-pipeline.md
     git_blob_oid: 644b259a6e65580e3880682fbd62d9176d4b3f89
     catalog_state: archived
     status: archived
-    proposed_disposition: archived_superseded
+    proposed_disposition: merge_then_archive
     batch: crm-communications
     risk: P1
     target_paths:
@@ -526,10 +528,11 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: archive/legacy-crm-s1490/crm-target-state.md
+    inventory_path: crm-target-state.md
     git_blob_oid: 0dc8fc432b15f9ba6387a5d0043286e188be2c03
     catalog_state: archived
     status: archived
-    proposed_disposition: archived_superseded
+    proposed_disposition: merge_then_archive
     batch: crm-communications
     risk: P1
     target_paths:
