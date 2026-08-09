@@ -34,10 +34,10 @@ SCHEMA_VERSION = 2
 # indexed while asserting something false about itself. Only findings whose
 # message matches one of these markers keep the power to refuse admission.
 INTEGRITY_CONFORMANCE_MARKERS = ("cannot be in the future",)
-LEGACY_AUTHORITY_BASE_SHA = "2e9c7026363eeead0385ac06c3f57f5a33ea64e2"
+LEGACY_AUTHORITY_BASE_SHA = "643e55d222fdebfb68063c0801ebd318fe4ae321"
 LEGACY_PROJECTION_POLICY_PATH = "schemas/legacy_catalog_projection.policy.json"
 LEGACY_PROJECTION_POLICY_SHA256 = (
-    "c0e52cbb614dde4bbcde4449ff00eb1e993231a03716524adba479dfff575675"
+    "5b43c6cfd5148417a39971f1b0821d08dadbd5b7cfef5f878a2dcf0eee4981ae"
 )
 LEGACY_PROJECTION_FIELDS = (
     "aliases",

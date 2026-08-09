@@ -161,7 +161,7 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
     assert actual == expected
     assert grandfathered == expected_grandfathered
     assert len(actual) >= 20
-    assert grandfathered <= 82
+    assert grandfathered <= 79
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",
@@ -179,7 +179,7 @@ def test_reviewed_projection_freezes_exact_legacy_population_and_final_boot_delt
     )
 
     assert projection is not None
-    assert len(projection.expected) == 22
+    assert len(projection.expected) == 23
     peer = projection.expected["peer-instance-discipline"]
     assert {
         row["topic"] for row in peer["authoritative_for"]
@@ -289,7 +289,7 @@ def test_projection_ancestry_ignores_local_replace_refs(tmp_path: Path) -> None:
     )
 
     assert projection is not None
-    assert len(projection.expected) == 22
+    assert len(projection.expected) == 23
 
 
 def test_source_set_defaults_unknown_directories_into_adjudication_and_excludes_only_declared_non_sources(
