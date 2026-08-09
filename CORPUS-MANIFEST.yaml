@@ -537,6 +537,7 @@ documents:
     risk: P1
     target_paths:
       - runbooks/crm.md
+    archive_path: archive/legacy-crm-s1490/crm-target-state.md
     evidence:
       - ref: crm-target-state.md:3
         finding: claims system-wide CRM authority while current and historical migration chronology are
@@ -1205,7 +1206,7 @@ documents:
     git_blob_oid: e2a48f2509d892fb9c4cceb965353a40610aa36c
     catalog_state: grandfathered
     status: pending_verification
-    proposed_disposition: promote_after_verification
+    proposed_disposition: promote
     batch: active-baseline
     risk: P1
     target_paths:
