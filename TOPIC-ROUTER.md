@@ -23,6 +23,10 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `council-roster-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
 | `council-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `crm-connectors` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
+| `crm-data-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
+| `crm-diagnosis` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `crm-legacy-table-drop` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `e2e-programme-integrity` | `e2e-programme-integrity` (`runbooks/e2e-programme-integrity.md`) | [§C\. Architecture & Interactions](runbooks/e2e-programme-integrity.md#c-architecture-interactions) |
 | `e2e-test-status-publisher` | `e2e-test-status-publisher` (`runbooks/e2e-test-status-publisher.md`) | [§C\. Architecture & Interactions](runbooks/e2e-test-status-publisher.md#c-architecture-interactions) |
 | `e2e-video-review` | `e2e-video-review` (`runbooks/e2e-video-review.md`) | [§C\. Architecture & Interactions](runbooks/e2e-video-review.md#c-architecture-interactions) |
@@ -47,6 +51,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | Signature | Runbook | Section |
 |---|---|---|
 | `Codex FIFO unavailable` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
+| `UndefinedTable` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `agent silence` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
@@ -74,6 +79,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `does not match current bytes` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `duplicate_claim_on_one_item` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
+| `empty contact_id on upsert` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `expected_population does not match baseline` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -99,6 +105,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `peer_message_silently_deduped` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `peer_msg_silent_dedupe` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `pipeline stages feature is not yet fully set up` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `policy_kernel_enforcement_setting_invalid` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `policy_kernel_not_evaluable` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `policy_kernel_preflight_indeterminate` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
@@ -108,6 +115,9 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `queued row with idle slot` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§G\. Repair](runbooks/task-spooler-build-queue.md#g-repair) |
 | `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `relation "crm_entities" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `relation "crm_people" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `relation "crm_pipeline_stages" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
@@ -122,6 +132,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X\.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8-s1415-structural-buildreview-gate-replacement) |
+| `the pipeline stages migration may not have been run` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `tsp command not found` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
@@ -139,8 +150,13 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `build-queue-runner` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `codex-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `crm-architecture` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
+| `crm-pipeline` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
+| `crm-steward` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
+| `crm-target-state` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
 | `how-to-write-a-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
+| `party-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
