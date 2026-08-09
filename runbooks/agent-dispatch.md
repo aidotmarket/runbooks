@@ -32,9 +32,9 @@ error_signatures:
   - signature: strict_verdict_invalid
     section: §E. Operate
   - signature: structural_gate_unknown
-    section: §X.8
+    section: §X.8 — S1415 structural build/review gate replacement
   - signature: cutover_admission_unknown
-    section: §X.8
+    section: §X.8 — S1415 structural build/review gate replacement
 supersedes: []
 superseded_by: []
 owner: vulcan
