@@ -41,11 +41,26 @@ All figures read from the tree at `6eed2d7`, not asserted.
 | `runbooks/` pages carrying `runbook_id` + `status: ACTIVE` | 21 of 22 |
 | `TOPIC-ROUTER.md` rows | 112 |
 
-**The finding that shapes this design.** Exclusion is not primarily a template failure. It is
-a conjunction of location and declaration: every excluded page is at the root *and* declares
-no `runbook_id` *and* declares no `status: ACTIVE`. Sixty of them have no frontmatter to read.
-So "all indexed" is mostly a generator change — stop requiring a page to opt in and stop
+**Finding 1 — exclusion is location plus opt-in, not template.** Every excluded page is at the
+root *and* declares no `runbook_id` *and* declares no `status: ACTIVE`. Sixty have no frontmatter
+to read. So "all indexed" is mostly a generator change — stop requiring a page to opt in and stop
 requiring it to sit in one directory — not a new gate.
+
+**Finding 2 — indexing a page is not the same as indexing its content, and this is the bigger
+failure.** Measured in S1484 against eight real error strings from a live session: the catalog
+scored 0 of 8. Three of the eight *are* documented, and all three are in `runbooks/agent-dispatch.md`,
+which is one of the 21 already indexed. The index failed on content it already held, because it
+indexes a hand-curated `error_signatures` list rather than the page body. The catalog declares
+roughly 72 signatures across all 21 pages; `agent-dispatch.md` alone contains 171 distinct
+snake_case identifiers. **Hand-curation is the bottleneck.** Making the other 83 visible without
+fixing this would raise the score from 0 of 8 to 0 of 8.
+
+**Finding 3 — the machinery indexed its own paperwork and left the business undocumented.** The
+21 indexed and 83 unindexed pages have zero filename overlap and the split is not random. The
+indexed set is almost entirely about how the AI machinery runs itself: council, gates, dispatch,
+policy, review collection. Every page describing the actual business — AWS, Qdrant, the backend,
+the frontend, Cloudflare, CRM, AIM Data, the seller publish journey, schema migration, the trust
+channel — is in the invisible 83. Search can reach our paperwork and not our product.
 
 ## §2 All indexed (`1_all_indexed`)
 
@@ -71,10 +86,15 @@ silently dropped.
 
 ## §3 Easy to find (`2_easy_to_find`)
 
-**AC5.** Topics, aliases and error signatures are taken from frontmatter when present and
-**derived from content when absent** — headings, the filename slug, and literal error strings
-found in the body. Sixty pages have no frontmatter, so content derivation is the only route
-that reaches them; a design that reads only frontmatter cannot satisfy AC1.
+**AC5.** Topics, aliases and error signatures are **derived from the page body on every page,
+always** — headings, the filename slug, and every literal error string, exception name and
+refusal identifier that occurs in the text. Declared frontmatter is merged in as an addition,
+never as the sole source and never as a ceiling. Finding 2 is the reason: hand-curation, not
+visibility, is what produced a 0-of-8 canary score on pages the catalog already held. A design
+that indexes only what an author remembered to declare reproduces that score with more pages.
+
+**AC5a.** Extraction is literal and verifiable: every emitted signature must occur verbatim in
+the file it is attributed to, and the generator asserts this. Nothing is invented.
 
 **AC6.** Derived signals are marked `derived` and are never presented as declared.
 
@@ -86,6 +106,14 @@ contradiction, because knowing a page is wrong is more useful than not finding i
 this session and prior handoffs, each with the page a human judges correct, run against the
 router and the search index. Baseline is recorded before the change and the same set is re-run
 after. The acceptance figure is recall on that set, reported honestly, not "the page exists".
+
+**AC8a — runbooks never blend with the archive.** A runbook answers "what is true now"; a
+session log or build note answers "what happened once". A runbook result must always outrank and
+be visually distinct from an archive result, with provenance and recency on every row. This is a
+standing Max constraint from S1482: semantic search over history confidently returns superseded
+material, and mixing the two destroys the only property that makes a runbook worth having.
+Measured today: `allai_search` for the production database access recipe returned five results,
+all session logs and build notes, zero runbooks.
 
 ## §4 Easy to update, easy to create (`3_easy_to_update`, `4_easy_to_create`)
 
@@ -146,6 +174,12 @@ is published: how many pages carry checkable claims, how many verified, how many
 how many are pure prose. That number is the honest starting picture of how true our written
 knowledge is, and nobody currently knows it.
 
+**AC18a — one page proves it live, on a schedule, by being broken.** At least one runbook
+carries a claim check that runs on a schedule and visibly marks the page stale when it fails.
+Proof of delivery is not that the check runs; it is that the claim is deliberately broken and
+the page visibly goes stale, then is repaired and visibly recovers. Standing acceptance criterion
+on `build:bq-runbook-truth-layer-s1482`.
+
 **AC19 — what the checker does not claim.** It verifies references, not reasoning. A page whose
 every claim is `VERIFIED` may still prescribe a destructive or wrongly ordered procedure. Risk
 of the *action* is a separate concern from accuracy of the *references*, and this design does
@@ -188,6 +222,23 @@ they are and may be relocated later by a separate, deliberate move.
 7. The corpus-wide first-run figures are published.
 8. `runbooks/runbooks.md` exists, is indexed, and its own check result is published.
 9. Verified from outside, legacy path removed, runbook indexed — Max's DONE, S1459.
+
+## §8a Delegation boundary
+
+The bulk extraction pass — title, one-line purpose, the system each page describes, and every
+error string literally present in the body — is mechanical and delegable, and it is mechanically
+verifiable per AC5a. Three things are never delegated to any model: deciding whether a page is
+still *true* (only a call to the live system settles that, and a model asked to make a page
+useful will smooth over staleness, which is worse than a page that plainly looks old); authoring
+content to fill a gap (five of the eight canary error strings are documented nowhere, and an
+invented recipe for AWS or the money path is worse than a blank page); and deleting anything.
+
+## §8b Known operational blocker
+
+MP cannot build in `aidotmarket/runbooks` until the gateway bounces. The repo-registration fix
+is merged to koskadeux-mcp main at `7018dfa623`, but the running gateway is older and the
+reloader correctly defers the bounce while any session is live. Earliest possible build start is
+after both instances have closed. Do not hand-restart to force it while the peer is live.
 
 ## §9 Open for the Council
 
