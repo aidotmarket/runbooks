@@ -59,14 +59,24 @@ curl -s https://api.ai.market/health
 | `/api/v1/search` | `search.py` | Listing search (Qdrant-backed) |
 | `/api/v1/mcp` | `mcp.py`, `mcp_server.py` | MCP protocol endpoints |
 
-## Seller onboarding enforcement & dashboard access
+## Seller capability enforcement & dashboard access
 
-Dashboard READ endpoints must load for a seller still mid-onboarding (`onboarding_completed=false`), while writes/payout stay gated. Two flexible-auth dependencies live in `listings.py`:
+**RETIRED 2026-08-09, T-2026-000565 C2-B, merged to backend main at `644ee1d64`.** Onboarding enforcement no longer exists anywhere in `app/`. This section previously described two flexible-auth dependencies and an `onboarding_completed` gate; both enforcers and the `get_current_user_flexible_no_onboarding` helper are deleted. Do not reinstate them and do not look for them.
 
-- `get_current_user_flexible` — authenticates AND enforces onboarding (raises 403 `Onboarding required`). Use for writes, listing-create, payout, and gated actions.
-- `get_current_user_flexible_no_onboarding` — authenticates but skips the onboarding gate. Use for **owner-scoped dashboard READS only** — the handler still filters by the authenticated user's id, so there is no cross-account exposure.
+Why it went: the gate was a blanket 403 keyed on `onboarding_completed`, and the wizard that could clear that flag had already been deleted from the frontend. Every Google sign-up was therefore trapped permanently — 15 real users, newest 2026-08-07, one of whom reached live Stripe payouts and still could not open his dashboard. The gate was a product-completeness check wearing a security check's clothes; all three Gate 3 reviewers said so independently.
 
-Owner-scoped dashboard reads currently on the non-enforcing dependency: seller `/stats /financials /orders /pending`; inquiries `/mine /stats`; conversations `/mine /stats`; orders `/mine /stats`; listings `/mine`. If a new "My X" dashboard list/stats read 403s for a partial-onboarding seller, switch that route's dependency to `get_current_user_flexible_no_onboarding` and add a test asserting 200-on-read plus still-403-on-write. Reviewer note: dropping the onboarding gate on these owner-scoped reads is auth-scope — it earns a unanimous Council Gate-3 (reviewer != builder).
+**What replaced it.** There is now ONE flexible-auth dependency, `listings.get_current_user_flexible`, and it AUTHENTICATES ONLY. Authorization is per surface:
+
+- **Seller writes** assert capability explicitly: `await assert_user_capability(user, db, "seller")`. Eight call sites — `ai_discovery`, `disclosure_snapshots`, `disputes.seller_respond`, `orders.deliver_order`, `orders.revoke_access`, `ratings.respond_to_rating`, `inquiries.seller_respond`, `transaction_actions.deliver_transaction` — plus the pre-existing assertions in `listings.py` and `seller.py`.
+- **Role-gated routes** use the `require_capability(...)` dependency: `profiles` `/seller/me` GET and PATCH at threshold `provisioning`; `vz_publish` confirm/rotate-key/revoke at `active`.
+- **Owner-scoped dashboard reads** need no capability at all. The handler filters by the authenticated user's id, which is the boundary. Seller `/stats /financials /orders /pending`; inquiries `/mine /stats`; conversations `/mine /stats`; orders `/mine /stats`; listings `/mine`.
+- **Conversations are capability-neutral by design.** Participant/owner scope is the boundary (`InquiryService.respond_to_inquiry` → 403 "Not authorized"). A partially-provisioned buyer CAN start and reply to a conversation; that is intended, not a regression.
+
+**THE TRAP, and it has bitten once.** `assert_user_capability` resolves through `CapabilityResolver`, which does an unconditional `await self.db.execute(...)`. It therefore requires an `AsyncSession`. A route holding the SYNC `Session` from `get_db` must NOT pass that session: `sqlalchemy.orm.Session.execute` is not a coroutine function and the result has no `__await__`, so the endpoint returns HTTP 500 for every caller. This shipped once, on `inquiries.seller_respond`, and would have broken every seller reply to a buyer inquiry. Existing tests could not catch it because the test double is a `Mock` and `capability_resolver.py:150-160` has explicit `isinstance(self.db, Mock)` escape hatches that return `{}` before the await runs. The fix pattern is at `inquiries.py:510-520`: inject a second dependency `cap_db: AsyncSession = Depends(get_async_db)` for the capability check only and leave the sync `db` driving the route body. If you add a capability assertion to a sync route, do this, and write a regression test that does not use a Mock session.
+
+**Admin-only routes take no seller gate.** `transaction_actions.settle_transaction` is admin-only; asserting seller capability there made it unreachable for its only authorised role. The approved Gate 2 spec text said otherwise and the Council ratified the code over the text (Kimi M1, S1488).
+
+**Known non-blocking product question, CC finding S1488.** `vz_publish` rotate-key and revoke-install sit at threshold `active`, so a seller still `provisioning` cannot revoke a compromised install or rotate a leaked key until Stripe onboarding completes. Correct for publishing, arguable for these two defensive actions. Recorded, not changed.
 
 **Stripe Connect return URLs:** the hosted-onboarding AccountLink in `stripe_connect.py` must return to the real frontend route `/dashboard/stripe-return` (refresh → `/dashboard/stripe-return?abandoned=1`, which that page reads as the abandoned/incomplete case). Do NOT use bare `/settings` — there is no `/settings` route (settings lives at `/dashboard/settings`), so it 404s and dead-ends the seller right after connecting.
 
