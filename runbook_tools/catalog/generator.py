@@ -30,10 +30,14 @@ from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.strict_yaml import strict_yaml_load
 
 SCHEMA_VERSION = 2
-LEGACY_AUTHORITY_BASE_SHA = "a6d7534a35d921138c139bdf69aaeddd0faec100"
+# A page may be untidy and still be indexed (Max directive S1491). It may not be
+# indexed while asserting something false about itself. Only findings whose
+# message matches one of these markers keep the power to refuse admission.
+INTEGRITY_CONFORMANCE_MARKERS = ("cannot be in the future",)
+LEGACY_AUTHORITY_BASE_SHA = "2e9c7026363eeead0385ac06c3f57f5a33ea64e2"
 LEGACY_PROJECTION_POLICY_PATH = "schemas/legacy_catalog_projection.policy.json"
 LEGACY_PROJECTION_POLICY_SHA256 = (
-    "d41a523f576e3b0a03ad386ede05ce3ceb44aa83138c6ebb6d1f6111dc11bcc0"
+    "c0e52cbb614dde4bbcde4449ff00eb1e993231a03716524adba479dfff575675"
 )
 LEGACY_PROJECTION_FIELDS = (
     "aliases",
@@ -260,16 +264,35 @@ def build_catalog(
             relative,
             latest_verification_date=verification_clock,
         )
-        conformance_failures = structural_conformance_failures(
-            markdown,
-            root / "schemas",
-            now=conformance_clock,
-        )
-        if conformance_failures:
+        # Conformance is a convention, not an admission condition.
+        # Max directive S1491, and AC9 of the approved runbook truth-layer design
+        # (specs/RUNBOOK-TRUTH-LAYER-S1487.md): a page's shape must never decide
+        # whether it can be found. The deterministic A-K checks still run through
+        # `runbook-lint`, where a failure is advice to the author.
+        #
+        # INTEGRITY_CONFORMANCE_MARKERS is the narrow exception. Those findings are
+        # not untidiness, they are a page asserting something false about itself,
+        # and indexing a lie is worse than indexing a mess. Everything else is
+        # advice. Referential integrity of DECLARED metadata is enforced
+        # separately below, because a catalog row pointing at a section that does
+        # not exist makes the index lie rather than the page.
+        integrity_failures = [
+            finding
+            for finding in structural_conformance_failures(
+                markdown,
+                root / "schemas",
+                now=conformance_clock,
+            )
+            if any(
+                marker in finding.message
+                for marker in INTEGRITY_CONFORMANCE_MARKERS
+            )
+        ]
+        if integrity_failures:
             details = "; ".join(
-                f"{relative}:{finding.line or '?'}: deterministic conformance "
-                f"check {finding.check} failed: {finding.message}"
-                for finding in conformance_failures
+                f"{relative}:{finding.line or '?'}: catalog integrity check "
+                f"{finding.check} failed: {finding.message}"
+                for finding in integrity_failures
             )
             raise CatalogError(details)
         section_errors = declared_section_errors(

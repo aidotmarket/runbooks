@@ -1,70 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "contract_version": "ai.market/legacy-catalog-projection/v1",
-  "rollout_base_sha": "a6d7534a35d921138c139bdf69aaeddd0faec100",
-  "expected_population": 20,
-  "canonical_path_moves": [
-    "corpus-capture-policy",
-    "e2e-programme-integrity",
-    "e2e-test-status-publisher",
-    "e2e-video-review",
-    "peer-instance-discipline"
-  ],
-  "entry_overrides": {
-    "council": {
-      "authoritative_for": [
-        {"topic": "council-operations", "section": "§C. Architecture & Interactions"},
-        {"topic": "council-roster-drift", "section": "§F. Isolate"},
-        {"topic": "council-schema-drift", "section": "§F. Isolate"}
-      ],
-      "aliases": [],
-      "error_signatures": [
-        {"signature": "agent silence", "section": "§E. Operate"},
-        {"signature": "council_roster_drift", "section": "§G. Repair"},
-        {"signature": "council_schema_drift", "section": "§F. Isolate"},
-        {"signature": "missing dispatch token", "section": "§E. Operate"},
-        {"signature": "no resolution", "section": "§E. Operate"},
-        {"signature": "read-only agent attempted write", "section": "§E. Operate"},
-        {"signature": "schema_roster_mismatch", "section": "§E. Operate"},
-        {"signature": "timeout", "section": "§E. Operate"}
-      ],
-      "supersedes": [],
-      "superseded_by": []
-    },
-    "infrastructure-discovery": {
-      "authoritative_for": [
-        {"topic": "infrastructure-discovery", "section": "§C. Architecture & Interactions"},
-        {"topic": "security-credential-exposure", "section": "§G. Repair"},
-        {"topic": "security-secret-disclosure", "section": "§G. Repair"}
-      ],
-      "aliases": [],
-      "error_signatures": [
-        {"signature": "credential_exposed", "section": "§F. Isolate"},
-        {"signature": "infrastructure_locator_guessed", "section": "§F. Isolate"},
-        {"signature": "secret_disclosure", "section": "§F. Isolate"}
-      ],
-      "supersedes": [],
-      "superseded_by": []
-    },
-    "peer-instance-discipline": {
-      "authoritative_for": [
-        {"topic": "instance-peer-topology", "section": "§C. Architecture & Interactions"},
-        {"topic": "peer-bus-coordination", "section": "§E. Operate"},
-        {"topic": "session-close-runbook-impact", "section": "§E. Operate"},
-        {"topic": "session-plan-runbook-context", "section": "§E. Operate"}
-      ],
-      "aliases": ["peer-bus", "peer-message-bus"],
-      "error_signatures": [
-        {"signature": "duplicate_claim_on_one_item", "section": "§F. Isolate"},
-        {"signature": "over_escalation_to_max", "section": "§F. Isolate"},
-        {"signature": "peer_message_silently_deduped", "section": "§F. Isolate"},
-        {"signature": "runbook_context_delivery_unavailable", "section": "§F. Isolate"},
-        {"signature": "runbook_impact_evidence_unavailable", "section": "§F. Isolate"},
-        {"signature": "stale_handoff_trusted_at_open", "section": "§F. Isolate"},
-        {"signature": "unread_request_or_alert_at_dispatch", "section": "§F. Isolate"}
-      ],
-      "supersedes": [],
-      "superseded_by": []
-    }
-  }
+  "rollout_base_sha": "2e9c7026363eeead0385ac06c3f57f5a33ea64e2",
+  "expected_population": 22,
+  "canonical_path_moves": [],
+  "entry_overrides": {}
 }

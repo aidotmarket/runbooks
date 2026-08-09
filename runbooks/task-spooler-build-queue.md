@@ -11,7 +11,7 @@ lifecycle_ref: §J
 authoritative_scope: |
   The queueing and execution layer between "an operator dispatches a build" and "a builder process starts": the Task Spooler binary, socket-per-repository conventions, job lifecycle, and operator recovery commands. Build semantics after the builder starts (worktree creation, commit, secret scan, push) belong to the minimal bridge and are covered in builder-controls.md. Council review dispatch is agent-dispatch.md.
 authoritative_for:
-  - topic: task-spooler-build-queue
+  - topic: task-spooler-queue-architecture
     section: §C. Architecture & Interactions
   - topic: build-queue-operator-recovery
     section: §E. Operate
@@ -379,7 +379,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - H.2
+      - §H.2
     scenario: A proposed change makes the dispatch handler wait for the queue before returning its handle.
     expected_answers:
       - kind: classification
@@ -388,7 +388,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - H.3
+      - §H.3
     scenario: Someone proposes raising the slot count above one to run builds concurrently.
     expected_answers:
       - kind: classification
@@ -437,8 +437,6 @@ refresh_triggers:
   - Slot count moves away from 1, or the CODEX_HOME concurrency question is settled
   - The legacy SQLite queue in codex_cli_bridge.py is deleted; remove F-05 and G-02
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: 2026-08-09T10:20:00Z
 first_staleness_detected_at: null
 ```
 
