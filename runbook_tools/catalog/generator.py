@@ -26,7 +26,6 @@ from runbook_tools.catalog.sections import (
     legacy_heading_anchor,
 )
 from runbook_tools.frontmatter import CATALOG_METADATA_FIELDS
-from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.strict_yaml import strict_yaml_load
 
 SCHEMA_VERSION = 2
@@ -225,7 +224,7 @@ def build_catalog(
     entries: list[CatalogEntry] = []
     grandfathered_count = 0
     root = repo_root.resolve()
-    verification_clock, conformance_clock = _verification_clocks(
+    verification_clock, _unused_conformance_clock = _verification_clocks(
         current_utc_date,
         current_utc_datetime,
     )
@@ -260,18 +259,14 @@ def build_catalog(
             relative,
             latest_verification_date=verification_clock,
         )
-        conformance_failures = structural_conformance_failures(
-            markdown,
-            root / "schemas",
-            now=conformance_clock,
-        )
-        if conformance_failures:
-            details = "; ".join(
-                f"{relative}:{finding.line or '?'}: deterministic conformance "
-                f"check {finding.check} failed: {finding.message}"
-                for finding in conformance_failures
-            )
-            raise CatalogError(details)
+        # Conformance is a convention, not an admission condition.
+        # Max directive S1491, and AC9 of the approved runbook truth-layer design
+        # (specs/RUNBOOK-TRUTH-LAYER-S1487.md): a page's shape must never decide
+        # whether it can be found. The deterministic A-K checks remain available
+        # through `runbook-lint`, where a failure is advice to the author rather
+        # than a refusal to index. Referential integrity of DECLARED metadata is
+        # a different thing and is still enforced below: a catalog row that
+        # points at a section which does not exist would make the index lie.
         section_errors = declared_section_errors(
             markdown,
             relative,

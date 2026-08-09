@@ -85,7 +85,7 @@ Figures measured 2026-08-09 on `fix/runbooks-lint-red-s1487`. Recompute rather t
 | Retrieval quality, machine index | BROKEN | `CATALOG.json` | Recall 0 of 32 on the same set; catalog invalid on main | 2026-08-09 |
 | Search result cap | SHIPPED | `runbook_tools/catalog/search.py` | Refuses limit above 3, so precision@5 is capped at 0.2 by the surface itself | 2026-08-09 |
 | Scaffolding a new page | SHIPPED | `runbook_tools/cli.py` | `tests/test_creation_flow.py` | 2026-08-09 |
-| Linting a page | SHIPPED | `runbook_tools/lint/conformance.py` | `tests/test_checks.py` | 2026-08-09 |
+| Linting a page, as advice rather than a gate | SHIPPED | `runbook_tools/lint/conformance.py` | `tests/test_checks.py`; CI runs it with continue-on-error | 2026-08-09 |
 | CI lint on `main` | BROKEN | `.github/workflows/runbook-lint.yml` | Red since 2026-08-03; six failures, one root cause, repaired on the fix branch | 2026-08-09 |
 | Admitting a new page without moving the frozen anchor | BROKEN | `schemas/legacy_catalog_projection.policy.json` | No admission mechanism exists; see F-01 | 2026-08-09 |
 | Checking a page's claims against ground truth automatically | PLANNED | `specs/RUNBOOK-TRUTH-LAYER-S1487.md` | AC12 to AC17 of the approved design, unbuilt | 2026-08-09 |
@@ -104,7 +104,7 @@ The retrieval figures come from the frozen AC8 question set at
 | `TOPIC-ROUTER.md` | `runbook-catalog generate` | git | humans | **Generated. Never hand-edit.** A display surface over `CATALOG.json`, nothing more. |
 | `CORPUS-MANIFEST.yaml` | `python3 -m runbook_tools.corpus_manifest --refresh-from <sha>` | git | CI lint | An inventory and adjudication ledger, NOT an authority. It pins a git blob OID per document, so editing any tracked page invalidates the pin until refreshed. |
 | Frozen population anchor | `LEGACY_AUTHORITY_BASE_SHA` in `runbook_tools/catalog/generator.py` + `schemas/legacy_catalog_projection.policy.json` | git | generation | Freezes the catalog to exactly the entries present at one historical commit. Policy bytes are SHA256-pinned into the generator. There is no mechanism to admit a new page except moving the anchor and repinning. See F-01. |
-| Linter | `runbook-lint --mode strict` | none | CI | Checks structural conformance of indexed pages against the A-K template. |
+| Linter | `runbook-lint --mode strict` | none | CI | Checks structural conformance against the A-K template. Advice only since S1491: a failure never stops a page being indexed and never fails CI. |
 | Scaffolder | `runbook-new <slug>` | none | authoring | Writes `templates/runbook.template.md` with placeholders. |
 | The standard | `specs/BQ-RUNBOOK-STANDARD.md` | git | authors | 789 lines, Gate 1 approved at S486. Roughly half is marked "historical provenance" and superseded. It is a spec, so it is not indexed and search cannot reach it. |
 | Legacy gate page | `runbook-first-gates.md` | git | nothing | At the repository root, therefore unroutable. Its own header says LEGACY COMPATIBILITY - DO NOT EXTEND. It documents the enforcement gates, not authoring. |
@@ -298,13 +298,14 @@ These are the things that have surprised sessions before. Each row is a real fai
 - `CORPUS-MANIFEST.yaml` is an inventory, never an authority. A page does not become true by being listed in it.
 - A page under the repository root is not indexed, whatever its content or frontmatter.
 - Grep reaches all 104 pages; search reaches 21. Never conclude something is undocumented on a search miss alone.
+- The A-K shape is a convention. Since S1491 a conformance failure is advice to the author; it never stops a page being indexed and never fails CI. If you find yourself inventing content to satisfy a check, stop: the check is wrong, not the page.
 - Recompute corpus figures. Do not quote them from a handoff, including this page: every figure here carries the date it was measured and the command that measures it.
 
 ### §H.2 BREAKING predicates
 
 - Moving `LEGACY_AUTHORITY_BASE_SHA`, because it redefines what the population freeze protects.
 - Changing what counts as an indexable location, because it changes the corpus in one step.
-- Removing template conformance as an admission condition, which the approved design does.
+- Re-attaching template conformance, or any other shape test, to admission. It was removed on 2026-08-09 by Max directive S1491 and must not come back as a gate.
 
 ### §H.3 REVIEW predicates
 

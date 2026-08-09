@@ -31,7 +31,15 @@ jobs:
         run: runbook-catalog check
       - name: Validate catalog at checked-out commit
         run: runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
-      - name: Lint conformant runbooks (strict)
+      # Advisory, not a gate. Max directive S1491 and AC9 of the approved
+      # truth-layer design: conformance is a convention. Findings are surfaced
+      # as annotations on the run so an author sees them, but an untidy page
+      # never blocks a merge and never stops a page being indexed. The steps
+      # above stay blocking: they protect the integrity of the index itself
+      # (inventory pins, generated-output drift, and catalog validity), which
+      # is a different thing from the shape of a page.
+      - name: Lint runbooks (advisory)
+        continue-on-error: true
         run: |
           runbook-catalog select --mode lint-selection
           runbook-lint --mode strict --format github
