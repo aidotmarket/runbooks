@@ -323,3 +323,20 @@ def upgrade() -> None:
 ```
 
 *Discovered in S427. See also: alembic/versions/20260410_002_backfill_parties_v2.py for a working example.*
+
+## Model-table drift and money-path recovery
+
+The public `GET /health` response includes two model-schema fields in addition to the Alembic fields:
+
+- `missing_model_tables`: an exact sorted list of model-backed tables that are absent, `[]` when none are absent, or `null` when database inspection failed.
+- `model_schema_drift`: `true` when `missing_model_tables` is non-empty, `false` only when inspection succeeded and no model tables are missing, or `null` when the result is unknown.
+
+Treat `null` as unknown and fail closed. Treat `model_schema_drift: true` as unhealthy even if the service still reports `status: healthy`; the list is the remaining repair scope.
+
+Migration `s1488_money_path_tables` restores only the money-path tables `orders`, `transactions`, and `transaction_events`. It creates them from the current SQLAlchemy models in foreign-key order and skips a table that already exists. It does not claim to repair every missing model table. After deployment, require all three names to be absent from `missing_model_tables`; preserve and track any other listed tables as residual drift.
+
+For a seller dashboard `500` on `/api/v1/seller/stats`, check application logs for `UndefinedTable` and query `/health`. If `orders` is listed, verify that Railway startup ran `alembic upgrade head`, that `alembic_current` and `alembic_head` both equal `s1488_money_path_tables`, and that the three money-path table names no longer appear in the missing-table list.
+
+Rollback is forward-fix only after the database is stamped at `s1488_money_path_tables`. Do not run this revision's downgrade on a production database: sibling foreign keys can block it, and pre-existing fallback-created tables or data may be destroyed. Do not redeploy an older image that lacks the `s1488` revision because its Alembic graph cannot resolve the stamped database revision. Correct defects with a new reviewed migration/code revision and deploy forward.
+
+*Money-path recovery guidance added: S1507 (2026-08-11), T-2026-000580.*
