@@ -197,7 +197,7 @@ kd_session_close(session_id, instance_role, reason, summary, handoff_content)
 
 ### Where session state lives — TWO records, and why
 
-1. **Local SQLite registry** — `/var/tmp/koskadeux/registry.db` (tables: `sessions`,
+1. **Local SQLite registry** — `/Users/max/koskadeux-state/registry.db` (relocated S1499, T-2026-000585; symlink at old /var/tmp path) (tables: `sessions`,
    `role_locks`, `close_transactions`) plus the sidecar `/var/tmp/koskadeux/boot_gate_runtime.json`
    (checkpoint flag). Disk-backed so PLANNING/OPERATIONAL and session rows survive a process
    restart (`kill -9` + `launchctl kickstart`). Managed by `tools/registry.py` and
@@ -400,3 +400,20 @@ gui/$(id -u)/com.koskadeux.mcp` → run the migration with `venv/bin/python` (re
 ~/Library/LaunchAgents/com.koskadeux.mcp.plist` → verify the PID CHANGED and `curl
 localhost:8765/health` (allow ~10s startup for Infisical fetches before judging health) →
 log everything to a file. After the bounce, every live instance must re-open + re-plan.
+
+
+## Durable state relocation and restart-window discipline (S1499, T-2026-000585)
+
+The gateway OAuth credential store and the session registry live in durable storage:
+`/Users/max/koskadeux-state/gateway_storage.json` (0600) and `/Users/max/koskadeux-state/registry.db`.
+They were moved out of /var/tmp because macOS may clear it, and a cleared credential store
+locks BOTH instances out with no automated recovery. Transitional symlinks remain at the old
+/var/tmp paths for any long-running process started on pre-S1499 code.
+
+Failure signature and lesson: a relocation/restart script dispatched through shell_request is a
+CHILD of the gateway/MCP service process group. `launchctl bootout` kills the whole group, so the
+script dies silently the moment it stops its own ancestor. nohup does not protect against this.
+Any procedure that stops com.koskadeux.gateway or com.koskadeux.mcp must run from the operator's
+terminal or an independent launchd job, never via shell_request. Sequencing rule: move the data
+files while the services are stopped and BEFORE they start on code carrying new paths, or the
+gateway boots with an empty credential store.

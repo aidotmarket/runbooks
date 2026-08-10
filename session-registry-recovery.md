@@ -5,7 +5,7 @@ owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  The Koskadeux session registry on Titan-1: the SQLite store at /var/tmp/koskadeux/registry.db (tables sessions, session_seq, schema_migrations, close_transactions), the durable monotonic allocator and its Living State anchor config:session-seq, the KOSKADEUX_REGISTRY_DB override, pytest isolation from the live DB, the last_seen + peer-bus stale-session self-heal, the append-only schema migrations, and the operator recovery paths. This runbook is the source of truth for diagnosing and repairing session-open blocks and session-number anomalies. It is NOT the source of truth for the boot-payload contents (session-open-protocol.md) or session close (session-close-protocol.md). The retired primary/worker lock-slot model is out of scope (symmetric peers, CORE v9.2 S811).
+  The Koskadeux session registry on Titan-1: the SQLite store at /Users/max/koskadeux-state/registry.db (tables sessions, session_seq, schema_migrations, close_transactions), the durable monotonic allocator and its Living State anchor config:session-seq, the KOSKADEUX_REGISTRY_DB override, pytest isolation from the live DB, the last_seen + peer-bus stale-session self-heal, the append-only schema migrations, and the operator recovery paths. This runbook is the source of truth for diagnosing and repairing session-open blocks and session-number anomalies. It is NOT the source of truth for the boot-payload contents (session-open-protocol.md) or session close (session-close-protocol.md). The retired primary/worker lock-slot model is out of scope (symmetric peers, CORE v9.2 S811).
 linter_version: 1.0.0
 ---
 
@@ -36,7 +36,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 
 ## §C. Architecture & Interactions
 
-The session registry is a SQLite database on Titan-1 at `/var/tmp/koskadeux/registry.db`, opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
+The session registry is a SQLite database on Titan-1 at `/Users/max/koskadeux-state/registry.db` (relocated from OS-clearable /var/tmp in S1499, T-2026-000585; a transitional symlink remains at the old path), opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@ The session registry is a SQLite database on Titan-1 at `/var/tmp/koskadeux/regi
 
 | Resource | Value |
 |---|---|
-| Registry DB path | `/var/tmp/koskadeux/registry.db` |
+| Registry DB path | `/Users/max/koskadeux-state/registry.db` (since S1499; symlink at old /var/tmp path) |
 | Path override env | `KOSKADEUX_REGISTRY_DB` |
 | Durable anchor key | `config:session-seq` (Living State) |
 | Current schema version | `7` (`session_seq_durable_hwm`) |
@@ -79,7 +79,7 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   pre_conditions:
     - registry.db exists at the production path or KOSKADEUX_REGISTRY_DB points at the intended DB
     - sqlite3 available on Titan-1
-  tool_or_endpoint: "sqlite3 /var/tmp/koskadeux/registry.db on schema_migrations, session_seq, sessions, plus PRAGMA integrity_check"
+  tool_or_endpoint: "sqlite3 /Users/max/koskadeux-state/registry.db on schema_migrations, session_seq, sessions, plus PRAGMA integrity_check"
   argument_sourcing:
     db_path: production path, or KOSKADEUX_REGISTRY_DB if overridden
     expected_schema_version: 7 (session_seq_durable_hwm)
