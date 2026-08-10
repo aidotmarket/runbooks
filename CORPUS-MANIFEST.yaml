@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 08e5cbf61b91fb29d81e915b87bc7ff38ca4a648
+  inventory_sha: 18f47111d50a88a53c66fdd9c822ac4d79efb590
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -367,7 +367,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: builder-controls.md
-    git_blob_oid: e2a48f2509d892fb9c4cceb965353a40610aa36c
+    git_blob_oid: d0c0b93d6290582c489549f0f3e7f44bc98618f1
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -807,7 +807,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: mcp-gateway.md
-    git_blob_oid: 98c01c3d96f7d5a15d3c085a7bdb8dc3e2026817
+    git_blob_oid: 84320fc5fd4d0a99a4c8ac4f6b443564496320ed
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -1315,7 +1315,7 @@ documents:
       - anchor, linter vocabulary, AC8 figures
     independent_review_required: true
   - path: runbooks/task-spooler-build-queue.md
-    git_blob_oid: a1be6d455762c7d86b400e7bff74dbb048ad7e98
+    git_blob_oid: d521332b49f5a2d0b76ca300a61a4b4275612057
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1436,7 +1436,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: session-registry-recovery.md
-    git_blob_oid: f794ae84896db4addfd50bf592846d274f5855ea
+    git_blob_oid: 68503c615738bfc9cb3e638cef2e5907ed219af6
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
