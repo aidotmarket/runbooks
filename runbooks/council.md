@@ -58,7 +58,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | Council Hall multi-agent deliberation | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | Council Hall dispatch path exercised by deliberation sessions | 2026-04-29 |
 | Cross-review-gate enforcement | SHIPPED | `koskadeux-mcp gateway author-mode dispatch tokens` | Gateway author/read-only distinction reviewed in gate process audits | 2026-04-29 |
 | Living State config authority | SHIPPED | `infra:council-comms` | State freshness verified during Council runbook conformance chunks | 2026-04-29 |
-| Directory drop (`scripts/council_dir.py`) | SHIPPED | `koskadeux-mcp/scripts/council_dir.py`, `koskadeux-mcp/sandbox/council_member.sb` | Verified end to end S1496: glm 35s, kimi 57s, both confirmed the write fence from inside the sandbox | 2026-08-10 |
+| Directory drop (`scripts/council_dir.py`) | SHIPPED | `koskadeux-mcp/scripts/council_dir.py`, `koskadeux-mcp/sandbox/council_member.sb` | Verified end to end S1496 for all three members; each confirmed the write fence from inside the sandbox | 2026-08-10 |
 | Retired-agent cold storage | DEPRECATED | — | XAI active-dispatch coverage retired; cold-storage state lives in `infra:council-comms.retired_agents.xai` | 2026-04-29 |
 
 ## §C. Architecture & Interactions
@@ -120,10 +120,29 @@ persistence push (both completed S1496 reviews returned `push_rejected`); and
 `dispatch_sha` / `verdict_target_branch` (killed three S1496 dispatches before any model
 ran). None of these has ever been shown to catch a bad review.
 
-Status: running alongside `council_request`, not wired into it. GLM and Kimi are verified.
-CC is unverified for one reason only - `ANTHROPIC_API_KEY` is not present in the process
-environment the way the Infisical-sourced GLM and Kimi credentials are. Same binary and
-same fence as GLM; nothing further to design.
+#### Credentials, and the one trap in them
+
+GLM and Kimi are the same class of command-line binary pointed at a third-party endpoint
+with a bearer token, so each needs its key in the process environment; both come from
+Infisical. **CC needs nothing.** It is that binary used as itself and it finds its own
+credential - the machine's Claude Code login, a macOS keychain entry plus `~/.claude.json`.
+Max, S1496: "CC runs off the same credential as you do." The launcher has never fetched an
+Anthropic key from Infisical and must not start: minting one would move CC off the
+subscription onto metered billing without that being decided, and would make this path
+diverge from the `council_request` CC path that already works.
+
+The trap: `--bare` skips the machine's own Claude Code config. That is correct for GLM,
+whose credential is supplied explicitly, and wrong for CC, whose credential *is* that
+config. With `--bare` CC reports `Not logged in - please run /login` and nothing points at
+the flag. `--bare` is therefore set per member. To tell a genuine login problem from this
+one, run the binary twice on the same machine: `claude -p "reply ALIVE"` answers and
+`claude --bare -p "reply ALIVE"` does not.
+
+Status: running alongside `council_request`, not wired into it. All three members verified
+end to end in S1496 - glm 35s, kimi 57s, cc on the machine login - and each was asked to
+write outside its directory, tried, and was refused by the kernel. CC's account is the most
+precise: the denial hit the temp file of its atomic write, so not even the scratch file was
+created.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -228,8 +247,11 @@ MP owns primary review because the Codex CLI path is automated and has shown dee
       cause: the member tried to write outside its own directory and the kernel refused
       repair: none needed - this is the fence working as designed and is expected in fence tests
     - signature: "is not set; source the credential first"
-      cause: the member's API credential is absent from the process environment
-      repair: source it; GLM and Kimi come through Infisical, CC's ANTHROPIC_API_KEY currently does not
+      cause: GLM's or Kimi's key is absent from the process environment
+      repair: source it from Infisical. This never applies to CC - CC has no key to source and requires none
+    - signature: "Not logged in"
+      cause: CC was launched with --bare, which hides the machine's own Claude Code login; it is not a login fault
+      repair: launch CC without --bare. Confirm by running `claude -p` and `claude --bare -p` back to back; the first answers and the second does not
   notes: >-
     No schema, no turn budget, no cost cap, no pinned commit, no curated file list, no
     workspace-mutation check and no push step. Do not add any. Every one of them has
