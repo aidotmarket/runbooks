@@ -598,6 +598,62 @@
     },
     {
       "action_authority_eligible": false,
+      "aliases": [
+        "browser-journey",
+        "browser_journey",
+        "playwright-runner"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "browser-journey-charter"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "browser-journey-dispatch"
+        },
+        {
+          "section": "\u00a7H. Evolve",
+          "topic": "browser-journey-phases"
+        }
+      ],
+      "authority_admission": false,
+      "domain": "e2e-testing",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "browser_journey refused: E2E_PROD_FRONTEND_URL is required"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "status harness_error, summary browser_journey requires params.mode"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "preflight refusal (404, 403, 401, non-200, allowed=false, timeout)"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "no screenshot present"
+        }
+      ],
+      "integrity_only": false,
+      "integrity_status": "integrity_pass_unverified",
+      "last_verified_at": "2026-08-10",
+      "owner": "mars",
+      "path": "e2e-browser-runner.md",
+      "runbook_id": "e2e-browser-runner",
+      "semantic_verification": false,
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
