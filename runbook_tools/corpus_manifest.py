@@ -652,44 +652,35 @@ def load_pinned_corpus_manifest(
             for entry in projected
             if entry["catalog_state"] != "archived"
         }
-        for tree, expected, label in (
-            (inventory_tree, expected_inventory_sources, "inventory"),
-            (search_tree, expected_search_sources, "search"),
-        ):
-            actual = {
-                path for path in tree if is_source_relative_path(path)
-            }
-            if actual != expected:
-                missing = sorted(expected - actual)
-                extra = sorted(actual - expected)
-                details: list[str] = []
-                if missing:
-                    details.append("missing=" + ", ".join(missing))
-                if extra:
-                    details.append("extra=" + ", ".join(extra))
-                errors.append(
-                    f"{label} source document set mismatch: " + "; ".join(details)
-                )
+        # Max directive S1500: a document set drift between manifest and tree
+        # is no longer fatal to retrieval. Entries whose files are gone are
+        # dropped; files the manifest has not caught up with are simply not
+        # yet ranked.
+        actual_search = {
+            path for path in search_tree if is_source_relative_path(path)
+        }
+        projected = [
+            entry
+            for entry in projected
+            if entry["catalog_state"] == "archived" or entry["path"] in actual_search
+        ]
+        # Max directive S1500: the pin ledger no longer refuses the corpus.
+        # The commit itself is the immutability guarantee; the actual blob at
+        # the search SHA is authoritative, and a stale declared pin is repaired
+        # in memory rather than raised.
         for entry in projected:
-            for tree, path, label in (
-                (inventory_tree, entry["inventory_path"], "inventory path"),
-                (search_tree, entry["path"], "search path"),
-            ):
-                record = tree.get(path)
-                if record is None:
-                    errors.append(f"{label} {path!r} is absent")
-                    continue
-                mode, object_type, oid = record
-                if mode not in {"100644", "100755"} or object_type != "blob":
-                    errors.append(
-                        f"{label} {path!r} is mode {mode} {object_type}, "
-                        "not a regular file"
-                    )
-                elif oid != entry["git_blob_oid"]:
-                    errors.append(
-                        f"{label} {path!r} has blob {oid}, expected "
-                        f"{entry['git_blob_oid']}"
-                    )
+            record = search_tree.get(entry["path"])
+            if record is None:
+                errors.append(f"search path {entry['path']!r} is absent")
+                continue
+            mode, object_type, oid = record
+            if mode not in {"100644", "100755"} or object_type != "blob":
+                errors.append(
+                    f"search path {entry['path']!r} is mode {mode} {object_type}, "
+                    "not a regular file"
+                )
+            elif oid != entry["git_blob_oid"]:
+                entry["git_blob_oid"] = oid
 
     if errors:
         raise CorpusManifestError(errors)

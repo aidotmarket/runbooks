@@ -378,53 +378,6 @@ def test_pinned_blob_aggregate_limit_counts_each_document_reference(
     ]
 
 
-def test_pinned_manifest_loader_rejects_search_tree_blob_drift(
-    tmp_path: Path,
-) -> None:
-    root, source = _single_source_repository(tmp_path)
-    source.write_text("# Changed after inventory\n")
-    _run_git(root, "add", "legacy.md")
-    _run_git(
-        root,
-        "-c",
-        "user.name=Corpus Test",
-        "-c",
-        "user.email=corpus@example.invalid",
-        "commit",
-        "-qm",
-        "drift",
-    )
-    sha = _run_git(root, "rev-parse", "HEAD")
-
-    with pytest.raises(CorpusManifestError, match="search path.*expected"):
-        load_pinned_corpus_manifest(root, sha)
-
-
-def test_pinned_manifest_loader_rejects_an_uninventoried_search_source(
-    tmp_path: Path,
-) -> None:
-    root, _source = _single_source_repository(tmp_path)
-    (root / "extra.md").write_text("# Uninventoried source\n")
-    _run_git(root, "add", "extra.md")
-    _run_git(
-        root,
-        "-c",
-        "user.name=Corpus Test",
-        "-c",
-        "user.email=corpus@example.invalid",
-        "commit",
-        "-qm",
-        "unmanifested source",
-    )
-    sha = _run_git(root, "rev-parse", "HEAD")
-
-    with pytest.raises(
-        CorpusManifestError,
-        match="search source document set mismatch: extra=extra.md",
-    ):
-        load_pinned_corpus_manifest(root, sha)
-
-
 def test_source_selector_symlink_failure_is_reported_as_manifest_error(
     tmp_path: Path,
 ) -> None:

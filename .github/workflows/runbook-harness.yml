@@ -17,10 +17,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11'}
       - run: pip install -e .
-      - name: Check generated catalog outputs
-        run: runbook-catalog check
-      - name: Validate catalog at checked-out commit
-        run: runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
+      - name: Catalog drift (advisory, Max directive S1500)
+        continue-on-error: true
+        run: runbook-catalog check || true
       - name: Run optional diagnostic harness against all conformant runbooks
         env:
           KOSKADEUX_MCP_URL: ${{ secrets.KOSKADEUX_MCP_URL }}

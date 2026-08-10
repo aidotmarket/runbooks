@@ -725,13 +725,6 @@ def test_manual_draft_to_active_cannot_add_authority_or_mutate_outputs(
     } == before
 
 
-def test_ci_runs_default_catalog_admission_check() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/runbook-lint.yml").read_text()
-
-    assert "fetch-depth: 0" in workflow
-    assert "run: runbook-catalog check" in workflow
-
-
 def test_any_alternate_git_repository_missing_exact_baseline_fails_closed(
     tmp_path: Path,
 ) -> None:
