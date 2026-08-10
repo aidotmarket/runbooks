@@ -417,3 +417,28 @@ Any procedure that stops com.koskadeux.gateway or com.koskadeux.mcp must run fro
 terminal or an independent launchd job, never via shell_request. Sequencing rule: move the data
 files while the services are stopped and BEFORE they start on code carrying new paths, or the
 gateway boots with an empty credential store.
+
+S1456 extends this boundary to every durable runtime record. The canonical layout is:
+
+| Record | Canonical path | Temporary compatibility path | Cutover rule |
+|---|---|---|---|
+| Session registry | `/Users/max/koskadeux-state/registry.db` | `/var/tmp/koskadeux/registry.db` if present | Existing SQLite, owner, and read/write checks; production opens with SQLite `mode=rw` and never creates a replacement |
+| Gateway storage | `/Users/max/koskadeux-state/gateway_storage.json` | `/var/tmp/koskadeux/gateway_storage.json` if present | Existing file and owner checks before handler startup |
+| Council Hall | `/Users/max/koskadeux-state/council_hall.db` | `/var/tmp/koskadeux/council_hall.db` | Copy and hash-verify while stopped; SQLite opens with `mode=rw` |
+| Boot/session runtime | `/Users/max/koskadeux-state/boot_gate_runtime.json` | `/var/tmp/koskadeux/boot_gate_runtime.json` | Never overwrite an existing durable checkpoint; retain both inventories and link the old path only after verification |
+| Dispatch/verdict/usage state | `/Users/max/koskadeux-state/cc_tasks`, `/Users/max/koskadeux-state/verdicts`, `/Users/max/koskadeux-state/agent_usage.csv` | `/var/tmp/koskadeux/` equivalents | Copy/hash-verify, retain a rollback snapshot, then install compatibility links |
+| Reload markers | `/Users/max/koskadeux-state/reloader/deployed_sha` and refresh request | `/var/tmp/koskadeux/` equivalents | `KOSKADEUX_RELOADER_STATE_DIR` and `KOSKADEUX_DEPLOYED_SHA` are the supported overrides |
+
+The non-destructive cutover utility is
+`/Users/max/koskadeux-mcp/scripts/migrate_durable_state.py`. Its default mode is
+inventory-only. `--execute` is allowed only in an independently launched stop window;
+it snapshots source inventories, refuses conflicting targets except for preserving an
+already newer `boot_gate_runtime.json`, verifies copies by size and SHA-256, and leaves
+the source retained behind a compatibility symlink. It must not be invoked through
+`shell_request`; use Max's terminal or an independent one-shot launchd job. If the
+utility refuses, do not delete, retry, or start services on the new paths.
+
+After activation, verify both health endpoints, the deployed marker, target ownership,
+the relocation snapshot, and a fresh PID. Every live instance then performs its own
+`kd_session_open` followed by `kd_session_plan`; the relocation is not complete until
+those post-restart gates and the runbook evidence are recorded.

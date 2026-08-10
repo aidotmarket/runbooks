@@ -38,6 +38,24 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 
 The session registry is a SQLite database on Titan-1 at `/Users/max/koskadeux-state/registry.db` (relocated from OS-clearable /var/tmp in S1499, T-2026-000585; a transitional symlink remains at the old path), opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
 
+### S1456 durable-state boundary
+
+The registry is one member of a shared durable-state set. The canonical root is
+`/Users/max/koskadeux-state`; the remaining runtime records are `council_hall.db`,
+`boot_gate_runtime.json`, `session_instance_alias_counters.json`, `agent_usage.csv`,
+`cc_tasks/`, `verdicts/`, and `reloader/`. Production code checks the root and required
+files before startup and opens durable SQLite files with `mode=rw`, so a missing or
+unreadable record is an explicit failure rather than an empty replacement or memory
+fallback. Test callers may still supply isolated temporary paths.
+
+The non-destructive migration/inventory utility is
+`/Users/max/koskadeux-mcp/scripts/migrate_durable_state.py`. Run its inventory mode
+before a cutover. Run `--execute` only while the handler, gateway, and Council Hall are
+stopped by Max's terminal or an independent launchd job. It records source and target
+inventories, verifies copies, preserves pre-existing durable boot-gate checkpoints,
+and leaves old paths as recoverable compatibility links. A refusal is a hard stop;
+never remove the source or overwrite a conflicting target.
+
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Session Registry | `tools/registry.py open_registry` | `registry.db (sessions, session_seq, schema_migrations, close_transactions)` | boot gate (session.py), peer bus, admin endpoints | Instance-keyed; resolves path from KOSKADEUX_REGISTRY_DB |
