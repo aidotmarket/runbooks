@@ -27,7 +27,7 @@ error_signatures:
     section: §F. Isolate
   - signature: queued row with idle slot
     section: §G. Repair
-last_verified_at: "2026-08-09"
+last_verified_at: "2026-08-10"
 superseded_by: []
 supersedes: []
 linter_version: 1.0.0
@@ -47,9 +47,9 @@ YAML frontmatter above is authoritative for the §A header fields. Max directive
 | Immediate job handle on enqueue | SHIPPED | `/opt/homebrew/bin/ts` | Two enqueues returned ids in 0.284s wall including server start | 2026-08-09 |
 | Server drains with no caller attached | SHIPPED | `/opt/homebrew/bin/ts` | Caller exited, two jobs ran to completion unattended | 2026-08-09 |
 | Independent queue per repository | SHIPPED | `koskadeux_mcp/tsp_queue.py` | Two sockets ran concurrently, smoke-proven S1488 | 2026-08-09 |
-| Exit code and output capture per job | SHIPPED | `/opt/homebrew/bin/ts` | Both jobs returned exit 0 and correct stdout | 2026-08-09 |
-| Bridge integration (dispatch enqueues, never waits) | PLANNED | `koskadeux_mcp/bridge_runner.py` | NOT LANDED: built on branch build/bq-s1455-tsp-queue, unreviewed, unmerged | 2026-08-09 |
-| Detached-dispatch pattern proven by operator | PARTIAL | `koskadeux_mcp/minimal_bridge.py` | Operator workaround only, not shipped code: S1488 ticket 80 and the tsp-queue build | 2026-08-09 |
+| Exit code and queue-output capture per job | SHIPPED | `/opt/homebrew/bin/ts` | Task Spooler smoke coverage; queue output is separate from the bridge's durable builder transcript | 2026-08-10 |
+| Bridge integration (dispatch enqueues, never waits) | SHIPPED | `koskadeux_mcp/bridge_runner.py` | `tests/test_tsp_queue.py`, `tests/unit/test_c2_minimal_bridge_routing.py` | 2026-08-10 |
+| Durable builder transcript and test-output artifacts | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | `tests/test_minimal_bridge.py` covers clean exit, timeout, crash and no-change paths | 2026-08-10 |
 
 ## §C. Architecture & Interactions
 
@@ -59,9 +59,9 @@ YAML frontmatter above is authoritative for the §A header fields. Max directive
 | ts server | Auto-started by the first `ts` invocation on a socket | Same | The jobs it supervises | One server per `TS_SOCKET`. It owns the queue and drains it whether or not any caller is attached. |
 | Queue socket | `TS_SOCKET` env var | Unix socket file | One per repository | A distinct socket is a fully independent queue. This is how per-repository serialisation is achieved: a koskadeux-mcp build must never block an ai-market-backend build. |
 | tsp_queue wrapper | `koskadeux_mcp/tsp_queue.py` | none of its own | `ts` binary | Thin wrapper: enqueue, list, output, remove, kill. Resolves the binary from `KD_TS_BIN` (default `ts`). Socket dir from `KD_TS_SOCKET_DIR` (default `/Users/max/koskadeux-state/ts-sockets`, mode 0700). |
-| bridge runner | `koskadeux_mcp/bridge_runner.py` | job spec JSON in, report JSON out | `minimal_bridge.dispatch` | The process ts actually executes. Reads a job spec, runs the build, writes the report. Nothing may block on it. |
+| bridge runner | `koskadeux_mcp/bridge_runner.py` | job spec JSON in, report JSON plus builder-output artifact out | `minimal_bridge.dispatch` | The process ts actually executes. Reads a job spec, streams combined builder stdout/stderr to the durable artifact, runs the build, writes the report. Nothing may block on it. |
 | legacy SQLite queue | `codex_cli_bridge.py` `_acquire_codex_lock` | `/var/tmp/koskadeux/control/codex_queue.sqlite3` | reviewer dispatches only | SUPERSEDED for builds. Still serves the three streaming:event_stream reviewer rows; untangle before deleting. Source of defects F-05/G-02. |
-| minimal bridge | `koskadeux_mcp/minimal_bridge.py` `dispatch()` | git worktrees under `/var/tmp/koskadeux/minimal-bridge-worktrees/`; outcomes at `KD_BRIDGE_OUTCOMES_DB` | git, Codex CLI | Build semantics only. After this change it carries no queue of its own; serialisation is ts's job. |
+| minimal bridge | `koskadeux_mcp/minimal_bridge.py` `dispatch()` | git worktrees under `/var/tmp/koskadeux/minimal-bridge-worktrees/`; reports and `*.builder-output.log` / `*.tests-output.log` under the job directory; outcomes at `KD_BRIDGE_OUTCOMES_DB` | git, Codex CLI | Build semantics only. It streams combined builder output before preservation/push and records artifact paths, byte counts, completeness, exit code and explicit test status. Serialisation is ts's job. |
 | dispatch handler | `tools/agents.py _dispatch_via_minimal_bridge` | — | tsp_queue | Resolves base_sha, writes the job spec, enqueues, returns a handle immediately. It MUST NOT wait for the build. |
 
 ### §C.1 Why the previous queue was replaced
@@ -105,11 +105,11 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   expected_failures:
     - signature: tsp command not found
       cause: "The binary is `ts` on macOS Homebrew, not `tsp`. `tsp` is the Debian package name."
-  next_step_success: Read the row you need; use E-02 to see its output
+  next_step_success: Read the row you need; use E-02 for queue output and E-06 for builder evidence
   next_step_failure: See F-03
 
 - id: E-02
-  trigger: An operator needs the captured output or exit code of a specific job
+  trigger: An operator needs Task Spooler's queue output or exit code of a specific job
   pre_conditions:
     - The job id is known from E-01
   tool_or_endpoint: TS_SOCKET=<socket> ts -c <id>
@@ -117,13 +117,31 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
     arg: id from the ID column of `ts -l`
   idempotency: IDEMPOTENT
   expected_success:
-    shape: "The job's captured stdout and stderr"
+    shape: "The bridge runner's captured queue stdout/stderr"
     verification: "Cross-check the E-Level column in `ts -l` for the exit code"
   expected_failures:
     - signature: no such job
       cause: "The job id belongs to a different socket, or the server was killed and restarted"
   next_step_success: Done
   next_step_failure: Confirm you are on the right TS_SOCKET
+
+- id: E-06
+  trigger: An operator needs the builder's account of its work or the post-build test evidence
+  pre_conditions:
+    - The job report path is known from E-04 or the persisted job spec
+    - The report exists, or the job has reached a terminal Task Spooler state
+  tool_or_endpoint: Read `report_path`, then read the report's `builder_output_path`; if `tests_output_path` is non-null, read that artifact too
+  argument_sourcing:
+    arg: Artifact paths come from the job spec/report, never from a guessed temporary filename
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: "Report contains builder_output_path, builder_output_bytes, builder_output_complete, builder_exit_code, terminal_status, tests_status, and (when configured) tests_output_path"
+    verification: "The builder artifact exists for clean_exit, timeout, crashed, and nothing_changed. tests_status is one of not_configured, passed, failed, or unavailable; clean_exit alone is not test evidence."
+  expected_failures:
+    - signature: builder output artifact missing or incomplete
+      cause: "Evidence capture failed; do not treat the build as verified and do not discard any preserved work"
+  next_step_success: Review the retained transcript and diff, then apply the relevant Gate 3 procedure
+  next_step_failure: Preserve the report/spec and inspect the isolated worktree before any new dispatch
 
 - id: E-03
   trigger: A queued job must be withdrawn before it runs
@@ -152,7 +170,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
     arg: "caller_instance, expected_branch, repo, task, ref_entity, timeout_s"
   idempotency: NOT_IDEMPOTENT
   expected_success:
-    shape: '{success: true, status: "queued", task_id, ts_job_id, queue_key, report_path}'
+    shape: '{success: true, status: "queued", task_id, ts_job_id, queue_key, report_path, builder_output_path}'
     verification: "The handle comes back immediately. `ts -l` shows the job. The call MUST NOT wait for the build."
   expected_failures:
     - signature: minimal_bridge_repo_unresolved
@@ -241,6 +259,8 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 - We do not write queue code. If a queue behaviour is missing, first establish whether Task Spooler already provides it.
 - Tests never touch a live queue. `KD_TS_SOCKET_DIR` must be redirected to a temp path in every test.
 - A job's terminal state and its caller's answer are never allowed to disagree.
+- Combined builder stdout/stderr is streamed to a durable per-job artifact before preservation or push; no terminal path may discard it.
+- A report records whether tests were not configured, passed, failed, or unavailable. `clean_exit` is never a substitute for test evidence.
 
 ### §H.2 BREAKING predicates
 
@@ -264,11 +284,11 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 
 #### module
 
-`koskadeux_mcp/tsp_queue.py` (queue wrapper) and `koskadeux_mcp/bridge_runner.py` (the process ts executes).
+`koskadeux_mcp/tsp_queue.py` (queue wrapper), `koskadeux_mcp/bridge_runner.py` (the process ts executes), and `koskadeux_mcp/minimal_bridge.py` (builder execution and evidence capture).
 
 #### public contract
 
-`dispatch_mp_build` returns `{success, status: "queued", task_id, ts_job_id, queue_key, report_path, base_sha, expected_branch}` immediately and never blocks. Existing refusal `error_type` strings (`minimal_bridge_repo_unresolved`, `minimal_bridge_base_unresolved`) are unchanged.
+`dispatch_mp_build` returns `{success, status: "queued", task_id, ts_job_id, queue_key, report_path, builder_output_path, base_sha, expected_branch}` immediately and never blocks. The terminal report adds the durable builder transcript and explicit test evidence fields. Existing refusal `error_type` strings (`minimal_bridge_repo_unresolved`, `minimal_bridge_base_unresolved`) are unchanged.
 
 #### runtime dependency
 
@@ -427,16 +447,18 @@ Weights are deliberately unequal, one line per scenario.
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1488
-last_refresh_commit: e0103c4
-last_refresh_date: 2026-08-09T10:20:00Z
+last_refresh_session: S1498
+last_refresh_commit: 1e8e23db698bad3fa33d4e79c600e06535a671de
+last_refresh_date: 2026-08-10T11:01:39Z
 owner_agent: vulcan
 refresh_triggers:
-  - The tsp_queue integration lands and Gate 3 passes; update §B rows from IN BUILD to SHIPPED with the merge SHA
+  - The bridge or durable builder-output contract changes; refresh §B/§C/§E and record the implementation SHA
   - Task Spooler is upgraded past 1.0.4
   - Slot count moves away from 1, or the CODEX_HOME concurrency question is settled
   - The legacy SQLite queue in codex_cli_bridge.py is deleted; remove F-05 and G-02
 scheduled_cadence: 90d
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 

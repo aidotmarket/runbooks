@@ -5,7 +5,7 @@ owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  The control surface between "dispatch a build" and "get a diff back": dispatch-time gates, in-flight bounds, and post-build/pre-push gates on the MP (Codex) builder path. Anchors cite koskadeux-mcp main @ 96c62109 (2026-08-06). Fire counts come from the full stored dispatch corpus in /var/tmp/koskadeux/cc_tasks (3,024 task records; 254 MP dispatches). Dispatch mechanics, model pinning and CLI quirks are codex-mp.md; Council review mechanics are agent-dispatch.md and council-gate-process.md; this runbook is the controls inventory.
+  The control surface between "dispatch a build" and "get a diff back": dispatch-time gates, in-flight bounds, post-build preservation and evidence capture on the MP (Codex) builder path. Anchors cite koskadeux-mcp main at the implementation SHA recorded in §J. Fire counts come from the full stored dispatch corpus in /var/tmp/koskadeux/cc_tasks (3,024 task records; 254 MP dispatches). Dispatch mechanics, model pinning and CLI quirks are codex-mp.md; Council review mechanics are agent-dispatch.md and council-gate-process.md; this runbook is the controls inventory.
 linter_version: 1.0.0
 ---
 
@@ -23,11 +23,13 @@ The YAML frontmatter above defines the §A header. This runbook exists by Max di
 | Pre-push gate composition (12 terminal sites) | SHIPPED (scheduled for replacement) | `tools/agents.py ~6211-6520` | Exercised on every MP dispatch | 2026-08-06 |
 | Builder-output manifest verification | SHIPPED (scheduled for removal) | `koskadeux_mcp/builder_output_verification.py` | 10 corpus fires, false-negative class | 2026-08-06 |
 | Output-envelope schema repair | SHIPPED (scheduled for removal from build path) | `council_dispatch_middleware/schema_repair.py` | 25 corpus fires, all-false-negative hit list | 2026-08-06 |
-| Minimal bridge (transport + preservation) | DESIGNED, Gate 1 R2 in review | `specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md @ 9cc065fc` | AC1-AC10 specified, directional | 2026-08-06 |
+| Minimal bridge (transport + preservation) | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | 25 focused tests, including clean exit, timeout, crash and no-change output retention | 2026-08-10 |
+| Durable builder transcript | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Per-job artifact path, byte count and completeness asserted across terminal paths | 2026-08-10 |
+| Explicit post-build test status | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Configured pass/fail and unconfigured cases covered | 2026-08-10 |
 
 ## §C. Architecture & Interactions
 
-The build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → dispatch-time gates → FIFO slot queue → `codex_cli_bridge.py` runs the Codex CLI → output-envelope parsing/repair → post-build pre-push gate composition in `tools/agents.py` (`run_pre_push_gate` region, twelve terminal return sites ~6211-6520) → push → result persistence to `/var/tmp/koskadeux/cc_tasks`. Total control surface at 96c62109: 21,186 lines (`tools/agents.py` 11,682; `codex_cli_bridge.py` 3,318; `koskadeux_mcp/structural_gate.py` 2,222; `structural_gate_runtime.py` 1,675; `claude_code_client.py` 1,528; `tools/agent_usage_log.py` 381; `tools/owned_child_exec.py` 380).
+The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/secret scan/push → report JSON with artifact pointers and explicit test status. The legacy envelope-repair path is not the live minimal-bridge transport. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
 
 Ground truth on effectiveness, measured S1455 across all 254 stored MP dispatches (97 succeeded, 154 failed, 3 running): ~90 of the 154 failures were caused by the control surface or its bookkeeping, not by the builder's code. Exactly 1 was a genuine correctness catch (CI). That measurement is why the S1455 rebuild flips the burden of proof: a control survives only on a demonstrated real catch.
 
@@ -63,7 +65,7 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 
 - **C-13 Exactly-one-commit invariant.** Emits `post_build_no_commit` (:8911) and `post_build_multiple_commits` (:8918); restores via `_restore_after_post_build_failure`. Exists for review hygiene. Fires: 11 multi-commit + 10 no-commit; the multi-commit class discarded completed correct folds whose only sin was arriving as two commits (s1315 defect 2). STATUS: REMOVE the discard; squash at merge is trivial for an operator.
 - **C-14 SHA claim check.** `post_build_sha_mismatch` (~6326). Verifies the builder's claimed head matches git. STATUS: superseded - the bridge reports git directly instead of checking claims about it.
-- **C-15 CI gate.** ~6355 via `_gate_failure_payload`, discard via `_discard_ci_failed_build`; `ci_regression` classes at 7423/7445/7469/7511. Exists for CORE S4 tests-before-completion. Fires: 1 - THE ONLY genuine correctness catch in the corpus. STATUS: RELOCATED, not dropped: tests run and are reported by the bridge (never gate), and CI re-runs at Gate 3 review, which is a hard prerequisite for any merge (spec §7, AC10).
+- **C-15 CI gate.** ~6355 via `_gate_failure_payload`, discard via `_discard_ci_failed_build`; `ci_regression` classes at 7423/7445/7469/7511. Exists for CORE S4 tests-before-completion. Fires: 1 - THE ONLY genuine correctness catch in the corpus. STATUS: RELOCATED, not dropped: configured tests are retained as a separate artifact and reported with `tests_status`; they never gate preservation, and CI re-runs at Gate 3 review, which is a hard prerequisite for any merge.
 - **C-16 Builder-output manifest verification.** `koskadeux_mcp/builder_output_verification.py:65` `verify_builder_output`, `:127` `builder_output_claim_mismatch`; restored via `_restore_after_post_build_failure`. Verifies the builder's line-anchor claims about its own diff. Fires: 10; the false-negative-by-regex specimen (`FAILED_FALSE_NEGATIVE_OUTPUT_MANIFEST_REGEX`) is durably recorded on Living State entity `build:bq-concurrent-build-capacity-s1214`, field `s1401_c5_canary_r10`. A build was failed by a regex. STATUS: REMOVE; Gate 3 reviews the actual diff, not claims about it.
 - **C-17 Git-ref producer completion gate.** ~6449; discard via `_discard_to_recorded_base` (:8969, a `git reset --hard`). Bookkeeping persistence of the completed range, failing which the build is destroyed. Fires: 11 - each destroyed work that had ALREADY passed commit-count, SHA, CI and manifest gates (s1398 FINDING A). STATUS: REMOVE the discard; bookkeeping failure must never destroy work.
 - **C-18 Push gate + shared-branch CAS.** ~6471-6494; `push_failed`, `shared_branch_cas_rejected`; local commit preserved, recovery guidance attached. Protects shared branches from clobbering. Fires: 13 "push failed after all pre-push gates passed" - work preserved, cycle lost. STATUS: KEEP the preserve behavior; bridge adds fast-forward-only pushes, unique retry branches, 3x backoff, and a `pushed`/`preserved` split.
@@ -83,7 +85,7 @@ The standing salvage procedure when any control reports failure: (1) never redis
 
 ## §H. Evolve
 
-The S1455 programme replaces E.2-E.3 with a minimal bridge (target <600 lines): fresh worktree at exact base derived from `repo`, per-dispatch identity, run Codex with no envelope/schema/turn-failure, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), fast-forward-only verified push, tests as report, one outcome row per dispatch, honest `{branch, head_sha, diffstat, tests, duration, terminal_status, preserved, pushed}`. Cutover behind `KD_MINIMAL_BRIDGE_ENABLED` (default false); routing fork operator-authored, Council-reviewed, never MP; legacy stack is the rollback target during soak; ONE post-soak removal item deletes the legacy stack and the Lane B lane model together. Update this runbook's §B/§E statuses in the same change as each stage lands.
+The S1455 programme is live through the minimal bridge: fresh worktree at exact base derived from `repo`, per-dispatch identity, combined builder stdout/stderr streamed to a durable artifact, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), fast-forward-only verified push, configured tests as a separate retained artifact with explicit status, one outcome row per dispatch, and honest report fields `{branch, head_sha, diffstat, builder_output_path, builder_output_complete, builder_output_status, builder_exit_code, tests_status, tests_output_path, duration, terminal_status, preserved, pushed}`. `builder_output_status` is `captured` only when the artifact exists; `unverified` means the operator must not treat the build as observed. No retry or supervisor is part of this design. Update this runbook's §B/§E statuses in the same change as each stage lands.
 
 ## §I. Acceptance Criteria
 
@@ -94,7 +96,20 @@ The S1455 programme replaces E.2-E.3 with a minimal bridge (target <600 lines): 
 
 ## §J. Lifecycle
 
-Created S1455 (2026-08-06) by Max directive, anchors verified at koskadeux-mcp 96c62109. Refresh trigger: any merge touching `tools/agents.py` gate composition, `codex_cli_bridge.py`, `builder_output_verification.py`, `structural_gate*.py`, or the minimal-bridge module. Owner re-verifies anchors at each refresh; stale anchors are a §K conformance failure.
+```yaml lifecycle
+last_refresh_session: S1498
+last_refresh_commit: 1e8e23db698bad3fa33d4e79c600e06535a671de
+last_refresh_date: "2026-08-10T11:01:39Z"
+owner_agent: vulcan
+refresh_triggers:
+  - any merge touching `tools/agents.py` build routing, `koskadeux_mcp/bridge_runner.py`, `koskadeux_mcp/minimal_bridge.py`, `codex_cli_bridge.py`, `builder_output_verification.py`, or `structural_gate*.py`
+scheduled_cadence: 90d
+last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
+last_harness_date: null
+first_staleness_detected_at: null
+```
+
+Created S1455 (2026-08-06) by Max directive. Current refresh includes the minimal-bridge evidence contract in Vulcan S1498; the implementation SHA is recorded in the handoff/commit that lands this change. Owner re-verifies anchors at each refresh; stale anchors are a §K conformance failure.
 
 ## §K. Conformance
 
