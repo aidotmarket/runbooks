@@ -986,7 +986,7 @@
       ],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-08-09",
+      "last_verified_at": "2026-08-10",
       "owner": "vulcan",
       "path": "runbooks/task-spooler-build-queue.md",
       "runbook_id": "task-spooler-build-queue",
