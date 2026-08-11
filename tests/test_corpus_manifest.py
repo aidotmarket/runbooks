@@ -667,14 +667,36 @@ def test_admitted_gitlink_cannot_evade_exhaustive_inventory(
         validate_corpus_manifest(root)
 
 
-def test_same_path_working_content_drift_is_rejected(tmp_path: Path) -> None:
+def test_same_path_working_content_drift_is_advisory_not_a_failure(
+    tmp_path: Path,
+) -> None:
+    """Editing a page without re-pinning must never fail a check.
+
+    Max directives S1491 and S1500: a stale inventory is reported, not
+    enforced. Before S1525 this raised, which turned every runbook edit into a
+    red main until somebody pushed a bookkeeping commit.
+    """
+
     root, source = _single_source_repository(tmp_path)
-    validate_corpus_manifest(root)
+    clean = validate_corpus_manifest(root)
+    assert clean.pin_drift == ()
 
     source.write_text("# Legacy\n\nChanged without refreshing the inventory.\n")
 
+    report = validate_corpus_manifest(root)
+
+    assert any("does not match current bytes" in finding for finding in report.pin_drift)
+    assert report.operational_documents == clean.operational_documents
+
+
+def test_strict_pins_still_rejects_working_content_drift(tmp_path: Path) -> None:
+    """The pin writer keeps the hard guard: never pin a dirty working tree."""
+
+    root, source = _single_source_repository(tmp_path)
+    source.write_text("# Legacy\n\nChanged without refreshing the inventory.\n")
+
     with pytest.raises(CorpusManifestError, match="does not match current bytes"):
-        validate_corpus_manifest(root)
+        validate_corpus_manifest(root, strict_pins=True)
 
 
 def test_pinned_draft_is_non_authoritative_grandfathered_corpus_member(

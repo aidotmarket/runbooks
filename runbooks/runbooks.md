@@ -102,7 +102,7 @@ The retrieval figures come from the frozen AC8 question set at
 | The corpus | `aidotmarket/runbooks` working tree | git | everything | 104 source documents. 23 under `runbooks/`, 81 at the repository root. Root pages are NOT indexed, whatever their content. |
 | `CATALOG.json` | `runbook-catalog generate` | git | search, router, README | **Generated. Never hand-edit.** Sole machine authority for what is indexed and for which page owns which topic. |
 | `TOPIC-ROUTER.md` | `runbook-catalog generate` | git | humans | **Generated. Never hand-edit.** A display surface over `CATALOG.json`, nothing more. |
-| `CORPUS-MANIFEST.yaml` | `python3 -m runbook_tools.corpus_manifest --refresh-from <sha>` | git | CI lint | An inventory and adjudication ledger, NOT an authority. It pins a git blob OID per document, so editing any tracked page invalidates the pin until refreshed. |
+| `CORPUS-MANIFEST.yaml` | `python3 -m runbook_tools.corpus_manifest --refresh-from <sha>` | git | CI lint | An inventory and adjudication ledger, NOT an authority. It pins a git blob OID per document, so editing any tracked page leaves the pin stale until refreshed. Since S1525 a stale pin is ADVISORY: the checker prints it and exits 0, and no check fails. Refresh when convenient, never because CI demands it. |
 | Frozen population anchor | `LEGACY_AUTHORITY_BASE_SHA` in `runbook_tools/catalog/generator.py` + `schemas/legacy_catalog_projection.policy.json` | git | generation | Freezes the catalog to exactly the entries present at one historical commit. Policy bytes are SHA256-pinned into the generator. There is no mechanism to admit a new page except moving the anchor and repinning. See F-01. |
 | Linter | `runbook-lint --mode strict` | none | CI | Checks structural conformance against the A-K template. Advice only since S1491: a failure never stops a page being indexed and never fails CI. |
 | Scaffolder | `runbook-new <slug>` | none | authoring | Writes `templates/runbook.template.md` with placeholders. |
@@ -189,7 +189,7 @@ The retrieval figures come from the frozen AC8 question set at
     verification: "python3 -m runbook_tools.corpus_manifest with no arguments passes"
   expected_failures:
     - signature: does not match current bytes
-      cause: "You edited a tracked page and did not refresh the pin. See F-03."
+      cause: "Refresh only: it refuses to pin a dirty working tree. Commit the page first, then refresh. The plain checker treats the same drift as advisory (S1525). See F-03."
   next_step_success: Regenerate per G-01, update last_verified_at and §J
   next_step_failure: See F-03
 
@@ -219,7 +219,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 |---|---|---|---|---|---|
 | F-01 | `expected_population does not match baseline`, or `legacy population differs from reviewed rollout projection: unexpected=<id>` | A page was added to the catalog. The population is frozen at exactly the entries present at `LEGACY_AUTHORITY_BASE_SHA`; there is no admission mechanism. | `python3 -c "import json;print(len(json.load(open('CATALOG.json'))['entries']))"` against `expected_population` in the policy | G-01 | CONFIRMED |
 | F-02 | A page you wrote does not appear in search or the router | It is at the repository root (81 of 103 pages are, and none of them are indexed); or it does not declare `status: ACTIVE`; or the frozen population was not advanced | `python3 -c "import json;print([e['path'] for e in json.load(open('CATALOG.json'))['entries']])"` | G-01 | CONFIRMED |
-| F-03 | `documents[N].git_blob_oid ... does not match current bytes for '<path>'` | A tracked page was edited after the last manifest pin | `python3 -m runbook_tools.corpus_manifest` | G-02 | CONFIRMED |
+| F-03 | `ADVISORY (not a failure): documents[N].git_blob_oid ... does not match current bytes for '<path>'` | A tracked page was edited after the last manifest pin. Expected and harmless since S1525; the checker exits 0 and CI stays green. Nothing to repair unless you want a tidy ledger. | `python3 -m runbook_tools.corpus_manifest` | G-02 | CONFIRMED |
 | F-04 | `catalog validation failed:` followed by a long list, and every search returns nothing | The committed `CATALOG.json` predates the generator, or the population check fails. Search validates the catalog before returning anything, so an invalid catalog means zero results rather than degraded results. | `runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"` | G-01 | CONFIRMED |
 | F-05 | `manifest has N grandfathered source records, but current source corpus has N+1` | A page was added or removed without refreshing the inventory | `python3 -m runbook_tools.corpus_manifest` | G-02 | CONFIRMED |
 | F-06 | `<path>: dangling section '§X.N'` | Frontmatter or a cross-reference names a section heading that does not exist in the page body | `grep -n "^#" <path>` and compare against the declared sections | G-03 | CONFIRMED |
@@ -250,9 +250,9 @@ These are the things that have surprised sessions before. Each row is a real fai
 - id: G-02
   symptom_ref: F-03
   component_ref: "`CORPUS-MANIFEST.yaml`"
-  root_cause: The manifest pins a git blob OID per document and any edit invalidates it.
+  root_cause: The manifest pins a git blob OID per document and any edit leaves that pin stale. Since S1525 this is advisory and blocks nothing, so this repair is optional tidying, not a fix.
   repair_entry_point: python3 -m runbook_tools.corpus_manifest --refresh-from <full-sha>
-  change_pattern: Refresh from the current HEAD, then re-run the checker with no arguments to confirm a pass.
+  change_pattern: Refresh from the current HEAD, then re-run the checker with no arguments to confirm a clean advisory list. Never open a bookkeeping commit solely to satisfy a check; the check no longer asks.
   rollback_procedure: git checkout CORPUS-MANIFEST.yaml
   integrity_check: python3 -m runbook_tools.corpus_manifest
 
@@ -295,7 +295,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 ### §H.1 Invariants
 
 - `CATALOG.json`, `TOPIC-ROUTER.md` and the generated block in `README.md` are outputs. Regenerate them; never hand-edit them.
-- `CORPUS-MANIFEST.yaml` is an inventory, never an authority. A page does not become true by being listed in it.
+- `CORPUS-MANIFEST.yaml` is an inventory, never an authority. A page does not become true by being listed in it, and a stale pin never fails a check (S1525). The one exception is the refresh itself, which still refuses to pin a dirty working tree, and delivery at a pinned SHA, which still verifies every blob against that commit.
 - A page under the repository root is not indexed, whatever its content or frontmatter.
 - Grep reaches all 104 pages; search reaches 21. Never conclude something is undocumented on a search miss alone.
 - The A-K shape is a convention. Since S1491 a conformance failure is advice to the author; it never stops a page being indexed and never fails CI. If you find yourself inventing content to satisfy a check, stop: the check is wrong, not the page.
@@ -306,6 +306,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 - Moving `LEGACY_AUTHORITY_BASE_SHA`, because it redefines what the population freeze protects.
 - Changing what counts as an indexable location, because it changes the corpus in one step.
 - Re-attaching template conformance, or any other shape test, to admission. It was removed on 2026-08-09 by Max directive S1491 and must not come back as a gate.
+- Re-attaching pin freshness to any check that can fail. Removed on 2026-08-11 by Max directive at S1525, on the same principle: editing a page must never require a bookkeeping commit.
 
 ### §H.3 REVIEW predicates
 
@@ -392,7 +393,7 @@ scenario_set:
     type: isolate
     refs: [F-03, G-02]
     scenario: |
-      CI fails with "documents[N].git_blob_oid ... does not match current bytes for '<path>'" after an indexed page was edited. The operator must classify this before assuming the page is malformed. CORPUS-MANIFEST.yaml pins one git blob OID per document, so any edit to a tracked page invalidates its pin until the inventory is refreshed. Verification: run the corpus manifest checker with no arguments and read which document it names.
+      The checker prints "documents[N].git_blob_oid ... does not match current bytes for '<path>'" after an indexed page was edited. The operator must classify this before assuming the page is malformed. CORPUS-MANIFEST.yaml pins one git blob OID per document, so any edit to a tracked page leaves that pin stale until the inventory is refreshed. Since S1525 the line is prefixed ADVISORY, the checker exits 0 and CI stays green: there is nothing to fix. Verification: run the corpus manifest checker with no arguments and read which document it names.
     expected_answers:
       - kind: classification
         label: stale manifest pin, not a malformed page

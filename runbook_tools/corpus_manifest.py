@@ -221,7 +221,14 @@ ARCHIVE_DISPOSITIONS = frozenset(
 
 @dataclass(frozen=True)
 class CorpusManifestReport:
-    """Validated corpus totals from the working tree and ledger."""
+    """Validated corpus totals from the working tree and ledger.
+
+    ``pin_drift`` carries advisory findings: a ledger blob ID no longer matches
+    the checked-out HEAD or the working bytes. A path that is missing from HEAD
+    or is not a regular file is a structural fault, not drift, and still fails. That is expected
+    whenever a page is edited without re-pinning, and by Max directives S1491
+    and S1500 it must never fail a check. It is reported, not enforced.
+    """
 
     operational_documents: int
     source_documents: int
@@ -230,6 +237,7 @@ class CorpusManifestReport:
     archived: int
     pending: int
     promotion_bar: bool
+    pin_drift: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -925,8 +933,20 @@ def validate_corpus_manifest(
     manifest_path: Path | None = None,
     *,
     promotion_bar: bool = False,
+    strict_pins: bool = False,
 ) -> CorpusManifestReport:
     """Validate the manifest against working-tree sources and its pinned Git tree.
+
+    Staleness of a pinned blob ID against the checked-out HEAD or the
+    working bytes is ADVISORY by default and is returned on the report as
+    ``pin_drift`` instead of raising. Editing a runbook must never require a
+    bookkeeping commit and a stale inventory must never fail a check (Max
+    directives S1491 and S1500); the manifest is an inventory, never an
+    authority. ``strict_pins=True`` restores the hard failure and exists for
+    exactly one caller: ``refresh_corpus_manifest``, which is writing the pins
+    and must refuse to pin a dirty working tree. Internal consistency against
+    the manifest's own ``inventory_sha`` stays a hard error either way, as does
+    delivery verification in ``load_pinned_corpus_manifest``.
 
     The default check permits the explicitly inventoried pending estate.  The
     promotion bar additionally requires that every current source is ACTIVE,
@@ -941,6 +961,9 @@ def validate_corpus_manifest(
         path = root / path
 
     errors: list[str] = []
+    pin_drift: list[str] = []
+    # Pin-staleness findings land here; strict callers route them back to errors.
+    pin_findings = errors if strict_pins else pin_drift
     if path.is_symlink():
         errors.append(f"{path}: manifest file must not be a symlink")
         raise CorpusManifestError(errors)
@@ -1187,7 +1210,7 @@ def validate_corpus_manifest(
                     "not a regular file"
                 )
             elif head_record[2] != blob_oid:
-                errors.append(
+                pin_findings.append(
                     f"{label}.git_blob_oid {blob_oid} does not match current path "
                     f"{document_path!r} in checked-out HEAD ({head_record[2]})"
                 )
@@ -1200,7 +1223,7 @@ def validate_corpus_manifest(
         ):
             current_oid = _working_blob_oid(root / document_path, label, errors)
             if current_oid is not None and current_oid != blob_oid:
-                errors.append(
+                pin_findings.append(
                     f"{label}.git_blob_oid {blob_oid} does not match current bytes for "
                     f"{document_path!r} ({current_oid}); refresh the pinned inventory before "
                     "execution"
@@ -1456,6 +1479,7 @@ def validate_corpus_manifest(
         archived=archived_count,
         pending=pending_count,
         promotion_bar=promotion_bar,
+        pin_drift=tuple(pin_drift),
     )
 
 
@@ -1707,7 +1731,9 @@ def _refresh_corpus_manifest_locked(
             handle.flush()
             os.fsync(handle.fileno())
         os.chmod(temp_path, file_mode)
-        report = validate_corpus_manifest(root, temp_path)
+        # strict_pins: refresh is the writer of the pins, so a working tree that
+        # differs from the HEAD it is pinning must still abort the refresh.
+        report = validate_corpus_manifest(root, temp_path, strict_pins=True)
         current_head = _resolve_commit(root, "HEAD", "checked-out HEAD", errors)
         if current_head != inventory_sha:
             errors.append(
@@ -3084,6 +3110,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         for error in exc.errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
+    for finding in report.pin_drift:
+        print(f"ADVISORY (not a failure): {finding}", file=sys.stderr)
     action = "refreshed-and-validated" if args.refresh_from is not None else "pass"
     print(
         f"{MANIFEST_NAME}: {action}; operational_documents={report.operational_documents}; "
