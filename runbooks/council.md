@@ -65,6 +65,15 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 
 `council_request` is the canonical dispatch entry point. A dispatch uses one `agent`, an intent-bearing `mode` (`review`, `build`, `author`, or `open_response`), and `task`; review/build calls add only keys exposed by the live tool schema, such as `cwd`, `dispatch_sha`, `base`, `head`, `bq_code`, `session_id`, `caller_instance`, and `runbook_refs`. `action` is reserved for build management (`check_build` or `list_builds`), not review/build dispatch.
 
+Turn budgets on the GLM CLI review path (S1522): the default first attempt runs with
+`max_turns=8` and a hard ceiling of 24. Since S1522 the dispatch layer itself performs the
+"permitted single retry": when a first attempt exhausts its turn budget with a clean
+workspace, it is automatically re-run once at the hard ceiling within the remaining
+deadline and budget, and the payload carries `auto_retry_turn_ceiling=true`. Do not raise
+the default; the low first ceiling is the fail-fast tripwire, and repeated exhaustion is a
+prompt-scope problem (narrow the diff), not a budget problem. Reviewer runs now log turn
+counts to `agent_usage.csv`, so recurrence questions are answered from the base rate there.
+
 The current gate voter panel is CC + Kimi + GLM exactly. MP is the mandatory builder and
 is not a gate voter. AG is PAUSED, and XAI is RETIRED. Model assignments, dispatch caps,
 quirks, and any later roster change must be verified against deployed code, the
