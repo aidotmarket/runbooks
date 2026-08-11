@@ -1,3 +1,10 @@
+> **SUPERSEDED 2026-08-09 (S1490). DO NOT USE.**
+> Replaced by `runbooks/crm.md`. This document describes fourteen `crm_*` tables as active in
+> production. All fourteen were deleted on 2026-07-03 by migration
+> `s1113_drop_legacy_crm_tables` under an explicit Max GO and unanimous Council approval.
+> Queries written from this document will fail with `UndefinedTable`, and its diagnostic advice
+> leads to recreating retired tables. Retained for history only.
+
 # CRM Architecture
 
 ## What it is

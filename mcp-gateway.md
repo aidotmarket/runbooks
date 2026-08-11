@@ -197,7 +197,7 @@ kd_session_close(session_id, instance_role, reason, summary, handoff_content)
 
 ### Where session state lives — TWO records, and why
 
-1. **Local SQLite registry** — `/var/tmp/koskadeux/registry.db` (tables: `sessions`,
+1. **Local SQLite registry** — `/Users/max/koskadeux-state/registry.db` (relocated S1499, T-2026-000585; symlink at old /var/tmp path) (tables: `sessions`,
    `role_locks`, `close_transactions`) plus the sidecar `/var/tmp/koskadeux/boot_gate_runtime.json`
    (checkpoint flag). Disk-backed so PLANNING/OPERATIONAL and session rows survive a process
    restart (`kill -9` + `launchctl kickstart`). Managed by `tools/registry.py` and
@@ -400,3 +400,45 @@ gui/$(id -u)/com.koskadeux.mcp` → run the migration with `venv/bin/python` (re
 ~/Library/LaunchAgents/com.koskadeux.mcp.plist` → verify the PID CHANGED and `curl
 localhost:8765/health` (allow ~10s startup for Infisical fetches before judging health) →
 log everything to a file. After the bounce, every live instance must re-open + re-plan.
+
+
+## Durable state relocation and restart-window discipline (S1499, T-2026-000585)
+
+The gateway OAuth credential store and the session registry live in durable storage:
+`/Users/max/koskadeux-state/gateway_storage.json` (0600) and `/Users/max/koskadeux-state/registry.db`.
+They were moved out of /var/tmp because macOS may clear it, and a cleared credential store
+locks BOTH instances out with no automated recovery. Transitional symlinks remain at the old
+/var/tmp paths for any long-running process started on pre-S1499 code.
+
+Failure signature and lesson: a relocation/restart script dispatched through shell_request is a
+CHILD of the gateway/MCP service process group. `launchctl bootout` kills the whole group, so the
+script dies silently the moment it stops its own ancestor. nohup does not protect against this.
+Any procedure that stops com.koskadeux.gateway or com.koskadeux.mcp must run from the operator's
+terminal or an independent launchd job, never via shell_request. Sequencing rule: move the data
+files while the services are stopped and BEFORE they start on code carrying new paths, or the
+gateway boots with an empty credential store.
+
+S1456 extends this boundary to every durable runtime record. The canonical layout is:
+
+| Record | Canonical path | Temporary compatibility path | Cutover rule |
+|---|---|---|---|
+| Session registry | `/Users/max/koskadeux-state/registry.db` | `/var/tmp/koskadeux/registry.db` if present | Existing SQLite, owner, and read/write checks; production opens with SQLite `mode=rw` and never creates a replacement |
+| Gateway storage | `/Users/max/koskadeux-state/gateway_storage.json` | `/var/tmp/koskadeux/gateway_storage.json` if present | Existing file and owner checks before handler startup |
+| Council Hall | `/Users/max/koskadeux-state/council_hall.db` | `/var/tmp/koskadeux/council_hall.db` | Copy and hash-verify while stopped; SQLite opens with `mode=rw` |
+| Boot/session runtime | `/Users/max/koskadeux-state/boot_gate_runtime.json` | `/var/tmp/koskadeux/boot_gate_runtime.json` | Never overwrite an existing durable checkpoint; retain both inventories and link the old path only after verification |
+| Dispatch/verdict/usage state | `/Users/max/koskadeux-state/cc_tasks`, `/Users/max/koskadeux-state/verdicts`, `/Users/max/koskadeux-state/agent_usage.csv` | `/var/tmp/koskadeux/` equivalents | Copy/hash-verify, retain a rollback snapshot, then install compatibility links |
+| Reload markers | `/Users/max/koskadeux-state/reloader/deployed_sha` and refresh request | `/var/tmp/koskadeux/` equivalents | `KOSKADEUX_RELOADER_STATE_DIR` and `KOSKADEUX_DEPLOYED_SHA` are the supported overrides |
+
+The non-destructive cutover utility is
+`/Users/max/koskadeux-mcp/scripts/migrate_durable_state.py`. Its default mode is
+inventory-only. `--execute` is allowed only in an independently launched stop window;
+it snapshots source inventories, refuses conflicting targets except for preserving an
+already newer `boot_gate_runtime.json`, verifies copies by size and SHA-256, and leaves
+the source retained behind a compatibility symlink. It must not be invoked through
+`shell_request`; use Max's terminal or an independent one-shot launchd job. If the
+utility refuses, do not delete, retry, or start services on the new paths.
+
+After activation, verify both health endpoints, the deployed marker, target ownership,
+the relocation snapshot, and a fresh PID. Every live instance then performs its own
+`kd_session_open` followed by `kd_session_plan`; the relocation is not complete until
+those post-restart gates and the runbook evidence are recorded.

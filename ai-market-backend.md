@@ -59,14 +59,24 @@ curl -s https://api.ai.market/health
 | `/api/v1/search` | `search.py` | Listing search (Qdrant-backed) |
 | `/api/v1/mcp` | `mcp.py`, `mcp_server.py` | MCP protocol endpoints |
 
-## Seller onboarding enforcement & dashboard access
+## Seller capability enforcement & dashboard access
 
-Dashboard READ endpoints must load for a seller still mid-onboarding (`onboarding_completed=false`), while writes/payout stay gated. Two flexible-auth dependencies live in `listings.py`:
+**RETIRED 2026-08-09, T-2026-000565 C2-B, merged to backend main at `644ee1d64`.** Onboarding enforcement no longer exists anywhere in `app/`. This section previously described two flexible-auth dependencies and an `onboarding_completed` gate; both enforcers and the `get_current_user_flexible_no_onboarding` helper are deleted. Do not reinstate them and do not look for them.
 
-- `get_current_user_flexible` — authenticates AND enforces onboarding (raises 403 `Onboarding required`). Use for writes, listing-create, payout, and gated actions.
-- `get_current_user_flexible_no_onboarding` — authenticates but skips the onboarding gate. Use for **owner-scoped dashboard READS only** — the handler still filters by the authenticated user's id, so there is no cross-account exposure.
+Why it went: the gate was a blanket 403 keyed on `onboarding_completed`, and the wizard that could clear that flag had already been deleted from the frontend. Every Google sign-up was therefore trapped permanently — 15 real users, newest 2026-08-07, one of whom reached live Stripe payouts and still could not open his dashboard. The gate was a product-completeness check wearing a security check's clothes; all three Gate 3 reviewers said so independently.
 
-Owner-scoped dashboard reads currently on the non-enforcing dependency: seller `/stats /financials /orders /pending`; inquiries `/mine /stats`; conversations `/mine /stats`; orders `/mine /stats`; listings `/mine`. If a new "My X" dashboard list/stats read 403s for a partial-onboarding seller, switch that route's dependency to `get_current_user_flexible_no_onboarding` and add a test asserting 200-on-read plus still-403-on-write. Reviewer note: dropping the onboarding gate on these owner-scoped reads is auth-scope — it earns a unanimous Council Gate-3 (reviewer != builder).
+**What replaced it.** There is now ONE flexible-auth dependency, `listings.get_current_user_flexible`, and it AUTHENTICATES ONLY. Authorization is per surface:
+
+- **Seller writes** assert capability explicitly: `await assert_user_capability(user, db, "seller")`. Eight call sites — `ai_discovery`, `disclosure_snapshots`, `disputes.seller_respond`, `orders.deliver_order`, `orders.revoke_access`, `ratings.respond_to_rating`, `inquiries.seller_respond`, `transaction_actions.deliver_transaction` — plus the pre-existing assertions in `listings.py` and `seller.py`.
+- **Role-gated routes** use the `require_capability(...)` dependency: `profiles` `/seller/me` GET and PATCH at threshold `provisioning`; `vz_publish` confirm/rotate-key/revoke at `active`.
+- **Owner-scoped dashboard reads** need no capability at all. The handler filters by the authenticated user's id, which is the boundary. Seller `/stats /financials /orders /pending`; inquiries `/mine /stats`; conversations `/mine /stats`; orders `/mine /stats`; listings `/mine`.
+- **Conversations are capability-neutral by design.** Participant/owner scope is the boundary (`InquiryService.respond_to_inquiry` → 403 "Not authorized"). A partially-provisioned buyer CAN start and reply to a conversation; that is intended, not a regression.
+
+**THE TRAP, and it has bitten once.** `assert_user_capability` resolves through `CapabilityResolver`, which does an unconditional `await self.db.execute(...)`. It therefore requires an `AsyncSession`. A route holding the SYNC `Session` from `get_db` must NOT pass that session: `sqlalchemy.orm.Session.execute` is not a coroutine function and the result has no `__await__`, so the endpoint returns HTTP 500 for every caller. This shipped once, on `inquiries.seller_respond`, and would have broken every seller reply to a buyer inquiry. Existing tests could not catch it because the test double is a `Mock` and `capability_resolver.py:150-160` has explicit `isinstance(self.db, Mock)` escape hatches that return `{}` before the await runs. The fix pattern is at `inquiries.py:510-520`: inject a second dependency `cap_db: AsyncSession = Depends(get_async_db)` for the capability check only and leave the sync `db` driving the route body. If you add a capability assertion to a sync route, do this, and write a regression test that does not use a Mock session.
+
+**Admin-only routes take no seller gate.** `transaction_actions.settle_transaction` is admin-only; asserting seller capability there made it unreachable for its only authorised role. The approved Gate 2 spec text said otherwise and the Council ratified the code over the text (Kimi M1, S1488).
+
+**Known non-blocking product question, CC finding S1488.** `vz_publish` rotate-key and revoke-install sit at threshold `active`, so a seller still `provisioning` cannot revoke a compromised install or rotate a leaked key until Stripe onboarding completes. Correct for publishing, arguable for these two defensive actions. Recorded, not changed.
 
 **Stripe Connect return URLs:** the hosted-onboarding AccountLink in `stripe_connect.py` must return to the real frontend route `/dashboard/stripe-return` (refresh → `/dashboard/stripe-return?abandoned=1`, which that page reads as the abandoned/incomplete case). Do NOT use bare `/settings` — there is no `/settings` route (settings lives at `/dashboard/settings`), so it 404s and dead-ends the seller right after connecting.
 
@@ -313,3 +323,20 @@ def upgrade() -> None:
 ```
 
 *Discovered in S427. See also: alembic/versions/20260410_002_backfill_parties_v2.py for a working example.*
+
+## Model-table drift and money-path recovery
+
+The public `GET /health` response includes two model-schema fields in addition to the Alembic fields:
+
+- `missing_model_tables`: an exact sorted list of model-backed tables that are absent, `[]` when none are absent, or `null` when database inspection failed.
+- `model_schema_drift`: `true` when `missing_model_tables` is non-empty, `false` only when inspection succeeded and no model tables are missing, or `null` when the result is unknown.
+
+Treat `null` as unknown and fail closed. Treat `model_schema_drift: true` as unhealthy even if the service still reports `status: healthy`; the list is the remaining repair scope.
+
+Migration `s1488_money_path_tables` restores only the money-path tables `orders`, `transactions`, and `transaction_events`. It creates them from the current SQLAlchemy models in foreign-key order and skips a table that already exists. It does not claim to repair every missing model table. After deployment, require all three names to be absent from `missing_model_tables`; preserve and track any other listed tables as residual drift.
+
+For a seller dashboard `500` on `/api/v1/seller/stats`, check application logs for `UndefinedTable` and query `/health`. If `orders` is listed, verify that Railway startup ran `alembic upgrade head`, that `alembic_current` and `alembic_head` both equal `s1488_money_path_tables`, and that the three money-path table names no longer appear in the missing-table list.
+
+Rollback is forward-fix only after the database is stamped at `s1488_money_path_tables`. Do not run this revision's downgrade on a production database: sibling foreign keys can block it, and pre-existing fallback-created tables or data may be destroyed. Do not redeploy an older image that lacks the `s1488` revision because its Alembic graph cannot resolve the stamped database revision. Correct defects with a new reviewed migration/code revision and deploy forward.
+
+*Money-path recovery guidance added: S1507 (2026-08-11), T-2026-000580.*

@@ -23,6 +23,7 @@ from runbook_tools.catalog.generator import (
     source_paths,
 )
 from runbook_tools.catalog.model import REQUIRED_ACTIVE_FIELDS, CatalogError
+from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.parser.markdown_ast import parse_markdown, walk_tokens
 from tests.catalog_test_support import (
     conformant_catalog_document,
@@ -160,7 +161,7 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
     assert actual == expected
     assert grandfathered == expected_grandfathered
     assert len(actual) >= 20
-    assert grandfathered <= 81
+    assert grandfathered <= 79
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",
@@ -178,7 +179,7 @@ def test_reviewed_projection_freezes_exact_legacy_population_and_final_boot_delt
     )
 
     assert projection is not None
-    assert len(projection.expected) == 20
+    assert len(projection.expected) == 23
     peer = projection.expected["peer-instance-discipline"]
     assert {
         row["topic"] for row in peer["authoritative_for"]
@@ -288,7 +289,7 @@ def test_projection_ancestry_ignores_local_replace_refs(tmp_path: Path) -> None:
     )
 
     assert projection is not None
-    assert len(projection.expected) == 20
+    assert len(projection.expected) == 23
 
 
 def test_source_set_defaults_unknown_directories_into_adjudication_and_excludes_only_declared_non_sources(
@@ -581,9 +582,17 @@ def test_working_generation_rejects_future_last_verified_at(tmp_path: Path) -> N
         build_catalog(tmp_path, current_utc_date=date(2026, 7, 17))
 
 
-def test_active_catalog_member_must_pass_deterministic_a_to_k_conformance(
+def test_a_to_k_conformance_is_a_convention_and_never_an_admission_condition(
     tmp_path: Path,
 ) -> None:
+    """A page's shape must not decide whether it can be found.
+
+    Max directive S1491 and AC9 of the approved truth-layer design. The
+    deterministic A-K checks still fire - they are advice to the author through
+    ``runbook-lint`` - but a page that fails them is still indexed, because an
+    unfindable correct page is worse than a findable untidy one.
+    """
+
     path = _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
     path.write_text(
         re.sub(
@@ -594,8 +603,18 @@ def test_active_catalog_member_must_pass_deterministic_a_to_k_conformance(
         )
     )
 
-    with pytest.raises(CatalogError, match="deterministic conformance.*missing §E"):
-        build_catalog(tmp_path)
+    catalog, _ = build_catalog(tmp_path)
+
+    assert [entry["runbook_id"] for entry in catalog["entries"]] == ["member"]
+
+    findings = structural_conformance_failures(
+        path.read_text(),
+        REPO_ROOT / "schemas",
+    )
+    assert any("§E" in finding.message for finding in findings), (
+        "the checks must still detect the missing section; only their authority "
+        "to refuse admission is removed"
+    )
 
 
 @pytest.mark.parametrize(
@@ -704,13 +723,6 @@ def test_manual_draft_to_active_cannot_add_authority_or_mutate_outputs(
         path: (tmp_path / path).read_bytes()
         for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
     } == before
-
-
-def test_ci_runs_default_catalog_admission_check() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/runbook-lint.yml").read_text()
-
-    assert "fetch-depth: 0" in workflow
-    assert "run: runbook-catalog check" in workflow
 
 
 def test_any_alternate_git_repository_missing_exact_baseline_fails_closed(

@@ -15,6 +15,7 @@ import runbook_tools.catalog.generator as catalog_generator
 import runbook_tools.catalog.validator as catalog_validator
 from runbook_tools.catalog.generator import generate_catalog
 from runbook_tools.catalog.model import CatalogError
+from runbook_tools.lint.conformance import structural_conformance_failures
 from runbook_tools.catalog.search import search_catalog
 from runbook_tools.catalog.sections import parse_markdown_document
 from runbook_tools.catalog.validator import (
@@ -1214,7 +1215,7 @@ def test_pinned_lifecycle_clock_uses_commit_instant_not_end_of_day(
         )
 
 
-def test_pinned_self_consistent_catalog_without_required_section_fails_search(
+def test_a_missing_conventional_section_no_longer_hides_a_page_from_search(
     tmp_path: Path,
 ) -> None:
     _init_repo(tmp_path)
@@ -1231,10 +1232,17 @@ def test_pinned_self_consistent_catalog_without_required_section_fails_search(
     sha = _commit(tmp_path, "missing required E section")
     catalog_ref = f"git:aidotmarket/runbooks@{sha}:CATALOG.json"
 
-    with pytest.raises(CatalogError, match="missing §E"):
-        validate_catalog_ref(tmp_path, catalog_ref)
-    with pytest.raises(CatalogError, match="missing §E"):
-        search_catalog(tmp_path, catalog_ref, "fixture body")
+    # Max directive S1491 and AC7/AC9 of the approved truth-layer design: shape
+    # may rank a result, never filter it. There is no query that hides a page for
+    # being untidy. The section is not declared by any catalog row here, so the
+    # index is not lying - the page is merely missing a conventional heading, and
+    # a reader looking for it must still be able to find it.
+    report = validate_catalog_ref(tmp_path, catalog_ref)
+    assert report.checked_entry_count == 1
+
+    # The check still fires; it simply no longer has the power to hide the page.
+    findings = structural_conformance_failures(path.read_text(), tmp_path / "schemas")
+    assert any("§E" in finding.message for finding in findings)
 
 
 def test_all_seven_kernel_companions_generate_and_validate_at_one_pin(tmp_path: Path) -> None:

@@ -1,6 +1,9 @@
 {
+  "action_authority_eligible": false,
+  "authority_admission": false,
   "entries": [
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -8,6 +11,7 @@
           "topic": "agent-completeness"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -15,15 +19,19 @@
           "signature": "incomplete_agent_surface"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/agent-completeness.md",
       "runbook_id": "agent-completeness",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -31,6 +39,7 @@
           "topic": "agent-dispatch"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -38,7 +47,7 @@
           "signature": "bootout_without_plist_patch"
         },
         {
-          "section": "\u00a7X.8",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "cutover_admission_unknown"
         },
         {
@@ -78,7 +87,7 @@
           "signature": "strict_verdict_invalid"
         },
         {
-          "section": "\u00a7X.8",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "structural_gate_unknown"
         },
         {
@@ -90,15 +99,19 @@
           "signature": "unsupported_line_claim"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-08-03",
       "owner": "vulcan",
       "path": "runbooks/agent-dispatch.md",
       "runbook_id": "agent-dispatch",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -106,6 +119,7 @@
           "topic": "aging-policy"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -113,15 +127,19 @@
           "signature": "stale_queue_undispatched"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/aging-policy.md",
       "runbook_id": "aging-policy",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -129,6 +147,7 @@
           "topic": "branch-landed-verification"
         }
       ],
+      "authority_admission": false,
       "domain": "build-queue",
       "error_signatures": [
         {
@@ -148,15 +167,19 @@
           "signature": "unlanded_branch_believed_landed"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "mars",
       "path": "runbooks/branch-landed-verification.md",
       "runbook_id": "branch-landed-verification",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -164,6 +187,7 @@
           "topic": "build-queue-reconciliation"
         }
       ],
+      "authority_admission": false,
       "domain": "build-queue",
       "error_signatures": [
         {
@@ -171,66 +195,19 @@
           "signature": "unsupported_target_repo"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-26",
       "owner": "vulcan",
       "path": "runbooks/build-queue-reconciliation.md",
       "runbook_id": "build-queue-reconciliation",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
-      "aliases": [
-        "builder-gates",
-        "mp-build-controls",
-        "wrapper-controls"
-      ],
-      "authoritative_for": [
-        {
-          "section": "\u00a7C. Architecture & Interactions",
-          "topic": "builder-controls"
-        },
-        {
-          "section": "\u00a7E. Operate",
-          "topic": "builder-control-inventory"
-        },
-        {
-          "section": "\u00a7G. Repair",
-          "topic": "builder-failure-salvage"
-        }
-      ],
-      "domain": "council-koskadeux-orchestration",
-      "error_signatures": [
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "RepairExhaustedError"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "post_build_multiple_commits"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "builder_output_claim_mismatch"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "hard_timeout_uncommitted_work"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "before_reap_persistence_failed"
-        }
-      ],
-      "last_verified_at": "2026-08-06",
-      "owner": "vulcan",
-      "path": "builder-controls.md",
-      "runbook_id": "builder-controls",
-      "status": "ACTIVE",
-      "superseded_by": [],
-      "supersedes": []
-    },
-    {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -238,6 +215,7 @@
           "topic": "constitution-history"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -245,15 +223,19 @@
           "signature": "constitution_source_drift"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "max",
       "path": "runbooks/constitution-history.md",
       "runbook_id": "constitution-history",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [
         "allai-corpus-policy"
       ],
@@ -263,17 +245,22 @@
           "topic": "corpus-capture-policy"
         }
       ],
+      "authority_admission": false,
       "domain": "allai-corpus",
       "error_signatures": [],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-30",
       "owner": "sysadmin",
       "path": "runbooks/corpus-capture-policy.md",
       "runbook_id": "corpus-capture-policy",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -289,6 +276,7 @@
           "topic": "council-schema-drift"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -324,15 +312,19 @@
           "signature": "timeout"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/council.md",
       "runbook_id": "council",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -340,6 +332,7 @@
           "topic": "council-gate-process"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -383,15 +376,19 @@
           "signature": "unresolved_mandates"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "mp",
       "path": "runbooks/council-gate-process.md",
       "runbook_id": "council-gate-process",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -399,6 +396,7 @@
           "topic": "council-hall-deliberation"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -426,15 +424,19 @@
           "signature": "premature_cross_poll"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "vulcan",
       "path": "runbooks/council-hall-deliberation.md",
       "runbook_id": "council-hall-deliberation",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [
         "council-verdict-collection",
         "gate-recording"
@@ -445,6 +447,7 @@
           "topic": "council-review-collection"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -480,15 +483,19 @@
           "signature": "review_preload_unresolved"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-30",
       "owner": "mars",
       "path": "runbooks/council-review-collection.md",
       "runbook_id": "council-review-collection",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -496,6 +503,7 @@
           "topic": "council-roster-quirks"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -503,15 +511,149 @@
           "signature": "stale_roster_snapshot"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/council-roster-quirks.md",
       "runbook_id": "council-roster-quirks",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
+      "aliases": [
+        "crm-architecture",
+        "crm-pipeline",
+        "crm-steward",
+        "crm-target-state",
+        "party-model"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "crm-connectors"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "crm-data-model"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "topic": "crm-diagnosis"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "crm-legacy-table-drop"
+        }
+      ],
+      "authority_admission": false,
+      "domain": "platform-data",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "UndefinedTable"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "empty contact_id on upsert"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "pipeline stages feature is not yet fully set up"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "relation \"crm_entities\" does not exist"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "relation \"crm_people\" does not exist"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "relation \"crm_pipeline_stages\" does not exist"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "the pipeline stages migration may not have been run"
+        }
+      ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
+      "last_verified_at": "2026-08-09",
+      "owner": "vulcan",
+      "path": "runbooks/crm.md",
+      "runbook_id": "crm",
+      "semantic_verification": false,
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": [
+        "crm-architecture",
+        "crm-pipeline",
+        "crm-target-state"
+      ]
+    },
+    {
+      "action_authority_eligible": false,
+      "aliases": [
+        "browser-journey",
+        "browser_journey",
+        "playwright-runner"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "browser-journey-charter"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "browser-journey-dispatch"
+        },
+        {
+          "section": "\u00a7H. Evolve",
+          "topic": "browser-journey-phases"
+        }
+      ],
+      "authority_admission": false,
+      "domain": "e2e-testing",
+      "error_signatures": [
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "browser_journey refused: E2E_PROD_FRONTEND_URL is required"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "status harness_error, summary browser_journey requires params.mode"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "preflight refusal (404, 403, 401, non-200, allowed=false, timeout)"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "signature": "no screenshot present"
+        }
+      ],
+      "integrity_only": false,
+      "integrity_status": "integrity_pass_unverified",
+      "last_verified_at": "2026-08-10",
+      "owner": "mars",
+      "path": "e2e-browser-runner.md",
+      "runbook_id": "e2e-browser-runner",
+      "semantic_verification": false,
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -519,17 +661,22 @@
           "topic": "e2e-programme-integrity"
         }
       ],
+      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-programme-integrity.md",
       "runbook_id": "e2e-programme-integrity",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -537,17 +684,22 @@
           "topic": "e2e-test-status-publisher"
         }
       ],
+      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-test-status-publisher.md",
       "runbook_id": "e2e-test-status-publisher",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -555,17 +707,22 @@
           "topic": "e2e-video-review"
         }
       ],
+      "authority_admission": false,
       "domain": "e2e-testing",
       "error_signatures": [],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-23",
       "owner": "mars",
       "path": "runbooks/e2e-video-review.md",
       "runbook_id": "e2e-video-review",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -573,6 +730,7 @@
           "topic": "gate-procedure"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -580,15 +738,19 @@
           "signature": "gate_eligibility_unknown"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/gate-procedure.md",
       "runbook_id": "gate-procedure",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -604,6 +766,7 @@
           "topic": "security-secret-disclosure"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -619,15 +782,19 @@
           "signature": "secret_disclosure"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "sysadmin",
       "path": "runbooks/infrastructure-discovery.md",
       "runbook_id": "infrastructure-discovery",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [
         "peer-bus",
         "peer-message-bus"
@@ -650,6 +817,7 @@
           "topic": "session-plan-runbook-context"
         }
       ],
+      "authority_admission": false,
       "domain": "peer-coordination",
       "error_signatures": [
         {
@@ -681,15 +849,19 @@
           "signature": "unread_request_or_alert_at_dispatch"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-31",
       "owner": "mars",
       "path": "runbooks/peer-instance-discipline.md",
       "runbook_id": "peer-instance-discipline",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -697,6 +869,7 @@
           "topic": "policy-kernel-enforcement"
         }
       ],
+      "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
@@ -720,15 +893,19 @@
           "signature": "policy_kernel_preflight_indeterminate"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-27",
       "owner": "vulcan",
       "path": "runbooks/policy-kernel-enforcement.md",
       "runbook_id": "policy-kernel-enforcement",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
     },
     {
+      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
@@ -736,6 +913,7 @@
           "topic": "product-elaboration"
         }
       ],
+      "authority_admission": false,
       "domain": "boot-kernel",
       "error_signatures": [
         {
@@ -743,10 +921,132 @@
           "signature": "product_boundary_conflict"
         }
       ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
       "last_verified_at": "2026-07-17",
       "owner": "max",
       "path": "runbooks/product-elaboration.md",
       "runbook_id": "product-elaboration",
+      "semantic_verification": false,
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "action_authority_eligible": false,
+      "aliases": [
+        "how-to-write-a-runbook",
+        "runbook-runbook",
+        "runbook-standard"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "runbook-authoring"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "runbook-corpus"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "runbook-discovery"
+        },
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "runbook-verification"
+        }
+      ],
+      "authority_admission": false,
+      "domain": "runbooks",
+      "error_signatures": [
+        {
+          "section": "\u00a7G. Repair",
+          "signature": "catalog outputs are stale"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "catalog validation failed"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "dangling section"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "does not match current bytes"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "expected_population does not match baseline"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "grandfathered source records, but current source corpus has"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "legacy population differs from reviewed rollout projection"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "search limit must be an integer from 1 to 3"
+        }
+      ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
+      "last_verified_at": "2026-08-09",
+      "owner": "mars",
+      "path": "runbooks/runbooks.md",
+      "runbook_id": "runbooks",
+      "semantic_verification": false,
+      "status": "ACTIVE",
+      "superseded_by": [],
+      "supersedes": []
+    },
+    {
+      "action_authority_eligible": false,
+      "aliases": [
+        "build-queue-runner",
+        "codex-queue"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7E. Operate",
+          "topic": "build-queue-operator-recovery"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "task-spooler-queue-architecture"
+        }
+      ],
+      "authority_admission": false,
+      "domain": "council-operations",
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "Codex FIFO unavailable"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "dispatch refused before model execution"
+        },
+        {
+          "section": "\u00a7G. Repair",
+          "signature": "queued row with idle slot"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "tsp command not found"
+        }
+      ],
+      "integrity_only": true,
+      "integrity_status": "integrity_pass_unverified",
+      "last_verified_at": "2026-08-10",
+      "owner": "vulcan",
+      "path": "runbooks/task-spooler-build-queue.md",
+      "runbook_id": "task-spooler-build-queue",
+      "semantic_verification": false,
       "status": "ACTIVE",
       "superseded_by": [],
       "supersedes": []
@@ -758,12 +1058,44 @@
         "runbook_id": "corpus-capture-policy",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "build-queue-runner": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
+      },
+      "codex-queue": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
+      },
       "council-verdict-collection": {
         "runbook_id": "council-review-collection",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "crm-architecture": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "crm-pipeline": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "crm-steward": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "crm-target-state": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
       "gate-recording": {
         "runbook_id": "council-review-collection",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "how-to-write-a-runbook": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
+      },
+      "party-model": {
+        "runbook_id": "crm",
         "section": "\u00a7C. Architecture & Interactions"
       },
       "peer-bus": {
@@ -773,9 +1105,25 @@
       "peer-message-bus": {
         "runbook_id": "peer-instance-discipline",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "runbook-runbook": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
+      },
+      "runbook-standard": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
       }
     },
     "error_signatures": {
+      "Codex FIFO unavailable": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
+      },
+      "UndefinedTable": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
       "agent silence": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
@@ -795,6 +1143,14 @@
       "break_glass_left_enabled": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
+      },
+      "catalog outputs are stale": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7G. Repair"
+      },
+      "catalog validation failed": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
       },
       "cc_verdict_parse_failure": {
         "runbook_id": "council-review-collection",
@@ -834,7 +1190,11 @@
       },
       "cutover_admission_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.8"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
+      },
+      "dangling section": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
       },
       "default_cwd_false_positive": {
         "runbook_id": "agent-dispatch",
@@ -848,12 +1208,20 @@
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
       },
+      "dispatch refused before model execution": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
+      },
       "dispatch_sha_invalid": {
         "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
       "dispatch_terminal_state_missing_after_restart": {
         "runbook_id": "policy-kernel-enforcement",
+        "section": "\u00a7F. Isolate"
+      },
+      "does not match current bytes": {
+        "runbook_id": "runbooks",
         "section": "\u00a7F. Isolate"
       },
       "duplicate_claim_on_one_item": {
@@ -864,9 +1232,17 @@
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
       },
+      "empty contact_id on upsert": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
       "env_var_in_inherited_only": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
+      },
+      "expected_population does not match baseline": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
       },
       "fabricated_line_reference": {
         "runbook_id": "council-gate-process",
@@ -892,6 +1268,10 @@
         "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
+      "grandfathered source records, but current source corpus has": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
+      },
       "harness_bound_to_stale_code": {
         "runbook_id": "council-gate-process",
         "section": "\u00a7E. Operate"
@@ -911,6 +1291,10 @@
       "late_arriver": {
         "runbook_id": "council-hall-deliberation",
         "section": "\u00a7E. Operate"
+      },
+      "legacy population differs from reviewed rollout projection": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
       },
       "missing dispatch token": {
         "runbook_id": "council",
@@ -952,6 +1336,10 @@
         "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
       },
+      "pipeline stages feature is not yet fully set up": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
       "policy_kernel_enforcement_setting_invalid": {
         "runbook_id": "policy-kernel-enforcement",
         "section": "\u00a7F. Isolate"
@@ -980,9 +1368,25 @@
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7F. Isolate"
       },
+      "queued row with idle slot": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7G. Repair"
+      },
       "read-only agent attempted write": {
         "runbook_id": "council",
         "section": "\u00a7E. Operate"
+      },
+      "relation \"crm_entities\" does not exist": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
+      "relation \"crm_people\" does not exist": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
+      "relation \"crm_pipeline_stages\" does not exist": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
       },
       "review_preload_unresolved": {
         "runbook_id": "council-review-collection",
@@ -1003,6 +1407,10 @@
       "schema_validation_failure": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
+      },
+      "search limit must be an integer from 1 to 3": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7F. Isolate"
       },
       "secret_disclosure": {
         "runbook_id": "infrastructure-discovery",
@@ -1034,7 +1442,11 @@
       },
       "structural_gate_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "\u00a7X.8"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
+      },
+      "the pipeline stages migration may not have been run": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
       },
       "timeout": {
         "runbook_id": "council",
@@ -1043,6 +1455,10 @@
       "tr_truncation_false_negative": {
         "runbook_id": "agent-dispatch",
         "section": "\u00a7E. Operate"
+      },
+      "tsp command not found": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7F. Isolate"
       },
       "unlanded_branch_believed_landed": {
         "runbook_id": "branch-landed-verification",
@@ -1081,6 +1497,10 @@
       "branch-landed-verification": {
         "runbook_id": "branch-landed-verification",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "build-queue-operator-recovery": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7E. Operate"
       },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
@@ -1122,6 +1542,22 @@
         "runbook_id": "council",
         "section": "\u00a7F. Isolate"
       },
+      "crm-connectors": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "crm-data-model": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "crm-diagnosis": {
+        "runbook_id": "crm",
+        "section": "\u00a7F. Isolate"
+      },
+      "crm-legacy-table-drop": {
+        "runbook_id": "crm",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
       "e2e-programme-integrity": {
         "runbook_id": "e2e-programme-integrity",
         "section": "\u00a7C. Architecture & Interactions"
@@ -1158,6 +1594,22 @@
         "runbook_id": "product-elaboration",
         "section": "\u00a7C. Architecture & Interactions"
       },
+      "runbook-authoring": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
+      },
+      "runbook-corpus": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "runbook-discovery": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
+      },
+      "runbook-verification": {
+        "runbook_id": "runbooks",
+        "section": "\u00a7E. Operate"
+      },
       "security-credential-exposure": {
         "runbook_id": "infrastructure-discovery",
         "section": "\u00a7G. Repair"
@@ -1173,8 +1625,15 @@
       "session-plan-runbook-context": {
         "runbook_id": "peer-instance-discipline",
         "section": "\u00a7E. Operate"
+      },
+      "task-spooler-queue-architecture": {
+        "runbook_id": "task-spooler-build-queue",
+        "section": "\u00a7C. Architecture & Interactions"
       }
     }
   },
-  "schema_version": 1
+  "integrity_only": true,
+  "schema_version": 2,
+  "semantic_verification": false,
+  "status": "integrity_pass_unverified"
 }

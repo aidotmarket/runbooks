@@ -21,7 +21,7 @@ Each tab in the dashboard pulls from specific backend endpoints. All backend end
 | FOR MAX | `formax/ForMaxPanel.tsx` | Unified decision surface — one ranked list of everything awaiting Max: pending HITL approvals, human-required unresolved tickets, and submitted agent proposals. Registered FIRST in nav. Rows deep-link to APPROVALS/TICKETS/AGENTS; APPROVALS rows offer inline Approve/Deny reusing the HITL panel actions. Global nav badge + document-title show the total count from every tab. Empty state: "Nothing needs you." | `GET /api/v1/ops/needs-max` (read-only aggregation; dual-auth via `get_admin_or_internal_key`) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | OPS | `OpsPanel.tsx` | Railway health, AI Context Console | `/health`, `/api/v1/ops/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | MONITOR | `MonitorPanel.tsx` | Comms feed, Council Hall, command console | `/api/v1/allai/*`, `/api/v1/comms` (SSE) | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
-| BUILD QUEUE | `BuildQueuePanel.tsx` | BQ board: list, sort, drag-reorder, status, lifecycle | Reads: `GET /api/v2/build-queue` (list; `?show_completed` / `?show_cancelled`) and `GET /api/v2/build-queue/{code}` (detail). Writes: `POST /api/v2/build-queue/reorder` and `POST /api/v2/build-queue/{code}/{cancel\|affirm\|priority\|complete}`. Gate edits: `/api/v1/build-queue/{code}/gates[/{n}]`. Auth via `X-Internal-API-Key`. | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
+| BUILD QUEUE | `build-queue/OpenItemsPanel.tsx` | OPEN ITEMS board: everything started and not finished, with a plain-English title and inline one-paragraph overview per item. Derived from git remotes, the runbook index and the deploy marker — never from Living State's own build records. No age window since S1483. | Reads Living State `infra:open-items-board`, whose sole writer is `koskadeux-mcp/scripts/ground_truth_open_items.py --publish`. | [koskadeux-mcp](https://github.com/aidotmarket/koskadeux-mcp) |
 | AGENTS | `AgentsPanel.tsx` | Unified agent fleet, health, proposals | `/api/v1/cp/agents/*`, `/api/v1/allai/agents/status`, `/api/v1/internal/agent-health` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
 | RUNBOOKS | `RunbooksPanel.tsx` | Browse and read all operational runbooks | GitHub API (public, no auth) | [runbooks](https://github.com/aidotmarket/runbooks) |
 | MARKETING | `MarketingPanel.tsx` | Task queue, campaigns, brand voice | `/api/v1/marketing/*` | [ai-market-backend](https://github.com/aidotmarket/ai-market-backend) |
@@ -56,15 +56,21 @@ Dynamically fetches all `.md` files from the `aidotmarket/runbooks` GitHub repo 
 
 Below the runbooks grid, a "Repositories" section lists all repos in the `aidotmarket` GitHub org with descriptions and links.
 
-## Build Queue tab — ordering, drag-reorder, and lifecycle (S760)
+## Build Queue tab — the open-items board (S1461, revised S1483)
 
-`BuildQueuePanel.tsx` is the build-queue board. It loads via `fetchBuildQueueV2()` (`GET /api/v2/build-queue`), maps each list item to a `BuildEntity` through `buildQueueItemToEntity()` in `src/components/build-queue/shared.tsx` (the entity body is preserved via `{...item.body}`, so `body.sort_order` and gate data flow straight through to the UI), and refreshes every 30s.
+`build-queue/OpenItemsPanel.tsx` renders the OPEN ITEMS board. It **replaced** the Living State build-queue view, and the distinction is the whole point of the tab: the old panel rendered the build machinery's own account of itself, so status flowed back through the same system that produced it. This one renders a snapshot derived from git remotes, the runbook index and the deploy marker only.
 
-**Sort modes** (dropdown, `SortKey` in `BuildQueuePanel.tsx`): Actionability (default), Recent, Priority, Gate Progress, and **Manual order**. Manual order sorts by priority -> `body.sort_order` -> code, mirroring the backend list ordering (`_sort_key` in `ai-market-backend/app/api/v2/endpoints/build_queue.py`). Items with no saved `sort_order` fall to the end of their priority band, ordered by code.
+**Sole writer.** `koskadeux-mcp/scripts/ground_truth_open_items.py --publish` is the ONLY thing that writes Living State `infra:open-items-board`. Nothing that reports its own progress may write that entity, and it must never be hand-edited to look current. If the board is stale, the page must show stale — the panel surfaces the snapshot age and marks it stale past 24h.
 
-**Drag-to-reorder** (dnd-kit): `handleDragEnd` reorders within a priority band and calls `reorderBuildQueueItems()` -> `POST /api/v2/build-queue/reorder`, which writes `sort_order = index` to each entity body. The write is version-checked (each item carries its `version_stamp`; a 409 means the order changed server-side, and the panel refetches), and the backend enforces `sort_order` uniqueness within a priority+status group. Dragging a row across priority bands prompts to change its priority instead. After a successful drag the panel switches the view to Manual order so the new order is visibly applied.
+**Names and overviews.** Titles and one-paragraph overviews come from `koskadeux-mcp/scripts/open_items_catalog.json`, which is TEXT ONLY: it cannot mark anything done, cannot remove anything, and cannot change an item's stage. An item absent from it still appears under its raw git slug, flagged "no plain name yet", and the footer counts the gap. Every item's overview renders **inline** under its title; it was hover-only until S1483, which made it invisible on touch devices and undiscoverable on desktop.
 
-**Why Manual order exists:** drag-reorder persisted `sort_order` long before there was a way to *display* it. The board only offered Actionability / Recent / Priority / Gate Progress, none of which read `sort_order`, so a dragged order appeared to snap back. Manual order (shipped S760, PR #5, commit `054d2d9`) is the display surface for the saved order. Product rule: manual order is **within each priority band**, not a flat global order.
+**No activity window (S1483).** The board previously showed only work touched in the last 14 days and named the excluded repos in an "honest gaps" footer. Max removed the window: the page is called open items, so it shows everything open however long it has sat, and the footer is suppressed because there is nothing left to disclaim. `GT_ITEMS_DAYS` still narrows the view for a deliberate recent-activity cut; unset means show everything. Expect a large number — 215 at S1483 against 25 under the old window. Read it as **unmerged branches, not live commitments**: a large share is abandoned experiment branches, and a one-time land-or-delete triage is the only thing that will make the count mean something.
+
+**Definition of DONE**, shown on the board and enforced nowhere else: live in production AND verified from outside AND legacy path removed AND runbook indexed. Anything short of all four is OPEN and must be reported at its true stage, never its best milestone. Note the standing trap: the fourth criterion depends on the runbook catalog, which is itself mid-migration (21 of ~100 runbooks registered), so items can be genuinely shipped and still unable to clear the bar.
+
+**Item lifecycle.** Nothing on this page can be marked done by hand. An item disappears when the last unmerged branch carrying its slug is merged into `main` or deleted from the remote. Two consequences to know: work that shipped but left a stray branch behind keeps showing as open, and a branch deleted without ever shipping vanishes as if it were finished.
+
+**Layout rule for this and every panel.** `pages/Index.tsx` wraps the app in `h-screen ... overflow-hidden` and `<main>` in `flex-1 min-h-0 overflow-hidden`. A panel that does not own its own scroll region is therefore **clipped with no scrollbar** — the S1483 symptom, where the list simply ran off the bottom of the window past ~15 rows. Every panel root must carry `h-full flex flex-col ... overflow-y-auto` (see `OpsPanel.tsx`, which had it already). Check this first when a panel "loses" its content at the bottom.
 
 ## Architecture
 
@@ -106,7 +112,8 @@ Backend at `api.ai.market` — CORS configured, no local override needed.
 | `src/components/agents/AgentsPanel.tsx` | Unified agent fleet view |
 | `src/components/agents/AgentDetailDrawer.tsx` | Agent detail slide-out |
 | `src/components/runbooks/RunbooksPanel.tsx` | Runbooks browser + repos list |
-| `src/components/build-queue/BuildQueuePanel.tsx` | BQ management |
+| `src/components/build-queue/OpenItemsPanel.tsx` | OPEN ITEMS board (the live Build Queue tab) |
+| `src/components/build-queue/BuildQueuePanel.tsx` | Retired Living State BQ view; superseded by OpenItemsPanel (S1461), still present in the tree |
 | `src/components/monitor/MonitorPanel.tsx` | Comms and Council Hall |
 | `src/components/marketing/MarketingPanel.tsx` | Marketing operations |
 | `src/components/finance/FinancePanel.tsx` | Financial dashboard |
