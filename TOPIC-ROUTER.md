@@ -42,8 +42,10 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `runbook-verification` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
+| `seller-connect-linkage-divergence` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `session-close-runbook-impact` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `session-plan-runbook-context` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
+| `stripe-connect-identity-stores` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§C\. Architecture & Interactions](runbooks/stripe-connect-identity.md#c-architecture-interactions) |
 | `task-spooler-queue-architecture` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§C\. Architecture & Interactions](runbooks/task-spooler-build-queue.md#c-architecture-interactions) |
 
 ## Error signatures
@@ -93,6 +95,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F\. Isolate](runbooks/agent-completeness.md#f-isolate) |
 | `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `kyc_status_absent_defaults_not_started` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `legacy population differs from reviewed rollout projection` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `missing dispatch token` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
@@ -125,22 +128,26 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `search limit must be an integer from 1 to 3` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `secret_disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `seller_profiles_connect_id_never_written` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `stale_build_base` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `stale_handoff_trusted_at_open` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `stale_queue_undispatched` | `aging-policy` (`runbooks/aging-policy.md`) | [§F\. Isolate](runbooks/aging-policy.md#f-isolate) |
 | `stale_roster_snapshot` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§F\. Isolate](runbooks/council-roster-quirks.md#f-isolate) |
 | `stale_task_state` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `strict_verdict_invalid` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `stripe_connect_user_update_zero_rows` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X\.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8-s1415-structural-buildreview-gate-replacement) |
 | `the pipeline stages migration may not have been run` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `timeout` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `tsp command not found` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
+| `two_connect_onboarding_endpoints_disagree` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `unlanded_branch_believed_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `unread_request_or_alert_at_dispatch` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `unresolved_mandates` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `unsupported_line_claim` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `unsupported_target_repo` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§F\. Isolate](runbooks/build-queue-reconciliation.md#f-isolate) |
+| `webhook_predicate_column_mismatch` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 
 ## Aliases
 
@@ -149,6 +156,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `build-queue-runner` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `codex-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
+| `connect-identity-bridge` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
 | `crm-architecture` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `crm-pipeline` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
@@ -161,3 +169,4 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-standard` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
+| `seller-stripe-linkage` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |

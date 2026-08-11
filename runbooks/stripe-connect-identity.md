@@ -3,7 +3,7 @@ runbook_id: stripe-connect-identity
 domain: payments
 status: ACTIVE
 authoritative_for:
-  - topic: stripe-connect-identity
+  - topic: stripe-connect-identity-stores
     section: "§C. Architecture & Interactions"
   - topic: seller-connect-linkage-divergence
     section: "§F. Isolate"
@@ -246,7 +246,7 @@ failed verification are indistinguishable at the reader.
 
 ### §H.3 Catalog debt
 
-This runbook is NOT registered in `CATALOG.json` and lives only on branch `runbook/stripe-connect-identity-t-2026-000572`, unmerged to `main`. It is therefore invisible to catalog lookups and to the runbook-first dispatch gate, so an agent working the Connect surface will not be routed here. Register it and land the branch. Recorded S1483 rather than fixed in place: registration is a catalog change with its own review path, not a documentation edit.
+DISCHARGED S1529: registered in `CATALOG.json` at canonical path `runbooks/stripe-connect-identity.md` via the G-01 anchor advance and landed to `main` in the same change. Original debt recorded S1483.
 
 ---
 
@@ -257,6 +257,7 @@ This runbook is NOT registered in `CATALOG.json` and lives only on branch `runbo
 | Created | S1472, 2026-08-07, vulcan |
 | Ticket | T-2026-000572 |
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
+| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); §H.3 catalog debt discharged |
 | Updated | S1483, 2026-08-08, vulcan — §H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); §H.3 catalog debt recorded |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |
