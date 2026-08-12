@@ -62,7 +62,7 @@ AUTHOR_DISPATCH_DATABASE_URL="$DSN" SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS=<days>
 
 Replaying the whole migration history onto an empty database used to crash on "collider" migrations, because production carries a regenerated baseline that already owns many objects. The B1-B4 slices convert raw DDL into schema-aware guarded DDL using the helpers in `ai-market-backend/alembic_b1_guard.py` (`ensure_table`/`ensure_column`/`ensure_constraint`/`ensure_index`/`ensure_trigger`/`ensure_enum`/`ensure_function`, with `drop_if_owned` on downgrade, backed by the `alembic_b1_object_ownership` table). A helper accepts an existing object only when its catalog definition is equivalent; otherwise it raises `STOP_DEPLOYMENT`.
 
-**Two tests are required, and the first one alone is not sufficient.** Verified S1440.
+**Two replay tests are required, and the first one alone is not sufficient.** Last executed against PostgreSQL 17 in S1533.
 
 1. **Empty-database replay** proves the migrations still work from nothing. It exercises only the fresh-create path.
 
@@ -80,7 +80,13 @@ psql ... -d <db> -c "UPDATE alembic_version SET version_num='000_initial';"   # 
 DATABASE_URL=... .venv/bin/alembic upgrade head
 ```
 
-Pass criteria: exit 0, zero `STOP_DEPLOYMENT` occurrences in the log, exactly one `alembic heads`, an idempotent immediate re-run applying zero migrations, and `downgrade -N` then re-upgrade leaving the public table count unchanged.
+Pass criteria: exit 0, zero `STOP_DEPLOYMENT` occurrences in the log, exactly one `alembic heads`, and an idempotent immediate re-run applying zero migrations.
+
+Test downgrade ownership at the revision or smallest contiguous slice changed by the patch: an object created by that revision is removed and restored, while an equivalent baseline-owned object survives. Do not use an unrelated later revision as the downgrade target; a defect there can fail first and prove nothing about the patch under review. Record such a failure against the owning revision and keep the candidate result explicit.
+
+**Keep the guard in one place.** New collision classes belong in `alembic_b1_guard.py`; migrations should declare expected definitions and call that shared implementation. Do not add migration-local existence checks or copy catalog queries between revisions. A matching existing object is a logged no-op, a mismatched object raises `STOP_DEPLOYMENT`, and downgrade removes only objects recorded in `alembic_b1_object_ownership` for that revision.
+
+**Long revision IDs.** The first long-ID entry point on every supported replay path must call the shared `ensure_alembic_version_width()` before any other migration work, so Alembic can record that revision. Test both a fresh history and the production-shaped resume point with `alembic_version.version_num` constrained to `varchar(32)`; both must finish with width at least 64. Do not add a second width helper to an individual migration.
 
 **`RUN_ONE_SHOT_S1163_P2=1` is mandatory.** `20260711_001_s1163_p2_quarantine_one_shot` deliberately refuses to run unattended, so a clean bootstrap is never a bare `alembic upgrade head`.
 
@@ -90,7 +96,7 @@ Pass criteria: exit 0, zero `STOP_DEPLOYMENT` occurrences in the log, exactly on
 >
 > Consequences found the same day: `orders`, `transactions` and `transaction_events` are absent from production while `000_initial` creates all three, 21 foreign-key constraints across 18 tables were destroyed with them, and no purchase has ever completed. Tracked as T-2026-000578. Full drift inventory: `/Users/max/koskadeux-state/s1482-drift/`.
 
-**Reviewing a collider-guard change.** These diffs are large (B4+ was 50 files, ~341KB) and exceed the Council reviewers' inline diff cap in both the GLM and CC paths; a whole-diff dispatch is rejected with `cc_review_diff_truncated`. When scoping a review, pin the provenance anchors alongside the diff — `alembic/versions/000_initial.py` (the regenerated baseline), plus whichever later migration creates the "advanced" shape, plus the Chunk E fixture. Without them a reviewer cannot tell a legitimate baseline-shape `compatible_definition` from a hand-guessed one, and will return confident, wrong mandates. In S1440 four of five Gate 3 mandates were false positives for exactly this reason.
+**Reviewing a collider-guard change.** Dispatch one immutable review package containing the complete patch, exact base/head/tree SHAs, validation results, and a pinned read-only checkout. Pin the provenance anchors alongside the diff — `alembic/versions/000_initial.py` (the regenerated baseline), whichever later migration creates the advanced shape, the remediation manifest, and the Chunk E fixture/checksum. Do not split the decision into narrow inline-diff reviews: a reviewer cannot distinguish a legitimate compatible definition from a guessed one without those anchors.
 
 ## S.8 Related runbooks
 - `runbooks/activation-verification.md` — Railway deploy verification path.
@@ -98,4 +104,4 @@ Pass criteria: exit 0, zero `STOP_DEPLOYMENT` occurrences in the log, exactly on
 
 ## S.9 Owner
 This runbook is owned by **BQ-PROCESS-BUILD-QUEUE-INTEGRITY-S612** (P1, delegated section).
-Revisions land as PRs against koskadeux-mcp main; require MP review-mode approval (data-correctness criticality).
+Revisions to this page land in `aidotmarket/runbooks`; database implementation lands in `aidotmarket/ai-market-backend`. Payment- or customer-data-adjacent migration changes require the complete CC/Kimi/GLM Council review before merge or deployment.
