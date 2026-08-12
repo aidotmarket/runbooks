@@ -8,6 +8,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 
 | Topic | Runbook | Section |
 |---|---|---|
+| `alerts-at-open` | `alerts-at-open` (`runbooks/alerts-at-open.md`) | [§C\. Architecture & Interactions](runbooks/alerts-at-open.md#c-architecture-interactions) |
 | `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) |
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C\. Architecture & Interactions](runbooks/aging-policy.md#c-architecture-interactions) |
@@ -40,6 +41,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `runbook-corpus` | `runbooks` (`runbooks/runbooks.md`) | [§C\. Architecture & Interactions](runbooks/runbooks.md#c-architecture-interactions) |
 | `runbook-discovery` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-verification` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
+| `session-open-alert-line` | `alerts-at-open` (`runbooks/alerts-at-open.md`) | [§E\. Operate](runbooks/alerts-at-open.md#e-operate) |
 | `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `seller-connect-linkage-divergence` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
