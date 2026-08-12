@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-08-12
 system_name: agent-completeness
 purpose_sentence: This companion defines the endpoint, skill, health, manifest, and monitoring surfaces required before an agent can pass compliance review.
 owner_agent: vulcan
@@ -50,6 +50,20 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Health and Manifest | `GET /api/v1/agents/{key}/health` | Agent runtime | Gate 3 reviewer | Both endpoints must respond. |
 | Monitoring Surface | `GET /api/v1/internal/agent-compliance` | Code-first MonitoringPolicy | Metrics, validation, escalation | Git history is the policy audit trail. |
 | MCP Request Tool | `tools/agent_request.py` | MCP tool registry | Koskadeux orchestrator | An agent without this tool is operationally invisible. |
+| Scheduled Operator Worker | Codex recurring task and scoped remote MCP view | Incident and `IncidentAction` lease records | Backend `c706094867ee3806f53c0ececfa4c0bf65170a20` | `allAI:Remediator` is not a `BaseAgent`, Vulcan, or Mars. |
+
+### Scheduled operator companion — allAI:Remediator
+
+`allAI:Remediator` is a scheduled operator worker, not a `BaseAgent`, Vulcan, or Mars, and does not satisfy or replace the CORE completeness contract. It runs as a Codex recurring task using `gpt-5.6-sol` on the existing ChatGPT Pro account every 15 minutes; treat it as stale after 35 minutes without a fresh heartbeat.
+
+| Contract | Operational rule |
+|---|---|
+| Transport and actions | The only worker transport is the personal/dev scoped remote MCP view `https://mcp.ai.market/remediator/`, whose live `tools/list` must be exactly `{allai_remediator_request}`. That singleton accepts only closed actions: `services` with no other fields to `GET /api/v1/observability/remediator/services`; `claim` with no other fields to `POST /api/v1/observability/remediator/claim` using fixed worker `allAI:Remediator`; `finish` with `incident_id`, `claim_token`, and `outcome`, plus only optional `reason` and typed `proposal`, to `POST /api/v1/observability/remediator/finish`; and bounded read-only `search` with `query` plus only `scope`, `category`, `corpus`, `limit`, `score_threshold`, and `include_archived` to `POST /api/v1/allai/search`. Search is inside the singleton and is not a separate general tool. |
+| Authentication | The scheduled model receives no `INTERNAL_API_KEY`, Railway operator token, provider token, or other credential. The gateway injects its existing backend authentication server-side. Reviewed transport commit `702f3f27db8b9570503f541f750be201b8bc5d01` grounds this contract but is not proof of deployment or activation. |
+| Personal plugin | Plugin contents are metadata plus one remote `.mcp.json` only: no `.app.json`, local executable or script, bearer environment variable, or secret. The plugin and state-changing tool must never be published, shared, distributed, or attached to a public ai.market App; any public surface requires separate review. |
+| Runner isolation | Use only `/Users/max/Projects/ai-market/allai-remediator-runner`, with `approval_policy=never`, `:root=deny`, `:minimal=read`, `:tmpdir=deny`, `:slash_tmp=deny`, and only that runner root reopened read-only. Command network and web search are disabled, and plugin `enabled_tools` is exactly `[allai_remediator_request]`. Browser, Computer Use, other Apps/connectors, and other MCP servers are unauthorized. |
+| Queue and lease | `ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED=false` by default. Claim only owned P2/P3 work using database time and `FOR UPDATE SKIP LOCKED`; leases are 15 minutes and only the current unexpired token may finish. Provider adapters stay read-only and `/services` must report `execute_allowed=false` for every provider. |
+| Outcomes and verification | Outcomes are exactly `fixed`, `retryable`, or `human_required`. `fixed` requires a backend-observed newer successful run of the same GitHub workflow or a different newer healthy/successful Railway deployment; Cloudflare deployment listing cannot self-verify `fixed` in this release. Telegram remains backend-owned and is sent only for deduplicated `human_required`; existing provider alerting remains authoritative. |
 
 ### Normative projection — CORE §3, Agent Completeness Contract
 
@@ -91,6 +105,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 | Agent author | Implement all required surfaces | BaseAgent and AgentRequestFactory | Repository write | COMPLETE |
 | Gate 3 reviewer | Audit the complete checklist | Compliance endpoint and source read | Read-only | COMPLETE |
 | Koskadeux orchestrator | Invoke the agent | `{agent_key}_request` | MCP request scope | COMPLETE |
+| Scheduled operator | Claim and report bounded remediation work | `allai_remediator_request` only | Personal/dev scoped OAuth MCP; gateway-held backend auth | PLANNED — activation gated |
 
 ## §E. Operate
 
@@ -125,6 +140,36 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   expected_failures: [{signature: agent_endpoint_unhealthy, cause: route registration, runtime startup, or schema wiring is incomplete}]
   next_step_success: Mark endpoint evidence complete.
   next_step_failure: Repair the failed surface and rerun the full checklist.
+- id: E-04
+  trigger: The restricted allAI Remediator runner is prepared for activation proof.
+  pre_conditions: [dedicated_runner_project_exists, recurring_task_paused, incident_ingress_false]
+  tool_or_endpoint: Named Codex permission profiles and live scoped MCP tools/list
+  argument_sourcing: {global_default: migrate legacy sandbox keys to equivalent named workspace-default, runner_profile: deny root and temp; reopen only runner root read-only; deny command network and web search, enabled_tools: "[allai_remediator_request]"}
+  idempotency: IDEMPOTENT
+  expected_success: {shape: empirical isolation and singleton inventory evidence, verification: without displaying contents prove /Users/max/bin/railway-env.sh, ~/.ssh, ~/.config, ~/.codex, and service repositories unreadable; temp writes and arbitrary command network denied; approval escalation unavailable; actual tool calls only allai_remediator_request; live tools/list exactly singleton; spot-check another project retains equivalent workspace-write plus network posture}
+  expected_failures: [{signature: remediator_isolation_failed, cause: a sensitive path is readable, a forbidden write or network path works, escalation is available, or any unexpected tool is enabled or called}]
+  next_step_success: Retain the proof with the exact runner and plugin configuration for E-05.
+  next_step_failure: Keep ingress false and apply G-03.
+- id: E-05
+  trigger: An operator is ready to activate allAI Remediator incident ingress.
+  pre_conditions: [exact_gateway_sha_reviewed_and_merged, idle_safe_reload_complete, deployed_marker_and_live_health_confirmed, scoped_discovery_exactly_singleton, live_services_and_claim_no_work_passed, personal_plugin_installed, runner_isolation_proof_passed, fresh_scheduled_no_work_run_observed]
+  tool_or_endpoint: Normal backend configuration rollout for ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED
+  argument_sourcing: {gateway_sha: use the exact reviewed scoped gateway commit, discovery: require only allai_remediator_request, readiness_calls: use services and claim through the scoped tool}
+  idempotency: IDEMPOTENT
+  expected_success: {shape: ingress enabled only after every precondition, verification: repeat services through the scoped tool and preserve owned P2/P3, read-only-provider, and singleton boundaries}
+  expected_failures: [{signature: remediator_activation_not_ready, cause: any review, reload, deployment, discovery, no-work, plugin, isolation, or scheduled-run proof is absent or fails}]
+  next_step_success: Run E-06 on the normal cadence.
+  next_step_failure: Keep ingress false; do not infer that transport commit 702f3f27db8b9570503f541f750be201b8bc5d01 is deployed.
+- id: E-06
+  trigger: The allAI Remediator recurring task reaches its 15-minute cycle.
+  pre_conditions: [E-05_complete, scoped_singleton_available]
+  tool_or_endpoint: allai_remediator_request
+  argument_sourcing: {sequence: call services then claim; call search only for bounded read-only allAI knowledge; on work echo the incident_id and current claim_token to finish, outcome: "fixed, retryable, or human_required only"}
+  idempotency: NOT_IDEMPOTENT
+  expected_success: {shape: services plus work, no_work, or human_required heartbeat and an exact terminal outcome when work exists, verification: accept fixed only when backend verification accepts it; never execute a provider write}
+  expected_failures: [{signature: remediator_worker_stale, cause: no fresh heartbeat for 35 minutes}, {signature: remediator_claim_conflict, cause: lease expired or token is mismatched or terminal}, {signature: remediator_verification_failed, cause: backend evidence cannot verify fixed}]
+  next_step_success: Return on the next scheduled cycle.
+  next_step_failure: Apply G-04; never widen tools, credentials, filesystem, network, or provider scope.
 ```
 
 ## §F. Isolate
@@ -133,6 +178,8 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 |---|---|---|---|---|---|
 | F-01 | Compliance reports an incomplete agent surface. | Endpoint, interaction mode, skill schema, MCP tool, or monitoring declaration is missing. | Compare source and live compliance output with the complete normative checklist in §C. | G-01 | CONFIRMED |
 | F-02 | Discovery lists the agent but orchestration cannot call it. | The corresponding MCP request tool is absent or keyed differently. | Compare discovery key, BaseAgent key, route key, and tool name. | G-02 | CONFIRMED |
+| F-03 | Pre-activation proof exposes a path, write, network route, escalation path, or extra tool. | The runner override is not enforced, legacy global sandbox keys still take precedence, plugin/tool scope drifted, or an unauthorized capability is available. | Keep ingress false; inspect named profile selection and the actual run's tool inventory, repeat every E-04 denial probe without displaying file contents, and require live discovery to equal `{allai_remediator_request}`. | G-03 | CONFIRMED |
+| F-04 | The worker is stale, cannot claim/finish, or cannot prove `fixed`. | The task is paused or unhealthy, scoped OAuth/gateway/backend auth failed, a 15-minute lease expired, or fixed verification failed. | Compare the last heartbeat with the 35-minute threshold; inspect only bounded tool errors and allowlisted evidence; verify the current claim token and backend-owned provider result. Cloudflare deployment presence is not fixed proof. | G-04 | CONFIRMED |
 
 ## §G. Repair
 
@@ -153,6 +200,22 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   change_pattern: Add or correct the canonical request tool and bind it to the same agent key.
   rollback_procedure: Remove the mismatched tool registration and leave the agent undispatched.
   integrity_check: The orchestrator resolves and invokes the canonical request tool.
+- id: G-03
+  symptom_ref: F-03
+  component_ref: Scheduled Operator Worker
+  root_cause: The named runner profile, personal plugin, or scoped MCP boundary does not enforce the approved isolation contract.
+  repair_entry_point: Global workspace-default profile, runner project profile, and personal plugin metadata
+  change_pattern: Keep ingress false and the task paused; migrate legacy global sandbox keys to an equivalent named workspace-default before applying the narrower runner override; remove every unauthorized plugin field, tool, connector, server, filesystem permission, or network permission; then rerun E-04 and the other-project posture spot-check.
+  rollback_procedure: Keep or restore ingress false and remove the personal plugin. Do not rotate a nonexistent task internal key.
+  integrity_check: Every E-04 probe passes, actual calls contain only allai_remediator_request, and live scoped tools/list is exactly singleton.
+- id: G-04
+  symptom_ref: F-04
+  component_ref: Scheduled Operator Worker
+  root_cause: Scheduled execution, the scoped transport, the current lease, or backend-owned fixed verification is unavailable or invalid.
+  repair_entry_point: Recurring-task status, scoped gateway health, bounded incident evidence, and normal human repair path
+  change_pattern: Pause the recurring task; keep or restore ingress false; remove the personal plugin; if transport rollback is required, revert and idle-safe reload only the exact scoped gateway commit; let leases expire. Repair provider incidents only through existing authorized paths.
+  rollback_procedure: Preserve the root gateway/App surface and existing provider alerting; do not add credentials or tools, bypass an active peer, widen provider permissions, or rotate a nonexistent task internal key.
+  integrity_check: Before reactivation, repeat E-04 and every E-05 gate, including a fresh scheduled no-work run; fixed remains backend-verified and Telegram remains deduplicated human_required only.
 ```
 
 ## §H. Evolve
@@ -199,27 +262,32 @@ CORE decides constitutional requirements. This companion only makes their verifi
 
 ```yaml acceptance
 scenario_set:
-  - {id: I-01, type: operate, refs: [E-01], scenario: A new agent is ready for its Gate 3 compliance audit., expected_answers: [{kind: tool_call, tool: GET /api/v1/internal/agent-compliance, argument_keys: [agent_key]}], weight: 0.0909090909}
-  - {id: I-02, type: operate, refs: [E-02], scenario: An orchestrator must discover an internal agent manifest., expected_answers: [{kind: tool_call, tool: GET /api/v1/agents/discover, argument_keys: [tier]}], weight: 0.0909090909}
-  - {id: I-03, type: operate, refs: [E-03], scenario: Gate 3 must prove request and health endpoints respond., expected_answers: [{kind: classification, label: VERIFY_BOTH_ENDPOINTS}], weight: 0.0909090909}
-  - {id: I-04, type: isolate, refs: [F-01], scenario: Compliance reports no MetricDeclaration for the agent., expected_answers: [{kind: classification, label: INCOMPLETE_AGENT}], weight: 0.0909090909}
-  - {id: I-05, type: isolate, refs: [F-01], scenario: The agent has a request route but no typed skill., expected_answers: [{kind: classification, label: INCOMPLETE_AGENT}], weight: 0.0909090909}
-  - {id: I-06, type: isolate, refs: [F-02], scenario: Discovery and MCP use different keys for the same agent., expected_answers: [{kind: classification, label: IDENTITY_MISMATCH}], weight: 0.0909090909}
-  - {id: I-07, type: repair, refs: [G-01], scenario: A ValidationRule is absent from MonitoringPolicy., expected_answers: [{kind: human_action, verb: add, object: missing validation rule, target: code-first MonitoringPolicy}], weight: 0.0909090909}
-  - {id: I-08, type: repair, refs: [G-02], scenario: The corresponding Koskadeux request tool is missing., expected_answers: [{kind: human_action, verb: add, object: canonical request tool, target: tools/agent_request.py}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.090909091}
+  - {id: I-01, type: operate, refs: [E-01], scenario: A new agent is ready for its Gate 3 compliance audit., expected_answers: [{kind: tool_call, tool: GET /api/v1/internal/agent-compliance, argument_keys: [agent_key]}], weight: 0.0625}
+  - {id: I-02, type: operate, refs: [E-02], scenario: An orchestrator must discover an internal agent manifest., expected_answers: [{kind: tool_call, tool: GET /api/v1/agents/discover, argument_keys: [tier]}], weight: 0.0625}
+  - {id: I-03, type: operate, refs: [E-03], scenario: Gate 3 must prove request and health endpoints respond., expected_answers: [{kind: classification, label: VERIFY_BOTH_ENDPOINTS}], weight: 0.0625}
+  - {id: I-04, type: isolate, refs: [F-01], scenario: Compliance reports no MetricDeclaration for the agent., expected_answers: [{kind: classification, label: INCOMPLETE_AGENT}], weight: 0.0625}
+  - {id: I-05, type: isolate, refs: [F-01], scenario: The agent has a request route but no typed skill., expected_answers: [{kind: classification, label: INCOMPLETE_AGENT}], weight: 0.0625}
+  - {id: I-06, type: isolate, refs: [F-02], scenario: Discovery and MCP use different keys for the same agent., expected_answers: [{kind: classification, label: IDENTITY_MISMATCH}], weight: 0.0625}
+  - {id: I-07, type: repair, refs: [G-01], scenario: A ValidationRule is absent from MonitoringPolicy., expected_answers: [{kind: human_action, verb: add, object: missing validation rule, target: code-first MonitoringPolicy}], weight: 0.0625}
+  - {id: I-08, type: repair, refs: [G-02], scenario: The corresponding Koskadeux request tool is missing., expected_answers: [{kind: human_action, verb: add, object: canonical request tool, target: tools/agent_request.py}], weight: 0.0625}
+  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0625}
+  - {id: I-10, type: evolve, refs: [§H], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0625}
+  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
+  - {id: I-12, type: operate, refs: [E-04], scenario: The runner can read a sensitive path or call a second tool during pre-activation proof., expected_answers: [{kind: classification, label: KEEP_INGRESS_FALSE_AND_FAIL_ISOLATION}], weight: 0.0625}
+  - {id: I-13, type: operate, refs: [E-05], scenario: Candidate transport code exists but deployed marker or live singleton discovery is absent., expected_answers: [{kind: classification, label: DO_NOT_ACTIVATE_OR_INFER_DEPLOYMENT}], weight: 0.0625}
+  - {id: I-14, type: isolate, refs: [F-04], scenario: The last scheduled heartbeat is 35 minutes old., expected_answers: [{kind: classification, label: PAUSE_TASK_AND_RESTORE_INGRESS_FALSE}], weight: 0.0625}
+  - {id: I-15, type: repair, refs: [G-03], scenario: Legacy global sandbox keys prevent the runner's narrower named profile from taking effect., expected_answers: [{kind: human_action, verb: migrate, object: equivalent named workspace-default then rerun isolation proof, target: Codex permission profiles}], weight: 0.0625}
+  - {id: I-16, type: isolate, refs: [F-04, G-04], scenario: Cloudflare reports a deployment and the worker submits fixed without separate health proof., expected_answers: [{kind: classification, label: REJECT_FIXED_AND_PRESERVE_READ_ONLY_BOUNDARY}], weight: 0.0625}
 ```
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1266
-last_refresh_commit: e4d2057
-last_refresh_date: 2026-07-17T22:00:00Z
+last_refresh_session: S1533
+last_refresh_commit: 702f3f27db8b9570503f541f750be201b8bc5d01
+last_refresh_date: 2026-08-12T23:00:00Z
 owner_agent: vulcan
-refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes]
+refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, scoped transport, runner isolation, plugin, cadence, or activation changes]
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: null
@@ -230,7 +298,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1266 / 2026-07-17T22:00:00Z
+last_lint_run: S1533 / 2026-08-12T23:00:00Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
