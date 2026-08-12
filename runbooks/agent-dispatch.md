@@ -811,7 +811,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-05
     type: isolate
-    refs: [F-02, G-02, council:I-05]
+    refs: [F-02, G-02]
     scenario: |
       id: F-02. trigger: A live-state-authorized non-gate AG advisory dispatch returns no verdict because review-mode MAX_TURNS=25 is exhausted. pre_conditions: infra:council-comms explicitly permits the advisory dispatch, and the AG transcript, max-turn marker, diff size, prompt body, and review_order are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; changed files from git diff; role expectation from infra:council-comms review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: accepting a partial non-verdict, widening timeout without narrowing scope, confusing it with gateway outage, or counting AG toward a gate. next_step_success: redispatch with G-02 using an ultra-tight diff-only prompt only if live-state eligibility remains explicit. next_step_failure: preserve AG non-response and fail closed for gate purposes; obtain CC/Kimi/GLM votes without substitution.
     expected_answers:
@@ -833,7 +833,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-07
     type: repair
-    refs: [G-02, F-02, council:I-08]
+    refs: [G-02, F-02]
     scenario: |
       id: G-02. trigger: A live-state-authorized non-gate AG advisory dispatch exhausts MAX_TURNS without a usable result. pre_conditions: infra:council-comms still explicitly permits the advisory retry, and the failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from §E. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns focused non-gate advisory evidence over only the dispatch diff. expected_failures: second timeout, broad architecture critique, fabricated file:line claim, or an attempt to count AG toward a gate. next_step_success: attach the replacement as advisory evidence and obtain CC/Kimi/GLM votes separately. next_step_failure: preserve AG non-response and fail closed for gate purposes; never use MP or DeepSeek as voter coverage.
     expected_answers:
@@ -846,7 +846,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-08
     type: repair
-    refs: [G-02, E-02, council:I-09]
+    refs: [G-02, E-02]
     scenario: |
       id: G-02. trigger: A Council review contains AG file:line claims and the operator must validate them before promoting the verdict. pre_conditions: verdict text, file path, line number, and reviewed commit checkout are available. tool_or_endpoint: nl -ba FILE | sed -n 'Np'. argument_sourcing: FILE and N from each AG citation; commit from the gate review record; repo path from cwd. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: every cited line is checked against the reviewed commit and only matching claims are accepted. expected_failures: wrong checkout, off-by-one line, fabricated line, or accepting unverified evidence. next_step_success: keep verified findings and annotate unsupported claims. next_step_failure: reject line-specific claim and request evidence-backed restatement.
     expected_answers:
@@ -856,7 +856,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-09
     type: evolve
-    refs: [§H, §D, council:I-10]
+    refs: [§H, §D]
     scenario: |
       id: H-01. trigger: A proposal adds a new active Council agent to dispatch rotation. pre_conditions: proposed agent role, auth scope, backend surface, model frontier, review_order impact, and dispatch_patterns patch are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; backend contract from proposed code; auth boundary from §D and §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because active membership and dispatch math change. expected_failures: calling it SAFE because existing tools still accept the same arguments, or skipping retired-agent policy review. next_step_success: open Gate 1/Gate 2 Council review before activation. next_step_failure: block active dispatch until adjudicated.
     expected_answers:
@@ -865,7 +865,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H, §D, council:I-11]
+    refs: [§H, §D]
     scenario: |
       id: H-02. trigger: A proposal changes the frontier model for MP while keeping the Codex CLI dispatch surface unchanged. pre_conditions: prior model, proposed model, role, timeout/cost effects, and review-quality evidence are available. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from §D. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model meets or exceeds the prior dispatch role. expected_failures: treating it as docs-only because handler arguments are unchanged, or ignoring role-specific quirks. next_step_success: update model policy and runbook rows after review. next_step_failure: keep the prior frontier.
     expected_answers:

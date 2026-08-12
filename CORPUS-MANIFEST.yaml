@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 107
-    source_documents: 103
+    operational_documents: 108
+    source_documents: 104
     active: 24
-    grandfathered: 79
+    grandfathered: 80
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -989,6 +989,20 @@ documents:
     verify_against:
       - deployed gateway tool schema and canonical state
       - current CORE and policy-kernel sources
+    independent_review_required: true
+  - path: runbooks/alerts-at-open.md
+    git_blob_oid: 9b7e2eb0e98d31675677ff81fccb07d67cbc29e6
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: operations
+    risk: P1
+    target_paths:
+      - runbooks/alerts-at-open.md
+    evidence: []
+    verify_against:
+      - alerts collector in ground_truth_open_items.py
+      - live infra:open-items-board alerts block
     independent_review_required: true
   - path: runbooks/agent-completeness.md
     git_blob_oid: 242f05ab1240d4ca6ceb6b6d1d54d9a56f0e24f4

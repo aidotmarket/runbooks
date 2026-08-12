@@ -34,7 +34,7 @@ linter_version: 1.0.0
 
 ## §A. Header
 
-The frontmatter is authoritative. Vulcan owns this runbook. Vulcan and Mars remain equal operational peers.
+The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 ## §B. Capability Matrix
 
