@@ -294,7 +294,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1527
-last_refresh_commit: 1eba4f520ec03fc98a7a441b832499c61d85525b
+last_refresh_commit: d393224d95c35a45d83a2347d1fcedc99f67895e
 last_refresh_date: 2026-08-12T14:00:00Z
 owner_agent: vulcan
 refresh_triggers:
