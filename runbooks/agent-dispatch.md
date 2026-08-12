@@ -38,9 +38,9 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-03
+last_verified_at: 2026-08-12
 system_name: agent-dispatch
-purpose_sentence: Council dispatch mechanics for delegating tasks to agents (MP, CC, Kimi, GLM, and the paused AG) and managing dispatch surfaces (council_request, dispatch_mp_build, council_hall).
+purpose_sentence: MP build-dispatch mechanics; Council reviewer transport is owned exclusively by council.md.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
@@ -52,6 +52,15 @@ linter_version: 1.0.0
 ---
 
 # Agent Dispatch
+
+> **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole
+> authority for CC, Kimi, and GLM dispatch. All reviewer-wrapper, exact-SHA,
+> package-validation, turn-budget, retry, parser, verdict-persistence, and
+> Council Hall instructions below are historical and must not be executed.
+> The only active reviewer path is `council_request` as a thin trigger over
+> `scripts/council_dir.py`: one request file in, one response file out. This
+> runbook remains authoritative only for the separate MP build path and general
+> non-reviewer dispatch operations.
 
 > **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name have been merged into this one, at the catalog-indexed path `runbooks/agent-dispatch.md`, and the repo-root copy has been deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` is folded in here (§W, §X, and the §X pointer inside §G.1) and is now superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss. Nothing was rewritten, summarised, or reconciled by hand.
 >
@@ -104,13 +113,13 @@ CC/Kimi/GLM review panel from `infra:council-comms`.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| `council_request` unified dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_call_*` | Koskadeux MCP dispatch integration coverage | 2026-04-29 |
+| `council_request` reviewer trigger | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_member` | Directory request/response routing tests cover `scripts/council_dir.py` | 2026-08-12 |
 | `dispatch_mp_build` background build dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_dispatch_mp_build` | MP background dispatch smoke coverage | 2026-04-29 |
-| `council_hall` deliberation dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_council_hall` | Council Hall transcript dispatch coverage | 2026-04-29 |
+| `council_hall` deliberation dispatch | DEPRECATED | — | Removed from the live tool surface in S1527 | 2026-08-12 |
 | Codex CLI backend for MP | SHIPPED | `koskadeux-mcp/dispatch_codex_cli.py` | Codex CLI dispatch path exercised by MP build tasks | 2026-04-29 |
 | Gemini/AG server backend | SHIPPED | `koskadeux-mcp/antigravity_client.py` | AG server health + task dispatch coverage | 2026-04-29 |
 | DeepSeek server/API backend | SHIPPED | `koskadeux-mcp/deepseek_server.py` | DeepSeek review-schema and server health coverage | 2026-04-29 |
-| Claude Code backend for CC | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_call_cc` | CC background task dispatch coverage | 2026-04-29 |
+| CC/Kimi/GLM reviewer launcher | SHIPPED | `koskadeux-mcp/scripts/council_dir.py` | Same one-file path tested for all three reviewers | 2026-08-12 |
 | XAI Grok dispatch | DEPRECATED | `koskadeux-mcp/xai_client.py` | Retired S528; cold-storage only, no active dispatch coverage | 2026-04-29 |
 | Structural-build no-loss retirement and recovery (staged; not deployed) | PLANNED | `koskadeux-mcp/tools/agents.py` | `tools/structural_quarantine.py:safe_retire_worktree`, `tests/unit/test_pre_push_gate_composition.py`, and `tests/unit/test_structural_quarantine_journal.py` | 2026-08-02 |
 
