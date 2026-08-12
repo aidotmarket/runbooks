@@ -151,12 +151,12 @@ def test_pinned_manifest_loader_reads_one_immutable_complete_snapshot() -> None:
     pinned = load_pinned_corpus_manifest(REPO_ROOT, sha)
 
     assert pinned.search_sha == sha
-    assert pinned.operational_documents == 106
-    assert pinned.source_documents == 102
-    assert pinned.active == 23
+    assert pinned.operational_documents == 107
+    assert pinned.source_documents == 103
+    assert pinned.active == 24
     assert pinned.grandfathered == 79
     assert pinned.archived == 4
-    assert len(pinned.documents) == 106
+    assert len(pinned.documents) == 107
     assert len(pinned.manifest_sha256) == 64
     assert {
         document.catalog_state for document in pinned.documents

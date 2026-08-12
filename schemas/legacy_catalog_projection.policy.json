@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "contract_version": "ai.market/legacy-catalog-projection/v1",
-  "rollout_base_sha": "643e55d222fdebfb68063c0801ebd318fe4ae321",
-  "expected_population": 23,
   "canonical_path_moves": [],
-  "entry_overrides": {}
+  "contract_version": "ai.market/legacy-catalog-projection/v1",
+  "entry_overrides": {},
+  "expected_population": 24,
+  "rollout_base_sha": "7782361a500e29c957317cfe0213484124ffa70d"
 }

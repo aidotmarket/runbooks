@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 18f47111d50a88a53c66fdd9c822ac4d79efb590
+  inventory_sha: 8dfb88f205eb3f0bfac8494639555a01a3ca2a40
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,9 +12,9 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 106
-    source_documents: 102
-    active: 23
+    operational_documents: 107
+    source_documents: 103
+    active: 24
     grandfathered: 79
     archived: 4
 policy:
@@ -88,7 +88,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: ai-market-backend.md
-    git_blob_oid: ff4a795284446af9f2566dd84ce0048ac480195a
+    git_blob_oid: 071407919fc026de38da27bc6f00976747430488
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -807,7 +807,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: mcp-gateway.md
-    git_blob_oid: 84320fc5fd4d0a99a4c8ac4f6b443564496320ed
+    git_blob_oid: 94b75d24df61fa0ac343941d87d767a0aa1e7f24
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -1161,7 +1161,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: 98a07662a584a5d1151a22139cf7ab3b72f1762b
+    git_blob_oid: ccd5e0cf075dd3378f8b84977b42fcd32d9d9fc0
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1301,7 +1301,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/runbooks.md
-    git_blob_oid: f93cf91ae73098d3d52d6fb6a8231dd8165e2f8a
+    git_blob_oid: 3571acd07b4aa7794e9376828e88db56423f71c8
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1314,6 +1314,20 @@ documents:
       - recomputed corpus counts
       - anchor, linter vocabulary, AC8 figures
     independent_review_required: true
+  - path: runbooks/stripe-connect-identity.md
+    git_blob_oid: 30db0418b5b8075b480c6edd9ef80c679c7ef13a
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/stripe-connect-identity.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
   - path: runbooks/task-spooler-build-queue.md
     git_blob_oid: d521332b49f5a2d0b76ca300a61a4b4275612057
     catalog_state: active
@@ -1436,7 +1450,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: session-registry-recovery.md
-    git_blob_oid: 68503c615738bfc9cb3e638cef2e5907ed219af6
+    git_blob_oid: be6d7c086fdba03e44a6cfa3548a7368c246d01e
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
