@@ -61,7 +61,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Transport and actions | The only worker transport is the personal/dev scoped remote MCP view `https://mcp.ai.market/remediator/`, whose live `tools/list` must be exactly `{allai_remediator_request}`. That singleton accepts only closed actions: `services` with no other fields to `GET /api/v1/observability/remediator/services`; `claim` with no other fields to `POST /api/v1/observability/remediator/claim` using fixed worker `allAI:Remediator`; `finish` with `incident_id`, `claim_token`, and `outcome`, plus only optional `reason` and typed `proposal`, to `POST /api/v1/observability/remediator/finish`; and bounded read-only `search` with `query` plus only `scope`, `category`, `corpus`, `limit`, `score_threshold`, and `include_archived` to `POST /api/v1/allai/search`. Search is inside the singleton and is not a separate general tool. |
 | Authentication | The scheduled model receives no `INTERNAL_API_KEY`, Railway operator token, provider token, or other credential. The gateway injects its existing backend authentication server-side. Reviewed transport commit `702f3f27db8b9570503f541f750be201b8bc5d01` grounds this contract but is not proof of deployment or activation. |
 | Personal plugin | Plugin contents are metadata plus one remote `.mcp.json` only: no `.app.json`, local executable or script, bearer environment variable, or secret. The plugin and state-changing tool must never be published, shared, distributed, or attached to a public ai.market App; any public surface requires separate review. |
-| Runner isolation | Use only `/Users/max/Projects/ai-market/allai-remediator-runner`, with `approval_policy=never`, `:root=deny`, `:minimal=read`, `:tmpdir=deny`, `:slash_tmp=deny`, and only that runner root reopened read-only. Command network and web search are disabled, and plugin `enabled_tools` is exactly `[allai_remediator_request]`. Browser, Computer Use, other Apps/connectors, and other MCP servers are unauthorized. |
+| Runner isolation | Use only `/Users/max/Projects/ai-market/allai-remediator-runner`. Its project-local `.codex/config.toml` sets `approval_policy=never` and `web_search=disabled`; disables `shell_tool`, `unified_exec`, `view_image`, `multi_agent`, `apps`, `in_app_browser`, `browser_use`, `browser_use_full_cdp_access`, `browser_use_external`, `computer_use`, and `image_generation`; disables inherited `node_repl` and every currently installed non-remediator plugin; and enables only plugin `ai-market@personal`, server `allai-remediator`, tool `allai_remediator_request`. The `allai-remediator` permission profile applies `:root=deny`, `:minimal=read`, `:tmpdir=deny`, `:slash_tmp=deny`, `/private/tmp=deny`, runner workspace root read-only, and command network disabled. Those permission rules are defense in depth, not the decisive boundary: an empirical macOS probe still permitted `/tmp` writes despite the documented denies. Activation therefore fails closed on the actual model-visible inventory: it must contain exactly `allai_remediator_request` and no shell, unified-execution, or other local command tool. |
 | Queue and lease | `ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED=false` by default. Claim only owned P2/P3 work using database time and `FOR UPDATE SKIP LOCKED`; leases are 15 minutes and only the current unexpired token may finish. Provider adapters stay read-only and `/services` must report `execute_allowed=false` for every provider. |
 | Outcomes and verification | Outcomes are exactly `fixed`, `retryable`, or `human_required`. `fixed` requires a backend-observed newer successful run of the same GitHub workflow or a different newer healthy/successful Railway deployment; Cloudflare deployment listing cannot self-verify `fixed` in this release. Telegram remains backend-owned and is sent only for deduplicated `human_required`; existing provider alerting remains authoritative. |
 
@@ -143,21 +143,21 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 - id: E-04
   trigger: The restricted allAI Remediator runner is prepared for activation proof.
   pre_conditions: [dedicated_runner_project_exists, recurring_task_paused, incident_ingress_false]
-  tool_or_endpoint: Named Codex permission profiles and live scoped MCP tools/list
-  argument_sourcing: {global_default: migrate legacy sandbox keys to equivalent named workspace-default, runner_profile: deny root and temp; reopen only runner root read-only; deny command network and web search, enabled_tools: "[allai_remediator_request]"}
+  tool_or_endpoint: Fresh runner model-visible tool inventory, project-local Codex config, and live scoped MCP tools/list
+  argument_sourcing: {runner_config: /Users/max/Projects/ai-market/allai-remediator-runner/.codex/config.toml, required_inventory: "[allai_remediator_request]", forbidden_inventory: "any shell, unified execution, local command, browser, app, image, multi-agent, Node REPL, or non-remediator plugin tool"}
   idempotency: IDEMPOTENT
-  expected_success: {shape: empirical isolation and singleton inventory evidence, verification: without displaying contents prove /Users/max/bin/railway-env.sh, ~/.ssh, ~/.config, ~/.codex, and service repositories unreadable; temp writes and arbitrary command network denied; approval escalation unavailable; actual tool calls only allai_remediator_request; live tools/list exactly singleton; spot-check another project retains equivalent workspace-write plus network posture}
-  expected_failures: [{signature: remediator_isolation_failed, cause: a sensitive path is readable, a forbidden write or network path works, escalation is available, or any unexpected tool is enabled or called}]
+  expected_success: {shape: exact singleton tool inventory evidence, verification: inspect a fresh actual runner context and prove its complete model-visible tool inventory is exactly allai_remediator_request with no local command tool; confirm live tools/list is the same singleton; cross-check the project config disables every forbidden feature, inherited node_repl, and every installed non-remediator plugin, retains approval_policy=never and web_search=disabled, and applies the allai-remediator permission profile with command network disabled}
+  expected_failures: [{signature: remediator_isolation_failed, cause: the actual model-visible inventory contains any tool other than allai_remediator_request, contains a shell, unified-execution, or other local command tool, or cannot be proven complete; a config-only enabled_tools claim is not inventory proof}]
   next_step_success: Retain the proof with the exact runner and plugin configuration for E-05.
-  next_step_failure: Keep ingress false and apply G-03.
+  next_step_failure: Keep ingress false, keep the recurring task paused, and apply G-03. Do not treat temp-write denial as the activation control; the macOS probe permitted /tmp writes despite the profile rules.
 - id: E-05
   trigger: An operator is ready to activate allAI Remediator incident ingress.
-  pre_conditions: [exact_gateway_sha_reviewed_and_merged, idle_safe_reload_complete, deployed_marker_and_live_health_confirmed, scoped_discovery_exactly_singleton, live_services_and_claim_no_work_passed, personal_plugin_installed, runner_isolation_proof_passed, fresh_scheduled_no_work_run_observed]
+  pre_conditions: [exact_gateway_sha_reviewed_and_merged, idle_safe_reload_complete, deployed_marker_and_live_health_confirmed, scoped_discovery_exactly_singleton, live_services_and_claim_no_work_passed, personal_plugin_installed, runner_singleton_tool_inventory_proof_passed, fresh_scheduled_no_work_run_observed]
   tool_or_endpoint: Normal backend configuration rollout for ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED
   argument_sourcing: {gateway_sha: use the exact reviewed scoped gateway commit, discovery: require only allai_remediator_request, readiness_calls: use services and claim through the scoped tool}
   idempotency: IDEMPOTENT
   expected_success: {shape: ingress enabled only after every precondition, verification: repeat services through the scoped tool and preserve owned P2/P3, read-only-provider, and singleton boundaries}
-  expected_failures: [{signature: remediator_activation_not_ready, cause: any review, reload, deployment, discovery, no-work, plugin, isolation, or scheduled-run proof is absent or fails}]
+  expected_failures: [{signature: remediator_activation_not_ready, cause: any review, reload, deployment, discovery, no-work, plugin, singleton-inventory, or scheduled-run proof is absent or fails}]
   next_step_success: Run E-06 on the normal cadence.
   next_step_failure: Keep ingress false; do not infer that transport commit 702f3f27db8b9570503f541f750be201b8bc5d01 is deployed.
 - id: E-06
@@ -178,7 +178,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 |---|---|---|---|---|---|
 | F-01 | Compliance reports an incomplete agent surface. | Endpoint, interaction mode, skill schema, MCP tool, or monitoring declaration is missing. | Compare source and live compliance output with the complete normative checklist in §C. | G-01 | CONFIRMED |
 | F-02 | Discovery lists the agent but orchestration cannot call it. | The corresponding MCP request tool is absent or keyed differently. | Compare discovery key, BaseAgent key, route key, and tool name. | G-02 | CONFIRMED |
-| F-03 | Pre-activation proof exposes a path, write, network route, escalation path, or extra tool. | The runner override is not enforced, legacy global sandbox keys still take precedence, plugin/tool scope drifted, or an unauthorized capability is available. | Keep ingress false; inspect named profile selection and the actual run's tool inventory, repeat every E-04 denial probe without displaying file contents, and require live discovery to equal `{allai_remediator_request}`. | G-03 | CONFIRMED |
+| F-03 | A fresh runner context exposes any tool other than `allai_remediator_request`, exposes a shell, unified-execution, or other local command tool, or cannot produce a complete model-visible inventory. | A forbidden feature is enabled, inherited `node_repl` or a non-remediator plugin remains enabled, plugin/server/tool scope drifted, or the run did not load the project-local config. The macOS `/tmp` write observed despite deny rules shows why filesystem-denial probes cannot be the decisive control. | Keep ingress false and the recurring task paused. Capture the complete actual model-visible inventory and require it to equal `{allai_remediator_request}` with no local command tool; cross-check the project config and require live scoped `tools/list` to equal the same singleton. | G-03 | CONFIRMED |
 | F-04 | The worker is stale, cannot claim/finish, or cannot prove `fixed`. | The task is paused or unhealthy, scoped OAuth/gateway/backend auth failed, a 15-minute lease expired, or fixed verification failed. | Compare the last heartbeat with the 35-minute threshold; inspect only bounded tool errors and allowlisted evidence; verify the current claim token and backend-owned provider result. Cloudflare deployment presence is not fixed proof. | G-04 | CONFIRMED |
 
 ## §G. Repair
@@ -203,11 +203,11 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 - id: G-03
   symptom_ref: F-03
   component_ref: Scheduled Operator Worker
-  root_cause: The named runner profile, personal plugin, or scoped MCP boundary does not enforce the approved isolation contract.
-  repair_entry_point: Global workspace-default profile, runner project profile, and personal plugin metadata
-  change_pattern: Keep ingress false and the task paused; migrate legacy global sandbox keys to an equivalent named workspace-default before applying the narrower runner override; remove every unauthorized plugin field, tool, connector, server, filesystem permission, or network permission; then rerun E-04 and the other-project posture spot-check.
+  root_cause: The runner exposed a forbidden capability or failed to load the project-local feature, plugin, server, tool, approval, search, or permission restrictions.
+  repair_entry_point: /Users/max/Projects/ai-market/allai-remediator-runner/.codex/config.toml and personal ai-market plugin metadata
+  change_pattern: Keep ingress false and the task paused; disable shell_tool, unified_exec, view_image, multi_agent, apps, in_app_browser, all browser_use variants, computer_use, image_generation, inherited node_repl, and every installed non-remediator plugin; retain approval_policy=never, web_search=disabled, the allai-remediator permission profile, command network disabled, and only ai-market@personal server allai-remediator tool allai_remediator_request; then start a fresh runner context and rerun E-04. Treat the permission profile as defense in depth because the macOS probe permitted /tmp writes despite its deny rules.
   rollback_procedure: Keep or restore ingress false and remove the personal plugin. Do not rotate a nonexistent task internal key.
-  integrity_check: Every E-04 probe passes, actual calls contain only allai_remediator_request, and live scoped tools/list is exactly singleton.
+  integrity_check: The complete fresh model-visible inventory and live scoped tools/list are both exactly allai_remediator_request, with no shell, unified-execution, or other local command tool visible.
 - id: G-04
   symptom_ref: F-04
   component_ref: Scheduled Operator Worker
@@ -273,10 +273,10 @@ scenario_set:
   - {id: I-09, type: evolve, refs: [§H], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0625}
   - {id: I-10, type: evolve, refs: [§H], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0625}
   - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
-  - {id: I-12, type: operate, refs: [E-04], scenario: The runner can read a sensitive path or call a second tool during pre-activation proof., expected_answers: [{kind: classification, label: KEEP_INGRESS_FALSE_AND_FAIL_ISOLATION}], weight: 0.0625}
+  - {id: I-12, type: operate, refs: [E-04], scenario: A fresh runner context exposes allai_remediator_request plus a shell or any second model-visible tool during pre-activation proof., expected_answers: [{kind: classification, label: KEEP_INGRESS_FALSE_PAUSE_TASK_AND_FAIL_ISOLATION}], weight: 0.0625}
   - {id: I-13, type: operate, refs: [E-05], scenario: Candidate transport code exists but deployed marker or live singleton discovery is absent., expected_answers: [{kind: classification, label: DO_NOT_ACTIVATE_OR_INFER_DEPLOYMENT}], weight: 0.0625}
   - {id: I-14, type: isolate, refs: [F-04], scenario: The last scheduled heartbeat is 35 minutes old., expected_answers: [{kind: classification, label: PAUSE_TASK_AND_RESTORE_INGRESS_FALSE}], weight: 0.0625}
-  - {id: I-15, type: repair, refs: [G-03], scenario: Legacy global sandbox keys prevent the runner's narrower named profile from taking effect., expected_answers: [{kind: human_action, verb: migrate, object: equivalent named workspace-default then rerun isolation proof, target: Codex permission profiles}], weight: 0.0625}
+  - {id: I-15, type: repair, refs: [G-03], scenario: The project config claims singleton enabled_tools but a fresh actual runner inventory still exposes inherited Node REPL or a non-remediator plugin tool., expected_answers: [{kind: human_action, verb: disable, object: inherited forbidden capability then restart and re-inventory the runner, target: project-local Codex config}], weight: 0.0625}
   - {id: I-16, type: isolate, refs: [F-04, G-04], scenario: Cloudflare reports a deployment and the worker submits fixed without separate health proof., expected_answers: [{kind: classification, label: REJECT_FIXED_AND_PRESERVE_READ_ONLY_BOUNDARY}], weight: 0.0625}
 ```
 
@@ -285,7 +285,7 @@ scenario_set:
 ```yaml lifecycle
 last_refresh_session: S1533
 last_refresh_commit: 702f3f27db8b9570503f541f750be201b8bc5d01
-last_refresh_date: 2026-08-12T23:00:00Z
+last_refresh_date: 2026-08-12T23:39:10Z
 owner_agent: vulcan
 refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, scoped transport, runner isolation, plugin, cadence, or activation changes]
 scheduled_cadence: 30d
@@ -298,7 +298,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1533 / 2026-08-12T23:00:00Z
+last_lint_run: S1533 / 2026-08-12T23:39:10Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
