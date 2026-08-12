@@ -12,9 +12,9 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 106
-    source_documents: 102
-    active: 23
+    operational_documents: 107
+    source_documents: 103
+    active: 24
     grandfathered: 79
     archived: 4
 policy:
@@ -1314,6 +1314,20 @@ documents:
       - recomputed corpus counts
       - anchor, linter vocabulary, AC8 figures
     independent_review_required: true
+  - path: runbooks/stripe-connect-identity.md
+    git_blob_oid: 30db0418b5b8075b480c6edd9ef80c679c7ef13a
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: active-baseline
+    risk: P0
+    target_paths:
+      - runbooks/stripe-connect-identity.md
+    evidence: []
+    verify_against:
+      - existing ACTIVE catalog source at inventory_sha
+      - owning source, configuration, or live state on the next refresh trigger
+    independent_review_required: false
   - path: runbooks/task-spooler-build-queue.md
     git_blob_oid: d521332b49f5a2d0b76ca300a61a4b4275612057
     catalog_state: active
