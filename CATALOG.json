@@ -270,6 +270,10 @@
         {
           "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-operations"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "topic": "council-roster-and-schema-drift"
         }
       ],
       "authority_admission": false,
@@ -286,6 +290,10 @@
         {
           "section": "\u00a7F. Isolate",
           "signature": "no response written after"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "required reviewer missing from the live tool schema"
         }
       ],
       "integrity_only": true,
@@ -1359,6 +1367,10 @@
         "runbook_id": "crm",
         "section": "\u00a7F. Isolate"
       },
+      "required reviewer missing from the live tool schema": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
+      },
       "review_preload_unresolved": {
         "runbook_id": "council-review-collection",
         "section": "\u00a7E. Operate"
@@ -1512,6 +1524,10 @@
       "council-review-collection": {
         "runbook_id": "council-review-collection",
         "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-roster-and-schema-drift": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
       },
       "council-roster-quirks": {
         "runbook_id": "council-roster-quirks",

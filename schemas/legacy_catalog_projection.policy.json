@@ -13,6 +13,10 @@
         {
           "section": "§C. Architecture & Interactions",
           "topic": "council-operations"
+        },
+        {
+          "section": "§F. Isolate",
+          "topic": "council-roster-and-schema-drift"
         }
       ],
       "error_signatures": [
@@ -27,6 +31,10 @@
         {
           "section": "§F. Isolate",
           "signature": "no response written after"
+        },
+        {
+          "section": "§F. Isolate",
+          "signature": "required reviewer missing from the live tool schema"
         }
       ],
       "superseded_by": [],

@@ -21,6 +21,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C\. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture-interactions) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions) |
 | `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
+| `council-roster-and-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
 | `crm-connectors` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `crm-data-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
@@ -117,6 +118,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `relation "crm_entities" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_people" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_pipeline_stages" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `required reviewer missing from the live tool schema` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |

@@ -7,6 +7,8 @@ authoritative_for:
     section: §C. Architecture & Interactions
   - topic: council-dispatch-failure
     section: §F. Isolate
+  - topic: council-roster-and-schema-drift
+    section: §F. Isolate
 aliases: []
 error_signatures:
   - signature: no response written after
@@ -14,6 +16,8 @@ error_signatures:
   - signature: is not set; source the credential first
     section: §F. Isolate
   - signature: Not logged in
+    section: §F. Isolate
+  - signature: required reviewer missing from the live tool schema
     section: §F. Isolate
 supersedes: []
 superseded_by: []
@@ -163,6 +167,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-02 | `GLM_z_AI_API_KEY is not set` or `MOONSHOT_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
 | F-03 | CC says `Not logged in` | CC was started with `--bare` or the machine login is absent | Compare plain `claude -p` with `claude --bare -p` | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
+| F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
 
 ## §G. Repair
 
@@ -199,6 +204,14 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   change_pattern: Remove the alternate registration or process and restart at the reviewed SHA.
   rollback_procedure: Roll back the whole deployment only if the directory trigger itself cannot run.
   integrity_check: council_request is the only reviewer tool and returns paths under /Users/max/council/<member>/.
+- id: G-05
+  symptom_ref: F-05
+  component_ref: Reviewer Trigger
+  root_cause: The reviewer roster or a member model drifted between Living State and the deployed schema.
+  repair_entry_point: Living State infra:council-comms plus the deployed reviewer registration
+  change_pattern: Treat Living State infra:council-comms and the model registry as the only roster truth; reconcile the live callable schema and the required-member constants to it, and never substitute a member or reduce quorum to route around the gap.
+  rollback_procedure: Block the gate and keep the recorded roster; do not edit prose to match a stale client.
+  integrity_check: The live agent enum, the recorded roster, and the deployed SHA all name the same members.
 ```
 
 ## §H. Evolve
