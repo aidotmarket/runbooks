@@ -188,19 +188,30 @@ Count the legacy sites with the model names that map to dropped tables, not with
 `select(CRM` grep: a bare grep also catches `CRMUserRole` and `CRMBriefingRun`, which point at
 `crm_user_roles` and `crm_briefing_runs`, both of which are LIVE. Those 4 sites are healthy and
 must not be deleted.
-Counting every reference to a dead model class rather than only query sites gives 449 across 15 application
-files after C2, down from 460. Chunk C1 of `build:bq-crm-code-reduction-s1490` removed 4 sites
-and 50 references at backend `5143235d` on 2026-08-09. The reviewed C2 backend candidate
-`64344613f85cae45813ded20bcdc7fc069a51917` was integrated into backend main as merge commit
-`9af53ee2477799c86ea222c61cd2974b31ff7959`. Railway reports SUCCESS for API, worker, beat
-and backup at that exact integration SHA on 2026-08-13, so the 34-site and 449-reference counts
-are deployed state. Gate 3 passed unanimously on exact package digest
+The 34 legacy query sites above are deployed state. Keep that query-site measurement separate
+from the whole-word scan of all fourteen dead-table model class names across `app/**/*.py`:
+
+| Measurement point | Exact backend SHA | References | Application files |
+|---|---|---:|---:|
+| C2 integration parent | `04130da2b29688a4232ac7fdb9f564b2844e1b6a` | 488 | 16 |
+| Reviewed C2 candidate | `64344613f85cae45813ded20bcdc7fc069a51917` | 449 | 15 |
+| Deployed merge | `9af53ee2477799c86ea222c61cd2974b31ff7959` | 477 | 16 |
+
+The deployed merge therefore reduces its actual integration-parent baseline by 11 references.
+Its 28-reference difference from the reviewed candidate comes entirely from
+`app/domains/crm/legacy_tripwire.py`, inherited from main. That file imports and enumerates the
+fourteen dead models solely for a log-only observability tripwire; it adds no legacy select query
+site. Chunk C1 of `build:bq-crm-code-reduction-s1490` had already removed 4 sites and 50
+references at backend `5143235d` on 2026-08-09. The reviewed C2 candidate was integrated into
+backend main as the deployed merge above. A direct Railway recheck performed on 2026-08-14
+reported SUCCESS for API, worker, beat and backup at that exact integration SHA. Gate 3 passed
+unanimously on exact package digest
 `807e309d064911375bc41e7568e6037b0b7ab914a441a31c5894179be79dc1ba`. The corresponding
 runbook main integration was `d792f92485170f0a367fa6b9c56b82884b6df573`.
 
-This deployment does not establish schema health. On 2026-08-13 public `/health` is degraded
-with `alembic_drift=false` but `schema_drift=true`: 1 missing modeled table, 40 unmapped and
-14 known retired. That is an inherited separate condition.
+This deployment does not establish schema health. A direct public `/health` recheck performed
+on 2026-08-14 was degraded with `alembic_drift=false` but `schema_drift=true`: 1 missing
+modeled table, 40 unmapped and 14 known retired. That is an inherited separate condition.
 
 **Reachability is still NOT settled for the remainder.** A first-pass scan looking for a
 `get_read_route`, `party_enabled` or `legacy_fallback_enabled` guard within twelve lines above
@@ -581,7 +592,7 @@ ever exercised them (see §F-10).
 - **Invariant 3. The `stripe_connect` party identity is the canonical seller payment identity.** `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written for compatibility. New code must not read them.
 - **Invariant 4. There is no external CRM MCP endpoint.** All agent CRM access goes through the Koskadeux gateway. The 404s on `api.ai.market/mcp/crm/mcp` and the root OAuth routes are deliberate and must not be reintroduced.
 - **Invariant 5. Nothing here creates tables at runtime.** The CRM must never rely on a fallback table-creation path. That pattern is what hid the loss of the money-path tables until a customer reported it.
-- **Invariant 6. The count of dead references only ever falls.** 449 references to model classes bound to deleted tables remain across 15 application files at deployed C2 source `64344613f85cae45813ded20bcdc7fc069a51917`, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
+- **Invariant 6. The count of dead references only ever falls.** The deployed baseline is 477 whole-word references to model classes bound to deleted tables across 16 application files at merge `9af53ee2477799c86ea222c61cd2974b31ff7959`. This is an 11-reference monotonic reduction from the actual integration-parent baseline of 488 across 16 files at `04130da2b29688a4232ac7fdb9f564b2844e1b6a`. The deployed count intentionally includes 28 log-only observability references in `app/domains/crm/legacy_tripwire.py`, inherited from main; those references import and enumerate all fourteen dead models but add no legacy select query site. The reviewed candidate's separate measurement was 449 references across 15 files at `64344613f85cae45813ded20bcdc7fc069a51917`. `build:bq-crm-code-reduction-s1490` exists to remove dead references in evidence-backed phases. No subsequent change may increase the deployed baseline with a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
 - **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
 ### §H.2 BREAKING predicates
