@@ -591,7 +591,7 @@ ever exercised them (see §F-10).
 - Adding a new `party_identity` provider value.
 - Changing which of `due_date` or `due_at` a surface reads.
 - Adding a new endpoint under `/api/v1/crm` or `/api/v1/accounting/crm`.
-- Deleting any of the 37 legacy select sites, because each deletion changes a live file.
+- Deleting any legacy select site, because each deletion changes a live file.
 
 ### §H.4 SAFE predicates
 
