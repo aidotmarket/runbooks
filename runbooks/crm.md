@@ -188,7 +188,7 @@ Count the legacy sites with the model names that map to dropped tables, not with
 `select(CRM` grep: the bare grep returns 41, because `CRMUserRole` and `CRMBriefingRun` point at
 `crm_user_roles` and `crm_briefing_runs`, both of which are LIVE. Those 4 sites are healthy and
 must not be deleted.
-Counting every reference to a dead model class rather than only query sites gives 449 across 31
+Counting every reference to a dead model class rather than only query sites gives 449 across 15 application
 files after C2, down from 460. Chunk C1 of `build:bq-crm-code-reduction-s1490` removed 4 sites
 and 50 references at backend `5143235d` on 2026-08-09. The C2 candidate is branch
 `build/bq-crm-code-reduction-s1490-c2` at exact head
@@ -569,7 +569,7 @@ ever exercised them (see §F-10).
 - **Invariant 3. The `stripe_connect` party identity is the canonical seller payment identity.** `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written for compatibility. New code must not read them.
 - **Invariant 4. There is no external CRM MCP endpoint.** All agent CRM access goes through the Koskadeux gateway. The 404s on `api.ai.market/mcp/crm/mcp` and the root OAuth routes are deliberate and must not be reintroduced.
 - **Invariant 5. Nothing here creates tables at runtime.** The CRM must never rely on a fallback table-creation path. That pattern is what hid the loss of the money-path tables until a customer reported it.
-- **Invariant 6. The count of dead references only ever falls.** 449 references to model classes bound to deleted tables remain across 31 files at C2 candidate head `a310aaa2af782ddbd27652d8e76cbdbf0023428d`, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
+- **Invariant 6. The count of dead references only ever falls.** 449 references to model classes bound to deleted tables remain across 15 application files at C2 candidate head `a310aaa2af782ddbd27652d8e76cbdbf0023428d`, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
 - **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
 ### §H.2 BREAKING predicates
