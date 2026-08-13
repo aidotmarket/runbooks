@@ -7,7 +7,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "agent-completeness"
         }
       ],
@@ -15,7 +15,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "incomplete_agent_surface"
         }
       ],
@@ -35,7 +35,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "agent-dispatch"
         }
       ],
@@ -43,65 +43,65 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "bootout_without_plist_patch"
         },
         {
-          "section": "§X.8 — S1415 structural build/review gate replacement",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "cutover_admission_unknown"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "default_cwd_false_positive"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "env_var_in_inherited_only"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "gateway_timeout"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "health_failure"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "mp_busy"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "progress_guard_timeout"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "schema_validation_failure"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "stale_task_state"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "strict_verdict_invalid"
         },
         {
-          "section": "§X.8 — S1415 structural build/review gate replacement",
+          "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement",
           "signature": "structural_gate_unknown"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "tr_truncation_false_negative"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "unsupported_line_claim"
         }
       ],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-08-03",
+      "last_verified_at": "2026-08-12",
       "owner": "vulcan",
       "path": "runbooks/agent-dispatch.md",
       "runbook_id": "agent-dispatch",
@@ -115,7 +115,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "aging-policy"
         }
       ],
@@ -123,7 +123,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "stale_queue_undispatched"
         }
       ],
@@ -140,54 +140,10 @@
     },
     {
       "action_authority_eligible": false,
-      "aliases": [
-        "alerts",
-        "session-open-alerts",
-        "open-items-alerts"
-      ],
-      "authoritative_for": [
-        {
-          "section": "§C. Architecture & Interactions",
-          "topic": "alerts-at-open"
-        },
-        {
-          "section": "§E. Operate",
-          "topic": "session-open-alert-line"
-        }
-      ],
-      "authority_admission": false,
-      "domain": "operations",
-      "error_signatures": [
-        {
-          "section": "§F. Isolate",
-          "signature": "alerts unavailable"
-        },
-        {
-          "section": "§F. Isolate",
-          "signature": "unreachable source rendered as zero"
-        },
-        {
-          "section": "§F. Isolate",
-          "signature": "stale open-items board"
-        }
-      ],
-      "integrity_only": false,
-      "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-08-12",
-      "owner": "mars",
-      "path": "runbooks/alerts-at-open.md",
-      "runbook_id": "alerts-at-open",
-      "semantic_verification": false,
-      "status": "ACTIVE",
-      "superseded_by": [],
-      "supersedes": []
-    },
-    {
-      "action_authority_eligible": false,
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "branch-landed-verification"
         }
       ],
@@ -195,19 +151,19 @@
       "domain": "build-queue",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "clean_tree_read_as_current"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "push_failed_but_landed"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "stale_build_base"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "unlanded_branch_believed_landed"
         }
       ],
@@ -227,7 +183,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "build-queue-reconciliation"
         }
       ],
@@ -235,7 +191,7 @@
       "domain": "build-queue",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "unsupported_target_repo"
         }
       ],
@@ -255,7 +211,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "constitution-history"
         }
       ],
@@ -263,7 +219,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "constitution_source_drift"
         }
       ],
@@ -285,7 +241,7 @@
       ],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "corpus-capture-policy"
         }
       ],
@@ -308,57 +264,41 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7F. Isolate",
+          "topic": "council-dispatch-failure"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-operations"
         },
         {
-          "section": "§F. Isolate",
-          "topic": "council-roster-drift"
-        },
-        {
-          "section": "§F. Isolate",
-          "topic": "council-schema-drift"
+          "section": "\u00a7F. Isolate",
+          "topic": "council-roster-and-schema-drift"
         }
       ],
       "authority_admission": false,
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§E. Operate",
-          "signature": "agent silence"
+          "section": "\u00a7F. Isolate",
+          "signature": "Not logged in"
         },
         {
-          "section": "§G. Repair",
-          "signature": "council_roster_drift"
+          "section": "\u00a7F. Isolate",
+          "signature": "is not set; source the credential first"
         },
         {
-          "section": "§F. Isolate",
-          "signature": "council_schema_drift"
+          "section": "\u00a7F. Isolate",
+          "signature": "no response written after"
         },
         {
-          "section": "§E. Operate",
-          "signature": "missing dispatch token"
-        },
-        {
-          "section": "§E. Operate",
-          "signature": "no resolution"
-        },
-        {
-          "section": "§E. Operate",
-          "signature": "read-only agent attempted write"
-        },
-        {
-          "section": "§E. Operate",
-          "signature": "schema_roster_mismatch"
-        },
-        {
-          "section": "§E. Operate",
-          "signature": "timeout"
+          "section": "\u00a7F. Isolate",
+          "signature": "required reviewer missing from the live tool schema"
         }
       ],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-07-27",
+      "last_verified_at": "2026-08-12",
       "owner": "vulcan",
       "path": "runbooks/council.md",
       "runbook_id": "council",
@@ -372,7 +312,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-gate-process"
         }
       ],
@@ -380,43 +320,43 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "authoring_distinction_trap"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "break_glass_left_enabled"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "chunk_scope_gap"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "cross_review_block"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "directional_evidence_missing"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "fabricated_line_reference"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "gate1_status_trap"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "harness_bound_to_stale_code"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "missing_design_artifact"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "unresolved_mandates"
         }
       ],
@@ -436,7 +376,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-hall-deliberation"
         }
       ],
@@ -444,27 +384,27 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "biased_synthesis"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "duplicate_deliberation"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "late_arriver"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "open_response_schema_mismatch"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "participant_config_missing"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "premature_cross_poll"
         }
       ],
@@ -487,7 +427,7 @@
       ],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-review-collection"
         }
       ],
@@ -495,35 +435,35 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "cc_verdict_parse_failure"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "completion_truncated"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "dispatch_sha_invalid"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "gate_status_not_flipped"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "glm_page_path_hallucination"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "mp_lane_held"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "peer_msg_silent_dedupe"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "signature": "review_preload_unresolved"
         }
       ],
@@ -543,7 +483,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-roster-quirks"
         }
       ],
@@ -551,7 +491,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "stale_roster_snapshot"
         }
       ],
@@ -577,19 +517,19 @@
       ],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "crm-connectors"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "crm-data-model"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "topic": "crm-diagnosis"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "crm-legacy-table-drop"
         }
       ],
@@ -597,31 +537,31 @@
       "domain": "platform-data",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "UndefinedTable"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "empty contact_id on upsert"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "pipeline stages feature is not yet fully set up"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "relation \"crm_entities\" does not exist"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "relation \"crm_people\" does not exist"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "relation \"crm_pipeline_stages\" does not exist"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "the pipeline stages migration may not have been run"
         }
       ],
@@ -645,7 +585,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "e2e-programme-integrity"
         }
       ],
@@ -668,7 +608,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "e2e-test-status-publisher"
         }
       ],
@@ -691,7 +631,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "e2e-video-review"
         }
       ],
@@ -714,7 +654,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "gate-procedure"
         }
       ],
@@ -722,7 +662,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "gate_eligibility_unknown"
         }
       ],
@@ -742,15 +682,15 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "infrastructure-discovery"
         },
         {
-          "section": "§G. Repair",
+          "section": "\u00a7G. Repair",
           "topic": "security-credential-exposure"
         },
         {
-          "section": "§G. Repair",
+          "section": "\u00a7G. Repair",
           "topic": "security-secret-disclosure"
         }
       ],
@@ -758,15 +698,15 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "credential_exposed"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "infrastructure_locator_guessed"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "secret_disclosure"
         }
       ],
@@ -789,19 +729,19 @@
       ],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "instance-peer-topology"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "peer-bus-coordination"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "session-close-runbook-impact"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "session-plan-runbook-context"
         }
       ],
@@ -809,31 +749,31 @@
       "domain": "peer-coordination",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "duplicate_claim_on_one_item"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "over_escalation_to_max"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "peer_message_silently_deduped"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "runbook_context_delivery_unavailable"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "runbook_impact_evidence_unavailable"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "stale_handoff_trusted_at_open"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "unread_request_or_alert_at_dispatch"
         }
       ],
@@ -853,7 +793,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "policy-kernel-enforcement"
         }
       ],
@@ -861,23 +801,23 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "deployed_sha_stale"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "dispatch_terminal_state_missing_after_restart"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "policy_kernel_enforcement_setting_invalid"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "policy_kernel_not_evaluable"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "policy_kernel_preflight_indeterminate"
         }
       ],
@@ -897,7 +837,7 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "product-elaboration"
         }
       ],
@@ -905,7 +845,7 @@
       "domain": "boot-kernel",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "product_boundary_conflict"
         }
       ],
@@ -929,19 +869,19 @@
       ],
       "authoritative_for": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "runbook-authoring"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "runbook-corpus"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "runbook-discovery"
         },
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "runbook-verification"
         }
       ],
@@ -949,35 +889,35 @@
       "domain": "runbooks",
       "error_signatures": [
         {
-          "section": "§G. Repair",
+          "section": "\u00a7G. Repair",
           "signature": "catalog outputs are stale"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "catalog validation failed"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "dangling section"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "does not match current bytes"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "expected_population does not match baseline"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "grandfathered source records, but current source corpus has"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "legacy population differs from reviewed rollout projection"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "search limit must be an integer from 1 to 3"
         }
       ],
@@ -1000,11 +940,11 @@
       ],
       "authoritative_for": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "topic": "seller-connect-linkage-divergence"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "stripe-connect-identity-stores"
         }
       ],
@@ -1012,23 +952,23 @@
       "domain": "payments",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "kyc_status_absent_defaults_not_started"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "seller_profiles_connect_id_never_written"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "stripe_connect_user_update_zero_rows"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "two_connect_onboarding_endpoints_disagree"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "webhook_predicate_column_mismatch"
         }
       ],
@@ -1051,11 +991,11 @@
       ],
       "authoritative_for": [
         {
-          "section": "§E. Operate",
+          "section": "\u00a7E. Operate",
           "topic": "build-queue-operator-recovery"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "task-spooler-queue-architecture"
         }
       ],
@@ -1063,19 +1003,19 @@
       "domain": "council-operations",
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "Codex FIFO unavailable"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "dispatch refused before model execution"
         },
         {
-          "section": "§G. Repair",
+          "section": "\u00a7G. Repair",
           "signature": "queued row with idle slot"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "tsp command not found"
         }
       ],
@@ -1095,615 +1035,599 @@
     "aliases": {
       "allai-corpus-policy": {
         "runbook_id": "corpus-capture-policy",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "build-queue-runner": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "codex-queue": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "connect-identity-bridge": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "council-verdict-collection": {
         "runbook_id": "council-review-collection",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-architecture": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-pipeline": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-steward": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-target-state": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "gate-recording": {
         "runbook_id": "council-review-collection",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "how-to-write-a-runbook": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "party-model": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "peer-bus": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "peer-message-bus": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "runbook-runbook": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "runbook-standard": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "seller-stripe-linkage": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       }
     },
     "error_signatures": {
       "Codex FIFO unavailable": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
+      },
+      "Not logged in": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
       },
       "UndefinedTable": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
-      },
-      "agent silence": {
-        "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7F. Isolate"
       },
       "authoring_distinction_trap": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "biased_synthesis": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "bootout_without_plist_patch": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "break_glass_left_enabled": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "catalog outputs are stale": {
         "runbook_id": "runbooks",
-        "section": "§G. Repair"
+        "section": "\u00a7G. Repair"
       },
       "catalog validation failed": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "cc_verdict_parse_failure": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "chunk_scope_gap": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "clean_tree_read_as_current": {
         "runbook_id": "branch-landed-verification",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "completion_truncated": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "constitution_source_drift": {
         "runbook_id": "constitution-history",
-        "section": "§F. Isolate"
-      },
-      "council_roster_drift": {
-        "runbook_id": "council",
-        "section": "§G. Repair"
-      },
-      "council_schema_drift": {
-        "runbook_id": "council",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "credential_exposed": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "cross_review_block": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "cutover_admission_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "§X.8 — S1415 structural build/review gate replacement"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
       },
       "dangling section": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "default_cwd_false_positive": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "deployed_sha_stale": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "directional_evidence_missing": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "dispatch refused before model execution": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "dispatch_sha_invalid": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "dispatch_terminal_state_missing_after_restart": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "does not match current bytes": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "duplicate_claim_on_one_item": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "duplicate_deliberation": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "empty contact_id on upsert": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "env_var_in_inherited_only": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "expected_population does not match baseline": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "fabricated_line_reference": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "gate1_status_trap": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "gate_eligibility_unknown": {
         "runbook_id": "gate-procedure",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "gate_status_not_flipped": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "gateway_timeout": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "glm_page_path_hallucination": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "grandfathered source records, but current source corpus has": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "harness_bound_to_stale_code": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "health_failure": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "incomplete_agent_surface": {
         "runbook_id": "agent-completeness",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "infrastructure_locator_guessed": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
+      },
+      "is not set; source the credential first": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
       },
       "kyc_status_absent_defaults_not_started": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "late_arriver": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "legacy population differs from reviewed rollout projection": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
-      },
-      "missing dispatch token": {
-        "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7F. Isolate"
       },
       "missing_design_artifact": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "mp_busy": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "mp_lane_held": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
-      "no resolution": {
+      "no response written after": {
         "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7F. Isolate"
       },
       "open_response_schema_mismatch": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "over_escalation_to_max": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "participant_config_missing": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "peer_message_silently_deduped": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "peer_msg_silent_dedupe": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "pipeline stages feature is not yet fully set up": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "policy_kernel_enforcement_setting_invalid": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "policy_kernel_not_evaluable": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "policy_kernel_preflight_indeterminate": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "premature_cross_poll": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "product_boundary_conflict": {
         "runbook_id": "product-elaboration",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "progress_guard_timeout": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "push_failed_but_landed": {
         "runbook_id": "branch-landed-verification",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "queued row with idle slot": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§G. Repair"
-      },
-      "read-only agent attempted write": {
-        "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7G. Repair"
       },
       "relation \"crm_entities\" does not exist": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "relation \"crm_people\" does not exist": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "relation \"crm_pipeline_stages\" does not exist": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
+      },
+      "required reviewer missing from the live tool schema": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
       },
       "review_preload_unresolved": {
         "runbook_id": "council-review-collection",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "runbook_context_delivery_unavailable": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "runbook_impact_evidence_unavailable": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
-      },
-      "schema_roster_mismatch": {
-        "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7F. Isolate"
       },
       "schema_validation_failure": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "search limit must be an integer from 1 to 3": {
         "runbook_id": "runbooks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "secret_disclosure": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "seller_profiles_connect_id_never_written": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "stale_build_base": {
         "runbook_id": "branch-landed-verification",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "stale_handoff_trusted_at_open": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "stale_queue_undispatched": {
         "runbook_id": "aging-policy",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "stale_roster_snapshot": {
         "runbook_id": "council-roster-quirks",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "stale_task_state": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "strict_verdict_invalid": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "stripe_connect_user_update_zero_rows": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "structural_gate_unknown": {
         "runbook_id": "agent-dispatch",
-        "section": "§X.8 — S1415 structural build/review gate replacement"
+        "section": "\u00a7X.8 \u2014 S1415 structural build/review gate replacement"
       },
       "the pipeline stages migration may not have been run": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
-      },
-      "timeout": {
-        "runbook_id": "council",
-        "section": "§E. Operate"
+        "section": "\u00a7F. Isolate"
       },
       "tr_truncation_false_negative": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "tsp command not found": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "two_connect_onboarding_endpoints_disagree": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "unlanded_branch_believed_landed": {
         "runbook_id": "branch-landed-verification",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "unread_request_or_alert_at_dispatch": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "unresolved_mandates": {
         "runbook_id": "council-gate-process",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "unsupported_line_claim": {
         "runbook_id": "agent-dispatch",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "unsupported_target_repo": {
         "runbook_id": "build-queue-reconciliation",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "webhook_predicate_column_mismatch": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       }
     },
     "topics": {
       "agent-completeness": {
         "runbook_id": "agent-completeness",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "agent-dispatch": {
         "runbook_id": "agent-dispatch",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "aging-policy": {
         "runbook_id": "aging-policy",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "branch-landed-verification": {
         "runbook_id": "branch-landed-verification",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "build-queue-operator-recovery": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "build-queue-reconciliation": {
         "runbook_id": "build-queue-reconciliation",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "constitution-history": {
         "runbook_id": "constitution-history",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "corpus-capture-policy": {
         "runbook_id": "corpus-capture-policy",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
+      },
+      "council-dispatch-failure": {
+        "runbook_id": "council",
+        "section": "\u00a7F. Isolate"
       },
       "council-gate-process": {
         "runbook_id": "council-gate-process",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "council-hall-deliberation": {
         "runbook_id": "council-hall-deliberation",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "council-operations": {
         "runbook_id": "council",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "council-review-collection": {
         "runbook_id": "council-review-collection",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
-      "council-roster-drift": {
+      "council-roster-and-schema-drift": {
         "runbook_id": "council",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "council-roster-quirks": {
         "runbook_id": "council-roster-quirks",
-        "section": "§C. Architecture & Interactions"
-      },
-      "council-schema-drift": {
-        "runbook_id": "council",
-        "section": "§F. Isolate"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-connectors": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-data-model": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "crm-diagnosis": {
         "runbook_id": "crm",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "crm-legacy-table-drop": {
         "runbook_id": "crm",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "e2e-programme-integrity": {
         "runbook_id": "e2e-programme-integrity",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "e2e-test-status-publisher": {
         "runbook_id": "e2e-test-status-publisher",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "e2e-video-review": {
         "runbook_id": "e2e-video-review",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "gate-procedure": {
         "runbook_id": "gate-procedure",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "infrastructure-discovery": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "instance-peer-topology": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "peer-bus-coordination": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "policy-kernel-enforcement": {
         "runbook_id": "policy-kernel-enforcement",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "product-elaboration": {
         "runbook_id": "product-elaboration",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "runbook-authoring": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "runbook-corpus": {
         "runbook_id": "runbooks",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "runbook-discovery": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "runbook-verification": {
         "runbook_id": "runbooks",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "security-credential-exposure": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§G. Repair"
+        "section": "\u00a7G. Repair"
       },
       "security-secret-disclosure": {
         "runbook_id": "infrastructure-discovery",
-        "section": "§G. Repair"
+        "section": "\u00a7G. Repair"
       },
       "seller-connect-linkage-divergence": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§F. Isolate"
+        "section": "\u00a7F. Isolate"
       },
       "session-close-runbook-impact": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "session-plan-runbook-context": {
         "runbook_id": "peer-instance-discipline",
-        "section": "§E. Operate"
+        "section": "\u00a7E. Operate"
       },
       "stripe-connect-identity-stores": {
         "runbook_id": "stripe-connect-identity",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       },
       "task-spooler-queue-architecture": {
         "runbook_id": "task-spooler-build-queue",
-        "section": "§C. Architecture & Interactions"
+        "section": "\u00a7C. Architecture & Interactions"
       }
     }
   },

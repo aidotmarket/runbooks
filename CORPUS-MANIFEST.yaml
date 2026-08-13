@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 8dfb88f205eb3f0bfac8494639555a01a3ca2a40
+  inventory_sha: 48d3f9c155b3b4400ef2737da8fd5ee893bff42e
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 107
-    source_documents: 103
+    operational_documents: 108
+    source_documents: 104
     active: 24
-    grandfathered: 79
+    grandfathered: 80
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -116,7 +116,7 @@ documents:
       - production-safe behavior probes and canonical state
     independent_review_required: true
   - path: aim-data-release-process.md
-    git_blob_oid: 6120359227b92336a6461be710457855002612c0
+    git_blob_oid: 2e9e25e3634ec3d8319e994442f0ca5c4a8fab33
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -303,7 +303,7 @@ documents:
       - owning consumer code without exposing secret values
     independent_review_required: true
   - path: backup-and-recovery.md
-    git_blob_oid: f5fd1a682ab67d41653d9da3060c37053499d3fa
+    git_blob_oid: af603de8a7efad94ec5d85c10f5085b0b25d9fa7
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -990,6 +990,20 @@ documents:
       - deployed gateway tool schema and canonical state
       - current CORE and policy-kernel sources
     independent_review_required: true
+  - path: runbooks/alerts-at-open.md
+    git_blob_oid: 9b7e2eb0e98d31675677ff81fccb07d67cbc29e6
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: operations
+    risk: P1
+    target_paths:
+      - runbooks/alerts-at-open.md
+    evidence: []
+    verify_against:
+      - alerts collector in ground_truth_open_items.py
+      - live infra:open-items-board alerts block
+    independent_review_required: true
   - path: runbooks/agent-completeness.md
     git_blob_oid: 242f05ab1240d4ca6ceb6b6d1d54d9a56f0e24f4
     catalog_state: active
@@ -1005,7 +1019,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: d8d995605010dc96face0d2059aa9217be9d8e5e
+    git_blob_oid: 0c27384881ae22442bee945eab8522308188ccd5
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1161,7 +1175,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: ccd5e0cf075dd3378f8b84977b42fcd32d9d9fc0
+    git_blob_oid: 7f824472deb1281fe683913a9555cb8c7be154e0
     catalog_state: active
     status: active
     proposed_disposition: retain_active
