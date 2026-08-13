@@ -5,7 +5,7 @@ runbooks. `ACTIVE` means structurally admitted to the integrity-only catalog; it
 does not mean that an operational claim has been semantically verified or may
 authorize an action. Search inspects the complete immutable corpus: 24 ACTIVE
 documents, 80 grandfathered documents pending verification, and four archived
-historical document. The latter two classes are labeled discovery evidence,
+historical documents. The latter two classes are labeled discovery evidence,
 never operating authority.
 
 <!-- runbook-catalog:begin -->
