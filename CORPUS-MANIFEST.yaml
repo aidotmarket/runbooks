@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 48d3f9c155b3b4400ef2737da8fd5ee893bff42e
+  inventory_sha: 90fcd0dff37ccc5c8a69a1899fe5e16bd35fe420
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1005,7 +1005,7 @@ documents:
       - live infra:open-items-board alerts block
     independent_review_required: true
   - path: runbooks/agent-completeness.md
-    git_blob_oid: 242f05ab1240d4ca6ceb6b6d1d54d9a56f0e24f4
+    git_blob_oid: f93b5c5d3d9c4476bca89c75bef7c1ad935e654a
     catalog_state: active
     status: active
     proposed_disposition: retain_active
