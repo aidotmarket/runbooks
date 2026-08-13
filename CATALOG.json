@@ -21,7 +21,7 @@
       ],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-07-17",
+      "last_verified_at": "2026-08-12",
       "owner": "vulcan",
       "path": "runbooks/agent-completeness.md",
       "runbook_id": "agent-completeness",
