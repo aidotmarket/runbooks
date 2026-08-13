@@ -11,6 +11,10 @@ authoritative_for:
     section: §F. Isolate
 aliases: []
 error_signatures:
+  - signature: "Error occurred during tool execution"
+    section: "§F. Isolate (F-06)"
+  - signature: "OAuth session expired and could not be refreshed"
+    section: "§F. Isolate (F-07)"
   - signature: no response written after
     section: §F. Isolate
   - signature: is not set; source the credential first
@@ -168,6 +172,8 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-03 | CC says `Not logged in` | CC was started with `--bare` or the machine login is absent | Compare plain `claude -p` with `claude --bare -p` | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
+| F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED (S1540) |
+| F-07 | CC fails with `OAuth session expired and could not be refreshed`, repeatedly in one day | CC shares the interactive `claude` login; concurrent sessions racing to refresh one OAuth token invalidate it for everybody (S1532). OR: the dedicated profile IS provisioned but `cc_profile.is_provisioned()` returns false because a stale PRESENT-BUT-EMPTY `.credentials.json` shadows a good Keychain credential (S1540) | Run `cc_profile.status()`; if `credential_usable: false` inspect `~/.claude-koskadeux/.credentials.json` — empty `accessToken`/`refreshToken` under `claudeAiOauth` means shadow file | G-07 | CONFIRMED (S1540) |
 
 ## §G. Repair
 
@@ -204,6 +210,22 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   change_pattern: Remove the alternate registration or process and restart at the reviewed SHA.
   rollback_procedure: Roll back the whole deployment only if the directory trigger itself cannot run.
   integrity_check: council_request is the only reviewer tool and returns paths under /Users/max/council/<member>/.
+- id: G-06
+  symptom_ref: F-06
+  component_ref: MCP transport / Member Launcher
+  root_cause: Client-side MCP timeout (~60s) is far below Council review duration; the server call is healthy.
+  repair_entry_point: operator procedure (no code entry point yet; raise a BQ to lengthen the client timeout or make council_request async)
+  change_pattern: Treat the client error as UNKNOWN, not failure. Poll the member directory for the response file keyed to the dispatch-time request stamp. Do not re-dispatch until the directory shows no request from your dispatch window.
+  rollback_procedure: none (read-only procedure)
+  integrity_check: One request file and at most one response file per intended dispatch; duplicates identified and their verdicts discarded.
+- id: G-07
+  symptom_ref: F-07
+  component_ref: CC credential isolation (cc_profile.py, setup_cc_profile.sh)
+  root_cause: Shared interactive login refresh race (S1532), or an empty .credentials.json shadowing the Keychain credential after quarantine/incident cycles (S1540).
+  repair_entry_point: scripts/setup_cc_profile.sh (one-time, Max, desktop Terminal); then cc_profile.status()
+  change_pattern: Run setup_cc_profile.sh once as Max. If status() still reports credential_usable false with the profile signed in, quarantine (rename) the empty .credentials.json so Keychain absence-rule applies; verify with a profile-scoped `claude -p` returning is_error false, then a panel ping showing no "not provisioned" warning.
+  rollback_procedure: Restore the renamed credentials file (never delete outright).
+  integrity_check: cc_profile.status() reports isolated true; panel dispatches run without the shared-login warning; interactive login and machine login refresh independently.
 - id: G-05
   symptom_ref: F-05
   component_ref: Reviewer Trigger
