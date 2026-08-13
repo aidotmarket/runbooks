@@ -3,8 +3,8 @@
 This repository is the maintained discovery corpus for ai.market system-level
 runbooks. `ACTIVE` means structurally admitted to the integrity-only catalog; it
 does not mean that an operational claim has been semantically verified or may
-authorize an action. Search inspects the complete immutable corpus: 20 ACTIVE
-documents, 81 grandfathered documents pending verification, and one archived
+authorize an action. Search inspects the complete immutable corpus: 24 ACTIVE
+documents, 80 grandfathered documents pending verification, and four archived
 historical document. The latter two classes are labeled discovery evidence,
 never operating authority.
 
@@ -65,7 +65,7 @@ directory symlinks are rejected rather than followed.
 
 ## Working on a runbook
 
-- The first thing an agent does is read the runbook context delivered by its first `kd_session_plan`. For every objective, that delivery searches one immutable full-SHA snapshot containing all 102 records (20 ACTIVE, 81 pending verification, one archive), before any plan acceptance, intent, runbook debt, waiver, or other business-authority write. The loader verifies `CATALOG.json`, manifest version 2, every declared path and blob, and full replacement-disabled Git ancestry. A missing or invalid snapshot fails closed; never invent a path, citation, or pin.
+- The first thing an agent does is read the runbook context delivered by its first `kd_session_plan`. For every objective, that delivery searches one immutable full-SHA snapshot containing all 108 operational records (104 source records and four archives; 24 ACTIVE and 80 pending verification), before any plan acceptance, intent, runbook debt, waiver, or other business-authority write. The loader verifies `CATALOG.json`, manifest version 2, every declared path and blob, and full replacement-disabled Git ancestry. A missing or invalid snapshot fails closed; never invent a path, citation, or pin.
 - One delivery accepts one or two objectives. It always includes the globally ranked top three qualifying corpus results, plus the highest result from a missing ACTIVE/discovery class when both classes qualify, with at most four results per objective. ACTIVE results remain in `candidates`; pending and archived material remains in `discovery_leads`. Every mandatory excerpt starts with up to 600 canonical JSON-string bytes. Optional README guidance is considered last, is capped at 300 canonical JSON-string bytes, and cannot change corpus selection, order, excerpts, counters, or digests.
 - Kóska supplies authenticated session-bound lead and bundle handles to the pure serializer, persists their immutable claims atomically with the exact byte reservation, and admits the unchanged canonical content before later planning writes. The repository CLI is a read-only diagnostic fallback: `python -m runbook_tools.catalog search --catalog-ref git:aidotmarket/runbooks@<full-sha>:CATALOG.json "<objective>"`. Its deterministic handles have no persisted server claim and cannot be fetched, confirmed, or treated as authority.
 - Canonical delivery is exactly ASCII-safe sorted compact JSON plus one final newline. `serialized_bytes` is `len(TextContent.text.encode("utf-8"))`; `delivery_digest` hashes that final content with only its own value replaced by 64 zeroes. Production is capped at 40,000 bytes. The executable R7 worst-case proof is 31,929 bytes for two objectives, including eight possible mandatory identities and maximal residual guidance. Reproduce every published vector with `python scripts/generate_runbook_discovery_vectors.py`; tests compare every byte count and SHA-256 with `tests/fixtures/catalog/runbook_discovery_vectors.json`.
