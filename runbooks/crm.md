@@ -190,10 +190,17 @@ Count the legacy sites with the model names that map to dropped tables, not with
 must not be deleted.
 Counting every reference to a dead model class rather than only query sites gives 449 across 15 application
 files after C2, down from 460. Chunk C1 of `build:bq-crm-code-reduction-s1490` removed 4 sites
-and 50 references at backend `5143235d` on 2026-08-09. The C2 candidate is branch
-`build/bq-crm-code-reduction-s1490-c2` at exact head
-`64344613f85cae45813ded20bcdc7fc069a51917`; its merge, deployment and Gate 3 are not yet
-complete, so the 34-site and 449-reference counts are candidate state, not shipped or live state.
+and 50 references at backend `5143235d` on 2026-08-09. The reviewed C2 backend candidate
+`64344613f85cae45813ded20bcdc7fc069a51917` was integrated into backend main as merge commit
+`9af53ee2477799c86ea222c61cd2974b31ff7959`. Railway reports SUCCESS for API, worker, beat
+and backup at that exact integration SHA on 2026-08-13, so the 34-site and 449-reference counts
+are deployed state. Gate 3 passed unanimously on exact package digest
+`807e309d064911375bc41e7568e6037b0b7ab914a441a31c5894179be79dc1ba`. The corresponding
+runbook main integration was `d792f92485170f0a367fa6b9c56b82884b6df573`.
+
+This deployment does not establish schema health. On 2026-08-13 public `/health` is degraded
+with `alembic_drift=false` but `schema_drift=true`: 1 missing modeled table, 40 unmapped and
+14 known retired. That is an inherited separate condition.
 
 **Reachability is still NOT settled for the remainder.** A first-pass scan looking for a
 `get_read_route`, `party_enabled` or `legacy_fallback_enabled` guard within twelve lines above
@@ -212,14 +219,14 @@ active `CRMPipelineStage` count. `get_contact_context` keeps its signature and r
 `pipeline=null` for persons when pipeline context is requested. `health` counts live `Party`
 rows with `Party.deleted_at IS NULL` and retains the `entity_count` response key for compatibility.
 
-Candidate validation note: `runbook-lint runbooks/crm.md` exits 3 with
+Runbook validation baseline note: `runbook-lint runbooks/crm.md` exits 3 with
 `internal error: 'last_harness_date'` on both exact runbook base
-`38497d98a31b8f8a3a8ad896204a8c65451b1e96` and the C2 candidate. This is a pre-existing
+`38497d98a31b8f8a3a8ad896204a8c65451b1e96` and the reviewed C2 runbook. This is a pre-existing
 lint/harness defect, not a lint PASS.
 
 The earlier claim that `CRMConversationStateService` writes to the deleted
 `crm_conversation_states` table was false. Exact backend main
-`2d7140878b28911e612b7e037d0d926a121ceb55` and the C2 candidate both use live
+`2d7140878b28911e612b7e037d0d926a121ceb55` and the deployed C2 source both use live
 `CrmPartyConversationState` / `crm_party_conversation_state` storage for upsert, read and delete,
 with no legacy `CRMConversationState` insert/delete fallback. C2 preserves that live path; it was
 not part of the deletion.
@@ -574,7 +581,7 @@ ever exercised them (see §F-10).
 - **Invariant 3. The `stripe_connect` party identity is the canonical seller payment identity.** `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written for compatibility. New code must not read them.
 - **Invariant 4. There is no external CRM MCP endpoint.** All agent CRM access goes through the Koskadeux gateway. The 404s on `api.ai.market/mcp/crm/mcp` and the root OAuth routes are deliberate and must not be reintroduced.
 - **Invariant 5. Nothing here creates tables at runtime.** The CRM must never rely on a fallback table-creation path. That pattern is what hid the loss of the money-path tables until a customer reported it.
-- **Invariant 6. The count of dead references only ever falls.** 449 references to model classes bound to deleted tables remain across 15 application files at C2 candidate head `64344613f85cae45813ded20bcdc7fc069a51917`, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
+- **Invariant 6. The count of dead references only ever falls.** 449 references to model classes bound to deleted tables remain across 15 application files at deployed C2 source `64344613f85cae45813ded20bcdc7fc069a51917`, and `build:bq-crm-code-reduction-s1490` exists to remove them in evidence-backed phases. No change may add a new reference to a dead model class, and a change that guards a dead branch rather than deleting it needs a stated reason.
 - **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
 ### §H.2 BREAKING predicates
