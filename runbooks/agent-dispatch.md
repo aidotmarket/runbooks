@@ -254,9 +254,16 @@ either field means no bound was declared, and it must never be filled in with a
 default; a fabricated bound is worse than a recorded absence.
 
 **Do not confuse this path with the hardened one.**
-`codex_cli_bridge.dispatch_codex_cli` wraps the build in an OS-level `timeout`
-and records `pid`, `timeout_s`, `codex_bin` and `model`. It has **no live
-caller** and its own docstring says so; its two callers are both tests. It is
+
+> **HISTORICAL (S1539):** `codex_cli_bridge` was deleted from `koskadeux-mcp`
+> main at merge `0695ec1c46` (legacy builder removal,
+> BQ-MINIMAL-BUILDER-BRIDGE-S1455). The paragraph below describes a module that
+> no longer exists on main; it is retained as history of why the live path was
+> never routed onto it.
+
+`codex_cli_bridge.dispatch_codex_cli` wrapped the build in an OS-level `timeout`
+and recorded `pid`, `timeout_s`, `codex_bin` and `model`. It had **no live
+caller** and its own docstring said so; its two callers were both tests. It was
 also fixed-deadline, which is the behaviour progress-aware timeouts were built
 to remove after a healthy build was killed at 1800s in S1265. Reading its
 richer meta and assuming the live path behaves the same way is a mistake that
@@ -1479,8 +1486,9 @@ a hole in the one property the change exists to guarantee.
 
 **T-2026-000393 residual A is DECIDED (S1340, Max approved).** The earlier
 direction recorded here — wire the live path onto the hardened
-`codex_cli_bridge.dispatch_codex_cli` — was **REJECTED** on evidence. Do not
-pursue it:
+`codex_cli_bridge.dispatch_codex_cli` — was **REJECTED** on evidence, and the
+question is now permanently closed: the module itself was deleted from
+`koskadeux-mcp` main at S1539 (merge `0695ec1c46`). Do not pursue it:
 
 - At revision `621dbedc`, `dispatch_async` was **agent-generic** and served AG,
   XAI, and MP, while `dispatch_codex_cli` was Codex-only. That historical
