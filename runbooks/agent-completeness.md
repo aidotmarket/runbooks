@@ -305,8 +305,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1533
-last_refresh_commit: e7accb2203e351d3515fc6b90f6b5c394bb5a69a
-last_refresh_date: 2026-08-13T14:30:17Z
+last_refresh_commit: a6efc646c2d5f32aa8426391ee60f07fb9a866b2
+last_refresh_date: 2026-08-13T14:45:44Z
 owner_agent: vulcan
 refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, filter policy, dispatcher, scoped transport, runner isolation, plugin, cadence, activation, or For Max reporting changes]
 scheduled_cadence: 30d
@@ -319,7 +319,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1533 / 2026-08-13T14:30:17Z
+last_lint_run: S1533 / 2026-08-13T14:45:44Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
