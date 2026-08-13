@@ -13,18 +13,18 @@ never operating authority.
 ## Catalog inventory
 
 ACTIVE catalog members: **24**  
-Grandfathered source documents (globally searchable as warned discovery, absent from catalog authority): **79**
+Grandfathered source documents (globally searchable as warned discovery, absent from catalog authority): **80**
 
 | Runbook ID | Domain | Path | Authoritative topics and sections | Owner | Last verified |
 |---|---|---|---|---|---|
 | `agent-completeness` | `boot-kernel` | [`runbooks/agent-completeness.md`](runbooks/agent-completeness.md) | `agent-completeness` → [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) | vulcan | 2026-07-17 |
-| `agent-dispatch` | `council-operations` | [`runbooks/agent-dispatch.md`](runbooks/agent-dispatch.md) | `agent-dispatch` → [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) | vulcan | 2026-08-03 |
+| `agent-dispatch` | `council-operations` | [`runbooks/agent-dispatch.md`](runbooks/agent-dispatch.md) | `agent-dispatch` → [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) | vulcan | 2026-08-12 |
 | `aging-policy` | `boot-kernel` | [`runbooks/aging-policy.md`](runbooks/aging-policy.md) | `aging-policy` → [§C\. Architecture & Interactions](runbooks/aging-policy.md#c-architecture-interactions) | vulcan | 2026-07-17 |
 | `branch-landed-verification` | `build-queue` | [`runbooks/branch-landed-verification.md`](runbooks/branch-landed-verification.md) | `branch-landed-verification` → [§C\. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture-interactions) | mars | 2026-07-27 |
 | `build-queue-reconciliation` | `build-queue` | [`runbooks/build-queue-reconciliation.md`](runbooks/build-queue-reconciliation.md) | `build-queue-reconciliation` → [§C\. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture-interactions) | vulcan | 2026-07-26 |
 | `constitution-history` | `boot-kernel` | [`runbooks/constitution-history.md`](runbooks/constitution-history.md) | `constitution-history` → [§C\. Architecture & Interactions](runbooks/constitution-history.md#c-architecture-interactions) | max | 2026-07-27 |
 | `corpus-capture-policy` | `allai-corpus` | [`runbooks/corpus-capture-policy.md`](runbooks/corpus-capture-policy.md) | `corpus-capture-policy` → [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) | sysadmin | 2026-07-30 |
-| `council` | `council-operations` | [`runbooks/council.md`](runbooks/council.md) | `council-operations` → [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions); `council-roster-drift` → [§F\. Isolate](runbooks/council.md#f-isolate); `council-schema-drift` → [§F\. Isolate](runbooks/council.md#f-isolate) | vulcan | 2026-07-27 |
+| `council` | `council-operations` | [`runbooks/council.md`](runbooks/council.md) | `council-dispatch-failure` → [§F\. Isolate](runbooks/council.md#f-isolate); `council-operations` → [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions); `council-roster-and-schema-drift` → [§F\. Isolate](runbooks/council.md#f-isolate) | vulcan | 2026-08-12 |
 | `council-gate-process` | `council-operations` | [`runbooks/council-gate-process.md`](runbooks/council-gate-process.md) | `council-gate-process` → [§C\. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture-interactions) | mp | 2026-07-27 |
 | `council-hall-deliberation` | `council-operations` | [`runbooks/council-hall-deliberation.md`](runbooks/council-hall-deliberation.md) | `council-hall-deliberation` → [§C\. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture-interactions) | vulcan | 2026-07-17 |
 | `council-review-collection` | `council-operations` | [`runbooks/council-review-collection.md`](runbooks/council-review-collection.md) | `council-review-collection` → [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) | mars | 2026-07-30 |

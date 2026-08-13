@@ -2,7 +2,45 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "canonical_path_moves": [],
   "contract_version": "ai.market/legacy-catalog-projection/v1",
-  "entry_overrides": {},
+  "entry_overrides": {
+    "council": {
+      "aliases": [],
+      "authoritative_for": [
+        {
+          "section": "§F. Isolate",
+          "topic": "council-dispatch-failure"
+        },
+        {
+          "section": "§C. Architecture & Interactions",
+          "topic": "council-operations"
+        },
+        {
+          "section": "§F. Isolate",
+          "topic": "council-roster-and-schema-drift"
+        }
+      ],
+      "error_signatures": [
+        {
+          "section": "§F. Isolate",
+          "signature": "Not logged in"
+        },
+        {
+          "section": "§F. Isolate",
+          "signature": "is not set; source the credential first"
+        },
+        {
+          "section": "§F. Isolate",
+          "signature": "no response written after"
+        },
+        {
+          "section": "§F. Isolate",
+          "signature": "required reviewer missing from the live tool schema"
+        }
+      ],
+      "superseded_by": [],
+      "supersedes": []
+    }
+  },
   "expected_population": 24,
   "rollout_base_sha": "7782361a500e29c957317cfe0213484124ffa70d"
 }

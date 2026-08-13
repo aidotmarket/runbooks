@@ -161,7 +161,11 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
     assert actual == expected
     assert grandfathered == expected_grandfathered
     assert len(actual) >= 20
-    assert grandfathered <= 79
+    # Ceiling, not a target: it moves only when a source document enters the
+    # corpus without the ACTIVE catalog opt-in keys. Raised to 80 in S1534 for
+    # runbooks/alerts-at-open.md, which cannot be admitted to the catalogue
+    # until the reviewed rollout population can grow past 24.
+    assert grandfathered <= 80
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",

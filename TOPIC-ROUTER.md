@@ -8,7 +8,6 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 
 | Topic | Runbook | Section |
 |---|---|---|
-| `alerts-at-open` | `alerts-at-open` (`runbooks/alerts-at-open.md`) | [§C\. Architecture & Interactions](runbooks/alerts-at-open.md#c-architecture-interactions) |
 | `agent-completeness` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) |
 | `agent-dispatch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) |
 | `aging-policy` | `aging-policy` (`runbooks/aging-policy.md`) | [§C\. Architecture & Interactions](runbooks/aging-policy.md#c-architecture-interactions) |
@@ -17,13 +16,13 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C\. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture-interactions) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C\. Architecture & Interactions](runbooks/constitution-history.md#c-architecture-interactions) |
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
+| `council-dispatch-failure` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `council-gate-process` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§C\. Architecture & Interactions](runbooks/council-gate-process.md#c-architecture-interactions) |
 | `council-hall-deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§C\. Architecture & Interactions](runbooks/council-hall-deliberation.md#c-architecture-interactions) |
 | `council-operations` | `council` (`runbooks/council.md`) | [§C\. Architecture & Interactions](runbooks/council.md#c-architecture-interactions) |
 | `council-review-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
-| `council-roster-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `council-roster-and-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `council-roster-quirks` | `council-roster-quirks` (`runbooks/council-roster-quirks.md`) | [§C\. Architecture & Interactions](runbooks/council-roster-quirks.md#c-architecture-interactions) |
-| `council-schema-drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `crm-connectors` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `crm-data-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `crm-diagnosis` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
@@ -41,7 +40,6 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `runbook-corpus` | `runbooks` (`runbooks/runbooks.md`) | [§C\. Architecture & Interactions](runbooks/runbooks.md#c-architecture-interactions) |
 | `runbook-discovery` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-verification` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
-| `session-open-alert-line` | `alerts-at-open` (`runbooks/alerts-at-open.md`) | [§E\. Operate](runbooks/alerts-at-open.md#e-operate) |
 | `security-credential-exposure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `security-secret-disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§G\. Repair](runbooks/infrastructure-discovery.md#g-repair) |
 | `seller-connect-linkage-divergence` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
@@ -55,8 +53,8 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | Signature | Runbook | Section |
 |---|---|---|
 | `Codex FIFO unavailable` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
+| `Not logged in` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `UndefinedTable` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
-| `agent silence` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
@@ -68,8 +66,6 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `clean_tree_read_as_current` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `completion_truncated` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `constitution_source_drift` | `constitution-history` (`runbooks/constitution-history.md`) | [§F\. Isolate](runbooks/constitution-history.md#f-isolate) |
-| `council_roster_drift` | `council` (`runbooks/council.md`) | [§G\. Repair](runbooks/council.md#g-repair) |
-| `council_schema_drift` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `credential_exposed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
 | `cross_review_block` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `cutover_admission_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X\.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8-s1415-structural-buildreview-gate-replacement) |
@@ -97,14 +93,14 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `health_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `incomplete_agent_surface` | `agent-completeness` (`runbooks/agent-completeness.md`) | [§F\. Isolate](runbooks/agent-completeness.md#f-isolate) |
 | `infrastructure_locator_guessed` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
+| `is not set; source the credential first` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `kyc_status_absent_defaults_not_started` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `legacy population differs from reviewed rollout projection` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
-| `missing dispatch token` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `mp_busy` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `mp_lane_held` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
-| `no resolution` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
+| `no response written after` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `open_response_schema_mismatch` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `over_escalation_to_max` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `participant_config_missing` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
@@ -119,14 +115,13 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `progress_guard_timeout` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `push_failed_but_landed` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§F\. Isolate](runbooks/branch-landed-verification.md#f-isolate) |
 | `queued row with idle slot` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§G\. Repair](runbooks/task-spooler-build-queue.md#g-repair) |
-| `read-only agent attempted write` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `relation "crm_entities" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_people" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_pipeline_stages" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `required reviewer missing from the live tool schema` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
-| `schema_roster_mismatch` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `search limit must be an integer from 1 to 3` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `secret_disclosure` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§F\. Isolate](runbooks/infrastructure-discovery.md#f-isolate) |
@@ -140,7 +135,6 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `stripe_connect_user_update_zero_rows` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `structural_gate_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X\.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8-s1415-structural-buildreview-gate-replacement) |
 | `the pipeline stages migration may not have been run` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
-| `timeout` | `council` (`runbooks/council.md`) | [§E\. Operate](runbooks/council.md#e-operate) |
 | `tr_truncation_false_negative` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `tsp command not found` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
 | `two_connect_onboarding_endpoints_disagree` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
