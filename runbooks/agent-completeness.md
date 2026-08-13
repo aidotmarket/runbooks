@@ -65,6 +65,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Provider intake and filtering | GitHub uses the existing signed `workflow_run` webhook. Railway reuses the existing five-minute SysAdmin health contract and forwards only latest `FAILED` or `CRASHED` deployments. Cloudflare v1 remains adapter-only/manual. Before queue creation and again before claim, deterministic exact-match policy gives failure states precedence, ignores reviewed no-attention statuses/messages, and treats every unknown as actionable. Do not use fuzzy matching. Filtered queued rows are audit-marked and closed without a model call. |
 | Queue and lease | `ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED=false` by default. Claim only owned P2/P3 work using database time and `FOR UPDATE SKIP LOCKED`; leases are 15 minutes and only the current unexpired token may finish. Provider adapters stay read-only and `/services` must report `execute_allowed=false` for every provider. |
 | Outcomes and verification | Outcomes are exactly `fixed`, `retryable`, or `human_required`. `fixed` requires a backend-observed newer successful run of the same GitHub workflow or a different newer healthy/successful Railway deployment. Cloudflare adapter/manual incidents cannot self-verify `fixed` in v1 and must finish `retryable` or `human_required` unless a separately reviewed verification source is added. Telegram remains backend-owned and is sent only for deduplicated `human_required`; existing provider alerting remains authoritative. |
+| For Max reporting | `GET /api/v1/ops/needs-max` derives the seven-day Remediator report directly from `Incident` and append-only `IncidentAction` records; it never starts Codex or writes reporting state. `handled` is the number of distinct incidents that reached a recorded `fixed`, `retryable`, or `human_required` outcome, including human escalations, and `agent_calls` is the number of `remediator_claimed` actions. An active claim is a call but is not handled yet. `fixed` and `retrying` reflect the recorded model outcome. `needs_attention` is the current number of Remediator-owned escalated incidents. Each current escalation appears once in the existing attention feed and drives the existing red `FOR MAX` badge, title count, and red-dot favicon until it leaves `escalated`. Telegram remains the alert channel; `/for-max` is the read-only current-state and recent-activity view. |
 
 ### Normative projection — CORE §3, Agent Completeness Contract
 
@@ -171,6 +172,16 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   expected_failures: [{signature: remediator_dispatcher_stale, cause: launchd job missing or repeatedly nonzero}, {signature: remediator_claim_conflict, cause: lease expired or token is mismatched or terminal}, {signature: remediator_verification_failed, cause: backend evidence cannot verify fixed}]
   next_step_success: Return on the next programmatic check.
   next_step_failure: Apply G-04; never widen tools, credentials, filesystem, network, or provider scope.
+- id: E-07
+  trigger: An operator opens /for-max or verifies Remediator reporting.
+  pre_conditions: [ops_needs_max_endpoint_deployed, incident_audit_available]
+  tool_or_endpoint: GET /api/v1/ops/needs-max
+  argument_sourcing: {period: fixed seven-day window, handled: "distinct incident ids with a recorded fixed, retryable, or human_required outcome", agent_calls: count remediator_claimed actions, needs_attention: current Remediator-owned escalated incidents, recent_limit: "10"}
+  idempotency: IDEMPOTENT
+  expected_success: {shape: existing attention total and items plus remediator handled, agent_calls, fixed, retrying, needs_attention, and recent, verification: compare counts to IncidentAction audit rows; confirm one attention row per current escalation; confirm the request creates no action row and starts no agent}
+  expected_failures: [{signature: remediator_reporting_drift, cause: claim actions and displayed calls differ; a current Remediator escalation is absent or duplicated; resolved work remains attention; or the report performs a write or starts Codex}]
+  next_step_success: Leave the report read-only and continue normal queue operation.
+  next_step_failure: Apply G-05; do not add a reporting store, reporting queue, or reporting agent.
 ```
 
 ## §F. Isolate
@@ -181,6 +192,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 | F-02 | Discovery lists the agent but orchestration cannot call it. | The corresponding MCP request tool is absent or keyed differently. | Compare discovery key, BaseAgent key, route key, and tool name. | G-02 | CONFIRMED |
 | F-03 | An empty or human-only queue result can start Codex; live scoped `tools/list` is not exactly `{allai_remediator_request}`; the runner exposes another external integration; or backend/Railway credentials reach the SDK environment. | Dispatcher ordering drifted, the Railway child boundary was removed, the project-local config was not loaded, or plugin/tool scope widened. | Unload the dispatcher and keep the recurring model task paused. Run dispatcher unit tests, a foreground no-work proof, the exact credential-removal test, and a fresh SDK singleton proof. | G-03 | CONFIRMED |
 | F-04 | The dispatcher is stale, cannot claim/finish, or cannot prove `fixed`. | LaunchAgent is absent or failing, Railway CLI auth failed, scoped OAuth/gateway failed, a 15-minute lease expired, or fixed verification failed. | Inspect `launchctl print gui/$UID/com.aimarket.allai-remediator-dispatcher` and the compact dispatcher logs; run one foreground check; verify only bounded tool errors, the current claim token, and backend-owned provider evidence. Cloudflare deployment presence is not fixed proof. | G-04 | CONFIRMED |
+| F-05 | `/for-max` counts do not match the audit, a current Remediator escalation is missing or duplicated, or viewing the report starts an agent. | The read model stopped using canonical `IncidentAction` events, attention selection drifted from current `escalated` state, or reporting gained a write/agent path. | Compare `remediator_claimed` and terminal actions for the seven-day window with the endpoint; compare current Remediator-owned escalated incidents with attention rows; confirm repeated GET requests add no audit rows and start no Codex process. | G-05 | CONFIRMED |
 
 ## §G. Repair
 
@@ -217,6 +229,14 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   change_pattern: Unload the dispatcher; keep the recurring model task paused; let leases expire. Repair claim transport or SDK compatibility without adding credentials or tools. Repair provider incidents only through existing authorized paths.
   rollback_procedure: Preserve the root gateway/App surface and existing provider alerting; do not add credentials or tools, bypass an active peer, widen provider permissions, or rotate a nonexistent task internal key.
   integrity_check: Before reactivation, repeat E-04 and E-05, including foreground and scheduled no-work results with agent_started=false; fixed remains backend-verified and Telegram remains deduplicated human_required only.
+- id: G-05
+  symptom_ref: F-05
+  component_ref: Claim-first Operator Worker
+  root_cause: The For Max read model no longer projects the canonical incident audit and current escalation state exactly once.
+  repair_entry_point: Backend ops needs-max aggregation and the existing For Max console view
+  change_pattern: Restore the seven-day read-only projection from Incident and IncidentAction, deduplicate completed outcomes by incident for handled and current escalations for attention, count every remediator_claimed action as one agent call, and keep the UI indicator driven only by the unified attention total.
+  rollback_procedure: Remove the Remediator report projection while retaining the existing attention feed and Telegram alerting; never create a second reporting store or call Codex to prepare reporting.
+  integrity_check: E-07 passes against live audit counts, repeated reads are write-free, and an empty queue cannot start Codex.
 ```
 
 ## §H. Evolve
@@ -285,10 +305,10 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1533
-last_refresh_commit: 8b994f4cddcf27c3526d20c7af3330d703afbac2
-last_refresh_date: 2026-08-13T12:22:00Z
+last_refresh_commit: e7accb2203e351d3515fc6b90f6b5c394bb5a69a
+last_refresh_date: 2026-08-13T14:30:17Z
 owner_agent: vulcan
-refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, filter policy, dispatcher, scoped transport, runner isolation, plugin, cadence, or activation changes]
+refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, filter policy, dispatcher, scoped transport, runner isolation, plugin, cadence, activation, or For Max reporting changes]
 scheduled_cadence: 30d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: null
@@ -299,7 +319,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1533 / 2026-08-13T12:22:00Z
+last_lint_run: S1533 / 2026-08-13T14:30:17Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
