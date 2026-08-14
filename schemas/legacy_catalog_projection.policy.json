@@ -7,33 +7,41 @@
       "aliases": [],
       "authoritative_for": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "topic": "council-dispatch-failure"
         },
         {
-          "section": "§C. Architecture & Interactions",
+          "section": "\u00a7C. Architecture & Interactions",
           "topic": "council-operations"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "topic": "council-roster-and-schema-drift"
         }
       ],
       "error_signatures": [
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
+          "signature": "Error occurred during tool execution"
+        },
+        {
+          "section": "\u00a7F. Isolate",
           "signature": "Not logged in"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
+          "signature": "OAuth session expired and could not be refreshed"
+        },
+        {
+          "section": "\u00a7F. Isolate",
           "signature": "is not set; source the credential first"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "no response written after"
         },
         {
-          "section": "§F. Isolate",
+          "section": "\u00a7F. Isolate",
           "signature": "required reviewer missing from the live tool schema"
         }
       ],

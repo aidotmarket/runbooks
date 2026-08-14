@@ -12,9 +12,9 @@ authoritative_for:
 aliases: []
 error_signatures:
   - signature: "Error occurred during tool execution"
-    section: "§F. Isolate (F-06)"
+    section: §F. Isolate
   - signature: "OAuth session expired and could not be refreshed"
-    section: "§F. Isolate (F-07)"
+    section: §F. Isolate
   - signature: no response written after
     section: §F. Isolate
   - signature: is not set; source the credential first

@@ -36,6 +36,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `peer-bus-coordination` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C\. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture-interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C\. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture-interactions) |
+| `reload-when-idle-build-guard` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
 | `runbook-authoring` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-corpus` | `runbooks` (`runbooks/runbooks.md`) | [§C\. Architecture & Interactions](runbooks/runbooks.md#c-architecture-interactions) |
 | `runbook-discovery` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
@@ -53,9 +54,13 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | Signature | Runbook | Section |
 |---|---|---|
 | `Codex FIFO unavailable` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
+| `Error occurred during tool execution` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `Not logged in` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
+| `OAuth session expired and could not be refreshed` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `UndefinedTable` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `authoring_distinction_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
+| `background build(s) running/queued; deferring` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§F\. Isolate](runbooks/reload-when-idle.md#f-isolate) |
+| `background-build check failed` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§F\. Isolate](runbooks/reload-when-idle.md#f-isolate) |
 | `biased_synthesis` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -160,9 +165,11 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `crm-target-state` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
 | `how-to-write-a-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
+| `mcp-server-reload` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
 | `party-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `reloader` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-standard` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `seller-stripe-linkage` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
