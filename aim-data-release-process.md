@@ -35,6 +35,18 @@ export PATH="/opt/homebrew/bin:$PATH" && cd ~/Projects/ai-market/aim-data && scr
 | `release-aim-data.sh rc major` | RC tag | aim-data-v1.0.0-rc.1 |
 | `release-aim-data.sh promote` | Stable from latest RC | aim-data-v0.0.2 |
 
+## Release version source of truth
+
+`scripts/release-aim-data.sh` is the single update path for the customer-facing release default. During stable promotion, its `update_release_defaults` function rewrites all three consumers together:
+
+- `docker-compose.aim-data.yml`
+- `installers/aim-data/install.sh`
+- `installers/aim-data/install.ps1`
+
+The version remains embedded in each installer because `get.ai.market` serves each installer as a standalone script; it cannot depend on a separate version file that was not downloaded. RC creation leaves the customer defaults on the latest stable version. Stable promotion updates and commits all three, then atomically pushes `main` and the stable tag so CI sees the new stable tag with the matching defaults.
+
+`.github/workflows/ci-release-integrity.yml` is the independent guard. On relevant pushes to `main`, it resolves the latest stable `aim-data-vX.Y.Z` tag and fails if the compose file, shell installer, or PowerShell installer does not reference that version. Treat any mismatch as a stopped release; do not waive the check as an in-progress release.
+
 ## GitHub Actions workflow
 
 File: `.github/workflows/aim-data-release.yml`
@@ -44,6 +56,10 @@ Jobs:
 1. **build-push** — Multi-arch Docker build (amd64 + arm64) from `Dockerfile.customer`, pushes to GHCR
 2. **smoke-test** — Verifies multi-arch manifest, pulls image, runs container, health check
 3. **create-release** — Creates GitHub Release with `install.sh`, `install.ps1`, `docker-compose.aim-data.yml`
+
+After `build-push` publishes the image, the workflow pulls that exact tag and inspects its `version` label. The label must exactly equal the version derived from the Git tag. Stable releases also fail explicitly if the label contains `-rc.`. `Dockerfile.customer` materializes the `VERSION` build argument before applying the label, so an RC runtime layer cannot be reused with stale metadata when the GitHub Actions cache is imported.
+
+Stable promotion does not retag the RC image. The stable tag triggers a fresh workflow build of both `vX.Y.Z` and `latest`; the workflow creates the stable GitHub Release only after the published-label proof and smoke test pass. If the label check fails, stop and fix the build path on `main` before cutting a new version. Do not retag the RC image or publish `latest` manually.
 
 ## Testing an RC
 
