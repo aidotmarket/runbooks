@@ -1,4 +1,8 @@
 ---
+runbook_id: builder-controls
+domain: council-operations
+status: ACTIVE
+owner: vulcan
 system_name: builder-controls
 purpose_sentence: Indexed reference of every control on the MP/Codex builder path in koskadeux-mcp - what each control is, where it lives, what it does, why it exists, how often it has actually fired, and its status under the S1455 minimal-bridge rebuild - so a future builder knows exactly what is there and why.
 owner_agent: vulcan
@@ -6,6 +10,21 @@ escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
   The control surface between "dispatch a build" and "get a diff back": dispatch-time gates, in-flight bounds, post-build preservation and evidence capture on the MP (Codex) builder path. Anchors cite koskadeux-mcp main at the implementation SHA recorded in §J. Fire counts come from the full stored dispatch corpus in /var/tmp/koskadeux/cc_tasks (3,024 task records; 254 MP dispatches). Dispatch mechanics, model pinning and CLI quirks are codex-mp.md; Council review mechanics are agent-dispatch.md and council-gate-process.md; this runbook is the controls inventory.
+authoritative_for:
+  - topic: minimal-builder-bridge
+    section: §C. Architecture & Interactions
+  - topic: builder-controls-inventory
+    section: §E. Operate - the indexed control inventory
+aliases:
+  - minimal-bridge
+  - builder-bridge
+  - mp-builder-controls
+error_signatures:
+  - signature: minimal_bridge_repo_unresolved
+    section: §F. Isolate
+last_verified_at: "2026-08-14"
+superseded_by: []
+supersedes: []
 linter_version: 1.0.0
 ---
 
@@ -19,17 +38,17 @@ The YAML frontmatter above defines the §A header. This runbook exists by Max di
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| FIFO single-slot build queue (Phase 0) | SHIPPED | `koskadeux-mcp codex_cli_bridge.py queue` | Two live serialization proofs S1453 (593s wait, zero loss) | 2026-08-06 |
-| Pre-push gate composition (12 terminal sites) | SHIPPED (scheduled for replacement) | `tools/agents.py ~6211-6520` | Exercised on every MP dispatch | 2026-08-06 |
-| Builder-output manifest verification | SHIPPED (scheduled for removal) | `koskadeux_mcp/builder_output_verification.py` | 10 corpus fires, false-negative class | 2026-08-06 |
-| Output-envelope schema repair | SHIPPED (scheduled for removal from build path) | `council_dispatch_middleware/schema_repair.py` | 25 corpus fires, all-false-negative hit list | 2026-08-06 |
+| Per-repository Task Spooler build queue | SHIPPED | `koskadeux_mcp/tsp_queue.py` + `/opt/homebrew/bin/ts` | `tests/test_tsp_queue.py`; operator procedures authoritative in runbooks/task-spooler-build-queue.md | 2026-08-14 |
+| Pre-push gate composition (12 terminal sites) | REMOVED (S1539, koskadeux-mcp merge 0695ec1c46) | deleted with the legacy wrapper | n/a - historical fire counts retained in §E | 2026-08-14 |
+| Builder-output manifest verification | OFF the build path (S1539); module retained, fate belongs to gate-estate reduction (S1472) | `koskadeux_mcp/builder_output_verification.py` | 10 corpus fires, false-negative class | 2026-08-14 |
+| Output-envelope schema repair | OFF the build path (S1539); retained for Council reviewer interchange (CORE S7) | `council_dispatch_middleware/schema_repair.py` | 25 corpus fires, all-false-negative hit list | 2026-08-14 |
 | Minimal bridge (transport + preservation) | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | 25 focused tests, including clean exit, timeout, crash and no-change output retention | 2026-08-10 |
 | Durable builder transcript | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Per-job artifact path, byte count and completeness asserted across terminal paths | 2026-08-10 |
 | Explicit post-build test status | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Configured pass/fail and unconfigured cases covered | 2026-08-10 |
 
 ## §C. Architecture & Interactions
 
-The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/secret scan/push → report JSON with artifact pointers and explicit test status. The legacy envelope-repair path is not the live minimal-bridge transport. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
+The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/secret scan/push → report JSON with artifact pointers and explicit test status. The legacy stack is DELETED, not dormant: S1539 removed `codex_cli_bridge.py`, `codex_event_stream.py`, the legacy SQLite FIFO and the streaming path (koskadeux-mcp merge `0695ec1c46`, reviewed by CC and GLM in a Max-authorized two-member Gate 3 round, Kimi quota-exhausted that day; MP built it and did not review it). `_handle_call_mp` now forwards every MP build to the minimal bridge and refuses `mode=review` with a typed `mp_review_not_supported`. There is ONE builder path, per Max ruling S1534 ("No we have 1 path, we delete the old"). Verified serving in production 2026-08-14: the gateway booted post-merge and live dispatches ran through the minimal bridge the same day. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
 
 Ground truth on effectiveness, measured S1455 across all 254 stored MP dispatches (97 succeeded, 154 failed, 3 running): ~90 of the 154 failures were caused by the control surface or its bookkeeping, not by the builder's code. Exactly 1 was a genuine correctness catch (CI). That measurement is why the S1455 rebuild flips the burden of proof: a control survives only on a demonstrated real catch.
 
@@ -43,9 +62,11 @@ CORRECTION, Max ruling S1488 (event 6005ec17-14e5-41f5-850e-d9b9c7eaf469, actor=
 
 Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES in the corpus / STATUS under S1455.
 
+**S1539 REMOVAL LANDED** (koskadeux-mcp merge `0695ec1c46`, serving in production 2026-08-14): every control below whose STATUS reads REMOVE, superseded or retires is now actually gone from the build path - the legacy wrapper and its twelve-terminal-site pre-push composition are deleted. Fire counts and file:line anchors below are preserved as the historical evidence record; anchors into deleted files are historical citations, not live code.
+
 ### E.1 Dispatch-time controls (before the builder runs)
 
-- **C-01 FIFO slot queue (Phase 0).** `codex_cli_bridge.py`; `CODEX_SLOT_COUNT=1` is a hard-pinned invariant. Serializes the single Codex slot across both operators. Exists because the original defect was outright dispatch refusal after 600s when the slot was busy. Fires: routine; two live proofs S1453 of correct queueing with zero loss. STATUS: KEEP unchanged.
+- **C-01 Build queue (superseded twice).** The Phase 0 FIFO in `codex_cli_bridge.py` is deleted (S1539). Serialization is now per-repository Task Spooler sockets via `koskadeux_mcp/tsp_queue.py`; operator procedures are authoritative in runbooks/task-spooler-build-queue.md. `CODEX_SLOT_COUNT` survives only inside `koskadeux_mcp/structural_gate.py:32`, which is review-package surface, not the build path. STATUS: superseded; queue questions go to the Task Spooler runbook.
 - **C-02 Peer-claim coordination.** `tools/agents.py:932` `_dispatch_coordination_instance`; requires `caller_instance` and honors BQ claims. Prevents the two operators double-building one item. STATUS: KEEP (lives above the bridge).
 - **C-03 Build Queue reconciliation gate.** Dispatch handler; blocks build dispatch on BQ/git drift unless `auto_reconcile`/`bypass_reconcile`. Exists so state and git cannot silently diverge. Known false-block: reconciler `git_fetch_failed` tooling defect (T-2026-000490). STATUS: outside bridge scope; simplification candidate.
 - **C-04 Runbook-refs gate.** `mode=build`/`author` dispatches require `runbook_refs` (runbook-first enforcement, BQ s1146). STATUS: KEEP (policy layer, not bridge).
@@ -56,7 +77,7 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 
 ### E.2 In-flight bounds
 
-- **C-09 Hard timeout.** `codex_cli_bridge.py:1026` `MP_HARD_UPPER_BOUND_S`; per-dispatch `timeout_s` capped by `MP_EXPLICIT_HARD_CEILING_S`. Bounds a runaway builder. Fires: 13 `hard_timeout` in the MP corpus plus the live 8741f4ba specimen (2026-08-06: timed out at 1800s leaving 23 files of correct work uncommitted in the tree; Mars salvaged by hand). Defect: expiry truncates AND abandons uncommitted work. STATUS: KEEP as a bound; the bridge preserves on expiry; ceilings become data-driven per dispatch_class once ≥30 outcome rows exist.
+- **C-09 Hard timeout.** `koskadeux_mcp/mp_dispatch_params.py:32` `MP_HARD_UPPER_BOUND_S` (relocated from the deleted legacy module, S1539); per-dispatch `timeout_s` capped by `MP_EXPLICIT_HARD_CEILING_S`. Bounds a runaway builder. Fires: 13 `hard_timeout` in the MP corpus plus the live 8741f4ba specimen (2026-08-06: timed out at 1800s leaving 23 files of correct work uncommitted in the tree; Mars salvaged by hand). Defect: expiry truncates AND abandons uncommitted work. STATUS: KEEP as a bound; the bridge preserves on expiry; ceilings become data-driven per dispatch_class once ≥30 outcome rows exist.
 - **C-10 No-progress window.** `progress_window_s`, `stuck_no_progress`. A liveness bound. STATUS: KEEP as bound-with-preserve, never a verdict.
 - **C-11 max_turns.** Turn budget treated as a build failure. It is a budget cap, not a correctness gate; it truncates mid-flight work and discards it. STATUS: REMOVE as a failure condition on the build path.
 - **C-12 Output-envelope schema + repair.** `council_dispatch_middleware/schema_repair.py:76`, `exceptions.py:20` (`RepairExhaustedError`). Parses/repairs the builder's structured output envelope; exists to honor CORE S7 structured AI-to-AI output. Fires: 25, an all-false-negative hit list - repeatedly reported FAILURE on builds whose commits were correct, pushed and independently verified, including an 88-line one-file spec (disproving size as trigger). STATUS: REMOVE from the build path. Git is the output; S7 continues to govern reviewer/Council interchange where it belongs.
@@ -77,7 +98,7 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 
 ## §F. Isolate
 
-Error signature → control: `RepairExhaustedError` / `schema repair exhausted` → C-12 (verify the work at git before believing the failure). `post_build_multiple_commits` / `post_build_no_commit` → C-13. `builder_output_claim_mismatch` → C-16. `hard_timeout` → C-09 (inspect the worktree for uncommitted work). `push_failed` / `shared_branch_cas_rejected` → C-18 (commit exists locally). "BQ git-ref producer did not persist" → C-17 (work destroyed; check origin for a pushed copy first). "before-reap persistence failed" → C-20 (build likely fine; check git). `commits_created` absurdly large → C-19 (history depth, ignore). Wrong-repo build → C-08. `dispatch_git_evidence_unavailable` on a healthy repo → C-03/T-2026-000490 tooling defect, not your dispatch.
+Error signature → control: `RepairExhaustedError` / `schema repair exhausted` → C-12 (verify the work at git before believing the failure). `post_build_multiple_commits` / `post_build_no_commit` → C-13. `builder_output_claim_mismatch` → C-16. `hard_timeout` → C-09 (inspect the worktree for uncommitted work). `push_failed` / `shared_branch_cas_rejected` → C-18 (commit exists locally). "BQ git-ref producer did not persist" → C-17 (work destroyed; check origin for a pushed copy first). "before-reap persistence failed" → C-20 (build likely fine; check git). `commits_created` absurdly large → C-19 (history depth, ignore). Wrong-repo build → C-08. `dispatch_git_evidence_unavailable` on a healthy repo → C-03/T-2026-000490 tooling defect, not your dispatch. `minimal_bridge_repo_unresolved` → the bridge refuses dispatch when `repo` cannot be resolved to a repository path; pass the explicit canonical `repo` key - this is fail-closed by design and safer than the deleted silent DEFAULT_CWD fallback.
 
 ## §G. Repair
 
@@ -97,12 +118,12 @@ The S1455 programme is live through the minimal bridge: fresh worktree at exact 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1498
-last_refresh_commit: 1e8e23db698bad3fa33d4e79c600e06535a671de
-last_refresh_date: "2026-08-10T11:01:39Z"
+last_refresh_session: S1548
+last_refresh_commit: 0695ec1c46745549c1314af47a2872595b88bf75
+last_refresh_date: "2026-08-14T12:00:00Z"
 owner_agent: vulcan
 refresh_triggers:
-  - any merge touching `tools/agents.py` build routing, `koskadeux_mcp/bridge_runner.py`, `koskadeux_mcp/minimal_bridge.py`, `codex_cli_bridge.py`, `builder_output_verification.py`, or `structural_gate*.py`
+  - any merge touching `tools/agents.py` build routing, `koskadeux_mcp/bridge_runner.py`, `koskadeux_mcp/minimal_bridge.py`, `koskadeux_mcp/tsp_queue.py`, `koskadeux_mcp/mp_dispatch_params.py`, `builder_output_verification.py`, or `structural_gate*.py`
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
 last_harness_date: null

@@ -14,6 +14,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `branch-landed-verification` | `branch-landed-verification` (`runbooks/branch-landed-verification.md`) | [§C\. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture-interactions) |
 | `build-queue-operator-recovery` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C\. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture-interactions) |
+| `builder-controls-inventory` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C\. Architecture & Interactions](runbooks/constitution-history.md#c-architecture-interactions) |
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `council-dispatch-failure` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
@@ -33,6 +34,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `gate-procedure` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§C\. Architecture & Interactions](runbooks/gate-procedure.md#c-architecture-interactions) |
 | `infrastructure-discovery` | `infrastructure-discovery` (`runbooks/infrastructure-discovery.md`) | [§C\. Architecture & Interactions](runbooks/infrastructure-discovery.md#c-architecture-interactions) |
 | `instance-peer-topology` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `minimal-builder-bridge` | `builder-controls` (`runbooks/builder-controls.md`) | [§C\. Architecture & Interactions](runbooks/builder-controls.md#c-architecture-interactions) |
 | `peer-bus-coordination` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§E\. Operate](runbooks/peer-instance-discipline.md#e-operate) |
 | `policy-kernel-enforcement` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§C\. Architecture & Interactions](runbooks/policy-kernel-enforcement.md#c-architecture-interactions) |
 | `product-elaboration` | `product-elaboration` (`runbooks/product-elaboration.md`) | [§C\. Architecture & Interactions](runbooks/product-elaboration.md#c-architecture-interactions) |
@@ -102,6 +104,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `kyc_status_absent_defaults_not_started` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `legacy population differs from reviewed rollout projection` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
+| `minimal_bridge_repo_unresolved` | `builder-controls` (`runbooks/builder-controls.md`) | [§F\. Isolate](runbooks/builder-controls.md#f-isolate) |
 | `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `mp_busy` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `mp_lane_held` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
@@ -156,6 +159,7 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 |---|---|---|
 | `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `build-queue-runner` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
+| `builder-bridge` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
 | `codex-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `connect-identity-bridge` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
@@ -166,6 +170,8 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
 | `how-to-write-a-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `mcp-server-reload` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
+| `minimal-bridge` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
+| `mp-builder-controls` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
 | `party-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
