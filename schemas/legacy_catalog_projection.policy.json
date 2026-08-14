@@ -2,53 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "canonical_path_moves": [],
   "contract_version": "ai.market/legacy-catalog-projection/v1",
-  "entry_overrides": {
-    "council": {
-      "aliases": [],
-      "authoritative_for": [
-        {
-          "section": "\u00a7F. Isolate",
-          "topic": "council-dispatch-failure"
-        },
-        {
-          "section": "\u00a7C. Architecture & Interactions",
-          "topic": "council-operations"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "topic": "council-roster-and-schema-drift"
-        }
-      ],
-      "error_signatures": [
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "Error occurred during tool execution"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "Not logged in"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "OAuth session expired and could not be refreshed"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "is not set; source the credential first"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "no response written after"
-        },
-        {
-          "section": "\u00a7F. Isolate",
-          "signature": "required reviewer missing from the live tool schema"
-        }
-      ],
-      "superseded_by": [],
-      "supersedes": []
-    }
-  },
-  "expected_population": 25,
-  "rollout_base_sha": "ccbd3a9546c42b57900d172c594ce62518544355"
+  "entry_overrides": {},
+  "expected_population": 26,
+  "rollout_base_sha": "e4f6d5626a6255a1fdb59737d2bd4597aa332d55"
 }

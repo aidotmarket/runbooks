@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: cce4e71947aaec3abdb451126610e4dc1e846333
+  inventory_sha: e4f6d5626a6255a1fdb59737d2bd4597aa332d55
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -14,8 +14,8 @@ inventory:
   counts:
     operational_documents: 109
     source_documents: 105
-    active: 25
-    grandfathered: 80
+    active: 26
+    grandfathered: 79
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -366,11 +366,11 @@ documents:
       - deployed gateway tool schema and canonical state
       - current CORE and policy-kernel sources
     independent_review_required: true
-  - path: builder-controls.md
-    git_blob_oid: d0c0b93d6290582c489549f0f3e7f44bc98618f1
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: promote
+  - path: runbooks/builder-controls.md
+    git_blob_oid: cfcd51cabafcc3a03b8efc1a0486fca2f984229f
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
     batch: builder-path
     risk: P1
     target_paths:
@@ -1318,7 +1318,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/crm.md
-    git_blob_oid: bfe147d0f7df3585f08511b70eadbcf2b90b78a6
+    git_blob_oid: ca6d3df42482ad7fdbc653fdecc186a3c864c796
     catalog_state: active
     status: active
     proposed_disposition: retain_active
