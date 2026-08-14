@@ -11,7 +11,7 @@ error_signatures: []
 supersedes: []
 superseded_by: []
 owner: sysadmin
-last_verified_at: 2026-07-30
+last_verified_at: 2026-08-14
 system_name: corpus-capture-policy
 purpose_sentence: This runbook is the operating authority for what ai.market keeps in allAI semantic memory and the corpus, what it never keeps, and how retention of the transport queue is managed.
 owner_agent: sysadmin
@@ -37,7 +37,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|---|
 | Event Ledger admission (embed/never/quarantine) | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-07-30 |
 | Event outbox write conditional on admission | SHIPPED | `app/services/state_service.py` | `tests/test_qdrant_sync_worker_s1194.py` | 2026-07-30 |
-| Quarantine counter and classification cooldown | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-07-30 |
+| Quarantine counter, weekly owner ticket, and bounded failure escalation | SHIPPED | `app/allai/agents/sysadmin/quarantine_obligation.py` | `tests/test_sysadmin_quarantine_obligation_s1545.py` | 2026-08-14 |
 | Entity churn-prefix denylist | PARTIAL | `app/services/state_service.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-30 |
 | Entity default-DENY admission at producers | PLANNED | — | — | 2026-07-30 |
 | Corpus control plane (six classes, flags off) | PLANNED | — | — | 2026-07-30 |
@@ -92,7 +92,7 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | Measure capture volume and composition | SQL in §E E-01 | read-only backend DB | COMPLETE |
-| SysAdmin | Review and classify quarantined event types | SQL in §E E-02 plus code edit per §G G-01 | backend DB read, PR authorship | COMPLETE |
+| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket on `/for-max`, read-only SQL in §E E-02, then code edit per §G G-01 | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
 | Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
 | Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
@@ -117,21 +117,26 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
   next_step_success: done
   next_step_failure: §F F-01
 - id: E-02
-  trigger: Weekly quarantine review - classify unknown event types
+  trigger: Weekly P2 human quarantine review - classify unknown event types when the fixed-subject SupportTicket appears on https://ops.ai.market/for-max
   pre_conditions:
+    - authenticated operator access to the For Max TICKETS view
     - read-only database access
-  tool_or_endpoint: "psql: SELECT event_type, count, first_seen_at, last_seen_at FROM qdrant_event_type_quarantine WHERE status='open' ORDER BY count DESC"
+  tool_or_endpoint: "https://ops.ai.market/for-max (TICKETS); psql ticket verification: SELECT public_ref, status, human_required, created_at, updated_at FROM support_ticket WHERE subject='[auto] Qdrant event-type quarantine requires weekly classification' AND requester_key='agent:sysadmin' AND status NOT IN ('resolved','closed') ORDER BY created_at; read-only classification: SELECT event_type, count, first_seen_at, last_seen_at FROM qdrant_event_type_quarantine WHERE status='open' ORDER BY count DESC"
   argument_sourcing:
     dsn: scripts/test-db-dsn.sh
+    ticket_subject: "[auto] Qdrant event-type quarantine requires weekly classification"
+    deployed_backend: "318d178cb2d4a864f3592e5be408deb7ef0ef2a2 on API, beat, and worker"
   idempotency: IDEMPOTENT
   expected_success:
-    shape: open list reviewed; each type either added to the never list, the embed list, or left counting
-    verification: high-count operational chatter never stays open two consecutive reviews
+    shape: a normal breach creates or reuses exactly one open human_required waiting_internal SupportTicket visible in the For Max TICKETS view; the open quarantine list is reviewed and each type is either added to the never list, added to the embed list, or left counting
+    verification: the ticket query returns exactly one row while the breach persists; repeated or rotating breaches reuse that row; resolving or closing it permits one later new ticket if the breach remains; routine backlog sends no Telegram page; this owner-surface path changes no customer data or quarantine rows
   expected_failures:
     - signature: open count grows without review
-      cause: no owner ran the review; escalate to owner_agent
+      cause: the P2 human classification obligation remains open on For Max; review it there without paging Telegram
+    - signature: the fixed-subject ticket is absent or duplicated because its query or persistence failed
+      cause: support-ticket owner-surface failure, not a higher-priority quarantine backlog; the bounded P1 operational escalation pages Telegram with stable dedup
   next_step_success: §G G-01 for any rule change
-  next_step_failure: escalation to Max
+  next_step_failure: restore support-ticket query/persistence from the deduplicated P1 operational escalation; otherwise continue the P2 review on For Max
 - id: E-03
   trigger: Purge processed transport rows (Max-gated maintenance)
   pre_conditions:
