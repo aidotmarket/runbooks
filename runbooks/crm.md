@@ -48,7 +48,7 @@ error_signatures:
     section: §F. Isolate
   - signature: empty contact_id on upsert
     section: §F. Isolate
-last_verified_at: "2026-08-09"
+last_verified_at: "2026-08-14"
 superseded_by: []
 supersedes:
   - crm-architecture
@@ -212,6 +212,44 @@ runbook main integration was `d792f92485170f0a367fa6b9c56b82884b6df573`.
 This deployment does not establish schema health. A direct public `/health` recheck performed
 on 2026-08-14 was degraded with `alembic_drift=false` but `schema_drift=true`: 1 missing
 modeled table, 40 unmapped and 14 known retired. That is an inherited separate condition.
+
+**Schema-health guard and retired-model tripwire (T-2026-000580).** Production `/health` now
+compares the fully loaded SQLAlchemy model registry with the tables in PostgreSQL's `public`
+schema. It returns counts rather than table names:
+
+| Field | Meaning |
+|---|---|
+| `schema_model_tables` | Number of registered model tables. |
+| `schema_missing_table_count` | Registered model tables absent from PostgreSQL, excluding the fourteen deliberately retired CRM tables above. |
+| `schema_unmapped_table_count` | PostgreSQL tables without registered models, excluding `alembic_version` and `quarantine_*`; informational only. |
+| `schema_known_retired_count` | Retired CRM model tables still declared in code. This debt must fall to zero when those models are removed; do not grow the allowlist. |
+| `schema_drift`, `model_schema_drift` | Equal booleans. A nonzero missing count makes both `true` and top-level `status` becomes `degraded`. |
+
+All six fields are `null` if inspection fails. That keeps the liveness endpoint available but is
+not a healthy schema result. For release verification, require HTTP 200, non-null fields,
+`alembic_drift == false`, and both schema-drift fields `false`. A `degraded` response means the
+guard worked and found drift; read the server-side `Schema health missing model tables` warning
+for names. Never expose those names on the public endpoint and never silence an unexpected table
+by adding it to `KNOWN_RETIRED_TABLES`.
+
+As deployed on 2026-08-13 at backend `04130da2b`, the guard immediately found one dormant model
+without a migration: `trust_messages`. It is tracked separately as T-2026-000592; production
+correctly remains `degraded` until that product decision is resolved. Alembic is independently at
+`s1488_money_path_tables`, so a matching Alembic pointer does not override model/schema drift.
+
+`CRM_LEGACY_TRIPWIRE` defaults on. Before SQLAlchemy executes a statement referencing any of the
+fourteen retired CRM models, the listener emits one server-side warning:
+
+```text
+dead_crm_model_used table=<name> caller=<module>:<function>:<line>
+```
+
+The listener is log-only and must never change, raise from, or swallow the database operation.
+Alert on any event. If the listener itself causes an incident, set only
+`CRM_LEGACY_TRIPWIRE=false`, redeploy forward, record the disabled interval, and continue watching
+schema drift and `UndefinedTable` errors. Do not recreate the retired tables. Remove the listener,
+switch, tests, and `KNOWN_RETIRED_TABLES` together only after the dead CRM models and callers are
+deleted in a separately reviewed change.
 
 **Reachability is still NOT settled for the remainder.** A first-pass scan looking for a
 `get_read_route`, `party_enabled` or `legacy_fallback_enabled` guard within twelve lines above
