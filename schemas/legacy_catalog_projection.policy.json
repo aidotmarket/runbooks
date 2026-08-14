@@ -49,6 +49,6 @@
       "supersedes": []
     }
   },
-  "expected_population": 24,
-  "rollout_base_sha": "7782361a500e29c957317cfe0213484124ffa70d"
+  "expected_population": 25,
+  "rollout_base_sha": "ccbd3a9546c42b57900d172c594ce62518544355"
 }

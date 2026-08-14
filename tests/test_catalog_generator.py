@@ -164,7 +164,7 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
     # Ceiling, not a target: it moves only when a source document enters the
     # corpus without the ACTIVE catalog opt-in keys. Raised to 80 in S1534 for
     # runbooks/alerts-at-open.md, which cannot be admitted to the catalogue
-    # until the reviewed rollout population can grow past 24.
+    # until the reviewed rollout population can grow past 25.
     assert grandfathered <= 80
     assert {
         "agent-dispatch",
@@ -183,7 +183,7 @@ def test_reviewed_projection_freezes_exact_legacy_population_and_final_boot_delt
     )
 
     assert projection is not None
-    assert len(projection.expected) == 24
+    assert len(projection.expected) == 25
     peer = projection.expected["peer-instance-discipline"]
     assert {
         row["topic"] for row in peer["authoritative_for"]
@@ -293,7 +293,7 @@ def test_projection_ancestry_ignores_local_replace_refs(tmp_path: Path) -> None:
     )
 
     assert projection is not None
-    assert len(projection.expected) == 24
+    assert len(projection.expected) == 25
 
 
 def test_source_set_defaults_unknown_directories_into_adjudication_and_excludes_only_declared_non_sources(
