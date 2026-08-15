@@ -29,10 +29,12 @@ error_signatures:
     section: §F. Isolate
   - signature: runbook_impact_evidence_unavailable
     section: §F. Isolate
+  - signature: unrecognized_instance_attributed_artifact
+    section: §F. Isolate
 supersedes: []
 superseded_by: []
 owner: mars
-last_verified_at: 2026-07-31
+last_verified_at: 2026-08-15
 system_name: peer-instance-discipline
 purpose_sentence: Peer-symmetric session lifecycle and coordination discipline for the trusted Vulcan and Mars instances, including the deployed-versus-target runbook context and close-impact boundary.
 owner_agent: mars
@@ -295,6 +297,7 @@ Delivery semantics that are easy to get wrong, all observed in use:
 | F-08 | A dispatch is refused before any task is created | An unacknowledged peer request or alert is pending against this instance | Drain the inbox and check for rows carrying requires_ack that have no acked_at | G-08 | CONFIRMED |
 | F-09 | `runbook_context_delivery_unavailable`, or planning expects server-issued IDs that the connected schema does not expose | Target guidance was mistaken for deployed capability, the client schema is stale, or the signed contract pin is absent | Inspect the exact connected `kd_session_plan` schema and signed deployed contract; current compatibility exposes `runbook_consultation` only | G-09 | CONFIRMED |
 | F-10 | `runbook_impact_evidence_unavailable`, or close status cannot prove one scoped committed transaction | Target close semantics were inferred from prose, a legacy `runbook_exit`, or an old/unscoped pending row | Inspect the exact connected `kd_session_close` schema and instance/session-scoped status; require target fields and receipt type before claiming rollout | G-10 | CONFIRMED |
+| F-11 | Instance-attributed artifacts (tickets, dispatches, request-file deletions, merges under a human author name) appear that the instance did not knowingly create | Connection-glitch turn duplication: a duplicated authentic turn of the instance's OWN session executed tool calls whose results never returned to the surviving context (Anthropic connection/capacity issues; Max-confirmed S1559, resolution event 928225b3). NOT an identity breach | BEFORE treating it as an S1346-class identity incident: compare the artifact's content, style, and timing against your own in-flight work and look for your exact intentions executed; then list recent tickets and ts-socket jobs for a twin of the fix you are about to file or dispatch | G-11 | CONFIRMED |
 
 ## §G. Repair
 
@@ -379,6 +382,14 @@ Delivery semantics that are easy to get wrong, all observed in use:
   change_pattern: Use only the truthful legacy compatibility value, keep unsupported impact uncertain, and preserve a genuine gap as follow-up rather than changing unrelated documentation. Do not claim target completion until the signed schema and scoped COMMITTED receipt both exist.
   rollback_procedure: Retract the unsupported impact claim; leave the session recoverable and the documentation unchanged while evidence is missing.
   integrity_check: The close claim matches the deployed schema and scoped state, and no reason string, author name, or local object is treated as semantic evidence.
+- id: G-11
+  symptom_ref: F-11
+  component_ref: Peer Message Bus
+  root_cause: A duplicated authentic turn executed real tool calls invisibly; the surviving context later met its own artifacts as a stranger's.
+  repair_entry_point: peer_msg_inbox plus ticket list plus ts-socket job list
+  change_pattern: Verify each duplicated artifact independently on its merits (diff review, gate evidence) before accepting or reverting it; never revert solely because provenance is surprising. Record a resolution event naming the duplicate acts. Standing habit; before filing a ticket or dispatching a fix for something just diagnosed, list recent tickets and jobs first, because a duplicated twin of your own turn may already have done it.
+  rollback_procedure: If a duplicate was wrongly treated as hostile and reverted, restore it from git and re-verify on content.
+  integrity_check: Every surprising artifact is either independently verified and accepted, or reverted with content-based (not provenance-based) reasoning; the resolution event closes the alarm entries. Residual systemic gap recorded on event 928225b3, identity verification cannot catch a duplicated authentic turn; dispatch/turn idempotency keys are the durable fix.
 ```
 
 ## §H. Evolve
