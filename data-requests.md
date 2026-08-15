@@ -44,6 +44,10 @@ A draft is private to the buyer. Once published it's visible on the public board
 
 ## The contract — fields that MUST match between frontend and backend
 
+### The SSR anonymous-fetch trap (T-2026-000614, fixed S1554)
+
+The detail page `app/requests/[slug]/page.tsx` is a **server component**. Its `fetchDataRequest` (lib/api.ts) runs **anonymously** — auth tokens live only in the client-side in-memory store (deliberate S916 XSS posture), so SSR can never see owner-only drafts. Symptom when this is mishandled: a buyer posts a request, gets redirected to the draft's slug, and the server 404s their own request. The fix pattern (af79f6b): on a null server fetch, do NOT `notFound()`; render `DataRequestDetailClient` with `initialRequest=null` and let its authenticated `loadData()` resolve; the client's not-found card covers genuinely missing slugs. The null-fetch `generateMetadata` branch keeps `noindex` and a neutral title ("Data Request", 680db88). Never "fix" this by persisting tokens to cookies/localStorage or by giving lib/api.ts auth.
+
 This is where bugs live. Every field below is a known drift hotspot. When changing any of these on the backend, the frontend MUST be updated in the same release window.
 
 | Field | Backend (Pydantic) | Frontend (TypeScript) | Notes |
