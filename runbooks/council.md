@@ -49,7 +49,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Reviewer trigger | SHIPPED | `tools/agents.py:_handle_council_member` | Focused routing tests for CC, Kimi, and GLM | 2026-08-12 |
-| Directory exchange | SHIPPED | `scripts/council_dir.py:ask_member` | Exact request bytes and raw response text tested | 2026-08-12 |
+| Directory exchange | SHIPPED | `scripts/council_dir.py:ask_member` and CLI `ask` | Standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | End-to-end response file from each CLI | 2026-08-12 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
@@ -64,16 +64,20 @@ There is one Council reviewer path.
 3. Start that member's CLI with one sentence: read the named request file and write the named response file in the same directory.
 4. Return the response file text unchanged.
 
-`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes are copied unchanged into the member directory. Otherwise the `task` text becomes the request file. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
+`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before either writer stores a request, one shared bytes helper prepends the advisory `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
 
 The manual equivalent is:
 
     scripts/council_dir.py ask <cc|kimi|glm|all> <request_file>
     scripts/council_dir.py run <cc|kimi|glm|all>
 
+CLI `ask` applies the same shared protocol helper as the MCP trigger, including file and stdin input. CLI `run` only restarts already-placed files and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
+
+For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppresses the prefix at either request writer. The exact original bytes are then stored unchanged, and the writer emits exactly one visible stderr/log marker naming `KD_COUNCIL_NO_PROTOCOL` for each suppressed write. The marker never includes request content.
+
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not assemble a review prompt, pin a checkout, select files, validate a schema, set reviewer budgets, parse a verdict, retry, create a session, normalize terminal output, persist a verdict, push a branch, or select another transport. Do not add any of those behaviors.
+The launcher does not assemble the advisory protocol or another review prompt, pin a checkout, select files, validate a schema, enforce reviewer budgets, parse a verdict, retry, create a session, normalize terminal output, persist a verdict, push a branch, or select another transport. The fixed advisory prefix is assembled only by the two request writers before launch; the launcher still supplies only the one-sentence pickup instruction. Do not add any of those behaviors to the launcher.
 
 The member may read any local file it chooses. The existing macOS sandbox confines member writes to its own Council directory plus CLI housekeeping paths. That fence does not inspect, reject, alter, or discard a response.
 
@@ -88,7 +92,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Reviewer Trigger | `tools/agents.py:_handle_council_member` | none | Directory Exchange | Copies or writes one request and returns one response. |
-| Directory Exchange | `scripts/council_dir.py:ask_member` | `/Users/max/council/<member>/` | Member Launcher | No parsing, persistence, or alternate transport. |
+| Directory Exchange | `scripts/council_dir.py:ask_member` and CLI `ask` | `/Users/max/council/<member>/` | Member Launcher | Shared advisory prefix; exact original-byte suffix; visible byte-identical opt-out; no parsing, persistence, or alternate transport. |
 | Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | One-sentence pickup instruction. |
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `tools/agents.py:_handle_call_mp` | existing MP task stores | Codex CLI | Separate and unchanged. |
