@@ -49,7 +49,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Reviewer trigger | SHIPPED | `tools/agents.py:_handle_council_member` | Focused routing tests for CC, Kimi, and GLM | 2026-08-12 |
-| Directory exchange | SHIPPED | `scripts/council_dir.py:ask_member` and CLI `ask` | Standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
+| Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI `ask`: standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | End-to-end response file from each CLI | 2026-08-12 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
