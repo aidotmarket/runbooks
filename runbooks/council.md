@@ -64,7 +64,9 @@ There is one Council reviewer path.
 3. Start that member's CLI with one sentence: read the named request file and write the named response file in the same directory.
 4. Return the response file text unchanged.
 
-`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before either writer stores a request, one shared bytes helper prepends the advisory `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
+`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before either writer stores a request, one shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
+
+The standard preamble is the complete review contract approved in S1557. It requires exact artifact identity, environment truth, ground truth and boundaries, honest builder verification including failures and untrusted signals, prior-round delta, and three to six risk questions in the request body. It tells the reviewer to verify load-bearing claims, read whatever is necessary, return a verdict even when its turn budget expires, name incomplete coverage, produce SHA-bound evidenced findings, and answer the standing SIMPLER and BETTER questions. Do not shorten or hand-edit the prefix at dispatch time; its exact bytes are locked by the focused test.
 
 The manual equivalent is:
 
@@ -77,9 +79,21 @@ For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppr
 
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not assemble the advisory protocol or another review prompt, pin a checkout, select files, validate a schema, enforce reviewer budgets, parse a verdict, retry, create a session, normalize terminal output, persist a verdict, push a branch, or select another transport. The fixed advisory prefix is assembled only by the two request writers before launch; the launcher still supplies only the one-sentence pickup instruction. Do not add any of those behaviors to the launcher.
+The launcher does not assemble the standard protocol or another review prompt, pin a checkout, select files, validate a schema, enforce reviewer budgets, parse a verdict, retry, create a session, normalize terminal output, persist a verdict, push a branch, or select another transport. The fixed prefix is assembled only by the two request writers before launch; the launcher still supplies only the one-sentence pickup instruction. Do not add any of those behaviors to the launcher.
 
 The member may read any local file it chooses. The existing macOS sandbox confines member writes to its own Council directory plus CLI housekeeping paths. That fence does not inspect, reject, alter, or discard a response.
+
+### Production measurement checkpoint
+
+Use the existing request and response files; do not add request-path telemetry. Score the first 20 ordinary production reviews after this protocol deploys, excluding `KD_COUNCIL_NO_PROTOCOL` experiments and byte-identical retries. Record, by reviewer and in aggregate:
+
+- usable verdict returned and elapsed time;
+- non-approving verdict rate;
+- numbered findings carrying exact repo@SHA and file:line evidence;
+- explicit uncovered-area or fully-covered statement;
+- concrete SIMPLER and BETTER answers, including supported `none found` answers.
+
+Compare the cohort with the S1539/S1544 baseline and record a keep, tune, or rollback recommendation on `build:bq-council-review-request-standard-s1539`. Stop the cohort and investigate after two consecutive missing verdicts or evidence that the standard is suppressing a material finding. This checkpoint evaluates the prompt; it does not parse, reject, or alter live Council responses.
 
 Credentials are launcher inputs only:
 
@@ -92,7 +106,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Reviewer Trigger | `tools/agents.py:_handle_council_member` | none | Directory Exchange | Copies or writes one request and returns one response. |
-| Directory Exchange | `scripts/council_dir.py:ask_member` and CLI `ask` | `/Users/max/council/<member>/` | Member Launcher | Shared advisory prefix; exact original-byte suffix; visible byte-identical opt-out; no parsing, persistence, or alternate transport. |
+| Directory Exchange | `scripts/council_dir.py:ask_member` and CLI `ask` | `/Users/max/council/<member>/` | Member Launcher | Shared standard prefix; exact original-byte suffix; visible byte-identical opt-out; no parsing, persistence, or alternate transport. |
 | Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | One-sentence pickup instruction. |
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `tools/agents.py:_handle_call_mp` | existing MP task stores | Codex CLI | Separate and unchanged. |
