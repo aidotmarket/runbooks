@@ -286,7 +286,7 @@
       "error_signatures": [],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-07-30",
+      "last_verified_at": "2026-08-14",
       "owner": "sysadmin",
       "path": "runbooks/corpus-capture-policy.md",
       "runbook_id": "corpus-capture-policy",
@@ -819,11 +819,15 @@
         {
           "section": "\u00a7F. Isolate",
           "signature": "unread_request_or_alert_at_dispatch"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "unrecognized_instance_attributed_artifact"
         }
       ],
       "integrity_only": true,
       "integrity_status": "integrity_pass_unverified",
-      "last_verified_at": "2026-07-31",
+      "last_verified_at": "2026-08-15",
       "owner": "mars",
       "path": "runbooks/peer-instance-discipline.md",
       "runbook_id": "peer-instance-discipline",
@@ -1571,6 +1575,10 @@
         "section": "\u00a7F. Isolate"
       },
       "unread_request_or_alert_at_dispatch": {
+        "runbook_id": "peer-instance-discipline",
+        "section": "\u00a7F. Isolate"
+      },
+      "unrecognized_instance_attributed_artifact": {
         "runbook_id": "peer-instance-discipline",
         "section": "\u00a7F. Isolate"
       },
