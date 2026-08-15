@@ -153,8 +153,8 @@ def test_pinned_manifest_loader_reads_one_immutable_complete_snapshot() -> None:
     assert pinned.search_sha == sha
     assert pinned.operational_documents == 109
     assert pinned.source_documents == 105
-    assert pinned.active == 25
-    assert pinned.grandfathered == 80
+    assert pinned.active == 26
+    assert pinned.grandfathered == 79
     assert pinned.archived == 4
     assert len(pinned.documents) == 109
     assert len(pinned.manifest_sha256) == 64
