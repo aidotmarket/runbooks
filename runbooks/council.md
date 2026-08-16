@@ -48,8 +48,8 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Reviewer trigger | SHIPPED | `tools/agents.py:_handle_council_member` | Focused routing tests for CC, Kimi, and GLM | 2026-08-12 |
-| Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI `ask`: standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
+| Reviewer trigger | SHIPPED | `tools/agents.py` | Immediate submit, busy/no-second-file, running/completed/failed polling, and exact-response tests | 2026-08-16 |
+| Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI share one lock-before-write path; 98 focused tests and deployed submit/poll canary at `31c843b6` | 2026-08-16 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | 137 focused tests; deployed low-effort canary and full max-effort GLM review both retained matching responses at `c96cea2f`; see G-07 | 2026-08-16 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
@@ -60,11 +60,11 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 There is one Council reviewer path.
 
 1. Select `cc`, `kimi`, or `glm`.
-2. Place one request file under `/Users/max/council/<member>/`.
-3. Start that member's CLI with one sentence: read the named request file and write the named response file in the same directory.
-4. Return the response file text unchanged.
+2. Acquire that member's fixed OS lock, place one request file under `/Users/max/council/<member>/`, and start the detached member worker.
+3. Return `status=submitted`, `request_id`, request path, and response path immediately; do not wait for the provider.
+4. Poll `council_request(action=check_review, agent=<member>, request_id=<request_id>)`. `running` means that exact request owns the lock; `completed` returns the response text unchanged; `failed` means the worker exited without the response; `not_found` means the request file does not exist.
 
-`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before either writer stores a request, one shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
+`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before the one request writer stores a request, the shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
 
 The standard preamble is the complete review contract approved in S1557. It requires exact artifact identity, environment truth, ground truth and boundaries, honest builder verification including failures and untrusted signals, prior-round delta, and three to six risk questions in the request body. It tells the reviewer to verify load-bearing claims, read whatever is necessary, return a verdict even when its turn budget expires, name incomplete coverage, produce SHA-bound evidenced findings, and answer the standing SIMPLER and BETTER questions. Do not shorten or hand-edit the prefix at dispatch time; its exact bytes are locked by the focused test.
 
@@ -73,15 +73,17 @@ The manual equivalent is:
     scripts/council_dir.py ask <cc|kimi|glm|all> <request_file>
     scripts/council_dir.py run <cc|kimi|glm|all>
 
-CLI `ask` applies the same shared protocol helper as the MCP trigger, including file and stdin input. CLI `run` only restarts already-placed files and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
+CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
-For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppresses the prefix at either request writer. The exact original bytes are then stored unchanged, and the writer emits exactly one visible stderr/log marker naming `KD_COUNCIL_NO_PROTOCOL` for each suppressed write. The marker never includes request content.
+For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppresses the prefix at the request writer. The exact original bytes are then stored unchanged, and the writer emits exactly one visible stderr/log marker naming `KD_COUNCIL_NO_PROTOCOL` for each suppressed write. The marker never includes request content.
 
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; Codex writes its exact final UTF-8 message to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no text-file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; the launcher writes Codex's exact final UTF-8 message to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-CC and Kimi may read local files. GLM receives the self-contained request file only; exact review packages therefore carry their own sources and diff. The member sandboxes remain read-only, apart from the launcher's named response file and CLI housekeeping. The fence does not inspect, alter, or discard an accepted response.
+CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM receives the self-contained request file only; exact review packages therefore carry their own sources and diff. The GLM sandbox is read-only and the launcher writes its named response file. The fence does not inspect, alter, or discard an accepted response.
+
+Admission control is deliberately smaller than a queue. Each member has one fixed `.member.lock`; the submitter acquires it before writing the request and hands the same locked descriptor to the detached worker. A second submission returns `status=busy` with the active `request_id` and creates no file. There is no waiting list, broker, retry, or daemon. The response file and the lock state are the complete durable status record across client disconnects.
 
 ### Production measurement checkpoint
 
@@ -105,8 +107,8 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Reviewer Trigger | `tools/agents.py:_handle_council_member` | none | Directory Exchange | Copies or writes one request and returns one response. |
-| Directory Exchange | `scripts/council_dir.py:ask_member` and CLI `ask` | `/Users/max/council/<member>/` | Member Launcher | Shared standard prefix; exact original-byte suffix; visible byte-identical opt-out; no parsing, persistence, or alternate transport. |
+| Reviewer Trigger | `tools/agents.py:_handle_council_member` and `_handle_check_council_member` | none | Directory Exchange | Submit returns `request_id` immediately; `check_review` returns running/completed/failed/not_found and unchanged completed text. |
+| Directory Exchange | `scripts/council_dir.py:submit_member` | `/Users/max/council/<member>/` and one fixed `.member.lock` | Member Launcher | One lock-before-write path for MCP and CLI; exact original-byte suffix; no queue, retry, or alternate transport. |
 | Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | File-in/file-out. GLM request bytes are carried over stdin because its shell tool is disabled. |
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `tools/agents.py:_handle_call_mp` | existing MP task stores | Codex CLI | Separate and unchanged. |
@@ -190,7 +192,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review holds the profile lock | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
-| F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED |
+| F-06 | Reviewer dispatch does not return `submitted` promptly, a second same-member dispatch creates another request, or `check_review` disagrees with the retained files | The pre-S1557 synchronous handler is still deployed, the member lock path drifted, the detached worker did not retain the lock, or the caller is using a stale tool schema without `check_review` | Require main, checkout, and deployed marker at `31c843b6`; require the live `council_request` action enum to contain `check_review`; submit one bounded canary, confirm immediate `request_id`, running then completed, unchanged response, and a concurrent dispatch returning busy with no new request file | G-06 | CONFIRMED |
 | F-07 | Max's Claude login changes after GLM, GLM returns `glm_*`, or GLM does not produce the matching response file | The retired Claude-based GLM route reappeared, the dedicated Codex home drifted, the provider/JSONL lifecycle failed, the response differs from the attested final message, or the request is not UTF-8 | Verify main, checkout, and deployed marker first. Run the 90-second low-effort transport canary before a full max-effort review. Across both runs confirm `~/.claude/session-env`, `~/.codex/auth.json` mtime, and the login watcher are unchanged; confirm zero auth files/symlinks under the dedicated GLM home | G-07 | CONFIRMED |
 
 ## §G. Repair
@@ -231,11 +233,11 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 - id: G-06
   symptom_ref: F-06
   component_ref: Member Launcher
-  root_cause: Client-side MCP timeout (~60s) is far below Council review duration; the server call is healthy.
-  repair_entry_point: operator procedure (no code entry point yet; raise a BQ to lengthen the client timeout or make council_request async)
-  change_pattern: Treat the client error as UNKNOWN, not failure. Poll the member directory for the response file keyed to the dispatch-time request stamp. Do not re-dispatch until the directory shows no request from your dispatch window.
-  rollback_procedure: none (read-only procedure)
-  integrity_check: One request file and at most one response file per intended dispatch; duplicates identified and their verdicts discarded.
+  root_cause: Before S1557, council_request waited synchronously for the provider and could outlive the client timeout; independent dispatches could also overlap one member. The deployed path submits once, returns immediately, and holds one per-member OS lock for the worker lifetime.
+  repair_entry_point: tools/agents.py:_handle_council_member and _handle_check_council_member; scripts/council_dir.py:submit_member and member_request_status
+  change_pattern: Verify the exact deployed SHA and live schema first. If busy, poll the returned active request_id; do not re-dispatch. If failed, inspect the exact retained request/response paths and provider failure, then make any retry an explicit new operator decision. Never bypass or weaken the member lock.
+  rollback_procedure: Forward-roll protected main on a named rollback branch to tree 7ef8d2e0570b8e086e6ac2b67b8955510b7d7871 (commit c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c), restart, verify health, and keep Council review dispatch closed because that tree restores the known synchronous timeout behavior.
+  integrity_check: Main, checkout, and deployed marker equal 31c843b6b24779a5250cf406e5d1975e7b4f3177; live schema includes check_review; submit returns request_id immediately; poll reaches completed with unchanged text; a concurrent same-member submit returns busy without creating a request file.
 - id: G-07
   symptom_ref: F-07
   component_ref: Member Launcher
@@ -290,6 +292,8 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 - CC, Kimi, and GLM all use `scripts/council_dir.py`.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
+- One member runs at most one request; busy creates no request file.
+- Dispatch returns a durable request ID immediately and polling never retries.
 - MP build dispatch remains separate.
 
 ### §H.2 BREAKING predicates
@@ -313,7 +317,7 @@ The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/co
 
 #### public contract
 
-The public contract is `council_request` returning request path, response path, and unchanged response text.
+The public contract is `council_request` returning `status=submitted`, `request_id`, request path, and response path immediately; `action=check_review` returns running/completed/failed/not_found and includes unchanged response text only when completed.
 
 #### runtime dependency
 
@@ -375,8 +379,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1557
-last_refresh_commit: c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c
-last_refresh_date: 2026-08-16T20:59:26Z
+last_refresh_commit: 31c843b6b24779a5250cf406e5d1975e7b4f3177
+last_refresh_date: 2026-08-16T22:35:00Z
 owner_agent: vulcan
 refresh_triggers:
   - council_request reviewer routing changes
