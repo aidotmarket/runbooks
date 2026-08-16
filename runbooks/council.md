@@ -191,7 +191,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
 | F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED (S1540) |
-| F-07 | CC fails with `OAuth session expired and could not be refreshed`, or returns `auth_unavailable` / `cc_busy` envelopes; historically the operator's own interactive login was also destroyed | ROOT CAUSE SUPERSEDED S1566 - SEE G-07 BEFORE ACTING: the real cause is that machine dispatch and Max's interactive login are the SAME Anthropic account (identical accountUuid, max@kisa.cat), which is revoked server-side; everything below is a correct but insufficient local mitigation and did NOT stop the logouts (four fresh blankings Aug 16, post-fix). PRIOR (T-2026-000617, fixed at koskadeux-mcp main 9be49748fb, S1561): a shared-login FALLBACK rerouted machine CC onto the operator's personal credential whenever the dedicated profile hiccuped, and unserialized OAuth refresh let concurrent CC dispatches rotate-race the profile token (the CLI then writes an empty-token `.credentials.json` stub; five stub quarantines Aug 13-15). Since the fix: machine dispatch NEVER uses the interactive login (fail-closed `CCProfileUnavailable`), empty stubs self-heal by rename, and all subscription-login launches serialize under a bounded flock (`KD_CC_PROFILE_LOCK_WAIT_S`, default 900s; `cc_busy` envelope names the holder pid; timeout reaping kills the whole process group so a dead task cannot retain the lock) | Run `cc_profile.status()`. `auth_unavailable` = profile unprovisioned or quarantined, re-provision per G-07. `cc_busy` = another CC run holds the lock; the error names the holder pid | G-07 | CONFIRMED (S1561) |
+| F-07 | CC fails with `OAuth session expired and could not be refreshed`, or returns `auth_unavailable` / `cc_busy` envelopes; historically the operator's own interactive login was also destroyed | ROOT CAUSE SUPERSEDED S1566 - SEE G-07 BEFORE ACTING: the CC path below is FIXED and verified. The logouts that continue are caused by the GLM reviewer, which runs the same claude binary with CLAUDE_CONFIG_DIR unset and therefore lives inside Max's personal ~/.claude profile, unserialized. PRIOR, CC PATH ONLY (T-2026-000617, fixed at koskadeux-mcp main 9be49748fb, S1561): a shared-login FALLBACK rerouted machine CC onto the operator's personal credential whenever the dedicated profile hiccuped, and unserialized OAuth refresh let concurrent CC dispatches rotate-race the profile token (the CLI then writes an empty-token `.credentials.json` stub; five stub quarantines Aug 13-15). Since the fix: machine dispatch NEVER uses the interactive login (fail-closed `CCProfileUnavailable`), empty stubs self-heal by rename, and all subscription-login launches serialize under a bounded flock (`KD_CC_PROFILE_LOCK_WAIT_S`, default 900s; `cc_busy` envelope names the holder pid; timeout reaping kills the whole process group so a dead task cannot retain the lock) | Run `cc_profile.status()`. `auth_unavailable` = profile unprovisioned or quarantined, re-provision per G-07. `cc_busy` = another CC run holds the lock; the error names the holder pid | G-07 | CONFIRMED (S1561) |
 
 ## §G. Repair
 
@@ -240,28 +240,41 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   symptom_ref: F-07
   component_ref: CC credential isolation (cc_profile.py, setup_cc_profile.sh)
   root_cause: >-
-    STOP BEFORE RE-DIAGNOSING THIS AS A LOCAL ISOLATION FAULT. It is not one, and it has been
-    misdiagnosed as one five times (S1532, S1540, S1545, S1561/T-2026-000617). Local isolation is
-    CORRECT and WORKING: the machine child carries CLAUDE_CONFIG_DIR and
-    CLAUDE_SECURESTORAGE_CONFIG_DIR, and the two credentials live in separate Keychain services
-    ("Claude Code-credentials" and "Claude Code-credentials-2d3f080c"). TRUE ROOT CAUSE (S1566,
-    evidence event cc-logout-same-account-s1566): both Claude Code logins authenticate as the SAME
-    Anthropic account. /Users/max/.claude.json and /Users/max/.claude-koskadeux/.claude.json carry
-    identical accountUuid b83c3b7a-5e2d-4638-93c4-31f9ab7c9fc9 and identical email max@kisa.cat
-    (the differing userID is only a per-config-dir hash, not a second identity). Two concurrent
-    Claude Code sessions on one account are revoked server-side, so BOTH profiles blank their
-    tokens on a rotating basis and NO local change can reach the cause. Confirming evidence: four
-    machine-profile blanking events on Aug 16 all AFTER the T-2026-000617 fix was live, and Max
-    Keychain item modified 2026-08-16T00:01:23Z, one minute after machine-profile session activity
-    at 02:00-02:02 local. The fix requires a SECOND IDENTITY for machine dispatch (separate
-    Anthropic account, or an Anthropic API key on Console billing - note setup_cc_profile.sh
-    deliberately strips ANTHROPIC_API_KEY, so that needs a considered change). cc_profile.apply_to_env()
-    already supports KD_CLAUDE_OAUTH_TOKEN -> CLAUDE_CODE_OAUTH_TOKEN for a long-lived headless
-    token, currently unset, but that token is still issued against the same account so it may not
-    separate the sessions either. This is a Max decision (spend or interactive login); no agent can
-    close it. Historical, now SUPERSEDED as causes: shared interactive login refresh race (S1532);
-    empty .credentials.json shadowing the Keychain credential (S1540). Those remain real symptoms
-    and their guards stay in place, but they are downstream of the shared account.
+    READ THIS BEFORE RE-DIAGNOSING. This has been investigated five times and misdiagnosed five
+    times (S1532, S1540, S1545, S1561/T-2026-000617, and the first pass of S1566) because every
+    pass looked at the CC path. The CC path is FIXED and verified working: 17 observed
+    claude-opus-4-8 runs all carried CLAUDE_CONFIG_DIR=/Users/max/.claude-koskadeux. TRUE ROOT
+    CAUSE (S1566, event cc-glm-writes-max-profile-s1566): it is the GLM reviewer, not CC. In
+    scripts/council_dir.py the glm member runs the SAME claude binary via _claude_command("glm-5.3"),
+    but _glm_env() sets only ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL and
+    never sets CLAUDE_CONFIG_DIR or CLAUDE_SECURESTORAGE_CONFIG_DIR. The child therefore inherits
+    them unset from the MCP server and runs inside MAX'S PERSONAL PROFILE ~/.claude on the default
+    Keychain item "Claude Code-credentials". The --bare flag does NOT prevent this; it was assumed
+    to and that assumption is what hid the defect. GLM is also the one member deliberately excluded
+    from the serialization lock (start(): profile_lock() only when member == "cc"), so concurrent
+    GLM reviews race each other and Max's own session on one OAuth credential. That is the original
+    S1532 refresh race, never fixed on the GLM path.
+  evidence: >-
+    From the T-2026-000617 launchd watcher log /Users/max/koskadeux-state/cc-login-watch/events.log:
+    26 distinct glm-5.3 runs observed with CLAUDE_CONFIG_DIR unset (most recent 2026-08-16T08:12:31Z),
+    against 17 claude-opus-4-8 runs all correctly on the koskadeux profile. ~/.claude/session-env has
+    858 entries and mtime Aug 16 10:12 local, matching the 08:12Z GLM run exactly; the koskadeux
+    profile has 96. lsof at 2026-08-15T21:28:30Z caught a CLI writing
+    ~/.claude/shell-snapshots/snapshot-zsh-*.sh while the only CLI running was GLM pid 94353.
+    Max's Keychain item "Claude Code-credentials" mdat 2026-08-16T00:01:23Z.
+  fix: >-
+    Give GLM its own throwaway Claude Code config. GLM authenticates to z.ai with a bearer token and
+    needs no Claude login at all, so _glm_env() should set CLAUDE_CONFIG_DIR and
+    CLAUDE_SECURESTORAGE_CONFIG_DIR to a dedicated directory (or a per-run temp dir). Consider
+    serializing GLM the way CC is serialized. Until that ships, every Council GLM review is a Claude
+    Code session inside Max's personal login and will keep destroying it.
+  superseded_causes: >-
+    Shared interactive login refresh race on the CC path (S1532) and empty .credentials.json
+    shadowing the Keychain credential (S1540) were real and their guards stay in place, but they are
+    not why the logouts continue. The same-account theory raised earlier in S1566 (both profiles
+    carry accountUuid b83c3b7a-5e2d-4638-93c4-31f9ab7c9fc9 / max@kisa.cat) is TRUE as a fact but is
+    NOT the cause and must not be acted on before the GLM profile fix: the profiles are separate
+    logins and the CC path has been stable since T-2026-000617.
   repair_entry_point: scripts/setup_cc_profile.sh (one-time, Max, desktop Terminal); then cc_profile.status(). NOTE - re-running this on the SAME account only restores service until the next revocation; it is not a fix.
   change_pattern: Run setup_cc_profile.sh once as Max (interactive OAuth; the only human step). Empty-stub shadow files now self-heal (cc_profile.heal_empty_stub renames them aside automatically), so no manual quarantine is needed. Verify with a profile-scoped `claude -p` returning is_error false. There is NO shared-login fallback anymore: until provisioning succeeds, CC dispatch fails closed with CCProfileUnavailable/auth_unavailable and the interactive login is never touched (T-2026-000617).
   rollback_procedure: Restore the renamed credentials file (never delete outright).
