@@ -99,7 +99,8 @@ Compare the cohort with the S1539/S1544 baseline and record a keep, tune, or rol
 
 Credentials are launcher inputs only:
 
-- CC uses the machine's Claude Code login and must run without `--bare`.
+- CC uses the dedicated isolated CC profile from F-03/G-03, never Max's personal Claude profile,
+  and must run without `--bare`.
 - GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
 
@@ -287,9 +288,11 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     health and restored behavior, and keep GLM/full Council closed. Never restore the retired
     Claude-based GLM route. The prior named example is rollback/s1566-r11-live-proof-failure.
   integrity_check: >-
-    main, checkout, and deployed marker equal the reviewed SHA; health is OK; a request file produces
-    its matching response file; session-env count, personal Codex auth mtime, and watcher bytes are
-    unchanged; the dedicated GLM home has zero credential files and symlinks.
+    main, checkout, and deployed marker equal the current reviewed deployment SHA, presently
+    31c843b6b24779a5250cf406e5d1975e7b4f3177; health is OK; a request file produces its matching
+    response file; session-env count, personal Codex auth mtime, and watcher bytes are unchanged;
+    the dedicated GLM home has zero credential files and symlinks. The earlier c96cea2f proof SHA is
+    retained history, not the current deployment target.
 - id: G-05
   symptom_ref: F-05
   component_ref: Reviewer Trigger
@@ -412,7 +415,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1527 / 2026-08-12T14:00:00Z
+last_lint_run: S1557 / 2026-08-16T22:55:00Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
