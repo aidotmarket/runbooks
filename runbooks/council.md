@@ -134,12 +134,11 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     agent: cc, kimi, or glm
     review_package_path: the exact file to copy into the member directory
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: success plus request_file, response_file, and raw response text, verification: both returned paths exist and the response equals the response file contents}
+  expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request path exists and the call returns without waiting for the response path}
   expected_failures:
-    - {signature: no response written after, cause: the CLI exited without creating the named response file}
-    - {signature: is not set; source the credential first, cause: the GLM or Kimi credential is absent}
-  next_step_success: Use the returned response unchanged.
-  next_step_failure: Inspect the CLI output shown by the launcher; do not switch transports or add parsing or retries.
+    - {signature: status busy plus active_request_id, cause: that member already has one active request; no new request file is written}
+  next_step_success: Poll the returned request_id with E-04 until completed or failed.
+  next_step_failure: Poll the active_request_id; do not switch transports, add parsing, or re-dispatch.
 - id: E-02
   trigger: Plain task text must be sent to one Council reviewer.
   pre_conditions: [member_is_cc_kimi_or_glm, task_text_is_present]
@@ -148,11 +147,11 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     agent: cc, kimi, or glm
     task: exact text to write to the request file
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: success plus request_file, response_file, and raw response text, verification: request file contains task exactly and response file exists}
+  expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request file contains the task and the call does not require the response file to exist}
   expected_failures:
-    - {signature: no response written after, cause: the CLI did not create the named response file}
-  next_step_success: Use the returned response unchanged.
-  next_step_failure: Apply §F without modifying the request.
+    - {signature: status busy plus active_request_id, cause: that member already has one active request; no new request file is written}
+  next_step_success: Poll the returned request_id with E-04 until completed or failed.
+  next_step_failure: Poll the active_request_id; apply §F without modifying or re-dispatching the request.
 - id: E-03
   trigger: A request file must be sent to all three reviewers without the MCP surface.
   pre_conditions: [all_member_credentials_available, request_file_is_readable]
@@ -160,12 +159,27 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   argument_sourcing:
     request_file: one plain file; the same bytes are copied once per member
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: one response path per member, verification: each path exists in that member's directory}
+  expected_success: {shape: one submitted request path per available member without waiting for responses, verification: each printed request path exists in that member's directory}
   expected_failures:
     - {signature: member unavailable, cause: that member credential or CLI is unavailable}
-  next_step_success: Read the three response files unchanged.
-  next_step_failure: A failed member does not prevent the other members from running; inspect only that member's launcher output.
+    - {signature: member_busy plus active request, cause: that member already has one active request; no new request file is written}
+  next_step_success: Derive each request_id from its printed path and poll it with E-04.
+  next_step_failure: Poll a busy member's active request; a failed member does not prevent the other members from submitting.
 - id: E-04
+  trigger: A submitted Council review must be checked without creating or retrying a request.
+  pre_conditions: [member_is_cc_kimi_or_glm, request_id_was_returned_by_submit_or_busy]
+  tool_or_endpoint: council_request(action=check_review, agent=<member>, request_id=<request_id>)
+  argument_sourcing:
+    agent: the member that owns the returned request_id
+    request_id: the exact request filename returned by submitted or active_request_id returned by busy
+  idempotency: IDEMPOTENT
+  expected_success: {shape: status running, completed, failed, or not_found, verification: completed alone includes the retained response text unchanged; polling creates no request file and never retries}
+  expected_failures:
+    - {signature: status failed, cause: the retained request has no response and its member lock is no longer held for that request}
+    - {signature: status not_found, cause: no retained request exists for that member and request_id}
+  next_step_success: If running, poll the same request_id again; if completed, use the returned response unchanged.
+  next_step_failure: Inspect the retained paths and provider evidence; any retry is an explicit new operator decision.
+- id: E-05
   trigger: An approved implementation needs the mandatory MP builder.
   pre_conditions: [approved_build_scope, clean_dedicated_worktree, active_session]
   tool_or_endpoint: council_request(agent=mp, mode=build, task=<build_task>, cwd=<repo>, caller_instance=<peer>, session_id=<session>)
@@ -245,13 +259,15 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     Before S1566, GLM ran through the Claude binary with no isolated Claude profile and wrote into
     Max's personal ~/.claude state. --bare did not isolate it. The deployed S1566 route removes
     Claude from GLM completely: one UTF-8 request file is read by council_dir, sent over stdin to
-    codex exec using the dedicated GLM CODEX_HOME, and Codex writes the matching response file.
+    codex exec using the dedicated GLM CODEX_HOME, and the launcher writes Codex's attested final
+    message to the matching response file.
     The model shell tool is disabled, runs are serialized, malformed JSONL and any command or file
     change fail closed, and the accepted response must byte-match Codex's attested final message.
     R11 SHA 9c8d6a5c7e26ff0078e97cd7dfb0e3b96c199b56 retained schema enforcement and deleted a usable
     Markdown-fenced response; it was immediately forward-rolled back to 041f7d78. R13 removed that
     schema-only layer instead of adding fence parsing. Exact reviewed SHA
-    c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c is now main and deployed. Its 90-second low-effort
+    c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c was main and deployed for the S1566 proof on
+    2026-08-16. Its 90-second low-effort
     transport canary passed in 50.758 seconds with eight JSONL events, one agent message, zero file
     changes, and a retained response. A separate full max-effort production review then retained
     response-20260816-225423-290186.md with APPROVE_WITH_NITS and no blocking finding. Across both
@@ -367,7 +383,7 @@ scenario_set:
     weight: 0.25
   - id: I-04
     type: operate
-    refs: [E-04, §H.1]
+    refs: [E-05, §H.1]
     scenario: Dispatch an MP build after the reviewer simplification.
     expected_answers:
       - kind: classification
