@@ -50,7 +50,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 |---|---|---|---|---|
 | Reviewer trigger | SHIPPED | `tools/agents.py:_handle_council_member` | Focused routing tests for CC, Kimi, and GLM | 2026-08-12 |
 | Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI `ask`: standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
-| Member launcher | PARTIAL | `scripts/council_dir.py:start` | CC passed after S1566; current GLM requests create their request file but do not produce the matching response; see G-07 | 2026-08-16 |
+| Member launcher | SHIPPED | `scripts/council_dir.py:start` | 137 focused tests; deployed low-effort canary and full max-effort GLM review both retained matching responses at `c96cea2f`; see G-07 | 2026-08-16 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -79,7 +79,7 @@ For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppr
 
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; Codex writes the schema-bound response to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, or filesystem service.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; Codex writes its exact final UTF-8 message to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
 CC and Kimi may read local files. GLM receives the self-contained request file only; exact review packages therefore carry their own sources and diff. The member sandboxes remain read-only, apart from the launcher's named response file and CLI housekeeping. The fence does not inspect, alter, or discard an accepted response.
 
@@ -191,7 +191,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
 | F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED |
-| F-07 | Max's Claude login changes after GLM, GLM returns `glm_*`, or GLM does not produce the matching response file | The pre-S1566 Claude-based GLM route is deployed, the dedicated Codex home drifted, the provider returned invalid output, or the request is not UTF-8 | Verify deployed/main SHA, then compare one request/response pair. Across that run confirm `~/.claude/session-env`, `~/.codex/auth.json` mtime, and the login watcher are unchanged; confirm zero auth files/symlinks under the dedicated GLM home | G-07 | CONFIRMED |
+| F-07 | Max's Claude login changes after GLM, GLM returns `glm_*`, or GLM does not produce the matching response file | The retired Claude-based GLM route reappeared, the dedicated Codex home drifted, the provider/JSONL lifecycle failed, the response differs from the attested final message, or the request is not UTF-8 | Verify main, checkout, and deployed marker first. Run the 90-second low-effort transport canary before a full max-effort review. Across both runs confirm `~/.claude/session-env`, `~/.codex/auth.json` mtime, and the login watcher are unchanged; confirm zero auth files/symlinks under the dedicated GLM home | G-07 | CONFIRMED |
 
 ## §G. Repair
 
@@ -244,30 +244,30 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     Max's personal ~/.claude state. --bare did not isolate it. The deployed S1566 route removes
     Claude from GLM completely: one UTF-8 request file is read by council_dir, sent over stdin to
     codex exec using the dedicated GLM CODEX_HOME, and Codex writes the matching response file.
-    The model shell tool is disabled, runs are serialized, and malformed output fails closed.
-    R11 SHA 9c8d6a5c7e26ff0078e97cd7dfb0e3b96c199b56 passed unanimous exact-artifact
-    review and was deployed, but its required live request produced no matching response. It was
-    immediately forward-rolled back. Current main and deployment are
-    041f7d78dbcbb47518748bc0e7e7c4d160bd1c33, whose tree exactly equals the previously proven R9
-    tree at e86be5d9bd11c908e432b9c2b4901af8e1e743e0. Small requests on the restored tree also failed
-    to produce a response, so GLM/full Council remains closed. Across every attempt
-    ~/.claude/session-env stayed at 859 entries, ~/.codex/auth.json mtime and the login-watcher byte
-    count were unchanged, and the dedicated GLM home contained zero auth.json files and zero
-    symlinks. Exact evidence is retained at
-    /Users/max/koskadeux-state/diagnostics/S1566-R11-LIVE-PROOF-ROLLBACK-20260816.md.
+    The model shell tool is disabled, runs are serialized, malformed JSONL and any command or file
+    change fail closed, and the accepted response must byte-match Codex's attested final message.
+    R11 SHA 9c8d6a5c7e26ff0078e97cd7dfb0e3b96c199b56 retained schema enforcement and deleted a usable
+    Markdown-fenced response; it was immediately forward-rolled back to 041f7d78. R13 removed that
+    schema-only layer instead of adding fence parsing. Exact reviewed SHA
+    c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c is now main and deployed. Its 90-second low-effort
+    transport canary passed in 50.758 seconds with eight JSONL events, one agent message, zero file
+    changes, and a retained response. A separate full max-effort production review then retained
+    response-20260816-225423-290186.md with APPROVE_WITH_NITS and no blocking finding. Across both
+    deployed proofs ~/.claude/session-env stayed at 859 entries, ~/.codex/auth.json mtime stayed
+    1786520858, the login-watcher stayed 2801918 bytes, and the dedicated GLM home contained zero
+    auth.json files and zero symlinks.
   repair_entry_point: scripts/council_dir.py:start and glm_codex_transport.py
   change_pattern: >-
-    Keep the file-in/file-out contract and restore the reviewed templates, dedicated CODEX_HOME,
-    and direct codex exec path. Keep current rollback deployment
-    041f7d78dbcbb47518748bc0e7e7c4d160bd1c33 while isolating the provider/runtime failure. Reopen
-    only after one public GLM request-file/response-file proof passes on an exact reviewed candidate.
-    Never print or store GLM_z_AI_API_KEY. Do not add a broker, queue, daemon, filesystem service,
-    Claude fallback, or shell capability.
+    Keep the one-file contract, dedicated CODEX_HOME, direct codex exec path, plain exact response,
+    JSONL attestation, process lock, and child cleanup. After any GLM transport deployment, first run
+    a 90-second low-reasoning canary through the same transport entry point; only after it passes run
+    one full max-reasoning review. Never print or store GLM_z_AI_API_KEY. Do not add a broker, queue,
+    daemon, filesystem service, response schema, Claude fallback, second launcher, or shell capability.
   rollback_procedure: >-
-    The R11 failure already triggered named forward rollback branch
-    rollback/s1566-r11-live-proof-failure at 041f7d78dbcbb47518748bc0e7e7c4d160bd1c33.
-    Keep GLM/full Council closed until the file proof succeeds. Never restore the retired
-    Claude-based GLM route.
+    If the canary, full review, health, isolation, or exact-SHA check fails, forward-roll main with a
+    named rollback branch whose tree is 041f7d78dbcbb47518748bc0e7e7c4d160bd1c33, restart, verify
+    health and restored behavior, and keep GLM/full Council closed. Never restore the retired
+    Claude-based GLM route. The prior named example is rollback/s1566-r11-live-proof-failure.
   integrity_check: >-
     main, checkout, and deployed marker equal the reviewed SHA; health is OK; a request file produces
     its matching response file; session-env count, personal Codex auth mtime, and watcher bytes are
@@ -375,8 +375,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1557
-last_refresh_commit: 041f7d78dbcbb47518748bc0e7e7c4d160bd1c33
-last_refresh_date: 2026-08-16T19:16:00Z
+last_refresh_commit: c96cea2fcbbc0fb6b53d19f39becfc5b0cba734c
+last_refresh_date: 2026-08-16T20:59:26Z
 owner_agent: vulcan
 refresh_triggers:
   - council_request reviewer routing changes
