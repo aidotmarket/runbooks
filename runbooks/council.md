@@ -79,9 +79,9 @@ For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppr
 
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not assemble the standard protocol or another review prompt, pin a checkout, select files, validate a schema, enforce reviewer budgets, parse a verdict, retry, create a session, normalize terminal output, persist a verdict, push a branch, or select another transport. The fixed prefix is assembled only by the two request writers before launch; the launcher still supplies only the one-sentence pickup instruction. Do not add any of those behaviors to the launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; Codex writes the schema-bound response to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, or filesystem service.
 
-The member may read any local file it chooses. The existing macOS sandbox confines member writes to its own Council directory plus CLI housekeeping paths. That fence does not inspect, reject, alter, or discard a response.
+CC and Kimi may read local files. GLM receives the self-contained request file only; exact review packages therefore carry their own sources and diff. The member sandboxes remain read-only, apart from the launcher's named response file and CLI housekeeping. The fence does not inspect, alter, or discard an accepted response.
 
 ### Production measurement checkpoint
 
@@ -98,7 +98,7 @@ Compare the cohort with the S1539/S1544 baseline and record a keep, tune, or rol
 Credentials are launcher inputs only:
 
 - CC uses the machine's Claude Code login and must run without `--bare`.
-- GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment.
+- GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
 
 MP is not a reviewer. `council_request agent=mp mode=build|author` continues through the existing MP build system. Reviewer simplification must not change MP routing, worktrees, verification, or publication.
@@ -107,7 +107,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 |---|---|---|---|---|
 | Reviewer Trigger | `tools/agents.py:_handle_council_member` | none | Directory Exchange | Copies or writes one request and returns one response. |
 | Directory Exchange | `scripts/council_dir.py:ask_member` and CLI `ask` | `/Users/max/council/<member>/` | Member Launcher | Shared standard prefix; exact original-byte suffix; visible byte-identical opt-out; no parsing, persistence, or alternate transport. |
-| Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | One-sentence pickup instruction. |
+| Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | File-in/file-out. GLM request bytes are carried over stdin because its shell tool is disabled. |
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `tools/agents.py:_handle_call_mp` | existing MP task stores | Codex CLI | Separate and unchanged. |
 
@@ -190,8 +190,8 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | F-03 | CC says `Not logged in` | CC was started with `--bare` or the machine login is absent | Compare plain `claude -p` with `claude --bare -p` | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
-| F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED (S1540) |
-| F-07 | CC fails with `OAuth session expired and could not be refreshed`, or returns `auth_unavailable` / `cc_busy` envelopes; historically the operator's own interactive login was also destroyed | ROOT CAUSE SUPERSEDED S1566 - SEE G-07 BEFORE ACTING: the CC path below is FIXED and verified. The logouts that continue are caused by the GLM reviewer, which runs the same claude binary with CLAUDE_CONFIG_DIR unset and therefore lives inside Max's personal ~/.claude profile, unserialized. PRIOR, CC PATH ONLY (T-2026-000617, fixed at koskadeux-mcp main 9be49748fb, S1561): a shared-login FALLBACK rerouted machine CC onto the operator's personal credential whenever the dedicated profile hiccuped, and unserialized OAuth refresh let concurrent CC dispatches rotate-race the profile token (the CLI then writes an empty-token `.credentials.json` stub; five stub quarantines Aug 13-15). Since the fix: machine dispatch NEVER uses the interactive login (fail-closed `CCProfileUnavailable`), empty stubs self-heal by rename, and all subscription-login launches serialize under a bounded flock (`KD_CC_PROFILE_LOCK_WAIT_S`, default 900s; `cc_busy` envelope names the holder pid; timeout reaping kills the whole process group so a dead task cannot retain the lock) | Run `cc_profile.status()`. `auth_unavailable` = profile unprovisioned or quarantined, re-provision per G-07. `cc_busy` = another CC run holds the lock; the error names the holder pid | G-07 | CONFIRMED (S1561) |
+| F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED |
+| F-07 | Max's Claude login changes after GLM, GLM returns `glm_*`, or GLM does not produce the matching response file | The pre-S1566 Claude-based GLM route is deployed, the dedicated Codex home drifted, the provider returned invalid output, or the request is not UTF-8 | Verify deployed/main SHA, then compare one request/response pair. Across that run confirm `~/.claude/session-env`, `~/.codex/auth.json` mtime, and the login watcher are unchanged; confirm zero auth files/symlinks under the dedicated GLM home | G-07 | CONFIRMED |
 
 ## §G. Repair
 
@@ -230,7 +230,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   integrity_check: council_request is the only reviewer tool and returns paths under /Users/max/council/<member>/.
 - id: G-06
   symptom_ref: F-06
-  component_ref: MCP transport / Member Launcher
+  component_ref: Member Launcher
   root_cause: Client-side MCP timeout (~60s) is far below Council review duration; the server call is healthy.
   repair_entry_point: operator procedure (no code entry point yet; raise a BQ to lengthen the client timeout or make council_request async)
   change_pattern: Treat the client error as UNKNOWN, not failure. Poll the member directory for the response file keyed to the dispatch-time request stamp. Do not re-dispatch until the directory shows no request from your dispatch window.
@@ -238,47 +238,36 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
   integrity_check: One request file and at most one response file per intended dispatch; duplicates identified and their verdicts discarded.
 - id: G-07
   symptom_ref: F-07
-  component_ref: CC credential isolation (cc_profile.py, setup_cc_profile.sh)
+  component_ref: Member Launcher
   root_cause: >-
-    READ THIS BEFORE RE-DIAGNOSING. This has been investigated five times and misdiagnosed five
-    times (S1532, S1540, S1545, S1561/T-2026-000617, and the first pass of S1566) because every
-    pass looked at the CC path. The CC path is FIXED and verified working: 17 observed
-    claude-opus-4-8 runs all carried CLAUDE_CONFIG_DIR=/Users/max/.claude-koskadeux. TRUE ROOT
-    CAUSE (S1566, event cc-glm-writes-max-profile-s1566): it is the GLM reviewer, not CC. In
-    scripts/council_dir.py the glm member runs the SAME claude binary via _claude_command("glm-5.3"),
-    but _glm_env() sets only ANTHROPIC_AUTH_TOKEN / ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL and
-    never sets CLAUDE_CONFIG_DIR or CLAUDE_SECURESTORAGE_CONFIG_DIR. The child therefore inherits
-    them unset from the MCP server and runs inside MAX'S PERSONAL PROFILE ~/.claude on the default
-    Keychain item "Claude Code-credentials". The --bare flag does NOT prevent this; it was assumed
-    to and that assumption is what hid the defect. GLM is also the one member deliberately excluded
-    from the serialization lock (start(): profile_lock() only when member == "cc"), so concurrent
-    GLM reviews race each other and Max's own session on one OAuth credential. That is the original
-    S1532 refresh race, never fixed on the GLM path.
-  evidence: >-
-    From the T-2026-000617 launchd watcher log /Users/max/koskadeux-state/cc-login-watch/events.log:
-    26 distinct glm-5.3 runs observed with CLAUDE_CONFIG_DIR unset (most recent 2026-08-16T08:12:31Z),
-    against 17 claude-opus-4-8 runs all correctly on the koskadeux profile. ~/.claude/session-env has
-    858 entries and mtime Aug 16 10:12 local, matching the 08:12Z GLM run exactly; the koskadeux
-    profile has 96. lsof at 2026-08-15T21:28:30Z caught a CLI writing
-    ~/.claude/shell-snapshots/snapshot-zsh-*.sh while the only CLI running was GLM pid 94353.
-    Max's Keychain item "Claude Code-credentials" mdat 2026-08-16T00:01:23Z.
-  fix: >-
-    Give GLM its own throwaway Claude Code config. GLM authenticates to z.ai with a bearer token and
-    needs no Claude login at all, so _glm_env() should set CLAUDE_CONFIG_DIR and
-    CLAUDE_SECURESTORAGE_CONFIG_DIR to a dedicated directory (or a per-run temp dir). Consider
-    serializing GLM the way CC is serialized. Until that ships, every Council GLM review is a Claude
-    Code session inside Max's personal login and will keep destroying it.
-  superseded_causes: >-
-    Shared interactive login refresh race on the CC path (S1532) and empty .credentials.json
-    shadowing the Keychain credential (S1540) were real and their guards stay in place, but they are
-    not why the logouts continue. The same-account theory raised earlier in S1566 (both profiles
-    carry accountUuid b83c3b7a-5e2d-4638-93c4-31f9ab7c9fc9 / max@kisa.cat) is TRUE as a fact but is
-    NOT the cause and must not be acted on before the GLM profile fix: the profiles are separate
-    logins and the CC path has been stable since T-2026-000617.
-  repair_entry_point: scripts/setup_cc_profile.sh (one-time, Max, desktop Terminal); then cc_profile.status(). NOTE - re-running this on the SAME account only restores service until the next revocation; it is not a fix.
-  change_pattern: Run setup_cc_profile.sh once as Max (interactive OAuth; the only human step). Empty-stub shadow files now self-heal (cc_profile.heal_empty_stub renames them aside automatically), so no manual quarantine is needed. Verify with a profile-scoped `claude -p` returning is_error false. There is NO shared-login fallback anymore: until provisioning succeeds, CC dispatch fails closed with CCProfileUnavailable/auth_unavailable and the interactive login is never touched (T-2026-000617).
-  rollback_procedure: Restore the renamed credentials file (never delete outright).
-  integrity_check: cc_profile.status() reports isolated true; no claude process spawned by the MCP server or Council runs with CLAUDE_CONFIG_DIR unset (verify via the cc-login-watch events.log); interactive login and machine login refresh independently.
+    Before S1566, GLM ran through the Claude binary with no isolated Claude profile and wrote into
+    Max's personal ~/.claude state. --bare did not isolate it. The deployed S1566 route removes
+    Claude from GLM completely: one UTF-8 request file is read by council_dir, sent over stdin to
+    codex exec using the dedicated GLM CODEX_HOME, and Codex writes the matching response file.
+    The model shell tool is disabled, runs are serialized, and malformed output fails closed.
+    Deployed koskadeux-mcp SHA e86be5d9bd11c908e432b9c2b4901af8e1e743e0 passed unanimous
+    exact-artifact review (CC APPROVE, Kimi APPROVE_WITH_NITS, GLM PASS). Public production proof:
+    request-20260816-174726-557450.md produced response-20260816-174726-557450.md with PASS and
+    LIVE_FILE_IN_OUT_E86BE5D9. Across the run ~/.claude/session-env stayed at 859 entries,
+    ~/.codex/auth.json mtime and the login-watcher byte count were unchanged, and the dedicated GLM
+    home contained zero auth files and zero symlinks.
+  repair_entry_point: scripts/council_dir.py:start and glm_codex_transport.py
+  change_pattern: >-
+    Keep the file-in/file-out contract and restore the reviewed templates, dedicated CODEX_HOME,
+    and direct codex exec path. Re-deploy exact reviewed SHA
+    e86be5d9bd11c908e432b9c2b4901af8e1e743e0, restart the MCP service only after dispatch liveness
+    reports safe_to_restart=true, and repeat one public GLM request-file/response-file proof. Never
+    print or store GLM_z_AI_API_KEY. Do not add a broker, queue, daemon, filesystem service, Claude
+    fallback, or shell capability.
+  rollback_procedure: >-
+    If deployment or live proof fails, forward-roll main to the named rollback tree represented by
+    a0badc0a5204c7eecd8ff44f3da118f128bd059e, restart and verify health, and keep GLM/full Council
+    closed because that rollback contains the retired Claude-based GLM route. Do not use the old GLM
+    path as a working fallback.
+  integrity_check: >-
+    main, checkout, and deployed marker equal the reviewed SHA; health is OK; a request file produces
+    its matching response file; session-env count, personal Codex auth mtime, and watcher bytes are
+    unchanged; the dedicated GLM home has zero credential files and symlinks.
 - id: G-05
   symptom_ref: F-05
   component_ref: Reviewer Trigger
