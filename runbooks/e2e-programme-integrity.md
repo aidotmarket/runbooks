@@ -57,6 +57,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Ticket-filing failure is announced rather than swallowed, and counted per run | SHIPPED | `src/e2e_harness/tickets.py` | `tests/test_runtime.py` | 2026-07-23 |
 | Production runs fail closed when a service URL resolves off the production backend | SHIPPED | `src/e2e_harness/config.py` | `tests/test_runtime.py` | 2026-07-23 |
 | Guard sees charters appended straight to the runtime queue | BROKEN | `tests/test_charters.py` | — | 2026-07-23 |
+| Empty or missing runtime queue is a LOUD failure: report status `harness_error` with an `error` field, one stderr line, exit 3 — a zero-charter run can never report `passed` (T-2026-000626; the Aug 8 truncation ran green for a week) | SHIPPED | `src/e2e_harness/cli.py` | `tests/test_empty_queue.py` | 2026-08-16 |
 | Charter authoring standard (§H.1) enforced mechanically rather than by review judgement | PLANNED | — | n/a | — |
 | Stale-record and expiring-blocker mechanisms (`BQ-STALE-RECORD-AND-EXPIRING-BLOCKER-CLAIMS-S1315`) | PLANNED | — | n/a | — |
 
