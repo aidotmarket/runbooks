@@ -26,7 +26,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-12
+last_verified_at: 2026-08-16
 system_name: council
 purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
 owner_agent: vulcan
@@ -50,7 +50,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 |---|---|---|---|---|
 | Reviewer trigger | SHIPPED | `tools/agents.py:_handle_council_member` | Focused routing tests for CC, Kimi, and GLM | 2026-08-12 |
 | Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI `ask`: standard protocol prefix plus exact original-byte suffix; visible byte-identical opt-out; raw response text tested | 2026-08-15 |
-| Member launcher | SHIPPED | `scripts/council_dir.py:start` | End-to-end response file from each CLI | 2026-08-12 |
+| Member launcher | PARTIAL | `scripts/council_dir.py:start` | CC passed after S1566; current GLM requests create their request file but do not produce the matching response; see G-07 | 2026-08-16 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -187,7 +187,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 |---|---|---|---|---|---|
 | F-01 | `no response written after` | CLI failure or member did not write the named file | Read the launcher's bounded output and check the exact response path | G-01 | CONFIRMED |
 | F-02 | `GLM_z_AI_API_KEY is not set` or `MOONSHOT_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
-| F-03 | CC says `Not logged in` | CC was started with `--bare` or the machine login is absent | Compare plain `claude -p` with `claude --bare -p` | G-03 | CONFIRMED |
+| F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review holds the profile lock | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
 | F-06 | `council_request` returns `Error occurred during tool execution` to the caller within ~60s, while the review runs 5-8 min server-side | MCP client transport timeout fires long before the review completes; the gateway logs CALL_OK later and the response file lands normally. Transport retries can also fire a DUPLICATE dispatch of the same package minutes later | Check `/Users/max/council/<member>/` for the request file stamped at dispatch time and wait for its response file; check gateway.err for CALL_START/CALL_OK pairs. NEVER re-dispatch on this error without first checking the member directory — S1540 burned a duplicate CC review this way | G-06 | CONFIRMED |
@@ -215,11 +215,11 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 - id: G-03
   symptom_ref: F-03
   component_ref: Member Launcher
-  root_cause: The --bare flag hid the machine's Claude Code login.
-  repair_entry_point: scripts/council_dir.py:_claude_command
-  change_pattern: Keep bare=false for CC.
-  rollback_procedure: Restore the last CC command that used the machine login.
-  integrity_check: CC writes the response file without an Anthropic API key.
+  root_cause: The dedicated CC profile is missing, logged out, or currently locked by another review.
+  repair_entry_point: cc_profile.py and scripts/setup_cc_profile.sh
+  change_pattern: Run scripts/setup_cc_profile.sh as Max when the profile is missing or logged out; wait for the live lock holder when status is cc_busy.
+  rollback_procedure: Stop if the dedicated profile cannot be restored; never route CC through Max's personal Claude profile or inject an Anthropic API key.
+  integrity_check: cc_profile.status reports isolated=true and credential_usable=true, then CC writes the response file.
 - id: G-04
   symptom_ref: F-04
   component_ref: Reviewer Trigger
@@ -245,25 +245,29 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
     Claude from GLM completely: one UTF-8 request file is read by council_dir, sent over stdin to
     codex exec using the dedicated GLM CODEX_HOME, and Codex writes the matching response file.
     The model shell tool is disabled, runs are serialized, and malformed output fails closed.
-    Deployed koskadeux-mcp SHA e86be5d9bd11c908e432b9c2b4901af8e1e743e0 passed unanimous
-    exact-artifact review (CC APPROVE, Kimi APPROVE_WITH_NITS, GLM PASS). Public production proof:
-    request-20260816-174726-557450.md produced response-20260816-174726-557450.md with PASS and
-    LIVE_FILE_IN_OUT_E86BE5D9. Across the run ~/.claude/session-env stayed at 859 entries,
-    ~/.codex/auth.json mtime and the login-watcher byte count were unchanged, and the dedicated GLM
-    home contained zero auth files and zero symlinks.
+    R11 SHA 9c8d6a5c7e26ff0078e97cd7dfb0e3b96c199b56 passed unanimous exact-artifact
+    review and was deployed, but its required live request produced no matching response. It was
+    immediately forward-rolled back. Current main and deployment are
+    041f7d78dbcbb47518748bc0e7e7c4d160bd1c33, whose tree exactly equals the previously proven R9
+    tree at e86be5d9bd11c908e432b9c2b4901af8e1e743e0. Small requests on the restored tree also failed
+    to produce a response, so GLM/full Council remains closed. Across every attempt
+    ~/.claude/session-env stayed at 859 entries, ~/.codex/auth.json mtime and the login-watcher byte
+    count were unchanged, and the dedicated GLM home contained zero auth.json files and zero
+    symlinks. Exact evidence is retained at
+    /Users/max/koskadeux-state/diagnostics/S1566-R11-LIVE-PROOF-ROLLBACK-20260816.md.
   repair_entry_point: scripts/council_dir.py:start and glm_codex_transport.py
   change_pattern: >-
     Keep the file-in/file-out contract and restore the reviewed templates, dedicated CODEX_HOME,
-    and direct codex exec path. Re-deploy exact reviewed SHA
-    e86be5d9bd11c908e432b9c2b4901af8e1e743e0, restart the MCP service only after dispatch liveness
-    reports safe_to_restart=true, and repeat one public GLM request-file/response-file proof. Never
-    print or store GLM_z_AI_API_KEY. Do not add a broker, queue, daemon, filesystem service, Claude
-    fallback, or shell capability.
+    and direct codex exec path. Keep current rollback deployment
+    041f7d78dbcbb47518748bc0e7e7c4d160bd1c33 while isolating the provider/runtime failure. Reopen
+    only after one public GLM request-file/response-file proof passes on an exact reviewed candidate.
+    Never print or store GLM_z_AI_API_KEY. Do not add a broker, queue, daemon, filesystem service,
+    Claude fallback, or shell capability.
   rollback_procedure: >-
-    If deployment or live proof fails, forward-roll main to the named rollback tree represented by
-    a0badc0a5204c7eecd8ff44f3da118f128bd059e, restart and verify health, and keep GLM/full Council
-    closed because that rollback contains the retired Claude-based GLM route. Do not use the old GLM
-    path as a working fallback.
+    The R11 failure already triggered named forward rollback branch
+    rollback/s1566-r11-live-proof-failure at 041f7d78dbcbb47518748bc0e7e7c4d160bd1c33.
+    Keep GLM/full Council closed until the file proof succeeds. Never restore the retired
+    Claude-based GLM route.
   integrity_check: >-
     main, checkout, and deployed marker equal the reviewed SHA; health is OK; a request file produces
     its matching response file; session-env count, personal Codex auth mtime, and watcher bytes are
@@ -305,7 +309,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 
 #### module
 
-The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`.
+The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`; GLM's launcher implementation is `glm_codex_transport.py`.
 
 #### public contract
 
@@ -317,7 +321,7 @@ A runtime dependency is the selected member CLI, its existing credential, and th
 
 #### config default
 
-The only reviewer defaults are the member CLI commands and `/Users/max/council` root defined in `scripts/council_dir.py`.
+The reviewer defaults are the member CLI commands and `/Users/max/council` root in `scripts/council_dir.py`, plus GLM's dedicated `/Users/max/koskadeux-state/agents/glm/codex-home` and its checked config template.
 
 ### §H.6 Adjudication
 
@@ -370,9 +374,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1527
-last_refresh_commit: d393224d95c35a45d83a2347d1fcedc99f67895e
-last_refresh_date: 2026-08-12T14:00:00Z
+last_refresh_session: S1557
+last_refresh_commit: 041f7d78dbcbb47518748bc0e7e7c4d160bd1c33
+last_refresh_date: 2026-08-16T19:16:00Z
 owner_agent: vulcan
 refresh_triggers:
   - council_request reviewer routing changes
