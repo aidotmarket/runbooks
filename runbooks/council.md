@@ -26,7 +26,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-16
+last_verified_at: 2026-08-17
 system_name: council
 purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
 owner_agent: vulcan
@@ -48,9 +48,9 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Reviewer trigger | SHIPPED | `tools/agents.py` | Immediate submit, busy/no-second-file, running/completed/failed polling, and exact-response tests | 2026-08-16 |
-| Directory exchange | SHIPPED | `scripts/council_dir.py` | MCP and CLI share one lock-before-write path; 98 focused tests and deployed submit/poll canary at `31c843b6` | 2026-08-16 |
-| Member launcher | SHIPPED | `scripts/council_dir.py:start` | 137 focused tests; deployed low-effort canary and full max-effort GLM review both retained matching responses at `c96cea2f`; see G-07 | 2026-08-16 |
+| Reviewer trigger | SHIPPED | `tools/agents.py` | Returns status=submitted with the two file paths immediately; exact-bytes tests | 2026-08-17 |
+| Directory exchange | SHIPPED | `scripts/council_dir.py` | One write path for MCP and CLI; detached worker per request; unit tests green at S1568 | 2026-08-17 |
+| Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -60,9 +60,9 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 There is one Council reviewer path.
 
 1. Select `cc`, `kimi`, or `glm`.
-2. Acquire that member's fixed OS lock, place one request file under `/Users/max/council/<member>/`, and start the detached member worker.
-3. Return `status=submitted`, `request_id`, request path, and response path immediately; do not wait for the provider.
-4. Poll `council_request(action=check_review, agent=<member>, request_id=<request_id>)`. `running` means that exact request owns the lock; `completed` returns the response text unchanged; `failed` means the worker exited without the response; `not_found` means the request file does not exist.
+2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
+3. Return `status=submitted` with the request path and response path immediately.
+4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
 
 `council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before the one request writer stores a request, the shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
 
@@ -79,11 +79,11 @@ For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppr
 
 The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is the durable Council verdict record; there is no second persistence or push step. File names include microseconds so two requests to one member cannot overwrite each other.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM has no text-file-reading tool, so the launcher reads the same request file as UTF-8 and sends its complete contents over stdin; the launcher writes Codex's exact final UTF-8 message to the matching response file. The external contract remains one request file in and one response file out in the same member directory. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM runs on its own Codex path with a dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/` so it can never touch Max's Claude Code login (the S1566 root cause); the launcher sends the complete request file contents over stdin and Codex itself writes the one response file via `-o`. Nothing in the GLM launcher parses Codex's output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568: each of those fail-closed checks could destroy or refuse a finished review; none ever caught a bad one). The read-only fence lives in Codex's own config (`config/glm_codex/config.toml`): a `:read-only` permission profile, a deny on `~/.codex`, and the credential excluded from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all three members, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM receives the self-contained request file only; exact review packages therefore carry their own sources and diff. The GLM sandbox is read-only and the launcher writes its named response file. The fence does not inspect, alter, or discard an accepted response.
+CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM receives the self-contained request over stdin and has no shell tool; exact review packages therefore carry their own sources and diff. The GLM sandbox is read-only and Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
 
-Admission control is deliberately smaller than a queue. Each member has one fixed `.member.lock`; the submitter acquires it before writing the request and hands the same locked descriptor to the detached worker. A second submission returns `status=busy` with the active `request_id` and creates no file. There is no waiting list, broker, retry, or daemon. The response file and the lock state are the complete durable status record across client disconnects.
+There is no admission control (Max, S1568: nothing that can check and block work). No member lock, no busy refusal, no waiting list, broker, retry, or daemon. The only lock anywhere is CC's profile lock, which exists to stop two Claude Code processes racing one OAuth token refresh — the mechanism that historically destroyed Max's own login — and never refuses a review; it serializes CC launches. The response file is the complete durable status record across client disconnects.
 
 ### Production measurement checkpoint
 
