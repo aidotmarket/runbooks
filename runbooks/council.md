@@ -9,7 +9,9 @@ authoritative_for:
     section: §F. Isolate
   - topic: council-roster-and-schema-drift
     section: §F. Isolate
-aliases: []
+aliases:
+  - glm-codex-transport
+  - glm-profile-isolation
 error_signatures:
   - signature: "Error occurred during tool execution"
     section: §F. Isolate
@@ -26,7 +28,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-17
+last_verified_at: 2026-08-18
 system_name: council
 purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
 owner_agent: vulcan
