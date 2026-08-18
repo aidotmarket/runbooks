@@ -3,6 +3,54 @@
   "canonical_path_moves": [],
   "contract_version": "ai.market/legacy-catalog-projection/v1",
   "entry_overrides": {
+    "council": {
+      "aliases": [
+        "glm-codex-transport",
+        "glm-profile-isolation"
+      ],
+      "authoritative_for": [
+        {
+          "section": "\u00a7F. Isolate",
+          "topic": "council-dispatch-failure"
+        },
+        {
+          "section": "\u00a7C. Architecture & Interactions",
+          "topic": "council-operations"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "topic": "council-roster-and-schema-drift"
+        }
+      ],
+      "error_signatures": [
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "Error occurred during tool execution"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "Not logged in"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "OAuth session expired and could not be refreshed"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "is not set; source the credential first"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "no response written after"
+        },
+        {
+          "section": "\u00a7F. Isolate",
+          "signature": "required reviewer missing from the live tool schema"
+        }
+      ],
+      "superseded_by": [],
+      "supersedes": []
+    },
     "peer-instance-discipline": {
       "aliases": [
         "peer-bus",
