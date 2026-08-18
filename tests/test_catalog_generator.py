@@ -456,7 +456,13 @@ def test_page_that_fails_integrity_marker_refuses_admission(
     metadata["last_verified_at"] = "2026-07-18"
     _write_doc(tmp_path, "runbooks/member.md", metadata)
 
-    with pytest.raises(CatalogError, match="cannot be in the future"):
+    with pytest.raises(
+        CatalogError,
+        match=(
+            r"runbooks/member\.md: last_verified_at 2026-07-18 is after "
+            r"the verification clock 2026-07-17"
+        ),
+    ):
         build_catalog(tmp_path, current_utc_date=date(2026, 7, 17))
 
 

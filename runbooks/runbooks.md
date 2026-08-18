@@ -45,7 +45,7 @@ error_signatures:
     section: §F. Isolate
   - signature: catalog outputs are stale
     section: §G. Repair
-last_verified_at: "2026-08-19"
+last_verified_at: "2026-08-18"
 superseded_by: []
 supersedes: []
 linter_version: 1.0.0
@@ -72,20 +72,20 @@ wider approved truth-layer design remain separate work.
 
 ## §B. Capability Matrix
 
-Figures measured 2026-08-19 on `build/runbook-catalog-admits-all-corpus-s1574`. Recompute rather than quote:
+Figures measured 2026-08-18 on `build/runbook-catalog-admits-all-corpus-s1574`. Recompute rather than quote:
 `python3 -m runbook_tools.corpus_manifest`.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Machine search reaches the complete immutable corpus | SHIPPED | `runbook_tools/catalog/search.py` | 110 operational records: 26 ACTIVE, 80 current discovery-only, 4 archived | 2026-08-19 |
-| Machine catalog coverage | SHIPPED | `CATALOG.json` | Every path from `source_paths()` plus all manifest-classified recoverable archives | 2026-08-19 |
-| Retrieval quality, human router | SHIPPED | `TOPIC-ROUTER.md` | ACTIVE authority tables plus separate current-discovery and archive tables | 2026-08-19 |
-| Authority separation | SHIPPED | `CATALOG.json` | ACTIVE rows retain their prior flags; discovery rows inherit explicit fail-closed non-authority defaults | 2026-08-19 |
-| Search result cap | SHIPPED | `runbook_tools/catalog/search.py` | Refuses limit above 3 | 2026-08-19 |
+| Machine search reaches the complete immutable corpus | SHIPPED | `runbook_tools/catalog/search.py` | 110 operational records: 26 ACTIVE, 80 current discovery-only, 4 archived | 2026-08-18 |
+| Machine catalog coverage | SHIPPED | `CATALOG.json` | Every path from `source_paths()` plus all manifest-classified recoverable archives | 2026-08-18 |
+| Retrieval quality, human router | SHIPPED | `TOPIC-ROUTER.md` | ACTIVE authority tables plus separate current-discovery and archive tables | 2026-08-18 |
+| Authority separation | SHIPPED | `CATALOG.json` | ACTIVE rows retain their prior flags; discovery rows inherit explicit fail-closed non-authority defaults | 2026-08-18 |
+| Search result cap | SHIPPED | `runbook_tools/catalog/search.py` | Refuses limit above 3 | 2026-08-18 |
 | Scaffolding a new page | SHIPPED | `runbook_tools/cli.py` | `tests/test_creation_flow.py` | 2026-08-09 |
 | Linting a page, as advice rather than a gate | SHIPPED | `runbook_tools/lint/conformance.py` | `tests/test_checks.py`; CI runs it with continue-on-error | 2026-08-09 |
 | CI lint on `main` | BROKEN | `.github/workflows/runbook-lint.yml` | Red since 2026-08-03; six failures, one root cause, repaired on the fix branch | 2026-08-09 |
-| Admitting a new page for discovery | SHIPPED | `runbook_tools/catalog/generator.py` | Admission is the default; ACTIVE authority remains frozen separately | 2026-08-19 |
+| Admitting a new page for discovery | SHIPPED | `runbook_tools/catalog/generator.py` | Admission is the default; ACTIVE authority remains frozen separately | 2026-08-18 |
 | Checking a page's claims against ground truth automatically | PLANNED | `specs/RUNBOOK-TRUTH-LAYER-S1487.md` | AC12 to AC17 of the approved design, unbuilt | 2026-08-09 |
 
 Recompute the coverage figures rather than quoting them: `python3 -m runbook_tools.corpus_manifest`.
@@ -455,7 +455,7 @@ scenario_set:
 ```yaml lifecycle
 last_refresh_session: S1574
 last_refresh_commit: pending
-last_refresh_date: 2026-08-19T00:00:00Z
+last_refresh_date: 2026-08-18T23:29:18Z
 owner_agent: mars
 refresh_triggers:
   - Any chunk of the truth-layer build lands; §B and §C change materially with each one
@@ -471,8 +471,8 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1574 / 2026-08-19T00:00:00Z
-last_lint_result: PENDING
+last_lint_run: S1491 / 2026-08-09T15:40:00Z
+last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
 ```
