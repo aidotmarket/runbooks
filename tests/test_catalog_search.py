@@ -1413,8 +1413,8 @@ def test_complete_pinned_corpus_counts_and_every_exact_path_is_retrievable(
         manifest.active,
         manifest.grandfathered,
         manifest.archived,
-    ) == (109, 26, 79, 4)
-    assert len(snapshot) == 109
+    ) == (110, 26, 80, 4)
+    assert len(snapshot) == 110
 
     seen_paths: set[str] = set()
     h1_only: dict | None = None
@@ -1457,7 +1457,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
         catalog_ref,
         "path:ai-market-backend.md",
     )
-    assert pending["searched_entry_count"] == 109
+    assert pending["searched_entry_count"] == 110
     assert pending["status"] == "no_positive_candidate_in_active_catalog"
     assert pending["discovery_status"] == "discovery_leads_returned_unverified"
     assert pending["authoritative_gap"] is True
@@ -1500,7 +1500,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
     assert {
         state: state_counts[state]["searched_document_count"]
         for state in ("active", "grandfathered", "archived")
-    } == {"active": 26, "grandfathered": 79, "archived": 4}
+    } == {"active": 26, "grandfathered": 80, "archived": 4}
     assert state_counts["grandfathered"]["qualifying_document_count"] == 1
     assert state_counts["grandfathered"]["returned_document_count"] == 1
     assert state_counts["grandfathered"]["omitted_document_count"] == 0
