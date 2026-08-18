@@ -38,6 +38,7 @@ CATALOG_REF_RE = re.compile(
     r"\Agit:aidotmarket/runbooks@(?P<sha>[0-9a-f]{40}):CATALOG\.json\Z"
 )
 MAX_PINNED_CATALOG_BYTES = 4_000_000
+MAX_PINNED_MANIFEST_BYTES = 4_000_000
 MAX_PINNED_MARKDOWN_BYTES = 4_000_000
 MAX_PINNED_SCHEMA_BYTES = 2_000_000
 MAX_PINNED_SNAPSHOT_BYTES = 16_000_000
@@ -141,7 +142,11 @@ def load_validated_catalog(repo_root: Path, catalog_ref: str) -> ValidatedCatalo
     if projection is not None and isinstance(entries, list):
         try:
             catalog_generator._enforce_reviewed_legacy_projection(
-                [entry for entry in entries if isinstance(entry, dict)],
+                [
+                    entry
+                    for entry in entries
+                    if isinstance(entry, dict) and entry.get("status") == "ACTIVE"
+                ],
                 projection,
             )
         except CatalogError as exc:
@@ -210,8 +215,10 @@ def active_catalog_paths(repo_root: Path) -> list[Path]:
 
     selected: list[Path] = []
     for entry in entries:
-        if not isinstance(entry, dict) or entry.get("status") != "ACTIVE":
-            raise CatalogError(f"invalid {CATALOG_PATH}: every entry must be ACTIVE")
+        if not isinstance(entry, dict):
+            raise CatalogError(f"invalid {CATALOG_PATH}: every entry must be an object")
+        if entry.get("status") != "ACTIVE":
+            continue
         relative = entry.get("path")
         runbook_id = entry.get("runbook_id")
         if (
@@ -255,11 +262,20 @@ def _validate_pinned_entries(
         if type(catalog.get(field)) is not type(expected) or catalog.get(field) != expected:
             errors.append(f"catalog {field} must be {expected!r}")
     entries = catalog.get("entries")
-    indexes = catalog.get("indexes")
     if not isinstance(entries, list):
         return errors + ["entries must be an array"], 0
-    if not isinstance(indexes, dict):
-        errors.append("indexes must be an object")
+    expected_discovery_defaults = {
+        "action_authority_eligible": False,
+        "authority_admission": False,
+        "integrity_only": True,
+        "integrity_status": "integrity_pass_unverified",
+        "semantic_verification": False,
+    }
+    if catalog.get("discovery_entry_defaults") != expected_discovery_defaults:
+        errors.append(
+            "catalog discovery_entry_defaults must preserve the fail-closed "
+            "non-authority labels"
+        )
 
     seen_ids: set[str] = set()
     seen_identities: set[str] = set()
@@ -272,8 +288,27 @@ def _validate_pinned_entries(
             continue
         runbook_id = entry.get("runbook_id")
         path = entry.get("path")
+        if not isinstance(runbook_id, str) or not runbook_id:
+            errors.append(f"entries[{position}] has invalid runbook_id")
+        elif runbook_id in seen_ids:
+            errors.append(f"duplicate runbook_id {runbook_id!r}")
+        else:
+            seen_ids.add(runbook_id)
+        if isinstance(runbook_id, str):
+            if runbook_id in seen_identities:
+                errors.append(f"duplicate runbook id/alias {runbook_id!r}")
+            seen_identities.add(runbook_id)
+
         if entry.get("status") != "ACTIVE":
-            errors.append(f"entries[{position}] is not ACTIVE")
+            errors.extend(
+                _validate_discovery_entry(
+                    entry,
+                    position,
+                    tree_paths,
+                    loader,
+                )
+            )
+            continue
         expected_entry_labels: tuple[tuple[str, object], ...] = (
             ("integrity_status", "integrity_pass_unverified"),
             ("integrity_only", True),
@@ -286,19 +321,11 @@ def _validate_pinned_entries(
                 errors.append(
                     f"{runbook_id or position}: {field} must be {expected!r}"
                 )
-        if not isinstance(runbook_id, str) or not runbook_id:
-            errors.append(f"entries[{position}] has invalid runbook_id")
-        elif runbook_id in seen_ids:
-            errors.append(f"duplicate runbook_id {runbook_id!r}")
-        else:
-            seen_ids.add(runbook_id)
-        identities = [runbook_id] if isinstance(runbook_id, str) else []
         aliases = entry.get("aliases")
         if not isinstance(aliases, list) or not all(isinstance(alias, str) for alias in aliases):
             errors.append(f"{runbook_id or position}: aliases must be an array of strings")
             aliases = []
-        identities.extend(aliases)
-        for identity in identities:
+        for identity in aliases:
             if identity in seen_identities:
                 errors.append(f"duplicate runbook id/alias {identity!r}")
             seen_identities.add(identity)
@@ -377,6 +404,85 @@ def _validate_pinned_entries(
             )
     errors.extend(_cross_file_reference_errors(reference_documents))
     return errors, checked_sections
+
+
+def _validate_discovery_entry(
+    entry: dict[str, Any],
+    position: int,
+    tree_paths: set[str],
+    loader: Callable[[str], bytes],
+) -> list[str]:
+    errors: list[str] = []
+    required = {
+        "catalog_state",
+        "path",
+        "runbook_id",
+        "section_headings",
+        "status",
+        "title",
+    }
+    if set(entry) != required:
+        errors.append(
+            f"entries[{position}] discovery fields must be exactly "
+            + ", ".join(sorted(required))
+        )
+    runbook_id = entry.get("runbook_id")
+    path = entry.get("path")
+    state = entry.get("catalog_state")
+    if state not in {"grandfathered", "archived"}:
+        errors.append(
+            f"{runbook_id or position}: catalog_state must be grandfathered or archived"
+        )
+    if not isinstance(entry.get("status"), str) or not entry["status"]:
+        errors.append(f"{runbook_id or position}: status must be a non-empty string")
+    if state == "archived" and entry.get("status") != "archived":
+        errors.append(f"{runbook_id or position}: archived entry status must be archived")
+    title = entry.get("title")
+    if title is not None and not isinstance(title, str):
+        errors.append(f"{runbook_id or position}: title must be a string or null")
+    headings = entry.get("section_headings")
+    if not isinstance(headings, list) or not all(
+        isinstance(heading, str) for heading in headings
+    ):
+        errors.append(
+            f"{runbook_id or position}: section_headings must be an array of strings"
+        )
+    if not isinstance(path, str):
+        errors.append(f"{runbook_id or position}: path must be a string")
+        return errors
+    if state == "grandfathered" and not is_source_relative_path(path):
+        errors.append(f"{runbook_id or position}: discovery source path is not admitted")
+    if state == "archived" and not path.startswith("archive/"):
+        errors.append(f"{runbook_id or position}: archived path must be under archive/")
+    if isinstance(runbook_id, str) and runbook_id.startswith("path:"):
+        expected_id = f"path:{path}"
+        if runbook_id != expected_id:
+            errors.append(
+                f"{runbook_id}: synthetic runbook_id must equal {expected_id!r}"
+            )
+    if path not in tree_paths:
+        errors.append(f"{runbook_id or position}: discovery path is missing at pinned SHA: {path}")
+        return errors
+    try:
+        markdown = loader(path).decode()
+    except (CatalogError, UnicodeDecodeError) as exc:
+        errors.append(str(exc))
+        return errors
+    document = parse_markdown_document(markdown)
+    expected_title = next(
+        (section.heading for section in document.sections if section.level == 1),
+        None,
+    )
+    expected_headings = [
+        section.heading for section in document.sections if section.level == 2
+    ]
+    if title != expected_title:
+        errors.append(f"{runbook_id or position}: title differs from the first H1")
+    if headings != expected_headings:
+        errors.append(
+            f"{runbook_id or position}: section_headings differ from rendered H2 sections"
+        )
+    return errors
 
 
 def _pinned_reference_document(
@@ -587,7 +693,14 @@ def _catalog_snapshot_paths(tree_paths: set[str]) -> list[str]:
 
 def _is_catalog_snapshot_path(path: str) -> bool:
     return (
-        path in {CATALOG_PATH, ROUTER_PATH, README_PATH}
+        path
+        in {
+            CATALOG_PATH,
+            ROUTER_PATH,
+            README_PATH,
+            catalog_generator.CORPUS_MANIFEST_PATH,
+        }
+        or (path.startswith("archive/") and PurePosixPath(path).suffix.lower() == ".md")
         or (path.startswith("schemas/") and path.endswith(".json"))
         or is_source_relative_path(path)
     )
@@ -619,6 +732,8 @@ def _preflight_pinned_blobs(
 def _pinned_blob_limit(path: str) -> tuple[int, str]:
     if path == CATALOG_PATH:
         return MAX_PINNED_CATALOG_BYTES, "catalog"
+    if path == catalog_generator.CORPUS_MANIFEST_PATH:
+        return MAX_PINNED_MANIFEST_BYTES, "corpus manifest"
     if path.startswith("schemas/") and path.endswith(".json"):
         return MAX_PINNED_SCHEMA_BYTES, "schema"
     if PurePosixPath(path).suffix.lower() == ".md":

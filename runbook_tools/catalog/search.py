@@ -1319,14 +1319,17 @@ def _load_snapshot(
     catalog: dict[str, Any],
     sha: str,
 ) -> list[tuple[dict[str, Any], MarkdownDocument]]:
-    paths = [entry["path"] for entry in catalog["entries"]]
+    entries = [
+        entry for entry in catalog["entries"] if entry.get("status") == "ACTIVE"
+    ]
+    paths = [entry["path"] for entry in entries]
     _preflight_pinned_blobs(repo_root, sha, paths)
     return [
         (
             entry,
             parse_markdown_document(_git_show_text(repo_root, sha, entry["path"])),
         )
-        for entry in catalog["entries"]
+        for entry in entries
     ]
 
 
@@ -1339,7 +1342,11 @@ def _load_corpus_snapshot(
         manifest = load_pinned_corpus_manifest(repo_root, sha)
     except CorpusManifestError as exc:
         raise CatalogError(f"pinned corpus manifest is invalid: {exc}") from exc
-    catalog_by_path = {entry["path"]: entry for entry in catalog["entries"]}
+    catalog_by_path = {
+        entry["path"]: entry
+        for entry in catalog["entries"]
+        if entry.get("status") == "ACTIVE"
+    }
     active_paths = {
         document.path
         for document in manifest.documents

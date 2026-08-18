@@ -186,7 +186,7 @@ def test_pinned_validation_records_full_sha_digest_and_all_sections(tmp_path: Pa
     assert report.action_authority_eligible is False
 
 
-def test_pinned_validator_requires_catalog_v2_integrity_only_labels(
+def test_pinned_validator_requires_catalog_v3_integrity_only_labels(
     tmp_path: Path,
 ) -> None:
     root, sha, _catalog_ref = _valid_repo(tmp_path)
@@ -206,7 +206,7 @@ def test_pinned_validator_requires_catalog_v2_integrity_only_labels(
         tree_paths,
         lambda path: catalog_validator._git_show(root, sha, path),
     )
-    assert "schema_version must be 2" in errors
+    assert "schema_version must be 3" in errors
 
     for scope, field in (
         *(("catalog", field) for field in ("status", *labels)),
@@ -261,7 +261,7 @@ def test_pinned_validation_materializes_new_nested_source_directories(
     report = validate_catalog_ref(tmp_path, catalog_ref)
 
     assert report.status == "integrity_pass_unverified"
-    assert report.checked_entry_count == 1
+    assert report.checked_entry_count == 2
 
 
 def test_pinned_validation_admits_root_file_with_venv_prefix(tmp_path: Path) -> None:
@@ -278,7 +278,7 @@ def test_pinned_validation_admits_root_file_with_venv_prefix(tmp_path: Path) -> 
     report = validate_catalog_ref(tmp_path, catalog_ref)
 
     assert report.status == "integrity_pass_unverified"
-    assert report.checked_entry_count == 1
+    assert report.checked_entry_count == 2
 
 
 def test_pinned_validation_rejects_symlink_source_blob(tmp_path: Path) -> None:

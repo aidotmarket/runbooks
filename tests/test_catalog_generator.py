@@ -138,7 +138,7 @@ def _markdown_link_targets(markdown: str) -> list[str]:
     ]
 
 
-def test_live_catalog_contains_every_active_source_without_a_brittle_roster() -> None:
+def test_live_catalog_contains_every_source_without_a_brittle_roster() -> None:
     catalog, grandfathered = build_catalog(REPO_ROOT)
 
     expected: dict[str, str] = {}
@@ -157,22 +157,26 @@ def test_live_catalog_contains_every_active_source_without_a_brittle_roster() ->
         if metadata.get("status") == "ACTIVE":
             expected[metadata["runbook_id"]] = path.relative_to(REPO_ROOT).as_posix()
 
-    actual = {entry["runbook_id"]: entry["path"] for entry in catalog["entries"]}
-    assert actual == expected
+    actual_paths = {entry["path"] for entry in catalog["entries"]}
+    source_set = {
+        path.relative_to(REPO_ROOT).as_posix() for path in source_paths(REPO_ROOT)
+    }
+    active = {
+        entry["runbook_id"]: entry["path"]
+        for entry in catalog["entries"]
+        if entry.get("status") == "ACTIVE"
+    }
+    assert source_set <= actual_paths
+    assert active == expected
     assert grandfathered == expected_grandfathered
-    assert len(actual) >= 20
-    # Ceiling, not a target: it moves only when a source document enters the
-    # corpus without the ACTIVE catalog opt-in keys. Raised to 80 in S1534 for
-    # runbooks/alerts-at-open.md, which cannot be admitted to the catalogue
-    # until the reviewed rollout population can grow past 25.
-    assert grandfathered <= 80
+    assert len(catalog["entries"]) >= len(source_set)
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",
         "council",
         "infrastructure-discovery",
         "peer-instance-discipline",
-    } <= actual.keys()
+    } <= active.keys()
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
 
 
@@ -206,7 +210,7 @@ def test_reviewed_projection_rejects_a_19_member_catalog() -> None:
         revision="HEAD",
     )
     assert projection is not None
-    entries = list(catalog["entries"])
+    entries = [entry for entry in catalog["entries"] if entry.get("status") == "ACTIVE"]
     removed = entries.pop()
 
     with pytest.raises(
@@ -223,7 +227,11 @@ def test_reviewed_projection_rejects_a_new_topic_on_an_existing_id() -> None:
         revision="HEAD",
     )
     assert projection is not None
-    entries = json.loads(json.dumps(catalog["entries"]))
+    entries = json.loads(
+        json.dumps(
+            [entry for entry in catalog["entries"] if entry.get("status") == "ACTIVE"]
+        )
+    )
     entries[0]["authoritative_for"].append(
         {"topic": "invented-authority", "section": "§E. Operate"}
     )
@@ -380,15 +388,88 @@ def test_missing_required_active_field_fails_before_writes(tmp_path: Path, missi
     assert {path: (tmp_path / path).read_bytes() for path in before} == before
 
 
-def test_grandfathered_document_is_accepted_and_absent_from_indexes(tmp_path: Path) -> None:
+def test_no_frontmatter_document_is_indexed_without_authority(tmp_path: Path) -> None:
     _write_doc(tmp_path, "legacy.md", None)
     _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
 
     catalog, grandfathered = build_catalog(tmp_path)
 
     assert grandfathered == 1
-    assert [entry["runbook_id"] for entry in catalog["entries"]] == ["member"]
-    assert "legacy" not in json.dumps(catalog)
+    legacy = next(entry for entry in catalog["entries"] if entry["path"] == "legacy.md")
+    assert legacy["runbook_id"] == "path:legacy.md"
+    assert legacy["catalog_state"] == "grandfathered"
+    assert catalog["discovery_entry_defaults"]["authority_admission"] is False
+    assert catalog["discovery_entry_defaults"]["action_authority_eligible"] is False
+
+
+def test_declared_active_page_keeps_exact_authority_fields(tmp_path: Path) -> None:
+    _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+
+    catalog, _ = build_catalog(tmp_path)
+    entry = catalog["entries"][0]
+
+    assert {
+        field: entry[field]
+        for field in (
+            "integrity_only",
+            "integrity_status",
+            "semantic_verification",
+            "authority_admission",
+            "action_authority_eligible",
+        )
+    } == {
+        "integrity_only": True,
+        "integrity_status": "integrity_pass_unverified",
+        "semantic_verification": False,
+        "authority_admission": False,
+        "action_authority_eligible": False,
+    }
+
+
+def test_archived_manifest_page_is_indexed_and_visibly_non_authoritative(
+    tmp_path: Path,
+) -> None:
+    _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+    archived = _write_doc(tmp_path, "archive/history.md", None)
+    (tmp_path / "CORPUS-MANIFEST.yaml").write_text(
+        "policy:\n"
+        "  archive_is_recoverable: true\n"
+        "documents:\n"
+        "  - path: archive/history.md\n"
+        "    catalog_state: archived\n"
+        "    status: archived\n"
+    )
+
+    catalog, _ = build_catalog(tmp_path)
+
+    entry = next(row for row in catalog["entries"] if row["path"] == "archive/history.md")
+    assert archived.is_file()
+    assert entry["catalog_state"] == "archived"
+    assert entry["status"] == "archived"
+    assert catalog["discovery_entry_defaults"]["authority_admission"] is False
+
+
+def test_page_that_fails_integrity_marker_refuses_admission(
+    tmp_path: Path,
+) -> None:
+    metadata = _metadata("member")
+    metadata["last_verified_at"] = "2026-07-18"
+    _write_doc(tmp_path, "runbooks/member.md", metadata)
+
+    with pytest.raises(CatalogError, match="cannot be in the future"):
+        build_catalog(tmp_path, current_utc_date=date(2026, 7, 17))
+
+
+def test_router_surfaces_non_active_page_as_discovery_only(tmp_path: Path) -> None:
+    _write_readme(tmp_path)
+    _write_doc(tmp_path, "legacy.md", None)
+    _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+
+    router = render_outputs(tmp_path)[ROUTER_PATH].decode()
+
+    assert "## Current discovery-only pages" in router
+    assert "legacy.md" in router
+    assert "not authority" in router
 
 
 @pytest.mark.parametrize(
@@ -422,7 +503,7 @@ def test_extra_shape_in_required_active_field_fails(tmp_path: Path) -> None:
         build_catalog(tmp_path)
 
 
-def test_quoted_active_status_without_runbook_id_cannot_evade_admission(
+def test_active_status_without_runbook_id_is_discoverable_not_authority(
     tmp_path: Path,
 ) -> None:
     path = _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
@@ -432,11 +513,14 @@ def test_quoted_active_status_without_runbook_id_cannot_evade_admission(
         .replace("status: ACTIVE", 'status: "ACTIVE"', 1)
     )
 
-    with pytest.raises(CatalogError, match="ACTIVE document is missing required runbook_id"):
-        build_catalog(tmp_path)
+    catalog, grandfathered = build_catalog(tmp_path)
+
+    assert grandfathered == 1
+    assert catalog["entries"][0]["runbook_id"] == "path:runbooks/member.md"
+    assert catalog["entries"][0]["catalog_state"] == "grandfathered"
 
 
-def test_draft_status_without_runbook_id_cannot_become_grandfathered(
+def test_draft_status_without_runbook_id_is_discoverable_not_authority(
     tmp_path: Path,
 ) -> None:
     path = _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
@@ -446,8 +530,11 @@ def test_draft_status_without_runbook_id_cannot_become_grandfathered(
         .replace("status: ACTIVE", "status: DRAFT", 1)
     )
 
-    with pytest.raises(CatalogError, match="DRAFT document is missing required runbook_id"):
-        build_catalog(tmp_path)
+    catalog, grandfathered = build_catalog(tmp_path)
+
+    assert grandfathered == 1
+    assert catalog["entries"][0]["status"] == "DRAFT"
+    assert catalog["entries"][0]["catalog_state"] == "grandfathered"
 
 
 @pytest.mark.parametrize(
@@ -525,7 +612,7 @@ def test_unclosed_catalog_frontmatter_cannot_be_grandfathered(
 
 
 @pytest.mark.parametrize("status", ["ACTVE", "ARCHIVED", "active", "RETIRED"])
-def test_catalog_opt_in_rejects_unknown_source_status(
+def test_non_active_declared_status_remains_discoverable(
     tmp_path: Path,
     status: str,
 ) -> None:
@@ -533,8 +620,12 @@ def test_catalog_opt_in_rejects_unknown_source_status(
     metadata["status"] = status
     _write_doc(tmp_path, "runbooks/member.md", metadata)
 
-    with pytest.raises(CatalogError, match="status must be ACTIVE or DRAFT"):
-        build_catalog(tmp_path)
+    catalog, grandfathered = build_catalog(tmp_path)
+
+    assert grandfathered == 1
+    assert catalog["entries"][0]["runbook_id"] == "member"
+    assert catalog["entries"][0]["status"] == status
+    assert catalog["entries"][0]["catalog_state"] == "grandfathered"
 
 
 def test_catalog_frontmatter_anchors_and_aliases_fail_closed(
@@ -564,7 +655,8 @@ def test_thematic_break_pseudo_frontmatter_remains_grandfathered(
 
     catalog, grandfathered = build_catalog(tmp_path)
 
-    assert catalog["entries"] == []
+    assert catalog["entries"][0]["path"] == "legacy.md"
+    assert catalog["entries"][0]["catalog_state"] == "grandfathered"
     assert grandfathered == 1
 
 
@@ -680,7 +772,8 @@ def test_stable_sorting_newline_and_two_run_idempotency(tmp_path: Path) -> None:
 
     assert first == second_digest
     assert [entry["runbook_id"] for entry in catalog["entries"]] == ["alpha", "zeta"]
-    assert list(catalog["indexes"]["aliases"]) == ["zeta-legacy", "zeta-old"]
+    router = (tmp_path / ROUTER_PATH).read_text()
+    assert router.index("`zeta-legacy`") < router.index("`zeta-old`")
     assert all((tmp_path / path).read_bytes().endswith(b"\n") for path in first)
     assert check_catalog(tmp_path) == []
 
@@ -707,11 +800,6 @@ def test_manual_draft_to_active_cannot_add_authority_or_mutate_outputs(
         for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
     }
     source.write_text(source.read_text().replace("status: DRAFT", "status: ACTIVE", 1))
-    # A dirty author-controlled ledger cannot expand the immutable Git baseline.
-    (tmp_path / "CORPUS-MANIFEST.yaml").write_text(
-        "documents:\n  - runbook_id: novel-member\n    claimed_verified: true\n"
-    )
-
     with pytest.raises(
         CatalogError,
         match="legacy population differs.*unexpected=novel-member",
@@ -780,11 +868,11 @@ def test_router_and_readme_are_rendered_from_catalog(tmp_path: Path) -> None:
     router = outputs[ROUTER_PATH].decode()
     readme = outputs[README_PATH].decode()
 
-    assert catalog["indexes"]["topics"]["catalog-topic"]["runbook_id"] == "member"
+    assert "indexes" not in catalog
     assert "`catalog-topic`" in router
     assert "`CATALOG_BROKEN`" in router
-    assert "ACTIVE catalog members: **1**" in readme
-    assert "Grandfathered source documents" in readme
+    assert "Declared ACTIVE authority entries: **1**" in readme
+    assert "Current discovery-only entries" in readme
     assert "Every runbook conforms" not in readme
     assert "Hand-authored help remains outside" in readme
 
@@ -979,11 +1067,9 @@ def test_optional_stable_section_id_is_serialized_and_used_for_links(
     catalog = json.loads(outputs[CATALOG_PATH])
     entry = catalog["entries"][0]
 
-    assert catalog["schema_version"] == 2
+    assert catalog["schema_version"] == 3
     assert entry["authoritative_for"][0]["section_id"] == "overview"
     assert entry["error_signatures"][0]["section_id"] == "overview"
-    assert catalog["indexes"]["topics"]["catalog-topic"]["section_id"] == "overview"
-    assert catalog["indexes"]["aliases"]["member-alias"]["section_id"] == "overview"
     assert "runbooks/member.md#rb-section-overview" in outputs[ROUTER_PATH].decode()
     assert "runbooks/member.md#rb-section-overview" in outputs[README_PATH].decode()
 
@@ -997,7 +1083,7 @@ def test_legacy_metadata_omits_section_id_without_schema_or_link_drift(
     outputs = render_outputs(tmp_path)
     catalog = json.loads(outputs[CATALOG_PATH])
 
-    assert catalog["schema_version"] == 2
+    assert catalog["schema_version"] == 3
     assert "section_id" not in json.dumps(catalog)
     assert "runbooks/member.md#overview" in outputs[ROUTER_PATH].decode()
     assert "rb-section" not in outputs[ROUTER_PATH].decode()
@@ -1020,9 +1106,13 @@ def test_check_fails_for_each_generated_output_drift(tmp_path: Path, drifted_pat
     path = tmp_path / drifted_path
     content = path.read_bytes()
     if drifted_path == README_PATH:
-        content = content.replace(b"ACTIVE catalog members", b"ACTIVE catalog memberz", 1)
+        content = content.replace(
+            b"Declared ACTIVE authority entries",
+            b"Declared ACTIVE authority entriez",
+            1,
+        )
     elif drifted_path == CATALOG_PATH:
-        content = content.replace(b'"schema_version": 2', b'"schema_version": 1', 1)
+        content = content.replace(b'"schema_version":3', b'"schema_version":1', 1)
     else:
         content = content.replace(b"Generated", b"GeneratEd", 1)
     path.write_bytes(content)
@@ -1036,7 +1126,10 @@ def test_check_reports_every_drifted_output(tmp_path: Path) -> None:
     generate_catalog(tmp_path)
     (tmp_path / CATALOG_PATH).write_text("{}\n")
     (tmp_path / ROUTER_PATH).write_text("drift\n")
-    readme = (tmp_path / README_PATH).read_text().replace("ACTIVE catalog members", "ACTIVE catalog memberz")
+    readme = (tmp_path / README_PATH).read_text().replace(
+        "Declared ACTIVE authority entries",
+        "Declared ACTIVE authority entriez",
+    )
     (tmp_path / README_PATH).write_text(readme)
 
     assert check_catalog(tmp_path) == [CATALOG_PATH, ROUTER_PATH, README_PATH]
@@ -1111,6 +1204,7 @@ def test_all_bare_resolver_namespaces_share_one_global_keyspace(
 
 
 def test_kernel_companion_ids_register_together(tmp_path: Path) -> None:
+    _write_readme(tmp_path)
     ensure_catalog_schemas(tmp_path)
     (tmp_path / "runbooks").mkdir()
     for source in KERNEL_FIXTURES.glob("*.md"):
@@ -1125,7 +1219,8 @@ def test_kernel_companion_ids_register_together(tmp_path: Path) -> None:
 
     assert grandfathered == 0
     assert [entry["runbook_id"] for entry in catalog["entries"]] == KERNEL_IDS
-    assert list(catalog["indexes"]["topics"]) == KERNEL_IDS
+    router = render_outputs(tmp_path)[ROUTER_PATH].decode()
+    assert all(f"`{runbook_id}`" in router for runbook_id in KERNEL_IDS)
     for entry in catalog["entries"]:
         source = (tmp_path / entry["path"]).read_text()
         assert f"## {entry['authoritative_for'][0]['section']}" in source

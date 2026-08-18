@@ -13,7 +13,9 @@ def resolve_catalog_key(repo_root: Path, catalog_ref: str, query: str) -> dict[s
     entries = {
         entry["runbook_id"]: entry
         for entry in catalog["entries"]
-        if isinstance(entry, dict) and isinstance(entry.get("runbook_id"), str)
+        if isinstance(entry, dict)
+        and entry.get("status") == "ACTIVE"
+        and isinstance(entry.get("runbook_id"), str)
     }
 
     match_type: str | None = None
@@ -28,15 +30,34 @@ def resolve_catalog_key(repo_root: Path, catalog_ref: str, query: str) -> dict[s
             section = authorities[0].get("section")
             section_id = authorities[0].get("section_id")
     else:
-        for index_name, label in (
-            ("aliases", "alias"),
-            ("topics", "topic"),
-            ("error_signatures", "error_signature"),
-        ):
-            target = catalog["indexes"][index_name].get(query)
+        for entry in entries.values():
+            if query in entry["aliases"]:
+                target = entry["authoritative_for"][0]
+                match_type = "alias"
+            else:
+                target = next(
+                    (
+                        row
+                        for row in entry["authoritative_for"]
+                        if row["topic"] == query
+                    ),
+                    None,
+                )
+                if target is not None:
+                    match_type = "topic"
+                else:
+                    target = next(
+                        (
+                            row
+                            for row in entry["error_signatures"]
+                            if row["signature"] == query
+                        ),
+                        None,
+                    )
+                    if target is not None:
+                        match_type = "error_signature"
             if target is not None:
-                match_type = label
-                runbook_id = target["runbook_id"]
+                runbook_id = entry["runbook_id"]
                 section = target["section"]
                 section_id = target.get("section_id")
                 break
