@@ -182,3 +182,4 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-standard` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `seller-stripe-linkage` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
+| CC credential failures, council reviewer auth, Claude login destroyed, 401 revoked | cc-machine-identity.md |
