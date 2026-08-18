@@ -81,6 +81,28 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 
 The gate state shape is intentionally small: `gate1`, `gate2`, `gate3`, and `gate4` hold status and verdict evidence; `builders` records agents that modified files or authored commits; `reviewers` records agents that supplied review or verification verdicts. Verdict strings are accepted only when they communicate approval, verification, or pass semantics. Gate transitions should update the BQ entity and the human-readable handoff in the same session.
 
+### Rational-use tiering and stopping rules (ADOPTED by Max, 2026-08-18, S1570)
+
+Decision record: `decision:council-usage-guidelines-s1570` (Living State), consensus of CC, GLM, Kimi, and MP, adopted verbatim by Max. These rules implement CORE S3 risk-sizing operationally; they do not amend the constitution. The constitutional floor is untouched: security, auth, payments, and customer-data changes always take three reviewers unanimous, and the builder never reviews its own work.
+
+**Tier rule.** A change's tier is the highest tier any hunk touches.
+
+- **TIER 3 - three reviewers, unanimous (constitutional floor):** security, auth, payments, customer data, and the fail-closed envelope guarding them: spend/rate caps, session/token/output budgets, mutation fences, PII fields, new external egress, destructive migrations on customer tables. Tiering UP is always allowed; tiering below this floor is AMENDMENT-REQUIRED.
+- **TIER 1 - one reviewer:** ordinary production behavior changes, APIs, non-sensitive migrations, jobs and schedules, deploy config, dependency bumps with runtime impact, prompt/model changes affecting product output, council/reviewer plumbing outside the Tier 3 envelope.
+- **TIER 0 - tests plus recorded builder verification, no Council:** docs, comments, tests-only changes, formatting, copy, dead-code deletion, generated files and lockfiles, single values inside an already-reviewed bound. A document that encodes a load-bearing invariant on a Tier 3 system is at least Tier 1.
+
+**Escalation triggers (any one raises the tier):** the diff touches a protected surface even incidentally; weakens a fail-closed default; changes a value a safety invariant depends on; runs an irreversible or data-dropping migration; adds a new dependency, external egress, or crypto primitive; deletes or weakens tests; follows an incident in the same module; a reviewer is uncertain or reviewers split.
+
+**Stopping rules.** APPROVE_WITH_MANDATES ENDS the review when every mandate is objective, local, and verifiable by tests or deterministic evidence: the builder folds, runs the named checks, records the evidence, and ships. Re-review happens only when a mandate changes logic on a protected path, changes architecture or a trust boundary, or the required evidence fails - and then delta-scoped only, never a fresh full pass. A byte-identical resubmit is refused with the prior verdict. Hard caps: Tier 1 = 2 rounds, Tier 3 = 3 rounds. At the cap, stop: the spec is wrong, not the code - escalate to Max, revert, or re-scope. Tier 3 never force-ships at cap without unanimity.
+
+**Effort budgets (written into the request preamble):** Tier 1 = diff plus direct callers, roughly 10-15 reviewer turns, one response. Tier 3 = full relevant scope, roughly 25-40 turns, independent verification of load-bearing claims only. On exhaustion the reviewer returns a partial verdict naming uncovered areas. Silence is never approval.
+
+**Quota allocation:** reserve Kimi primarily for Tier 3 (its weekly quota is the scarce unanimity seat); route Tier 1 to a CC/GLM rotation.
+
+**Degraded mode:** a missing response is a withheld gate, never a pass. Launcher circuit breaker: two delivery attempts, then mark the reviewer down and alert - no retry storms. Tier 0/1 proceed on tests plus builder verification (Tier 1 fails over to another reviewer). Tier 3 waits, or merges only under explicit logged Max authorization labeled UNREVIEWED with a tracked review-debt item and a mandatory retroactive review; making that lane standing policy is AMENDMENT-REQUIRED and was NOT adopted.
+
+**Builder obligations that make lighter review safe:** specs carry explicit invariants, non-goals, acceptance criteria, and rollback; each material requirement maps to an automated test; the builder performs a mandatory recorded self-check (full diff read, requirement-to-evidence trace, secrets and migration safety, prescribed suite run, residual risk declared). This is builder verification, not self-review.
+
 ## §D. Agent Capability Map
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
