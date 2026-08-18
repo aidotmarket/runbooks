@@ -169,8 +169,6 @@ The router intentionally lists only ACTIVE authority keys. Agents must first use
 | `crm-steward` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `crm-target-state` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `gate-recording` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
-| `glm-codex-transport` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
-| `glm-profile-isolation` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `how-to-write-a-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `mcp-server-reload` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
 | `minimal-bridge` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
