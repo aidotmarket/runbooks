@@ -10,6 +10,7 @@ import yaml
 from click.testing import CliRunner
 
 from runbook_tools.catalog.generator import generate_catalog
+from runbook_tools.catalog.model import CatalogError
 from runbook_tools.cli import (
     PROMOTION_AUTHORITY_UNAVAILABLE,
     catalog_pin_evidence_cmd,
@@ -52,16 +53,17 @@ def test_documented_new_to_promote_path_never_creates_grandfathered_root_file(
     assert created.exit_code == 0
     assert draft_path.is_file()
     assert not (tmp_path / "demo-runbook.md").exists()
-    generate_catalog(tmp_path)
-    assert json.loads((tmp_path / "CATALOG.json").read_text())["entries"] == []
+    with pytest.raises(CatalogError, match="dangling section"):
+        generate_catalog(tmp_path)
+    assert not (tmp_path / "CATALOG.json").exists()
 
     variants = [
-        draft_path.read_text(),
         _conformant_draft("demo-runbook") + "\n<<E_TOOL:optional>>\n",
         _conformant_draft("demo-runbook"),
     ]
     for source in variants:
         draft_path.write_text(source)
+        generate_catalog(tmp_path)
         before_source = draft_path.read_bytes()
         before_catalog = (tmp_path / "CATALOG.json").read_bytes()
 
@@ -71,7 +73,12 @@ def test_documented_new_to_promote_path_never_creates_grandfathered_root_file(
         assert refused.output.strip() == PROMOTION_AUTHORITY_UNAVAILABLE
         assert draft_path.read_bytes() == before_source
         assert (tmp_path / "CATALOG.json").read_bytes() == before_catalog
-        assert json.loads(before_catalog)["entries"] == []
+        entries = json.loads(before_catalog)["entries"]
+        assert len(entries) == 1
+        assert entries[0]["path"] == "runbooks/demo-runbook.md"
+        assert entries[0]["status"] == "DRAFT"
+        assert entries[0]["catalog_state"] == "grandfathered"
+        assert not (tmp_path / "demo-runbook.md").exists()
 
 
 def test_decorative_low_risk_evidence_cannot_promote_or_mutate_authority(
@@ -125,7 +132,11 @@ def test_decorative_unknown_and_invented_claim_cannot_promote(
     assert result.exit_code == 1
     assert result.output.strip() == PROMOTION_AUTHORITY_UNAVAILABLE
     assert draft_path.read_bytes() == before
-    assert json.loads((root / "CATALOG.json").read_text())["entries"] == []
+    entries = json.loads((root / "CATALOG.json").read_text())["entries"]
+    assert len(entries) == 1
+    assert entries[0]["runbook_id"] == "demo-runbook"
+    assert entries[0]["status"] == "DRAFT"
+    assert entries[0]["catalog_state"] == "grandfathered"
 
 
 def test_pin_evidence_mechanically_fills_digests_without_promoting(

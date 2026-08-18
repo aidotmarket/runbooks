@@ -218,7 +218,9 @@ def test_catalog_check_cli_exits_one_on_generated_catalog_drift(
 ) -> None:
     _generated_repo(tmp_path, 1)
     catalog = tmp_path / "CATALOG.json"
-    catalog.write_text(catalog.read_text().replace('"schema_version": 2', '"schema_version": 1'))
+    content = catalog.read_text()
+    assert '"schema_version":3' in content
+    catalog.write_text(content.replace('"schema_version":3', '"schema_version":1'))
     monkeypatch.chdir(tmp_path)
 
     result = CliRunner().invoke(catalog_check_cmd)

@@ -203,7 +203,19 @@ def _commit_snapshot_manifest(
         states,
         base_sha=base_sha,
     )
-    subprocess.run(["git", "add", "CORPUS-MANIFEST.yaml"], cwd=root, check=True)
+    generate_catalog(root)
+    subprocess.run(
+        [
+            "git",
+            "add",
+            "CORPUS-MANIFEST.yaml",
+            "CATALOG.json",
+            "TOPIC-ROUTER.md",
+            "README.md",
+        ],
+        cwd=root,
+        check=True,
+    )
     subprocess.run(
         ["git", "commit", "-q", "-m", "pinned corpus manifest"],
         cwd=root,
@@ -442,6 +454,7 @@ def test_search_snapshot_preflights_runbook_before_reading_it(
         "entries": [
             {
                 "path": "runbooks/peer-instance-discipline.md",
+                "status": "ACTIVE",
             }
         ]
     }
