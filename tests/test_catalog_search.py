@@ -345,7 +345,6 @@ def _working_tree_pin(root: Path) -> tuple[str, str]:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO_ROOT / path, destination)
     shutil.copy2(REPO_ROOT / "README.md", root / "README.md")
-    generate_catalog(root)
     subprocess.run(["git", "add", "."], cwd=root, check=True)
     subprocess.run(
         ["git", "commit", "-q", "-m", "working tree catalog fixture"],
