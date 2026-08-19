@@ -23,3 +23,15 @@ The source path records the exact file hashed during this build. Runtime integri
 - A change in current constitution bytes invalidates this cross-walk and all seven companion source labels until regenerated and reviewed.
 - Publishing or revising a companion never edits `infra:constitution` or canonical `docs/core/CORE.md`; such an edit requires the separate amendment gate.
 - Catalog membership and paths come only from generated `CATALOG.json`; this cross-walk is deliberately not a thirteenth catalog member.
+
+## The catalog pin and the installed validator move together (S1575)
+
+The boot pin has three coupled surfaces that must switch in one operation or every session open fails loudly with `BOOT_KERNEL_CATALOG_INVALID` (fail-closed, retryable — by design):
+
+1. `koskadeux-mcp` constants — `tools/boot_kernel_v2.py` `BOOT_KERNEL_V2_CATALOG_{REF,DIGEST,ENTRIES,SECTIONS}`.
+2. `koskadeux-mcp` artifact — the same four catalog fields in `boot_kernel/v2/manifest`.
+3. The installed `runbook-catalog` CLI (`/opt/homebrew/bin/runbook-catalog`), an editable pip install of `runbook_tools` from this repo. The session resolver (`tools/session.py::_resolve_boot_kernel_catalog`) shells out to it via PATH.
+
+Cross-schema pins do not validate in either direction: a schema-1 validator rejects a schema-3 catalog outright, and the upgraded validator rejects any pin that is not a descendant of the immutable rollout baseline `e4f6d5626a`. So moving the pin means: build the constants+manifest change, merge to koskadeux-mcp main, and swap the editable install (`python3.14 -m pip install -e /Users/max/Projects/ai-market/runbooks --break-system-packages`) back-to-back. The old server keeps running its in-memory code; the reload-when-idle guard restarts it once no live session remains, after which new opens use new code + new CLI. Opens attempted in the gap fail loudly and retry cleanly.
+
+The upgraded validator emits `status: integrity_pass_unverified` for an integrity pass; the resolver accepts exactly `("pass", "integrity_pass_unverified")` and remains strict on ref, SHA, digest, entry count, and section count. Verify a pin move from a FRESH session: source documents found == `CATALOG.json` entries == entries validated at open. Moved to 110 entries at runbooks `396657dd`, koskadeux-mcp merge `441fec05ec` (Gate 3: GLM + Kimi APPROVE_WITH_NITS).
