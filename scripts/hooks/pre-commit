@@ -6,8 +6,16 @@ warning='WARNING: catalog regeneration failed; commit continues with advisory ge
 # reflects the worktree at commit time, including unstaged edits; that is
 # accepted because the generated index is advisory.
 trap 'exit 0' EXIT
-trap 'printf "%s\n" "$warning" >&2; exit 0' HUP INT TERM PIPE
-# SIGKILL is physically uncatchable and therefore cannot be neutralized here.
+for hook_signal in \
+    HUP INT QUIT ILL TRAP ABRT FPE BUS SEGV SYS PIPE ALRM TERM \
+    USR1 USR2 XCPU XFSZ VTALRM PROF EMT
+do
+    if (trap '' "$hook_signal") 2>/dev/null; then
+        trap 'printf "%s\n" "$warning" >&2; exit 0' "$hook_signal"
+    fi
+done
+# SIGKILL and SIGSTOP are physically uncatchable and are the only signals that
+# cannot be neutralized here.
 
 if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
     printf '%s\n' "$warning" >&2

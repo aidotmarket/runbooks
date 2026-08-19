@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import signal
 import stat
 import subprocess
@@ -33,7 +34,7 @@ MINIMAL_GENERATOR = textwrap.dedent(
 
     ready_path = os.environ.get("CATALOG_TEST_READY")
     if ready_path:
-        Path(ready_path).write_text("ready\\n", encoding="utf-8")
+        Path(ready_path).write_text(f"{os.getppid()}\\n", encoding="utf-8")
         release_path = Path(os.environ["CATALOG_TEST_RELEASE"])
         deadline = time.monotonic() + 10
         while not release_path.exists() and time.monotonic() < deadline:
@@ -201,21 +202,75 @@ def test_unrelated_commit_still_regenerates_without_error(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     "delivered_signal",
-    [signal.SIGHUP, signal.SIGINT, signal.SIGTERM, signal.SIGPIPE],
-    ids=["HUP", "INT", "TERM", "PIPE"],
+    [
+        signal.SIGHUP,
+        signal.SIGINT,
+        signal.SIGQUIT,
+        signal.SIGILL,
+        signal.SIGTRAP,
+        signal.SIGABRT,
+        signal.SIGFPE,
+        signal.SIGEMT,
+        signal.SIGBUS,
+        signal.SIGSEGV,
+        signal.SIGSYS,
+        signal.SIGPIPE,
+        signal.SIGALRM,
+        signal.SIGTERM,
+        signal.SIGUSR1,
+        signal.SIGUSR2,
+        signal.SIGXCPU,
+        signal.SIGXFSZ,
+        signal.SIGVTALRM,
+        signal.SIGPROF,
+    ],
+    ids=[
+        "HUP",
+        "INT",
+        "QUIT",
+        "ILL",
+        "TRAP",
+        "ABRT",
+        "FPE",
+        "EMT",
+        "BUS",
+        "SEGV",
+        "SYS",
+        "PIPE",
+        "ALRM",
+        "TERM",
+        "USR1",
+        "USR2",
+        "XCPU",
+        "XFSZ",
+        "VTALRM",
+        "PROF",
+    ],
 )
-def test_catchable_signal_warns_and_exits_zero(
+def test_catchable_signal_warns_and_does_not_block_commit(
     tmp_path: Path, delivered_signal: signal.Signals
 ) -> None:
     _init_repo(tmp_path)
     _stage(tmp_path, "notes.txt", "signal test\n")
+    installed_hook = tmp_path / ".git" / "hooks" / "pre-commit"
+    shutil.copy2(HOOK, installed_hook)
     ready = tmp_path / "generator-ready"
     release = tmp_path / "generator-release"
     environment = os.environ.copy()
     environment["CATALOG_TEST_READY"] = str(ready)
     environment["CATALOG_TEST_RELEASE"] = str(release)
     process = subprocess.Popen(
-        [str(HOOK)],
+        [
+            "git",
+            "-c",
+            "user.name=Catalog Hook Test",
+            "-c",
+            "user.email=catalog-hook@example.test",
+            "commit",
+            "-q",
+            "-m",
+            f"signal {delivered_signal.name}",
+        ],
         cwd=tmp_path,
         env=environment,
         start_new_session=True,
@@ -229,7 +284,8 @@ def test_catchable_signal_warns_and_exits_zero(
 
     try:
         assert ready.exists(), "the real python3 generator did not start"
-        os.kill(process.pid, delivered_signal)
+        hook_pid = int(ready.read_text(encoding="utf-8").strip())
+        os.kill(hook_pid, delivered_signal)
         release.write_text("release\n")
         stdout, stderr = process.communicate(timeout=5)
     finally:
@@ -240,3 +296,10 @@ def test_catchable_signal_warns_and_exits_zero(
     assert process.returncode == 0
     assert stdout == ""
     assert stderr.splitlines() == [WARNING]
+    assert subprocess.run(
+        ["git", "rev-list", "--count", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip() == "2"
