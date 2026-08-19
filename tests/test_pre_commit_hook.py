@@ -5,6 +5,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import textwrap
 import time
 from pathlib import Path
@@ -19,6 +20,42 @@ WARNING = (
     "generated-index drift."
 )
 GENERATED_OUTPUTS = {"CATALOG.json", "README.md", "TOPIC-ROUTER.md"}
+SIGNAL_NAMES = [
+    "HUP",
+    "INT",
+    "QUIT",
+    "ILL",
+    "TRAP",
+    "ABRT",
+    "EMT",
+    "FPE",
+    "BUS",
+    "SEGV",
+    "SYS",
+    "PIPE",
+    "ALRM",
+    "TERM",
+    "TSTP",
+    "TTIN",
+    "TTOU",
+    "XCPU",
+    "XFSZ",
+    "VTALRM",
+    "PROF",
+    "USR1",
+    "USR2",
+]
+DELIVERED_SIGNALS = [
+    resolved_signal
+    if (resolved_signal := getattr(signal, f"SIG{signal_name}", None)) is not None
+    else pytest.param(
+        None,
+        marks=pytest.mark.skip(
+            reason=f"SIG{signal_name} is not available on {sys.platform}"
+        ),
+    )
+    for signal_name in SIGNAL_NAMES
+]
 MINIMAL_GENERATOR = textwrap.dedent(
     """\
     from __future__ import annotations
@@ -139,6 +176,57 @@ def _staged_paths(root: Path) -> set[str]:
     )
 
 
+def _head_file_contents(root: Path, relative_path: str) -> str:
+    return subprocess.run(
+        ["git", "show", f"HEAD:{relative_path}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def test_signal_matrix_is_complete_and_resolves_available_signals() -> None:
+    expected_names = (
+        "HUP",
+        "INT",
+        "QUIT",
+        "ILL",
+        "TRAP",
+        "ABRT",
+        "EMT",
+        "FPE",
+        "BUS",
+        "SEGV",
+        "SYS",
+        "PIPE",
+        "ALRM",
+        "TERM",
+        "TSTP",
+        "TTIN",
+        "TTOU",
+        "XCPU",
+        "XFSZ",
+        "VTALRM",
+        "PROF",
+        "USR1",
+        "USR2",
+    )
+
+    assert tuple(SIGNAL_NAMES) == expected_names
+    assert len(DELIVERED_SIGNALS) == len(expected_names)
+    for name, delivered_signal in zip(
+        expected_names, DELIVERED_SIGNALS, strict=True
+    ):
+        resolved_signal = getattr(signal, f"SIG{name}", None)
+        if resolved_signal is not None:
+            assert isinstance(delivered_signal, signal.Signals)
+            assert delivered_signal == resolved_signal
+        else:
+            assert delivered_signal.values == (None,)
+            assert [mark.name for mark in delivered_signal.marks] == ["skip"]
+
+
 def test_hook_is_tracked_as_executable() -> None:
     assert HOOK.stat().st_mode & stat.S_IXUSR
 
@@ -202,56 +290,8 @@ def test_unrelated_commit_still_regenerates_without_error(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     "delivered_signal",
-    [
-        signal.SIGHUP,
-        signal.SIGINT,
-        signal.SIGQUIT,
-        signal.SIGILL,
-        signal.SIGTRAP,
-        signal.SIGABRT,
-        signal.SIGEMT,
-        signal.SIGFPE,
-        signal.SIGBUS,
-        signal.SIGSEGV,
-        signal.SIGSYS,
-        signal.SIGPIPE,
-        signal.SIGALRM,
-        signal.SIGTERM,
-        signal.SIGTSTP,
-        signal.SIGTTIN,
-        signal.SIGTTOU,
-        signal.SIGXCPU,
-        signal.SIGXFSZ,
-        signal.SIGVTALRM,
-        signal.SIGPROF,
-        signal.SIGUSR1,
-        signal.SIGUSR2,
-    ],
-    ids=[
-        "HUP",
-        "INT",
-        "QUIT",
-        "ILL",
-        "TRAP",
-        "ABRT",
-        "EMT",
-        "FPE",
-        "BUS",
-        "SEGV",
-        "SYS",
-        "PIPE",
-        "ALRM",
-        "TERM",
-        "TSTP",
-        "TTIN",
-        "TTOU",
-        "XCPU",
-        "XFSZ",
-        "VTALRM",
-        "PROF",
-        "USR1",
-        "USR2",
-    ],
+    DELIVERED_SIGNALS,
+    ids=SIGNAL_NAMES,
 )
 def test_catchable_signal_warns_and_does_not_block_commit(
     tmp_path: Path, delivered_signal: signal.Signals
@@ -301,7 +341,6 @@ def test_catchable_signal_warns_and_does_not_block_commit(
 
     assert process.returncode == 0
     assert stdout == ""
-    assert stderr.splitlines() == [WARNING]
     assert subprocess.run(
         ["git", "rev-list", "--count", "HEAD"],
         cwd=tmp_path,
@@ -309,3 +348,18 @@ def test_catchable_signal_warns_and_does_not_block_commit(
         capture_output=True,
         text=True,
     ).stdout.strip() == "2"
+
+    inventory = f"{tmp_path / 'runbooks/member.md'}:# Member\n"
+    completed_output = f"missing-token\n{inventory}"
+    baseline_output = f"baseline\n{inventory}"
+    committed_outputs = {
+        output: _head_file_contents(tmp_path, output) for output in GENERATED_OUTPUTS
+    }
+    hook_ran_to_completion = all(
+        content == completed_output for content in committed_outputs.values()
+    )
+    if hook_ran_to_completion:
+        assert stderr == ""
+    else:
+        assert set(committed_outputs.values()) == {baseline_output}
+        assert stderr.splitlines() == [WARNING]
