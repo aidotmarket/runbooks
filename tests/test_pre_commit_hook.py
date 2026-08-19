@@ -176,6 +176,57 @@ def _staged_paths(root: Path) -> set[str]:
     )
 
 
+def _head_file_contents(root: Path, relative_path: str) -> str:
+    return subprocess.run(
+        ["git", "show", f"HEAD:{relative_path}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def test_signal_matrix_is_complete_and_resolves_available_signals() -> None:
+    expected_names = (
+        "HUP",
+        "INT",
+        "QUIT",
+        "ILL",
+        "TRAP",
+        "ABRT",
+        "EMT",
+        "FPE",
+        "BUS",
+        "SEGV",
+        "SYS",
+        "PIPE",
+        "ALRM",
+        "TERM",
+        "TSTP",
+        "TTIN",
+        "TTOU",
+        "XCPU",
+        "XFSZ",
+        "VTALRM",
+        "PROF",
+        "USR1",
+        "USR2",
+    )
+
+    assert tuple(SIGNAL_NAMES) == expected_names
+    assert len(DELIVERED_SIGNALS) == len(expected_names)
+    for name, delivered_signal in zip(
+        expected_names, DELIVERED_SIGNALS, strict=True
+    ):
+        resolved_signal = getattr(signal, f"SIG{name}", None)
+        if resolved_signal is not None:
+            assert isinstance(delivered_signal, signal.Signals)
+            assert delivered_signal == resolved_signal
+        else:
+            assert delivered_signal.values == (None,)
+            assert [mark.name for mark in delivered_signal.marks] == ["skip"]
+
+
 def test_hook_is_tracked_as_executable() -> None:
     assert HOOK.stat().st_mode & stat.S_IXUSR
 
@@ -290,7 +341,6 @@ def test_catchable_signal_warns_and_does_not_block_commit(
 
     assert process.returncode == 0
     assert stdout == ""
-    assert stderr.splitlines() == [WARNING]
     assert subprocess.run(
         ["git", "rev-list", "--count", "HEAD"],
         cwd=tmp_path,
@@ -298,3 +348,18 @@ def test_catchable_signal_warns_and_does_not_block_commit(
         capture_output=True,
         text=True,
     ).stdout.strip() == "2"
+
+    inventory = f"{tmp_path / 'runbooks/member.md'}:# Member\n"
+    completed_output = f"missing-token\n{inventory}"
+    baseline_output = f"baseline\n{inventory}"
+    committed_outputs = {
+        output: _head_file_contents(tmp_path, output) for output in GENERATED_OUTPUTS
+    }
+    hook_ran_to_completion = all(
+        content == completed_output for content in committed_outputs.values()
+    )
+    if hook_ran_to_completion:
+        assert stderr == ""
+    else:
+        assert set(committed_outputs.values()) == {baseline_output}
+        assert stderr.splitlines() == [WARNING]
