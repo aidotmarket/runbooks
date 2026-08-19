@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: f4124bf5b5fe87ef3ae7f3622bd1124b6cf30eb7
+  inventory_sha: 1b65e547d4b50a6d54e271c054d0f8b490a78e61
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 111
-    source_documents: 107
+    operational_documents: 110
+    source_documents: 106
     active: 26
-    grandfathered: 81
+    grandfathered: 80
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -1077,31 +1077,8 @@ documents:
       - existing ACTIVE catalog source at inventory_sha
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
-  - path: runbooks/anthropic-prompt-caching.md
-    git_blob_oid: bc21b2f824ce0971ca4f2a6617ca7767748d923e
-    catalog_state: grandfathered
-    status: pending_verification
-    proposed_disposition: promote
-    batch: cost-operations
-    risk: P1
-    target_paths:
-      - runbooks/anthropic-prompt-caching.md
-    evidence:
-      - ref: git:aidotmarket/ai-market-backend@ed12d1b86c5475f41a9bed7057946b079a6bbd75
-        finding: Direct inspection found a fresh generated_at value inside the cache-marked anonymous
-          block, making production reuse miss.
-      - ref: git:aidotmarket/ai-market-backend@ccd7fc02d5b73a1d6118549a0076f1b952e499d8
-        finding: Exact unanimously reviewed repair separates stable marked instructions from the complete
-          unmarked live-facts snapshot; not yet deployed.
-      - ref: railway:deployment:82d8c1dc-2c81-4c22-ad65-f9f00c193ac3
-        finding: Preflight reported SUCCESS; this does not prove the reviewed repair is deployed or cache-effective.
-    verify_against:
-      - deployed exact SHA and health
-      - linked cache write/read pair
-      - current Anthropic cache contract
-    independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
-    git_blob_oid: 41387ce1b1b1c2447c50781a58d302a115dd0f62
+    git_blob_oid: 77033124c3c460e18fea07732f8fa543a68b8506
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: evidence_only
