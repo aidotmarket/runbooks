@@ -5,6 +5,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import textwrap
 import time
 from pathlib import Path
@@ -19,6 +20,42 @@ WARNING = (
     "generated-index drift."
 )
 GENERATED_OUTPUTS = {"CATALOG.json", "README.md", "TOPIC-ROUTER.md"}
+SIGNAL_NAMES = [
+    "HUP",
+    "INT",
+    "QUIT",
+    "ILL",
+    "TRAP",
+    "ABRT",
+    "EMT",
+    "FPE",
+    "BUS",
+    "SEGV",
+    "SYS",
+    "PIPE",
+    "ALRM",
+    "TERM",
+    "TSTP",
+    "TTIN",
+    "TTOU",
+    "XCPU",
+    "XFSZ",
+    "VTALRM",
+    "PROF",
+    "USR1",
+    "USR2",
+]
+DELIVERED_SIGNALS = [
+    resolved_signal
+    if (resolved_signal := getattr(signal, f"SIG{signal_name}", None)) is not None
+    else pytest.param(
+        None,
+        marks=pytest.mark.skip(
+            reason=f"SIG{signal_name} is not available on {sys.platform}"
+        ),
+    )
+    for signal_name in SIGNAL_NAMES
+]
 MINIMAL_GENERATOR = textwrap.dedent(
     """\
     from __future__ import annotations
@@ -202,56 +239,8 @@ def test_unrelated_commit_still_regenerates_without_error(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     "delivered_signal",
-    [
-        signal.SIGHUP,
-        signal.SIGINT,
-        signal.SIGQUIT,
-        signal.SIGILL,
-        signal.SIGTRAP,
-        signal.SIGABRT,
-        signal.SIGEMT,
-        signal.SIGFPE,
-        signal.SIGBUS,
-        signal.SIGSEGV,
-        signal.SIGSYS,
-        signal.SIGPIPE,
-        signal.SIGALRM,
-        signal.SIGTERM,
-        signal.SIGTSTP,
-        signal.SIGTTIN,
-        signal.SIGTTOU,
-        signal.SIGXCPU,
-        signal.SIGXFSZ,
-        signal.SIGVTALRM,
-        signal.SIGPROF,
-        signal.SIGUSR1,
-        signal.SIGUSR2,
-    ],
-    ids=[
-        "HUP",
-        "INT",
-        "QUIT",
-        "ILL",
-        "TRAP",
-        "ABRT",
-        "EMT",
-        "FPE",
-        "BUS",
-        "SEGV",
-        "SYS",
-        "PIPE",
-        "ALRM",
-        "TERM",
-        "TSTP",
-        "TTIN",
-        "TTOU",
-        "XCPU",
-        "XFSZ",
-        "VTALRM",
-        "PROF",
-        "USR1",
-        "USR2",
-    ],
+    DELIVERED_SIGNALS,
+    ids=SIGNAL_NAMES,
 )
 def test_catchable_signal_warns_and_does_not_block_commit(
     tmp_path: Path, delivered_signal: signal.Signals
