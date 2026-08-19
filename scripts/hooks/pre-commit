@@ -15,7 +15,8 @@ do
     fi
 done
 # This is exhaustive for macOS signals 1-31. After handler installation, every
-# catchable signal is neutralized and the hook exits 0. KILL (9) and STOP (17)
+# catchable signal whose default action is terminate, create a core image, or
+# stop the process is neutralized and the hook exits 0. KILL (9) and STOP (17)
 # are physically uncatchable and are the only such signals. URG (16), CONT (19),
 # CHLD (20), IO (23), WINCH (28), and INFO (29) are deliberately not trapped
 # because their default action is ignore or continue; trapping CHLD would abort
