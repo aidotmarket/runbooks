@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 1b65e547d4b50a6d54e271c054d0f8b490a78e61
+  inventory_sha: 30dc28a2d786a992dc661851d12e4d8c365c5dec
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 110
-    source_documents: 106
+    operational_documents: 111
+    source_documents: 107
     active: 26
-    grandfathered: 80
+    grandfathered: 81
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -821,7 +821,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: mcp-gateway.md
-    git_blob_oid: 94b75d24df61fa0ac343941d87d767a0aa1e7f24
+    git_blob_oid: 84707b9cb772629e392f231418f551f8bec17e96
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -1019,7 +1019,7 @@ documents:
       - live infra:open-items-board alerts block
     independent_review_required: true
   - path: runbooks/reload-when-idle.md
-    git_blob_oid: b3c933030c108f15532a88a42e6e7d768b47c2f3
+    git_blob_oid: 14ad3da49ff4f75a60cae9f6564d1599a4cd43ab
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1050,7 +1050,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: 172104375920e7bae22af5992a984e2e2133f636
+    git_blob_oid: bdfa712d977e6f8651d5a331ac4632089b6b1bfe
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1220,7 +1220,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/durable-runtime-state.md
-    git_blob_oid: e25f31498060850a38696c337182ed3ef02fe510
+    git_blob_oid: 85310175f2caefeb15c0b2f3cbde27e2c39b25db
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1230,7 +1230,8 @@ documents:
       - runbooks/durable-runtime-state.md
     evidence:
       - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:koskadeux_mcp/durable_state_cutover.py
-        finding: Exact reviewed code candidate implementing the receipt-bound five-record controller documented by this DRAFT.
+        finding: Exact reviewed code candidate implementing the receipt-bound five-record controller documented
+          by this DRAFT.
       - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
         finding: Binding Gate 2 documentation contract for the separately pinned runbooks candidate.
     verify_against:
@@ -1393,7 +1394,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/task-spooler-build-queue.md
-    git_blob_oid: d521332b49f5a2d0b76ca300a61a4b4275612057
+    git_blob_oid: 7d7e629f4518fefefe2a150d3ca3c6085068a8a6
     catalog_state: active
     status: active
     proposed_disposition: retain_active
