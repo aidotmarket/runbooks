@@ -14,6 +14,7 @@ import yaml
 import runbook_tools.catalog.generator as generator_module
 from runbook_tools.catalog.generator import (
     CATALOG_PATH,
+    CORPUS_MANIFEST_PATH,
     README_PATH,
     ROUTER_PATH,
     build_catalog,
@@ -161,15 +162,16 @@ def test_live_catalog_contains_every_source_without_a_brittle_roster() -> None:
     source_set = {
         path.relative_to(REPO_ROOT).as_posix() for path in source_paths(REPO_ROOT)
     }
+    archive_set = set(generator_module._archive_markdown_paths(REPO_ROOT))
     active = {
         entry["runbook_id"]: entry["path"]
         for entry in catalog["entries"]
         if entry.get("status") == "ACTIVE"
     }
-    assert source_set <= actual_paths
+    assert actual_paths == source_set | archive_set
     assert active == expected
     assert grandfathered == expected_grandfathered
-    assert len(catalog["entries"]) >= len(source_set)
+    assert len(catalog["entries"]) == len(source_set) + len(archive_set)
     assert {
         "agent-dispatch",
         "build-queue-reconciliation",
@@ -447,6 +449,37 @@ def test_archived_manifest_page_is_indexed_and_visibly_non_authoritative(
     assert entry["catalog_state"] == "archived"
     assert entry["status"] == "archived"
     assert catalog["discovery_entry_defaults"]["authority_admission"] is False
+
+
+def test_unclassified_archive_page_refuses_before_generated_outputs_are_written(
+    tmp_path: Path,
+) -> None:
+    _write_readme(tmp_path)
+    _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+    _write_doc(tmp_path, "archive/orphan.md", None)
+    readme_before = (tmp_path / README_PATH).read_bytes()
+
+    with pytest.raises(CatalogError, match=r"archive/orphan\.md"):
+        build_catalog(tmp_path)
+    with pytest.raises(CatalogError, match=r"archive/orphan\.md"):
+        generate_catalog(tmp_path)
+
+    assert not (tmp_path / CATALOG_PATH).exists()
+    assert not (tmp_path / ROUTER_PATH).exists()
+    assert (tmp_path / README_PATH).read_bytes() == readme_before
+
+    (tmp_path / CORPUS_MANIFEST_PATH).write_text(
+        "policy:\n"
+        "  archive_is_recoverable: true\n"
+        "documents:\n"
+        "  - path: archive/orphan.md\n"
+        "    catalog_state: archived\n"
+        "    status: archived\n"
+    )
+    generate_catalog(tmp_path)
+
+    catalog = json.loads((tmp_path / CATALOG_PATH).read_text())
+    assert any(row["path"] == "archive/orphan.md" for row in catalog["entries"])
 
 
 def test_page_that_fails_integrity_marker_refuses_admission(

@@ -457,8 +457,14 @@ def _manifest_catalog_records(
 ) -> tuple[dict[str, tuple[str, str]], list[str]]:
     """Load archive classification without letting the ledger grant authority."""
 
+    archive_paths = _archive_markdown_paths(repo_root)
     path = repo_root / CORPUS_MANIFEST_PATH
     if not path.exists():
+        if archive_paths:
+            raise CatalogError(
+                f"{CORPUS_MANIFEST_PATH}: archive Markdown is not classified as "
+                f"archived: {', '.join(archive_paths)}"
+            )
         return {}, []
     if path.is_symlink() or not path.is_file():
         raise CatalogError(f"{CORPUS_MANIFEST_PATH}: must be a regular file")
@@ -510,7 +516,65 @@ def _manifest_catalog_records(
         if document_path.is_symlink() or not document_path.is_file():
             raise CatalogError(f"{relative}: recoverable archive must be a regular file")
         archived.append(relative)
+    archived_set = set(archived)
+    archive_set = set(archive_paths)
+    if archived_set != archive_set:
+        errors: list[str] = []
+        unclassified = sorted(archive_set - archived_set)
+        missing = sorted(archived_set - archive_set)
+        if unclassified:
+            errors.append(
+                "archive Markdown is not classified as archived: "
+                + ", ".join(unclassified)
+            )
+        if missing:
+            errors.append(
+                "archived manifest record has no archive Markdown file: "
+                + ", ".join(missing)
+            )
+        raise CatalogError(f"{CORPUS_MANIFEST_PATH}: " + "; ".join(errors))
     return records, sorted(archived)
+
+
+def _archive_markdown_paths(repo_root: Path) -> list[str]:
+    """Return every regular Markdown file in the top-level archive tree."""
+
+    archive_root = repo_root / "archive"
+    if not archive_root.exists():
+        return []
+    if archive_root.is_symlink() or not archive_root.is_dir():
+        raise CatalogError("archive: must be a regular directory")
+
+    selected: list[str] = []
+
+    def fail_walk(error: OSError) -> None:
+        location = error.filename or str(archive_root)
+        raise CatalogError(
+            f"archive discovery cannot read {location}: {error.strerror or error}"
+        ) from error
+
+    for directory, child_directories, filenames in os.walk(
+        archive_root, followlinks=False, onerror=fail_walk
+    ):
+        current = Path(directory)
+        for name in sorted(child_directories):
+            child = current / name
+            relative = child.relative_to(repo_root).as_posix()
+            if child.is_symlink():
+                raise CatalogError(
+                    f"{relative}: archive directory must not be a symlink"
+                )
+        for filename in sorted(filenames):
+            path = current / filename
+            if path.suffix.lower() != ".md":
+                continue
+            relative = path.relative_to(repo_root).as_posix()
+            if path.is_symlink() or not path.is_file():
+                raise CatalogError(
+                    f"{relative}: recoverable archive must be a regular file"
+                )
+            selected.append(relative)
+    return sorted(selected)
 
 
 def _reviewed_legacy_projection(
