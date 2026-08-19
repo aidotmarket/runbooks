@@ -52,10 +52,10 @@ without caching and without an error.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `ai-market-backend@84df5f...`: `app/services/copilot_brain.py`, `app/services/listing_enhancement_service.py`, `app/services/allie_proxy_service.py`, `app/routers/anonymous_chat.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests | 2026-08-19 |
-| Preserve exact prompt bytes and request semantics | SHIPPED | `ai-market-backend@84df5f...` | `ai-market-backend@84df5f...`: exact request-shape tests | 2026-08-19 |
-| Capture anonymous-stream cache write/read usage and accounting | SHIPPED | `ai-market-backend@ed12d1b...`: `app/routers/anonymous_chat.py` | exact deployed-revision inspection plus its retained tests | 2026-08-19 |
-| Prove a real production cache write followed by a read of that exact prefix | PARTIAL | existing telemetry lacks exact prefix/request linkage | no valid live pair retained | 2026-08-19 |
+| Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `app/services/copilot_brain.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests; §C.1 lists every surface | 2026-08-19 |
+| Preserve exact prompt bytes and request semantics | SHIPPED | `tests/test_llm_prompt_caching.py` | `ai-market-backend@84df5f...`: exact request-shape tests | 2026-08-19 |
+| Capture anonymous-stream cache write/read usage and accounting | SHIPPED | `app/routers/anonymous_chat.py` | direct inspection of exact deployed revision `ed12d1b...` plus its retained tests | 2026-08-19 |
+| Prove a real production cache write followed by a read of that exact prefix | PARTIAL | `app/routers/anonymous_chat.py` | existing telemetry lacks exact prefix/request linkage; no valid live pair retained | 2026-08-19 |
 | Dedicated indexed operating authority | PLANNED | `runbooks/anthropic-prompt-caching.md` | runbook lint/catalog/manifest tests | 2026-08-19 |
 
 ## §C. Architecture & Interactions
