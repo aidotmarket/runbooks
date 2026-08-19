@@ -23,13 +23,15 @@ linter_version: 1.0.0
 ## §A. Header
 
 This is a **DRAFT discovery document, not operating authority**. Build Queue
-item `s1555`, “Stop paying full price for the same prompt,” is implemented by
-exact `ai-market-backend` commit
+item `s1555`, “Stop paying full price for the same prompt,” received its cache
+placement in exact `ai-market-backend` commit
 `84df5f976bd5dea6730c7ea7f1f8da476cf45b88`. Git proves that commit is an
 ancestor of production-reported revision
 `ed12d1b86c5475f41a9bed7057946b079a6bbd75`. The current Railway deployment
 reported `SUCCESS` for deployment `82d8c1dc-2c81-4c22-ad65-f9f00c193ac3`,
-created `2026-08-18T22:07:14.283Z`.
+created `2026-08-18T22:07:14.283Z`. Direct inspection of that later revision,
+not ancestry alone, is the evidence for its anonymous-stream usage extraction
+and accounting path.
 
 Deployment presence is not cache-effectiveness proof. As of 2026-08-19, the
 available read-only Railway log/metric surface returned no line-level cache
@@ -50,27 +52,31 @@ without caching and without an error.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Cache stable system-prompt prefixes | SHIPPED | `app/services/copilot_brain.py` | `tests/test_llm_prompt_caching.py` | 2026-08-19 |
-| Preserve exact prompt bytes and request semantics | SHIPPED | `tests/test_llm_prompt_caching.py` | exact request-shape tests | 2026-08-19 |
-| Capture provider cache write/read usage | SHIPPED | `app/routers/anonymous_chat.py` | usage/log/accounting tests | 2026-08-19 |
-| Prove a real production cache write followed by cache read | PARTIAL | `app/routers/anonymous_chat.py` | no valid live pair retained | 2026-08-19 |
+| Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `ai-market-backend@84df5f...`: `app/services/copilot_brain.py`, `app/services/listing_enhancement_service.py`, `app/services/allie_proxy_service.py`, `app/routers/anonymous_chat.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests | 2026-08-19 |
+| Preserve exact prompt bytes and request semantics | SHIPPED | `ai-market-backend@84df5f...` | `ai-market-backend@84df5f...`: exact request-shape tests | 2026-08-19 |
+| Capture anonymous-stream cache write/read usage and accounting | SHIPPED | `ai-market-backend@ed12d1b...`: `app/routers/anonymous_chat.py` | exact deployed-revision inspection plus its retained tests | 2026-08-19 |
+| Prove a real production cache write followed by a read of that exact prefix | PARTIAL | existing telemetry lacks exact prefix/request linkage | no valid live pair retained | 2026-08-19 |
 | Dedicated indexed operating authority | PLANNED | `runbooks/anthropic-prompt-caching.md` | runbook lint/catalog/manifest tests | 2026-08-19 |
 
 ## §C. Architecture & Interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Cache breakpoint | `cache_control: {type: ephemeral}` on the static system text block | Anthropic-managed ephemeral cache | Messages API | Cache identity is the exact ordered prefix, not an ai.market key. |
+| Cache breakpoint | `cache_control: {type: ephemeral}` on the marked system-content block | Anthropic-managed ephemeral cache | Messages API | Cache identity is the complete exact ordered prefix, not an ai.market key; some marked blocks contain per-request context. |
 | CoPilot | `app/services/copilot_brain.py` | structured application logs | Anthropic async Messages API | Non-stream response exposes usage. |
 | Listing enhancement | `app/services/listing_enhancement_service.py` | structured application logs | Anthropic async Messages API | Non-stream response exposes usage. |
 | Authenticated allAI | `app/services/allie_proxy_service.py` | structured logs and existing rate-limit accounting | Anthropic create/stream APIs | Verify each response form independently; do not infer stream usage from non-stream usage. |
 | Anonymous allAI | `app/routers/anonymous_chat.py` | SSE usage response, Redis cost reconciliation, OTel aggregate cost/tokens | Anthropic stream API | Usage includes input, cache-write, cache-read, output, model, and estimated cost. |
 
 The cache prefix is provider-defined in request order: tools, system, then
-messages. The s1555 candidate puts the explicit breakpoint on the stable
-system text. Per-request context and user text remain after that breakpoint.
-Changing any byte at or before it produces a different prefix; model, tool,
-image, and provider settings can also invalidate cache reuse.
+messages. The s1555 candidate puts the explicit breakpoint on a system-content
+block, but that block is not universally static. CoPilot page context, listing
+RAG context, and anonymous page/listing/message-derived grounding can be inside
+the marked block. Reuse therefore requires the complete ordered prefix,
+including embedded dynamic context, to be byte-identical. User content after a
+breakpoint does not change that earlier prefix; changing any byte at or before
+it does. Model, tool, image, provider scope, and prompt-affecting settings can
+also invalidate reuse.
 
 No ai.market database row or Redis key stores Anthropic cache contents. The
 provider owns the ephemeral cache. ai.market records only sanitized token
@@ -79,12 +85,15 @@ or customer content to prove caching.
 
 ### §C.1 Exact implementation scope
 
-The final reviewed fold added cache placement to the four previously missed
+Exact `84df5f...` added cache placement to the four previously missed
 large-prompt families: CoPilot, listing enhancement, authenticated allAI
-non-stream/stream, and anonymous allAI stream. Current production main also
-contains the same pattern in shared LLM/provider paths. Before changing a
-call site, inspect current main and prevent double instrumentation where a
-higher-level service already delegates to a measured provider wrapper.
+non-stream/stream, and anonymous allAI stream. At that revision the anonymous
+stream did not yet expose cache creation/read fields. Exact deployed revision
+`ed12d1b...` contains the later anonymous extraction, SSE usage, and accounting
+path. Ancestry proves only that the placement commit is contained; it never
+proves that later instrumentation is present. Inspect the exact deployed
+revision before relying on usage capture, and prevent double instrumentation
+where a higher-level service already delegates to a measured provider wrapper.
 
 ### §C.2 Usage-field meaning
 
@@ -125,18 +134,27 @@ the exact paid proof.
    `llm_usage provider=anthropic`, `cache_write=`, and `cache_read=`. Query
    metrics for cache-specific series if deployed instrumentation provides them.
 4. Retain only timestamp, surface/route, model, numeric token counts, deployment
-   ID, and request/trace ID. Never retain prompt or response content.
-5. Find a completed request with `cache_write > 0`, then a later request on the
-   same model and stable-prefix call path whose `cache_read > 0`; the second
-   request must start inside the provider TTL measured from the start of the
-   first request.
-6. Confirm no prompt-affecting deployment/config/model/tool change occurred
-   between the two requests. Record the result as `LIVE_CACHE_PAIR_VERIFIED`.
+   ID, request/trace ID, opaque provider-scope identity, prompt-affecting
+   parameter identity, and opaque exact-prefix linkage supplied by provider
+   diagnostics or separately security-reviewed keyed instrumentation. Never
+   retain prompt or response content, credentials, a raw content digest, or a
+   reversible customer identifier.
+5. Treat existing records without that exact prefix/request linkage as
+   insufficient. Same route, model, deployment, configuration, and elapsed
+   time are necessary context but never prove that a read consumed the earlier
+   write; another request may have populated the read prefix.
+6. A valid pair requires a completed request with `cache_write > 0` and a later
+   request with `cache_read > 0`, with identical opaque exact-prefix identity,
+   model, tools, prompt-affecting parameters, provider scope, and deployment /
+   configuration epoch. The second request must start inside the provider TTL
+   measured from the first request's start. Only then record
+   `LIVE_CACHE_PAIR_VERIFIED`; otherwise retain `UNVERIFIED`.
 
 A write alone proves only that an eligible prefix was stored. A read alone may
-reuse a write outside the retained window; it proves caching is active but not
-the full paired journey. For BQ completion, retain the pair when possible and
-state any unavoidable evidence boundary explicitly.
+reuse an unseen write and proves caching is active only for some prefix, not the
+full paired journey. The currently reachable logs lack the required exact
+prefix linkage, so they cannot close this BQ even if an unrelated write and read
+appear. Retain `UNVERIFIED` unless a valid linked pair is available.
 
 ### §E.2 Paid proof boundary
 
@@ -144,12 +162,14 @@ A synthetic proof is a financial action because it sends Anthropic requests.
 It requires a new, explicit instruction naming the maximum request count and
 acceptable spend or the exact pre-approved probe. The smallest valid probe is:
 
-- one existing production call path whose static prefix exceeds the current
-  model minimum;
+- one existing production call path whose complete marked prefix, including
+  any embedded dynamic context, exceeds the current model minimum;
 - request 1 completes or at least begins its response and reports
   `cache_creation_input_tokens > 0`;
-- request 2 uses the identical cacheable prefix/model and starts before the TTL
-  expires, reporting `cache_read_input_tokens > 0`;
+- request 2 reuses the exact request construction with identical complete
+  opaque exact-prefix identity, model, tools, prompt-affecting parameters, and
+  provider scope, and starts before the TTL expires, reporting
+  `cache_read_input_tokens > 0`;
 - both requests use harmless non-customer test input and the minimum safe output
   budget already supported by that path.
 
@@ -178,7 +198,7 @@ Therefore code presence is verified but live cache effectiveness remains
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Both cache usage fields remain zero. | Prefix below current model minimum, changing prefix, unsupported request form, or cache marker absent. | Count the exact cacheable prefix and compare exact consecutive request shapes without logging content. | G-01 | CONFIRMED |
-| F-02 | Writes occur but reads never occur. | Requests outside TTL, prefix/model/tool drift, concurrency before first response, or marker on changing content. | Compare sanitized model/surface/version/timing and hash the cacheable prefix in an isolated fixture. | G-02 | CONFIRMED |
+| F-02 | Writes occur but reads never occur. | Requests outside TTL, complete-prefix/model/tool/provider-scope drift, concurrency before first response, or marker on changing content. | Compare sanitized model/surface/version/timing and approved opaque exact-prefix linkage; use only non-customer fixtures for raw prefix comparison. | G-02 | CONFIRMED |
 | F-03 | Application says cache fields exist but live logs show none. | No eligible traffic, stream usage not emitted, log level/sink unavailable, or query surface returns metadata only. | Confirm code path and sink separately; classify missing evidence as ABSENT, not zero. | G-03 | CONFIRMED |
 | F-04 | Estimated cost is lower but cache token categories are not retained. | Aggregate accounting combined categories. | Compare the provider usage envelope mapping to logs/SSE/metrics; do not reverse-engineer cache hits from cost alone. | G-04 | CONFIRMED |
 | F-05 | A synthetic probe would be the only remaining proof. | No organic matching traffic or inaccessible provider/Railway evidence. | Stop and request narrow financial authority; do not silently create model traffic. | G-05 | CONFIRMED |
@@ -232,7 +252,7 @@ Therefore code presence is verified but live cache effectiveness remains
 
 ### §H.1 Invariants
 
-- Cache only an identical stable prefix; never alter prompt meaning for cost.
+- Cache reuse requires an identical complete ordered prefix; never alter prompt meaning for cost.
 - Provider token fields, not estimated savings, prove cache creation/read.
 - Never log prompts, responses, credentials, or customer data for evidence.
 - Missing telemetry is ABSENT/UNVERIFIED, never silently converted to zero or
@@ -261,7 +281,8 @@ only when they change no request, accounting, authority, or acceptance meaning.
 #### module
 
 The module boundary is every direct Anthropic Messages API call carrying the
-ai.market static system prefix plus its numeric usage extraction.
+marked system-content block, including embedded dynamic context where present,
+plus its numeric usage extraction.
 
 #### public contract
 
@@ -299,12 +320,14 @@ artifacts, lint/manifest/catalog/full-suite success, exact review, and exact
 publication.
 
 BQ completion additionally requires: exact `84df5f...` contained in the active
-production revision; healthy deployment; retained sanitized evidence of a
-cache write and subsequent read on an identical eligible prefix inside TTL; no
+production revision; direct inspection of the deployed revision's usage path;
+healthy deployment; retained sanitized evidence of a cache write and subsequent
+read bound by identical opaque exact-prefix identity, model, tools, prompt-affecting
+parameters, provider scope, deployment/configuration epoch, and TTL; no
 prompt/output/safety regression; dedicated runbook indexed; and the ground-truth
 board refreshed from Git/deployment evidence. A log search returning no rows,
-an SDK mock, a code ancestor proof, or a single cache write cannot substitute
-for the live pair.
+an unlinked write/read pair, an SDK mock, a code ancestor proof, or a single
+cache write cannot substitute for the linked live pair.
 
 ## §J. Lifecycle
 
