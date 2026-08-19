@@ -10,11 +10,11 @@ superseded_by: []
 owner: vulcan
 last_verified_at: 2026-08-19
 system_name: anthropic-prompt-caching
-purpose_sentence: Discovery-only record of ai.market Anthropic prompt-cache placement, usage accounting, no-cost verification, and fail-closed production acceptance.
+purpose_sentence: Discovery-only record of ai.market Anthropic prompt-cache placement, stable anonymous-prefix separation, usage accounting, and fail-closed production acceptance.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page documents the deployed prompt-cache candidate and its unresolved live-evidence requirement but does not authorize paid model traffic, deployment, provider changes, or a completion claim.
+authoritative_scope: None while DRAFT; this page documents the reviewed prompt-cache implementation, its deployment gate, and its unresolved live-evidence requirement but does not itself authorize paid model traffic, deployment, provider changes, or a completion claim.
 linter_version: 1.0.0
 ---
 
@@ -23,15 +23,24 @@ linter_version: 1.0.0
 ## §A. Header
 
 This is a **DRAFT discovery document, not operating authority**. Build Queue
-item `s1555`, “Stop paying full price for the same prompt,” received its cache
-placement in exact `ai-market-backend` commit
+item `s1555`, “Stop paying full price for the same prompt,” received its initial
+cache placement in exact `ai-market-backend` commit
 `84df5f976bd5dea6730c7ea7f1f8da476cf45b88`. Git proves that commit is an
 ancestor of production-reported revision
-`ed12d1b86c5475f41a9bed7057946b079a6bbd75`. The current Railway deployment
-reported `SUCCESS` for deployment `82d8c1dc-2c81-4c22-ad65-f9f00c193ac3`,
-created `2026-08-18T22:07:14.283Z`. Direct inspection of that later revision,
-not ancestry alone, is the evidence for its anonymous-stream usage extraction
-and accounting path.
+`ed12d1b86c5475f41a9bed7057946b079a6bbd75`. The Railway deployment reported
+`SUCCESS` for deployment `82d8c1dc-2c81-4c22-ad65-f9f00c193ac3`, created
+`2026-08-18T22:07:14.283Z`.
+
+Preflight on 2026-08-19 found that the deployed anonymous path concatenates a
+fresh `generated_at` timestamp into the cache-marked block, guaranteeing a miss
+on every anonymous request. No paid proof was sent. Exact backend candidate
+`ccd7fc02d5b73a1d6118549a0076f1b952e499d8` moves the complete serialized
+untrusted public-facts snapshot into the immediately following unmarked system
+block while keeping the marketplace instructions marked, ordered first, and
+fully counted by the reservation guard. Its exact anonymous unit gate passed
+346 tests; Redis integration reported one pass and 16 environment skips; CC,
+Kimi, and GLM each returned `APPROVE_WITH_NITS`. The candidate is pushed but is
+not production until the deployed source is verified equal to that exact SHA.
 
 Deployment presence is not cache-effectiveness proof. As of 2026-08-19, the
 available read-only Railway log/metric surface returned no line-level cache
@@ -55,6 +64,7 @@ without caching and without an error.
 | Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `app/services/copilot_brain.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests; §C.1 lists every surface | 2026-08-19 |
 | Preserve exact prompt bytes and request semantics | SHIPPED | `tests/test_llm_prompt_caching.py` | `ai-market-backend@84df5f...`: exact request-shape tests | 2026-08-19 |
 | Capture anonymous-stream cache write/read usage and accounting | SHIPPED | `app/routers/anonymous_chat.py` | direct inspection of exact deployed revision `ed12d1b...` plus its retained tests | 2026-08-19 |
+| Keep anonymous live facts outside the cache-marked stable instruction block | PLANNED | `app/routers/anonymous_chat.py` | `ai-market-backend@ccd7fc02...`: 346 exact anonymous unit tests; 39 focused tests; CC/Kimi/GLM approve-class exact reviews | 2026-08-19 |
 | Prove a real production cache write followed by a read of that exact prefix | PARTIAL | `app/routers/anonymous_chat.py` | existing telemetry lacks exact prefix/request linkage; no valid live pair retained | 2026-08-19 |
 | Dedicated indexed operating authority | PLANNED | `runbooks/anthropic-prompt-caching.md` | runbook lint/catalog/manifest tests | 2026-08-19 |
 
@@ -62,21 +72,23 @@ without caching and without an error.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Cache breakpoint | `cache_control: {type: ephemeral}` on the marked system-content block | Anthropic-managed ephemeral cache | Messages API | Cache identity is the complete exact ordered prefix, not an ai.market key; some marked blocks contain per-request context. |
+| Cache breakpoint | `cache_control: {type: ephemeral}` on the marked system-content block | Anthropic-managed ephemeral cache | Messages API | Cache identity is the complete exact ordered prefix, not an ai.market key; some non-anonymous marked blocks contain per-request context. |
 | CoPilot | `app/services/copilot_brain.py` | structured application logs | Anthropic async Messages API | Non-stream response exposes usage. |
 | Listing enhancement | `app/services/listing_enhancement_service.py` | structured application logs | Anthropic async Messages API | Non-stream response exposes usage. |
 | Authenticated allAI | `app/services/allie_proxy_service.py` | structured logs and existing rate-limit accounting | Anthropic create/stream APIs | Verify each response form independently; do not infer stream usage from non-stream usage. |
-| Anonymous allAI | `app/routers/anonymous_chat.py` | SSE usage response, Redis cost reconciliation, OTel aggregate cost/tokens | Anthropic stream API | Usage includes input, cache-write, cache-read, output, model, and estimated cost. |
+| Anonymous allAI | `app/routers/anonymous_chat.py` | SSE usage response, Redis cost reconciliation, OTel aggregate cost/tokens | Anthropic stream API | Candidate `ccd7fc02...` sends marked stable instructions first and the complete unmarked live-facts snapshot second; usage includes input, cache-write, cache-read, output, model, and estimated cost. |
 
 The cache prefix is provider-defined in request order: tools, system, then
 messages. The s1555 candidate puts the explicit breakpoint on a system-content
-block, but that block is not universally static. CoPilot page context, listing
-RAG context, and anonymous page/listing/message-derived grounding can be inside
-the marked block. Reuse therefore requires the complete ordered prefix,
-including embedded dynamic context, to be byte-identical. User content after a
-breakpoint does not change that earlier prefix; changing any byte at or before
-it does. Model, tool, image, provider scope, and prompt-affecting settings can
-also invalidate reuse.
+block, but that block is not universally static across every surface. CoPilot
+page context and listing RAG context can be inside their marked blocks. In the
+reviewed anonymous candidate, page class, locale, canonical platform facts,
+tools, and model remain part of the marked prefix, while `generated_at`,
+retrieved listings, and message-derived live facts are confined to the next
+unmarked block. Reuse therefore remains scoped to a byte-identical complete
+ordered prefix. User content after a breakpoint does not change that earlier
+prefix; changing any byte at or before it does. Model, tool, image, provider
+scope, and prompt-affecting settings can also invalidate reuse.
 
 No ai.market database row or Redis key stores Anthropic cache contents. The
 provider owns the ephemeral cache. ai.market records only sanitized token
@@ -95,6 +107,14 @@ proves that later instrumentation is present. Inspect the exact deployed
 revision before relying on usage capture, and prevent double instrumentation
 where a higher-level service already delegates to a measured provider wrapper.
 
+Exact candidate `ccd7fc02...`, whose sole parent is `ed12d1b...`, repairs the
+anonymous boundary only. `_system_blocks` is shared by reservation accounting
+and the provider send, so both paths use the same two ordered blocks. The first
+contains the existing marketplace instructions and the cache marker. The second
+contains the complete `serialize_untrusted_public_facts(snapshot)` output and
+no marker. This changes no validation snapshot, output-release gate, rate
+limit, retry policy, schema, model selection, or customer-data handling.
+
 ### §C.2 Usage-field meaning
 
 `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, and
@@ -111,8 +131,8 @@ expose final stream usage, or the log sink may be unavailable.
 |---|---|---|---|---|
 | Vulcan | Verify Git ancestry, deployment identity, existing logs/metrics, and runbook pins | Git plus read-only infrastructure/browser surfaces | read-only unless separately reviewed | COMPLETE |
 | SysAdmin | Read deployment status and existing sanitized logs/metrics | `sysadmin_request` read-only | no traffic, secrets, restart, or config change | PARTIAL — raw log lines unavailable through the current API surface |
-| Council | Review exact code/runbook artifacts | CC/Kimi/GLM exact-artifact review | reviewer-only | PLANNED |
-| Human operator | Authorize a paid two-request proof when organic evidence is unavailable | explicit financial authority | narrowly bounded model/path/request count | GAP — requires explicit Max financial authorization |
+| Council | Review exact code/runbook artifacts | CC/Kimi/GLM exact-artifact review | reviewer-only | PARTIAL — backend review complete; refreshed runbook review pending |
+| Human operator | Authorize a paid two-request proof when organic evidence is unavailable | explicit financial authority | narrowly bounded model/path/request count | COMPLETE |
 
 ## §E. Operate
 
@@ -120,16 +140,20 @@ expose final stream usage, or the log sink may be unavailable.
 []
 ```
 
-The operate form is empty because this page is DRAFT and live model calls cost
-money. Use only existing production evidence unless Max separately authorizes
-the exact paid proof.
+The operate form is empty because this page is DRAFT and cannot grant financial
+authority. Max separately authorized the exact harmless two-request proof in
+S1572. That authorization becomes usable only after the exact reviewed backend
+SHA is deployed, source and health are reverified, the effective model and its
+minimum are known, and both requests can be bound to one identical eligible
+prefix inside the provider TTL.
 
 ### §E.1 No-cost verification sequence
 
 1. Resolve remote main and the active Railway deployment; retain deployment ID,
    status, reported revision, and timestamp.
-2. Prove with replacement refs disabled that exact candidate `84df5f...` is an
-   ancestor of the reported deployed revision.
+2. Prove with replacement refs disabled that the reported deployed source is
+   exactly the intended reviewed SHA. Ancestry alone is insufficient for the
+   anonymous boundary repair.
 3. Query existing sanitized logs for
    `llm_usage provider=anthropic`, `cache_write=`, and `cache_read=`. Query
    metrics for cache-specific series if deployed instrumentation provides them.
@@ -159,11 +183,15 @@ appear. Retain `UNVERIFIED` unless a valid linked pair is available.
 ### §E.2 Paid proof boundary
 
 A synthetic proof is a financial action because it sends Anthropic requests.
-It requires a new, explicit instruction naming the maximum request count and
-acceptable spend or the exact pre-approved probe. The smallest valid probe is:
+It requires an explicit instruction naming the maximum request count and
+acceptable spend or the exact pre-approved probe. S1572 has that instruction
+for exactly one harmless two-request pair after deployment gates pass. The
+smallest valid probe is:
 
-- one existing production call path whose complete marked prefix, including
-  any embedded dynamic context, exceeds the current model minimum;
+- the anonymous production call path on one identical page class, locale,
+  canonical platform-fact revision, model, tools, and prompt-affecting settings;
+- a marked stable instruction prefix that exceeds the effective model's current
+  provider minimum without padding;
 - request 1 completes or at least begins its response and reports
   `cache_creation_input_tokens > 0`;
 - request 2 reuses the exact request construction with identical complete
@@ -188,10 +216,16 @@ rate-limit effect, or uncertain charge.
 - Signed-in browser: blocked because its admin safety policy could not be
   verified; no bypass attempted.
 - Anthropic Console/export: not accessed.
-- Synthetic Anthropic traffic: not authorized and not sent.
+- Production anonymous preflight: known miss because a fresh `generated_at`
+  timestamp is inside the deployed marked block.
+- Reviewed repair: `ai-market-backend@ccd7fc02...`, pushed and unanimously
+  approve-class reviewed, not yet deployed.
+- Synthetic Anthropic traffic: exact two-request pair authorized but not sent;
+  total paid requests in S1572 remains zero.
 
-Therefore code presence is verified but live cache effectiveness remains
-`UNVERIFIED`.
+Therefore deployed code presence is verified, deployed anonymous reuse is known
+to miss, and repaired live cache effectiveness remains `UNVERIFIED` until exact
+deployment and the authorized linked pair.
 
 ## §F. Isolate
 
@@ -202,6 +236,7 @@ Therefore code presence is verified but live cache effectiveness remains
 | F-03 | Application says cache fields exist but live logs show none. | No eligible traffic, stream usage not emitted, log level/sink unavailable, or query surface returns metadata only. | Confirm code path and sink separately; classify missing evidence as ABSENT, not zero. | G-03 | CONFIRMED |
 | F-04 | Estimated cost is lower but cache token categories are not retained. | Aggregate accounting combined categories. | Compare the provider usage envelope mapping to logs/SSE/metrics; do not reverse-engineer cache hits from cost alone. | G-04 | CONFIRMED |
 | F-05 | A synthetic probe would be the only remaining proof. | No organic matching traffic or inaccessible provider/Railway evidence. | Stop and request narrow financial authority; do not silently create model traffic. | G-05 | CONFIRMED |
+| F-06 | Anonymous cache writes never become reads despite identical harmless inputs. | A fresh timestamp or retrieved live facts are inside the marked block. | Inspect the exact deployed system-block boundary and require `generated_at` plus serialized live facts only in the immediately following unmarked block. | G-06 | CONFIRMED |
 
 ## §G. Repair
 
@@ -246,6 +281,14 @@ Therefore code presence is verified but live cache effectiveness remains
   change_pattern: run the minimum harmless pair once and stop
   rollback_procedure: no retry; retain only sanitized usage evidence
   integrity_check: authorized request count and spend bound were not exceeded
+- id: G-06
+  symptom_ref: F-06
+  component_ref: Anonymous allAI
+  root_cause: per-request public-fact snapshot serialized inside the marked system block
+  repair_entry_point: ai-market-backend@ccd7fc02 app/routers/anonymous_chat.py
+  change_pattern: mark stable marketplace instructions, then send the complete dynamic snapshot as the next unmarked system block
+  rollback_procedure: redeploy exact prior production SHA ed12d1b86c5475f41a9bed7057946b079a6bbd75 and stop paid proof traffic
+  integrity_check: exact tests prove stable first-block bytes, ordered complete second-block facts, conservative accounting, and unchanged fail-closed release
 ```
 
 ## §H. Evolve
@@ -281,8 +324,8 @@ only when they change no request, accounting, authority, or acceptance meaning.
 #### module
 
 The module boundary is every direct Anthropic Messages API call carrying the
-marked system-content block, including embedded dynamic context where present,
-plus its numeric usage extraction.
+marked system-content block, any ordered unmarked context blocks after its
+breakpoint, and its numeric usage extraction.
 
 #### public contract
 
@@ -319,11 +362,13 @@ one pending manifest record, unchanged ACTIVE authority, current generated
 artifacts, lint/manifest/catalog/full-suite success, exact review, and exact
 publication.
 
-BQ completion additionally requires: exact `84df5f...` contained in the active
-production revision; direct inspection of the deployed revision's usage path;
-healthy deployment; retained sanitized evidence of a cache write and subsequent
-read bound by identical opaque exact-prefix identity, model, tools, prompt-affecting
-parameters, provider scope, deployment/configuration epoch, and TTL; no
+BQ completion additionally requires: exact reviewed repair `ccd7fc02...` as the
+active production revision; direct inspection of the deployed revision's usage
+and two-block boundary; healthy deployment; retained sanitized evidence of a
+cache write and subsequent read bound by identical opaque exact-prefix identity,
+page class, locale, canonical platform-fact revision, model, tools,
+prompt-affecting parameters, provider scope, deployment/configuration epoch,
+and TTL; no
 prompt/output/safety regression; dedicated runbook indexed; and the ground-truth
 board refreshed from Git/deployment evidence. A log search returning no rows,
 an unlinked write/read pair, an SDK mock, a code ancestor proof, or a single
@@ -333,7 +378,7 @@ cache write cannot substitute for the linked live pair.
 
 ```yaml lifecycle
 last_refresh_session: S1572
-last_refresh_commit: 84df5f976bd5dea6730c7ea7f1f8da476cf45b88
+last_refresh_commit: ccd7fc02d5b73a1d6118549a0076f1b952e499d8
 last_refresh_date: 2026-08-19T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
