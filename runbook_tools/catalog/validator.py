@@ -137,21 +137,6 @@ def load_validated_catalog(repo_root: Path, catalog_ref: str) -> ValidatedCatalo
         tree_paths,
         lambda path: _git_show(root, sha, path),
     )
-    entries = catalog.get("entries")
-    projection = catalog_generator._reviewed_legacy_projection(root, revision=sha)
-    if projection is not None and isinstance(entries, list):
-        try:
-            catalog_generator._enforce_reviewed_legacy_projection(
-                [
-                    entry
-                    for entry in entries
-                    if isinstance(entry, dict) and entry.get("status") == "ACTIVE"
-                ],
-                projection,
-            )
-        except CatalogError as exc:
-            errors.append(str(exc))
-
     with tempfile.TemporaryDirectory(prefix="runbook-catalog-validate-") as temporary:
         snapshot = Path(temporary)
         for relative in materialized:

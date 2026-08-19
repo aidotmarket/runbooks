@@ -67,6 +67,7 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `bootout_without_plist_patch` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
 | `break_glass_left_enabled` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `catalog outputs are stale` | `runbooks` (`runbooks/runbooks.md`) | [§G\. Repair](runbooks/runbooks.md#g-repair) |
+| `catalog regeneration failed` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `catalog validation failed` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `cc_verdict_parse_failure` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
 | `chunk_scope_gap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
@@ -88,7 +89,6 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `duplicate_deliberation` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
 | `empty contact_id on upsert` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `env_var_in_inherited_only` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
-| `expected_population does not match baseline` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `fabricated_line_reference` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate1_status_trap` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `gate_eligibility_unknown` | `gate-procedure` (`runbooks/gate-procedure.md`) | [§F\. Isolate](runbooks/gate-procedure.md#f-isolate) |
@@ -103,7 +103,6 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `is not set; source the credential first` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `kyc_status_absent_defaults_not_started` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `late_arriver` | `council-hall-deliberation` (`runbooks/council-hall-deliberation.md`) | [§E\. Operate](runbooks/council-hall-deliberation.md#e-operate) |
-| `legacy population differs from reviewed rollout projection` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `minimal_bridge_repo_unresolved` | `builder-controls` (`runbooks/builder-controls.md`) | [§F\. Isolate](runbooks/builder-controls.md#f-isolate) |
 | `missing_design_artifact` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `mp_busy` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |

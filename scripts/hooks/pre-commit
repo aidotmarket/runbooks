@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Catalog drift is advisory: this hook must never stop a commit.
+trap 'exit 0' EXIT
+
+warning='WARNING: catalog regeneration failed; commit continues with advisory generated-index drift.'
+
+if ! staged_paths=$(git diff --cached --name-only --diff-filter=ACDMRT 2>/dev/null); then
+    printf '%s\n' "$warning" >&2
+    exit 0
+fi
+
+regenerate=false
+old_ifs=$IFS
+IFS='
+'
+for path in $staged_paths; do
+    case "$path" in
+        *.md|CORPUS-MANIFEST.yaml|schemas/*.json|runbook_tools/catalog/*.py|runbook_tools/frontmatter.py|runbook_tools/strict_yaml.py|runbook_tools/lint/conformance.py|runbook_tools/parser/*.py)
+            regenerate=true
+            break
+            ;;
+    esac
+done
+IFS=$old_ifs
+
+if [ "$regenerate" = false ]; then
+    exit 0
+fi
+
+if ! python -m runbook_tools.catalog generate >/dev/null 2>&1; then
+    printf '%s\n' "$warning" >&2
+    exit 0
+fi
+
+if ! git add -- CATALOG.json TOPIC-ROUTER.md >/dev/null 2>&1; then
+    printf '%s\n' "$warning" >&2
+fi
+
+exit 0

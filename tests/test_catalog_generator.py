@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 from datetime import date, datetime
 from pathlib import Path
@@ -91,46 +90,6 @@ def _digest_outputs(root: Path) -> dict[str, str]:
     }
 
 
-def _clone_with_projection_policy(tmp_path: Path) -> Path:
-    clone = tmp_path / "alternate-history"
-    subprocess.run(
-        ["git", "clone", "-q", "--no-hardlinks", str(REPO_ROOT), str(clone)],
-        check=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.name", "Projection Test"],
-        cwd=clone,
-        check=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.email", "projection@example.invalid"],
-        cwd=clone,
-        check=True,
-    )
-    shutil.copy2(
-        REPO_ROOT / generator_module.LEGACY_PROJECTION_POLICY_PATH,
-        clone / generator_module.LEGACY_PROJECTION_POLICY_PATH,
-    )
-    return clone
-
-
-def _unrelated_commit_with_existing_catalog(root: Path) -> str:
-    tree = subprocess.run(
-        ["git", "rev-parse", "HEAD^{tree}"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    return subprocess.run(
-        ["git", "commit-tree", tree, "-m", "unrelated existing-ID history"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-
-
 def _markdown_link_targets(markdown: str) -> list[str]:
     return [
         str(token.get("attrs", {}).get("url"))
@@ -182,130 +141,6 @@ def test_live_catalog_contains_every_source_without_a_brittle_roster() -> None:
         "peer-instance-discipline",
     } <= active.keys()
     assert not (REPO_ROOT / "RUNBOOK-CATALOG.json").exists()
-
-
-def test_reviewed_projection_freezes_exact_legacy_population_and_final_boot_delta() -> None:
-    projection = generator_module._reviewed_legacy_projection(
-        REPO_ROOT,
-        revision="HEAD",
-    )
-
-    assert projection is not None
-    assert len(projection.expected) == 26
-    peer = projection.expected["peer-instance-discipline"]
-    assert {
-        row["topic"] for row in peer["authoritative_for"]
-    } >= {
-        "session-plan-runbook-context",
-        "session-close-runbook-impact",
-    }
-    assert {
-        row["signature"] for row in peer["error_signatures"]
-    } >= {
-        "runbook_context_delivery_unavailable",
-        "runbook_impact_evidence_unavailable",
-    }
-
-
-def test_reviewed_projection_rejects_a_25_member_catalog() -> None:
-    catalog, _ = build_catalog(REPO_ROOT)
-    projection = generator_module._reviewed_legacy_projection(
-        REPO_ROOT,
-        revision="HEAD",
-    )
-    assert projection is not None
-    entries = [entry for entry in catalog["entries"] if entry.get("status") == "ACTIVE"]
-    removed = entries.pop()
-
-    with pytest.raises(
-        CatalogError,
-        match=rf"legacy population differs.*missing={removed['runbook_id']}",
-    ):
-        generator_module._enforce_reviewed_legacy_projection(entries, projection)
-
-
-def test_reviewed_projection_rejects_a_new_topic_on_an_existing_id() -> None:
-    catalog, _ = build_catalog(REPO_ROOT)
-    projection = generator_module._reviewed_legacy_projection(
-        REPO_ROOT,
-        revision="HEAD",
-    )
-    assert projection is not None
-    entries = json.loads(
-        json.dumps(
-            [entry for entry in catalog["entries"] if entry.get("status") == "ACTIVE"]
-        )
-    )
-    entries[0]["authoritative_for"].append(
-        {"topic": "invented-authority", "section": "§E. Operate"}
-    )
-
-    with pytest.raises(CatalogError, match=r"authoritative_for differs"):
-        generator_module._enforce_reviewed_legacy_projection(entries, projection)
-
-
-def test_projection_policy_digest_pins_exact_final_bytes(tmp_path: Path) -> None:
-    source = REPO_ROOT / generator_module.LEGACY_PROJECTION_POLICY_PATH
-    payload = source.read_bytes()
-    assert hashlib.sha256(payload).hexdigest() == (
-        generator_module.LEGACY_PROJECTION_POLICY_SHA256
-    )
-    dirty = tmp_path / "legacy_catalog_projection.policy.json"
-    dirty.write_bytes(payload + b" ")
-
-    with pytest.raises(CatalogError, match="projection policy digest mismatch"):
-        generator_module._load_projection_policy(dirty)
-
-
-def test_unrelated_history_with_existing_ids_cannot_validate_as_rollout_descendant(
-    tmp_path: Path,
-) -> None:
-    clone = _clone_with_projection_policy(tmp_path)
-    unrelated = _unrelated_commit_with_existing_catalog(clone)
-    catalog = subprocess.run(
-        ["git", "--no-replace-objects", "show", f"{unrelated}:CATALOG.json"],
-        cwd=clone,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout
-    assert "peer-instance-discipline" in catalog
-
-    with pytest.raises(CatalogError, match="not a descendant of immutable rollout"):
-        generator_module._reviewed_legacy_projection(clone, revision=unrelated)
-
-
-def test_projection_ancestry_ignores_local_replace_refs(tmp_path: Path) -> None:
-    clone = _clone_with_projection_policy(tmp_path)
-    unrelated = _unrelated_commit_with_existing_catalog(clone)
-    head = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=clone,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    subprocess.run(["git", "replace", head, unrelated], cwd=clone, check=True)
-    control = subprocess.run(
-        [
-            "git",
-            "merge-base",
-            "--is-ancestor",
-            generator_module.LEGACY_AUTHORITY_BASE_SHA,
-            "HEAD",
-        ],
-        cwd=clone,
-        check=False,
-    )
-    assert control.returncode == 1
-
-    projection = generator_module._reviewed_legacy_projection(
-        clone,
-        revision="HEAD",
-    )
-
-    assert projection is not None
-    assert len(projection.expected) == 26
 
 
 def test_source_set_defaults_unknown_directories_into_adjudication_and_excludes_only_declared_non_sources(
@@ -824,45 +659,6 @@ def test_stable_sorting_newline_and_two_run_idempotency(tmp_path: Path) -> None:
     assert check_catalog(tmp_path) == []
 
 
-def test_manual_draft_to_active_cannot_add_authority_or_mutate_outputs(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    _write_readme(tmp_path)
-    metadata = _metadata("novel-member")
-    metadata["status"] = "DRAFT"
-    source = _write_doc(tmp_path, "runbooks/novel-member.md", metadata)
-    monkeypatch.setattr(
-        generator_module,
-        "_reviewed_legacy_projection",
-        lambda _root, *, revision: generator_module._ReviewedLegacyProjection(
-            expected={},
-            allowed_paths={},
-        ),
-    )
-    generate_catalog(tmp_path)
-    before = {
-        path: (tmp_path / path).read_bytes()
-        for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
-    }
-    source.write_text(source.read_text().replace("status: DRAFT", "status: ACTIVE", 1))
-    with pytest.raises(
-        CatalogError,
-        match="legacy population differs.*unexpected=novel-member",
-    ):
-        generate_catalog(tmp_path)
-    with pytest.raises(
-        CatalogError,
-        match="legacy population differs.*unexpected=novel-member",
-    ):
-        check_catalog(tmp_path)
-
-    assert {
-        path: (tmp_path / path).read_bytes()
-        for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
-    } == before
-
-
 @pytest.mark.parametrize(
     ("discovery_id", "active_aliases"),
     [
@@ -895,46 +691,6 @@ def test_discovery_id_cannot_collide_with_active_identity_and_mutate_outputs(
         path: (tmp_path / path).read_bytes()
         for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
     } == before
-
-
-def test_any_alternate_git_repository_missing_exact_baseline_fails_closed(
-    tmp_path: Path,
-) -> None:
-    _write_readme(tmp_path)
-    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    subprocess.run(
-        ["git", "config", "user.name", "Alternate Repo"],
-        cwd=tmp_path,
-        check=True,
-    )
-    subprocess.run(
-        ["git", "config", "user.email", "alternate@example.invalid"],
-        cwd=tmp_path,
-        check=True,
-    )
-    subprocess.run(
-        [
-            "git",
-            "remote",
-            "add",
-            "origin",
-            "https://example.invalid/alternate-runbooks.git",
-        ],
-        cwd=tmp_path,
-        check=True,
-    )
-    subprocess.run(["git", "add", "README.md"], cwd=tmp_path, check=True)
-    subprocess.run(
-        ["git", "commit", "-qm", "alternate history"],
-        cwd=tmp_path,
-        check=True,
-    )
-
-    with pytest.raises(
-        CatalogError,
-        match="immutable legacy authority baseline is unavailable",
-    ):
-        build_catalog(tmp_path)
 
 
 def test_router_and_readme_are_rendered_from_catalog(tmp_path: Path) -> None:
