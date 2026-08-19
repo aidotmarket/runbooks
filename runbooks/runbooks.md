@@ -45,7 +45,7 @@ error_signatures:
     section: §F. Isolate
   - signature: catalog outputs are stale
     section: §G. Repair
-last_verified_at: "2026-08-18"
+last_verified_at: "2026-08-09"
 superseded_by: []
 supersedes: []
 linter_version: 1.0.0

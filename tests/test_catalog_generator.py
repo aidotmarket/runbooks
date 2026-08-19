@@ -203,7 +203,7 @@ def test_reviewed_projection_freezes_exact_legacy_population_and_final_boot_delt
     }
 
 
-def test_reviewed_projection_rejects_a_19_member_catalog() -> None:
+def test_reviewed_projection_rejects_a_25_member_catalog() -> None:
     catalog, _ = build_catalog(REPO_ROOT)
     projection = generator_module._reviewed_legacy_projection(
         REPO_ROOT,
