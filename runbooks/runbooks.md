@@ -28,6 +28,7 @@ aliases:
   - runbook-runbook
   - how-to-write-a-runbook
   - runbook-standard
+  - pre-commit-hook-scratch-s1579
 error_signatures:
   - signature: catalog regeneration failed
     section: §F. Isolate

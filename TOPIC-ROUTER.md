@@ -177,6 +177,7 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `party-model` | `crm` (`runbooks/crm.md`) | [§C\. Architecture & Interactions](runbooks/crm.md#c-architecture-interactions) |
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
+| `pre-commit-hook-scratch-s1579` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `reloader` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-standard` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
