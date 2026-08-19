@@ -5,7 +5,7 @@ import json
 import re
 import shutil
 import subprocess
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -485,18 +485,23 @@ def test_unclassified_archive_page_refuses_before_generated_outputs_are_written(
 def test_page_that_fails_integrity_marker_refuses_admission(
     tmp_path: Path,
 ) -> None:
-    metadata = _metadata("member")
-    metadata["last_verified_at"] = "2026-07-18"
-    _write_doc(tmp_path, "runbooks/member.md", metadata)
+    path = _write_doc(tmp_path, "runbooks/member.md", _metadata("member"))
+    path.write_text(
+        path.read_text().replace(
+            "last_refresh_date: 2026-04-21T17:30:00Z",
+            "last_refresh_date: 2026-07-18T00:00:00Z",
+            1,
+        )
+    )
 
     with pytest.raises(
         CatalogError,
-        match=(
-            r"runbooks/member\.md: last_verified_at 2026-07-18 is after "
-            r"the verification clock 2026-07-17"
-        ),
+        match=r"§J field last_refresh_date cannot be in the future",
     ):
-        build_catalog(tmp_path, current_utc_date=date(2026, 7, 17))
+        build_catalog(
+            tmp_path,
+            current_utc_datetime=datetime(2026, 7, 17, 23, 59, 59),
+        )
 
 
 def test_router_surfaces_non_active_page_as_discovery_only(tmp_path: Path) -> None:
