@@ -53,9 +53,9 @@ Official provider contract:
 `https://platform.claude.com/docs/en/build-with-claude/prompt-caching`.
 Recheck it before changing model, TTL, minimum-token assumptions, or prices.
 On 2026-08-19 the documented default TTL was five minutes; 5-minute writes
-cost 1.25 times base input, reads cost 0.1 times base input, and Sonnet 4.6
-required at least 1,024 cacheable tokens. Shorter marked prompts are processed
-without caching and without an error.
+cost 1.25 times base input, reads cost 0.1 times base input, and the effective
+production model `claude-opus-4-7` required at least 2,048 cacheable tokens.
+Shorter marked prompts are processed without caching and without an error.
 
 ## §B. Capability Matrix
 
@@ -220,6 +220,13 @@ rate-limit effect, or uncertain charge.
   timestamp is inside the deployed marked block.
 - Reviewed repair: `ai-market-backend@ccd7fc02...`, pushed and unanimously
   approve-class reviewed, not yet deployed.
+- Production configuration: `claude-opus-4-7`, anonymous output cap 2,048
+  tokens. Anthropic's free token-count endpoint measured 7,278 input tokens for
+  the exact tools, marked stable system block, and harmless proof message; it
+  created no model response and exceeds the current 2,048-token minimum.
+- Free provider preflight: two token-count API attempts only; the first was
+  rejected because an empty messages array is invalid, and the second returned
+  the 7,278-token count. Neither created a model response.
 - Synthetic Anthropic traffic: exact two-request pair authorized but not sent;
   total paid requests in S1572 remains zero.
 
