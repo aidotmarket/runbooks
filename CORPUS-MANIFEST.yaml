@@ -1219,6 +1219,25 @@ documents:
       - existing ACTIVE catalog source at inventory_sha
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
+  - path: runbooks/durable-runtime-state.md
+    git_blob_oid: e25f31498060850a38696c337182ed3ef02fe510
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: runtime-operations
+    risk: P0
+    target_paths:
+      - runbooks/durable-runtime-state.md
+    evidence:
+      - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:koskadeux_mcp/durable_state_cutover.py
+        finding: Exact reviewed code candidate implementing the receipt-bound five-record controller documented by this DRAFT.
+      - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
+        finding: Binding Gate 2 documentation contract for the separately pinned runbooks candidate.
+    verify_against:
+      - exact code and Gate specs
+      - isolated tests and Council
+      - authorized Gate 4 receipt
+    independent_review_required: true
   - path: runbooks/e2e-programme-integrity.md
     git_blob_oid: 01a342e44617afdc5f8166b863c44fb24467156b
     catalog_state: active
