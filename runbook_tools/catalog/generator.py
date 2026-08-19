@@ -865,9 +865,8 @@ def render_outputs(
         current_utc_date=current_utc_date,
         current_utc_datetime=current_utc_datetime,
     )
-    # The boot payload pins this projection under a 64,000-character envelope.
-    # Compact JSON leaves room for every source and archive record without
-    # dropping headings or weakening authority labels.
+    # Compact JSON keeps the generated artifact small without dropping source
+    # or archive headings or weakening authority labels.
     catalog_bytes = (
         json.dumps(
             catalog,
