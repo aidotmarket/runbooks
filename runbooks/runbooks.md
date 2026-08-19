@@ -9,8 +9,8 @@ owner_agent: mars
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  The runbook corpus itself: the catalog, the router, the corpus manifest, the frozen
-  population anchor, the linter, the scaffolder, and the four operator verbs (find, write,
+  The runbook corpus itself: the catalog, the router, the corpus manifest,
+  the linter, the scaffolder, and the four operator verbs (find, write,
   update, check). This page describes the system AS IT IS on the date in last_verified_at,
   not as the approved truth-layer design intends it to become. Where the two differ this
   page says so and names the design. Council gate procedure is gate-procedure.md. Build
@@ -29,9 +29,7 @@ aliases:
   - how-to-write-a-runbook
   - runbook-standard
 error_signatures:
-  - signature: expected_population does not match baseline
-    section: §F. Isolate
-  - signature: legacy population differs from reviewed rollout projection
+  - signature: catalog regeneration failed
     section: §F. Isolate
   - signature: does not match current bytes
     section: §F. Isolate
@@ -85,7 +83,7 @@ Figures measured 2026-08-18 on `build/runbook-catalog-admits-all-corpus-s1574`. 
 | Scaffolding a new page | SHIPPED | `runbook_tools/cli.py` | `tests/test_creation_flow.py` | 2026-08-09 |
 | Linting a page, as advice rather than a gate | SHIPPED | `runbook_tools/lint/conformance.py` | `tests/test_checks.py`; CI runs it with continue-on-error | 2026-08-09 |
 | CI lint on `main` | BROKEN | `.github/workflows/runbook-lint.yml` | Red since 2026-08-03; six failures, one root cause, repaired on the fix branch | 2026-08-09 |
-| Admitting a new page for discovery | SHIPPED | `runbook_tools/catalog/generator.py` | Admission is the default; ACTIVE authority remains frozen separately | 2026-08-18 |
+| Admitting a new page for discovery | SHIPPED | `runbook_tools/catalog/generator.py` | Admission is the default; every entry retains fail-closed non-authority flags | 2026-08-18 |
 | Checking a page's claims against ground truth automatically | PLANNED | `specs/RUNBOOK-TRUTH-LAYER-S1487.md` | AC12 to AC17 of the approved design, unbuilt | 2026-08-09 |
 
 Recompute the coverage figures rather than quoting them: `python3 -m runbook_tools.corpus_manifest`.
@@ -101,7 +99,6 @@ The retrieval figures come from the frozen AC8 question set at
 | `CATALOG.json` | `runbook-catalog generate` | git | search, router, README, boot pin | **Generated. Never hand-edit.** Contains 26 full ACTIVE authority rows and compact discovery rows for the rest of the estate. |
 | `TOPIC-ROUTER.md` | `runbook-catalog generate` | git | humans | **Generated. Never hand-edit.** Lists ACTIVE authority keys, current discovery-only pages, and archived historical pages separately. |
 | `CORPUS-MANIFEST.yaml` | `python3 -m runbook_tools.corpus_manifest --refresh-from <sha>` | git | CI lint | An inventory and adjudication ledger, NOT an authority. It pins a git blob OID per document, so editing any tracked page leaves the pin stale until refreshed. Since S1525 a stale pin is ADVISORY: the checker prints it and exits 0, and no check fails. Refresh when convenient, never because CI demands it. |
-| Frozen ACTIVE authority projection | `LEGACY_AUTHORITY_BASE_SHA` in `runbook_tools/catalog/generator.py` + `schemas/legacy_catalog_projection.policy.json` | git | generation | Freezes the 26 declared ACTIVE authority rows and their authority metadata. It does not limit discovery membership. |
 | Linter | `runbook-lint --mode strict` | none | CI | Checks structural conformance against the A-K template. Advice only since S1491: a failure never stops a page being indexed and never fails CI. |
 | Scaffolder | `runbook-new <slug>` | none | authoring | Writes `templates/runbook.template.md` with placeholders. |
 | The standard | `specs/BQ-RUNBOOK-STANDARD.md` | git | authors | 789 lines, Gate 1 approved at S486. Roughly half is marked "historical provenance" and superseded. It is a spec, so it is not indexed and search cannot reach it. |
@@ -113,7 +110,7 @@ The retrieval figures come from the frozen AC8 question set at
 |---|---|---|---|---|
 | Vulcan / Mars | Find a page | `grep -rn` first, `runbook-catalog search` second | operator | COMPLETE |
 | Vulcan / Mars | Write, update, lint, regenerate | `runbook-new`, `runbook-lint`, `runbook-catalog generate` | operator | COMPLETE |
-| Vulcan / Mars | Change declared ACTIVE authority | reviewed anchor/projection change | operator | PARTIAL — discovery admission never requires this; authority changes still do |
+| Vulcan / Mars | Change declared ACTIVE metadata | edit valid frontmatter, review, regenerate | operator | COMPLETE — semantic and action-authority flags remain false |
 | MP (Codex) | Author or repair pages under an approved dispatch | minimal bridge | builder | COMPLETE |
 | Council (CC/Kimi/GLM) | Gate review of design and spec changes to the corpus machinery | council dispatch | reviewer | COMPLETE |
 | Any agent | Check a page's claims against ground truth | none | n/a | GAP — closed by AC12 to AC17 of the approved truth-layer design, which is unbuilt |
@@ -171,7 +168,7 @@ The retrieval figures come from the frozen AC8 question set at
   expected_failures:
     - signature: page not indexed after writing it
       cause: "See F-02. Generated outputs are stale, source discovery rejected the path, or the page failed an integrity exception."
-  next_step_success: Fill every section from evidence and regenerate; ACTIVE authority is a separate reviewed decision
+  next_step_success: Fill every section from evidence and regenerate; generated entries remain integrity-only
   next_step_failure: See F-02
 
 - id: E-04
@@ -215,10 +212,10 @@ These are the things that have surprised sessions before. Each row is a real fai
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | `expected_population does not match baseline`, or `legacy population differs from reviewed rollout projection: unexpected=<id>` | The declared ACTIVE authority set changed. Discovery-only additions do not trigger this check. | Compare only entries whose `status` is `ACTIVE` against `expected_population` in the policy | G-01 | CONFIRMED |
+| F-01 | `WARNING: catalog regeneration failed; commit continues with advisory generated-index drift.` | The local pre-commit hook could not run the generator or stage its two index outputs. The commit still proceeds by design. | Run `python3 -m runbook_tools.catalog generate`, then inspect the error if tidy indexes are wanted | G-01 | CONFIRMED |
 | F-02 | A page you wrote does not appear in the catalog or router | Generated outputs are stale; source discovery rejected a symlink/unreadable path; or an integrity exception refused the page | Compare `source_paths()` paths with all `CATALOG.json` entry paths, then run `python3 -m runbook_tools.catalog check` | G-01 | CONFIRMED |
 | F-03 | `ADVISORY (not a failure): documents[N].git_blob_oid ... does not match current bytes for '<path>'` | A tracked page was edited after the last manifest pin. Expected and harmless since S1525; the checker exits 0 and CI stays green. Nothing to repair unless you want a tidy ledger. | `python3 -m runbook_tools.corpus_manifest` | G-02 | CONFIRMED |
-| F-04 | `catalog validation failed:` followed by a long list, and every search returns nothing | The committed `CATALOG.json` predates the generator, or the population check fails. Search validates the catalog before returning anything, so an invalid catalog means zero results rather than degraded results. | `runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"` | G-01 | CONFIRMED |
+| F-04 | `catalog validation failed:` followed by a long list, and every search returns nothing | The committed catalog is malformed or internally inconsistent with its pinned source snapshot. Search validates the catalog before returning anything, so an invalid catalog means zero results rather than degraded results. | `runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"` | G-01 | CONFIRMED |
 | F-05 | `manifest has N grandfathered source records, but current source corpus has N+1` | A page was added or removed without refreshing the inventory | `python3 -m runbook_tools.corpus_manifest` | G-02 | CONFIRMED |
 | F-06 | `<path>: dangling section '§X.N'` | Frontmatter or a cross-reference names a section heading that does not exist in the page body | `grep -n "^#" <path>` and compare against the declared sections | G-03 | CONFIRMED |
 | F-07 | A discovery-only or archived page is treated as sanctioned procedure | A consumer ignored `catalog_state` and the fail-closed discovery defaults | Check `catalog_state`, `authority_admission`, and `action_authority_eligible`; archived pages also carry `status: archived` | G-04 | CONFIRMED |
@@ -231,12 +228,11 @@ These are the things that have surprised sessions before. Each row is a real fai
 - id: G-01
   symptom_ref: F-01
   component_ref: Generated catalog
-  root_cause: Generated outputs are stale or an ACTIVE authority change was attempted without updating its reviewed projection.
+  root_cause: Generated outputs are stale, or generation reported a source integrity error.
   repair_entry_point: python3 -m runbook_tools.catalog generate
   change_pattern: >
-    Regenerate for an ordinary discovery addition. If declared ACTIVE authority itself must
-    change, use the separate reviewed projection procedure and prove every pre-existing
-    LEGACY_PROJECTION_FIELD is unchanged unless explicitly reviewed.
+    Regenerate from the current source tree. The local hook does this automatically when
+    generator inputs are staged, but failure remains advisory and never blocks the commit.
   rollback_procedure: git revert the content or authority change and regenerate.
   integrity_check: python3 -m runbook_tools.catalog check && runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@$(git rev-parse HEAD):CATALOG.json"
 
@@ -295,7 +291,7 @@ These are the things that have surprised sessions before. Each row is a real fai
 
 ### §H.2 BREAKING predicates
 
-- Moving `LEGACY_AUTHORITY_BASE_SHA`, because it redefines what the ACTIVE authority freeze protects.
+- Changing the catalog schema version or generated envelope, because pinned consumers validate both exactly.
 - Changing what counts as an indexable location, because it changes the corpus in one step.
 - Re-attaching template conformance, or any other shape test, to admission. It was removed on 2026-08-09 by Max directive S1491 and must not come back as a gate.
 - Re-attaching pin freshness to any check that can fail. Removed on 2026-08-11 by Max directive at S1525, on the same principle: editing a page must never require a bookkeeping commit.
@@ -328,7 +324,7 @@ The local clone path in `config:resource-registry`, and git.
 
 #### config default
 
-`schemas/legacy_catalog_projection.policy.json` and the two pinned constants in `runbook_tools/catalog/generator.py`.
+The admitted source tree, archive classifications in `CORPUS-MANIFEST.yaml`, and schemas read by the catalog generator.
 
 ### §H.6 Adjudication
 
@@ -365,7 +361,7 @@ scenario_set:
     type: operate
     refs: [E-03, F-02]
     scenario: |
-      id: E-03. trigger: A new runbook must be written for a system we operate. pre_conditions: the subject is a system, not a one-off incident. tool_or_endpoint: runbook-new with the intended slug. argument_sourcing: a slug matching the intended identity. idempotency: NOT_IDEMPOTENT. expected_success: a scaffolded page that is discoverable immediately after regeneration. expected_failures: source discovery or an integrity exception rejects it. next_step_success: fill each section from evidence and regenerate; seek separate review only if declaring ACTIVE authority. next_step_failure: see F-02.
+      id: E-03. trigger: A new runbook must be written for a system we operate. pre_conditions: the subject is a system, not a one-off incident. tool_or_endpoint: runbook-new with the intended slug. argument_sourcing: a slug matching the intended identity. idempotency: NOT_IDEMPOTENT. expected_success: a scaffolded page that is discoverable immediately after regeneration. expected_failures: source discovery or an integrity exception rejects it. next_step_success: fill each section from evidence and regenerate; generated entries remain integrity-only. next_step_failure: see F-02.
     expected_answers:
       - kind: human_action
         verb: scaffold
@@ -376,10 +372,10 @@ scenario_set:
     type: isolate
     refs: [F-01, G-01]
     scenario: |
-      A page was added for discovery and generation now fails with "legacy population differs from reviewed rollout projection: unexpected=<id>". The operator must classify this before editing anything. Ordinary discovery rows are outside that projection, so this error means the page asserted declared ACTIVE authority or the ACTIVE filter regressed. Verification: compare only status ACTIVE entries against expected_population.
+      A staged runbook edit makes the pre-commit hook print "catalog regeneration failed". Classify this as advisory index drift: the hook exits zero and the commit continues. Run the generator directly only if the operator wants the underlying error and tidy indexes now.
     expected_answers:
       - kind: classification
-        label: ACTIVE authority projection change, not discovery admission
+        label: advisory generation failure, not a commit gate
     weight: 0.09090909090909091
   - id: I-05
     type: isolate
@@ -403,7 +399,7 @@ scenario_set:
     type: repair
     refs: [G-01, F-01]
     scenario: |
-      A directed page must become discoverable. Add it anywhere admitted by source_paths and regenerate; no frontmatter opt-in or anchor move is required. If the request separately grants declared ACTIVE authority, follow the reviewed authority-projection procedure and prove the pre-existing projection fields remain unchanged.
+      A directed page must become discoverable. Add it anywhere admitted by source_paths and regenerate; no frontmatter opt-in or anchor move is required. Catalog validation still checks the generated snapshot's schema, sections, links, and digests.
     expected_answers:
       - kind: human_action
         verb: regenerate
@@ -459,7 +455,7 @@ last_refresh_date: 2026-08-18T23:29:18Z
 owner_agent: mars
 refresh_triggers:
   - Any chunk of the truth-layer build lands; §B and §C change materially with each one
-  - The ACTIVE authority projection changes; update F-01 and G-01 with the reviewed boundary
+  - Catalog schema, source-admission rules, or generated-output behavior changes; update F-01 and G-01
   - The AC8 retrieval set is re-run; replace the §B recall and precision figures with the new measurement
   - CI runbook-lint changes state on main
   - Automated ground-truth checking ships; E-05 stops being manual

@@ -31,9 +31,6 @@ from tests.catalog_test_support import (
 
 KERNEL_FIXTURES = Path(__file__).parent / "fixtures" / "catalog" / "kernel_companions"
 
-pytestmark = pytest.mark.usefixtures("synthetic_git_catalog_projection")
-
-
 def _metadata(runbook_id: str, *, topic: str | None = None) -> dict:
     return {
         "runbook_id": runbook_id,
@@ -221,28 +218,6 @@ def test_pinned_validator_requires_catalog_v3_integrity_only_labels(
             lambda path: catalog_validator._git_show(root, sha, path),
         )
         assert any(field in error for error in errors)
-
-
-def test_pinned_catalog_cannot_bypass_closed_authority_baseline(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    root, _sha, catalog_ref = _valid_repo(tmp_path)
-    projection = catalog_generator._ReviewedLegacyProjection(
-        expected={},
-        allowed_paths={},
-    )
-    monkeypatch.setattr(
-        catalog_generator,
-        "_reviewed_legacy_projection",
-        lambda _root, *, revision: projection,
-    )
-
-    with pytest.raises(
-        CatalogError,
-        match="legacy population differs.*unexpected=member",
-    ):
-        validate_catalog_ref(root, catalog_ref)
 
 
 def test_pinned_validation_materializes_new_nested_source_directories(

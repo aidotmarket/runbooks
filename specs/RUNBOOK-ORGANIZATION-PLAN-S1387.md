@@ -254,16 +254,12 @@ bindings and an independent reviewer bound to the exact candidate digest, with
 freshness and revocation checks. A receipt ID or unsigned file authored in this
 repository is never a trust source.
 
-During this closed bootstrap, every Git repository must contain exact rollout
-commit `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and pinned
-validation SHAs must descend from it with replacement objects disabled. Catalog
-v2 freezes the exact 20-member population plus the digest-pinned reviewed
-discovery projection: IDs, approved canonical moves, topics, sections and
-section IDs, aliases, signatures, and supersession fields. An alternate or
-unrelated history, missing member, new field value, dirty projection policy, or
-replace ref fails closed. Existing ACTIVE sources and content changes remain
-integrity-only assist/shadow material with no semantic verification, authority
-admission, or action authority. The corpus `--promotion-bar` must stay NO-GO
+During this closed bootstrap, generation reflects valid source frontmatter and
+pinned validation rejects malformed catalogs, schema-version drift, broken
+section links, digest mismatches, and generated outputs inconsistent with their
+source snapshot. Existing ACTIVE sources and content changes remain integrity-only
+assist/shadow material with no semantic verification, authority admission, or
+action authority. The corpus `--promotion-bar` must stay NO-GO
 rather than rename empty or locally decorated evidence as verified.
 
 B0 remains one external deployment condition: the gateway must provide a

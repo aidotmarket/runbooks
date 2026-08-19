@@ -77,7 +77,7 @@ directory symlinks are rejected rather than followed.
 - Replace every placeholder with grounded content. A strict §K `yaml promotion-evidence` block conforming to `schemas/runbook_promotion_evidence.schema.json` may record preparatory claim/evidence candidates and explicit visible `UNKNOWN` gaps. Free text, section mappings, exact blob identity, tests written by the same author, and the corpus ledger's `verify_against` list are not semantic verification or authority.
 - `runbook-catalog pin-evidence <runbook-id>` mechanically fills Git-blob and SHA-256 digests for preparatory code/test/schema/spec/workflow locators. It keeps the file DRAFT and cannot authorize promotion. If retained for future receipt work, commit the DRAFT and cited sources, add its non-authoritative pending ledger record, then refresh `CORPUS-MANIFEST.yaml` from that exact content commit.
 - `runbook-catalog promote <runbook-id>` is unavailable for every risk class in this snapshot. Trusted claim-bound evidence plus independent review authority is not deployed, so an author-supplied receipt ID/file, reviewer name, unsigned payload, local test, or `UNKNOWN` decoration cannot pass. The future signed receipt shape is `schemas/runbook_promotion_receipt.schema.json`; it intentionally contains no local key or trust pin.
-- Manually changing DRAFT to ACTIVE does not bypass the closure. Every Git repository must contain the exact immutable rollout commit `a6d7534a35d921138c139bdf69aaeddd0faec100`; generation `HEAD` and every pinned validation SHA must descend from it under `git --no-replace-objects`. Catalog v2 then requires the exact 20-ID population and the byte-digest-pinned reviewed projection in `schemas/legacy_catalog_projection.policy.json`: IDs, explicitly approved canonical path moves, topics, sections and stable section IDs, aliases, error signatures, and supersession fields are frozen. Any other repository/history, missing member, new ID/topic/signature/alias, unreviewed path, dirty policy bytes, or replacement-ref trick fails closed. Existing content changes remain assist/shadow material only and cannot create semantic or action authority.
+- Manually changing DRAFT to ACTIVE does not establish semantic or action authority. Generation reflects valid frontmatter, while pinned validation still rejects malformed catalogs, schema-version drift, broken section links, digest mismatches, and outputs that differ from their source snapshot. Every catalog entry remains integrity-only until trusted promotion provenance is deployed.
 - Validate a runbook: `runbook-lint <path>`
 - After committing source or archive changes, mechanically refresh the ledger from that exact content commit: `python -m runbook_tools.corpus_manifest --refresh-from <full-content-commit-sha>`. The SHA must equal checked-out `HEAD`; the command changes only derived paths, blob IDs, counts, and the inventory pin, validates a temporary candidate, then replaces the canonical ledger atomically. A repository lock plus optimistic compare-and-swap refuses concurrent evidence edits. It never invents or changes adjudication, risk, evidence, or disposition fields.
 - Validate the complete source estate and its pinned Git inventory: `python -m runbook_tools.corpus_manifest`. `CORPUS-MANIFEST.yaml` is a pending adjudication ledger, not authority; every source edit or move must refresh its declared blob and inventory snapshot.
@@ -115,8 +115,8 @@ is required before confirmation. Confirmation is one-shot: its first terminal
 changed or replayed.
 
 The validator's `integrity_pass_unverified` status proves only that a full SHA
-names a self-consistent Git snapshot descended from the rollout baseline and
-matching the frozen legacy discovery projection. The session gateway is the
+names a self-consistent Git snapshot whose generated outputs, source sections,
+and internal digests agree. The session gateway is the
 target authority for supplying an approved `origin/main` pin and binding
 consultation/gap identifiers to the session. The manual legacy-rollout fallback
 above is diagnostic and temporary, never authority for a caller-minted
@@ -139,5 +139,13 @@ This repository ships `runbook-tools`, a Python package providing:
 - `python -m runbook_tools.corpus_manifest` — prevents the 107-source-document estate plus four recoverable archive records, classifications, and pinned blob evidence from silently drifting; use `--refresh-from <full-content-commit-sha>` only after that exact content commit is checked out, while `--promotion-bar` is the later blocking-rollout check
 
 Installation: `pip install -e .` (Python 3.11+).
+
+Enable automatic catalog refresh once per clone:
+`scripts/install-hooks.sh`. On every commit, the pre-commit hook regenerates and
+stages `CATALOG.json`, `TOPIC-ROUTER.md`, and `README.md`. The regenerated index
+reflects the worktree at commit time, including unstaged edits; this is accepted
+because the index is advisory. Generation, staging, or catchable-signal failures
+only warn and never block the commit. `SIGKILL` is physically uncatchable, so no
+hook can neutralize it. CI reports any resulting drift as advisory.
 
 Current contracts: `specs/RUNBOOK-ALL-CORPUS-DISCOVERY-S1413.md` for complete-corpus search and policy separation, `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md` for the wider runbook-first rollout, and `specs/BQ-RUNBOOK-STANDARD.md` for document structure and deterministic linting. Historical Gate-2 specifications remain provenance only.
