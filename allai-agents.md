@@ -96,6 +96,7 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 | Agent health all "critical" | Metrics all stale — no readings being written | Agent monitoring policy present but no metric collection running |
 | Inter-agent call permission denied | Service bus permission matrix | Check `permission_matrix` in `service_bus.py` |
 | Agent events accumulating but not processing | Event handler error or slow processing | Check agent `handle_event()` logs, look for exceptions |
+| Anonymous allAI answer truncates before covering the requested facts | Anonymous response output budget regressed below the supported default | For T-2026-000665, `ANON_CHAT_MAX_OUTPUT_TOKENS` defaults to `2048` (`fe1f127df`), guarded by `test_default_output_budget_allows_multi_fact_tool_envelopes` (`4c50a69c`). Run that focused regression, then the Titan-1 `allai-new-customer-questions` browser charter; a broader combined-query refusal is separate evidence. |
 
 ## Adding a new agent
 
