@@ -141,7 +141,9 @@ This repository ships `runbook-tools`, a Python package providing:
 Installation: `pip install -e .` (Python 3.11+).
 
 Enable automatic catalog refresh once per clone:
-`git config core.hooksPath scripts/hooks`
-The hook stages `CATALOG.json` and `TOPIC-ROUTER.md`; generation failures warn and never stop a commit.
+`scripts/install-hooks.sh`. When a catalog source page or catalog implementation
+is staged, the pre-commit hook regenerates and stages `CATALOG.json` and
+`TOPIC-ROUTER.md` in the same commit. Generation failures only warn: the hook
+always permits the commit, and CI reports any resulting drift as advisory.
 
 Current contracts: `specs/RUNBOOK-ALL-CORPUS-DISCOVERY-S1413.md` for complete-corpus search and policy separation, `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md` for the wider runbook-first rollout, and `specs/BQ-RUNBOOK-STANDARD.md` for document structure and deterministic linting. Historical Gate-2 specifications remain provenance only.
