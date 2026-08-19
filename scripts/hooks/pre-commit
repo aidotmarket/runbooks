@@ -7,15 +7,23 @@ warning='WARNING: catalog regeneration failed; commit continues with advisory ge
 # accepted because the generated index is advisory.
 trap 'exit 0' EXIT
 for hook_signal in \
-    HUP INT QUIT ILL TRAP ABRT FPE BUS SEGV SYS PIPE ALRM TERM \
-    USR1 USR2 XCPU XFSZ VTALRM PROF EMT
+    HUP INT QUIT ILL TRAP ABRT EMT FPE BUS SEGV SYS PIPE ALRM TERM \
+    TSTP TTIN TTOU XCPU XFSZ VTALRM PROF USR1 USR2
 do
     if (trap '' "$hook_signal") 2>/dev/null; then
         trap 'printf "%s\n" "$warning" >&2; exit 0' "$hook_signal"
     fi
 done
-# SIGKILL and SIGSTOP are physically uncatchable and are the only signals that
-# cannot be neutralized here.
+# This is exhaustive for macOS signals 1-31. After handler installation, every
+# catchable signal is neutralized and the hook exits 0. KILL (9) and STOP (17)
+# are physically uncatchable and are the only such signals. URG (16), CONT (19),
+# CHLD (20), IO (23), WINCH (28), and INFO (29) are deliberately not trapped
+# because their default action is ignore or continue; trapping CHLD would abort
+# the hook when the generator subprocess exits. There is an unavoidable shell
+# interpreter-startup window before handlers are installed in which a fatal
+# signal still takes its default action, so this invariant does not hold from
+# process birth. Trapping TSTP means Ctrl-Z ends the hook instead of suspending
+# it during a commit, which is intended.
 
 if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
     printf '%s\n' "$warning" >&2
