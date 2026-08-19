@@ -1060,6 +1060,9 @@ def _validate_conflicts(
         identities.extend((alias, entry.path) for alias in entry.aliases)
         topics.extend((row.topic, entry.path) for row in entry.authoritative_for)
         signatures.extend((row.signature, entry.path) for row in entry.error_signatures)
+    identities.extend(
+        (entry["runbook_id"], entry["path"]) for entry in discovery_entries
+    )
     _unique(identities, "runbook id/alias")
     _unique(topics, "topic")
     _unique(signatures, "error signature")

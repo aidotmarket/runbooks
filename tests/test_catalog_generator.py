@@ -856,6 +856,40 @@ def test_manual_draft_to_active_cannot_add_authority_or_mutate_outputs(
     } == before
 
 
+@pytest.mark.parametrize(
+    ("discovery_id", "active_aliases"),
+    [
+        ("shared", ["shared"]),
+        ("member", []),
+    ],
+)
+def test_discovery_id_cannot_collide_with_active_identity_and_mutate_outputs(
+    tmp_path: Path,
+    discovery_id: str,
+    active_aliases: list[str],
+) -> None:
+    _write_readme(tmp_path)
+    active = _metadata("member")
+    active["aliases"] = active_aliases
+    _write_doc(tmp_path, "runbooks/member.md", active)
+    generate_catalog(tmp_path)
+    before = {
+        path: (tmp_path / path).read_bytes()
+        for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
+    }
+    discovery = _metadata(discovery_id)
+    discovery["status"] = "DRAFT"
+    _write_doc(tmp_path, "legacy.md", discovery)
+
+    with pytest.raises(CatalogError, match=rf"{discovery_id}"):
+        generate_catalog(tmp_path)
+
+    assert {
+        path: (tmp_path / path).read_bytes()
+        for path in (CATALOG_PATH, ROUTER_PATH, README_PATH)
+    } == before
+
+
 def test_any_alternate_git_repository_missing_exact_baseline_fails_closed(
     tmp_path: Path,
 ) -> None:
