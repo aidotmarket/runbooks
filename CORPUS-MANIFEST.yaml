@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 48b3693688015f65fdff6fc44d365ea03e48736a
+  inventory_sha: 99614c06bde8bfe319d05748b81dd18286a8bd92
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1088,9 +1088,11 @@ documents:
       - runbooks/anthropic-prompt-caching.md
     evidence:
       - ref: git:aidotmarket/ai-market-backend@ed12d1b86c5475f41a9bed7057946b079a6bbd75
-        finding: Direct inspection found a fresh generated_at value inside the cache-marked anonymous block, making production reuse miss.
+        finding: Direct inspection found a fresh generated_at value inside the cache-marked anonymous
+          block, making production reuse miss.
       - ref: git:aidotmarket/ai-market-backend@ccd7fc02d5b73a1d6118549a0076f1b952e499d8
-        finding: Exact unanimously reviewed repair separates stable marked instructions from the complete unmarked live-facts snapshot; not yet deployed.
+        finding: Exact unanimously reviewed repair separates stable marked instructions from the complete
+          unmarked live-facts snapshot; not yet deployed.
       - ref: railway:deployment:82d8c1dc-2c81-4c22-ad65-f9f00c193ac3
         finding: Preflight reported SUCCESS; this does not prove the reviewed repair is deployed or cache-effective.
     verify_against:
@@ -1099,7 +1101,7 @@ documents:
       - current Anthropic cache contract
     independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
-    git_blob_oid: 77033124c3c460e18fea07732f8fa543a68b8506
+    git_blob_oid: 41387ce1b1b1c2447c50781a58d302a115dd0f62
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: evidence_only
