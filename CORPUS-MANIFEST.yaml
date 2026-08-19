@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 1b65e547d4b50a6d54e271c054d0f8b490a78e61
+  inventory_sha: ad96ad3b19f7e63e16e7261f5c595d22fa583443
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 110
-    source_documents: 106
+    operational_documents: 111
+    source_documents: 107
     active: 26
-    grandfathered: 80
+    grandfathered: 81
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -1077,6 +1077,25 @@ documents:
       - existing ACTIVE catalog source at inventory_sha
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
+  - path: runbooks/anthropic-prompt-caching.md
+    git_blob_oid: 30fa8485da76c4c41d9a1848ec7d76fcf69a8efe
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: cost-operations
+    risk: P1
+    target_paths:
+      - runbooks/anthropic-prompt-caching.md
+    evidence:
+      - ref: git:aidotmarket/ai-market-backend@84df5f976bd5dea6730c7ea7f1f8da476cf45b88
+        finding: Exact reviewed prompt-cache implementation retained in the production revision.
+      - ref: railway:deployment:82d8c1dc-2c81-4c22-ad65-f9f00c193ac3
+        finding: Current deployment reports SUCCESS; live cache write/read evidence remains absent.
+    verify_against:
+      - deployed revision ancestry
+      - sanitized cache write and read pair
+      - current Anthropic cache contract
+    independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
     git_blob_oid: 77033124c3c460e18fea07732f8fa543a68b8506
     catalog_state: grandfathered
