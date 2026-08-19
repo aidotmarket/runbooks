@@ -5,6 +5,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import textwrap
 import time
 from pathlib import Path
@@ -19,6 +20,42 @@ WARNING = (
     "generated-index drift."
 )
 GENERATED_OUTPUTS = {"CATALOG.json", "README.md", "TOPIC-ROUTER.md"}
+SIGNAL_NAMES = [
+    "HUP",
+    "INT",
+    "QUIT",
+    "ILL",
+    "TRAP",
+    "ABRT",
+    "EMT",
+    "FPE",
+    "BUS",
+    "SEGV",
+    "SYS",
+    "PIPE",
+    "ALRM",
+    "TERM",
+    "TSTP",
+    "TTIN",
+    "TTOU",
+    "XCPU",
+    "XFSZ",
+    "VTALRM",
+    "PROF",
+    "USR1",
+    "USR2",
+]
+DELIVERED_SIGNALS = [
+    resolved_signal
+    if (resolved_signal := getattr(signal, f"SIG{signal_name}", None)) is not None
+    else pytest.param(
+        None,
+        marks=pytest.mark.skip(
+            reason=f"SIG{signal_name} is not available on {sys.platform}"
+        ),
+    )
+    for signal_name in SIGNAL_NAMES
+]
 MINIMAL_GENERATOR = textwrap.dedent(
     """\
     from __future__ import annotations
@@ -139,6 +176,62 @@ def _staged_paths(root: Path) -> set[str]:
     )
 
 
+@pytest.fixture(scope="module")
+def signal_trappability(tmp_path_factory: pytest.TempPathFactory) -> dict[str, bool]:
+    root = tmp_path_factory.mktemp("signal-trappability")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    staged_file = root / "probe.txt"
+    staged_file.write_text("probe\n", encoding="utf-8")
+    subprocess.run(["git", "add", "probe.txt"], cwd=root, check=True)
+
+    result_path = root / "signal-trappability.txt"
+    probe_hook = root / ".git" / "hooks" / "pre-commit"
+    probe_hook.write_text(
+        "#!/bin/sh\n"
+        ': > "$SIGNAL_TRAPPABILITY_RESULT"\n'
+        f"for hook_signal in {' '.join(SIGNAL_NAMES)}\n"
+        "do\n"
+        "    if (trap '' \"$hook_signal\") 2>/dev/null; then\n"
+        '        printf "%s trappable\\n" "$hook_signal" '
+        '>> "$SIGNAL_TRAPPABILITY_RESULT"\n'
+        "    else\n"
+        '        printf "%s ignored\\n" "$hook_signal" '
+        '>> "$SIGNAL_TRAPPABILITY_RESULT"\n'
+        "    fi\n"
+        "done\n",
+        encoding="utf-8",
+    )
+    probe_hook.chmod(0o755)
+
+    environment = os.environ.copy()
+    environment["SIGNAL_TRAPPABILITY_RESULT"] = str(result_path)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Catalog Hook Test",
+            "-c",
+            "user.email=catalog-hook@example.test",
+            "commit",
+            "-q",
+            "-m",
+            "probe signal trappability",
+        ],
+        cwd=root,
+        env=environment,
+        start_new_session=True,
+        check=True,
+    )
+
+    return {
+        name: disposition == "trappable"
+        for name, disposition in (
+            line.split()
+            for line in result_path.read_text(encoding="utf-8").splitlines()
+        )
+    }
+
+
 def test_hook_is_tracked_as_executable() -> None:
     assert HOOK.stat().st_mode & stat.S_IXUSR
 
@@ -202,59 +295,13 @@ def test_unrelated_commit_still_regenerates_without_error(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize(
     "delivered_signal",
-    [
-        signal.SIGHUP,
-        signal.SIGINT,
-        signal.SIGQUIT,
-        signal.SIGILL,
-        signal.SIGTRAP,
-        signal.SIGABRT,
-        signal.SIGEMT,
-        signal.SIGFPE,
-        signal.SIGBUS,
-        signal.SIGSEGV,
-        signal.SIGSYS,
-        signal.SIGPIPE,
-        signal.SIGALRM,
-        signal.SIGTERM,
-        signal.SIGTSTP,
-        signal.SIGTTIN,
-        signal.SIGTTOU,
-        signal.SIGXCPU,
-        signal.SIGXFSZ,
-        signal.SIGVTALRM,
-        signal.SIGPROF,
-        signal.SIGUSR1,
-        signal.SIGUSR2,
-    ],
-    ids=[
-        "HUP",
-        "INT",
-        "QUIT",
-        "ILL",
-        "TRAP",
-        "ABRT",
-        "EMT",
-        "FPE",
-        "BUS",
-        "SEGV",
-        "SYS",
-        "PIPE",
-        "ALRM",
-        "TERM",
-        "TSTP",
-        "TTIN",
-        "TTOU",
-        "XCPU",
-        "XFSZ",
-        "VTALRM",
-        "PROF",
-        "USR1",
-        "USR2",
-    ],
+    DELIVERED_SIGNALS,
+    ids=SIGNAL_NAMES,
 )
 def test_catchable_signal_warns_and_does_not_block_commit(
-    tmp_path: Path, delivered_signal: signal.Signals
+    tmp_path: Path,
+    delivered_signal: signal.Signals,
+    signal_trappability: dict[str, bool],
 ) -> None:
     _init_repo(tmp_path)
     _stage(tmp_path, "notes.txt", "signal test\n")
@@ -301,11 +348,18 @@ def test_catchable_signal_warns_and_does_not_block_commit(
 
     assert process.returncode == 0
     assert stdout == ""
-    assert stderr.splitlines() == [WARNING]
-    assert subprocess.run(
-        ["git", "rev-list", "--count", "HEAD"],
-        cwd=tmp_path,
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip() == "2"
+    # POSIX keeps signals ignored on entry to a non-interactive shell ignored, so
+    # no hook handler warns for them; the commit's success remains asserted above.
+    signal_name = delivered_signal.name.removeprefix("SIG")
+    expected_stderr = [WARNING] if signal_trappability[signal_name] else []
+    assert stderr.splitlines() == expected_stderr
+    assert (
+        subprocess.run(
+            ["git", "rev-list", "--count", "HEAD"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        == "2"
+    )
