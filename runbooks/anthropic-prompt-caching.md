@@ -168,7 +168,7 @@ acceptable spend or the exact pre-approved probe. The smallest valid probe is:
   `cache_creation_input_tokens > 0`;
 - request 2 reuses the exact request construction with identical complete
   opaque exact-prefix identity, model, tools, prompt-affecting parameters, and
-  provider scope, and starts before the TTL expires, reporting
+  provider scope and deployment/configuration epoch, and starts before the TTL expires, reporting
   `cache_read_input_tokens > 0`;
 - both requests use harmless non-customer test input and the minimum safe output
   budget already supported by that path.
