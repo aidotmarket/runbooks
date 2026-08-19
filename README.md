@@ -143,9 +143,13 @@ Installation: `pip install -e .` (Python 3.11+).
 Enable automatic catalog refresh once per clone:
 `scripts/install-hooks.sh`. On every commit, the pre-commit hook regenerates and
 stages `CATALOG.json`, `TOPIC-ROUTER.md`, and `README.md`. The regenerated index
-reflects the worktree at commit time, including unstaged edits; this is accepted
-because the index is advisory. Generation, staging, or catchable-signal failures
-only warn and never block the commit. `SIGKILL` is physically uncatchable, so no
-hook can neutralize it. CI reports any resulting drift as advisory.
+reflects the worktree at commit time, including unstaged edits. With partial
+staging, an amend, or an otherwise empty commit, the staged generated outputs may
+therefore include changes whose source edits are not in that commit; this is
+accepted because the index is advisory. Generation or staging failures only warn
+and never block the commit. Every signal the hook traps produces the advisory
+warning and exits 0. `SIGKILL` and `SIGSTOP` are uncatchable, while `SIGTSTP`
+suspends rather than fails; the hook makes no claim about signals it does not
+trap. CI reports any resulting drift as advisory.
 
 Current contracts: `specs/RUNBOOK-ALL-CORPUS-DISCOVERY-S1413.md` for complete-corpus search and policy separation, `specs/RUNBOOK-ORGANIZATION-PLAN-S1387.md` for the wider runbook-first rollout, and `specs/BQ-RUNBOOK-STANDARD.md` for document structure and deterministic linting. Historical Gate-2 specifications remain provenance only.

@@ -8,14 +8,13 @@ warning='WARNING: catalog regeneration failed; commit continues with advisory ge
 trap 'exit 0' EXIT
 for hook_signal in \
     HUP INT QUIT ILL TRAP ABRT FPE BUS SEGV SYS PIPE ALRM TERM \
-    USR1 USR2 XCPU XFSZ VTALRM PROF EMT
+    USR1 USR2 XCPU XFSZ VTALRM PROF
 do
     if (trap '' "$hook_signal") 2>/dev/null; then
         trap 'printf "%s\n" "$warning" >&2; exit 0' "$hook_signal"
     fi
 done
-# SIGKILL and SIGSTOP are physically uncatchable and are the only signals that
-# cannot be neutralized here.
+# SIGKILL and SIGSTOP are physically uncatchable.
 
 if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
     printf '%s\n' "$warning" >&2
