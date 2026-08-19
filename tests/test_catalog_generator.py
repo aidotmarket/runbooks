@@ -157,6 +157,8 @@ def test_live_catalog_contains_every_source_without_a_brittle_roster() -> None:
         metadata = yaml.safe_load(raw_frontmatter)
         if metadata.get("status") == "ACTIVE":
             expected[metadata["runbook_id"]] = path.relative_to(REPO_ROOT).as_posix()
+        else:
+            expected_grandfathered += 1
 
     actual_paths = {entry["path"] for entry in catalog["entries"]}
     source_set = {
