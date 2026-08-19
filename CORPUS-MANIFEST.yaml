@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 54e03b508bd028fb8471f0e6f4bbe03a7d27879b
+  inventory_sha: 48b3693688015f65fdff6fc44d365ea03e48736a
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1078,7 +1078,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/anthropic-prompt-caching.md
-    git_blob_oid: 1c5bc6bde358631ad186dc13f07b6e1856da5d34
+    git_blob_oid: f06c82d82f2cb00e6ac20c68a7f6a68c453c5a56
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1087,13 +1087,15 @@ documents:
     target_paths:
       - runbooks/anthropic-prompt-caching.md
     evidence:
-      - ref: git:aidotmarket/ai-market-backend@84df5f976bd5dea6730c7ea7f1f8da476cf45b88
-        finding: Exact reviewed prompt-cache implementation retained in the production revision.
+      - ref: git:aidotmarket/ai-market-backend@ed12d1b86c5475f41a9bed7057946b079a6bbd75
+        finding: Direct inspection found a fresh generated_at value inside the cache-marked anonymous block, making production reuse miss.
+      - ref: git:aidotmarket/ai-market-backend@ccd7fc02d5b73a1d6118549a0076f1b952e499d8
+        finding: Exact unanimously reviewed repair separates stable marked instructions from the complete unmarked live-facts snapshot; not yet deployed.
       - ref: railway:deployment:82d8c1dc-2c81-4c22-ad65-f9f00c193ac3
-        finding: Current deployment reports SUCCESS; live cache write/read evidence remains absent.
+        finding: Preflight reported SUCCESS; this does not prove the reviewed repair is deployed or cache-effective.
     verify_against:
-      - deployed revision ancestry
-      - sanitized cache write and read pair
+      - deployed exact SHA and health
+      - linked cache write/read pair
       - current Anthropic cache contract
     independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
