@@ -16,7 +16,7 @@ purpose_sentence: Discovery-only lifecycle-email task, selection, outbox, suppre
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page records the exact S1548 candidate behavior and post-deploy evidence gaps but authorizes no task execution, deployment, rollback, or production claim.
+authoritative_scope: None while DRAFT; this page records the exact S1548 candidate behavior, deployed service identities, and counts-only live selection/claim evidence but authorizes no task execution, deployment, rollback, or production action.
 linter_version: 1.0.0
 ---
 
@@ -26,24 +26,41 @@ linter_version: 1.0.0
 
 This is a non-authoritative DRAFT for Build Queue item
 `build:bq-signup-lifecycle-emails-s1548`. It is grounded in exact
-`aidotmarket/ai-market-backend` candidate and production target
-`77dae96fd8a80fe768091061bc3846fb1b5e8d55`. Live deployment of that exact SHA
-and a successful live sweep are **UNKNOWN**, awaiting Vulcan post-deploy
-evidence.
+`aidotmarket/ai-market-backend` revision
+`77dae96fd8a80fe768091061bc3846fb1b5e8d55`. The backend deployment
+`480d2fdc-c1c1-46a5-a915-3986c04ab84c` completed with status `SUCCESS` and image
+`sha256:8c9e1ffb594e90197447aebfbda3850216771210a3cbf9f4c1d06af4f9b75fd4`.
+The same deployed service set records beat deployment
+`3b46d1e6-5385-486f-a7f2-c2a99895f839` with image
+`sha256:fdc8443f9fa9c8291630c39ec5e246547a45b42953c0ddaaf1f864f5a62050f4`
+and worker deployment `8ae9b906-3a48-44d1-9783-bf029e6f055b` with image
+`sha256:d965f4cd1452ff6eba1b71236547d3901f2628df1ff829a984c31ac3455642ad`.
+
+Operator-triggered live task `lifecycle_emails.daily_sweep`
+`bd169cfa-3675-4a61-bf32-cc95c1325555` ran at
+`2026-08-20T20:19:19Z` and succeeded in `6.481179486960173s` with aggregate
+counts `{selected: 51, claimed: 51}`. No
+`operator does not exist: userstatus = character varying` log has occurred
+since deployment. This proves the repaired selection/claim path. Drain and
+delivery behavior and recipient inbox delivery were not part of this predicate
+repair and were not re-verified here. This DRAFT claims no browser
+verification.
 
 ## §B. Capability Matrix
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Scheduled claim and drain tasks | PARTIAL | `app/core/celery_app.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_b.py; tests/test_s1548_lifecycle_emails_phase_d.py` | 2026-08-20 |
-| Idempotent outbox, suppression, and retry boundary | PARTIAL | `app/models/lifecycle_email_send.py; app/services/lifecycle_email_claims.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_b.py; tests/test_s1548_lifecycle_emails_phase_d.py` | 2026-08-20 |
+| Scheduled claim and drain tasks | PARTIAL | `app/core/celery_app.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover schedules; the operator-triggered daily sweep proves live selection/claim, but scheduled execution and drain/delivery were not re-verified here | 2026-08-20 |
+| Idempotent outbox, suppression, and retry boundary | PARTIAL | `app/models/lifecycle_email_send.py; app/services/lifecycle_email_claims.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover the boundary; live aggregate counts prove 51 selections produced 51 claims, but drain/delivery was not re-verified here | 2026-08-20 |
 | Signed lifecycle unsubscribe | PARTIAL | `app/api/v1/endpoints/lifecycle_emails.py; app/services/lifecycle_email_unsubscribe.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_d.py` | 2026-08-20 |
 | Signup and attempt selection | PARTIAL | `app/tasks/lifecycle_emails.py; app/api/v1/endpoints/ops_signups.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_b.py; tests/test_s1548_ops_signups_phase_c.py` | 2026-08-20 |
-| Exact production deployment and live sweep | PLANNED | `aidotmarket/ai-market-backend@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `UNKNOWN - awaiting Vulcan post-deploy evidence` | 2026-08-20 |
+| Exact production deployment and repaired daily selection/claim path | SHIPPED | `app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Backend/beat/worker deployment and image identities are in §A; live task `bd169cfa-3675-4a61-bf32-cc95c1325555` succeeded with `{selected: 51, claimed: 51}` and no matching failure log since deployment | 2026-08-20 |
 
-`PARTIAL` means the behavior is present in the exact candidate and has focused
-test coverage; it does not claim that this runbook work reran those backend
-tests or that production is serving the candidate.
+`PARTIAL` means the behavior is present in the exact deployed revision and has
+focused test coverage, but the specific behavior was not fully re-verified live
+here. This runbook work did not rerun those backend tests. `SHIPPED` is limited
+to exact deployment identity and the repaired daily selection/claim path; it
+does not extend to drain/delivery or recipient inbox delivery.
 
 ## §C. Architecture & Interactions
 
@@ -70,7 +87,7 @@ mail directly.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan | Verify exact production SHA and observe scheduled task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | PARTIAL — exact deployment and successful live sweep remain UNKNOWN |
+| Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified |
 
 ## §E. Operate
 
@@ -84,6 +101,17 @@ authority. The registered schedules are:
 - `lifecycle_emails.drain_outbox`: every 300 seconds.
 - `lifecycle_emails.attempt_sweep`: hourly at minute 35.
 - `lifecycle_emails.daily_sweep`: daily at 15:00 UTC.
+
+The retained live evidence is the operator-triggered
+`lifecycle_emails.daily_sweep` task
+`bd169cfa-3675-4a61-bf32-cc95c1325555` at `2026-08-20T20:19:19Z`. It
+succeeded in `6.481179486960173s` with aggregate counts
+`{selected: 51, claimed: 51}`. The exact deployed revision and service image
+identities are recorded in §A, and no
+`operator does not exist: userstatus = character varying` log has occurred
+since deployment. This evidence proves the repaired selection/claim path only.
+No drain/delivery, recipient inbox delivery, or browser verification was
+performed as part of this runbook refresh.
 
 Retained operator evidence is counts-only: task name, time, exact deployed SHA,
 and aggregate `selected`, `claimed`, `sent`, `failed`, `suppressed`, and
@@ -118,17 +146,17 @@ filter no longer applies; do not treat either constant as a current hold.
   repair_entry_point: aidotmarket/ai-market-backend commit 77dae96fd8a80fe768091061bc3846fb1b5e8d55
   change_pattern: cast User.status to VARCHAR only in the lifecycle candidate predicate and compare it with active
   rollback_procedure: revert the single backend commit 77dae96fd8a80fe768091061bc3846fb1b5e8d55 through the normal reviewed and deployed workflow; never hot-patch production
-  integrity_check: exact production SHA equals the intended reviewed target and a later scheduled daily sweep plus drain yields retained counts-only evidence without the signature
+  integrity_check: exact production SHA equals the intended reviewed target and a live daily sweep yields retained counts-only selection/claim evidence without the signature
 ```
 
-Operator boundary: if production is not exactly
-`77dae96fd8a80fe768091061bc3846fb1b5e8d55`, route that exact candidate through
-the normal review and deployment controls; do not manually invoke a sweep as a
-substitute for deployment evidence. After deployment, Vulcan records the exact
-revision and the next scheduled daily-sweep and drain aggregate results. Until
-both exist, deployment and live-sweep status remain `UNKNOWN`. A rollback uses
-the normal reviewed/deployed revert above and does not establish a healthy
-sweep; reverting restores the pre-repair comparison.
+The recorded backend deployment is exactly
+`77dae96fd8a80fe768091061bc3846fb1b5e8d55`; its deployment and image identities
+are in §A. The operator-triggered task in §E succeeded with 51 selections and
+51 claims, and the failure signature has not appeared since deployment. This
+live task proves the repaired selection/claim path. It does not prove the
+separate drain/delivery path or recipient inbox delivery, neither of which was
+part of this predicate repair or re-verified here. A rollback uses the normal
+reviewed/deployed revert above; this DRAFT does not authorize it.
 
 The wider shared ORM mapping mismatch is explicitly out of scope. This repair
 is limited to the lifecycle selection predicate and must not change policy,
@@ -141,7 +169,8 @@ models, schemas, migrations, or other callers.
 - Selection/capture commits an idempotent outbox claim before the drain makes a network call.
 - Lifecycle delivery never targets unverified, inactive, synthetic/test, or opted-out users.
 - Day-3 suppresses only the complete-Stripe-plus-listing case.
-- Production and sweep success remain UNKNOWN without exact post-deploy evidence.
+- Exact deployment and the repaired live daily selection/claim path are bound to the evidence in §A and §E.
+- Drain/delivery and recipient inbox delivery remain separate from the repaired predicate and were not re-verified here.
 
 ### §H.2 BREAKING predicates
 
@@ -157,7 +186,8 @@ tests, exact-artifact review, and this DRAFT to be refreshed.
 ### §H.4 SAFE predicates
 
 Counts-only evidence updates and editorial clarification are safe only when
-they grant no authority and change no runtime behavior or UNKNOWN verdict.
+they grant no authority, change no runtime behavior, and do not broaden the
+specific path proved by the retained evidence.
 
 ### §H.5 Boundary definitions
 
@@ -186,10 +216,12 @@ configuration, not values invented by this runbook.
 
 ### §H.6 Adjudication
 
-Exact backend source and post-deploy evidence win over this DRAFT. Uncertain
-deployment identity, a missing scheduled result, or counts without revision
-binding remains `UNKNOWN`; no local test or Git ancestry substitutes for live
-evidence.
+Exact backend source and post-deploy evidence win over this DRAFT. For this
+refresh, exact deployment identity plus the operator-triggered counts bind the
+repaired selection/claim result to the deployed revision. They do not establish
+drain/delivery or recipient inbox delivery. Uncertain future deployment
+identity or counts without revision binding remain `UNKNOWN`; no local test,
+Git ancestry, or browser inference substitutes for live evidence.
 
 ## §I. Operational Examples
 
@@ -203,19 +235,22 @@ Focused implementation coverage is limited here to:
 - `tests/test_s1548_lifecycle_emails_phase_d.py`
 - `tests/test_s1548_ops_signups_phase_c.py`
 
-This runbook-only change does not execute those backend tests. Its acceptance
-does not include deployment or a live sweep, both of which remain UNKNOWN.
+This runbook-only change does not execute those backend tests. Its retained
+acceptance evidence is the exact successful deployment plus the live
+operator-triggered task proving the repaired selection/claim path with
+counts-only output. Drain/delivery, recipient inbox delivery, and browser
+verification were outside this predicate repair and were not re-verified here.
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
 last_refresh_session: S1588
 last_refresh_commit: 77dae96fd8a80fe768091061bc3846fb1b5e8d55
-last_refresh_date: 2026-08-20T00:00:00Z
+last_refresh_date: 2026-08-20T20:19:19Z
 owner_agent: vulcan
 refresh_triggers:
   - any change to lifecycle task schedules, selection, suppression, outbox, retry, or unsubscribe behavior
-  - a different backend production target or retained Vulcan post-deploy evidence
+  - a different backend production target or later retained counts-only task evidence
   - resolution of the shared ORM mapping mismatch
 scheduled_cadence: 90d
 ```
