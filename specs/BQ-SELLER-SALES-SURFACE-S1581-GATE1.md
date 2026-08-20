@@ -1,6 +1,6 @@
 # BQ-SELLER-SALES-SURFACE-S1581 Gate 1 design specification
 
-**Status:** Gate 1 design authority
+**Status:** Gate 1 design authority. Gate 1 review round 1 returned CC APPROVE, GLM APPROVE, and Kimi APPROVE_WITH_MANDATES; this commit folds those mandates.
 
 **Build Queue entity:** `build:bq-seller-sales-surface-s1581`
 
@@ -66,6 +66,7 @@ In scope:
 - Active-seller Purchases navigation at the existing `/dashboard/orders` URL.
 - Buyer navigation label `Purchases` at the unchanged `/dashboard/orders` URL.
 - The `/dashboard/orders` page heading change to `Purchases`.
+- The two post-checkout links labelled `Check My Orders` change to `Check My Purchases`; their `/dashboard/orders` targets stay unchanged.
 - Any dashboard back-link whose visible label is the bare word `Orders` changes to `Purchases`; its target stays unchanged.
 - Seller-specific list fields, status dictionary, filters, sort, and page states defined below.
 - Omission of Sales navigation for provisioning sellers, plus safe handling of direct visits without calling the active-only endpoint.
@@ -99,6 +100,8 @@ Use these exact strings, targets, and order:
 | 5 | `Inquiries` | `/dashboard/seller/inquiries` |
 | 6 | `Settings` | `/dashboard/settings` |
 
+The existing conditional `Blog Admin` entry for `max@ai.market` is unaffected and remains appended after these six role-navigation entries.
+
 The page heading at `/dashboard/sales` is exactly `Sales`.
 
 ### 7.2 Provisioning seller behaviour
@@ -120,7 +123,7 @@ Keep every buyer target and every other buyer string unchanged. The resulting ex
 | 3 | `Purchases` | `/dashboard/orders` |
 | 4 | `My Requests` | `/dashboard/requests` |
 
-The page heading at `/dashboard/orders` is exactly `Purchases`. Its URL and buyer data source remain unchanged. Any `Back to Orders` navigation label on the buyer detail route becomes `Back to Purchases`, with the target still `/dashboard/orders`. No action, fetch, authorization, or other detail-page behaviour changes under this specification.
+The page heading at `/dashboard/orders` is exactly `Purchases`. In the empty state, replace the current `No orders yet` h1 with `Purchases` and render `No orders yet` as the empty-state subheading beneath it, keeping the directional page language consistent. Its URL and buyer data source remain unchanged. Any `Back to Orders` navigation label on the buyer detail route becomes `Back to Purchases`, with the target still `/dashboard/orders`. No action, fetch, authorization, or other detail-page behaviour changes under this specification.
 
 ## 8. `GET /seller/orders` contract and list presentation
 
@@ -134,7 +137,7 @@ The page heading at `/dashboard/orders` is exactly `Purchases`. Its URL and buye
 | `limit` | Integer, default 50, maximum 100. |
 | `offset` | Integer, default 0, minimum 0. |
 
-It requires the active seller capability and currently orders results by `created_at DESC`: `ai-market-backend@a47354a5cc109e162b8d7dddb9b9f8bb41284a1b:app/api/v1/endpoints/seller.py:261-295`.
+It requires the active seller capability and currently orders results by `created_at DESC`: `ai-market-backend@a47354a5cc109e162b8d7dddb9b9f8bb41284a1b:app/api/v1/endpoints/seller.py:261-295`. Extend the existing `getSellerOrders()` client signature to accept and pass `status_filter`, `limit`, and `offset` as query parameters.
 
 ### 8.2 Verified response contract
 
@@ -158,7 +161,7 @@ The response is a JSON array. The endpoint currently has no declared response mo
 
 The list must define its own typed `SellerOrder` contract rather than reuse `BuyerOrder` or `BuyerOrderDetail`.
 
-The page renders seven visible columns on desktop: `Sale`, `Listing`, `Buyer`, `Gross (USD)`, `You receive (USD)`, `Status`, and `Paid`. The mobile card renders the same facts. `Paid` uses the existing absolute date formatter and adds a neutral relative age, for example `20 Aug 2026 (3 hours ago)`. Age changes only the text. It does not change colour, position, status, or add an action. If `paid_at` is null, render `Not paid` and show `created_at` as `Created <absolute date>`.
+The page renders seven visible columns on desktop: `Sale`, `Listing`, `Buyer`, `Gross (USD)`, `You receive (USD)`, `Status`, and `Paid`. The mobile card renders the same facts. `Paid` uses the existing absolute date formatter and adds a neutral relative age, for example `Aug 20, 2026 (3 hours ago)`. Age changes only the text. It does not change colour, position, status, or add an action. If `paid_at` is null, render `Not paid` and show `created_at` as `Created <absolute date>`.
 
 The seller list omits `currency`, even though the order model defaults currency to USD: `ai-market-backend@a47354a5cc109e162b8d7dddb9b9f8bb41284a1b:app/models/order.py:130-137`. Slice one makes the limitation explicit by labelling both amount columns `(USD)`. Adding per-order currency to the seller list is deferred and becomes mandatory before non-USD orders are admitted. Do not make a buyer-detail call to discover currency.
 
@@ -202,7 +205,7 @@ The backend order state machine defines these values: `ai-market-backend@a47354a
 | `refunded` | `Refunded` |
 | `cancelled` | `Cancelled` |
 
-An unknown runtime value renders `Status unavailable` and is reported to existing frontend error telemetry. It must never expose a raw code or fall back to the buyer status dictionary. `Awaiting delivery` is neutral status copy. There is no `Needs action`, `Upload`, `Deliver now`, or `Mark delivered` copy.
+An unknown runtime value renders `Status unavailable` and calls `console.error('Unknown seller order status:', status)` exactly once. It must never expose a raw code or fall back to the buyer status dictionary. Do not add a telemetry dependency or a new module. `Awaiting delivery` is neutral status copy. There is no `Needs action`, `Upload`, `Deliver now`, or `Mark delivered` copy.
 
 ## 10. Folded seller overview statistics defect
 
@@ -211,7 +214,7 @@ The seller Overview cards currently read `stats.views`, `stats.sales`, and `stat
 The backend response does not change. The frontend must:
 
 1. Define and use a `SellerStats` response type with `period`, `total_listings`, `total_views`, `total_inquiries`, `total_sales`, `period_sales`, `period_revenue_cents`, `period_revenue_display`, `pending_fulfillments`, and `conversion_rate`.
-2. Change the card reads from `views` to `total_views`, from `sales` to `total_sales`, and from `revenue` to `period_revenue_display`.
+2. Change the card reads from `views` to `total_views`, from `sales` to `total_sales`, and from `revenue` to `period_revenue_display`. Render `period_revenue_display` verbatim; do not prefix a currency symbol and do not call `.toFixed`.
 3. Change the third card label from `Total Revenue` to `Revenue (30 days)` while the request uses the endpoint's default `period=30d`. The response's period revenue must not be presented as all-time revenue.
 4. Correct the Vitest mocks to use the real backend shape. The active-seller test uses nonzero values including `total_views: 12`, `total_sales: 3`, `period_revenue_cents: 4550`, and `period_revenue_display: "$45.50"`, then asserts that `12`, `3`, and `$45.50` render.
 5. Preserve the test that a purchases failure does not erase active-seller dashboard content, but give its seller stats mock the same real response shape.
@@ -225,14 +228,14 @@ Each criterion is independently checkable.
 1. An active seller sees the exact six navigation entries and targets in section 7.1, in that order.
 2. A provisioning seller does not see `Sales` in navigation. A direct visit to `/dashboard/sales` renders `Sales unlock after seller setup is complete.` and makes zero requests to `/seller/orders`.
 3. A buyer sees the exact four navigation entries and targets in section 7.3. `/dashboard/orders` remains the Purchases target.
-4. The visible heading on `/dashboard/sales` is `Sales`; the visible heading on `/dashboard/orders` is `Purchases`.
+4. The visible heading on `/dashboard/sales` is `Sales`; in both empty and non-empty fixtures, the visible page heading on `/dashboard/orders` is `Purchases`.
 5. No dashboard navigation or back-navigation link uses the bare label `Orders`. Existing `/dashboard/orders` and `/dashboard/orders/[id]` URLs remain valid.
 6. The active-seller Sales page calls `GET /seller/orders` with the selected status filter, `limit=100`, and `offset=0`. No Sales code calls `/orders/mine`, `/orders/{id}`, `/seller/pending`, or a transaction endpoint.
 7. A fixture containing one pending sale and one personal purchase renders the sale under Sales and the purchase under Purchases. Neither appears in the other list.
 8. A Sales row and mobile card render the seven visible facts in section 8.2. The row and card contain no link to `/dashboard/orders/[id]` and no seller detail link.
 9. `needs_action=true` changes no copy, colour, order, button, link, or prompt. `pending_delivery` renders `Awaiting delivery`, with absolute `paid_at` and relative age.
 10. The default filter and stable sort match section 8.3. A test with three pending fixtures proves oldest `paid_at` first and deterministic tie-breaking.
-11. Unit fixtures cover every status in section 9 and prove the seller dictionary is independent of the buyer `OrderStatus` and buyer labels.
+11. Unit fixtures cover every status in section 9 and prove the seller dictionary is independent of the buyer `OrderStatus` and buyer labels. An unknown-status fixture renders `Status unavailable`, never the raw code, and proves `console.error` is called exactly once as `console.error('Unknown seller order status:', status)`.
 12. Sales imports no delivery, upload, refund, dispute, transaction, or other mutation client. There is no `Mark Delivered` control.
 13. Loading, each empty case, error, retry, and provisioning copy match section 8.4 and section 7.2 exactly.
 14. The seller stats client or consumer is typed to the real response. Tests mock the complete real shape and prove nonzero `total_views`, `total_sales`, and `period_revenue_display` values render.
@@ -252,7 +255,7 @@ The build must introduce this exact ASCII string as the All-filter empty-state b
 Sales will appear here after a buyer completes payment.
 ```
 
-Gate 4 must fetch `https://ai.market/dashboard/sales` from outside the deployment environment, follow the expected redirect chain if authentication requires it, collect the same-origin JavaScript asset URLs returned by the page and its Next.js build manifest, fetch those assets from `https://ai.market`, decompress them, and search their bytes for the exact string. Record the live URL, UTC verification time, HTTP statuses, matched asset URL, and the matching literal. Gate 4 passes only when the string is present in a live production asset. Local output, preview assets, source maps, GitHub, and Cloudflare build status are insufficient.
+Gate 4 must run from outside the deployment environment. The verifier signs in through the normal production sign-in flow with an active-seller account, then loads `https://ai.market/dashboard/sales` in the same authenticated browser session and collects the same-origin JavaScript asset URLs returned by the page and its Next.js build manifest. Fetch those assets from `https://ai.market`, decompress them, and search their bytes for the exact string. Record the live URL, UTC verification time, HTTP statuses, matched asset URL, matching literal, and the Next.js `buildId` from the `/_next/static/<buildId>/_buildManifest.js` URL. Gate 4 passes only when the string is present in a live production asset. Local output, preview assets, source maps, GitHub, and Cloudflare build status are insufficient.
 
 ## 13. Risks and falsifiers
 
