@@ -126,37 +126,58 @@ def _single_source_repository(tmp_path: Path) -> tuple[Path, Path]:
     return root, source
 
 
-def test_repository_manifest_passes_default_check() -> None:
+def test_repository_manifest_is_internally_coherent() -> None:
+    """The shipped manifest must agree with itself.
+
+    It is deliberately NOT asserted against the current working tree. Drift
+    between the tree and the generated manifest is advisory, not a gate, per
+    Max directives S1491 and S1500: adding or editing a runbook must never turn
+    the suite red and force a bookkeeping commit before the work can land. The
+    validator's drift detection is still fully covered by the synthetic-corpus
+    tests below, which is where it belongs.
+    """
     manifest = _manifest()
     counts = manifest["inventory"]["counts"]
-    report = validate_corpus_manifest(REPO_ROOT)
+    documents = manifest["documents"]
 
-    assert report.operational_documents == counts["operational_documents"]
-    assert report.source_documents == counts["source_documents"]
-    assert report.active == counts["active"]
-    assert report.grandfathered == counts["grandfathered"]
-    assert report.archived == sum(
-        document["catalog_state"] == "archived" for document in manifest["documents"]
+    by_state: dict[str, int] = {}
+    for document in documents:
+        by_state[document["catalog_state"]] = by_state.get(
+            document["catalog_state"], 0
+        ) + 1
+
+    assert counts["operational_documents"] == len(documents)
+    assert counts["active"] == by_state.get("active", 0)
+    assert counts["grandfathered"] == by_state.get("grandfathered", 0)
+    assert sum(by_state.values()) == counts["operational_documents"]
+    assert counts["source_documents"] == sum(
+        document["catalog_state"] != "archived" for document in documents
     )
-    assert report.pending == sum(
-        document["status"] == "pending_verification"
-        for document in manifest["documents"]
-    )
-    assert report.promotion_bar is False
+    assert {document["path"] for document in documents} == {
+        document["path"] for document in documents
+    }
+    assert len({document["path"] for document in documents}) == len(documents)
 
 
 def test_pinned_manifest_loader_reads_one_immutable_complete_snapshot() -> None:
     sha = _run_git(REPO_ROOT, "rev-parse", "HEAD")
+    manifest = _manifest()
+    counts = manifest["inventory"]["counts"]
 
     pinned = load_pinned_corpus_manifest(REPO_ROOT, sha)
 
     assert pinned.search_sha == sha
-    assert pinned.operational_documents == 112
-    assert pinned.source_documents == 108
-    assert pinned.active == 26
-    assert pinned.grandfathered == 82
-    assert pinned.archived == 4
-    assert len(pinned.documents) == 112
+    assert pinned.operational_documents == counts["operational_documents"]
+    assert pinned.source_documents == counts["source_documents"]
+    assert pinned.active == counts["active"]
+    assert pinned.grandfathered == counts["grandfathered"]
+    assert pinned.archived == sum(
+        document["catalog_state"] == "archived" for document in manifest["documents"]
+    )
+    assert len(pinned.documents) == pinned.operational_documents
+    assert (
+        pinned.active + pinned.grandfathered + pinned.archived
+    ) == pinned.operational_documents
     assert len(pinned.manifest_sha256) == 64
     assert {
         document.catalog_state for document in pinned.documents

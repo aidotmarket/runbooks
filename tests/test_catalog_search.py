@@ -316,6 +316,22 @@ def _repository(root: Path) -> tuple[str, str, Path]:
     return sha, f"git:aidotmarket/runbooks@{sha}:CATALOG.json", peer
 
 
+def _corpus_state_counts() -> dict[str, int]:
+    """Per-state document counts read from the repository corpus manifest.
+
+    Derived rather than pinned: adding a runbook must never turn the suite red
+    and force a bookkeeping commit (Max directives S1491, S1500). What these
+    tests guard is that search reports the SAME corpus the manifest declares,
+    which a literal never checked.
+    """
+    manifest = yaml.safe_load((REPO_ROOT / "CORPUS-MANIFEST.yaml").read_text())
+    counts: dict[str, int] = {"active": 0, "grandfathered": 0, "archived": 0}
+    for document in manifest["documents"]:
+        counts[document["catalog_state"]] += 1
+    counts["total"] = sum(counts.values())
+    return counts
+
+
 def _working_tree_pin(root: Path) -> tuple[str, str]:
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
     subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
@@ -1418,12 +1434,9 @@ def test_complete_pinned_corpus_counts_and_every_exact_path_is_retrievable(
     )
 
     assert (
-        manifest.operational_documents,
-        manifest.active,
-        manifest.grandfathered,
-        manifest.archived,
-    ) == (112, 26, 82, 4)
-    assert len(snapshot) == 112
+        manifest.active + manifest.grandfathered + manifest.archived
+    ) == manifest.operational_documents
+    assert len(snapshot) == manifest.operational_documents
 
     seen_paths: set[str] = set()
     h1_only: dict | None = None
@@ -1466,7 +1479,7 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
         catalog_ref,
         "path:ai-market-backend.md",
     )
-    assert pending["searched_entry_count"] == 112
+    assert pending["searched_entry_count"] == _corpus_state_counts()["total"]
     assert pending["status"] == "no_positive_candidate_in_active_catalog"
     assert pending["discovery_status"] == "discovery_leads_returned_unverified"
     assert pending["authoritative_gap"] is True
@@ -1509,7 +1522,10 @@ def test_pending_and_archived_exact_path_results_preserve_policy_boundaries(
     assert {
         state: state_counts[state]["searched_document_count"]
         for state in ("active", "grandfathered", "archived")
-    } == {"active": 26, "grandfathered": 82, "archived": 4}
+    } == {
+        state: _corpus_state_counts()[state]
+        for state in ("active", "grandfathered", "archived")
+    }
     assert state_counts["grandfathered"]["qualifying_document_count"] == 1
     assert state_counts["grandfathered"]["returned_document_count"] == 1
     assert state_counts["grandfathered"]["omitted_document_count"] == 0
