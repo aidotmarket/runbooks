@@ -77,7 +77,7 @@ After open, each peer independently works the highest-leverage item it can claim
 
 ## O.5 Stale registry reconciliation
 If `kd_session_open` returns evidence of a stale prior instance row:
-1. Check the instance row in `/var/tmp/koskadeux/registry.db`.
+1. Check the instance row in `/Users/max/koskadeux-state/registry.db`. That is the canonical path (`koskadeux-mcp tools/registry.py:47`, overridable only by `KOSKADEUX_REGISTRY_DB`). `/var/tmp/koskadeux/registry.db` is a retired compatibility path and is normally absent; opening it with `sqlite3` silently CREATES an empty database and returns no rows, so a diagnosis run against it reads as "no sessions" rather than as an error. Verified S1585.
 2. Verify via `ps -ef` that the prior session's processes are not actually running.
 3. Prefer `kd_session_close` for that stale session. Direct SQL is an audited last resort.
 4. Re-attempt `kd_session_open(instance=...)` if needed.
