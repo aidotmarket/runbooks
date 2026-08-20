@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 2871313a300c13b1457d82d98caab9a6e867b412
+  inventory_sha: 18353440cd8b2a81a6277f61de4bffae7d12bbba
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1101,7 +1101,7 @@ documents:
       - current Anthropic cache contract
     independent_review_required: true
   - path: runbooks/lifecycle-emails.md
-    git_blob_oid: 92b6f91c15306ad80ada47e575369483c9a1d6ae
+    git_blob_oid: 1039cd2c7f9fdffdeea8558f35595536d890f3ed
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1113,20 +1113,17 @@ documents:
       - ref: git:aidotmarket/ai-market-backend@77dae96fd8a80fe768091061bc3846fb1b5e8d55
         finding: Exact deployed revision repairs the lifecycle daily-sweep status comparison.
       - ref: railway:deployment:480d2fdc-c1c1-46a5-a915-3986c04ab84c
-        finding: Backend deployment completed with SUCCESS status for the exact revision using image
-          sha256:8c9e1ffb594e90197447aebfbda3850216771210a3cbf9f4c1d06af4f9b75fd4; beat deployment
-          3b46d1e6-5385-486f-a7f2-c2a99895f839 used image
-          sha256:fdc8443f9fa9c8291630c39ec5e246547a45b42953c0ddaaf1f864f5a62050f4 and worker
-          deployment 8ae9b906-3a48-44d1-9783-bf029e6f055b used image
-          sha256:d965f4cd1452ff6eba1b71236547d3901f2628df1ff829a984c31ac3455642ad.
+        finding: Backend deployment completed with SUCCESS status for the exact revision using image sha256:8c9e1ffb594e90197447aebfbda3850216771210a3cbf9f4c1d06af4f9b75fd4;
+          beat deployment 3b46d1e6-5385-486f-a7f2-c2a99895f839 used image sha256:fdc8443f9fa9c8291630c39ec5e246547a45b42953c0ddaaf1f864f5a62050f4
+          and worker deployment 8ae9b906-3a48-44d1-9783-bf029e6f055b used image sha256:d965f4cd1452ff6eba1b71236547d3901f2628df1ff829a984c31ac3455642ad.
       - ref: celery:task:bd169cfa-3675-4a61-bf32-cc95c1325555
         finding: Operator-triggered lifecycle_emails.daily_sweep at 2026-08-20T20:19:19Z succeeded in
           6.481179486960173s with aggregate counts selected 51 and claimed 51; no matching failure log
           has occurred since deployment. This proves the repaired selection/claim path only.
     verify_against:
-      - exact deployed backend SHA and service deployment/image identities
-      - counts-only daily-sweep selection/claim evidence and absence of the repaired failure signature
-      - separate drain/delivery and recipient inbox evidence before any broader delivery claim
+      - deployed SHA and service images
+      - counts-only selection/claim result
+      - drain/delivery and inbox unverified
     independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
     git_blob_oid: 91ddd3f0b741b861f5889067dae9421f297e9730
