@@ -2,6 +2,8 @@
 
 **Status:** Gate 2 implementation specification, authored pending review.
 
+**Gate 2 review record:** Round 1 returned CC `REQUEST_CHANGES`, GLM `APPROVE_WITH_MANDATES`, and Kimi `APPROVE_WITH_MANDATES`. This round-2 fold commit folds those findings without changing the Gate 1 decisions or the thirteen-file implementation manifest.
+
 **Build Queue entity:** `build:bq-seller-sales-surface-s1581`
 
 **Binding design authority:** `runbooks@73752294af7dd58870ae3028814f8931de4b6b25:specs/BQ-SELLER-SALES-SURFACE-S1581-GATE1.md:1`. Gate 1 is closed. This document implements it without changing its decisions.
@@ -42,7 +44,7 @@ At the baseline, `app/dashboard/sales/page.tsx`, its test, and `api/seller.test.
 
 | File | Required change |
 | --- | --- |
-| `types/index.ts` | Add the complete `SellerOrderStatus`, `SellerOrder`, and `SellerStats` contracts without changing buyer order types. |
+| `types/index.ts` | Add `SellerOrderStatus` and replace the stale `SellerOrder` and `SellerStats` contracts in place inside the existing seller-types section, without changing `SellerFinancials` or buyer order types. |
 | `api/seller.ts` | Type `getSellerStats()` and extend `getSellerOrders()` to accept and pass `status_filter`, `limit`, and `offset`. |
 | `app/dashboard/layout.tsx` | Render the exact active-seller, provisioning-seller, and buyer navigation, and retain the existing buyer-only route redirect policy. |
 | `app/dashboard/layout.test.tsx` | Add exact navigation order/target tests and buyer/provisioning Sales access tests. |
@@ -58,7 +60,8 @@ At the baseline, `app/dashboard/sales/page.tsx`, its test, and `api/seller.test.
 The manifest above follows the current tree at the pinned frontend SHA:
 
 - The seller client has untyped one-line stats and orders calls, and `getSellerOrders()` accepts no arguments: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:api/seller.ts:1-5`.
-- The shared types contain buyer `OrderStatus`, `BuyerOrder`, and `BuyerOrderDetail`, but no seller order or seller stats type: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:types/index.ts:365-394`.
+- The existing seller dashboard section contains stale, unused `SellerStats` and `SellerOrder` interfaces: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:types/index.ts:228-255`. `SellerStats` has six fields, including backend-absent `published_listings` and `total_revenue`, and lacks the fields required by section 7. `SellerOrder` has seven fields, uses `amount` instead of `amount_cents`, and types `status` as an unrestricted string. Neither interface has an importer anywhere else in the pinned frontend tree; the overview instead types stats as `any`: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.tsx:41-48`.
+- The separate buyer section contains `OrderStatus`, `BuyerOrder`, and `BuyerOrderDetail` and remains unchanged: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:types/index.ts:365-394`.
 - Dashboard access already resolves `CapabilityStatus` and redirects a buyer from a route outside the buyer allowlist to `/dashboard/inquiries`: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/layout.tsx:21-69`.
 - Seller and buyer navigation currently use `Orders` and `My Orders`: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/layout.tsx:87-109`.
 - The Purchases page already has local badge helpers, a responsive desktop table, a mobile card layout, the shared spinner, and an empty state: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/orders/page.tsx:11-69` and `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/orders/page.tsx:103-238`.
@@ -66,7 +69,7 @@ The manifest above follows the current tree at the pinned frontend SHA:
 - The Listings page provides the current dashboard retry panel, empty card, and table shell: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/listings/page.tsx:91-130`.
 - The seller Inquiries page provides the current local status dictionary and pill helper shape: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/seller/inquiries/page.tsx:14-29`.
 - The overview has an existing card grid but reads nonexistent `views`, `sales`, and `revenue` fields: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.tsx:481-543`.
-- The current overview tests repeat the incorrect stats shape in the active-seller and purchase-failure fixtures: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.test.tsx:122-149` and `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.test.tsx:259-290`.
+- The current overview tests repeat the incorrect `{ views, sales, revenue }` stats shape three times: in the active-seller stats fixture, active-seller personal-purchase fixture, and purchase-failure fixture at `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.test.tsx:122-149`, `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.test.tsx:160-176`, and `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/page.test.tsx:259-290`.
 - The current buyer detail back link is the only dashboard back-navigation occurrence of `Back to Orders`: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/dashboard/orders/[id]/page.tsx:288-303`.
 - The checkout timeout and error states contain the two required `Check My Orders` replacements: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:app/checkout/success/CheckoutSuccessContent.tsx:158-202`.
 - `formatPrice()` and `formatDate()` already supply the USD and absolute date formatting used by the dashboard: `ai-market-frontend@509ce253e9a2a16ba8584af7f144a85d4c895569:lib/format.ts:1-14`.
@@ -88,7 +91,7 @@ There is no shared dashboard list, table, card, badge, filter, loading, or empty
 
 ### 4.1 `types/index.ts`
 
-Add a seller dashboard type section before the existing buyer order section. Add these definitions in full:
+Work inside the existing seller dashboard type section at lines 228-255; do not create a second seller section. Add `SellerOrderStatus`, replace the existing `SellerOrder` and `SellerStats` interfaces in place with these definitions in full, drop their stale fields, and leave `SellerFinancials` untouched:
 
 ```ts
 export type SellerOrderStatus =
@@ -136,6 +139,8 @@ export interface SellerStats {
 
 Do not change or extend `OrderStatus`, `BuyerOrder`, or `BuyerOrderDetail`. Seller status values are a separate contract.
 
+After the edit, `types/index.ts` must contain exactly one `export interface SellerStats` declaration and exactly one `export interface SellerOrder` declaration.
+
 ### 4.2 `api/seller.ts`
 
 Import `SellerOrder` and `SellerStats` from `@/types`. Add this parameter type in `api/seller.ts`:
@@ -173,7 +178,7 @@ The file contains these boundaries:
 4. `isSellerOrderStatus(status: string): status is SellerOrderStatus`, implemented with an own-property check against `SELLER_STATUS`.
 5. `getSellerStatusPresentation(status: string)`, returning the dictionary entry or the fixed unknown fallback. It does not log during render.
 6. `sortSellerOrders(orders, filter)`, returning a copied and sorted array. It never mutates the API response.
-7. `formatRelativeAge(date, now)`, using `Intl.RelativeTimeFormat('en', { numeric: 'always' })`. Select the largest whole nonzero unit from years, months, weeks, days, hours, minutes, then seconds. Pass a negative value for past times so the output is such as `3 hours ago`. Tests fix system time.
+7. `formatRelativeAge(date, now)`, using `Intl.RelativeTimeFormat('en', { numeric: 'always' })`. Use these exact millisecond constants: second `1_000`, minute `60_000`, hour `3_600_000`, day `86_400_000`, week `604_800_000`, month `2_592_000_000` (30 days), and year `31_536_000_000` (365 days). Select the largest whole nonzero unit from years, months, weeks, days, hours, minutes, then seconds. Pass a negative value for past times so the output is such as `3 hours ago`. Tests fix system time.
 8. `SalesPageContent`, which reads the optional `status` search parameter, resolves capabilities, fetches data, owns retry/filter state, reports unknown statuses, and renders the page.
 9. The default `SalesPage`, which wraps `SalesPageContent` in `Suspense` so `useSearchParams()` does not break a production Next build. Its fallback includes the `Sales` heading and `Loading sales...`.
 
@@ -216,9 +221,9 @@ On mount and whenever the selected filter changes:
 1. Mark the page loading, clear the error, and clear the current rows so stale rows cannot remain visible.
 2. Call the existing `getCapabilities()` client.
 3. If `capabilities.seller.effective_status === 'provisioning'`, set the provisioning state, stop, and make no `getSellerOrders()` call.
-4. If the status is not `active` or `provisioning`, set a blocked state, stop, and make no seller-orders call. The dashboard layout performs the existing buyer redirect to `/dashboard/inquiries` before the child mounts in normal routing.
-5. If the status is `active`, call `getSellerOrders()` with the selected status, `limit: 100`, and `offset: 0`. Omit `status_filter` for `All`.
-6. Store only the current request's result. Use the existing cancelled-effect pattern so a slow response from a previous filter cannot overwrite a newer selection.
+4. If the status is not `active` or `provisioning`, set a blocked state, stop, and make no seller-orders call. This is a required defence-in-depth state: while capabilities are unresolved, the layout's legacy `user.role === 'seller' || user.role === 'admin'` fallback can mount the child before a later `not_requested` or `suspended` resolution triggers the buyer redirect.
+5. If the status is `active`, await `getSellerOrders()` with the selected status, `limit: 100`, and `offset: 0`. Omit `status_filter` for `All`.
+6. Unwrap the Axios response and store only the current request's `response.data`. Use the existing cancelled-effect pattern so a slow response from a previous filter cannot overwrite a newer selection.
 7. On failure, clear rows and render the error state. The `Try again` button repeats steps 1 through 6 with the same selected filter.
 
 This page imports `getCapabilities`, `getSellerOrders`, `formatDate`, `formatPrice`, and the seller types. It does not import `@/api/orders`, `@/api/transactions`, a transaction action, delivery, upload, refund, or dispute client.
@@ -261,6 +266,7 @@ Use these strings exactly:
 | State | Heading and body/action |
 | --- | --- |
 | Provisioning | Page heading `Sales`; body `Sales unlock after seller setup is complete.` |
+| Blocked | Page heading `Sales`; body `Sales are unavailable for this account.` No seller-order request is made. |
 | Loading | Page heading `Sales`; body `Loading sales...` |
 | Default-filter empty | Empty heading `No sales awaiting delivery`; body `Paid sales awaiting delivery will appear here.` |
 | All-filter empty | Empty heading `No sales yet`; body `Sales will appear here after a buyer completes payment.` |
@@ -366,7 +372,7 @@ const sellerStats = {
 };
 ```
 
-Mock `getSellerStats()` as `{ data: sellerStats }` in both the active-seller stats test and the purchases-failure test. Assert:
+Mock `getSellerStats()` as `{ data: sellerStats }` in all three active-seller tests that currently carry the wrong shape: `renders active seller stats from capability state alone`, `renders purchases and order rows for an active seller`, and `keeps active seller dashboard content when purchases fail to load`. Rename the first of those tests to `renders active seller stats from the real contract shape`. Assert:
 
 - `12`, `3`, and `$45.50` render.
 - `Revenue (30 days)` renders and `Total Revenue` does not.
@@ -397,14 +403,15 @@ Add a zero fixture assertion, using the same complete shape with `pending_fulfil
 #### New `app/dashboard/sales/page.test.tsx`
 
 - `guards provisioning sellers before seller orders`: return provisioning capabilities, assert the `Sales` heading and exact provisioning body, and assert `getSellerOrders` has zero calls.
-- `shows the Sales heading and Loading sales... without stale rows`: leave the active request pending, assert both exact strings and absence of a prior fixture row.
+- `blocks unavailable seller capabilities before seller orders`: exercise `not_requested` and `suspended` resolutions separately, assert the `Sales` heading and exact blocked body for each, and assert `getSellerOrders` has zero calls in both cases.
+- `shows the Sales heading and Loading sales... without stale rows`: use a two-phase arrangement. Resolve rows for one filter, switch to a second filter, leave the second request pending, then assert both exact strings and the absence of the first filter's fixture row.
 - `requests the selected filters with the bounded query`: cover default pending, All, Delivered, and Completed; assert exact params each time.
 - `renders all seven facts in desktop and mobile presentations without links`: use one pending fixture, assert the seven labels and values occur in both responsive branches, assert the container has no anchor, and assert no detail URL or action text.
-- `keeps needs_action informational`: render two otherwise identical pending fixtures differing only in `needs_action`; assert identical label/class/action/link treatment and prove ordering follows timestamps and order number, not the boolean.
+- `keeps needs_action informational`: fix system time at `2026-08-20T15:00:00Z` and render two otherwise identical pending fixtures differing only in `needs_action`, including one with `paid_at: '2026-08-20T12:00:00Z'`; assert identical label/class/action/link treatment, prove ordering follows timestamps and order number rather than the boolean, and assert the exact absolute date `Aug 20, 2026` and exact relative age `3 hours ago`. The test must fail if either paid-date rendering is removed or changed.
 - `sorts pending sales oldest paid first with deterministic ties`: use three pending fixtures, fix the clock, and assert DOM order by `paid_at` ascending, then `created_at` ascending, then `order_number` ascending.
-- `sorts non-default filters newest paid first`: cover All, Delivered, or Completed with null-date and tie fixtures and assert the section 5.4 order.
+- `sorts all non-default filters newest paid first with nulls and deterministic ties`: cover All, Delivered, and Completed explicitly. For each filter, include a null `paid_at` fixture and fixtures with equal `paid_at` and `created_at` but distinct order numbers; assert newest paid dates first, null dates last, and ascending `order_number` tie-breaking. The test must fail if any one of the three filter branches, null-last handling, or order-number tie-break is broken.
 - `maps every seller status independently`: use `it.each` over all eleven Gate 1 values and exact labels; assert buyer-only labels `Pending`, `Fulfilled`, and `Failed` are not used for seller-only states.
-- `reports an unknown status exactly once`: render one `future_status` fixture; assert `Status unavailable` appears in both responsive presentations, `future_status` is absent, and `console.error` is called once with `('Unknown seller order status:', 'future_status')`.
+- `reports an unknown status exactly once`: keep `SellerOrder.status` as the eleven-value union and use the explicit fixture cast `status: 'future_status' as SellerOrderStatus` to simulate runtime contract drift. Assert `Status unavailable` appears in both responsive presentations, `future_status` is absent, and `console.error` is called once with `('Unknown seller order status:', 'future_status')`.
 - `renders each exact empty state`: separately select default, All, Delivered, and Completed and assert the exact heading/body pair.
 - `renders exact error copy and retries the same request`: reject once, assert the exact heading/body/button, click `Try again`, resolve, and assert the same params object was used on both seller-order calls.
 - `keeps one sale and one personal purchase on separate surfaces`: render Sales with a sale fixture and the Purchases page with a different buyer-order fixture in the same test; assert each title is present only on its directional surface and assert the seller client never receives the purchase fixture.
@@ -428,7 +435,7 @@ No new test file is added for `app/dashboard/orders/[id]/page.tsx` or `CheckoutS
 | Gate 1 criterion | Proof |
 | --- | --- |
 | 1 | `app/dashboard/layout.test.tsx > renders exact active seller navigation`. |
-| 2 | `app/dashboard/layout.test.tsx > omits Sales for provisioning sellers but keeps Purchases`; `app/dashboard/sales/page.test.tsx > guards provisioning sellers before seller orders`; manual buyer redirect route check. |
+| 2 | `app/dashboard/layout.test.tsx > omits Sales for provisioning sellers but keeps Purchases`; `app/dashboard/sales/page.test.tsx > guards provisioning sellers before seller orders`; `app/dashboard/sales/page.test.tsx > blocks unavailable seller capabilities before seller orders`; `app/dashboard/layout.test.tsx > redirects a buyer direct Sales visit`. |
 | 3 | `app/dashboard/layout.test.tsx > renders exact buyer navigation`. |
 | 4 | `app/dashboard/sales/page.test.tsx > shows the Sales heading and Loading sales... without stale rows`; both `app/dashboard/orders/page.test.tsx` heading tests. |
 | 5 | The three layout navigation tests; section 9.4 bare-copy scan; manual `/dashboard/orders` and `/dashboard/orders/<known-id>` route check. |
@@ -436,10 +443,10 @@ No new test file is added for `app/dashboard/orders/[id]/page.tsx` or `CheckoutS
 | 7 | `app/dashboard/sales/page.test.tsx > keeps one sale and one personal purchase on separate surfaces`; `app/dashboard/orders/page.test.tsx > renders Purchases heading with a buyer order`. |
 | 8 | `app/dashboard/sales/page.test.tsx > renders all seven facts in desktop and mobile presentations without links`; manual responsive browser check at desktop and mobile widths. |
 | 9 | `app/dashboard/sales/page.test.tsx > keeps needs_action informational`. |
-| 10 | The two Sales sort tests. |
+| 10 | `app/dashboard/sales/page.test.tsx > sorts pending sales oldest paid first with deterministic ties`; `app/dashboard/sales/page.test.tsx > sorts all non-default filters newest paid first with nulls and deterministic ties`. |
 | 11 | `app/dashboard/sales/page.test.tsx > maps every seller status independently` and `reports an unknown status exactly once`. |
 | 12 | Sales row/card no-link test; section 9.4 Sales source-boundary scan; manual check that Sales has no mutation control. |
-| 13 | The provisioning, loading, empty-state, error, and retry Sales tests. |
+| 13 | `app/dashboard/sales/page.test.tsx > guards provisioning sellers before seller orders`; `app/dashboard/sales/page.test.tsx > blocks unavailable seller capabilities before seller orders`; the loading, empty-state, error, and retry Sales tests. |
 | 14 | `app/dashboard/page.test.tsx > renders active seller stats from the real contract shape`; `npm run typecheck`. |
 | 15 | The nonzero and zero `Sales awaiting delivery` assertions in `app/dashboard/page.test.tsx`. |
 | 16 | Existing `app/dashboard/page.test.tsx > renders purchases and order rows for an active seller`, retained with `/dashboard/orders`; active-seller layout test. |
@@ -453,7 +460,7 @@ No new test file is added for `app/dashboard/orders/[id]/page.tsx` or `CheckoutS
 
 Apply the work in this order. Run the named focused check after each numbered step before continuing.
 
-1. Add the seller types in `types/index.ts`; type `api/seller.ts`; add `api/seller.test.ts`. Run `npm run typecheck` and `npm test -- api/seller.test.ts`.
+1. Replace the stale seller types in place and add `SellerOrderStatus` in `types/index.ts`; type `api/seller.ts`; add `api/seller.test.ts`. Confirm exactly one `export interface SellerStats` and one `export interface SellerOrder` remain, then run `npm run typecheck` and `npm test -- api/seller.test.ts`.
 2. Add `app/dashboard/sales/page.tsx` and `app/dashboard/sales/page.test.tsx`. Run `npm run typecheck` and the Sales/API tests. The route exists but is not exposed in navigation yet.
 3. Apply one atomic navigation and Purchases tranche: edit `app/dashboard/layout.tsx`, `app/dashboard/layout.test.tsx`, `app/dashboard/orders/page.tsx`, `app/dashboard/orders/page.test.tsx`, `app/dashboard/orders/[id]/page.tsx`, and `app/checkout/success/CheckoutSuccessContent.tsx` together. Run the layout, Sales, and Purchases tests plus the source/diff checks. Do not leave a candidate commit in which the old seller `Orders` entry points to Sales without the `Purchases` entry.
 4. Correct `app/dashboard/page.tsx` and `app/dashboard/page.test.tsx`, including the Sales pointer. Run the dashboard, Sales, and API tests.
@@ -527,7 +534,7 @@ Passing means no output and exit 0. Internal component names, API names, error m
 Inspect the buyer detail diff:
 
 ```sh
-git diff --unified=3 509ce253e9a2a16ba8584af7f144a85d4c895569 -- app/dashboard/orders/[id]/page.tsx
+git diff --unified=3 509ce253e9a2a16ba8584af7f144a85d4c895569 -- 'app/dashboard/orders/[id]/page.tsx'
 ```
 
 Passing means the only changed line is `Back to Orders` becoming `Back to Purchases`. Any import, fetch, condition, button, effect, or other copy change fails the Gate 2 boundary.
@@ -588,7 +595,7 @@ These are build risks, not Gate 1 design falsifiers.
 
 | Risk | Required control |
 | --- | --- |
-| A provisioning or buyer visit calls the active-only endpoint before access is known. | Resolve `getCapabilities()` first and make `getSellerOrders()` reachable only from the explicit `active` branch. Test zero calls in both blocked cases. |
+| A provisioning, not-requested, or suspended visit calls the active-only endpoint before access is known. | Resolve `getCapabilities()` first and make `getSellerOrders()` reachable only from the explicit `active` branch. The Sales page tests prove zero calls for provisioning and for both blocked capability resolutions; the layout redirect test separately proves the eventual buyer redirect. |
 | An earlier filter response overwrites a newer selection. | Use the existing effect-cancellation pattern and clear rows at each request start. |
 | Null dates or equal timestamps produce unstable row order. | Apply the explicit null-last and three-key comparison in section 5.4 and test ties. |
 | Responsive desktop and mobile branches report one unknown status twice. | Report unknown values in an effect with a component-local `Set`, not inside either render branch. |
