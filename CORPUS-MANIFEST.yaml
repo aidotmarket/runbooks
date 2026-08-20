@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 599421f6a953b14457b399c2f7eeca5fb012cf50
+  inventory_sha: 2871313a300c13b1457d82d98caab9a6e867b412
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 111
-    source_documents: 107
+    operational_documents: 112
+    source_documents: 108
     active: 26
-    grandfathered: 81
+    grandfathered: 82
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -381,7 +381,7 @@ documents:
       - MP dispatch corpus fire counts
     independent_review_required: true
   - path: cc-machine-identity.md
-    git_blob_oid: 7cf2de719cd6d04b718a1b9edadf368378f5f2b1
+    git_blob_oid: 9a13d91526ddd5cb0f8633e4a2f4b003e73f59ac
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -444,7 +444,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: codex-mp.md
-    git_blob_oid: bcd5a2c980edb013ff0d5ad5a97a6ab834711599
+    git_blob_oid: ed2d3c53220d34f7f98174c879292324ba9410d8
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1100,8 +1100,25 @@ documents:
       - linked cache write/read pair
       - current Anthropic cache contract
     independent_review_required: true
+  - path: runbooks/lifecycle-emails.md
+    git_blob_oid: 92b6f91c15306ad80ada47e575369483c9a1d6ae
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: ai-market-backend
+    risk: P1
+    target_paths:
+      - runbooks/lifecycle-emails.md
+    evidence:
+      - ref: git:aidotmarket/ai-market-backend@77dae96fd8a80fe768091061bc3846fb1b5e8d55
+        finding: Exact candidate repairs the lifecycle daily-sweep status comparison; deployment and live
+          sweep remain UNKNOWN.
+    verify_against:
+      - exact deployed backend SHA
+      - counts-only scheduled daily-sweep and drain evidence
+    independent_review_required: true
   - path: runbooks/boot-kernel-companion-crosswalk.md
-    git_blob_oid: 41387ce1b1b1c2447c50781a58d302a115dd0f62
+    git_blob_oid: 91ddd3f0b741b861f5889067dae9421f297e9730
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: evidence_only
@@ -1187,7 +1204,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council-hall-deliberation.md
-    git_blob_oid: efa58dbf80f28792672e80372fac766f6760b6d6
+    git_blob_oid: 6ad8900ef9fba4e2b3e4a0ed1c790bc71c0fa87b
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1369,7 +1386,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/runbooks.md
-    git_blob_oid: d8acab66837a77136c1340e46f5e2cc752e615ec
+    git_blob_oid: e14f6ade88bfd4cc6dc4ca2118b8e4fd08d4a754
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1500,7 +1517,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: session-open-protocol.md
-    git_blob_oid: e2132eb3ababdaf908b2d3bd3352335de69090af
+    git_blob_oid: bcf6347a8bff2baa61ebe7b7f609b53f40f0e36f
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
