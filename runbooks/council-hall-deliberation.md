@@ -22,7 +22,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-17
+last_verified_at: 2026-08-20
 system_name: council-hall-deliberation
 purpose_sentence: Council Hall deliberation process for unbiased multi-agent assessment, synthesis, and cross-pollination across the participant set explicitly bound when each Hall starts.
 owner_agent: vulcan
@@ -93,6 +93,17 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 The capability map reports role boundaries; it is not a participant-selection source. At Hall start, pass an explicit policy-authorized `agents` list or deliberately accept the verified deployed default. After start, use only that bound set.
 
 ## §E. Operate
+
+> **S1582 SUPERSESSION NOTICE.** Every `council_hall(...)` tool_or_endpoint in this
+> section refers to a service that **no longer exists in the deployed tree**: the
+> `council_hall/` package, its plist, and its orchestrator were deliberately deleted
+> in `koskadeux-mcp` commit `d393224d95` ("refactor: make council review file-only",
+> 2026-08-12). The three-phase deliberation **protocol** below (frozen neutral prompt,
+> independent Phase 1, cross-poll only the disagreements, synthesis) remains the
+> governing procedure; the *automation* is retired. Execute it manually per §N.
+> The `council_request(mode=open_response)` dispatch shape in E-02 is still literally
+> correct; the `council_hall(action=start|record_response|get_cross_poll_bundle)` steps
+> are procedure descriptions only — perform their intent by hand as mapped in §N.
 
 ```yaml operate
 - id: E-01
@@ -539,3 +550,29 @@ So `deepseek-v4-pro` IS the canonical code-review tier today. There is no higher
 
 **Mandate: when DeepSeek announces a new tier higher than `deepseek-v4-pro`, this section, the user memory note about Council models, and the in-code whitelist `DEEPSEEK_ALLOWED_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})` at `koskadeux-mcp/deepseek_client.py:34` (plus the `DEEPSEEK_PRICING` table directly below it) MUST all be updated together in the same commit.** Add a line to this section linking to the new model's pricing source and a sample chat probe confirming the model name resolves at the API.
 <!-- /catalog:historical -->
+
+## §N — S1582 Operational Update: council_hall service retired, manual procedure
+
+The `council_hall` orchestration service was removed from `koskadeux-mcp` at commit
+`d393224d95c35a45d83a2347d1fcedc99f67895e` (2026-08-12, "refactor: make council review
+file-only"): package `council_hall/`, `com.koskadeux.council-hall.plist`, and related
+middleware were deleted. There is no `council_hall` MCP tool. This page's protocol was
+executed fully manually in S1581 (seller sales surface deliberation, T-2026-000687)
+and that run is the reference for the mapping below.
+
+| Retired automation | Manual equivalent (verified S1581) |
+|---|---|
+| `council_hall(action=start, ...)` | Write ONE frozen neutral prompt (background, proposal, decision dimensions, requested structure; no roles assigned). Freeze it before any dispatch; every participant gets the identical text. |
+| Phase 1 dispatch | `council_request(agent=<cc\|kimi\|glm>, mode=open_response, task=<frozen prompt>)`, one call per participant, none shown another's answer. E-02 unchanged. |
+| `council_hall(action=record_response, ...)` | Keep each returned response file (`/Users/max/council/<member>/response-*.md`) unmodified; reference the paths in the owning ticket or BQ entity so the record is durable. |
+| `council_hall(action=get_cross_poll_bundle)` | Orchestrating peer builds a faithful comparison of the Phase 1 answers, then cross-polls ONLY the disagreements: a second `open_response` round carrying the original prompt plus every Phase 1 assessment verbatim. Do not cross-poll points already converged. Bias rules of E-03 (`premature_cross_poll`, `biased_synthesis`) still apply to the hand-built bundle. |
+| Convergence/synthesis machinery | Orchestrating peer writes the synthesis; persist decision + binding constraints + open questions into the owning BQ entity, not only prose. |
+
+The §E error signatures remain meaningful as protocol violations (e.g. `premature_cross_poll`
+is now a mistake the orchestrating peer can make by hand); the `duplicate_deliberation` and
+`participant_config_missing` signatures referred to service state and can no longer occur
+mechanically — their intent survives as "do not run two deliberations on one question" and
+"dispatch only the exact governed roster CC/Kimi/GLM".
+
+If deliberation volume ever justifies re-automating this, that is a new Gate 1 design item,
+not a restoration of the deleted code.
