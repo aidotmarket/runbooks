@@ -365,7 +365,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1588
-last_refresh_commit: 1debb321039173320854b8c5f9db429acec25f88
+last_refresh_commit: a75fde9b4ada61509ff3b8f6f3655fcb341a51ff
 last_refresh_date: 2026-08-21T01:32:00Z
 owner_agent: sysadmin
 refresh_triggers:
