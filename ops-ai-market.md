@@ -34,6 +34,8 @@ Each tab in the dashboard pulls from specific backend endpoints. All backend end
 
 The panel is registered first in `TopNav`. Each row deep-links to its owning tab; APPROVALS rows offer inline Approve/Deny that reuse the existing `HitlApprovalsPanel` approve/deny helpers (no duplicated resolution logic). A global nav badge and the browser document title both show the live total from the same endpoint, alongside the preserved APPROVALS pending badge. Empty state text is exactly "Nothing needs you."
 
+The separate Remediator summary keeps its canonical handled, fixed, retrying, and needs-attention totals; its **Recently handled** list omits only entries whose outcome is `fixed`, while retrying and human-required entries remain visible.
+
 **Gate-4 lesson (proposal_status_enum):** the native Postgres `proposal_status_enum` labels are the lowercase enum *values* (`draft`, `submitted`, ...). Filtering `AgentProposal.status == ProposalStatus.SUBMITTED` binds the member *name* (`SUBMITTED`) and 500s with asyncpg `InvalidTextRepresentationError`. Use the codebase cast pattern instead: `cast(AgentProposal.status, String) == ProposalStatus.SUBMITTED.value` (same pattern used for `User.status` in `app/api/deps.py`). Backend endpoint: `app/api/v1/endpoints/ops_needs_max.py`.
 
 ## Agents tab — unified fleet view (S363)
