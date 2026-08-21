@@ -37,11 +37,11 @@ The build must implement these decisions without reopening them:
 
 ### 3.1 Two-stage execution
 
-**Stage A — deterministic customer-side facts.** ai.market issues a signed, versioned scan specification to AIM Data. AIM Data verifies the signature, resolves the registered source handle to the exact artifact, and runs deterministic conduit code over the complete supported traversal root. The LLM is out of the loop. The conduit computes only the facts in section 6, constructs a canonical fingerprint, and signs a receipt containing the scan-spec hash, fresh nonce, install-key identity, exact local artifact binding, content hash, scan window, coverage, and fingerprint hash.
+**Stage A — deterministic customer-side facts.** ai.market issues a signed, versioned scan specification to AIM Data. AIM Data verifies the signature, resolves the registered source handle to the exact artifact, and runs deterministic conduit code over the complete supported traversal root. The LLM is out of the loop. The conduit computes only the facts in section 6, constructs a canonical fingerprint, and creates a local customer-side receipt containing the exact local artifact binding. The transmitted receipt signature covers the scan-spec hash, fresh nonce, install-key identity, artifact-locator commitment, content hash, scan window, coverage, and fingerprint hash; it never covers or contains the raw locator.
 
-The scan specification fixes the connector, traversal root, traversal order, fingerprint algorithm, bucket boundaries, approximate-distinct algorithm, deterministic seed, output contract, depth class, and preview toggle. D6 text and source-derived strings cannot modify it. Sampling or approximate algorithms use a seed derived from the signed spec and source binding so unchanged data under the same spec produces byte-identical canonical facts and fingerprint hashes.
+The scan specification fixes the connector, traversal root, traversal order, fingerprint algorithm, bucket boundaries, approximate-distinct algorithm, deterministic seed, output contract, depth class, and preview toggle. D6 structural context and source-derived strings cannot modify it. Sampling or approximate algorithms use a seed derived from the signed spec and source binding so unchanged data under the same spec produces byte-identical canonical facts and fingerprint hashes.
 
-**Stage B — bounded cloud-side narrative.** ai.market accepts only a schema-valid, nonce-matched, install-key-signed report. allAI receives the approved fingerprint fields plus the D6 seller description as quoted untrusted context. It performs one bounded narrative pass with no tools and no ability to write deterministic fact fields. Provider usage at this boundary is the exclusive token meter. The D8 preview, when selected, is a view over the same deterministic facts rather than model-authored data.
+**Stage B — bounded cloud-side narrative.** ai.market accepts only a schema-valid, nonce-matched, install-key-signed report. allAI receives the approved fingerprint fields plus the customer-side-sanitized D6 structural context as quoted untrusted context. It performs one bounded narrative pass with no tools and no ability to write deterministic fact fields. Provider usage at this boundary is the exclusive token meter. The D8 preview, when selected, is a view over the same deterministic facts rather than model-authored data.
 
 ### 3.2 Wire directions
 
@@ -52,7 +52,7 @@ Cloud to customer:
 
 Customer to cloud:
 
-- Owner consent and launch envelope, including the D6 description.
+- Owner consent and launch envelope, including only the schema-valid, customer-side-sanitized D6 structural context defined in section 6.
 - The final signed receipt and only the exact fields in section 6.
 - Fixed-enum terminal errors when a report cannot be produced.
 - No scan-derived progress payload is needed in v1. No raw cells, rows, samples, top values, free-form source errors, credentials, file contents, or data-plane frames cross.
@@ -79,7 +79,7 @@ The local signed receipt must pin the exact resolved artifact used by that run:
 - Local source: canonical resolved path plus SHA-256 content hash.
 - S3 source: connection ID, bucket, object key, and SHA-256 content hash.
 
-The exact local locator stays in the customer-side signed receipt. The customer sends a keyed, install-scoped locator commitment plus the content hash; the locator commitment can later be checked against the signed receipt without disclosing a filesystem path or bucket/key to the cloud. This satisfies the exact-artifact pin while keeping the transmitted manifest non-reversible. Because `_resolve_file_path` may choose a different concrete file under the same handle over time, the artifact pin is mandatory.
+The exact local locator stays only in the local customer-side receipt and is never an input to the transmitted signature. The customer sends a keyed, install-scoped locator commitment plus the content hash; the transmitted receipt signature covers that commitment, not the raw locator. This satisfies the exact-artifact pin while keeping the transmitted manifest non-reversible. Because `_resolve_file_path` may choose a different concrete file under the same handle over time, the artifact pin is mandatory.
 
 Post-scan replacement of the file or object behind the handle remains undetectable in v1. That residual is disclosed. A1 supports the source-identity claim; it does not justify a claim of future delivery equality.
 
@@ -87,7 +87,7 @@ Post-scan replacement of the file or object behind the handle remains undetectab
 
 The public attestation is limited to:
 
-> On [scan date and time], at the data owner's authorization and expense, ai.market directed AIM Data to scan the seller-designated source for this listing inside the owner's environment; the structural facts below were computed by ai.market conduit code and the findings are published unedited.
+> On [scan date and time], at the data owner's authorization and expense, ai.market directed AIM Data to scan the seller-designated source for this listing inside the owner's environment; the structural facts below were computed by ai.market-authored conduit code executed by the owner's AIM Data installation, and the findings are published unedited.
 
 The badge title is `Scan findings — [UTC date]`. No public or internal user-facing copy may use an unqualified truth-status label for the listing or data.
 
@@ -107,9 +107,11 @@ The known v1 residuals are explicit: a curated source and post-scan replacement 
 
 ## 6. Customer-to-cloud metadata manifest
 
-> **CORE S3 UNANIMOUS SIGN-OFF REQUIRED — EXACT METADATA FIELD LIST THAT CROSSES THE WIRE.** No field may be added, widened, made more precise, or repurposed without a new unanimous CORE S3 decision. A reconstruction exercise against a representative fingerprint is a release gate; if any field exposes a raw cell value, that field is removed before launch.
+> **CORE S3 UNANIMOUS SIGN-OFF REQUIRED — EXACT METADATA FIELD LIST THAT CROSSES THE WIRE.** No field may be added, widened, made more precise, or repurposed without a new unanimous CORE S3 decision. A reconstruction exercise against representative and adversarial fingerprints is a release gate; recovery of a raw value or row-level property outside the approved minimum-occupancy policy blocks launch and requires suppression, uniform widening, or field removal under the Gate 1/S3 change path below.
 
 The manifest is exhaustive. The D6 field is listed separately because it is seller-authored context, not scan-derived metadata.
+
+Commitment/HMAC keys are customer-held secrets: they never cross the customer boundary and are distinct from the receipt-signature key pair and its public verification key. The cloud receives the public receipt-signature verification key but no commitment/HMAC key material. `install_key_id` identifies the receipt-signature key only; it cannot identify, derive, or select a commitment/HMAC key.
 
 | Transmitted field | Shape and source | One-line non-reconstructibility argument |
 | --- | --- | --- |
@@ -118,7 +120,7 @@ The manifest is exhaustive. The D6 field is listed separately because it is sell
 | `wire_manifest_version`, `corpus_disclosure_version`, `payment_disclosure_version`, `accepted_at_utc` | Fixed policy versions plus consent timestamp | Policy references and time record what the owner accepted, not any data record. |
 | `requested_action` | Fixed enum `start`, `cancel`, `publish`, `decline`, or `withdraw` | A lifecycle command changes state but contains no source content. |
 | `source_handle_id` | Opaque registered AIM Data handle ID | The opaque handle identifies a connection record, not any row or credential. |
-| `artifact_locator_commitment` | HMAC-SHA-256 over the canonical resolved path or S3 connection/bucket/object key, keyed per installation | A keyed digest pins the exact locator but does not reveal or permit enumeration of that locator. |
+| `artifact_locator_commitment` | HMAC-SHA-256 over the canonical resolved path or S3 connection/bucket/object key, using a customer-held per-installation commitment key | A keyed digest pins the exact locator; because its key never crosses and is distinct from receipt verification material, cloud-visible bytes do not provide a locator-enumeration oracle. |
 | `content_sha256` | SHA-256 of the complete resolved file or object bytes | The one-way digest supports equality comparison but cannot reconstruct source bytes. |
 | `spec_id`, `spec_version`, `spec_hash` | Signed scan-spec identity | These identify marketplace policy, not customer content. |
 | `nonce_echo` | Fresh random challenge copied from the signed spec | A random freshness value contains no customer content. |
@@ -127,22 +129,28 @@ The manifest is exhaustive. The D6 field is listed separately because it is sell
 | `depth_class`, `row_count_algorithm_version`, `distinct_algorithm_version`, `histogram_version`, `numeric_bucket_version` | Fixed policy enums/versions | Fixed method labels disclose how facts were computed, not the underlying values. |
 | `coverage.objects_discovered`, `coverage.objects_scanned` | Integer aggregate counts | Counts reveal only the number of reachable structural objects, not their records. |
 | `coverage.objects_skipped_by_reason` | Counts keyed only by fixed reason enum such as `permission_denied`, `unsupported_type`, or `timeout` | Bucketed failure counts expose no object name, error string, or source value. |
-| `coverage.skipped[]` | Install-keyed `object_id` plus fixed reason enum | The keyed object commitment and enum prove which structural object was skipped without revealing its name, path, error text, or records. |
-| `objects[].object_id` | Install-keyed stable HMAC of canonical object identity | The commitment supports stable comparison while hiding database, table, file, or path names. |
+| `coverage.skipped[]` | Customer-held-keyed `object_id` plus fixed reason enum | The keyed object commitment and enum prove which structural object was skipped without revealing its name, path, error text, or records. |
+| `objects[].object_id` | Stable HMAC of canonical object identity using the customer-held commitment key | The commitment supports stable comparison while hiding database, table, file, or path names from a cloud party that has no commitment key. |
 | `objects[].column_names[]` | Exact column names in canonical order | Schema labels contain no cell values and cannot reconstruct a source record; source comments are excluded. |
 | `objects[].column_types[]` | Declared and deterministic inferred type enum aligned to column names | Type classes constrain representation but reveal no actual cell value. |
-| `objects[].null_rate[]` | Aggregate null count divided by row count, encoded at fixed precision | A per-column proportion cannot identify which row is null or recover a value. |
+| `objects[].null_rate[]` | Aggregate null count divided by row count, encoded at fixed precision and subject to the approved minimum-occupancy behavior | This can reveal a row-level null property in one-row, two-row, or other low-population sources; the approved occupancy rule must suppress or uniformly coarsen that disclosure. |
 | `objects[].approx_distinct_count[]` | Deterministic approximate cardinality estimate and algorithm/error flag | An aggregate cardinality estimate reveals neither the distinct values nor their row membership. |
-| `objects[].length_histograms[]` | Counts in fixed, coarse length buckets per supported column | Bucket counts reveal only value-length distribution and no string or row value. |
-| `objects[].numeric_range_buckets[]` | Occupancy counts over policy-fixed numeric buckets; never observed min/max | Fixed bucket occupancy avoids transmitting exact extrema and cannot reconstruct individual numbers or rows. |
+| `objects[].length_histograms[]` | Counts in fixed, coarse length buckets per supported column, subject to the approved minimum-occupancy behavior | No string crosses, but singleton, two-row, and low-population buckets can disclose row-level length properties and therefore require the approved occupancy rule. |
+| `objects[].numeric_range_buckets[]` | Occupancy counts over policy-fixed numeric buckets, subject to the approved minimum-occupancy behavior; never observed min/max | Exact numbers do not cross, but singleton, two-row, and low-population buckets can disclose row-level range properties and therefore require the approved occupancy rule. |
 | `objects[].row_count`, `objects[].row_count_method` | Integer count plus fixed enum `exact`, `catalog_estimate`, or `deterministic_sample_estimate(n)` | The count and honest method describe volume without exposing any row content. |
 | `fingerprint_hash`, `canonicalization_version` | SHA-256 over the canonical approved fact payload plus policy version | The digest detects fact changes but cannot reconstruct the canonical payload or source rows. |
-| `receipt_signature`, `signature_algorithm` | Install-key signature over spec, nonce, local locator binding, content hash, coverage, and fingerprint | A signature proves receipt integrity and contains no source content beyond the separately approved signed fields. |
+| `receipt_signature`, `signature_algorithm` | Install-key signature over spec, nonce, `artifact_locator_commitment`, content hash, scan window, coverage, and fingerprint; never over the raw locator | A signature proves receipt integrity without turning the exact customer-side locator into a cloud-verifiable dictionary oracle. |
 | `terminal_error_code` | Optional fixed enum when no report exists | A fixed code exposes outcome class without leaking a source name, path, query, or error string. |
-| `d6_description` | Bounded seller-authored plain text, transported as quoted untrusted context | This is not derived from scanning; it is knowingly supplied by the owner and cannot grant access or reconstruct data unless the owner puts data into it. |
+| `d6_description` | Versioned object containing only `domain_class`, `record_granularity`, `temporal_scope`, and `update_cadence` single-choice enums plus at most five `intended_use_tags` and five `known_limitation_tags`, each selected from marketplace-authored fixed enums; no free-form string, nested object, or seller-defined key | Fixed categorical structural context can aid interpretation but has no channel for a source value, serialized row, sample, credential, or other raw-looking source content. |
 | `preview_requested` | Boolean selected before authorization | A boolean controls presentation only and contains no source content. |
 
-The following are prohibited everywhere outside the customer environment: raw cell values, sample rows, verbatim values or strings, top-N values, value-frequency labels, source comments, source error strings, credentials, query text, data-plane payloads, and text-column min/max. Exact numeric min/max is also excluded; only policy-fixed bucket occupancy may cross.
+The D6 enum vocabulary and maximum canonical JSON size of 2,048 UTF-8 bytes are versioned parts of the signed scan spec and the S3-reviewed wire contract. Before any transit, customer-side conduit code deterministically applies Unicode NFKC normalization, strict allowed-key/type parsing, fixed-enum resolution, stable array deduplication and ordering, and the encoded-size bound. Any unknown key or value, arbitrary string, pasted cell or row, serialized value or record form, credential, source-derived value, raw-looking source content, or common encoding/obfuscation attempt is rejected before transit; the seller may resubmit only schema-valid selections. Rejecting or omitting D6 never changes the signed scan scope, traversal, facts, charge, or lifecycle.
+
+For `null_rate`, `length_histograms`, and `numeric_range_buckets`, one-row, two-row, and other low-population or low-cardinality sources can disclose row-level properties even without revealing exact raw values. Before S3 review, the implementation candidate must fix a minimum aggregate occupancy and one deterministic behavior for each affected field: emit a fixed `suppressed_low_occupancy` sentinel, use predeclared wider buckets uniformly for the entire selected depth class, or remove the field through a new Gate 1 and unanimous S3 decision. The threshold and behavior are signed policy, never chosen per source by the seller or model, and production remains blocked until S3 approves them.
+
+The following are prohibited everywhere outside the customer environment: raw cell values, sample rows, serialized rows or source-value forms, verbatim values or strings, top-N values, value-frequency labels, source comments, source error strings, credentials, query text, data-plane payloads, exact filesystem paths, exact object names, database names, table names, S3 connection IDs, bucket names, object keys, and other exact locators. Text-column and exact numeric min/max are also excluded; only S3-approved policy-fixed bucket occupancy may cross.
+
+The section 6 S3 sign-off checklist must prove: (1) commitment/HMAC keys remain customer-held, never transmitted, and distinct from the receipt-signature key pair and public verification key; (2) the transmitted signature covers the commitment, spec, nonce, content hash, scan window, coverage, and fingerprint but never the raw locator; and (3) given every cloud-visible byte, every receipt verification key, and a realistic path, database/table, bucket/object, and object-name dictionary, the reviewer cannot enumerate any exact locator or object identity. Any failure blocks production and returns the manifest to Gate 1/S3.
 
 Column names are allowed by the frozen baseline but remain untrusted source-derived text. They are escaped for rendering, quoted as data in the narrative prompt, and denied any control role. If the CORE S3 reconstruction review rejects exact column names, the field list must return to Gate 1; the builder may not silently hash or omit them because that would change the approved product artifact.
 
@@ -150,16 +158,16 @@ Column names are allowed by the frozen baseline but remain untrusted source-deri
 
 Fact fields are written only by deterministic conduit code and become immutable after receipt validation. allAI cannot write or amend the fingerprint, coverage, methods, timestamps, artifact binding, or charge inputs.
 
-The narrative is a separate, clearly labeled `allAI interpretation` field. Its only evidence inputs are the approved fingerprint and the D6 description. The system prompt places D6, column names, and every other source-derived string in quoted data sections; the narrative pass has no tools and no scan, payment, or publication capability.
+The narrative is a separate, clearly labeled `allAI interpretation` field. Its only evidence inputs are the approved fingerprint and the sanitized D6 structural context. The system prompt places D6, column names, and every other source-derived string in quoted data sections; the narrative pass has no tools and no scan, payment, or publication capability.
 
 A grounding validator applies before capture and seller reveal:
 
-- Every identifier and number in the narrative must exist verbatim in the approved fingerprint.
-- A missing or transformed identifier, number, compliance claim, or unsupported factual assertion fails validation.
-- Slice 1 makes one bounded narrative pass. If it fails validation, the complete result becomes fingerprint-only with a fixed `allAI interpretation withheld because grounding validation failed` notice. No second pass may breach the hard budget.
+- Every identifier and number in any model-authored public field, explicitly including the narrative and `listing_claim_comparison`, must exist verbatim in the approved fingerprint.
+- A missing or transformed identifier, number, compliance claim, or unsupported factual assertion in any such field fails validation.
+- Slice 1 makes one bounded narrative pass. If any model-authored public field fails validation, that field and every other model-authored field are withheld so the complete result remains fingerprint-only, with the fixed `allAI interpretation withheld because grounding validation failed` notice. No second pass may breach the hard budget.
 - Seller context is not republished. The public artifact shows only `seller_context_provided: true|false`.
 
-Hostile fixtures must place instructions in D6, object identifiers, and column names. They pass only when they cannot alter traversal roots, discovered/scanned coverage, fact values, output schema, token cap, charge, capture timing, seller election, or publication state. A fixed fixture on unchanged data must produce byte-identical facts and fingerprint hashes across repeated scans.
+Hostile fixtures must attempt instructions, pasted cells and rows, serialized value forms, credentials, and common encodings or obfuscations through D6, object identifiers, and column names. They pass only when prohibited D6 content is rejected before transit and none of the hostile inputs can alter traversal roots, discovered/scanned coverage, fact values, output schema, token cap, charge, capture timing, seller election, or publication state. A fixed fixture on unchanged data must produce byte-identical facts and fingerprint hashes across repeated scans.
 
 ## 8. Verification artifact schema
 
@@ -178,7 +186,7 @@ One immutable `VerificationEpoch` record represents one initiated scan. The v1 s
 | `coverage` | Deterministic conduit | Public discovered/scanned/skipped counts and fixed reasons. Any skipped object remains visible; unsupported partial output cannot publish. |
 | `fingerprint`, `fingerprint_hash`, method versions | Deterministic conduit | Public facts from section 6 and integrity hash. |
 | `narrative`, `narrative_state` | allAI plus grounding validator | Public and labeled, or fixed fingerprint-only notice. Cannot write facts. |
-| `seller_context_provided` | Marketplace | Public boolean only; D6 text is not public. |
+| `seller_context_provided` | Marketplace | Public boolean only; D6 structural context is not public. |
 | `preview_requested`, `schema_preview`, `row_counts` | Seller choice plus deterministic conduit | Public only when the pre-run D8 option is true; derived from the same fingerprint. |
 | `listing_claim_comparison` | Deterministic facts mapped by allAI | Public, grounded, and allowed to contradict seller listing claims. |
 | `publication_state`, `published_at_utc`, `declined_at_utc`, `withdrawn_at_utc`, `superseded_by_epoch_id` | Marketplace lifecycle | Full-state audit; declined and never-published records stay private. |
@@ -207,20 +215,22 @@ The meter source is exclusively provider usage returned for the single cloud-sid
 | `CREATED` | Owner selects source, listing, D6 context, and D8 option. | Run free local probe; no Stripe object and no charge. |
 | `QUOTED` | Probe selects an honest supported depth class and produces a maximum quote of USD 1-25. | Owner accepts the quote and both separated consents, or aborts with no charge. Refuse pre-run if no complete depth class fits. |
 | `AUTHORIZING` | Owner accepted quote. | Create one Stripe PaymentIntent with manual capture, the quoted amount, opaque `verification_id`, and idempotency key. No source or D6 metadata enters Stripe. |
-| `AUTHORIZED` | Stripe confirms a capturable authorization. | Release the signed scan spec. A scan must never start before this state. Authorization failure terminates `AUTH_FAILED` with no scan or charge. |
+| `AUTHORIZED` | Stripe confirms a capturable authorization. | Release the signed scan spec. A scan must never start before this state. Authorization failure terminates `AUTH_FAILED` with no scan or charge. A cancel received after spec release but before AIM Data accepts it follows the pre-inference rule and terminates `CANCELLED_VOIDED`; the authorization is voided and nothing publishes. |
 | `SCANNING_LOCAL` | AIM Data accepted the signed spec. | Produce deterministic report, or honor a pre-completion cancel. Seller cancel before cloud inference terminates `CANCELLED_VOIDED`; the hold is voided and nothing publishes. Source or platform failure terminates `FAILED_VOIDED`; the hold is voided. |
 | `NARRATING_CLOUD` | Valid signed report and nonce received; hard token budget fixed from authorization. | Make one bounded allAI request. A cancel request during this atomic pass prevents seller reveal and publication but does not interrupt metering; after validation it follows normal completion/capture and then terminates as declined. Our-fault inference or validator-system failure terminates `FAILED_VOIDED`. A grounding rejection is not system failure: the complete result is fingerprint-only. |
-| `CAPTURE_PENDING` | Deterministic report is complete and narrative is grounded or replaced by the fixed fingerprint-only notice. | Compute charge solely from cloud provider usage, then make one idempotent manual capture for at most the authorized amount. The seller cannot see results in this state. Capture failure leaves results hidden and requires payment reconciliation; it cannot publish. |
+| `CAPTURE_PENDING` | Deterministic report is complete and narrative is grounded or replaced by the fixed fingerprint-only notice. | Compute charge solely from cloud provider usage, then make one idempotent manual capture for at most the authorized amount. The seller cannot see results in this state. A cancel here is after cloud inference: complete the capture and terminate `DECLINED`. A transient capture failure enters `CAPTURE_RECONCILING`; it cannot reveal or publish. |
+| `CAPTURE_RECONCILING` | The one idempotent capture attempt has a transient or unknown provider outcome. | Reconcile provider/webhook truth and retry only the same idempotent capture while the authorization remains valid. A confirmed capture enters `CAPTURED` exactly once, or enters `DECLINED` without reveal when a cancel-during/after-narrative flag is pending. If the provider confirms permanent failure with no capture, or the authorization expires uncaptured, issue one idempotent void/release and enter `CAPTURE_FAILED`. An unknown outcome stays hidden here; it must not be guessed, duplicated, revealed, or published. |
 | `CAPTURED` | Stripe confirms the one capture. | Reveal the immutable complete result to the seller. No refund is due for a completed scan. Owner chooses full publication or decline. |
 | `PUBLISHED` | Owner elects full publication. | Publish atomically. Charge stands. A later published scan may supersede it; each completed run is separately charged. |
 | `DECLINED` | Owner declines, including a cancel requested during the atomic narrative pass. | Publish nothing; listing remains without a scan-findings badge. Charge stands. |
 | `WITHDRAWN` | Owner withdraws an already published result. | Remove the report from the active badge, show the 30-day withdrawal marker, and retain the completed charge. |
 | `SUPERSEDED` | Owner publishes a later completed epoch. | Replace the active badge atomically; retain prior artifact and charge. |
-| `AUTH_FAILED`, `CANCELLED_VOIDED`, `FAILED_VOIDED` | Terminal pre-completion outcome. | No report or partial result publishes. Any authorization is released/voided; no refund workflow is needed because nothing was captured. Corpus capture still records the minimized outcome. |
+| `AUTH_FAILED`, `CANCELLED_VOIDED`, `FAILED_VOIDED` | Terminal pre-completion outcome. | No report or partial result publishes. Any authorization is released/voided exactly once; no refund workflow is needed because nothing was captured. Corpus capture still records the minimized outcome. |
+| `CAPTURE_FAILED` | Terminal post-narration capture failure after provider truth confirms no capture or authorization expiry. | No charge, reveal, or publication is permitted for this epoch. Void/release occurs exactly once, publication is permanently blocked, and S1396 records the minimized `capture_failed` outcome. |
 
-Webhook reconciliation and the `verification_id` idempotency key must prove one PaymentIntent and at most one capture per epoch. A completed scan is charged before the seller sees findings regardless of later publish, decline, withdrawal, or supersede. Our-fault failures void the hold. There are no refunds on completed scans.
+Webhook reconciliation and the `verification_id` idempotency key must prove one PaymentIntent, at most one capture, and at most one void/release per epoch. A completed-and-captured scan is charged before the seller sees findings regardless of later publish, decline, withdrawal, or supersede. Our-fault failures and terminal uncaptured reconciliation failures void or release the hold. There are no refunds on completed captured scans.
 
-The pre-scan screen states the exact maximum authorization, twice-token-cost formula, USD 1 floor, USD 25 cap, cloud-only meter source, completion-based charge, results-hidden-until-capture rule, no-refund posture for completed scans, void-on-our-fault outcome, and corpus terms.
+The pre-scan screen states the exact maximum authorization, twice-token-cost formula, USD 1 floor, USD 25 cap, cloud-only meter source, completion-based charge, results-hidden-until-capture rule, no-refund posture for completed captured scans, void-on-our-fault outcome, and corpus terms. It also states the cancel boundary verbatim in substance: cancel before cloud inference voids the hold with no charge; cancel during or after the narrative pass is charged as a completed scan and terminates declined without reveal or publication.
 
 ## 11. Publication and badge lifecycle
 
@@ -247,7 +257,7 @@ The pre-scan screen presents corpus consent separately from the later publicatio
 
 Corpus records use pseudonymous verification, listing, source-handle, and install references. They store the approved fingerprint, scan spec and policy hashes, minimized outcome, grounded narrative or failure state, publication decision, meter totals, and provenance. They do not store raw data, exact local locators, credentials, source error strings, or public seller identity.
 
-D6 is processed ephemerally for the narrative pass. At rest, only a redacted form is stored: secrets and direct identifiers are removed under a fixed redaction policy, with a redaction-policy version and hash retained. The unredacted D6 field is not copied into Stripe, logs, public artifacts, or general analytics.
+D6 is sanitized deterministically inside the customer environment before transit. Pre-sanitization input never crosses, enters a prompt, or reaches a cloud log, Stripe object, analytics event, or persisted cloud record. Only the canonical fixed-enum D6 object from section 6 is processed for the narrative pass or stored in the corpus, together with its sanitizer-policy version and hash. Because arbitrary strings, source values, serialized rows, samples, credentials, and raw-looking source content have no valid wire representation, the disclosure that no raw data or sample values leave the environment is true by construction.
 
 Access to scan corpus content is deny-by-default, role-scoped, audited, and limited to the S1396 pipeline and explicitly authorized corpus operators. Publication consent does not grant corpus access, and corpus consent does not publish anything. A declined scan is never reachable through a buyer-facing path.
 
@@ -257,12 +267,12 @@ Access to scan corpus content is deny-by-default, role-scoped, audited, and limi
 | --- | --- | --- |
 | Curated source or staged view | Bind spec and receipt to the registered fulfillment source handle; pin the exact resolved artifact and content hash; scan the full supported root; publish coverage. | The seller may curate what that handle exposes. v1 cannot discover data withheld outside the registered source. |
 | Post-scan swap | Pin artifact content hash and show scan time; supersede only with a new run. | Content behind the same handle may change after the scan and before delivery without detection. |
-| D6 or schema-name prompt injection | Signed policy fixes scope; facts are LLM-independent; quote untrusted text; no narrative tools; validate grounding; hostile fixtures gate release. | Seller wording may influence narrative emphasis, but cannot change a fact or lifecycle state. |
-| Re-run shopping | Facts and seed are deterministic; every completed run is paid; every run enters S1396; only a complete result may publish. | A seller may improve or change the source, decline an earlier result, then publish a later result. Buyers see the current scan date, not private attempts. |
+| D6 or schema-name prompt injection/exfiltration | Customer-side strict D6 schema and sanitizer reject arbitrary strings, serialized source content, credentials, and obfuscations before transit; signed policy fixes scope; facts are LLM-independent; quote remaining enums/source-derived labels; no narrative tools; validate every model-authored public field; hostile fixtures gate release. | Seller-selected allowed context categories may influence narrative emphasis, but cannot carry raw source content or change a fact or lifecycle state. |
+| Re-run shopping | Facts and seed are deterministic; every completed-and-captured run is paid; every run enters S1396; only a complete result may publish. | A seller may improve or change the source, decline an earlier result, then publish a later result. Buyers see the current scan date, not private attempts. |
 | Selective editing | Immutable artifact and atomic full publication. | Seller retains the frozen right to publish or decline. |
 | Agent tampering | Signed spec, nonce, install-key receipt, deterministic consistency tests, and known-counterparty pilot. | A determined owner controlling the host can tamper without trusted hardware. Accepted only for the pilot. |
-| Metadata leakage | Exact allowlist, fixed aggregate methods, no values/samples/errors, S3 reconstruction review, strict corpus access. | Column names can carry sensitive or adversarial text; they remain allowed only if unanimous S3 review accepts them. |
-| Charge manipulation | Cloud-only meter, manual capture, hard budget, idempotency, results hidden until capture. | Correctness still depends on Stripe reconciliation and pinned provider pricing. |
+| Metadata leakage | Exact allowlist, customer-held commitment keys, no raw locator in the transmitted signature, fixed minimum-occupancy policy, no values/samples/errors/locators, S3 reconstruction and enumeration review, strict corpus access. | Column names can carry sensitive or adversarial text; they remain allowed only if unanimous S3 review accepts them. Approved aggregates can disclose only the row-level property residual explicitly accepted by the S3 occupancy policy. |
+| Charge manipulation or capture ambiguity | Cloud-only meter, manual capture, hard budget, one idempotent capture/void path, results hidden through reconciliation, and terminal `CAPTURE_FAILED`. | Correctness still depends on definitive Stripe/webhook truth and pinned provider pricing; unknown capture truth stays hidden and non-terminal. |
 
 ## 14. Slice 1 scope
 
@@ -277,7 +287,7 @@ In scope:
 7. Badge with findings, scan date, coverage, row-count methods, and fixed disclaimer.
 8. Cancellation, 30-day withdrawal marker, and supersede by a newly published run.
 9. D8 option producing the schema-level preview and row counts from the same report, closing the T-2026-000689 minimum set.
-10. S1396 capture from day one for every scan outcome, with minimization, pseudonymization, D6 redaction, and strict access control.
+10. S1396 capture from day one for every scan outcome, with minimization, pseudonymization, customer-side D6 sanitization, and strict access control.
 11. Removal of quality scores from listing pages.
 12. AIM Data entry at listing time and later.
 
@@ -297,37 +307,38 @@ Explicitly deferred:
 
 Each criterion is independently checkable.
 
-1. A repository search finds no raw cell, sample-row, top-N value, verbatim source value, source error, text min/max, or data-plane payload in any S1590 customer-to-cloud message or persisted cloud record.
-2. The implemented customer-to-cloud schema equals section 6 exactly, and unanimous CORE S3 sign-off on that field list is linked in the implementation review.
-3. A reconstruction review against representative eolymp fingerprints cannot recover any raw value. Any recovered raw value blocks launch and removes the responsible field through a new Gate 1/S3 decision.
+1. Hostile D6 exfiltration fixtures cover pasted cells, rows, serialized-value and serialized-record forms, credentials, and common Unicode, encoding, delimiter, and whitespace obfuscations. They are rejected customer-side before transit, do not change scan scope, and neither the original nor decoded/normalized prohibited content appears in any customer-to-cloud message, model prompt, cloud log, Stripe object, analytics event, or persisted cloud record. Repository searches also find no raw cell, sample row, top-N value, verbatim source value, source error, exact locator, text min/max, or data-plane payload on those surfaces.
+2. The implemented customer-to-cloud schema equals section 6 exactly, including the fixed D6 structural schema and occupancy behavior, and unanimous CORE S3 sign-off on that field list and the section 6 checklist is linked in the implementation review.
+3. A reconstruction review attempts exact raw-value and row-property recovery against representative eolymp fingerprints plus one-row, two-row, low-cardinality, and adversarial-column-name fixtures. Every affected aggregate below the S3-approved minimum occupancy is suppressed with the fixed sentinel, uniformly widened for its entire depth class, or removed through a new Gate 1/S3 decision. Any recovery outside that approved policy blocks launch.
 4. Two scans of unchanged source bytes with the same spec produce byte-identical fact payloads and fingerprint hashes.
-5. The signed receipt verifies the signed spec hash, nonce, install key, exact local artifact binding, content hash, scan window, coverage, and fingerprint hash. A stale nonce, changed spec, changed report byte, or wrong install key is rejected.
+5. The transmitted receipt signature verifies the spec hash, nonce, install key, `artifact_locator_commitment`, content hash, scan window, coverage, and fingerprint hash and never covers the raw locator. Tests prove commitment/HMAC keys remain customer-held, untransmitted, and distinct from the receipt-signature key pair/public verification key; given every cloud-visible byte, every verification key, and a realistic locator/object-name dictionary, no exact path, database/table name, bucket/object key, or object identity can be enumerated. A stale nonce, changed spec, changed report byte, or wrong install key is rejected.
 6. A1 integration tests prove the scan resolves the same registered `listing_id` source handle as fulfillment and pins the exact resolved local path or S3 connection/bucket/object key plus content hash before reading.
-7. A local-resolution fixture in which the preferred file changes under the same handle produces a different locator commitment or content hash; it never reuses the prior artifact identity.
+7. A local-resolution fixture in which the preferred file changes under the same handle, and an S3 fixture in which the connection, bucket, or object key changes under the same dataset/listing handle, produce a different locator commitment or content hash and reject stale artifact identity before reading.
 8. Coverage fixtures include an inaccessible object and show discovered, scanned, and skipped-by-fixed-reason counts. No object name or free-form error crosses for the skipped object.
 9. Every row count carries `exact`, `catalog_estimate`, or deterministic sample-estimate method and parameters; no estimate is presented as exact.
 10. D6, object-name, and column-name hostile fixtures cannot change scope, coverage, facts, schema, token cap, charge, capture timing, seller election, or publication state.
-11. Every identifier and number in a published narrative exists in the fingerprint. A failed grounding check yields the fixed fingerprint-only notice and no second model pass.
+11. Every identifier and number in every model-authored public field, explicitly including the narrative and `listing_claim_comparison`, exists verbatim in the fingerprint. A fixture placing a non-fingerprint identifier or number in either field fails validation, withholds all model-authored fields under the fixed fingerprint-only notice, and triggers no second model pass.
 12. The pre-run probe either names a complete supported depth class with exact limitations or refuses before Stripe authorization. Budget exhaustion cannot yield partial publication.
-13. The payment implementation equals section 10 and links unanimous CORE S3 approval. Tests prove no scan before authorization, no capture above authorization or USD 25, no client-reported token charge, no result reveal before capture, and at most one capture per epoch.
-14. Authorization failure, pre-inference seller cancel, source failure, and our-fault failure publish nothing and void the hold. A completed captured scan is not refunded after publish, decline, withdrawal, or supersede.
-15. A completed result is charged before seller reveal. Publish exposes every fact, contradiction, coverage limitation, narrative state, and disclaimer atomically; decline exposes none and leaves no active badge.
-16. The listing and API contain no unqualified truth-status string, numeric quality score, compliance claim, future-delivery equality claim, or continuous-monitoring claim.
-17. The badge uses `Scan findings — [UTC date]`, shows coverage and row-count methods, links the full report, and renders the exact disclaimer in section 5.
-18. Withdrawal shows the exact marker for 30 days; supersede switches the active artifact only after the later run is completed, captured, and explicitly published.
-19. The D8 option is fixed before authorization and produces schema preview and row counts from the same fingerprint with no second scan or model-authored facts.
-20. Published, declined, cancelled, failed, withdrawn, and superseded fixtures each append a minimized pseudonymous S1396 event. Publication and corpus decisions are separate, and declined content has no buyer-facing path.
-21. Corpus tests prove unredacted D6, exact local locators, credentials, raw values, and free-form source errors are absent; access is deny-by-default and audited.
-22. The v1 persisted schema accepts linked `drift_recheck` and `buyer_fulfillment_corroboration` epoch records without changing or rewriting the original seller-scan epoch, while those flows remain disabled in Slice 1.
-23. Unsupported connectors cannot start or display scan findings. AIM Data exposes the supported entry at listing time and later.
-24. Focused unit, contract, injection, determinism, payment idempotency/webhook, corpus-access, and end-to-end pilot tests pass before production review.
+13. The payment implementation equals section 10 and links unanimous CORE S3 approval. Tests prove no scan before authorization, no capture above authorization or USD 25, no client-reported token charge, no result reveal before capture, one PaymentIntent, at most one capture, and at most one void/release per epoch.
+14. Authorization failure, an `AUTHORIZED`-state cancel before AIM Data acceptance, a `SCANNING_LOCAL` cancel before cloud inference, source failure, and our-fault failure publish nothing and void the hold. A consent-copy fixture states that cancel before cloud inference voids with no charge, while cancel during or after the narrative pass completes capture and terminates `DECLINED` without reveal or publication. A completed captured scan is not refunded after publish, decline, withdrawal, or supersede.
+15. Capture-failure fixtures prove a transient failure retries only the one idempotent capture while authorization remains valid and can capture no more than once. Permanent provider failure with confirmed no-capture or authorization expiry transitions to `CAPTURE_FAILED`, voids/releases exactly once, charges nothing, reveals and publishes nothing, permanently blocks publication of that epoch, and appends the minimized `capture_failed` corpus outcome.
+16. A completed result is charged before seller reveal. Publish exposes every fact, contradiction, coverage limitation, narrative state, and disclaimer atomically; decline exposes none and leaves no active badge.
+17. The listing and API contain no unqualified truth-status string, numeric quality score, compliance claim, future-delivery equality claim, or continuous-monitoring claim.
+18. The badge uses `Scan findings — [UTC date]`, shows coverage and row-count methods, links the full report, renders the exact disclaimer in section 5, and uses the section 5 authorship-versus-execution attestation without removing the known-counterparty pilot residual.
+19. Withdrawal shows the exact marker for 30 days; supersede switches the active artifact only after the later run is completed, captured, and explicitly published.
+20. The D8 option is fixed before authorization and produces schema preview and row counts from the same fingerprint with no second scan or model-authored facts.
+21. Published, declined, cancelled, failed (including `capture_failed`), withdrawn, and superseded fixtures each append a minimized pseudonymous S1396 event. Publication and corpus decisions are separate, and declined content has no buyer-facing path.
+22. Corpus tests prove pre-sanitization D6, exact local locators, credentials, raw values, and free-form source errors are absent; access is deny-by-default and audited.
+23. The v1 persisted schema accepts linked `drift_recheck` and `buyer_fulfillment_corroboration` epoch records without changing or rewriting the original seller-scan epoch, while those flows remain disabled in Slice 1.
+24. Unsupported connectors cannot start or display scan findings. AIM Data exposes the supported entry at listing time and later.
+25. Focused unit, contract, D6 exfiltration, injection, reconstruction, determinism, signature/key-custody, payment idempotency/webhook/reconciliation, corpus-access, and end-to-end pilot tests pass before production review.
 
 ## 16. Gate sequence and release blockers
 
 1. Gate 1 approves this design artifact.
-2. CORE S3 unanimously approves the exact section 6 wire manifest and section 10 payment state machine before implementation may be production-enabled.
-3. Security review passes reconstruction, hostile-input, signature/nonce, secret-redaction, and corpus-access tests.
-4. Payments review passes manual-capture, provider-price pinning, hard-budget, idempotency, webhook, void, and hidden-results tests.
+2. CORE S3 unanimously approves the exact section 6 wire manifest, its D6/occupancy/key-custody/non-enumerability checklist, and the section 10 payment state machine before implementation may be production-enabled.
+3. Security review passes raw-value and row-property reconstruction, D6 exfiltration/obfuscation, hostile-input, signature/nonce, commitment-key custody and dictionary non-enumerability, grounding of every model-authored public field, secret-redaction, and corpus-access tests.
+4. Payments review passes manual-capture, provider-price pinning, hard-budget, idempotency, webhook, `AUTHORIZED`-cancel, capture-reconciliation/expiry, exactly-once void/release, and hidden-results tests.
 5. Static review, deployment proof, and live browser verification remain separate evidence. None substitutes for another.
 6. The known-counterparty pilot may proceed only after Gates 1-4. General availability remains blocked on attestation-crypto hardening and a separate unanimous decision for any widened metadata or connector surface.
 
@@ -335,12 +346,14 @@ Each criterion is independently checkable.
 
 | Decision at risk | Risk | Evidence that falsifies the decision |
 | --- | --- | --- |
-| Exact metadata allowlist preserves CORE S1/P8 | Aggregate or schema fields may expose real values or permit reconstruction in a narrow dataset. | The reconstruction review recovers a raw value or individual record. Remove the field and return the changed manifest to Gate 1 and unanimous S3 review. |
+| Exact metadata allowlist preserves CORE S1/P8 | Aggregate or schema fields may expose real values or row-level properties in a narrow dataset. | The reconstruction review recovers a raw value, individual record, or row-level property outside the approved minimum-occupancy policy. Suppress or uniformly widen under signed S3 policy, or remove the field and return the changed manifest to Gate 1 and unanimous S3 review. |
+| D6 remains context without becoming an exfiltration channel | A seller may paste or obfuscate cells, rows, serialized source content, or credentials into the pre-sanitization input. | Any prohibited fixture byte reaches a customer-to-cloud message, prompt, log, Stripe object, analytics event, or persisted cloud record. Block launch and tighten the customer-side fixed-schema sanitizer without changing scan scope. |
+| Locator commitments remain non-enumerable | Commitment-key leakage, key reuse, or signing a raw locator could create an offline path/object-name oracle. | Given all cloud-visible bytes, verification keys, and a realistic locator dictionary, a reviewer recovers an exact path, database/table name, bucket/object key, or object identity. Block launch and return the changed receipt/manifest contract to Gate 1 and unanimous S3 review. |
 | Deterministic fingerprinting defeats unchanged-data shopping | Connector ordering, approximate algorithms, or floating-point aggregation may vary. | Two unchanged-source runs under the same spec produce different canonical facts or fingerprint hashes. Fix determinism before launch. |
 | A1 supports source identity | Fulfillment and scanning may resolve different handles or concrete artifacts. | An integration fixture resolves a scan handle different from the listing fulfillment handle. Block publication until the binding is corrected; do not weaken copy to a generic process claim. |
-| Exact artifact pin closes handle ambiguity at scan time | The resolver may select a different file or object during the scan. | Pre/post content hash or locator differs within one run. Fail the scan and void the hold. |
+| Exact artifact pin closes handle ambiguity at scan time | The local or S3 resolver may select a different file, connection, bucket, or object during the scan. | Pre/post content hash or locator commitment differs within one run, or a stale local/S3 identity is accepted before reading. Fail the scan and void the hold. |
 | Cloud-only metering supports honest twice-cost pricing | Provider usage or pinned price may be absent or irreconcilable. | Any completed job lacks provider usage, price version, or an independently recomputable charge. Void rather than estimate or trust the client. |
-| Manual capture fits existing Stripe rails | Account, payment method, authorization window, partial capture, or webhook behavior may differ. | Sandbox and production-mode tests cannot authorize the quote and capture a smaller idempotent amount. Do not substitute a payment mechanism without a new Gate 1/S3 decision. |
+| Manual capture fits existing Stripe rails | Account, payment method, authorization window, partial capture, or webhook behavior may differ. | Sandbox and production-mode tests cannot authorize the quote, capture a smaller idempotent amount, or converge transient/permanent failure and expiry to one capture or one `CAPTURE_FAILED` void/release without reveal. Do not substitute a payment mechanism without a new Gate 1/S3 decision. |
 | Fingerprint-only fallback is a complete result | Buyers may find a fact-only report insufficient to support the listing. | Pilot evidence shows the report is unusable without narrative. Improve grounding in a later bounded design; do not publish ungrounded prose. |
 | Known-counterparty pilot can accept agent tampering residual | Host compromise or manipulated reports may be plausible even in the pilot. | Receipt anomalies, source-owner behavior, or security review shows the residual is unacceptable. Pause the pilot until stronger attestation lands. |
 | Epoch-compatible schema is additive | Future buyer-side or drift records may require rewriting v1 facts. | Slice 2 design cannot express comparison and provenance through new linked epochs. Extend with additive fields; never mutate the original epoch. |
