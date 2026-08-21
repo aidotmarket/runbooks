@@ -41,11 +41,11 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Entity churn-prefix denylist | PARTIAL | `app/services/state_service.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-30 |
 | Entity default-DENY admission at producers | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
 | Corpus control plane (six classes) | SHIPPED | `app/services/corpus_admission_service.py` | `tests/test_corpus_admission.py` | 2026-08-21 |
-| Structure-fingerprint moat capture (S1396) | PLANNED | — | — | 2026-07-30 |
+| Structure-fingerprint moat capture (S1396) | PARTIAL | `scripts/s1396_activate_moat_roles.py` | `tests/scripts/test_s1396_activate_moat_roles.py` | 2026-08-21 |
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
-Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema and B-activate are live, but the three capture producers remain disabled and later S1396 chunks are not yet shipped, so moat capture remains PARTIAL. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
 ## §C. Architecture & Interactions
 
@@ -55,6 +55,7 @@ Status notes: S1299 corpus admission and producer default-DENY are live. `Corpus
 | Event compatibility classifier and legacy quarantine obligation | `app/services/qdrant_event_admission.py`, `app/allai/agents/sysadmin/monitors.py` | `qdrant_event_type_quarantine` | Qdrant sync worker, weekly SupportTicket | Exact EMBED/NEVER rules remain a worker-side compatibility gate. `admit_event` has no current production caller. The existing monitor reconciles an `open` row to `classified` only when its normalized type is in an exact set, before paging rows that remain unknown. |
 | Entity indexing gate | `app/services/state_service.py`, `app/services/corpus_admission_service.py` | `state_entities`, corpus tables, `qdrant_sync_outbox` | Qdrant sync consumer | S1299 producer admission is default-DENY. Non-admitted writes do not create semantic transport work; Qdrant remains a derived projection. |
 | Corpus control plane | `app/services/corpus_admission_service.py` | corpus tables per S1299 | producer admission, curator workflow | The six-class control plane is live. Postgres is corpus of record; Qdrant is a derived projection. |
+| S1396 moat-capture foundation | `alembic/versions/20260818_001_s1396_b_schema.py`, `scripts/s1396_activate_moat_roles.py` | S1396 capture tables, `corpus_role_assignments` | later S1396 producers and aggregation | The schema and the three approved metadata-moat steward assignments are live. All three capture flags remain off; this row does not claim producer capture is live. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
 ### §C.1 What we KEEP - current, live today
@@ -73,9 +74,11 @@ Only these six classes exist; everything else is denied by default at the produc
 5. **approved_knowledge** - versioned, approved documentation with owner, authority, review date, and supersession.
 6. **curated_ai_output** - human-curated AI synthesis with source references and model provenance, down-weighted at 0.20 and experiment-gated.
 
-### §C.3 What we KEEP - the moat capture (S1396, filed, design pending)
+### §C.3 What we KEEP - the moat capture (S1396, foundation live; producers pending)
 
 Per metadata-generation interaction: the structure fingerprint of the customer source (schema shape, never content), the metadata allAI generated for it, the seller's corrections to that metadata, and persisted equivalence mappings between differently-labeled listings that describe the same kind of data. This is the compounding classification-and-matching asset Max defined as the long-term moat on 2026-07-29.
+
+The B-schema and B-activate foundation is deployed at backend commit `925e3e072bcba1ae8a601a7c961d3738cf6898ec` (Railway deployment `a72aeec9-444b-403b-984e-26d30fe4ed1d`). Production verification recorded exactly one active assignment for each of `metadata_moat_interaction_steward`, `metadata_moat_correction_steward`, and `metadata_moat_equivalence_steward`, zero legacy-role rows, all three S1396 capture flags false, and receipt `/Users/max/koskadeux-state/receipts/s1396/s1396-b-activate-925e3e072b.json` with mode `0600` and digest `d96819ee006599716f0b7329d303ebac952a9fe75bd750d3ec09dcf11ef094bd`. This evidence activates governance ownership only; it does not activate capture producers or complete S1396.
 
 ### §C.4 What we NEVER keep
 
