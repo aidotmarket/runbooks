@@ -11,7 +11,7 @@ error_signatures: []
 supersedes: []
 superseded_by: []
 owner: sysadmin
-last_verified_at: 2026-08-14
+last_verified_at: 2026-08-21
 system_name: corpus-capture-policy
 purpose_sentence: This runbook is the operating authority for what ai.market keeps in allAI semantic memory and the corpus, what it never keeps, and how retention of the transport queue is managed.
 owner_agent: sysadmin
@@ -35,33 +35,34 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Event Ledger admission (embed/never/quarantine) | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-07-30 |
-| Event outbox write conditional on admission | SHIPPED | `app/services/state_service.py` | `tests/test_qdrant_sync_worker_s1194.py` | 2026-07-30 |
-| Quarantine counter, weekly owner ticket, and bounded failure escalation | SHIPPED | `app/allai/agents/sysadmin/quarantine_obligation.py` | `tests/test_sysadmin_quarantine_obligation_s1545.py` | 2026-08-14 |
+| Event Ledger corpus admission | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
+| Event compatibility classifier and exact-list worker gate | SHIPPED | `app/services/qdrant_event_admission.py` | `tests/test_qdrant_event_admission_s1194.py` | 2026-08-21 |
+| Exact-row quarantine reconciliation, weekly owner ticket, and bounded failure escalation | SHIPPED | `app/allai/agents/sysadmin/monitors.py` | `tests/test_sysadmin_qdrant_monitoring_s1194.py`, `tests/test_sysadmin_quarantine_obligation_s1545.py` | 2026-08-21 |
 | Entity churn-prefix denylist | PARTIAL | `app/services/state_service.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-30 |
-| Entity default-DENY admission at producers | PLANNED | — | — | 2026-07-30 |
-| Corpus control plane (six classes, flags off) | PLANNED | — | — | 2026-07-30 |
+| Entity default-DENY admission at producers | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
+| Corpus control plane (six classes) | SHIPPED | `app/services/corpus_admission_service.py` | `tests/test_corpus_admission.py` | 2026-08-21 |
 | Structure-fingerprint moat capture (S1396) | PLANNED | — | — | 2026-07-30 |
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
-Status notes: "Entity default-DENY admission" is BQ-CORPUS-CAPTURE-TAXONOMY-S1299 Chunk 2 (spec `specs/BQ-CORPUS-CAPTURE-TAXONOMY-S1299-GATE2.md` at c233c9597aa1e812ba957d7139649cb0ec762917 in ai-market-backend). "Corpus control plane" is S1299 Chunk 1, dispatched to MP 2026-07-30 (task 4f658f20). The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
 ## §C. Architecture & Interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Event admission | `app/services/qdrant_event_admission.py` | `state_events`, `qdrant_event_type_quarantine` | StateService.record_event | classify_event_type returns embed, never, or quarantine; only embed writes an outbox row; unknown types increment a content-free quarantine counter awaiting human classification. |
-| Entity indexing gate | `app/services/state_service.py` | `state_entities`, `qdrant_sync_outbox` | Qdrant sync consumer | Today: config denylist QDRANT_ENTITY_DENYLIST_PREFIXES only; denylisted entities are marked not semantically indexable and their Qdrant points are deleted by the consumer. After S1299 Chunk 2: default-DENY admit() at every producer, no outbox row for non-admitted writes. |
-| Corpus control plane | `app/services/corpus_policy.py` | corpus tables per S1299 §4.1 | admission service, curator workflow | S1299 Chunk 1, in build. All classes and workers default off. Postgres is corpus of record; Qdrant is a derived projection. |
+| Corpus admission authority | `StateService.append_event` → `CorpusAdmissionService.admit` | `state_events`, corpus tables, `qdrant_sync_outbox` | producer writes, curator workflow, Qdrant sync consumer | Current S1299 authority. Producer writes are default-DENY; only admitted content receives the corresponding corpus disposition and derived transport work. |
+| Event compatibility classifier and legacy quarantine obligation | `app/services/qdrant_event_admission.py`, `app/allai/agents/sysadmin/monitors.py` | `qdrant_event_type_quarantine` | Qdrant sync worker, weekly SupportTicket | Exact EMBED/NEVER rules remain a worker-side compatibility gate. `admit_event` has no current production caller. The existing monitor reconciles an `open` row to `classified` only when its normalized type is in an exact set, before paging rows that remain unknown. |
+| Entity indexing gate | `app/services/state_service.py`, `app/services/corpus_admission_service.py` | `state_entities`, corpus tables, `qdrant_sync_outbox` | Qdrant sync consumer | S1299 producer admission is default-DENY. Non-admitted writes do not create semantic transport work; Qdrant remains a derived projection. |
+| Corpus control plane | `app/services/corpus_admission_service.py` | corpus tables per S1299 | producer admission, curator workflow | The six-class control plane is live. Postgres is corpus of record; Qdrant is a derived projection. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
 ### §C.1 What we KEEP - current, live today
 
-1. **Events, admit-list only.** Event types whose meaning is decision-grade for operating the platform: decisions, approvals and verdicts, incidents and resolutions, architecture and commitments, security events, deployment failures, lifecycle transitions, ACL violations, identity-assertion mismatches, reviews and cross-reviews. Verified live volume after admission shipped: 79 embedded events in the 7 days to 2026-07-30, versus roughly 30,000 per day before.
-2. **Entities, until S1299 Chunk 2 lands.** Everything except the configured denylist prefixes still embeds on every write. This is a known temporary non-compliance with the governing principle, measured at roughly 30,000 internal embeddings per day, and is exactly what Chunk 2 removes.
+1. **Events, central admission first.** `CorpusAdmissionService` is the writer authority. Decision-grade operating records may be admitted as bounded `operational_learning`; the exact event-type sets remain a secondary worker compatibility gate, not the producer admission decision.
+2. **Entities, default-DENY at producers.** S1299 producer admission is live. A non-admitted entity write does not create semantic transport work; configured denylist behavior remains defense in depth.
 
-### §C.2 What we KEEP - the corpus, as S1299 chunks land
+### §C.2 What we KEEP - the live S1299 corpus classes
 
 Only these six classes exist; everything else is denied by default at the producer:
 
@@ -92,7 +93,7 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | Measure capture volume and composition | SQL in §E E-01 | read-only backend DB | COMPLETE |
-| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket on `/for-max`, read-only SQL in §E E-02, then code edit per §G G-01 | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
+| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket on `/for-max`, read-only SQL in §E E-02, code edit per §G G-01, then existing-monitor reconciliation | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
 | Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
 | Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
@@ -125,17 +126,17 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
   argument_sourcing:
     dsn: scripts/test-db-dsn.sh
     ticket_subject: "[auto] Qdrant event-type quarantine requires weekly classification"
-    deployed_backend: "318d178cb2d4a864f3592e5be408deb7ef0ef2a2 on API, beat, and worker"
+    deployed_backend: "ce64f51e8b377eb07520aae6210c41bf3979d5dd on API deployment 2279e5d0-9488-439d-a322-ab385196f2cf, beat c9ae4975-8267-439c-9aa5-9734163b7c9b, and worker d6358539-b01c-436e-8729-db7dd66e6c3e"
   idempotency: IDEMPOTENT
   expected_success:
-    shape: a normal breach creates or reuses exactly one open human_required waiting_internal SupportTicket visible in the For Max TICKETS view; the open quarantine list is reviewed and each type is either added to the never list, added to the embed list, or left counting
-    verification: the ticket query returns exactly one row while the breach persists; repeated or rotating breaches reuse that row; resolving or closing it permits one later new ticket if the breach remains; routine backlog sends no Telegram page; this owner-surface path changes no customer data or quarantine rows
+    shape: a normal breach creates or reuses exactly one open human_required waiting_internal SupportTicket visible in the For Max TICKETS view; the open quarantine list is reviewed and each type is either added to an exact never/embed list or deliberately left unknown
+    verification: after an exact-rule deployment, the existing monitor changes only matching open-row status to classified before it pages remaining unknowns; a read-only query proves the intended rows are no longer open; repeated or rotating unknown breaches reuse one ticket; the operator resolves that ticket only after the monitor is healthy; routine backlog sends no Telegram page and no customer data changes
   expected_failures:
     - signature: open count grows without review
       cause: the P2 human classification obligation remains open on For Max; review it there without paging Telegram
     - signature: the fixed-subject ticket is absent or duplicated because its query or persistence failed
       cause: support-ticket owner-surface failure, not a higher-priority quarantine backlog; the bounded P1 operational escalation pages Telegram with stable dedup
-  next_step_success: §G G-01 for any rule change
+  next_step_success: §G G-01 for any rule change, then resolve the fixed-subject ticket through the supported ticket surface only after the read-only status query is healthy
   next_step_failure: restore support-ticket query/persistence from the deduplicated P1 operational escalation; otherwise continue the P2 review on For Max
 - id: E-03
   trigger: Purge processed transport rows (Max-gated maintenance)
@@ -171,12 +172,12 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 ```yaml repair
 - id: G-01
   symptom_ref: F-02
-  component_ref: Event admission
+  component_ref: Event compatibility classifier and legacy quarantine obligation
   root_cause: unknown or misclassified event type
-  repair_entry_point: app/services/qdrant_event_admission.py
-  change_pattern: add the type to _NEVER_EXACT/_NEVER_PREFIXES for housekeeping or _EMBED_EXACT for decision-grade meaning; never widen _EMBED_TOKENS casually because substring matching admits every future type containing the token; ship via PR with Council review
-  rollback_procedure: revert the rule commit; quarantine counters are unaffected
-  integrity_check: the type's disposition changes in classify_event_type unit tests and its quarantine row moves to classified on next occurrence
+  repair_entry_point: app/services/qdrant_event_admission.py and the existing qdrant_event_type_quarantine monitor
+  change_pattern: add the type to _NEVER_EXACT for housekeeping or _EMBED_EXACT for decision-grade meaning; never widen _EMBED_TOKENS or _NEVER_PREFIXES to discharge a known row; ship via PR with Council review; on the next scheduler cycle the existing monitor reconciles only exact-known open rows before paging remaining unknowns
+  rollback_procedure: revert the rule/monitor commit to stop future reconciliation; already-classified rows remain classified because a code revert is not an inverse data mutation; reopening an incorrectly classified row requires a separately authorized exact operation
+  integrity_check: the fixed expected-value unit matrix shows the intended exact disposition, broad token/prefix near-misses remain unknown, and a read-only query after the next monitor cycle shows the intended row status is classified while genuinely unknown rows remain open
 - id: G-02
   symptom_ref: F-01
   component_ref: Transport queue
@@ -363,9 +364,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1406
-last_refresh_commit: 1debb321039173320854b8c5f9db429acec25f88
-last_refresh_date: 2026-07-30T12:00:00Z
+last_refresh_session: S1588
+last_refresh_commit: a75fde9b4ada61509ff3b8f6f3655fcb341a51ff
+last_refresh_date: 2026-08-21T01:32:00Z
 owner_agent: sysadmin
 refresh_triggers:
   - each S1299 chunk landing
@@ -382,7 +383,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1413 / 2026-07-31T12:52:24Z
+last_lint_run: S1588 / 2026-08-21T01:35:00Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
