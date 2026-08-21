@@ -36,7 +36,8 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 | `/listings/[slug]` | `app/listings/[slug]/page.tsx` | Single listing detail |
 | `/dashboard` | `app/dashboard/page.tsx` | User dashboard (catch-all) |
 | `/dashboard/listings` | `app/dashboard/listings/page.tsx` | Seller: manage listings |
-| `/dashboard/orders` | `app/dashboard/orders/page.tsx` | Buyer: order history |
+| `/dashboard/sales` | `app/dashboard/sales/page.tsx` | Seller (active only): read-only sales list on `GET /seller/orders`; nav entry hidden until capabilities resolve `active`; buyers redirected to `/dashboard/inquiries` (S1589, BQ-SELLER-SALES-SURFACE-S1581) |
+| `/dashboard/orders` | `app/dashboard/orders/page.tsx` | Buyer: purchase history — heading and nav renamed "Purchases" for both roles (S1589); URL unchanged; the bare "Orders" nav label is retired |
 | `/dashboard/inquiries` | `app/dashboard/inquiries/page.tsx` | allAI mediated inquiries |
 | `/dashboard/requests` | `app/dashboard/requests/page.tsx` | Data requests |
 | `/dashboard/settings` | `app/dashboard/settings/page.tsx` | Account settings, Stripe connect |
