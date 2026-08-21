@@ -38,6 +38,7 @@ curl -s -o /dev/null -w "%{http_code}" https://ai.market
 | `/dashboard/listings` | `app/dashboard/listings/page.tsx` | Seller: manage listings |
 | `/dashboard/sales` | `app/dashboard/sales/page.tsx` | Seller (active only): read-only sales list on `GET /seller/orders`; nav entry hidden until capabilities resolve `active`; buyers redirected to `/dashboard/inquiries` (S1589, BQ-SELLER-SALES-SURFACE-S1581) |
 | `/dashboard/orders` | `app/dashboard/orders/page.tsx` | Buyer: purchase history — heading and nav renamed "Purchases" for both roles (S1589); URL unchanged; the bare "Orders" nav label is retired |
+| `/dashboard/orders/[id]` | `app/dashboard/orders/[id]/page.tsx` | Order detail, served to buyer-of-record OR seller-of-record (backend 403 otherwise). Every action, fetch and download frame is gated on the viewer's relationship to THIS order (`user.id` vs `order.buyer_id`/`seller_id`), never global account role; the `?tx=` transaction renders only when its `order_id` matches the route order (S1590, T-2026-000688, Q2 rule from BQ-SELLER-SALES-SURFACE-S1581) |
 | `/dashboard/inquiries` | `app/dashboard/inquiries/page.tsx` | allAI mediated inquiries |
 | `/dashboard/requests` | `app/dashboard/requests/page.tsx` | Data requests |
 | `/dashboard/settings` | `app/dashboard/settings/page.tsx` | Account settings, Stripe connect |
