@@ -48,11 +48,11 @@ Each result retains its existing non-D7 fields, including `trust_level`, but con
 
 ### 3.2 `get_listing_detail`
 
-The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. `compliance_status` and `compliance_details` are absent at any nesting depth, including the retained `jsonld` field: the existing public JSON-LD sanitizer is used with surface-specific key and property-ID exclusions for both names. This change does not redefine other legacy metrics, remove JSON-LD wholesale, change JSON-LD on unnamed surfaces, or redefine the existing attestation summary.
+The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. `compliance_status` and `compliance_details` are absent at any nesting depth across the complete serialized agent-detail payload, explicitly including arbitrary `raw_metadata`, `schema_info`, `synthetic_queries`, and retained `jsonld`. The existing recursive public JSON-LD property stripper is exposed as a generic public-property sanitizer that removes surface-supplied exact keys and whole `PropertyValue` entries whose `propertyID` matches; it is applied once to the complete serialized agent-detail payload with both compliance names. The existing JSON-LD URL masking remains unchanged. This change does not redefine other legacy metrics, remove arbitrary payload fields wholesale, change JSON-LD or other payloads on unnamed surfaces, or redefine the existing attestation summary.
 
 ### 3.3 `evaluate_trust`
 
-The tool name remains `evaluate_trust`, but its manifest description says that it returns published point-in-time scan findings and never a composite trust judgment. Its result has exactly this top-level shape:
+The tool name remains `evaluate_trust`, but its manifest description is exactly `Return the seller-published, point-in-time scan findings for a listing; this is not a composite trust judgment.` Its result has exactly this top-level shape:
 
 ```json
 {
@@ -81,7 +81,7 @@ No legacy score, score breakdown, `verification_status`, compliance claim, or le
 
 1. The public tool manifest and generated public argument schema contain no `trust_score_min`; the search description contains no trust-score, quality-score, verification, or compliance-risk wording; and a call that still sends the removed field is rejected as invalid params before listing-query/service execution while existing audit logging remains intact.
 2. Public agent search SQL has no composite score expression, score predicate, or quality-score ordering, and search responses contain none of `trust_score`, `quality_score`, `verification_status`, or `trust_score_min`.
-3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows and stored JSON-LD contain populated hostile values. Both compliance names are absent at any nesting depth, including JSON-LD `additionalProperty` entries whose `propertyID` is either name.
+3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows and arbitrary retained payloads contain populated hostile values. Both compliance names are absent at any nesting depth across the complete serialized response, including nested `raw_metadata`, `schema_info`, `synthetic_queries`, stored JSON-LD keys, and JSON-LD `additionalProperty` entries whose `propertyID` is either name.
 4. `evaluate_trust` returns the exact active S1590 artifact for a valid published epoch, the exact existing withdrawal marker during its window, and the explicit `not_available`/null shape for disabled, stale, mismatched, invalid, expired-withdrawal, and other non-public verification states on an existing published listing. Missing and unpublished listings retain `404`.
 5. `evaluate_trust` contains no legacy score, breakdown, unqualified verification label, compliance conclusion, or legacy attestation summary at any nesting depth.
 6. Anonymous GET/POST search contracts contain no compliance filter or result field; attempts to send the removed POST field are rejected by `extra="forbid"` schema validation. The legacy non-owner listing detail omits `compliance_status`, `compliance_details`, `compliance_frameworks`, and `compliance_notes` even when the latter two are derived from populated details, while the owner path is unchanged.
@@ -97,7 +97,7 @@ Focused validation:
 
 - the existing public MCP test module plus new D7 assertions;
 - existing S1590 publication/public-listing tests that cover projection identity and withdrawal behavior;
-- focused anonymous search and legacy-listing tests, including hostile nested JSON-LD and populated derived compliance fields;
+- focused anonymous search and legacy-listing tests, including hostile nested `raw_metadata`, `schema_info`, `synthetic_queries`, JSON-LD keys/property-ID wrappers, and populated derived compliance fields;
 - Ruff or repository lint only for changed Python files, `git diff --check`, and the protected-branch checks required by the repository workflow.
 
 Rollback is a normal protected-branch forward revert of the exact merge. It restores only the former public response/filter contract; it makes no data change.
