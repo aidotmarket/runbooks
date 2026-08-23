@@ -42,13 +42,13 @@ These public contracts let buyers or agents treat platform-computed scores, veri
 
 ### 3.1 `search_listings`
 
-The request accepts only the existing query/keyword alias, category, price range, limit, and offset fields. `trust_score_min` is absent from the manifest and argument model; because the model remains `extra="forbid"`, sending it returns the existing invalid-params response.
+The request accepts only the existing query/keyword alias, category, price range, limit, and offset fields. `trust_score_min` is absent from the manifest and argument model; because the model remains `extra="forbid"`, sending it returns the existing invalid-params response before any listing query or tool service executes. The existing audit-log write still occurs. The manifest description becomes `Search published ai.market listings by query, category, and price range.` and contains no trust-score, quality-score, verification, or compliance-risk wording.
 
 Each result retains its existing non-D7 fields, including `trust_level`, but contains none of `trust_score`, `quality_score`, or `verification_status`. The response contains no `trust_score_min` echo. Ordering remains title-prefix relevance first, then `published_at DESC NULLS LAST`, then `created_at DESC`; the `quality_score DESC` term is removed without introducing a new ranking system.
 
 ### 3.2 `get_listing_detail`
 
-The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. `compliance_status` is absent at any nesting depth, including the retained `jsonld` field: the existing public JSON-LD sanitizer is used with surface-specific `compliance_status` key and property-ID exclusions. This change does not redefine other legacy metrics, remove JSON-LD wholesale, change JSON-LD on unnamed surfaces, or redefine the existing attestation summary.
+The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. `compliance_status` and `compliance_details` are absent at any nesting depth, including the retained `jsonld` field: the existing public JSON-LD sanitizer is used with surface-specific key and property-ID exclusions for both names. This change does not redefine other legacy metrics, remove JSON-LD wholesale, change JSON-LD on unnamed surfaces, or redefine the existing attestation summary.
 
 ### 3.3 `evaluate_trust`
 
@@ -67,6 +67,8 @@ The tool name remains `evaluate_trust`, but its manifest description says that i
 - `withdrawn`: `scan_findings` is the exact existing time-bounded `VerificationWithdrawalPublic` marker. After the existing 30-day window it becomes `not_available`.
 - `not_available`: `scan_findings` is null. This covers disabled verification, no active epoch, invalid/mismatched stored public projection, and every non-public lifecycle state.
 
+`not_available` is returned only after the existing published-listing lookup succeeds. A missing or unpublished listing retains the existing `404`; the tool never converts listing existence into a `200/not_available` oracle.
+
 No legacy score, score breakdown, `verification_status`, compliance claim, or legacy attestation summary appears in this response. The public projection helper used by the listing API is moved or exposed at the service layer and called by both surfaces so validation, feature-flag, identity-binding, and withdrawal-window behavior remain one mechanism.
 
 ### 3.4 Other named anonymous API shapes
@@ -77,10 +79,10 @@ No legacy score, score breakdown, `verification_status`, compliance claim, or le
 
 ## 4. Acceptance criteria
 
-1. The public tool manifest and generated public argument schema contain no `trust_score_min`; a call that still sends it is rejected as invalid params before database execution.
+1. The public tool manifest and generated public argument schema contain no `trust_score_min`; the search description contains no trust-score, quality-score, verification, or compliance-risk wording; and a call that still sends the removed field is rejected as invalid params before listing-query/service execution while existing audit logging remains intact.
 2. Public agent search SQL has no composite score expression, score predicate, or quality-score ordering, and search responses contain none of `trust_score`, `quality_score`, `verification_status`, or `trust_score_min`.
-3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows and stored JSON-LD contain populated hostile values. `compliance_status` is absent at any nesting depth, including JSON-LD `additionalProperty` entries whose `propertyID` is `compliance_status`.
-4. `evaluate_trust` returns the exact active S1590 artifact for a valid published epoch, the exact existing withdrawal marker during its window, and the explicit `not_available`/null shape for disabled, missing, stale, mismatched, invalid, expired-withdrawal, and other non-public states.
+3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows and stored JSON-LD contain populated hostile values. Both compliance names are absent at any nesting depth, including JSON-LD `additionalProperty` entries whose `propertyID` is either name.
+4. `evaluate_trust` returns the exact active S1590 artifact for a valid published epoch, the exact existing withdrawal marker during its window, and the explicit `not_available`/null shape for disabled, stale, mismatched, invalid, expired-withdrawal, and other non-public verification states on an existing published listing. Missing and unpublished listings retain `404`.
 5. `evaluate_trust` contains no legacy score, breakdown, unqualified verification label, compliance conclusion, or legacy attestation summary at any nesting depth.
 6. Anonymous GET/POST search contracts contain no compliance filter or result field; attempts to send the removed POST field are rejected by `extra="forbid"` schema validation. The legacy non-owner listing detail omits `compliance_status`, `compliance_details`, `compliance_frameworks`, and `compliance_notes` even when the latter two are derived from populated details, while the owner path is unchanged.
 7. Existing rate limiting, audit logging, listing visibility (`published` only for agent tools), query/price filters, pagination bounds, price-check tool, authenticated MCP routes, and S1590 public listing projection tests remain passing.
