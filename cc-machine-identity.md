@@ -31,3 +31,25 @@ Stop the recurring destruction of Max's Claude login and keep the CC council rev
 
 ## E. Scope boundaries
 Kimi and GLM have their own transports (see `infra:council-comms`). The same one-account defect exists on the OpenAI side (MP builder + GLM on `/Users/max/.codex/auth.json`) — tracked under BQ-GLM-CODEX-TRANSPORT-MIGRATION-S1566; apply the same identity-separation principle there when that work resumes.
+
+## F. Attempt log — daily OAuth logout (track here until solved; Max directive S1600)
+
+Standing defect: CC's panel credential (config-scoped Keychain item, `~/.claude-koskadeux` profile) dies roughly daily and Max re-logs in by hand. Every attempt, what it assumed, and how it died:
+
+| # | Session | Attempt / theory | Outcome |
+|---|---|---|---|
+| 1 | S1532 | Profile isolation: dedicated `~/.claude-koskadeux` config dir + config-scoped Keychain item, to stop the concurrent refresh race destroying Max's interactive login | WORKED for its target (Max's own login no longer destroyed). Did NOT stop CC's daily 401s |
+| 2 | S1573 | Theory: sibling OAuth grants revoke each other server-side. Mitigation: dedicated API key (Infisical `CC_COUNCIL_ANTHROPIC_API_KEY`) for non-panel dispatches; panel kept on OAuth by Max's directive | Theory RETIRED S1581 — direct evidence showed nothing was ever revoked. API-key path remains live for non-panel only |
+| 3 | S1581 / T-2026-000686 | Theory: empty-token `.credentials.json` stubs from abandoned `setup_cc_profile.sh` logins cause the panel 401s. Mitigation: launcher `heal_empty_stub()`, stop re-running the setup script as repair | FALSIFIED S1585 by reproducible experiment: a stub alongside a VALID Keychain credential does not break CC. Heal is harmless but irrelevant |
+| 4 | S1585 | Real mechanics established: access token lives ~8h; the config-scoped Keychain item is only written at interactive login; a renewal inside a headless dispatch does not persist. Renewal-automation BQ drafted | Mechanics stand (re-confirmed S1600: fresh login measured 7.94h to expiry). Automation BQ not pursued — see #5 |
+| 5 | S1588 | Max cancelled the renewal BQ (s1585); daily interactive re-login became the operating mode. S1593/S1594 refined: transient 401s also occur against a VALID credential — probe and redispatch once before diagnosing | Operating mode confirmed painful: recurrences continued. The cancelled BQ stays cancelled; the S1600 directive below supersedes only the "stop trying" reading — the defect is to be solved |
+| 6 | S1600 (2026-08-23) | Recurrence data point, no fix attempted: Gate 3 R2 dispatch at 11:00 failed `401 OAuth access token has been revoked` (`launcher-20260823-110038-256439.md.log`); Keychain token had aged past ~8h. Max re-logged in; §D probe returned `COUNCIL-CC-OK` at 12:21 in 15s | Confirms the #4 mechanics end to end. Max directive: track every attempt in this table until solved; target state is CC staying logged into the same OAuth account that runs the operators, with no daily human login |
+
+### Next candidates, in order (untried)
+
+1. **`claude setup-token` long-lived token (PRIMARY).** Installed CLI 2.1.227 ships it: "Set up a long-lived authentication token (requires Claude subscription)". One interactive run under Max's account yields a long-lived token intended exactly for headless use. Plan: run it once in the `~/.claude-koskadeux` profile context, store the token in Infisical (`koskadeux-mcp`/`prod`/`CC_COUNCIL_OAUTH_TOKEN`), and have `scripts/council_dir.py:_cc_env` export it as `CLAUDE_CODE_OAUTH_TOKEN` for panel dispatches. This keeps the panel on Max's plan OAuth (same account, no API-key billing) and removes the ~8h interactive dependency. Verify before adopting: (a) the env token takes precedence over the Keychain item, (b) responses still bill to the subscription, (c) actual token lifetime — record it here. Small `koskadeux-mcp` change + one secret; rollback is unsetting the env var.
+2. **GUI-session keepalive (FALLBACK).** LaunchAgent in Max's logged-in Aqua session running a trivial `claude -p` against the koskadeux profile every ~6h, so the CLI's own refresh persists to the Keychain inside the 8h window. Only if #1's token proves short-lived or plan-blocked. Fragile across reboots/lock-screen; measure before trusting.
+3. **Provider ticket.** If 401s continue against a credential whose `expiresAt` is verifiably in the future (S1593/S1594 pattern), file a support ticket with the request ids and stop hand-repairing.
+
+### Do not repeat
+Re-running `setup_cc_profile.sh` as a repair; looping `heal_empty_stub()`; treating stub presence as a diagnosis; reviving the cancelled renewal BQ under its old record.
