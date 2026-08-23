@@ -178,8 +178,8 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   tool_or_endpoint: GET /api/v1/ops/needs-max and GET /api/v1/ops/operator-attention
   argument_sourcing: {period: fixed seven-day window, ownership: "an audited action from actor allAI:Remediator", handled: "distinct owned incident ids with a recorded fixed, retryable, or human_required outcome; use the latest audited outcome regardless of resolver actor", agent_calls: "count remediator_claimed actions only when actor is exactly allAI:Remediator", needs_attention: current Remediator-owned escalated incidents, recent_limit: "10"}
   idempotency: IDEMPOTENT
-  expected_success: {shape: existing attention total and items plus remediator handled, agent_calls, fixed, retrying, needs_attention, and recent, verification: compare counts to IncidentAction audit rows; confirm one attention row per current escalation; confirm the request creates no action row and starts no agent}
-  expected_failures: [{signature: remediator_reporting_drift, cause: claim actions and displayed calls differ; a current Remediator escalation is absent or duplicated; resolved work remains attention; or the report performs a write or starts Codex}]
+  expected_success: {shape: needs-Max total and items (escalated incidents WITHOUT a demotion action, plus eligible tickets) plus remediator handled, agent_calls, fixed, retrying, needs_attention, and recent; demoted incidents and unknown-owner human_required tickets appear on operator-attention instead, verification: compare counts to IncidentAction audit rows; confirm one attention row per current escalation; confirm the request creates no action row and starts no agent}
+  expected_failures: [{signature: remediator_reporting_drift, cause: claim actions and displayed calls differ; a current Remediator escalation is absent WITHOUT a demotion or supersession record, or duplicated; resolved or demoted work remains in the needs-Max rows; or the report performs a write or starts Codex}]
   next_step_success: Leave the report read-only and continue normal queue operation.
   next_step_failure: Apply G-05; do not add a reporting store, reporting queue, or reporting agent.
 ```
@@ -234,8 +234,8 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   component_ref: Claim-first Operator Worker
   root_cause: The needs-Max read model no longer projects the canonical incident audit and current escalated-minus-demoted state exactly once.
   repair_entry_point: Backend ops needs-max aggregation and the BUILD QUEUE needs-Max rows (S1585)
-  change_pattern: Restore the seven-day read-only projection from Incident and IncidentAction, prove Remediator ownership from actor allAI:Remediator, report the latest audited outcome regardless of authorised resolver actor, deduplicate completed outcomes by incident for handled and current escalations for attention, count only allAI:Remediator remediator_claimed actions as agent calls, and keep the UI indicator driven only by the unified attention total.
-  rollback_procedure: Remove the Remediator report projection while retaining the existing attention feed and Telegram alerting; never create a second reporting store or call Codex to prepare reporting.
+  change_pattern: Restore the read-only projection from Incident and IncidentAction with the S1585 selection (escalated minus any-demotion-action for needs-Max; demoted incidents and unknown-owner human_required tickets on operator-attention; needsMax.total drives the BUILD QUEUE nav badge, title count, and favicon), prove Remediator ownership from actor allAI:Remediator, report the latest audited outcome regardless of authorised resolver actor, deduplicate completed outcomes by incident for handled and current escalations for attention, count only allAI:Remediator remediator_claimed actions as agent calls, and keep the UI indicator driven only by the unified attention total.
+  rollback_procedure: Remove the Remediator report projection while retaining the needs-Max rows, operator-attention feed, and Telegram alerting; never create a second reporting store or call Codex to prepare reporting.
   integrity_check: E-07 passes against live audit counts, repeated reads are write-free, and an empty queue cannot start Codex.
 ```
 
