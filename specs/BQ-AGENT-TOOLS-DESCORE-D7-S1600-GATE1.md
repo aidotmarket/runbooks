@@ -13,9 +13,9 @@
 The unauthenticated public agent surface at `POST /api/v1/agent/tools/call` contradicts the existing D7 trust decisions:
 
 - `search_listings` computes and emits a composite `trust_score`, emits `verification_status`, accepts and echoes `trust_score_min`, and orders by `quality_score`.
-- `get_listing_detail` emits `quality_score`, composite `trust_score`, `verification_status`, `compliance_status`, and `compliance_details`.
+- `get_listing_detail` emits `quality_score`, composite `trust_score`, `verification_status`, `compliance_status`, and `compliance_details`; its retained JSON-LD can embed the same compliance status as a property-ID assertion.
 - `evaluate_trust` emits the same composite conclusion, its component score breakdowns, and legacy attestation signals instead of the already-defined published scan-findings projection.
-- The same anonymous API family still exposes `compliance_status` as a result field and request filter through `/api/v1/search/listings`, and the legacy anonymous `GET /api/v1/listings/{id}` detail response does not exclude `compliance_status` or `compliance_details`.
+- The same anonymous API family still exposes `compliance_status` as a result field and request filter through `/api/v1/search/listings`, and the legacy anonymous `GET /api/v1/listings/{id}` detail response does not exclude `compliance_status`, `compliance_details`, or the derived `compliance_frameworks` and `compliance_notes` projections.
 
 These public contracts let buyers or agents treat platform-computed scores, verification labels, or risk tiers as an ai.market quality or compliance conclusion. The problem is public serialization and public score-oracle inputs, not the internal persistence or calculation of those legacy fields.
 
@@ -24,7 +24,7 @@ These public contracts let buyers or agents treat platform-computed scores, veri
 ### In scope
 
 1. Remove `trust_score`, `quality_score`, and unqualified `verification_status` from the public agent search/detail/evaluation responses.
-2. Remove `compliance_status` and `compliance_details` from the public agent detail response, the anonymous search response and filter contract, and the non-owner legacy listing-detail response.
+2. Remove `compliance_status` and `compliance_details` from the public agent detail response, including retained JSON-LD at any nesting depth. Remove `compliance_status` from the anonymous search response and filter contract. Remove the complete derived compliance set — `compliance_status`, `compliance_details`, `compliance_frameworks`, and `compliance_notes` — from the non-owner legacy listing-detail response.
 3. Remove `trust_score_min` from the public agent manifest, argument model, service signature, response echo, and SQL predicate. Remove `quality_score` from public agent search ordering.
 4. Preserve the `evaluate_trust` tool name for compatibility, but replace its response with the exact existing S1590 public scan-findings projection described in section 3.
 5. Reuse the existing S1590 public projection validation and withdrawal-window behavior; do not create a second scan-artifact serializer.
@@ -48,7 +48,7 @@ Each result retains its existing non-D7 fields, including `trust_level`, but con
 
 ### 3.2 `get_listing_detail`
 
-The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. This change does not redefine other legacy metrics or the existing attestation summary.
+The response retains its existing non-D7 fields but contains none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details`. `compliance_status` is absent at any nesting depth, including the retained `jsonld` field: the existing public JSON-LD sanitizer is used with surface-specific `compliance_status` key and property-ID exclusions. This change does not redefine other legacy metrics, remove JSON-LD wholesale, change JSON-LD on unnamed surfaces, or redefine the existing attestation summary.
 
 ### 3.3 `evaluate_trust`
 
@@ -71,18 +71,18 @@ No legacy score, score breakdown, `verification_status`, compliance claim, or le
 
 ### 3.4 Other named anonymous API shapes
 
-- `/api/v1/search/listings` GET and POST no longer accept `compliance_status`, describe compliance risk tiers, or serialize `compliance_status` in `SearchResultItem`.
-- The non-owner response from `GET /api/v1/listings/{id}` excludes `compliance_status` and `compliance_details` alongside its existing quality/verification exclusions.
+- `/api/v1/search/listings` GET and POST no longer accept `compliance_status`, describe compliance risk tiers, or serialize `compliance_status` in `SearchResultItem`. The POST `SearchRequest` model becomes `extra="forbid"`, so the removed body field is rejected rather than silently ignored; GET retains FastAPI's existing unknown-query behavior.
+- The non-owner response from `GET /api/v1/listings/{id}` excludes `compliance_status`, `compliance_details`, `compliance_frameworks`, and `compliance_notes` alongside its existing quality/verification exclusions. The test source populates `compliance_details.frameworks` and `compliance_details.notes` and proves all four derived fields are absent.
 - Owner and internal service shapes remain unchanged.
 
 ## 4. Acceptance criteria
 
 1. The public tool manifest and generated public argument schema contain no `trust_score_min`; a call that still sends it is rejected as invalid params before database execution.
 2. Public agent search SQL has no composite score expression, score predicate, or quality-score ordering, and search responses contain none of `trust_score`, `quality_score`, `verification_status`, or `trust_score_min`.
-3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows contain populated hostile values.
+3. Public agent detail responses contain none of `trust_score`, `quality_score`, `verification_status`, `compliance_status`, or `compliance_details` even when source rows and stored JSON-LD contain populated hostile values. `compliance_status` is absent at any nesting depth, including JSON-LD `additionalProperty` entries whose `propertyID` is `compliance_status`.
 4. `evaluate_trust` returns the exact active S1590 artifact for a valid published epoch, the exact existing withdrawal marker during its window, and the explicit `not_available`/null shape for disabled, missing, stale, mismatched, invalid, expired-withdrawal, and other non-public states.
 5. `evaluate_trust` contains no legacy score, breakdown, unqualified verification label, compliance conclusion, or legacy attestation summary at any nesting depth.
-6. Anonymous GET/POST search contracts contain no compliance filter or result field; attempts to send the removed POST field are rejected by schema validation. The legacy non-owner listing detail omits both compliance fields while the owner path is unchanged.
+6. Anonymous GET/POST search contracts contain no compliance filter or result field; attempts to send the removed POST field are rejected by `extra="forbid"` schema validation. The legacy non-owner listing detail omits `compliance_status`, `compliance_details`, `compliance_frameworks`, and `compliance_notes` even when the latter two are derived from populated details, while the owner path is unchanged.
 7. Existing rate limiting, audit logging, listing visibility (`published` only for agent tools), query/price filters, pagination bounds, price-check tool, authenticated MCP routes, and S1590 public listing projection tests remain passing.
 8. Focused tests cover the request schemas, manifest, SQL/serialization, published/withdrawn/unavailable evaluation states, anonymous search shapes, legacy detail redaction, and unchanged owner behavior.
 9. Production verification calls the unauthenticated public manifest and tool endpoint against a published listing and proves the removed fields/inputs are absent or rejected and `evaluate_trust` returns one of the exact honest states. A live published scan artifact is verified only if one already exists; no scan, charge, listing, or customer-data mutation is created for this ticket.
@@ -95,11 +95,11 @@ Focused validation:
 
 - the existing public MCP test module plus new D7 assertions;
 - existing S1590 publication/public-listing tests that cover projection identity and withdrawal behavior;
-- focused anonymous search and legacy-listing tests;
+- focused anonymous search and legacy-listing tests, including hostile nested JSON-LD and populated derived compliance fields;
 - Ruff or repository lint only for changed Python files, `git diff --check`, and the protected-branch checks required by the repository workflow.
 
 Rollback is a normal protected-branch forward revert of the exact merge. It restores only the former public response/filter contract; it makes no data change.
 
 ## 6. Known limits and simplicity check
 
-The ticket does not remove every historical internal score or trust label. It removes only the dishonest public fields and score-oracle inputs named above and redirects the existing evaluation tool to the already-reviewed S1590 artifact. Reusing the one public projection is simpler and safer than defining a parallel agent-specific findings schema. Keeping the tool name avoids an unnecessary compatibility break. Council should explicitly say if any response field or touched surface can be removed from this design while still satisfying the frozen D7 acceptance criteria.
+The ticket does not remove every historical internal score or trust label. It removes only the dishonest public fields and score-oracle inputs named above and redirects the existing evaluation tool to the already-reviewed S1590 artifact. JSON-LD on unnamed surfaces and a general legacy-detail allowlist conversion remain adjacent work; this ticket applies the complete redaction only to the named agent and legacy-detail responses. Reusing the one public projection is simpler and safer than defining a parallel agent-specific findings schema. Keeping the tool name avoids an unnecessary compatibility break. Council should explicitly say if any response field or touched surface can be removed from this design while still satisfying the frozen D7 acceptance criteria.
