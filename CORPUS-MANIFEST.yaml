@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 18353440cd8b2a81a6277f61de4bffae7d12bbba
+  inventory_sha: daee186dab538ef92f2618ae30dd60fdcbf0f50d
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -102,7 +102,7 @@ documents:
       - production-safe behavior probes and canonical state
     independent_review_required: true
   - path: ai-market-frontend.md
-    git_blob_oid: 8abf71ce1b26d332bee2c97e866734ce1f9b4a1f
+    git_blob_oid: f5574ef7a0cef10e55fa2fedf80d147c317cb46c
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -144,7 +144,7 @@ documents:
       - published artifacts and production-safe customer probes
     independent_review_required: true
   - path: aim-data.md
-    git_blob_oid: 047643e767a0aab5b95848ab1c0d639e94ff17d1
+    git_blob_oid: f9e1916f9480ebce45ce95c8cd8fa37c807e4711
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -367,7 +367,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: runbooks/builder-controls.md
-    git_blob_oid: cfcd51cabafcc3a03b8efc1a0486fca2f984229f
+    git_blob_oid: 2639c81dbc2619896200d592435442bfe70f66c4
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -381,7 +381,7 @@ documents:
       - MP dispatch corpus fire counts
     independent_review_required: true
   - path: cc-machine-identity.md
-    git_blob_oid: 9a13d91526ddd5cb0f8633e4a2f4b003e73f59ac
+    git_blob_oid: b29607651f6e937bb9d829bd8128b08cad3de656
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -821,7 +821,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: mcp-gateway.md
-    git_blob_oid: 94b75d24df61fa0ac343941d87d767a0aa1e7f24
+    git_blob_oid: 12c81186ae271a27b2296a4687bdea06183eac6b
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -887,7 +887,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: f40467b6fc25b1860296637a94310d8b5d78d286
+    git_blob_oid: fec40e0c3d4da87f054eafd483c42cd4a489e834
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -901,7 +901,7 @@ documents:
       - production-safe behavior probes and canonical state
     independent_review_required: true
   - path: publish-paths.md
-    git_blob_oid: e1186f1c38697a3da072d82258074e898c3e2a13
+    git_blob_oid: 039d0cf4374d224aa015fb2f1cd191f21f4e734c
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1184,7 +1184,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/corpus-capture-policy.md
-    git_blob_oid: 10f58da6276e04158909f1179d4e420f3e074aa0
+    git_blob_oid: 8004d24fe47934d3df62622890a7adfac5a07ed5
     catalog_state: active
     status: active
     proposed_disposition: retain_active
