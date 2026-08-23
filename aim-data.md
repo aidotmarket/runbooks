@@ -1,3 +1,13 @@
+---
+system_name: aim-data
+purpose_sentence: This runbook operates and diagnoses the customer-deployed AIM Data product and its signed marketplace publishing path.
+owner_agent: vulcan
+escalation_contact: max
+lifecycle_ref: §J
+authoritative_scope: Customer installation, local data handling, signed VZ listing publication, post-publish setup, delivery, and product-specific failure isolation.
+linter_version: 1.0.0
+---
+
 # AIM Data — Local-First Data Publishing for ai.market
 
 AIM Data is what a data seller installs on their own infrastructure to list datasets on the ai.market marketplace. It runs as a Docker container on the seller's machine, profiles the data, generates the listing metadata via allAI, and never copies the raw data anywhere. When a buyer purchases a listing, ai.market issues a signed delivery token and the bytes flow peer-to-peer from the seller's AIM Data install to the buyer. ai.market handles discovery, payments via Stripe, and the delivery token, but never sees or touches raw data.
@@ -22,6 +32,29 @@ The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves 
 **Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.53`)
 **Customer install guide:** `docs/INSTALL.md` in the repo
 **Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
+
+## §A. Header
+
+The YAML frontmatter defines the current conformance header. This document remains a grandfathered discovery runbook; the header does not promote it to action authority.
+
+## §B. Capability Matrix
+
+| Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
+|---|---|---|---|---|
+| Signed VZ fresh-listing publish | SHIPPED | `app/routers/marketplace_publish.py` | Protected VZ gate plus isolated customer journey | 2026-08-23 |
+| Provisioning seller create-only exception | SHIPPED | `app/routers/vz_publish.py` | Exact denial-shape, existing-listing, and concurrent-create tests | 2026-08-23 |
+| Existing-listing update gate | SHIPPED | `app/services/vz_publish_service.py` | Real-service unchanged-listing test | 2026-08-23 |
+| Post-publish purchase and payout gate | SHIPPED | `app/services/capability_service.py` | Seller post-listing setup gate suite | 2026-08-23 |
+
+## §C. Architecture & Interactions
+
+| Component | Component Entry Point | State Stores | Integrates With | Notes |
+|---|---|---|---|---|
+| AIM Data publish proxy | `POST /api/marketplace/publish` | Local dataset record and VZ install identity | ai.market `POST /api/v1/vz/publish` | Signs metadata with the install Ed25519 identity; raw data remains local. |
+| ai.market VZ publish route | `app/routers/vz_publish.py` | Users, capabilities, VZ installs, listings, Redis replay state | Capability service and VZ publish service | Runs trust, replay, seller, and create-only provisioning checks. |
+| Listing writer | `create_or_update_listing` | PostgreSQL listings and publish-effect records | Notification, version, translation, and search hooks | Serializes provisioning first-create attempts and rejects an existing seller/source before mutation. |
+| Listing management | `app/routers/listings.py` | PostgreSQL listings and search index state | Marketplace dashboard and operator unpublish service | Retracts an existing listing without publish-effect hooks. |
+| Post-publish setup | `https://ai.market/dashboard` | Seller capability and payout readiness | 2FA and Stripe Connect | A provisioning listing can be live while purchase, payout, settlement, update, and republish stay blocked. |
 
 ## Capability Matrix
 
@@ -402,3 +435,155 @@ When the linter + harness ship, this runbook converts to the strict form. The co
 - [ai-market-backend.md](ai-market-backend.md) — the marketplace side AIM Data talks to
 - ai.market customer-facing pages: [/aim-data](https://ai.market/aim-data), [/sell-data](https://ai.market/sell-data)
 - CORE.md product description: `docs/core/CORE.md` → "AIM-Channel — The Non-Dev Conduit" (CORE.md positions AIM-Channel as the data-seller conduit class; AIM Data is the current implementation of that role. CORE.md still describes a shared-codebase-with-vectorAIz model that is no longer accurate post-fork — flagged for CORE.md update. S996: AIM Channel is now RETIRED and superseded by AIM Data; the CORE.md pillar named "AIM-Channel" should be renamed to AIM Data via a peer-reviewed constitution edit.)
+
+## §D. Agent Capability Map
+
+| Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
+|---|---|---|---|---|
+| AIM Data customer install | Create a fresh signed listing | AIM Data publish wizard | Customer bearer session plus install Ed25519 key | COMPLETE |
+| ai.market backend | Validate and persist the listing | Canonical VZ publish route | Signed VZ JWT, Redis replay state, seller capability | COMPLETE |
+| Authorized operator | Retract a synthetic verification listing | Existing listing unpublish service | Existing operator secret-backed mechanism | COMPLETE |
+
+## §E. Operate
+
+```yaml operate
+- id: E-01
+  trigger: A customer with a registered AIM Data install publishes a new dataset listing.
+  pre_conditions: [customer_signed_in, vz_install_registered, redis_available, dataset_source_is_fresh_for_seller]
+  tool_or_endpoint: POST /api/marketplace/publish to POST /api/v1/vz/publish
+  argument_sourcing: {seller_id: derive from the authenticated customer session, install_id: derive from the registered VZ install, vz_raw_listing_id: derive from the local dataset, metadata: derive from the reviewed listing form}
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: seller_id plus vz_raw_listing_id
+  expected_success: {shape: HTTP 201 with listing_id and marketplace_url, verification: open the returned listing through the isolated customer browser and confirm the seller sees the post-publish setup state when provisioning}
+  expected_failures: [{signature: provisioning_existing_listing_denied, cause: the seller/source listing already exists while the seller is not active}, {signature: capability_denial_not_eligible, cause: the seller denial is not the exact provisioning readiness_gap shape}, {signature: security_services_offline, cause: Redis replay or rate-limit enforcement is unavailable}]
+  next_step_success: Complete seller setup before purchase, payout, update, or republish.
+  next_step_failure: Isolate with §F and do not bypass signing, replay, capability, or browser identity controls.
+- id: E-02
+  trigger: An authorized operator retracts the synthetic listing created for live verification.
+  pre_conditions: [exact_listing_identity_recorded, listing_is_synthetic, approved_secret_backed_operator_path_available]
+  tool_or_endpoint: Existing listing unpublish service
+  argument_sourcing: {listing_id: use the exact id returned by E-01, owner: verify the synthetic seller identity before mutation}
+  idempotency: IDEMPOTENT
+  expected_success: {shape: listing status is unpublished and public discovery no longer returns it, verification: confirm the exact listing is absent through the isolated customer browser and the public listing route is no longer live}
+  expected_failures: [{signature: listing_identity_mismatch, cause: the target does not match the recorded synthetic listing}, {signature: operator_path_unavailable, cause: the approved secret-backed mechanism cannot be used}]
+  next_step_success: Retain the create and retraction evidence with the ticket.
+  next_step_failure: Fail closed and leave the listing identity recorded for recovery; do not delete data or bypass access controls.
+```
+
+## §F. Isolate
+
+| ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
+|---|---|---|---|---|---|
+| F-01 | A provisioning seller cannot create a fresh signed listing. | The denial shape is not the exact readiness gap, the seller/source already exists, Redis is unavailable, or the deployment is stale. | Compare the response shape, seller capability, seller/source existence, replay-service health, and deployed backend SHA without exposing secrets. | G-01 | CONFIRMED |
+| F-02 | A provisioning seller can update or republish an existing listing. | The create-only guard or existing-listing check was bypassed. | Reproduce with the same seller/source and verify the service returns the original 403 before mutation, notification, version, translation, or search hooks. | G-02 | CONFIRMED |
+| F-03 | A synthetic live-verification listing remains public after retraction. | The wrong listing was targeted, unpublish failed, or de-indexing did not complete. | Verify the exact recorded listing id and seller, inspect its current status through the approved operator path, then check public discovery and the isolated browser. | G-03 | CONFIRMED |
+
+## §G. Repair
+
+```yaml repair
+- id: G-01
+  symptom_ref: F-01
+  component_ref: ai.market VZ publish route
+  root_cause: A load-bearing signed-publish prerequisite failed or production does not contain the reviewed create-only exception.
+  repair_entry_point: app/routers/vz_publish.py and deployment receipt
+  change_pattern: Restore only the exact provisioning readiness_gap fresh-create path while retaining all signing, replay, seller/source, and active-seller controls.
+  rollback_procedure: Revert the guarded exception through the protected merge workflow; provisioning sellers return to active-only publication.
+  integrity_check: Focused route, real-service, concurrency, protected-gate, deployment, and isolated-browser proofs all pass.
+- id: G-02
+  symptom_ref: F-02
+  component_ref: Listing writer
+  root_cause: The service no longer rejects an existing seller/source before publish mutations and side effects.
+  repair_entry_point: app/services/vz_publish_service.py create_or_update_listing
+  change_pattern: Reinstate the transaction-scoped lock and existing-listing denial before canonicalization, mutation, hooks, or commit.
+  rollback_procedure: Revert through the protected workflow and keep provisioning publication disabled until the create-only invariant is restored.
+  integrity_check: Concurrent first-create yields exactly one listing and one 403; existing-listing state and side-effect mocks remain unchanged.
+- id: G-03
+  symptom_ref: F-03
+  component_ref: Listing management
+  root_cause: Retraction targeted the wrong identity or did not complete de-indexing.
+  repair_entry_point: Approved operator unpublish path for the exact synthetic listing
+  change_pattern: Re-run only the reversible unpublish for the recorded synthetic listing after re-verifying listing id and owner.
+  rollback_procedure: If identity cannot be proven, stop without mutation and preserve the recovery record.
+  integrity_check: The exact listing is unpublished and absent from public and isolated-customer discovery.
+```
+
+## §H. Evolve
+
+### §H.1 Invariants
+
+AIM Data sends listing metadata, never raw customer data. The provisioning exception is signed-VZ, exact-denial, fresh-create, and seller/source scoped. It grants no purchase, payout, settlement, update, or republish authority.
+
+### §H.2 BREAKING predicates
+
+Removing VZ signature, Redis replay, install binding, seller identity, active-seller controls, the existing-listing denial, or raw-data locality is BREAKING.
+
+### §H.3 REVIEW predicates
+
+Review changes to publish JWT claims, seller readiness semantics, seller/source identity, advisory-lock scope, listing side effects, or post-publish onboarding routing.
+
+### §H.4 SAFE predicates
+
+Copy and documentation changes are safe only when they preserve the exact create-only exception and all blocked capabilities.
+
+### §H.5 Boundary definitions
+
+#### module
+
+AIM Data owns the customer-local publish proxy and dataset workflow; ai.market backend owns trust validation, capability enforcement, listing persistence, purchase, payout, and settlement.
+
+#### public contract
+
+The public write contract is the signed `POST /api/v1/vz/publish` response plus the post-publish setup state shown to the authenticated customer.
+
+#### runtime dependency
+
+Publication depends on the registered VZ install, Ed25519 key, Redis replay/rate-limit service, PostgreSQL seller and listing state, and the deployed ai.market backend.
+
+#### config default
+
+No configuration flag widens the exception. Missing signing, replay, durable readiness, or identity state fails closed.
+
+### §H.6 Adjudication
+
+Any request to extend the exception beyond the exact fresh-create case is a security-control change requiring separate scope, review, focused tests, deployment proof, and customer verification.
+
+## §I. Operational Examples
+
+```yaml acceptance
+scenario_set:
+  - id: I-01
+    type: operate
+    refs: [E-01]
+    scenario: An explicitly provisioning AIM Data seller publishes a seller/source pair that does not yet exist.
+    expected_answers:
+      - kind: classification
+        label: allow one guarded signed-VZ fresh create while retaining post-publish purchase and update blocks
+  - id: I-02
+    type: isolate
+    refs: [F-02, G-02]
+    scenario: The same provisioning seller sends another publish for the same seller/source pair.
+    expected_answers:
+      - kind: classification
+        label: deny with the original readiness_gap response before mutation or publish side effects
+```
+
+## §J. Lifecycle
+
+```yaml lifecycle
+last_refresh_session: S1599
+last_refresh_commit: deffba2d84de40d7bc3369e5dd31ef3cf7f1eedd
+last_refresh_date: 2026-08-23T17:00:00Z
+owner_agent: vulcan
+refresh_triggers:
+  - A signed VZ publish contract, seller readiness rule, post-publish setup flow, or AIM Data customer journey changes.
+scheduled_cadence: 3m
+```
+
+## §K. Conformance
+
+```yaml conformance
+linter_version: 1.0.0
+retrofit: false
+trace_matrix_path: null
+word_count_delta: null
+```
