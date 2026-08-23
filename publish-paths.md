@@ -39,7 +39,7 @@ The YAML frontmatter defines the current conformance header. This document remai
 | Programmatic action chokepoint | `ActionExecutorService` | Canonical listing state | REST actions, MCP tools, and Trust Channel | Remains active-seller only; it has no provisioning exception. |
 | Website management | `app/routers/listings.py` | Canonical listing state | Marketplace dashboard | Reads, previews, unpublishes, or deletes owned listings; it does not create or publish. |
 
-Both AIM Data and vectorAIz publish through `POST /api/v1/vz/publish`. The route always runs the active-seller check first. A signed VZ request denied only because its seller is explicitly `provisioning` with reason `readiness_gap` may create one fresh `(seller_id, vz_raw_listing_id)` listing. A transaction-scoped advisory lock serializes concurrent attempts. If that listing already exists, the original 403 is returned before mutation or publish side effects. Purchase, payout, settlement, update, republish, and every other active-seller control remain blocked until the seller is active.
+Both AIM Data and vectorAIz publish through `POST /api/v1/vz/publish`. The route always runs the active-seller check first. A signed VZ request may create one fresh `(seller_id, vz_raw_listing_id)` listing only when the active-seller denial has persisted status `active` or `provisioning`, effective status `provisioning`, and reason `readiness_gap`. A transaction-scoped advisory lock serializes concurrent attempts. If that listing already exists, the original 403 is returned before mutation or publish side effects. Purchase, payout, settlement, update, republish, and every other active-seller control remain blocked until the seller is fully ready.
 
 When a listing is backed by a customer S3 connection, `_validate_s3_connection_publish_authority` additionally binds the signed `(seller_id, install_id)` to an active, unrevoked `vz_installs` row and its activated serial. A missing serial linkage fails closed. The serial owner is checked against the seller; legacy nullable ownership is observable and is not a substitute for the signed install binding.
 
@@ -183,7 +183,7 @@ scenario_set:
   - id: I-01
     type: operate
     refs: [E-01]
-    scenario: A signed VZ request from an explicitly provisioning seller targets a seller/source pair that does not exist.
+    scenario: A signed VZ request with persisted status active or provisioning, effective status provisioning, and reason readiness_gap targets a seller/source pair that does not exist.
     expected_answers:
       - kind: classification
         label: allow one guarded fresh create and retain every post-publish active-seller block
@@ -207,7 +207,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1599
-last_refresh_commit: deffba2d84de40d7bc3369e5dd31ef3cf7f1eedd
+last_refresh_commit: 2ab324698a465f316246ea6b73259e83a7e2d430
 last_refresh_date: 2026-08-23T17:00:00Z
 owner_agent: vulcan
 refresh_triggers:

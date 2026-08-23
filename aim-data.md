@@ -187,7 +187,7 @@ If I issued the seller a serial and bootstrap token (per-customer values I send 
 
 ### Connect to ai.market as a seller
 
-Inside the app: Settings → Marketplace. The flow asks for the seller's name, billing email, and counterparty business details. After submit, ai.market sends a confirmation email. Clicking the link makes the install show up as a seller on the marketplace. A signed VZ install whose seller is explicitly provisioning may create one fresh listing before payout setup is complete, but that listing is not purchasable and cannot be updated or republished until the seller is active.
+Inside the app: Settings → Marketplace. The flow asks for the seller's name, billing email, and counterparty business details. After submit, ai.market sends a confirmation email. Clicking the link makes the install show up as a seller on the marketplace. A signed VZ install may create one fresh listing before payout setup is complete only when the active-seller denial reports persisted status `active` or `provisioning`, effective status `provisioning`, and reason `readiness_gap`; that listing is not purchasable and cannot be updated or republished until the seller is fully ready.
 
 Auto-promotion (S772): a first-time **buyer**-role account is promoted to **seller** automatically on its first `POST /api/v1/vz/register` during publish, so a brand-new account can list without doing the Settings -> Marketplace step first. That promotion writes `users.role`, a Postgres `userrole` enum. A bug that wrote the value as bare varchar made `/vz/register` return 500 and publish return 409 ("VZ install registration not available") for buyer-role accounts; fixed S772 by casting the value to the enum and dropping an enum-vs-varchar `WHERE` comparison. If a fresh account 409s on publish again, check the register role-write path first.
 
@@ -203,7 +203,7 @@ As of v1.20.53 (S773) listing a file is a guided three-screen wizard. Raw data n
 2. Metadata Review. Metadata is auto-generated on entry through allAI (claude-opus-4-8 via the /agentic proxy, cost capped). The seller reviews the generated title, description, tags, and category, edits if needed, clicks Approve, then Continue to publish.
 3. Listing Details and Disclosure (S804, merged main 18aa999). The seller confirms listing details (price, category), makes an explicit public-sample decision — publish the exact real rows shown in a read-only table, or publish no sample rows (the default; synthetic is never offered) — and checks a single confirmation stating the approved content becomes public and may be shared with search engines, AI assistants, HuggingFace, and AI-training crawlers. Then Publish to ai.market. After publish returns the listing_id, the app creates the backend disclosure snapshot (POST /api/v1/listings/{listing_id}/disclosure-snapshots via a local seller-auth proxy in marketplace_publish.py — NOT the VZ publish JWT); snapshot success is what activates the SEO push pipeline (JSON-LD refresh, IndexNow, HuggingFace). If publish succeeds but the snapshot fails, the seller sees "Listing published, disclosure snapshot pending" with Retry and Review actions — never silent success. Client-side sample limits: 100 rows / 25 columns / 250 KB, columns must match (frontend/src/lib/disclosure.ts). Disclosure decision audit persists on the dataset record with the backend-generated disclosure_version.
 
-Publish is the signed path: POST /api/marketplace/publish to {ai_market}/api/v1/vz/publish. A first-time seller account is auto-promoted from buyer to seller on /vz/register. If that seller is explicitly provisioning and the active-seller check returns the exact `readiness_gap` denial, the backend permits only a fresh seller/source create; existing-listing updates and all other denial shapes remain blocked. AIM_DATA_KEYSTORE_PASSPHRASE must be set or publish returns 503. Quality score still surfaces when enabled.
+Publish is the signed path: POST /api/marketplace/publish to {ai_market}/api/v1/vz/publish. A first-time seller account is auto-promoted from buyer to seller on /vz/register. If the active-seller check returns persisted status `active` or `provisioning`, effective status `provisioning`, and the exact `readiness_gap` reason, the backend permits only a fresh seller/source create; existing-listing updates and all other denial shapes remain blocked. AIM_DATA_KEYSTORE_PASSPHRASE must be set or publish returns 503. Quality score still surfaces when enabled.
 
 Dead paths, do not use: /pipeline, /process-full, /{id}/publish, /{id}/confirm. No vectorization, Qdrant, or RAG in this flow.
 
@@ -554,7 +554,7 @@ scenario_set:
   - id: I-01
     type: operate
     refs: [E-01]
-    scenario: An explicitly provisioning AIM Data seller publishes a seller/source pair that does not yet exist.
+    scenario: An AIM Data seller with persisted status active or provisioning, effective status provisioning, and reason readiness_gap publishes a seller/source pair that does not yet exist.
     expected_answers:
       - kind: classification
         label: allow one guarded signed-VZ fresh create while retaining post-publish purchase and update blocks
@@ -571,7 +571,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1599
-last_refresh_commit: deffba2d84de40d7bc3369e5dd31ef3cf7f1eedd
+last_refresh_commit: 2ab324698a465f316246ea6b73259e83a7e2d430
 last_refresh_date: 2026-08-23T17:00:00Z
 owner_agent: vulcan
 refresh_triggers:
