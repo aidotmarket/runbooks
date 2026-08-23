@@ -173,8 +173,9 @@ kd_session_open(session_id, instance_role=primary|worker, parent_session_id=<pri
     the boot payload reports handoff_source = "db" | "file" so you can tell which path served.
     "db" = the database read worked (the proven path since the S766 cutover); "file" = the DB
     read/write is broken and the file fallback served — investigate before trusting the handoff.
-  → also surfaces read-only next_ready: the top pending item peeked from the author-dispatch
-    database (pickup_query.peek over AUTHOR_DISPATCH_DATABASE_URL). Additive; legacy pickup still live.
+  → formerly also surfaced read-only next_ready from pickup_query.peek and released pickup
+    claims on close. That production-reaching legacy path is retired: current kd_session_open no
+    longer emits next_ready from pickup_query, and current kd_session_close no longer releases pickup claims.
   → registers the session in the local registry; claims the role slot in the remote lock
 kd_session_plan(session_id, tool_budget, objectives, delegation_strategy)
   → transitions the boot gate PLANNING → OPERATIONAL; unlocks all other tools
