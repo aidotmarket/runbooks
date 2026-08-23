@@ -98,7 +98,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | Measure capture volume and composition | SQL in §E E-01 | read-only backend DB | COMPLETE |
-| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket (owner-routed: sysadmin-assigned, surfaces on OPS Attention, not Max's queue after S1585), read-only SQL in §E E-02, code edit per §G G-01, then existing-monitor reconciliation | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
+| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket (AI-owned since S1585: human_required=false, assignee ai_agent/sysadmin; discharged via the TICKETS panel or the E-02 SQL; appears on neither Max's needs-Max rows nor the OPS Attention list), read-only SQL in §E E-02, code edit per §G G-01, then existing-monitor reconciliation | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
 | Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
 | Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
@@ -123,11 +123,11 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
   next_step_success: done
   next_step_failure: §F F-01
 - id: E-02
-  trigger: Weekly P2 quarantine review - classify unknown event types when the fixed-subject SupportTicket is refreshed by the sysadmin obligation run (since S1585 the ticket is AI-owned: human_required=false, assignee ai_agent/sysadmin; it does NOT appear in Max's needs-Max rows and surfaces on the OPS panel Attention list only if its owner is unknown)
+  trigger: Weekly P2 quarantine review - classify unknown event types when the fixed-subject SupportTicket is refreshed by the sysadmin obligation run (since S1585 the ticket is AI-owned: human_required=false, assignee ai_agent/sysadmin; it appears on neither Max's needs-Max rows nor the OPS Attention list, and is discharged via the TICKETS panel or the E-02 SQL)
   pre_conditions:
-    - authenticated operator access to the ops.ai.market TICKETS tab (and OPS Attention list since S1585)
+    - authenticated operator access to the ops.ai.market TICKETS tab
     - read-only database access
-  tool_or_endpoint: "https://ops.ai.market (OPS tab Attention list / TICKETS tab; the standalone /for-max page is retired in S1585); psql ticket verification: SELECT public_ref, status, human_required, created_at, updated_at FROM support_ticket WHERE subject='[auto] Qdrant event-type quarantine requires weekly classification' AND requester_key='agent:sysadmin' AND status NOT IN ('resolved','closed') ORDER BY created_at; read-only classification: SELECT event_type, count, first_seen_at, last_seen_at FROM qdrant_event_type_quarantine WHERE status='open' ORDER BY count DESC"
+  tool_or_endpoint: "https://ops.ai.market TICKETS tab (the standalone /for-max page is retired in S1585); psql ticket verification: SELECT public_ref, status, human_required, created_at, updated_at FROM support_ticket WHERE subject='[auto] Qdrant event-type quarantine requires weekly classification' AND requester_key='agent:sysadmin' AND status NOT IN ('resolved','closed') ORDER BY created_at; read-only classification: SELECT event_type, count, first_seen_at, last_seen_at FROM qdrant_event_type_quarantine WHERE status='open' ORDER BY count DESC"
   argument_sourcing:
     dsn: scripts/test-db-dsn.sh
     ticket_subject: "[auto] Qdrant event-type quarantine requires weekly classification"
@@ -138,7 +138,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
     verification: after an exact-rule deployment, the existing monitor changes only matching open-row status to classified before it pages remaining unknowns; a read-only query proves the intended rows are no longer open; repeated or rotating unknown breaches reuse one ticket; the operator resolves that ticket only after the monitor is healthy; routine backlog sends no Telegram page and no customer data changes
   expected_failures:
     - signature: open count grows without review
-      cause: the P2 classification obligation ticket remains open; review it on the TICKETS tab (or OPS Attention if owner-unknown) without paging Telegram
+      cause: the P2 classification obligation ticket remains open; review it on the TICKETS tab without paging Telegram
     - signature: the fixed-subject ticket is absent or duplicated because its query or persistence failed
       cause: support-ticket owner-surface failure, not a higher-priority quarantine backlog; the bounded P1 operational escalation pages Telegram with stable dedup
   next_step_success: §G G-01 for any rule change, then resolve the fixed-subject ticket through the supported ticket surface only after the read-only status query is healthy
