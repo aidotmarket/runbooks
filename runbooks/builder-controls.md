@@ -22,7 +22,7 @@ aliases:
 error_signatures:
   - signature: minimal_bridge_repo_unresolved
     section: §F. Isolate
-last_verified_at: "2026-08-14"
+last_verified_at: "2026-08-23"
 superseded_by: []
 supersedes: []
 linter_version: 1.0.0
@@ -45,10 +45,11 @@ The YAML frontmatter above defines the §A header. This runbook exists by Max di
 | Minimal bridge (transport + preservation) | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | 25 focused tests, including clean exit, timeout, crash and no-change output retention | 2026-08-10 |
 | Durable builder transcript | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Per-job artifact path, byte count and completeness asserted across terminal paths | 2026-08-10 |
 | Explicit post-build test status | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Configured pass/fail and unconfigured cases covered | 2026-08-10 |
+| Binding builder secret scan | SHIPPED | `koskadeux_mcp/minimal_bridge.py:161-320` | 40 focused bridge/queue/routing tests at `2c248509`; CC/Kimi/GLM review; PR #172 merged and deployed as `8623cef6`; 9-case deployed-checkout canary proved direct and `--no-verify` denial plus exact fingerprint boundaries | 2026-08-23 |
 
 ## §C. Architecture & Interactions
 
-The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/secret scan/push → report JSON with artifact pointers and explicit test status. The legacy stack is DELETED, not dormant: S1539 removed `codex_cli_bridge.py`, `codex_event_stream.py`, the legacy SQLite FIFO and the streaming path (koskadeux-mcp merge `0695ec1c46`, reviewed by CC and GLM in a Max-authorized two-member Gate 3 round, Kimi quota-exhausted that day; MP built it and did not review it). `_handle_call_mp` now forwards every MP build to the minimal bridge and refuses `mode=review` with a typed `mp_review_not_supported`. There is ONE builder path, per Max ruling S1534 ("No we have 1 path, we delete the old"). Verified serving in production 2026-08-14: the gateway booted post-merge and live dispatches ran through the minimal bridge the same day. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
+The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → job-scoped pre-push hook and Git invocation-guard injection → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/independent secret scan/push → report JSON with artifact pointers and explicit test status. Every ordinary builder Git push inheriting the job environment reaches the same scanner before network publication; the invocation guard prevents Git's standard `push --no-verify` hook bypass. After the child returns, the wrapper independently scans and owns its final verified push. The legacy stack is DELETED, not dormant: S1539 removed `codex_cli_bridge.py`, `codex_event_stream.py`, the legacy SQLite FIFO and the streaming path (koskadeux-mcp merge `0695ec1c46`, reviewed by CC and GLM in a Max-authorized two-member Gate 3 round, Kimi quota-exhausted that day; MP built it and did not review it). `_handle_call_mp` now forwards every MP build to the minimal bridge and refuses `mode=review` with a typed `mp_review_not_supported`. There is ONE builder path, per Max ruling S1534 ("No we have 1 path, we delete the old"). Verified serving in production 2026-08-14: the gateway booted post-merge and live dispatches ran through the minimal bridge the same day. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
 
 Ground truth on effectiveness, measured S1455 across all 254 stored MP dispatches (97 succeeded, 154 failed, 3 running): ~90 of the 154 failures were caused by the control surface or its bookkeeping, not by the builder's code. Exactly 1 was a genuine correctness catch (CI). That measurement is why the S1455 rebuild flips the burden of proof: a control survives only on a demonstrated real catch.
 
@@ -95,6 +96,7 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 - **C-21 Per-dispatch commit identity.** `GIT_AUTHOR_NAME/EMAIL` + `GIT_COMMITTER_NAME/EMAIL` injected per dispatch (s1346 clause 5). Exists because ambient identity is not evidence: a repo-local `[user]` block misattributed builder commits to an operator for weeks (identity_rca_s1400). STATUS: KEEP; AC6 makes it directional.
 - **C-22 Emergency bypasses.** `skip_ci_check`, `skip_output_verification` - audited structural-only bypasses. STATUS: die with the gates they bypass.
 - **C-23 guard_direction_evidence completion gate.** `bq_complete` path: `requires_directional_evidence` returns True on any `entity_state` other than `present`, so a failed entity FETCH fails the gate shut; the only unlock is declaring `guard_class=trust`, which non-guard builds must never do. STATUS: defect, in the S1455 removal scope.
+- **C-24 Binding secret scan.** `koskadeux_mcp/minimal_bridge.py:161-320` scans added lines with the same implementation in the builder child's job-scoped pre-push hook and in the wrapper after child return. A job-scoped Git invocation guard also rejects the standard `push --no-verify` hook bypass and Git's accepted unambiguous abbreviation behind ordinary global-option forms. It is the ONE permitted content push block. Guard, scanner, hook-input, or range errors fail closed without echoing matched content. The only exception is the reviewed tuple of `tests/fixtures/data_verification_v1/hostile_reports.json`, rule `api_token`, and added-line SHA-256 `87c422a08e94b6270fbd929bd7d72ecbd9b172782179c2e4294d2e951cf56761`; changed path, rule, or content still blocks. Fires: five S1596-S1597 wrapper blocks on that same operator-verified benign line exposed that builders had already pushed past the late wrapper scan. STATUS: KEEP and bind before network publication; `secret_scan_blocked` preserves local work. Boundary: this governs ordinary pushes inheriting the job Git environment, not a same-UID child deliberately bypassing the injected Git executable and hooks or replacing its environment; closing that larger boundary requires credential, OS-account, hosted-Git, or broader sandbox controls outside S1598.
 
 ## §F. Isolate
 
@@ -106,7 +108,7 @@ The standing salvage procedure when any control reports failure: (1) never redis
 
 ## §H. Evolve
 
-The S1455 programme is live through the minimal bridge: fresh worktree at exact base derived from `repo`, per-dispatch identity, combined builder stdout/stderr streamed to a durable artifact, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), fast-forward-only verified push, configured tests as a separate retained artifact with explicit status, one outcome row per dispatch, and honest report fields `{branch, head_sha, diffstat, builder_output_path, builder_output_complete, builder_output_status, builder_exit_code, tests_status, tests_output_path, duration, terminal_status, preserved, pushed}`. `builder_output_status` is `captured` only when the artifact exists; `unverified` means the operator must not treat the build as observed. No retry or supervisor is part of this design. Update this runbook's §B/§E statuses in the same change as each stage lands.
+The S1455 programme is live through the minimal bridge: fresh worktree at exact base derived from `repo`, per-dispatch identity, combined builder stdout/stderr streamed to a durable artifact, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), a job-scoped pre-push scan and `--no-verify` invocation guard before every ordinary builder push, an independent wrapper scan, fast-forward-only verified push, configured tests as a separate retained artifact with explicit status, one outcome row per dispatch, and honest report fields `{branch, head_sha, diffstat, builder_output_path, builder_output_complete, builder_output_status, builder_exit_code, tests_status, tests_output_path, duration, terminal_status, preserved, pushed, secret_scan_result}`. `builder_output_status` is `captured` only when the artifact exists; `unverified` means the operator must not treat the build as observed. No retry or supervisor is part of this design. Update this runbook's §B/§E statuses in the same change as each stage lands.
 
 ## §I. Acceptance Criteria
 
@@ -118,9 +120,9 @@ The S1455 programme is live through the minimal bridge: fresh worktree at exact 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1548
-last_refresh_commit: 0695ec1c46745549c1314af47a2872595b88bf75
-last_refresh_date: "2026-08-14T12:00:00Z"
+last_refresh_session: S1599
+last_refresh_commit: 8623cef602616e95366cfdd5835f599ef8eccbee
+last_refresh_date: "2026-08-23T11:54:26Z"
 owner_agent: vulcan
 refresh_triggers:
   - any merge touching `tools/agents.py` build routing, `koskadeux_mcp/bridge_runner.py`, `koskadeux_mcp/minimal_bridge.py`, `koskadeux_mcp/tsp_queue.py`, `koskadeux_mcp/mp_dispatch_params.py`, `builder_output_verification.py`, or `structural_gate*.py`
