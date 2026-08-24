@@ -56,7 +56,7 @@ curl -s https://api.ai.market/health
 | `/api/v1/finance` | (via `financeApi`) | Revenue, transactions, invoices |
 | `/api/v1/internal` | `agent_health.py`, `health_internal.py` | Internal health checks (X-Internal-API-Key required) |
 | `/webhooks` | `webhooks.py`, `gmail_webhook.py`, etc. | Stripe, Gmail, Drive, Railway webhooks |
-| `/api/v1/search` | `search.py` | Listing search (Qdrant-backed) |
+| `/api/v1/search` | `search.py` | Public listing search (PostgreSQL lexical ranking plus Qdrant semantic ranking) |
 | `/api/v1/mcp` | `mcp.py`, `mcp_server.py` | MCP protocol endpoints |
 
 ## Seller capability enforcement & dashboard access
@@ -142,6 +142,19 @@ T-2026-000240 centralized all active consumers on this contract; it did not chan
 
 Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cleanup, briefing generation, Gmail watch renewal, deploy monitoring.
 
+## Public listing search relevance
+
+`GET /api/v1/search` combines PostgreSQL lexical ranking with Qdrant semantic ranking. PostgreSQL remains the source of truth for listing publication state and searchable listing fields; Qdrant is a derived semantic index. Do not diagnose a relevant-listing miss as a Qdrant-only failure.
+
+When a published listing is absent for a customer query:
+
+1. Confirm the listing is public and inspect its title, description, category, and tags in PostgreSQL. Reproduce the exact customer query against the live public endpoint and retain a nonsense-query zero-result control.
+2. Check the PostgreSQL lexical rank and the Qdrant semantic result separately. Preserve the global `SEARCH_SCORE_THRESHOLD` unless the ticket explicitly proves that the threshold itself is wrong.
+3. If the miss is a narrow vocabulary mismatch, add only ticket-grounded, bounded lexical synonyms in `app/services/listing_search_service.py`. Keep the original query for exact-title and trigram scoring; apply expansion only to the PostgreSQL full-text query. Do not add schema changes or mutate production listing data to repair ranking.
+4. Run the focused listing-search service tests, deploy the exact merge commit, re-run both customer queries and the nonsense control, then verify the anonymous production journey using `e2e-browser-runner.md` E-01. Preserve the existing Browse-all fallback.
+
+**T-2026-000697 proof (2026-08-24):** backend merge `674a9052a145ba76b9d47b5022d367019497d8c6`, Railway deployment `8465c33b-3eb6-4a94-babb-bc42cc1d45d4`, and anonymous E2E run `run-20260824T173157Z-3f57b11d`. Both `traffic` and `urban traffic incidents with coordinates` visibly returned `New York City Vehicle Collisions`; the nonsense control returned zero. The global threshold and Browse-all fallback were unchanged.
+
 ## Troubleshooting
 
 | Problem | Diagnosis | Fix |
@@ -150,7 +163,8 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 | Migration failure on deploy | Railway build log shows Alembic error | Make migration idempotent, redeploy |
 | Redis connection errors | Check `REDIS_URL` in Infisical | Verify Railway Redis service is running |
 | Agent health endpoint 401 | Missing `X-Internal-API-Key` header | Check ops dashboard API config matches `INTERNAL_API_KEY` |
-| Qdrant search failures | Check Qdrant service in Railway | Verify `QDRANT_URL` and collection exists |
+| Public search misses a relevant published listing | Reproduce the exact query and a nonsense control; inspect PostgreSQL lexical rank and Qdrant semantic output separately | Follow **Public listing search relevance** above; preserve the global threshold and use bounded lexical synonyms only for a verified vocabulary mismatch |
+| Qdrant search failures | Check Qdrant service in Railway | Verify `QDRANT_URL` and collection exists; remember PostgreSQL lexical ranking is an independent search path |
 | Stripe webhook failures | Check webhook signing secret | Verify `STRIPE_WEBHOOK_SECRET` in Infisical |
 | Customer sees `/login?error=oauth_failed` after Google/GitHub consent | Sign-up path failure — check `app/auth/oauth.py:408` `ensure_user_crm_identity` is NOT raising and rolling back the auth transaction | See `auth-signup-flow.md` for full architecture, known issues, diagnostic procedure, and backfill |
 
