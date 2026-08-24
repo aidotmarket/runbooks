@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 167402a5d66aa357e9d63d119862b6bc15b09010
+  inventory_sha: 4a3b3f940ba80b41b5f766333e67edd65265ebd7
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 112
-    source_documents: 108
+    operational_documents: 113
+    source_documents: 109
     active: 26
-    grandfathered: 82
+    grandfathered: 83
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -200,7 +200,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: allai-agents.md
-    git_blob_oid: 601b8953522011ec50a1fe9adc0b82b3ecad5abf
+    git_blob_oid: 3127aab8f9f525bad8fc38a90479db6d4e53a345
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -381,7 +381,7 @@ documents:
       - MP dispatch corpus fire counts
     independent_review_required: true
   - path: cc-machine-identity.md
-    git_blob_oid: b29607651f6e937bb9d829bd8128b08cad3de656
+    git_blob_oid: 1423bdcfb247a79b93fdbbf2c77d5dcdecafa2f4
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -887,7 +887,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: fec40e0c3d4da87f054eafd483c42cd4a489e834
+    git_blob_oid: c676dd3a7f4e570e0b28cc784f95065d92410a2c
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1036,7 +1036,7 @@ documents:
       - tests/test_reload_build_guard.sh 18/18
     independent_review_required: false
   - path: runbooks/agent-completeness.md
-    git_blob_oid: 584c3d8f1f6d130023aeea2aa071179d12013ad4
+    git_blob_oid: 9cca09055f4c57a821fce6b035b757e001ab8e5b
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1099,6 +1099,20 @@ documents:
       - deployed exact SHA and health
       - linked cache write/read pair
       - current Anthropic cache contract
+    independent_review_required: true
+  - path: runbooks/chrome-browser-use.md
+    git_blob_oid: fdf0b111557ee6b78ce186dbd416da4125e29a3a
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: host-network-tooling
+    risk: P0
+    target_paths:
+      - runbooks/chrome-browser-use.md
+    evidence: []
+    verify_against:
+      - installed Chrome plugin and app-server protocol
+      - fresh Desktop lifecycle and authorized operator DOM proof
     independent_review_required: true
   - path: runbooks/lifecycle-emails.md
     git_blob_oid: 1039cd2c7f9fdffdeea8558f35595536d890f3ed
@@ -1184,7 +1198,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/corpus-capture-policy.md
-    git_blob_oid: 8004d24fe47934d3df62622890a7adfac5a07ed5
+    git_blob_oid: cc1a33dfb64a00a6dfc932f2343fc1d9d264967d
     catalog_state: active
     status: active
     proposed_disposition: retain_active
