@@ -115,6 +115,12 @@ Until `BQ-RAILWAY-INFISICAL-SYNC` lands (tracked; ticket `T-2026-000048`), steps
 
 What each key is: `STRIPE_SECRET_KEY` (sk_live, backend, full account access — the sensitive one); `STRIPE_PUBLISHABLE_KEY` (pk_live, public; currently NOT wired into the frontend, so rotating it cannot break the site); `STRIPE_WEBHOOK_SECRET` (whsec, verifies inbound webhooks — NOT an API key, separate rotation, unaffected by an API-key roll); `STRIPE_TEST_*` are sandbox-only (ignore for live work).
 
+### Stripe SANDBOX/test-mode keys — where they actually live (S1604)
+
+`STRIPE_TEST_SECRET_KEY`, `STRIPE_TEST_PUBLISHABLE_KEY`, `STRIPE_TEST_WEBHOOK_SECRET` live in the **`prod` environment** alongside the live keys (Railway `production` env of `ai-market-backend`; Infisical `prod`). They are the synthetic-actor keys: `app/core/stripe_async.py:29-40` selects them for `synthetic_actor=True` operations and refuses any key not starting `sk_test_`. Read them with:
+`railway variables -e production -s ai-market-backend --kv | grep STRIPE_TEST` (never echo full values into logs or chat).
+Do NOT hunt for them in the Infisical `staging` env: an S1603 handoff note claimed they were there, but the prod service token is env-scoped and returns 403 on `staging` (fail-closed, by design: `INFISICAL_ALLOWED_ENVS=['prod']`), the Infisical CLI has no persistent login on this host, and the working copies are the prod-env ones above. Local repo `.env.test` holds placeholders only (`sk_test_xxx`), not real keys.
+
 On a Stripe-flagged compromise of the secret key:
 1. Stripe -> Developers -> API keys -> **Roll** the secret key with a short grace window (do NOT pick "now" until the new key is deployed, or the live backend errors). Optionally roll the publishable key too (hygiene; harmless, it's unused client-side). Copy the new value(s); never paste into chat.
 2. Save the new value(s) in Infisical `prod` (`STRIPE_SECRET_KEY`, and `STRIPE_PUBLISHABLE_KEY` if rolled).
