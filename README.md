@@ -19,7 +19,7 @@ discovery evidence, never operating authority.
 
 | Runbook ID | Domain | Path | Authoritative topics and sections | Owner | Last verified |
 |---|---|---|---|---|---|
-| `agent-completeness` | `boot-kernel` | [`runbooks/agent-completeness.md`](runbooks/agent-completeness.md) | `agent-completeness` → [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) | vulcan | 2026-08-12 |
+| `agent-completeness` | `boot-kernel` | [`runbooks/agent-completeness.md`](runbooks/agent-completeness.md) | `agent-completeness` → [§C\. Architecture & Interactions](runbooks/agent-completeness.md#c-architecture-interactions) | vulcan | 2026-08-24 |
 | `agent-dispatch` | `council-operations` | [`runbooks/agent-dispatch.md`](runbooks/agent-dispatch.md) | `agent-dispatch` → [§C\. Architecture & Interactions](runbooks/agent-dispatch.md#c-architecture-interactions) | vulcan | 2026-08-12 |
 | `aging-policy` | `boot-kernel` | [`runbooks/aging-policy.md`](runbooks/aging-policy.md) | `aging-policy` → [§C\. Architecture & Interactions](runbooks/aging-policy.md#c-architecture-interactions) | vulcan | 2026-07-17 |
 | `branch-landed-verification` | `build-queue` | [`runbooks/branch-landed-verification.md`](runbooks/branch-landed-verification.md) | `branch-landed-verification` → [§C\. Architecture & Interactions](runbooks/branch-landed-verification.md#c-architecture-interactions) | mars | 2026-07-27 |
