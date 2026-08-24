@@ -156,6 +156,25 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
       cause: fail-closed delivery boundary regression; stop and treat as a security incident
   next_step_success: retain the run id, exact deployment ids, and read-only database counts in the affected backend/frontend runbooks and ticket completion evidence
   next_step_failure: keep the ticket open; inspect the backend decision/audit/event ordering and the frontend persistent authenticated alert without weakening mediation
+- id: E-05
+  trigger: Authoring or reviewing a production charter that asks a synthetic account to create and publish a marketplace listing
+  pre_conditions:
+    - check the §B capability matrix before enqueueing; Phase 3 seller publication must be SHIPPED, not PLANNED
+    - use a seller-purpose synthetic fixture whose exact account id is explicitly authorized by production preflight; buyer-01 is the read-only buyer fixture and must not be repurposed as a seller
+    - confirm the customer surface actually implements the chartered creation path; the dashboard Listings page is currently a management view for listings published through AIM Data and vectorAIz, not a direct creation surface
+  tool_or_endpoint: "review the charter against §B, the production frontend Listings contract, and E-02 before enqueueing"
+  argument_sourcing:
+    account_id: an explicitly authorized seller-purpose is_test fixture, never buyer-01 and never a real customer
+    workflow_status: the §B capability matrix plus current production code/deployment identity
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: while Phase 3 remains PLANNED, the unsupported charter is rejected as harness_error/configuration error before a product finding is created
+    verification: no browser mutation occurs, no seller/security/payment state changes, and no product support ticket is filed
+  expected_failures:
+    - signature: buyer-01 reaches Listings, sees no create control or incomplete seller onboarding, and the run reports a product blocker
+      cause: the charter demanded an unshipped seller workflow from the buyer-only fixture; this is a harness authoring/classification error (§F-12), not evidence of a product regression
+  next_step_success: rewrite the charter to use a shipped buyer/read-only journey, or defer it until Phase 3 and an explicitly authorized seller fixture exist
+  next_step_failure: do not widen E2E_RESET_ALLOWED_ACCOUNT_IDS, modify account/security state, complete 2FA, or enter Stripe payout details merely to force the charter through; those are separately governed changes
 ```
 
 **T-2026-000698 production proof (2026-08-24):** `run-20260824T183519Z-9f8666bb` passed `mediation-contact-leak-probe` with no findings and no manual intervention. The plain and word-separated fake phone attempts both left **Submitting...** and visibly returned `Message held for review. Please revise.` Read-only PostgreSQL corroboration found two held audit rows (retry count 3 each) and zero new inquiries. Backend deployment `bce826e7-25f4-40a9-8b1a-513fbbfdfa75` and frontend deployment `4ea6a792-b13f-4715-bdd9-5a6ef702dc05` were both SUCCESS at their exact reviewed merge commits before the run.
@@ -175,6 +194,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 | F-09 | Preflight returns 403 `not_allowlisted` for a genuine `is_test` pool account | Preflight consults `E2E_RESET_ALLOWED_ACCOUNT_IDS`. Being an `is_test` pool account is necessary but NOT sufficient — the id must also be on that allowlist | read the variable on the production backend service; compare with the charter's declared account ids | §G-09 | CONFIRMED |
 | F-10 | Preflight passes, then the browser cannot sign in as the synthetic account | RESOLVED for ALL TEN pool accounts (buyer-01..05, seller-01..05). buyer-01 enabled S1202; the remaining nine enabled S1293 (BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292, Gate-1 unanimous + Max GO). Every pool row now carries a real `password_hash` and signs in through the customer login endpoint (all ten verified live, HTTP 200; queued S1292, executed S1293). NOTE: login is pool-wide, but preflight still allowlists buyer-01 only (`E2E_RESET_ALLOWED_ACCOUNT_IDS`) — the other nine need their id added to preflight before a Phase 2+ browser opens (§B, §E-02). | query the production `users` row: every pool account shows a non-NULL `password_hash` and `auth_methods` containing `password` | §G-10 | CONFIRMED |
 | F-11 | A real seller's `view_count` (or featured impressions) climbs on nights the harness ran, or a synthetic buyer's browsing shows up in a real seller's numbers | The harness is not identifying itself. The backend suppresses counter/telemetry writes only when the ACTOR is synthetic — `is_test` on the authenticated user, or the `ai-market-e2e-harness` token in the User-Agent for the anonymous walk. A browser context launched without that UA is indistinguishable from a customer. This was live damage from S1196 to S1202 | `curl -s -X POST "$E2E_PROD_BACKEND_URL/featured-listings/impressions" -H 'Content-Type: application/json' -H 'User-Agent: Mozilla/5.0 ai-market-e2e-harness/0.1' -d '{"listing_id":"<id>","locale":"en","slot":0}'` — expect `{"recorded":false}`. Then GET a published listing twice with that UA and confirm `view_count` does not move | §G-11 | CONFIRMED |
+| F-12 | A seller-publication charter uses buyer-01, finds no create control or seller readiness, and files a product ticket | The charter asks the buyer-only fixture to perform the unshipped Phase 3 seller journey. The dashboard Listings page is a management surface for AIM Data/vectorAIz publications, not direct creation. | Confirm Phase 3 is still PLANNED in §B; confirm the charter account is buyer-01; inspect the deployed Listings contract for the AIM Data/vectorAIz management-only empty state | §G-12 | CONFIRMED |
 
 ## §G. Repair
 
@@ -267,6 +287,14 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   change_pattern: only outcome status failed creates a Finding; harness_error writes a report and stops. Restore that condition if it drifts
   rollback_procedure: n/a
   integrity_check: force a redaction failure; a report is written and no ticket is filed
+- id: G-12
+  symptom_ref: F-12
+  component_ref: Failure classification
+  root_cause: an unsupported seller-publication goal was assigned to the buyer-only fixture and its expected refusal was labelled as a product failure
+  repair_entry_point: the charter definition and run classification
+  change_pattern: 'while Phase 3 is PLANNED, reject seller-publication charters as harness_error/configuration error before browser mutation and before finding creation. Do not repurpose buyer-01. When Phase 3 ships, use only an explicitly authorized seller-purpose is_test fixture and the shipped creation path'
+  rollback_procedure: n/a - removing this guard recreates false product incidents and pressures operators to bypass account and payment controls
+  integrity_check: 'a seller-publication charter targeting buyer-01 is refused without a product ticket; the existing buyer read-only journey remains eligible'
 ```
 
 ## §H. Evolve
@@ -279,6 +307,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - **Nothing is persisted that has not actually been redacted.** A format the redactor cannot scan is WITHHELD, never passed through and labelled redacted.
 - **Credentials never enter an artifact.** No password, session cookie, Authorization header, or customer-data response body may reach a report, transcript, trace or ticket. Since S1202 the harness signs in as buyer-01 with a real credential, so this invariant is now load-bearing in practice: the credential is fetched at runtime, is never placed in the Chromium process environment, and tracing does not start until the login window has closed and the value has been cleared. A run that starts tracing before login is a defect, not a preference.
 - **A harness problem is never a product ticket.** Only a product failure files a ticket.
+- **A charter may request only a shipped workflow from a role-appropriate fixture.** While Phase 3 seller publication is PLANNED, seller-creation goals are harness configuration errors. buyer-01 remains the read-only buyer fixture; the dashboard Listings page manages AIM Data/vectorAIz publications and is not evidence that direct creation should exist.
 - **The browser never presses pay on production** while `E2E_PAYMENT_ISOLATION_VERIFIED` is unset. That flag is set only once the Stripe sandbox order router (`build:bq-stripe-sandbox-order-router-s1196`, money path, unanimous Council plus Max GO) is live and verified.
 - **A mutating journey tags and manifests every row it creates** (Max Ruling 1, S1194), so a future reset has an exact target list rather than a re-derivation guess.
 
@@ -338,7 +367,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: 'a browser_journey charter with params mode agentic, anonymous true, requires_mutation false, start_url frontend, and no account ids; then e2e-harness run'
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-02
     type: operate
     refs: [E-01]
@@ -346,7 +375,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: the redacted step transcript and the redacted trace zip; screenshots are still withheld by policy
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-03
     type: operate
     refs: [E-02]
@@ -354,7 +383,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: declared is_test pool account ids, E2E_PROD_TARGETING_ENABLED set, and per-account preflight returning allowed=true; the anonymous exemption must NOT be used
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-04
     type: isolate
     refs: [F-01]
@@ -362,7 +391,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: no - it is the designed fail-closed behaviour; set the config, never add a hardcoded host back
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-05
     type: isolate
     refs: [F-04]
@@ -370,7 +399,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: as of S1197 the trace IS persisted, redacted, by `redact_zip`. If it is missing, do NOT reach for `redact_artifact`'s text path - find out why redaction raised, because a raise means the run was classified harness_error and nothing was persisted, which is the intended fail-closed behaviour
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-06
     type: isolate
     refs: [F-06]
@@ -378,7 +407,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: that is an abuse of the exemption and a BREAKING change in effect - a mutating journey must take the full production guard
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-07
     type: repair
     refs: [G-05]
@@ -386,7 +415,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: run playwright install chromium in the harness virtualenv and keep the step documented in the harness README
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-08
     type: repair
     refs: [G-07]
@@ -394,7 +423,7 @@ scenario_set:
     expected_answers:
       - kind: human_action
         action: restore the classification rule - only outcome status failed creates a Finding; harness_error writes a report and files nothing
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-09
     type: evolve
     refs: [§H.2]
@@ -402,7 +431,7 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: BREAKING
-    weight: 0.1
+    weight: 0.0909090909
   - id: I-10
     type: evolve
     refs: [§H.3]
@@ -410,7 +439,18 @@ scenario_set:
     expected_answers:
       - kind: classification
         verdict: REVIEW
-    weight: 0.1
+    weight: 0.0909090909
+  - id: I-11
+    type: isolate
+    refs: [E-05, F-12, G-12]
+    scenario: A seller-publication charter uses buyer-01 and reports a product blocker because Listings has no create control while Phase 3 is still PLANNED. Assessment?
+    expected_answers:
+      - kind: human_action
+        verb: classify
+        object: unsupported seller-publication charter
+        target: harness_error without product-ticket creation
+        action: classify it as a harness authoring/configuration error and file no product ticket; do not widen the allowlist, repurpose buyer-01, modify seller security state, or enter payout details to force an unshipped journey through
+    weight: 0.090909091
 ```
 
 ## §J. Lifecycle
