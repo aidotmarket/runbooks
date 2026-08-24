@@ -1291,11 +1291,12 @@ documents:
     target_paths:
       - runbooks/durable-runtime-state.md
     evidence:
-      - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:koskadeux_mcp/durable_state_cutover.py
-        finding: Previously reviewed candidate for the receipt-bound five-record controller; Gate 3 defects
-          remain to be corrected and re-reviewed.
-      - ref: git:aidotmarket/koskadeux-mcp@7f5b1feb3b31b522fd794ccbd60cfb05381bc13d:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
-        finding: Approved Gate 2 documentation contract for the separately pinned runbooks candidate.
+      - ref: git:aidotmarket/koskadeux-mcp@01394c3308ae9bf1ee6068bbaaa6cdda62e43218:koskadeux_mcp/durable_state_cutover.py
+        finding: Exact Gate 3 R2 candidate for the receipt-bound five-record controller and same-process
+          live acceptance boundary; independent exact-artifact review remains required.
+      - ref: git:aidotmarket/koskadeux-mcp@01394c3308ae9bf1ee6068bbaaa6cdda62e43218:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
+        finding: Gate 2 contract updated at the exact R2 candidate for idempotent crash resume, safe
+          RunAtLoad prefixes, guarded rollback, dirty-tree refusal, and reviewed-live acceptance.
     verify_against:
       - exact code and Gate specs
       - isolated tests and Council

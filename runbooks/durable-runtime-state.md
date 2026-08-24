@@ -8,7 +8,7 @@ error_signatures: []
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-19
+last_verified_at: 2026-08-24
 system_name: durable-runtime-state
 purpose_sentence: Discovery-only candidate for the reviewed S1456 five-record durable runtime-state path, migration, cutover, resume, acceptance, and lossless rollback contracts.
 owner_agent: vulcan
@@ -24,13 +24,13 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the candidate implemented at exact `koskadeux-mcp` SHA
-`7f5b1feb3b31b522fd794ccbd60cfb05381bc13d`. The locked Gate 1 design is
+`01394c3308ae9bf1ee6068bbaaa6cdda62e43218`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in the reviewed code
 candidate. The runbooks candidate starts from published runbooks main
-`396657dd54f2d7f7ff13db1209070e74eeecb6d1` on branch
-`build/bq-durable-state-relocation-s1456-runbooks-s1572`.
+`612eac36bfbbc5d9b2b607853b946677ad37d69a` on branch
+`docs/bq-durable-state-relocation-s1456-s1605`.
 
 Candidate tests and this page do not prove a live cutover. Do not use this page
 to install, unload, bootstrap, kickstart, migrate, publish, or write either live
@@ -48,7 +48,7 @@ transcript or receipt.
 | Strict restart-history durability | PLANNED | `admin.py` | malformed/symlink/read/write/fsync and 503/no-exit tests | 2026-08-19 |
 | Sanitized inventory and copy-first migration | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | CLI and isolated migration tests | 2026-08-19 |
 | Receipt-bound macOS cutover and rollback | PLANNED | `koskadeux_mcp/durable_state_macos.py` | simulated launchd/crash/cutover/rollback tests | 2026-08-19 |
-| Finite 16-point soak | PLANNED | `scripts/runtime_state_soak.py` | injected clock/scheduler tests; no 15-minute unit sleep | 2026-08-19 |
+| Finite 16-point soak and same-process acceptance | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | injected private clock/scheduler tests; no 15-minute unit sleep | 2026-08-24 |
 
 ## §C. Architecture & Interactions
 
@@ -58,7 +58,7 @@ transcript or receipt.
 | Admin restart history | `admin.py` | durable `restart_count.json` | drain/restart and `/admin/status` | Strict schema, atomic write, sanitized fail-closed errors. |
 | Transaction controller | `scripts/durable_runtime_state.py` | `cutovers/s1456` receipts | independent Gate 4 process | Inventory/status read-only; mutations reviewed-live gated. |
 | macOS adapter | `koskadeux_mcp/durable_state_macos.py` | staged and installed definitions plus sanitized evidence | Git, launchd, local health | Candidate implementation; no live action in this build. |
-| Soak harness | `scripts/runtime_state_soak.py` | `s1456.soak.v1` result | injected checks and clocks | Sixteen finite checkpoints; live time only after authorization. |
+| Soak and acceptance | `koskadeux_mcp/durable_state_cutover.py`, `scripts/durable_runtime_state.py accept` | `s1456.soak.v1` result and terminal receipt | production adapter plus private injected test seam | Sixteen finite checkpoints run in the accepting process; live time only after authorization. |
 
 ### §C.1 Five-record disposition
 
@@ -145,7 +145,7 @@ The count records a restart attempt before exit, not proof of relaunch.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Independent Gate 4 controller | inventory/status; reviewed migration/cutover/resume/rollback | `scripts/durable_runtime_state.py` | separate exact-artifact live authority | PLANNED |
+| Independent Gate 4 controller | inventory/status; reviewed migration/cutover/resume/rollback/accept | `scripts/durable_runtime_state.py` | separate exact-artifact live authority | PLANNED |
 | MCP handler | CC records, alias counters, restart history | shared Python resolver | process service identity | PLANNED |
 | Probe | retry cache plus same-SHA refresh writer | `scripts/mcp_probe.py` | launchd service identity | PLANNED |
 | Reloader | CC liveness, marker and request reader/remover | `scripts/reload_when_idle.sh` | launchd service identity | PLANNED |
@@ -175,6 +175,7 @@ selects `inventory`, so `--candidate-sha <B>` alone is read-only inventory.
 | `resume` | `resume <reviewed-live-inputs>` | Selects only the uniquely verified ACTIVE transaction, re-proves evidence, and continues forward or rollback from the last proven boundary. |
 | active rollback | `rollback --reason <safe-code> <reviewed-live-inputs>` | Rolls back only the verified ACTIVE nonterminal forward transaction. Reason permits letters, digits, underscore, dot and hyphen. |
 | accepted rollback | `rollback --reason <safe-code> --from-accepted <forward-id> <reviewed-live-inputs>` | With no ACTIVE transaction, creates a new rollback transaction linked to one immutable terminal accepted forward receipt. |
+| `accept` | `accept --transaction-id <forward-id> --cc-smoke-task-id <task-id> <reviewed-live-inputs>` | Runs the production 16-point/900-second checker itself and transitions only that exact ACTIVE transaction. It accepts no caller-supplied soak mapping or clock/checker injection. |
 
 `<reviewed-live-inputs>` means all five flags below on every mutating command:
 
@@ -285,6 +286,12 @@ in the persistent auto-load domain and only MCP may be bootstrapped from the
 staged definition. Candidate exact SHA, new process generation, health and
 handlers are proved before marker B is atomically sealed.
 
+If launchd completed the staged MCP bootstrap but the process crashed before
+`candidate_started` (or rollback `prior_started`) was checkpointed, resume
+accepts only the exact staged path and definition with the expected SHA,
+handlers, health, PID and generation. It returns that generation without a
+second bootstrap; any other loaded state is refused.
+
 After marker seal, persistent installs are locked to MCP, probe, reloader:
 
 | Persistent definition prefix | Safe reboot/login behavior |
@@ -294,7 +301,10 @@ After marker seal, persistent installs are locked to MCP, probe, reloader:
 | MCP + probe | Probe may write only a B-bound request; no reloader exists to consume it. |
 | MCP + probe + reloader | All three exact definitions share the durable root and reviewed B. |
 
-Resume rechecks installed hashes and completes only the missing suffix. Probe
+Resume derives permitted RunAtLoad actor state from the exact verified prefix,
+rechecks installed hashes, and completes only the missing suffix. An exact
+probe or reloader may already have run only when its definition is in that
+prefix; a B-bound request remains the receipt-bound rollback trigger. Probe
 is bootstrapped only after all definitions are installed. Immediately before
 reloader bootstrap: no request; zero live/indeterminate CC task; shared-root
 parity; unchanged MCP generation; and B agreement across marker, main and
@@ -304,7 +314,10 @@ controller or RunAtLoad evaluation occurs before any fetch or fast-forward and
 must be `already_deployed_no_refresh`, with zero fetch, fast-forward, marker
 write, request removal, or kickstart calls and no second MCP generation. The
 controller rechecks local and remote `origin/main`, marker, request absence, and
-generation before removing that guard. Drift or a B request in the
+generation before removing that guard. An uncontrolled result preserves the B
+guard. After fencing the reloader, rollback may atomically replace only that
+exact source-transaction B guard with the exact A guard; a foreign guard is
+refused. Drift or a B request in the
 post-seal/pre-first-tick window triggers receipt-bound rollback; the request is
 quarantined rather than consumed as a normal tick.
 
@@ -325,12 +338,15 @@ writer.
 Before publication, prove exact current code/runbooks main and reviewed SHAs,
 deployed A, clean trees, gateway/MCP/handlers, peer clearance, CC quiescence,
 no request, and marker/plist/old-root preimage. Then: sanitized inventory;
-stage/fence; migrate and verify; publish B; bootstrap staged MCP only; prove
+stage/fence; migrate and verify; re-prove the live repository clean immediately
+before any reset; publish B; bootstrap staged MCP only; prove
 generation/SHA/health/handlers; seal marker B; install all three persistent
 definitions; start probe then reloader with the no-op first tick.
 
-Acceptance additionally proves a CC read-only smoke creates and polls its
-metadata/result/done only under the durable root; reloader liveness uses the
+Acceptance takes only the identifier of an already-completed CC read-only smoke;
+it does not dispatch CC. At every check it proves and polls the task's successful
+metadata/result/done regular files directly under the durable `cc_tasks` root;
+reloader liveness uses the
 same root; marker agrees with both publishers; probe/reloader request paths
 agree without creating a live test request; live alias and restart consumers
 resolve the durable paths; and old-root hashes remain unchanged.
@@ -355,9 +371,11 @@ immediate rollback trigger. Terminal acceptance requires the exact
 finite and internally consistent monotonic aggregates, sequential checks,
 on-time boundaries, all required boolean/SHA results, and exact unchanged
 old-root hashes; extra, missing, malformed, or caller-simplified rows are
-rejected. Only a complete soak plus a terminal `accepted` receipt passes. Unit
-tests inject time and never sleep 15 minutes; only a separately authorized live
-action may run real time.
+rejected. Only the reviewed public API/CLI may run the production checker and
+real monotonic scheduler and transition the exact ACTIVE transaction in the same
+process. The strict receipt validator is defense-in-depth after that harness
+completes. Unit tests inject time only through a private model seam and never
+sleep 15 minutes; only a separately authorized live action may run real time.
 
 ### §E.6 Active and accepted rollback reconciliation
 
@@ -367,6 +385,10 @@ forward receipt plus matching terminal pointer archive, marker B, and no later
 consumer. It creates a new linked rollback receipt pinning the source receipt
 hash, A/B SHAs, accepted snapshot hashes, reason, source generation, and
 `rollback_of`; the accepted forward receipt remains immutable.
+
+An operator-requested active rollback before forward `definitions_staged` is
+refused with stable `rollback_before_definitions_staged` before preflight,
+checkpoint, or mutation; resume remains the safe path while A is still installed.
 
 Rollback phases are:
 
@@ -563,8 +585,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 43ee3b610101b63ad21aba11ea7f71839720c094
-last_refresh_date: 2026-08-24T00:00:00Z
+last_refresh_commit: 01394c3308ae9bf1ee6068bbaaa6cdda62e43218
+last_refresh_date: 2026-08-24T22:27:38Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -574,9 +596,9 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`43ee3b610101b63ad21aba11ea7f71839720c094`; locked Gate 1 SHA
+`01394c3308ae9bf1ee6068bbaaa6cdda62e43218`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
-worktree; runbooks base `396657dd54f2d7f7ff13db1209070e74eeecb6d1`;
+worktree; runbooks base `612eac36bfbbc5d9b2b607853b946677ad37d69a`;
 and a no-live-touch build boundary. The final documentation head, generated
 counts, ACTIVE equality, tests, drift, and push result belong in the external
 candidate report because a document cannot truthfully self-pin its own commit.
