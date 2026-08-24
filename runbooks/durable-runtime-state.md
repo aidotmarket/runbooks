@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the candidate implemented at exact `koskadeux-mcp` SHA
-`01394c3308ae9bf1ee6068bbaaa6cdda62e43218`. The locked Gate 1 design is
+`7b0df37815a084fb7b808980c2359b022b76d26a`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in the reviewed code
@@ -317,9 +317,18 @@ controller rechecks local and remote `origin/main`, marker, request absence, and
 generation before removing that guard. An uncontrolled result preserves the B
 guard. After fencing the reloader, rollback may atomically replace only that
 exact source-transaction B guard with the exact A guard; a foreign guard is
-refused. Drift or a B request in the
+refused. Rollback remains nonterminal and the reloader remains fenced until
+both the local tracking ref and live remote `origin/main` publish A; only then
+may the A guard and ordinary watcher be armed. This prevents a restored A tree
+from being fast-forwarded back to B. Drift or a B request in the
 post-seal/pre-first-tick window triggers receipt-bound rollback; the request is
 quarantined rather than consumed as a normal tick.
+
+Launchd proof reads only one-tab, top-level service fields and ignores nested
+coalition `state = active` rows. Both `state = running` and the normal
+`state = not running` service form are valid only when all remaining top-level
+fields are well formed. Missing, malformed, or contradictory first-tick
+evidence enters the same receipt-bound rollback path.
 
 Crash injection covers immediately before and after every file move, receipt
 replace, marker replace, persistent plist install, and launchd action. Resume
@@ -409,7 +418,9 @@ old request paths remain absent. Only its hash/disposition is recorded.
 
 After reconciled old-root proof, publish and bootstrap staged prior MCP A,
 prove new generation/SHA/health/handlers, then seal marker A. Reinstall exact A
-definitions only after that proof; bootstrap probe then reloader. If a new
+definitions only after that proof. Bootstrap probe then reloader only after
+both local and live remote `origin/main` publish A; until then the rollback is
+nonterminal and the reloader is fenced. If a new
 refresh intent is still required, create a new A-bound request and verify its
 normal consumption; never reuse the B request. Any conflicting old-root write,
 missing/changed source receipt, marker drift, duplicate consumer, ambiguous
@@ -585,8 +596,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 01394c3308ae9bf1ee6068bbaaa6cdda62e43218
-last_refresh_date: 2026-08-24T22:27:38Z
+last_refresh_commit: 7b0df37815a084fb7b808980c2359b022b76d26a
+last_refresh_date: 2026-08-24T23:09:57Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -596,7 +607,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`01394c3308ae9bf1ee6068bbaaa6cdda62e43218`; locked Gate 1 SHA
+`7b0df37815a084fb7b808980c2359b022b76d26a`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `612eac36bfbbc5d9b2b607853b946677ad37d69a`;
 and a no-live-touch build boundary. The final documentation head, generated

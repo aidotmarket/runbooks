@@ -444,7 +444,7 @@ verified relaunch.
 The candidate controller is `scripts/durable_runtime_state.py`, not the
 retired `migrate_durable_state.py --execute` interface. `inventory
 --candidate-sha <sha>` and `status` are read-only. Every mutating `migrate`,
-`cutover`, `resume`, or `rollback` call refuses without `--reviewed-live`, exact
+`cutover`, `resume`, `rollback`, or `accept` call refuses without `--reviewed-live`, exact
 reviewed code/runbooks SHAs, and non-secret authorization/peer-clearance
 evidence IDs. The full candidate-only contract is the DRAFT discovery page
 `runbooks/durable-runtime-state.md`; neither page authorizes live use.
