@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: "2026-08-12"
+last_verified_at: "2026-08-24"
 system_name: agent-completeness
 purpose_sentence: This companion defines the endpoint, skill, health, manifest, and monitoring surfaces required before an agent can pass compliance review.
 owner_agent: vulcan
@@ -66,6 +66,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Queue and lease | `ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED=false` by default. Claim only owned P2/P3 work using database time and `FOR UPDATE SKIP LOCKED`; leases are 15 minutes and only the current unexpired token may finish. Provider adapters stay read-only and `/services` must report `execute_allowed=false` for every provider. |
 | Outcomes and verification | Outcomes are exactly `fixed`, `retryable`, or `human_required`. `fixed` requires a backend-observed newer successful run of the same GitHub workflow or a different newer healthy/successful Railway deployment. Cloudflare adapter/manual incidents cannot self-verify `fixed` in v1 and must finish `retryable` or `human_required` unless a separately reviewed verification source is added. A model run is complete only after the SDK records a completed `allai_remediator_request` call with `action=finish`; final prose is not completion. If the model exits without that call, the dispatcher uses the existing Railway-authenticated child to release the exact claim as `retryable` with reason `agent_completed_without_finish`. Telegram remains backend-owned and is sent only for deduplicated `human_required`; existing provider alerting remains authoritative. |
 | Needs-Max reporting (S1585) | `GET /api/v1/ops/needs-max` derives its data from `Incident` and append-only `IncidentAction` records; it never starts Codex or writes state. Since S1585 the seven-day Remediator report is no longer rendered on the queue page; the feed excludes incidents with any demotion action and tickets whose first-class assignee names a non-Max owner. `needs_attention` counts Remediator-owned escalated incidents that carry no demotion action. Each such escalation renders as a flagged needs-Max row on BUILD QUEUE and drives the red badge on the BUILD QUEUE nav item, title count, and red-dot favicon until it is resolved (incl. superseded) or demoted. Demoted incidents surface on the OPS Attention list via `GET /api/v1/ops/operator-attention`; an escalation leaving the feed with a demotion or supersession record is intended behaviour, not drift. Telegram remains the alert channel. |
+| Manual GitHub closeout (S1605) | A Needs-Max GitHub incident may be superseded only after an operator verifies the original workflow, branch, SHA, failed job and failure cause; a newer successful run of the same workflow and exact job on the same branch; the merged PR and merge identity; and, when runtime behaviour is affected, a successful production deployment containing the correction. A workflow whose current definition is `pull_request`-only has no `main` run by design: prove the trigger from current source and retain the successful pre-merge successor check instead of inventing a `main` requirement. Record the evidence through the existing incident supersede endpoint from a short-lived Railway production child that injects `INTERNAL_API_KEY`; never retrieve Infisical through a browser, print the key, or move it into the operator browser. Verify the append-only resolution actions by GET and then verify in authorized operator Chrome that the row and badge count changed. |
 
 ### Normative projection — CORE §3, Agent Completeness Contract
 
@@ -183,6 +184,16 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   next_step_success: Leave the report read-only and continue normal queue operation.
   next_step_failure: Apply G-05; do not add a reporting store, reporting queue, or reporting agent.
 ```
+
+### §E.1 Manual Needs-Max GitHub incident closeout
+
+Use this only for an escalated GitHub incident already visible in the Needs-Max projection; it does not replace the claim-first worker and does not make provider adapters writable.
+
+1. Read the incident and its append-only actions first. Freeze the original workflow run, repository, branch, SHA, failed job and failure text. If any identity is absent or ambiguous, leave the incident escalated.
+2. Verify a newer successful run of the same workflow and exact job on the same branch. Inspect the corrective diff, the merged PR and merge SHA. For a runtime-affecting correction, verify that the live production deployment is successful and its deployed source contains the correction.
+3. Read the workflow trigger from current source. If it is `pull_request`-only, the successful successor PR check is the gate proof; absence of a `main` run is expected and must not be described as a failed check.
+4. Resolve only through `POST /api/v1/observability/incidents/{incident_id}/supersede`, executed by a short-lived `railway run --service ai-market-backend --environment production --no-local` child using its injected `INTERNAL_API_KEY`. Do not open Infisical in a browser, perform an interactive Infisical login, print the key, or copy it into another process or browser.
+5. GET the incident and require `status=resolved`, `resolved_by=human:admin`, plus final `superseded` and `transitioned_to_resolved` actions containing the exact evidence. In authorized operator Chrome, confirm the incident row is gone and the Needs-Max badge decreased. API output alone is not the required rendered-page proof.
 
 ## §F. Isolate
 
@@ -304,9 +315,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1533
-last_refresh_commit: 2d7140878b28911e612b7e037d0d926a121ceb55
-last_refresh_date: 2026-08-13T16:57:07Z
+last_refresh_session: S1605
+last_refresh_commit: cdaeec975a587823d93a79a84cd72584cb939b8f
+last_refresh_date: 2026-08-24T16:58:19Z
 owner_agent: vulcan
 refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, filter policy, dispatcher, scoped transport, runner isolation, plugin, cadence, activation, or needs-Max reporting changes]
 scheduled_cadence: 30d
@@ -319,7 +330,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1533 / 2026-08-13T16:57:07Z
+last_lint_run: S1605 / 2026-08-24T16:58:19Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md

@@ -24,6 +24,8 @@ error_signatures:
     section: §F. Isolate
   - signature: Native host manifest does not exist
     section: §F. Isolate
+  - signature: "Browser is not available: chrome"
+    section: §F. Isolate
 supersedes: []
 superseded_by: []
 owner: vulcan
@@ -55,7 +57,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Extension installation and enablement diagnosis | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/check-extension-installed.js` | S1605 reported selected profile installed, registered, and enabled | 2026-08-24 |
 | Native-host manifest diagnosis | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/check-native-host-manifest.js` | S1605 reported manifest exists and is correct | 2026-08-24 |
 | Effective config and managed-requirements reads | SHIPPED | `/Applications/ChatGPT.app/Contents/Resources/codex` | S1605 app-server probe returned both reads successfully and requirements null | 2026-08-24 |
-| Extension-backed DOM control after transport recovery | PARTIAL | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs` | S1588 confirmed recovery; S1605 remains blocked until a fresh Desktop/app-server lifecycle proves DOM control | 2026-08-24 |
+| Extension-backed DOM control after transport recovery | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs` | S1588 confirmed reinstall recovery; S1605 confirmed operator-window recovery and live Build Queue DOM proof | 2026-08-24 |
 | Operator and synthetic-browser identity separation | SHIPPED | `titan-1.md` | Titan 1 inventory identifies kdbrowser as the isolated browser-test account | 2026-08-24 |
 
 ## §C. Architecture & Interactions
@@ -76,7 +78,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Operator-session agent | Run read-only transport diagnostics | Packaged Chrome diagnostic scripts with embedded Node | Local operator read-only | COMPLETE |
 | Human operator | Launch Chrome or install/reinstall and enable the extension | Chrome UI and Codex Desktop plugin UI | Local interactive user | COMPLETE |
 | Operator-session agent | Refresh a disconnected Chrome binding after human repair | `agent.browsers.get("chrome")` | Current operator Chrome session | COMPLETE |
-| Operator-session agent | Classify the managed-config bridge and prove recovery | app-server read interface plus `claimTab` and `playwright.domSnapshot` | Existing authorized operator tab | PARTIAL — fresh Codex Desktop/app-server lifecycle and DOM success remain unverified after S1605 |
+| Operator-session agent | Classify the managed-config bridge and prove recovery | app-server read interface plus `claimTab` and `playwright.domSnapshot` | Existing authorized operator tab or approved fresh operator-profile window | COMPLETE |
 | kdbrowser runner | Exercise isolated synthetic customer journeys | kd-browser runner | Public ai.market synthetic identity only | COMPLETE |
 
 ## §E. Operate
@@ -137,7 +139,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
     - A fresh Chrome browser binding is established only when the recovery path requires it.
   tool_or_endpoint: browser.user.openTabs, browser.user.claimTab, and tab.playwright.domSnapshot.
   argument_sourcing:
-    tab: Select the exact current object returned by openTabs whose URL and visible title match the existing authorized operator tab.
+    tab: Prefer the exact current object returned by openTabs whose URL and visible title match the existing authorized operator tab. If G-05 opened an approved fresh operator-profile window and only its about:blank tab is returned, claim that exact returned object and navigate once to the known ops URL.
     identity: Verify the signed-in identity from visible DOM state; do not infer it from cookies, storage, API output, or profile files.
   idempotency: IDEMPOTENT
   expected_success:
@@ -194,6 +196,7 @@ Apply this table from A through C. `openTabs` success takes precedence over a re
 | F-02 | B — Extension is not installed/enabled, or the native-host manifest is incorrect | Extension/profile registration fault or native transport fault | Run all E-01 diagnostics; classify here only when extension exit is 1/2 or manifest exit is 1 | G-02 | CONFIRMED |
 | F-03 | C — `browser.user.openTabs()` succeeds, but `claimTab` or `playwright.domSnapshot` fails with `The admin-enforced policy could not be verified` | Browser service/config bridge is stale or unavailable; this is not a transport diagnosis | Confirm every E-01 transport check passes, then run E-02. If direct config and requirements reads succeed while the Browser call still fails, keep this classification | G-03 | CONFIRMED |
 | F-04 | Direct `config/read` or `configRequirements/read` fails | Embedded app-server/config source is unavailable or returned a protocol error | Preserve only the filtered E-02 error and Desktop version; do not dump config | G-04 | HYPOTHESIZED |
+| F-05 | `agent.browsers.get("chrome")` reports `Browser is not available: chrome`, while Chrome, extension and native-host diagnostics all pass | No live extension instance is answering the current Browser runtime even though installation state is healthy | Read the packaged `chrome-troubleshooting` guidance, wait two seconds and retry once. If it still fails, obtain operator approval for G-05; do not reinstall or restart unrelated services | G-05 | CONFIRMED |
 
 ## §G. Repair
 
@@ -233,6 +236,15 @@ Apply this table from A through C. `openTabs` success takes precedence over a re
   change_pattern: Fail closed, record the filtered error and exact app version, and require a fresh supported lifecycle before retry. Do not edit requirements, inject an allowlist, or bypass the read interface.
   rollback_procedure: No local change is authorized by this runbook.
   integrity_check: Both E-02 reads succeed before any E-03 attempt.
+
+- id: G-05
+  symptom_ref: F-05
+  component_ref: Operator Chrome
+  root_cause: The selected operator profile is healthy on disk, but the current Browser runtime cannot see an answering extension instance.
+  repair_entry_point: Packaged open-chrome-window.js for the normal operator profile, only after operator approval.
+  change_pattern: Run open-chrome-window.js --browser chrome once, wait two seconds, then retry agent.browsers.get("chrome") once. Name the recovered Browser session before tab work. Prefer an existing authorized ops tab; if the fresh window exposes only its exact about:blank tab, claim that returned object, navigate once to https://ops.ai.market/build-queue, and verify the visible operator identity before reading the queue. Do not use kdbrowser, Infisical, another browser family, or shell automation of page content.
+  rollback_procedure: Close only the blank operator-profile window opened for this recovery if it is no longer needed; do not change profile, extension, manifest, policy, or credentials.
+  integrity_check: Browser documentation loads, openTabs answers, and a claimed operator-profile tab returns a DOM snapshot from https://ops.ai.market/build-queue showing the expected signed-in operator identity.
 ```
 
 ### §G.1 Prohibited actions
@@ -266,7 +278,7 @@ Never:
 ### §H.3 REVIEW predicates
 
 - A packaged diagnostic filename, exit-code contract, embedded binary path, Browser API, managed-requirements schema, or supported lifecycle boundary changes.
-- A new failure shares these symptoms but does not fit F-01 through F-04.
+- A new failure shares these symptoms but does not fit F-01 through F-05.
 
 ### §H.4 SAFE predicates
 
@@ -301,10 +313,11 @@ Classify a proposed change at the highest-risk predicate it touches. Any ambigui
 scenario_set: []
 ```
 
-The dated incident notes below are evidence, not a claim that S1605 recovery has been completed.
+The dated incident notes below are evidence for the exact recovery boundaries.
 
 - S1588 prior confirmed transport recovery: a human reinstalled the extension, the session refreshed the Chrome binding with `agent.browsers.get("chrome")`, and DOM control then worked.
-- S1605 verification note, 2026-08-24: `browser.user.openTabs()` succeeded and exposed the authorized `https://ops.ai.market/build-queue` tab, but `claimTab`/`playwright.domSnapshot` failed closed with `The admin-enforced policy could not be verified`. Chrome was running; the extension was installed, registered, and enabled; and the native-host manifest was correct. Direct embedded app-server `config/read` and `configRequirements/read` succeeded, with requirements null. JavaScript-kernel reset, Browser-service rebuild, explicit Chrome reselection, and trusted-worker-only restart did not recover DOM access. No policy was changed or bypassed. A fresh Codex Desktop/app-server lifecycle and successful E-03 DOM proof remain unverified.
+- S1605 policy-failure note, 2026-08-24: `browser.user.openTabs()` first exposed the authorized `https://ops.ai.market/build-queue` tab, but `claimTab`/`playwright.domSnapshot` failed closed with `The admin-enforced policy could not be verified`. Chrome, extension and native-host diagnostics passed; direct embedded app-server config reads succeeded with requirements null. No policy was changed or bypassed.
+- S1605 completed recovery note, 2026-08-24: on a later disconnected binding, `agent.browsers.get("chrome")` reported Chrome unavailable while the same three diagnostics passed. The packaged troubleshooting path opened one approved normal operator-profile window. After two seconds, the exact Chrome selector connected, full Browser documentation loaded, the returned blank tab was claimed and navigated once to `https://ops.ai.market/build-queue`, and DOM proof showed `max@ai.market`, a connected page, and the expected live queue. This proves G-05 only; it does not convert F-03 policy failures into the same class.
 
 ## §J. Lifecycle
 
