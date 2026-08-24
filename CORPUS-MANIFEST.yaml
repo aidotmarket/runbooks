@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 92a4fa66b5e5d3fef3c8b73980cc60d3fe28053b
+  inventory_sha: 8739167f914c5fb2222c162792f4e189cbd5ef66
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1282,7 +1282,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/durable-runtime-state.md
-    git_blob_oid: 8986c862c2e0cc299ec1b83fe22665b27c2b1792
+    git_blob_oid: 3967146fa7e4db3f6c845ea15913d494c5695e2d
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1295,8 +1295,8 @@ documents:
         finding: Exact Gate 3 R2 candidate for the receipt-bound five-record controller and same-process
           live acceptance boundary; independent exact-artifact review remains required.
       - ref: git:aidotmarket/koskadeux-mcp@01394c3308ae9bf1ee6068bbaaa6cdda62e43218:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
-        finding: Gate 2 contract updated at the exact R2 candidate for idempotent crash resume, safe
-          RunAtLoad prefixes, guarded rollback, dirty-tree refusal, and reviewed-live acceptance.
+        finding: Gate 2 contract updated at the exact R2 candidate for idempotent crash resume, safe RunAtLoad
+          prefixes, guarded rollback, dirty-tree refusal, and reviewed-live acceptance.
     verify_against:
       - exact code and Gate specs
       - isolated tests and Council
