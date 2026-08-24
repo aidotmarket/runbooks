@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 4a3b3f940ba80b41b5f766333e67edd65265ebd7
+  inventory_sha: 211bb28441bd71bdcf16513ca83baaf44c71a928
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -761,7 +761,7 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: infisical-secrets.md
-    git_blob_oid: 07d075a2bbc65133f6becb4dde693c4e24719cb7
+    git_blob_oid: 0ebbed08c5771d2e92e3699e12fc4b60539465d5
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1036,7 +1036,7 @@ documents:
       - tests/test_reload_build_guard.sh 18/18
     independent_review_required: false
   - path: runbooks/agent-completeness.md
-    git_blob_oid: 9cca09055f4c57a821fce6b035b757e001ab8e5b
+    git_blob_oid: 436d52d8c8bd2e1fec774a88765d1a71f26bc150
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1101,7 +1101,7 @@ documents:
       - current Anthropic cache contract
     independent_review_required: true
   - path: runbooks/chrome-browser-use.md
-    git_blob_oid: fdf0b111557ee6b78ce186dbd416da4125e29a3a
+    git_blob_oid: d15e28900e01db883f71838bcaefc1d4f407b065
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
