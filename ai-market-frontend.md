@@ -89,6 +89,14 @@ Backend URL configured via `NEXT_PUBLIC_API_URL` (authoritative source is the **
 
 Sitemap at `/sitemap.xml` (generated). `robots.txt` in `public/` directory includes backend listings sitemap. Google Search Console configured.
 
+## Authenticated inquiry rejection result
+
+`components/InquiryWidget.tsx` must leave an authenticated failed submission with a persistent visible result beside the form. Preserve the backend `detail` only when it is a string; structured FastAPI validation details must use the fixed fallback instead of becoming React children. The alert uses `role="alert"`, the typed question remains available for revision, the submit button is restored in `finally`, and the persistent state clears only when the customer starts the next submission. The existing toast may remain, but a timed toast alone is not sufficient evidence because it can disappear before a slow backend response is rendered.
+
+Verify both the exact mediation 422 string and an array-valued validation 422 in `components/InquiryWidget.test.tsx`, then run `tsc --noEmit`. Final production proof must use the authenticated `mediation-contact-leak-probe` charter through the E2E harness; it must complete both the plain and disguised attempts and visibly show the held result for each.
+
+**T-2026-000698 proof (2026-08-24):** frontend candidate `648a232537086ec29013859eb57ad78fbdfb031b`, merge `cc7fc0d069ac83fa331d6ad339de0e65a73a2b88`, Railway deployment `4ea6a792-b13f-4715-bdd9-5a6ef702dc05`, and production E2E run `run-20260824T183519Z-9f8666bb` (passed with no findings).
+
 ## Troubleshooting
 
 | Problem | Diagnosis | Fix |
@@ -98,6 +106,7 @@ Sitemap at `/sitemap.xml` (generated). `robots.txt` in `public/` directory inclu
 | Listings not showing | Backend search endpoint issue | Check backend `/api/v1/search` |
 | OAuth not working | Google client ID mismatch | Check `GOOGLE_CLIENT_ID` in both frontend env and backend |
 | Styles broken after deploy | Tailwind purge issue | Check Tailwind config, redeploy |
+| Authenticated inquiry stays on **Submitting...** or the rejection disappears | Correlate the browser transcript with the backend `message_audit` timestamp; inspect the persistent authenticated alert path | Run `mediation-contact-leak-probe`; fix the backend post-audit latency or the frontend persistent-result path according to the evidence, then require both attempts to pass |
 
 ---
 

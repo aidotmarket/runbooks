@@ -155,6 +155,14 @@ When a published listing is absent for a customer query:
 
 **T-2026-000697 proof (2026-08-24):** backend merge `674a9052a145ba76b9d47b5022d367019497d8c6`, Railway deployment `8465c33b-3eb6-4a94-babb-bc42cc1d45d4`, and anonymous E2E run `run-20260824T173157Z-3f57b11d`. Both `traffic` and `urban traffic incidents with coordinates` visibly returned `New York City Vehicle Collisions`; the nonsense control returned zero. The global threshold and Browse-all fallback were unchanged.
 
+## Mediated inquiry response boundary
+
+`MediationService` decides the disposition and attempts the durable `message_audit` write before publishing best-effort Redis trust events. A held decision must still raise 422 before any `inquiries` or `inquiry_messages` insert. Trust-event publication is observability, not part of the customer-response or seller-delivery boundary: `_emit_trust_events` publishes the two events concurrently under one total one-second budget, logs timeout/failure, and returns. Do not move trust events before the decision/audit, broaden the timeout to the event bus globally, or detach unreferenced tasks into the request lifecycle.
+
+When a held inquiry remains on **Submitting...** even though `message_audit` already contains the held row, compare the browser click, audit timestamp, and final response timestamp. A roughly ten-second post-audit delay indicates sequential Redis socket waits in the response path. Verify a repair with the focused mediation timeout tests, the production `mediation-contact-leak-probe` charter, and a read-only database check proving two new held audits and zero inquiry rows for the synthetic buyer during the run window.
+
+**T-2026-000698 proof (2026-08-24):** backend candidate `7009c41fbf3ce8ea5c741f683c28379831451539`, merge `283c6c21ae0d3445fbb619f3bcafc52d980bf431`, and Railway deployment `bce826e7-25f4-40a9-8b1a-513fbbfdfa75`. Production E2E run `run-20260824T183519Z-9f8666bb` completed both plain and disguised contact attempts with a visible held result. PostgreSQL showed exactly two new `message_audit` rows, both `held` with retry count 3, and zero new inquiry rows in the run window.
+
 ## Troubleshooting
 
 | Problem | Diagnosis | Fix |

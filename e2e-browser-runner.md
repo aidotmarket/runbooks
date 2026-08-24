@@ -135,7 +135,30 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
       cause: BY DESIGN - screenshots stay withheld until pixel masking exists (§F-04)
   next_step_success: file or update a ticket only for a product failure, never for a harness_error
   next_step_failure: see §G-04
+- id: E-04
+  trigger: Verify that buyer-seller mediation blocks plain and disguised contact details without leaving the customer on Submitting
+  pre_conditions:
+    - all E-02 authenticated production gates pass for the charter's synthetic buyer account
+    - backend and frontend production deployments identify the exact reviewed merge commits
+    - scripts/harness-env.sh is sourced in the harness shell; never open Infisical in a browser and never copy a secret into the charter, queue, profile or report
+  tool_or_endpoint: "E2E_QUEUE_PATH=<isolated temp queue> e2e-harness enqueue @charters/mediation-contact-leak-probe.json; e2e-harness run"
+  argument_sourcing:
+    charter: committed charters/mediation-contact-leak-probe.json; do not rewrite the goal or synthetic values for a ticket rerun
+    credentials: scripts/harness-env.sh runtime loader only
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: report status passed with no findings; transcript records both submissions leaving Submitting and the final done summary says both were held for review
+    verification: correlate the two submit timestamps with exactly two new held message_audit rows and zero new inquiries for the synthetic buyer in the run window
+  expected_failures:
+    - signature: one attempt remains on Submitting or no persistent held result is visible
+      cause: customer-response latency after the mediation decision, or a frontend result that exists only as a timed toast
+    - signature: held audit exists but an inquiry row was created
+      cause: fail-closed delivery boundary regression; stop and treat as a security incident
+  next_step_success: retain the run id, exact deployment ids, and read-only database counts in the affected backend/frontend runbooks and ticket completion evidence
+  next_step_failure: keep the ticket open; inspect the backend decision/audit/event ordering and the frontend persistent authenticated alert without weakening mediation
 ```
+
+**T-2026-000698 production proof (2026-08-24):** `run-20260824T183519Z-9f8666bb` passed `mediation-contact-leak-probe` with no findings and no manual intervention. The plain and word-separated fake phone attempts both left **Submitting...** and visibly returned `Message held for review. Please revise.` Read-only PostgreSQL corroboration found two held audit rows (retry count 3 each) and zero new inquiries. Backend deployment `bce826e7-25f4-40a9-8b1a-513fbbfdfa75` and frontend deployment `4ea6a792-b13f-4715-bdd9-5a6ef702dc05` were both SUCCESS at their exact reviewed merge commits before the run.
 
 ## §F. Isolate
 
