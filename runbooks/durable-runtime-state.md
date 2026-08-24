@@ -194,6 +194,10 @@ requires an independent control checkout, exact clean code/runbooks main SHAs,
 candidate/prior presence, healthy gateway/MCP and required handlers, exact
 deployed marker, peer clearance, zero live/indeterminate CC tasks, expected
 plist/old-root preimage, and normally no refresh request. Uncertainty refuses.
+The installed plist bytes observed by this preflight are the sole rollback
+definitions for A: their SHA-256 values are journaled before any move, the exact
+bytes are retained in the transaction directory, and rollback never reconstructs
+A from a Git checkout.
 
 ### §E.2 Inventory, migration, and receipt schema
 
@@ -220,9 +224,10 @@ Transaction receipts are mode `0600` at
 `s1456.transaction.v1`. Base fields are kind (`forward` or `rollback`), full
 transaction id, full A/B SHAs, and phase. The preflight checkpoint adds only
 the reviewed code/runbooks SHAs, authorization and peer-clearance evidence IDs,
-preflight digest, MCP generation, and old-root hashes. Later checkpoints add
-hash-pinned definition/record evidence, process generations, actor evidence,
-and accepted snapshot hashes. Per-label moves/installs are checkpointed
+preflight digest, MCP generation, old-root hashes, and the three installed-A
+definition hashes. Later checkpoints add hash-pinned definition/record evidence,
+process generations, actor evidence, and accepted snapshot hashes. Per-label
+moves/installs are checkpointed
 individually. Updates are validated monotonic transitions written through a
 mode-`0600` sibling temp, file fsync, atomic replace, and directory fsync.
 `s1456.rollback-reconciliation.v1` and `s1456.soak.v1` likewise contain
@@ -293,19 +298,27 @@ Resume rechecks installed hashes and completes only the missing suffix. Probe
 is bootstrapped only after all definitions are installed. Immediately before
 reloader bootstrap: no request; zero live/indeterminate CC task; shared-root
 parity; unchanged MCP generation; and B agreement across marker, main and
-publisher. Reloader starts last. Its first completed controller or RunAtLoad
-evaluation must be `already_deployed_no_refresh`, with zero kickstart calls and
-no second MCP generation. A B request in the post-seal/pre-first-tick window is
-an automatic receipt-bound rollback trigger and is quarantined, not consumed
-as a normal tick.
+publisher. Installing the reloader arms a mode-`0600`, receipt-bound first-tick
+guard before launchd can load it. Reloader starts last. Its first completed
+controller or RunAtLoad evaluation occurs before any fetch or fast-forward and
+must be `already_deployed_no_refresh`, with zero fetch, fast-forward, marker
+write, request removal, or kickstart calls and no second MCP generation. The
+controller rechecks local and remote `origin/main`, marker, request absence, and
+generation before removing that guard. Drift or a B request in the
+post-seal/pre-first-tick window triggers receipt-bound rollback; the request is
+quarantined rather than consumed as a normal tick.
 
 Crash injection covers immediately before and after every file move, receipt
 replace, marker replace, persistent plist install, and launchd action. Resume
-re-proves filesystem, process, label, hash, marker, generation and phase
-evidence; the phase string alone is never trusted. Changed/unexpected labels or
-definitions, skipped phases, old-root writes, and evidence ambiguity fail
-closed. Logout/reboot simulation covers every pre-seal phase and each post-seal
-prefix and may never start an old-path writer.
+uses a phase-aware recovery preflight: it re-proves the exact reviewed authority,
+retained installed-A bytes, the marker values allowed for that forward or
+rollback phase, old-root baseline until reconciliation, clean repositories, and
+the safe persistent-definition prefix. It does not require actors that the
+recorded phase has intentionally fenced. The phase string alone is never
+trusted. Changed/unexpected labels or definitions, skipped phases, old-root
+writes, and evidence ambiguity fail closed. Logout/reboot simulation covers
+every pre-seal phase and each post-seal prefix and may never start an old-path
+writer.
 
 ### §E.5 Forward acceptance and 16-point soak
 
@@ -337,9 +350,14 @@ monotonic time, wall time, and sanitized results. Every check requires:
 A check completed at or after the next 60-second deadline is missed; catch-up
 is forbidden. Early, failed, fewer-than-16, monotonic regression, old-root
 change, check 16 before `t=900`, or total elapsed below 900 seconds is an
-immediate rollback trigger. Only a complete soak plus a terminal `accepted`
-receipt passes. Unit tests inject time and never sleep 15 minutes; only a
-separately authorized live action may run real time.
+immediate rollback trigger. Terminal acceptance requires the exact
+`s1456.soak.v1` top-level and per-check field sets, exact candidate/generation,
+finite and internally consistent monotonic aggregates, sequential checks,
+on-time boundaries, all required boolean/SHA results, and exact unchanged
+old-root hashes; extra, missing, malformed, or caller-simplified rows are
+rejected. Only a complete soak plus a terminal `accepted` receipt passes. Unit
+tests inject time and never sleep 15 minutes; only a separately authorized live
+action may run real time.
 
 ### §E.6 Active and accepted rollback reconciliation
 
@@ -544,9 +562,9 @@ documentation build.
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1572
-last_refresh_commit: 7f5b1feb3b31b522fd794ccbd60cfb05381bc13d
-last_refresh_date: 2026-08-19T00:00:00Z
+last_refresh_session: S1605
+last_refresh_commit: 43ee3b610101b63ad21aba11ea7f71839720c094
+last_refresh_date: 2026-08-24T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -555,8 +573,8 @@ refresh_triggers:
 scheduled_cadence: 1y
 ```
 
-Lifecycle evidence for this candidate: exact reviewed code SHA
-`7f5b1feb3b31b522fd794ccbd60cfb05381bc13d`; locked Gate 1 SHA
+Lifecycle evidence for this candidate: exact code candidate SHA
+`43ee3b610101b63ad21aba11ea7f71839720c094`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `396657dd54f2d7f7ff13db1209070e74eeecb6d1`;
 and a no-live-touch build boundary. The final documentation head, generated
