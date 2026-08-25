@@ -1,11 +1,11 @@
 ---
 system_name: gcp-auth
-purpose_sentence: Google Cloud authentication for the ai.market backend covering Gmail API (briefings, drop pipeline, draft sending), Pub/Sub, and Vertex AI Gemini, via OAuth refresh tokens, the gcloud CLI, and the Vertex Express API key.
+purpose_sentence: Google Cloud authentication for the ai.market backend covering Gmail API, Pub/Sub, Vertex AI Gemini, and the Trust Channel KMS runtime.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
 authoritative_scope: |
-  Authentication for all GCP-backed services used by ai.market: Gmail OAuth refresh tokens (gmail_tokens table), the OAuth consent-screen requirement, gcloud CLI session auth, Pub/Sub gmail-push wiring, and Vertex AI Gemini API-key auth. Secret values are canonical in Infisical (project bd272d48-c5a1-4b52-9d24-12066ae4403c); this runbook documents auth mechanics and recovery, not secret values.
+  Authentication for all GCP-backed services used by ai.market: Gmail OAuth refresh tokens (gmail_tokens table), the OAuth consent-screen requirement, gcloud CLI session auth, Pub/Sub gmail-push wiring, Vertex AI Gemini API-key auth, and the Trust Channel KMS service-account runtime. Secret values are canonical in Infisical (project bd272d48-c5a1-4b52-9d24-12066ae4403c); this runbook documents auth mechanics and recovery, not secret values.
 linter_version: 1.0.0
 ---
 
@@ -24,11 +24,11 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | gcloud CLI session auth (Pub/Sub and GCP admin) | SHIPPED | `gcloud CLI on Titan-1` | Verified via gcloud auth list and pubsub list | 2026-06-01 |
 | Pub/Sub gmail-push topic and subscription | SHIPPED | `GCP Pub/Sub gmail-push -> api.ai.market gmail webhook` | Verified via gcloud pubsub topics/subscriptions list | 2026-06-01 |
 | Vertex AI Gemini API-key auth | SHIPPED | `ai-market-backend app.core.config Settings.VERTEX_GEMINI_KEY` | Verified via Infisical key-prefix check expecting AQ. | 2026-06-01 |
-| Legacy service-account ADC (KMS/GCS only) | DEPRECATED | `ai-market-backend app/core/gcp_credentials.py` | Not used for Gemini since S533; SA cleanup tracked under BQ-VERTEX-SA-IAM-HARDENING | 2026-06-01 |
+| Trust Channel KMS service-account ADC | SHIPPED | `ai-market-backend app/core/gcp_credentials.py + app/core/kms_lifecycle.py` | `tests/test_kms_lifecycle_s1606.py`; live RSA registration and both Trust Channel handshakes | 2026-08-25 |
 
 ## §C. Architecture & Interactions
 
-GCP authentication for ai.market spans three independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`, independent of both Gmail OAuth and the legacy service-account ADC path (which remains only for non-Gemini GCP services such as KMS and GCS).
+GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -37,6 +37,7 @@ GCP authentication for ai.market spans three independent auth paths. Gmail OAuth
 | gcloud CLI | `gcloud on Titan-1` | local gcloud config | Pub/Sub admin, GCP admin tasks | Interactive browser login only; Vulcan cannot do it headlessly |
 | Pub/Sub | `gmail-push topic + gmail-push-sub` | GCP Pub/Sub | Gmail watch to `https://api.ai.market/api/v1/webhooks/gmail` | Drives the inbound drop pipeline |
 | Vertex AI Gemini | `genai.Client(vertexai=True, api_key=...)` | `VERTEX_GEMINI_KEY (Infisical)` | Gemini embeddings and chat | API-key auth (AQ. prefix); embed calls MUST pass output_dimensionality |
+| Trust Channel KMS | `configure_gcp_credentials` then `get_kms_client` | `GCP_SERVICE_ACCOUNT_JSON (Infisical -> Railway)` | GCP KMS keyring `ai-market-trust` | Runtime identity is `kms-trust-agent@aimarket-prod.iam.gserviceaccount.com`; private credential material must never be printed or persisted outside approved secret-backed transfer. |
 
 ### Canonical resource identifiers
 
@@ -109,6 +110,21 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
     - {signature: "wrong_key_prefix", cause: an OAuth token or a legacy Developer API key (AIza...) is stored instead of a Vertex Express key}
   next_step_success: No action; the Vertex key is valid.
   next_step_failure: Isolate using §F-04 and re-create the key scoped to the Vertex AI API.
+- id: E-04
+  trigger: Verify Trust Channel KMS authentication and key-purpose readiness before or after a credential recovery.
+  pre_conditions: [infisical and railway CLIs authenticated on Titan-1, production project aimarket-prod selected, read-only GCP KMS access available]
+  tool_or_endpoint: Compare non-secret credential metadata in Infisical and Railway; inspect both KMS public keys and algorithms; then run the Trust Channel E-05 live probe.
+  argument_sourcing:
+    credential: GCP_SERVICE_ACCOUNT_JSON from Infisical ai-market-backend/prod synchronized to Railway production
+    signing_key: projects/aimarket-prod/locations/global/keyRings/ai-market-trust/cryptoKeys/platform-signing-key/cryptoKeyVersions/1
+    encryption_key: projects/aimarket-prod/locations/global/keyRings/ai-market-trust/cryptoKeys/platform-encryption-key/cryptoKeyVersions/1
+  idempotency: IDEMPOTENT
+  expected_success: {shape: Infisical and Railway identify the same active service-account key without exposing it; signing version 1 is RSA_SIGN_PKCS1_2048_SHA256; encryption version 1 is RSA_DECRYPT_OAEP_2048_SHA256; backend readiness and the live two-route handshake pass, verification: correlate the exact deployment SHA and non-secret key ids plus the Trust Channel probe evidence}
+  expected_failures:
+    - {signature: KMS readiness check failed, cause: credential unavailable or denied, key version unavailable, or key algorithm does not match its configured purpose}
+    - {signature: CRYPTO_SCHEME_MISMATCH, cause: an operation was routed to the wrong purpose-specific KMS key}
+  next_step_success: Keep the credential secret-backed and record only service-account identity, key id, algorithms, deployment identity, and probe result.
+  next_step_failure: Keep Trust Channel registration fail-closed; repair the exact credential, IAM, key name, or algorithm mismatch without exporting any KMS private key.
 ```
 
 ## §F. Isolate
@@ -122,7 +138,8 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 | F-05 | Gemini embed upserts fail / qdrant dimension mismatch | An embed call omitted `output_dimensionality` and defaulted to 3072, exceeding the qdrant collection dimension | Check the embed call passes `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS` | §G-05 | CONFIRMED |
 | F-04 | `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED` on Gemini calls | Wrong key type passed (an OAuth token or a legacy Developer API key instead of a Vertex Express key) | Check the stored VERTEX_GEMINI_KEY prefix; a valid key starts with AQ. | §G-04 | CONFIRMED |
 | F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | §G-05 | CONFIRMED |
-| F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | §G-06 | CONFIRMED (S1200, T-2026-000239) |
+| F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | §G-06 | CONFIRMED |
+| F-07 | Trust Channel registration returns 503 or a handshake logs `CRYPTO_SCHEME_MISMATCH` | KMS credential is unavailable/invalid, IAM or key readiness failed, or signing/decrypt was routed to the wrong purpose-specific key | Verify non-secret credential metadata matches between Infisical and Railway; confirm both version-1 algorithms; inspect the exact deployment and correlated Trust Channel log window | §G-07 | CONFIRMED |
 
 ## §G. Repair
 
@@ -154,9 +171,11 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 - id: G-04
   symptom_ref: F-04
   component_ref: Vertex AI Gemini
-  root_cause: The AG adapter authenticated with user OAuth/ADC (or a non-Vertex key) instead of the Vertex Express API key; an expired local ADC token then fails with `RefreshError: Reauthentication is needed`. Recurring — the fix is always API-key-first auth, not re-running gcloud login.
+  root_cause: >-
+    The AG adapter authenticated with user OAuth/ADC (or a non-Vertex key) instead of the Vertex Express API key; an expired local ADC token then fails with `RefreshError: Reauthentication is needed`. Recurring — the fix is always API-key-first auth, not re-running gcloud login.
   repair_entry_point: GCP Console Credentials API Keys, scoped to the Vertex AI API
-  change_pattern: Re-create the API key scoped to the Vertex AI API so the prefix is AQ., store it as VERTEX_GEMINI_KEY in Infisical. If AG dispatches 401, sync VERTEX_API_KEY to match and restart ag_server. As of S1132, `ag_adapter._select_genai_client_kwargs` PREFERS `VERTEX_API_KEY` (exported into the MCP process env by `scripts/launch_mcp_server.sh` from Infisical project bd272d48) over user OAuth/ADC; project ADC is a fallback only. This reverts the S805 ADC-first ordering, which broke all AG reviews when the local ADC token expired (`RefreshError: Reauthentication is needed`). If AG auth fails, verify `VERTEX_API_KEY` is present in the MCP env (`ps eww` on the com.koskadeux.mcp pid) and AQ.-prefixed in Infisical, then restart com.koskadeux.mcp.
+  change_pattern: >-
+    Re-create the API key scoped to the Vertex AI API so the prefix is AQ., store it as VERTEX_GEMINI_KEY in Infisical. If AG dispatches 401, sync VERTEX_API_KEY to match and restart ag_server. As of S1132, `ag_adapter._select_genai_client_kwargs` PREFERS `VERTEX_API_KEY` (exported into the MCP process env by `scripts/launch_mcp_server.sh` from Infisical project bd272d48) over user OAuth/ADC; project ADC is a fallback only. This reverts the S805 ADC-first ordering, which broke all AG reviews when the local ADC token expired (`RefreshError: Reauthentication is needed`). If AG auth fails, verify `VERTEX_API_KEY` is present in the MCP env (`ps eww` on the com.koskadeux.mcp pid) and AQ.-prefixed in Infisical, then restart com.koskadeux.mcp.
   rollback_procedure: Restore the previous working key value from Infisical history if the new key fails validation.
   integrity_check: head -c 4 of the stored key returns AQ.A and a test embed/chat call succeeds.
 - id: G-05
@@ -169,12 +188,20 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   integrity_check: Embeddings return the configured dimension and qdrant upserts succeed.
 - id: G-06
   symptom_ref: F-06
-  component_ref: Vertex AI Gemini (embeddings)
+  component_ref: Vertex AI Gemini
   root_cause: The embedding client is pointed at the GLOBAL Vertex endpoint (aiplatform.googleapis.com), where gemini-embedding-001 costs ~10.4s per call. The same model on any regional endpoint returns in ~0.3s. This was the entirety of the ~11s marketplace search (T-2026-000239) and the ~14k rows/hour ceiling on the qdrant sync outbox. It is NOT a slow model, a bad supplier, or a network problem - DNS/TCP/TLS complete in ~50ms and TTFB is the whole 10.4s.
   repair_entry_point: settings.VERTEX_EMBEDDING_LOCATION (app/core/config.py) and _get_gemini_embedding_client (app/core/llm.py)
   change_pattern: Set VERTEX_EMBEDDING_LOCATION to a region (default us-west1, the closest Vertex region to Railway us-west2) and redeploy; the client is cached for the process lifetime so the value only takes effect on restart. Do NOT point the COMPLETION client at a region - APPROVED_GEMINI_MODEL (gemini-3.1-pro-preview) returns HTTP 404 on us-west1/us-west4/us-central1/us-east4 and is served only from global, where it carries no latency penalty (~2.7s). The two clients must stay separate. Google's published model-location table claims regional availability for the completion model and is wrong; measure from the production container (railway ssh) and treat the container as ground truth.
   rollback_procedure: Set VERTEX_EMBEDDING_LOCATION=global. No re-embedding is needed in either direction - embedding vectors are bit-identical across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so the Qdrant corpus stays valid whichever endpoint is in use.
   integrity_check: GET /api/v1/search/listings?q=<term> returns in <1s with `fallback` absent from the response. A `fallback_reason` of "embedding_failed", or a SEARCH_DEGRADED_NON_SEMANTIC warning in the logs, means search is silently serving keyword-matched, non-semantic results.
+- id: G-07
+  symptom_ref: F-07
+  component_ref: Trust Channel KMS
+  root_cause: The backend cannot authenticate to KMS, cannot validate both exact key algorithms, or routes signing and decrypt operations to the same key.
+  repair_entry_point: Infisical ai-market-backend/prod, Railway production variables, app/core/gcp_credentials.py, and app/core/kms_lifecycle.py
+  change_pattern: Restore the approved kms-trust-agent credential through Infisical-to-Railway synchronization; initialize credentials before the shared KMS client; keep platform-signing-key and platform-encryption-key distinct; validate both version-1 algorithms before reporting ready. Never create a replacement key or change IAM when the existing production resources are healthy.
+  rollback_procedure: Restore the previous working Infisical secret version and reviewed backend deployment if the recovered credential or routing fails validation; leave registration fail-closed during rollback.
+  integrity_check: Infisical and Railway expose matching non-secret credential metadata; readiness fetches both public keys with exact algorithms; RSA registration returns distinct public keys; both Trust Channel WebSocket paths establish; cleanup leaves the probe device and sessions inactive; correlated logs contain no KMS or crypto-scheme error.
 ```
 
 ## §H. Evolve
@@ -185,6 +212,8 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
 - Every Gemini embed call MUST pass `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS`.
 - The gcloud interactive login can only be performed by Max in a browser; it is never headless.
+- `GCP_SERVICE_ACCOUNT_JSON` is the production Trust Channel KMS credential, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway. It is independent of Vertex Gemini auth and must never be printed or written outside an approved secret-backed transfer.
+- Trust Channel KMS signing and decryption MUST use distinct keys with algorithms `RSA_SIGN_PKCS1_2048_SHA256` and `RSA_DECRYPT_OAEP_2048_SHA256`, respectively.
 - **Embeddings MUST use a REGIONAL Vertex endpoint; completions MUST use the GLOBAL one.** These are two separate clients in `app/core/llm.py` (`_get_gemini_embedding_client()` regional, `_get_gemini_client()` global) and MUST NOT be merged. `gemini-embedding-001` is ~10.4s on global and ~0.3s regionally; the approved completion model (`APPROVED_GEMINI_MODEL`, currently `gemini-3.1-pro-preview`) returns **HTTP 404 on every regional endpoint** and is served only from global. Google's published model-location table claims otherwise and is wrong — MP cited it and approved a change that would have 404'd every allAI completion. Measure from the production container; the container is ground truth. The region is `VERTEX_EMBEDDING_LOCATION` (default `us-west1`, matching Railway `us-west2`); setting it to `global` is the rollback and costs the 10.4s back.
 - Embedding vectors are **bit-identical** across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so changing `VERTEX_EMBEDDING_LOCATION` never requires re-embedding the Qdrant corpus.
 
@@ -192,7 +221,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 
 - Changing the OAuth consent screen away from Internal is BREAKING because refresh tokens begin expiring.
 - Renaming or aliasing `VERTEX_GEMINI_KEY` is BREAKING because Pydantic case-sensitive settings will fail to load the key.
-- Moving Gemini auth back to service-account ADC is BREAKING because the stored SA private key is rejected by GCP.
+- Moving Gemini auth to the Trust Channel service-account ADC path is BREAKING because Gemini and KMS use independent credential mechanisms and scopes.
 
 ### §H.3 REVIEW predicates
 
@@ -365,18 +394,19 @@ scenario_set:
 Lifecycle metadata records the Gate 2 conformance refresh state for this runbook.
 
 ```yaml lifecycle
-last_refresh_session: S749
-last_refresh_commit: 63abe32
-last_refresh_date: 2026-06-01T00:00:00Z
+last_refresh_session: S1606
+last_refresh_commit: 8843542562daf6bc3b5d80f6911d4136279da458
+last_refresh_date: 2026-08-25T09:56:13Z
 owner_agent: vulcan
 refresh_triggers:
   - OAuth consent-screen requirement or Gmail token flow changes
   - Vertex Gemini auth model or canonical key name changes
+  - Trust Channel KMS credential, key identity, IAM scope, or purpose routing changes
   - Pub/Sub gmail-push topic or subscription target changes
   - gcloud account or project defaults change
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-06-01T00:00:00Z
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 
@@ -384,7 +414,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S749 / 2026-06-01T00:00:00Z
+last_lint_run: S1606 / 2026-08-25T09:56:13Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
