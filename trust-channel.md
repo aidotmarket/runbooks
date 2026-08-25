@@ -237,6 +237,28 @@ yet deployed, that capability is a gap owned by S1210.
   next_step_failure: Keep the incident open; inspect credential availability, IAM, both exact key names, and both version-1 algorithms. Never substitute one key for both purposes or export a KMS private key.
 ```
 
+### S1605 production browser proof receipt
+
+On 2026-08-25 at 18:31:33Z, the isolated Titan 1 `kdbrowser` runner used the
+approved secret-backed synthetic buyer-01 identity and real headed Chrome against
+backend deployment `f21c7daa-6928-4ca8-a7c1-62004de2cf32` at
+`bab65d9177fc4e7de464c033c1346ca56800e29c`. The browser generated a distinct
+ephemeral RSA device key for each route; private material remained inside that
+browser process.
+
+Both `/api/v1/trust/stream` and `/api/v1/trust/stream/vc` returned an
+`established` JSON frame. In each frame, `session_id` and `expires_at` were JSON
+strings, and the browser independently verified the challenge with the returned
+platform signing key. The standard session was
+`a1da8d10-0686-4132-a1bf-ea2034c13104`; the VC-legacy session was
+`03430a98-e28a-4ea5-9906-33b5ce0251e7`.
+
+Cleanup returned HTTP 204 for both disposable devices. A read-only production
+database check then confirmed both devices inactive with their public keys cleared,
+both sessions inactive, and `teardown_reason=client_disconnect`. This is the
+outside-verification receipt for `build/s1578-trust-established-json`; it does not
+resolve or weaken the separate S1210 fail-closed revocation work.
+
 For E-04, the source-grounded read shape is:
 
 ```sql
@@ -537,7 +559,7 @@ no §I.1 weight justification is required.
 ```yaml lifecycle
 last_refresh_session: S1606
 last_refresh_commit: 8843542562daf6bc3b5d80f6911d4136279da458
-last_refresh_date: 2026-08-25T09:56:13Z
+last_refresh_date: 2026-08-25T18:31:33Z
 owner_agent: vulcan
 refresh_triggers:
   - build:bq-trust-websocket-revocation-fail-closed-s1210 changes status or lands
@@ -559,12 +581,16 @@ Refresh log:
 - S1606 (2026-08-25): restored the production KMS credential path, recorded the
   purpose-separated signing/encryption contract, and live-verified RSA registration
   plus standard and VC-legacy handshakes on backend merge `447075d43c8f`.
+- S1605 (2026-08-25): completed the isolated headed-Chrome outside verification
+  for `build/s1578-trust-established-json` on production backend
+  `bab65d9177fc`; both modern routes returned JSON-safe `established` frames and
+  the disposable devices and sessions were inactive after cleanup.
 
 ## §K. Conformance
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1606 / 2026-08-25T09:56:13Z
+last_lint_run: S1605 / 2026-08-25T18:31:33Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
