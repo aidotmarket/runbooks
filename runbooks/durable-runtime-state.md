@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the candidate implemented at exact `koskadeux-mcp` SHA
-`7b0df37815a084fb7b808980c2359b022b76d26a`. The locked Gate 1 design is
+`8fbe4615dc466e88c972f1cd86674080b8e5c82a`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in the reviewed code
@@ -314,8 +314,10 @@ controller or RunAtLoad evaluation occurs before any fetch or fast-forward and
 must be `already_deployed_no_refresh`, with zero fetch, fast-forward, marker
 write, request removal, or kickstart calls and no second MCP generation. The
 controller rechecks local and remote `origin/main`, marker, request absence, and
-generation before removing that guard. An uncontrolled result preserves the B
-guard. After fencing the reloader, rollback may atomically replace only that
+generation before removing that guard. The publication comparison is
+direction-independent for B and A. An uncontrolled result preserves the guard;
+rollback immediately re-fences its reloader and remains nonterminal. After
+fencing the reloader, rollback may atomically replace only that
 exact source-transaction B guard with the exact A guard; a foreign guard is
 refused. Rollback remains nonterminal and the reloader remains fenced until
 both the local tracking ref and live remote `origin/main` publish A; only then
@@ -420,9 +422,14 @@ After reconciled old-root proof, publish and bootstrap staged prior MCP A,
 prove new generation/SHA/health/handlers, then seal marker A. Reinstall exact A
 definitions only after that proof. Bootstrap probe then reloader only after
 both local and live remote `origin/main` publish A; until then the rollback is
-nonterminal and the reloader is fenced. If a new
-refresh intent is still required, create a new A-bound request and verify its
-normal consumption; never reuse the B request. Any conflicting old-root write,
+nonterminal and the reloader is fenced. A quarantined B request records that
+prior refresh is still required. After the controlled A no-op tick, the
+controller uses nested `actors_enabled` receipt checkpoints to fence the
+reloader, write one fresh A request, restart the reloader, wait for normal
+consumption, and prove the refreshed A generation, health, handlers, marker,
+and local/live remote publication. Crashes resume from the exact fence/write/
+start/consume checkpoint; no request is manufactured when reconciliation found
+no quarantined intent. Never reuse the B request. Any conflicting old-root write,
 missing/changed source receipt, marker drift, duplicate consumer, ambiguous
 history, or post-acceptance record conflict fails closed and preserves all
 backups and receipts.
@@ -579,8 +586,9 @@ scenario_set: []
 ```
 
 The documentation candidate passes only when the new page is discovery-only in
-schema-v3 `CATALOG.json`, appears in `TOPIC-ROUTER.md` and generated README
-inventory, has one pending grandfathered `CORPUS-MANIFEST.yaml` record, leaves
+schema-v3 `CATALOG.json`, appears in `TOPIC-ROUTER.md`, has one pending
+grandfathered `CORPUS-MANIFEST.yaml` record, leaves the generated README ACTIVE
+inventory current and unchanged, leaves
 all 26 ACTIVE entries field-for-field unchanged, has no generated drift, passes
 focused lint/catalog/manifest tests plus the full runbooks suite, and has a
 diff limited to this page, the minimum five operator path contracts, generated
@@ -596,8 +604,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 7b0df37815a084fb7b808980c2359b022b76d26a
-last_refresh_date: 2026-08-24T23:09:57Z
+last_refresh_commit: 8fbe4615dc466e88c972f1cd86674080b8e5c82a
+last_refresh_date: 2026-08-25T00:11:40Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -607,7 +615,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`7b0df37815a084fb7b808980c2359b022b76d26a`; locked Gate 1 SHA
+`8fbe4615dc466e88c972f1cd86674080b8e5c82a`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `612eac36bfbbc5d9b2b607853b946677ad37d69a`;
 and a no-live-touch build boundary. The final documentation head, generated
