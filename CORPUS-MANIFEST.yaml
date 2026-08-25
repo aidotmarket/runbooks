@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: af35c282ba3e73f9887aec8f7e1bc0c655d384ee
+  inventory_sha: c7f32d42f6eaa7ecd4c4ba6830ac65aa95535d16
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1292,8 +1292,9 @@ documents:
       - runbooks/durable-runtime-state.md
     evidence:
       - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:koskadeux_mcp/durable_state_cutover.py
-        finding: Exact Gate 3 R5 candidate for the receipt-bound five-record controller, terminal
-          publication fence, and same-process live acceptance boundary; independent exact-artifact review remains required.
+        finding: Exact Gate 3 R5 candidate for the receipt-bound five-record controller, terminal publication
+          fence, and same-process live acceptance boundary; independent exact-artifact review remains
+          required.
       - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
         finding: Gate 2 contract updated at the exact R5 candidate for idempotent crash resume, terminal
           reproof, independent-controller refusal, guarded rollback, and reviewed-live acceptance.
