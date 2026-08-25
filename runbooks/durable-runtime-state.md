@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the candidate implemented at exact `koskadeux-mcp` SHA
-`8fbe4615dc466e88c972f1cd86674080b8e5c82a`. The locked Gate 1 design is
+`448e3d3ac282fe005edfbecb8b50f409d3777632`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in the reviewed code
@@ -387,6 +387,9 @@ real monotonic scheduler and transition the exact ACTIVE transaction in the same
 process. The strict receipt validator is defense-in-depth after that harness
 completes. Unit tests inject time only through a private model seam and never
 sleep 15 minutes; only a separately authorized live action may run real time.
+Every mutating CLI command and public Python wrapper repeats the independent-
+controller check before adapter construction, receipt mutation, launchd work,
+soak, or acceptance. An MCP-owned child is never accepted as Gate 4 authority.
 
 ### §E.6 Active and accepted rollback reconciliation
 
@@ -429,7 +432,11 @@ reloader, write one fresh A request, restart the reloader, wait for normal
 consumption, and prove the refreshed A generation, health, handlers, marker,
 and local/live remote publication. Crashes resume from the exact fence/write/
 start/consume checkpoint; no request is manufactured when reconciliation found
-no quarantined intent. Never reuse the B request. Any conflicting old-root write,
+no quarantined intent. A `completed` nested checkpoint is evidence, not terminal
+authority: every resume and the immediate terminal transition re-prove request
+consumption, the exact healthy A reloader, the refreshed generation, marker,
+and current local/live remote A publication. Any mismatch re-fences the
+reloader and leaves the transaction nonterminal. Never reuse the B request. Any conflicting old-root write,
 missing/changed source receipt, marker drift, duplicate consumer, ambiguous
 history, or post-acceptance record conflict fails closed and preserves all
 backups and receipts.
@@ -444,6 +451,7 @@ backups and receipts.
 | F-04 | `status` reports multiple nonterminals, pointer mismatch, candidate residue, or sanitized orphan. | Interrupted/racing ACTIVE publication, manual transaction changes, or unexpected directory contents. | Use read-only `status`; compare pointer/receipt identities and hashes. Do not rename, delete, or auto-select an orphan. | G-04 | CONFIRMED |
 | F-05 | Candidate health/handler/generation, first no-op tick, publisher agreement, or a soak point fails. | Publication/config/process drift or a B request/old-root write appeared. | Record the failed sanitized proof and invoke only receipt-bound rollback under separate reviewed-live authority. | G-05 | CONFIRMED |
 | F-06 | Rollback refuses source receipt, marker, current durable record, or old-root reconciliation. | Accepted receipt drift, later consumer, conflicting writes, or ambiguous history. | Preserve both sides, backups and receipts; compare exact hashes and transaction linkage. Never restore a frozen snapshot over newer durable state. | G-06 | CONFIRMED |
+| F-07 | Rollback stays nonterminal with the reloader fenced after a first-tick drift row or after a completed prior-refresh checkpoint. | Local tracking moved during the guarded tick, or local/live remote publication moved after the completed checkpoint. The immutable evidence row or stale completion cannot authorize a retry or terminal state. | Preserve the guard, evidence, request disposition, receipt, and both Git refs. Confirm the reloader is absent and do not delete or rewrite transaction evidence. | G-07 | CONFIRMED |
 
 ## §G. Repair
 
@@ -496,6 +504,14 @@ backups and receipts.
   change_pattern: preserve both copies, backups, receipts, and exact hashes; do not bypass the verifier
   rollback_procedure: leave all conflicting evidence intact
   integrity_check: no conflicting bytes were discarded and neither root was modified without authority
+- id: G-07
+  symptom_ref: F-07
+  component_ref: macOS adapter
+  root_cause: immutable drift evidence or publication drift after a completed nested checkpoint
+  repair_entry_point: new exact-artifact reviewed recovery design
+  change_pattern: preserve the write-once evidence and nonterminal receipt; never delete or rewrite the evidence row to force progress
+  rollback_procedure: keep the reloader fenced and all transaction evidence intact
+  integrity_check: no terminal rolled_back receipt exists and publication cannot restart an unreviewed SHA
 ```
 
 The machine repair form records fail-closed candidate behavior for review only.
@@ -510,6 +526,7 @@ table below authorizes a live repair.
 | G-04 | F-04 | Use `resume` only for the explicitly allowed deterministic initial-pointer/empty-directory state. Otherwise stop for operator review; do not manually clean ACTIVE, candidate links, terminal archives, or orphans. | Read-only status must show exactly one ACTIVE/nonterminal pair or no ACTIVE after terminal archival. |
 | G-05 | F-05 | Under the same exact reviewed artifacts and fresh authority checkpoint, run plain receipt-bound rollback for the ACTIVE transaction, or accepted rollback for a named immutable accepted receipt. | Prior A health/handlers precede marker A; reconciliation retains post-cutover deltas; terminal state is `rolled_back`. |
 | G-06 | F-06 | Stop and preserve both copies. Resolve the unexpected conflict through a new reviewed recovery design; never bypass the reconciliation verifier. | All old/durable records, receipt area and backups remain available and no conflicting bytes were discarded. |
+| G-07 | F-07 | Stop with the reloader fenced. Preserve the write-once first-tick row, nested-cycle receipt, request disposition, and local/live remote ref evidence. A stale row is not manually removed and a completed checkpoint is not reused as terminal authority; recovery requires a new exact-artifact reviewed design. | No `rolled_back` terminal receipt is written, the reloader remains absent, and all evidence needed to design a safe retry is retained. |
 
 ## §H. Evolve
 
@@ -604,7 +621,7 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 8fbe4615dc466e88c972f1cd86674080b8e5c82a
+last_refresh_commit: 448e3d3ac282fe005edfbecb8b50f409d3777632
 last_refresh_date: 2026-08-25T00:11:40Z
 owner_agent: vulcan
 refresh_triggers:
@@ -615,7 +632,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`8fbe4615dc466e88c972f1cd86674080b8e5c82a`; locked Gate 1 SHA
+`448e3d3ac282fe005edfbecb8b50f409d3777632`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `612eac36bfbbc5d9b2b607853b946677ad37d69a`;
 and a no-live-touch build boundary. The final documentation head, generated

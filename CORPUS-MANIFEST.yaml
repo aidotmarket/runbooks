@@ -1291,10 +1291,10 @@ documents:
     target_paths:
       - runbooks/durable-runtime-state.md
     evidence:
-      - ref: git:aidotmarket/koskadeux-mcp@8fbe4615dc466e88c972f1cd86674080b8e5c82a:koskadeux_mcp/durable_state_cutover.py
+      - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:koskadeux_mcp/durable_state_cutover.py
         finding: Exact Gate 3 R4 candidate for the receipt-bound five-record controller and same-process
           live acceptance boundary; independent exact-artifact review remains required.
-      - ref: git:aidotmarket/koskadeux-mcp@8fbe4615dc466e88c972f1cd86674080b8e5c82a:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
+      - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
         finding: Gate 2 contract updated at the exact R4 candidate for idempotent crash resume, safe RunAtLoad
           prefixes, guarded rollback, dirty-tree refusal, and reviewed-live acceptance.
     verify_against:
