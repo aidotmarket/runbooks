@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: c7f32d42f6eaa7ecd4c4ba6830ac65aa95535d16
+  inventory_sha: 5dd047ba38dd599413dd2661db99ce989d76b6bb
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1282,7 +1282,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/durable-runtime-state.md
-    git_blob_oid: 8a56bc5cfa50b5fdac47d8343fc1deb9968fe49c
+    git_blob_oid: 0ed53b4f95d2d5bf91c5c04bf83b66697c4a9762
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1293,11 +1293,11 @@ documents:
     evidence:
       - ref: git:aidotmarket/koskadeux-mcp@fd404351f8eb17da33f43d0b2629228ee10bc8e4:koskadeux_mcp/durable_state_cutover.py
         finding: Exact Gate 3 R6 candidate for the receipt-bound five-record controller, shared terminal
-          fence, exported mutation gates, and same-process live acceptance boundary; independent review remains
-          required.
+          fence, exported mutation gates, and same-process live acceptance boundary; independent review
+          remains required.
       - ref: git:aidotmarket/koskadeux-mcp@fd404351f8eb17da33f43d0b2629228ee10bc8e4:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
-        finding: Gate 2 contract updated at the exact R6 candidate for both terminal dispositions,
-          exported mutation refusal, guarded no-request recovery, and reviewed-live acceptance.
+        finding: Gate 2 contract updated at the exact R6 candidate for both terminal dispositions, exported
+          mutation refusal, guarded no-request recovery, and reviewed-live acceptance.
     verify_against:
       - exact code and Gate specs
       - isolated tests and Council
