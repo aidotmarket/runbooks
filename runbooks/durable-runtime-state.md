@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
-`0f5347543ff7ea01472e1d5bd1004346834aca67`. The locked Gate 1 design is
+`0f4a32db2a8714ecaca5134080e597489fc194c6`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
@@ -193,10 +193,19 @@ Missing inputs refuse with `reviewed_live_inputs_required`; absent
 `--reviewed-live` refuses with `reviewed_live_required`; a candidate mismatch
 refuses with `reviewed_code_sha_mismatch`. These flags are an executable live
 boundary, not proof that authorization exists. The production adapter also
-requires an independent control checkout, exact clean code/runbooks main SHAs,
-candidate/prior presence, healthy gateway/MCP and required handlers, exact
-deployed marker, peer clearance, zero live/indeterminate CC tasks, expected
-plist/old-root preimage, and normally no refresh request. Uncertainty refuses.
+requires an independent control checkout and exact clean code/runbooks main
+SHAs. For migration, cutover, resume, rollback, and acceptance, the existing
+full adapter preflight additionally proves candidate/prior presence, healthy
+gateway/MCP and required handlers, exact deployed marker, peer clearance, zero
+live/indeterminate CC tasks, expected plist/old-root preimage, and normally no
+refresh request. The narrower `adjudicate` adapter proof binds the exact clean
+control/live/runbook Git refs, reviewed/evidence inputs, and durable root; its
+engine separately proves the exact manifests, markers, ownership/modes, union
+progress, and CC liveness. It does **not** claim gateway/handler health,
+installed-plist preimages, transaction status, or refresh-request absence.
+Immediately before live adjudication, the operator procedure must therefore
+verify those four conditions separately and retain the results with the live
+evidence. Any uncertainty refuses.
 The installed plist bytes observed by this preflight are the sole rollback
 definitions for A: their SHA-256 values are journaled before any move, the exact
 bytes are retained in the transaction directory, and rollback never reconstructs
@@ -248,11 +257,16 @@ union member, unsafe root, or live/indeterminate task refuses. It normalizes
 only the durable CC directory from its exact initial mode to the migration-
 required `0700`, archives the stale legacy marker bytes mode `0600`, atomically
 replaces only the legacy marker with the durable B bytes and mode, and never
-overwrites the durable marker. Prepared receipts resume only from receipt-
-pinned subsets at the four tested crash boundaries; the durable CC root must
-be at its exact initial mode or `0700`. Completion requires exact CC
-equivalence and matching B markers before unchanged migration may issue its
-normal receipt.
+overwrites the durable marker. Resume re-proves both marker preimages before
+any CC copy and again after the union; the legacy marker is re-read immediately
+before replacement. The final check/replace syscall window is excluded by the
+required peer clearance and quiescent live window. Prepared receipts resume
+only from receipt-pinned subsets at the five tested crash boundaries; the
+durable CC root must be at its exact initial mode or `0700`. The evidence-only
+`adjudication-receipts/` and `migration-receipts/` directories are excluded
+from transaction/orphan scanning, while every other unrecognized directory
+remains a retained sanitized orphan. Completion requires exact CC equivalence
+and matching B markers before unchanged migration may issue its normal receipt.
 
 ### §E.3 Deterministic identity, ACTIVE selection, and orphans
 
@@ -649,7 +663,7 @@ Gate 4 remediation candidate acceptance additionally requires the full
 `tests/runtime_state` suite, focused Ruff and diff checks, exact CLI/adapter
 authority binding, unchanged default migration refusal, copy-only lossless
 union, durable CC mode `0700`, stale-marker archive, durable-marker
-no-overwrite, all four
+no-overwrite, all five
 crash-resume boundaries, and inherited descendant refusal. Live acceptance is
 still separate: exact-artifact review and authority checkpoint;
 successful forward sequence and first reloader no-op; all path/consumer/marker
@@ -661,8 +675,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 0f5347543ff7ea01472e1d5bd1004346834aca67
-last_refresh_date: 2026-08-25T08:55:18Z
+last_refresh_commit: 0f4a32db2a8714ecaca5134080e597489fc194c6
+last_refresh_date: 2026-08-25T10:14:59Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -672,7 +686,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`0f5347543ff7ea01472e1d5bd1004346834aca67`; locked Gate 1 SHA
+`0f4a32db2a8714ecaca5134080e597489fc194c6`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
 and a no-live-touch build boundary. The final documentation head, generated
