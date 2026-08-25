@@ -236,6 +236,7 @@ failed verification are indistinguishable at the reader.
 - A missing metadata key must not be readable as a negative verdict. `metadata.get("kyc_status", "not_started")` turns "we never looked" into "you failed".
 - Zero-row writes on the money path must log. The users leg does; the seller_profiles leg does not.
 - Repair of production seller records is reviewed code with a dry run, never hand SQL.
+- General seller profile edit paths, including `aim.profile.update`, may write only these five business fields: `business_name`, `business_description`, `website`, `phone`, and `address`. Payment, KYC, earnings, and Stripe identity fields are never profile-editable. `updated_at` is server-controlled and advances only on an existing, authorized, changed-row update. Backend candidate `a2649f29b55310e37f3180b884e23e54938c8b8f` is pending merge/deploy, not production proof.
 
 ### §H.2 Known gaps
 
