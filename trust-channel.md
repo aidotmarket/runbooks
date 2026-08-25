@@ -14,7 +14,9 @@ linter_version: 1.0.0
 
 The YAML frontmatter is authoritative. This runbook was source-audited against
 `aidotmarket/ai-market-backend` `origin/main` at
-`a51770aba9fe372ab3e305b4a3e3ab871b94d857` on 2026-07-13. The mounted API prefix is
+`a51770aba9fe372ab3e305b4a3e3ab871b94d857` on 2026-07-13. The KMS registration and
+handshake sections were re-audited against production merge
+`447075d43c8fa2ad1a43b05754457163990adce3` on 2026-08-25. The mounted API prefix is
 `/api/v1`; use the routes below, even where an endpoint docstring omits `/api`.
 
 Security provenance: `T-2026-000245` finding B records that
@@ -38,6 +40,7 @@ mark S1210 or an incident resolved from a happy-path check alone.
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Unified RSA or Ed25519/X25519 device registration | SHIPPED | `app/api/v1/endpoints/trust.py:register_device_unified` | `tests/test_trust_dual_auth.py::TestRegisterDualAuth` | 2026-07-13 |
+| KMS-backed RSA registration with purpose-separated signing and encryption keys | SHIPPED | `app/core/kms_lifecycle.py` | `tests/test_kms_lifecycle_s1606.py`; production registration plus both WebSocket paths | 2026-08-25 |
 | Owner-scoped device soft revocation | SHIPPED | `app/api/v1/endpoints/trust.py:delete_device` | No focused revocation test found | 2026-07-13 |
 | Standard encrypted WebSocket at `/api/v1/trust/stream` | SHIPPED | `app/api/v1/endpoints/trust_websocket.py:trust_channel_websocket` | `tests/test_bq_trust_channel_v2_m1.py` and `tests/test_bq_trust_channel_v2_m3.py` | 2026-07-13 |
 | VC-capable WebSocket at `/api/v1/trust/stream/vc` | SHIPPED | `app/api/v1/endpoints/trust_websocket_vc.py:trust_channel_websocket_vc` | `tests/test_bq_trust_channel_v2_m1.py::test_vc_endpoint_gets_heartbeat_and_registry` | 2026-07-13 |
@@ -57,7 +60,8 @@ revocation query. `TrustSession.expires_at` is also not consulted by either help
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Device API | `app/api/v1/endpoints/trust.py:register_device_unified` | PostgreSQL `devices` | JWT/API-key auth, KMS | `POST /api/v1/trust/register`; active Ed25519 registrations return existing platform keys, active RSA duplicates return 409, inactive owner devices are reactivated with new keys. |
+| Device API | `app/api/v1/endpoints/trust.py:register_device_unified` | PostgreSQL `devices` | JWT/API-key auth, shared KMS lifecycle | `POST /api/v1/trust/register`; active Ed25519 registrations return existing platform keys, active RSA duplicates return 409, inactive owner devices are reactivated with new keys. RSA registration fails closed with 503 and no partial device row when KMS is not ready. `platform_public_key_pem` is the encryption key; `platform_signing_public_key_pem` is the additive signing-verification key. |
+| KMS lifecycle | `app/core/kms_lifecycle.py:get_kms_client` | GCP KMS keyring `ai-market-trust` | `platform-signing-key`, `platform-encryption-key`, Infisical/Railway credentials | Configures credentials before client creation, caches one shared lifecycle, fetches both version-1 public keys for readiness, and rejects a missing key or wrong algorithm. Signing routes only to `RSA_SIGN_PKCS1_2048_SHA256`; decrypt routes only to `RSA_DECRYPT_OAEP_2048_SHA256`. |
 | Standard WebSocket | `app/api/v1/endpoints/trust_websocket.py:trust_channel_websocket` | connection-local crypto state, PostgreSQL `trust_sessions` | TrustChannelService, shared registry, outbound writer | `WSS /api/v1/trust/stream`; optional v2 negotiation, then hello/challenge/response/established and encrypted data. |
 | VC WebSocket | `app/api/v1/endpoints/trust_websocket_vc.py:trust_channel_websocket_vc` | connection-local crypto/VC state, PostgreSQL `trust_sessions` | TrustChannelVCService, shared registry, outbound writer | `WSS /api/v1/trust/stream/vc`; optional VC capability request, then the same device/session handshake with VC or legacy message wrapping. VC-wrapped response processing persists `channel_type="vc"`; the plain-response branch currently inherits the service default `"stream"`. |
 | Revocation decision | `app/api/v1/endpoints/trust_websocket.py:_check_session_validity`; `app/api/v1/endpoints/trust_websocket_vc.py:_check_session_validity` | PostgreSQL `devices` and `trust_sessions`, process registry | both WebSocket data loops | Checks active device, active session, then registry membership. Both current exception branches fail open; S1210 owns parity repair. |
@@ -128,13 +132,15 @@ yet deployed, that capability is a gap owned by S1210.
     os_type: installed client operating system
   idempotency: NOT_IDEMPOTENT
   expected_success:
-    shape: Registration response followed by hello, challenge, response, and established frames with a new trust session id.
-    verification: Confirm the devices row and trust_sessions row are active and the backend logs establishment for the same correlation and device ids. Record the observed channel_type; the VC endpoint plain-response branch currently persists the stream default.
+    shape: Registration response followed by hello, challenge, response, and established frames with a new trust session id. For RSA, platform_public_key_pem encrypts the session key and platform_signing_public_key_pem verifies the platform challenge signature.
+    verification: Confirm the two platform public keys are nonempty and distinct; verify the challenge signature with the signing key; encrypt the session key with the encryption key; validate session_id and expires_at are JSON strings; then confirm the devices row and trust_sessions row are active and the backend logs establishment for the same correlation and device ids. Record the observed channel_type; the VC endpoint plain-response branch currently persists the stream default.
   expected_failures:
     - signature: Device ID already registered to another user
       cause: device identity collision or wrong authenticated owner
     - signature: AUTH_FAILED or Device is inactive or revoked
       cause: missing/inactive device or failed cryptographic proof
+    - signature: HTTP 503 KMS not ready
+      cause: credential, key-access, key-purpose, or KMS readiness failure; registration is rolled back without a partial device
   next_step_success: Record the session id and correlation id without recording private keys or the session key.
   next_step_failure: Isolate with F-01; do not bypass device ownership or handshake validation.
 - id: E-02
@@ -206,6 +212,29 @@ yet deployed, that capability is a gap owned by S1210.
       cause: process registry is ephemeral and is not represented by the DB row alone
   next_step_success: Classify the observation as valid, revoked, or still indeterminate using §C.
   next_step_failure: Use logs and the exact deployment SHA; do not convert missing evidence into a valid result.
+- id: E-05
+  trigger: KMS-backed RSA registration or either Trust Channel handshake needs production verification after credential or key-routing recovery.
+  pre_conditions:
+    - The reviewed backend SHA and exact Railway deployment id are recorded.
+    - An approved synthetic account and unique disposable device id are used.
+    - GCP_SERVICE_ACCOUNT_JSON is sourced through Infisical and Railway without printing or writing private material.
+  tool_or_endpoint: POST /api/v1/trust/register, both WSS Trust Channel routes, correlated Railway logs, and read-only production database queries
+  argument_sourcing:
+    signing_key: platform-signing-key version 1 in keyring ai-market-trust
+    encryption_key: platform-encryption-key version 1 in keyring ai-market-trust
+    probe_identity: approved secret-backed synthetic account and a unique s1606-style device id
+  idempotency: IDEMPOTENT_WITH_KEY
+  idempotency_key: unique disposable device id bound to the deployment SHA
+  expected_success:
+    shape: RSA registration returns distinct encryption and signing public keys; standard and VC-legacy handshakes both establish; cleanup returns 204.
+    verification: Verify the certificate and both challenge signatures with the signing key, verify they fail with the encryption key, encrypt each session key with the encryption key, validate JSON-safe session fields, and correlate the exact device and session ids in logs and database. After cleanup, the device and sessions are inactive.
+  expected_failures:
+    - signature: CRYPTO_SCHEME_MISMATCH
+      cause: signing and decrypt operations were routed to the same KMS key or the configured key algorithm is wrong
+    - signature: KMS readiness check failed
+      cause: credential unavailable, IAM denied, key version missing, or configured algorithm does not match the required purpose
+  next_step_success: Record deployment, non-secret fingerprints, session ids, 204 cleanup, inactive database rows, and the absence of KMS/crypto errors in the same log window.
+  next_step_failure: Keep the incident open; inspect credential availability, IAM, both exact key names, and both version-1 algorithms. Never substitute one key for both purposes or export a KMS private key.
 ```
 
 For E-04, the source-grounded read shape is:
@@ -506,18 +535,19 @@ no §I.1 weight justification is required.
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1210
-last_refresh_commit: 630b2fff0f5d04ed453ed8141237b8fc9e28a51d
-last_refresh_date: 2026-07-13T19:58:06Z
+last_refresh_session: S1606
+last_refresh_commit: 8843542562daf6bc3b5d80f6911d4136279da458
+last_refresh_date: 2026-08-25T09:56:13Z
 owner_agent: vulcan
 refresh_triggers:
   - build:bq-trust-websocket-revocation-fail-closed-s1210 changes status or lands
   - either Trust Channel WebSocket validity helper or cadence changes
   - device or session registration contract changes
+  - KMS credential, lifecycle, key-purpose routing, or RSA registration contract changes
   - a Trust Channel authorization or isolation incident occurs
 scheduled_cadence: 90d
 last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-13T19:58:06Z
+last_harness_date: null
 first_staleness_detected_at: null
 ```
 
@@ -526,12 +556,15 @@ Refresh log:
 - S1210 (2026-07-13): first authoring. Audited backend `origin/main` at `a51770ab`;
   recorded the current fail-open exception branches, the exact mounted routes and
   50-frame/control-frame cadence, and the directional S1210 acceptance gate.
+- S1606 (2026-08-25): restored the production KMS credential path, recorded the
+  purpose-separated signing/encryption contract, and live-verified RSA registration
+  plus standard and VC-legacy handshakes on backend merge `447075d43c8f`.
 
 ## §K. Conformance
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1210 / 2026-07-13T19:58:06Z
+last_lint_run: S1606 / 2026-08-25T09:56:13Z
 last_lint_result: PASS
 trace_matrix_path: null
 word_count_delta: null
