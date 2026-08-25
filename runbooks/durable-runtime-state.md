@@ -681,7 +681,7 @@ publisher agreement, and healthy MCP, probe, reloader, gateway, and handlers.
 ```yaml lifecycle
 last_refresh_session: S1605
 last_refresh_commit: dd23191057ed2a8b2eefc3fd1de5675cedbec27b
-last_refresh_date: 2026-08-25T13:04:12Z
+last_refresh_date: 2026-08-25T19:30:00Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -699,6 +699,36 @@ worktree; accepted adjudication/migration receipts; terminal forward transaction
 documentation head, generated counts, tests, drift, and push result belong in
 the external completion report because a document cannot truthfully self-pin
 its own commit.
+
+### S1605 retained-branch closeout receipt
+
+On 2026-08-25, after Gate 4 completion, the read-only production controller
+reported `active: null`, no nonterminal transactions, no orphans, and the sole
+terminal transaction `s1456-dd23191057ed-to-dd23191057ed-a0001`. The deployed
+marker was `c5c27c2bba0cd3d7f2772065e314b68e37b19667`, which contains accepted
+code `dd23191057ed2a8b2eefc3fd1de5675cedbec27b`. The MCP, gateway, and public
+API health routes were healthy, and the installed MCP, probe, and reloader
+definitions all resolved `KOSKADEUX_DURABLE_STATE_DIR` to
+`/Users/max/koskadeux-state`.
+
+The nine completed working refs were each copied to the exact immutable archive
+ref below and verified byte-for-byte before their original refs were removed in
+atomic repository batches with exact expected-tip leases:
+
+| Repository | Removed working ref | Retained archive ref | Exact tip |
+|---|---|---|---|
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-gate3-chunk-a-s1572` | `archive/s1605/s1456/gate3-chunk-a-s1572` | `d2592ae476be48df60ceb37055e0db65c6874ee0` |
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-gate3-chunk-b-s1572` | `archive/s1605/s1456/gate3-chunk-b-s1572` | `666d34391032e938c56095988254dc2bfe7b883d` |
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-gate3-chunk-c1-s1572` | `archive/s1605/s1456/gate3-chunk-c1-s1572` | `fa6ffc1cc57359b7e33736ca583b3b54bc31e050` |
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-gate3-chunk-c2-s1572` | `archive/s1605/s1456/gate3-chunk-c2-s1572` | `6b37db313c69960c1c7beb391f5a0a5eac35ea87` |
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-gate3-macos-adapter-s1572` | `archive/s1605/s1456/gate3-macos-adapter-s1572` | `7f5b1feb3b31b522fd794ccbd60cfb05381bc13d` |
+| `koskadeux-mcp` | `build/bq-durable-state-relocation-s1456-s1605` | `archive/s1605/s1456/gate3-s1605` | `fd404351f8eb17da33f43d0b2629228ee10bc8e4` |
+| `koskadeux-mcp` | `spec/bq-durable-state-relocation-s1456-current-s1572` | `archive/s1605/s1456/gate2-current-s1572` | `90940eec7b46e49c35b694a1dbdd17f4cfb9e2a7` |
+| `runbooks` | `build/bq-durable-state-relocation-s1456-runbooks-s1572` | `archive/s1605/s1456/runbooks-s1572` | `5fb5bf7768ec11173fdc84b0f368c181b9a6c23f` |
+| `runbooks` | `docs/bq-durable-state-relocation-s1456-s1605` | `archive/s1605/s1456/runbooks-s1605` | `62448650833c82dda2ba16ede9c7766834d135ad` |
+
+The archive refs are recovery evidence only. They do not authorize rollback or
+new mutation; the receipt-bound rollback contract above remains unchanged.
 
 ## §K. Conformance
 
