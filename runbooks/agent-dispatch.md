@@ -38,7 +38,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-12
+last_verified_at: 2026-08-25
 system_name: agent-dispatch
 purpose_sentence: MP build-dispatch mechanics; Council reviewer transport is owned exclusively by council.md.
 owner_agent: vulcan
@@ -163,6 +163,16 @@ Historical rationale, superseded for current roster/build roles: MP's Codex CLI 
 <!-- /catalog:historical -->
 
 Current operational truth is the block above: MP is mandatory builder, CC/Kimi/GLM are the gate voters, AG is paused, and DeepSeek is retired.
+
+MP build base selection is independent of the mutable caller checkout. For
+`dispatch_mp_build`, an optional explicit `base_sha` must be a lower-case
+40-character commit that resolves in the target repository; otherwise dispatch
+refuses with `minimal_bridge_base_invalid` before enqueueing. When `base_sha` is
+omitted, the dispatcher fetches and uses the origin default-branch tip. If the
+fetch fails but the local origin ref is usable, the job records
+`base_ref_freshness=stale_fetch_failed`; it never falls back to checkout
+`HEAD`. This shipped from branch commit `b07d163ec6` through merge
+`3138f4444f` and was live-verified in S1605 on deployed main `0d836b4a0a`.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
