@@ -197,7 +197,12 @@ in S1345 by agent literal in `tools/agents.py`: `ag` 7, `deepseek` 4, `mp` 3,
 to it reaches every agent.
 
 It runs the work as a **daemon thread inside the dispatching process** and writes
-one record per task to `/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json`. That
+one record per task to
+`/Users/max/koskadeux-state/cc_tasks/{task_id}.meta.json`. The directory comes
+only from `KOSKADEUX_DURABLE_STATE_DIR` (default
+`/Users/max/koskadeux-state`) through `cc_tasks_dir()`; the retired
+`KOSKADEUX_CC_TASKS_DIR` and `KOSKADEUX_STATE_DIR` variables cannot redirect
+it. That
 record is the only thing an outside reader has. Written before this entry
 existed, because two instances separately concluded there was no documentation
 of what these fields mean and what may be inferred from them.
@@ -1363,7 +1368,8 @@ enforcement existed.
 
 Builds dispatched through `tools/async_dispatch.dispatch_async` run the worker
 as a **daemon thread inside the dispatching process** (the MCP server), and the
-meta file at `/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json` is written once,
+meta file at
+`/Users/max/koskadeux-state/cc_tasks/{task_id}.meta.json` is written once,
 at dispatch, saying `"status": "running"`. **Only that thread will ever update
 it.** If the server restarts, the thread dies with it and nothing is left alive
 that could ever write a terminal state.
@@ -1378,7 +1384,7 @@ Two guards exist for this and neither could fire:
    ```
    python3 -c "
    import glob, json
-   m = glob.glob('/var/tmp/koskadeux/cc_tasks/*.meta.json'); n = 0
+   m = glob.glob('/Users/max/koskadeux-state/cc_tasks/*.meta.json'); n = 0
    for f in m:
        try:
            if json.load(open(f)).get('pid') is None: n += 1
@@ -1404,9 +1410,9 @@ answers about one task, neither is evidence; go to the process table.
 
 ### Procedure
 
-1. `ls -la /var/tmp/koskadeux/cc_tasks/{task_id}*`. A lone `.meta.json` with no
+1. `ls -la /Users/max/koskadeux-state/cc_tasks/{task_id}*`. A lone `.meta.json` with no
    `.json` and no `.done` means the worker produced nothing at all.
-2. `python3 -c "import json;print(json.load(open('/var/tmp/koskadeux/cc_tasks/{task_id}.meta.json'))['dispatched_iso'])"`
+2. `python3 -c "import json;print(json.load(open('/Users/max/koskadeux-state/cc_tasks/{task_id}.meta.json'))['dispatched_iso'])"`
 3. **Ask launchd which process it owns, not the process table.**
    `launchctl list com.koskadeux.mcp | grep '"PID"'`, then
    `ps -eo pid,lstart -p <that pid>`. **If the server start time is later than
@@ -1541,13 +1547,15 @@ concluding a mechanism is absent.**
 `origin/main`, then **refuses** to bounce unless the tree is clean, no session is
 live or unverifiable, and no build child is in flight. On success it kickstarts
 `com.koskadeux.mcp` and records the deployed commit in
-`/var/tmp/koskadeux/deployed_sha`.
+`/Users/max/koskadeux-state/deployed_sha`. The marker and CC directory are
+fixed children of `KOSKADEUX_DURABLE_STATE_DIR`; per-record legacy overrides
+are inert.
 
 **Merged is not live.** Code on main is not running until that bounce happens.
 To check whether a deploy is outstanding:
 
 ```
-cat /var/tmp/koskadeux/deployed_sha            # what is running
+cat /Users/max/koskadeux-state/deployed_sha            # what is running
 git -C /Users/max/koskadeux-mcp rev-parse origin/main   # what is merged
 tail -5 /tmp/koskadeux_mcp_reload.log          # why it is deferring
 ```
@@ -1589,9 +1597,9 @@ pgrep -fl "$PAT"
 # 2. FRESH thread tasks: no done marker AND touched in the last 6 hours.
 #    6h matches BUILD_STALE_SECONDS in reload_when_idle.sh; anything older is
 #    a legacy orphan, not live work.
-find /var/tmp/koskadeux/cc_tasks -name '*.meta.json' -mmin -360 | while read m; do
+find /Users/max/koskadeux-state/cc_tasks -name '*.meta.json' -mmin -360 | while read m; do
   t=$(basename "$m" .meta.json)
-  [ -e "/var/tmp/koskadeux/cc_tasks/$t.done" ] || echo "IN FLIGHT (or died today): $t"
+  [ -e "/Users/max/koskadeux-state/cc_tasks/$t.done" ] || echo "IN FLIGHT (or died today): $t"
 done
 ```
 
@@ -1632,7 +1640,7 @@ session including Max's.
    ```
    git -C /Users/max/koskadeux-mcp status --porcelain     # must print nothing
    git -C /Users/max/koskadeux-mcp rev-parse origin/main  # the SHA you are deploying
-   cat /var/tmp/koskadeux/deployed_sha                    # what is running now
+   cat /Users/max/koskadeux-state/deployed_sha                    # what is running now
    ```
 
 2. Tell the peer instance and get an answer. **Do not act on silence.**
@@ -1697,8 +1705,8 @@ session including Max's.
 5. **Only after that verification**, record the deploy:
 
    ```
-   printf '%s\n' <the SHA you verified> > /var/tmp/koskadeux/deployed_sha.tmp \
-     && mv /var/tmp/koskadeux/deployed_sha.tmp /var/tmp/koskadeux/deployed_sha
+   printf '%s\n' <the SHA you verified> > /Users/max/koskadeux-state/deployed_sha.tmp \
+     && mv /Users/max/koskadeux-state/deployed_sha.tmp /Users/max/koskadeux-state/deployed_sha
    ```
 
    Use the SHA you actually verified as running, which is `origin/main` at the
@@ -1896,7 +1904,7 @@ At every session open, and again before any dispatch, merge, or close:
    fresh row is required.
 4. Boot payload claims (deploy SHA, service health, handoff assertions) are
    verified against ground truth before being relied on: read
-   `/var/tmp/koskadeux/deployed_sha`, the server PID/start time, and the
+   `/Users/max/koskadeux-state/deployed_sha`, the server PID/start time, and the
    reload log rather than trusting prose. The handoff is a pointer, not
    evidence.
 5. Mid-session tool results can carry `PEER MESSAGES AT TURN START` banners:

@@ -55,14 +55,19 @@ YAML frontmatter above is authoritative for the §A header fields. Max directive
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Task Spooler binary | `/opt/homebrew/bin/ts` | Per-socket in-memory server state; job output files in `$TMPDIR/ts-out.XXXXXX` | Any shell command | On macOS Homebrew the binary is `ts`. It is `tsp` only on Debian/Ubuntu. Never hardcode `tsp`. |
+| Task Spooler binary | `/opt/homebrew/bin/ts` | Per-socket server state and Task Spooler's own output files | Any shell command | On macOS Homebrew the binary is `ts`. It is `tsp` only on Debian/Ubuntu. Never hardcode `tsp`. |
 | ts server | Auto-started by the first `ts` invocation on a socket | Same | The jobs it supervises | One server per `TS_SOCKET`. It owns the queue and drains it whether or not any caller is attached. |
 | Queue socket | `TS_SOCKET` env var | Unix socket file | One per repository | A distinct socket is a fully independent queue. This is how per-repository serialisation is achieved: a koskadeux-mcp build must never block an ai-market-backend build. |
-| tsp_queue wrapper | `koskadeux_mcp/tsp_queue.py` | none of its own | `ts` binary | Thin wrapper: enqueue, list, output, remove, kill. Resolves the binary from `KD_TS_BIN` (default `ts`). Socket dir from `KD_TS_SOCKET_DIR` (default `/Users/max/koskadeux-state/ts-sockets`, mode 0700). |
-| bridge runner | `koskadeux_mcp/bridge_runner.py` | job spec JSON in, report JSON plus builder-output artifact out | `minimal_bridge.dispatch` | The process ts actually executes. Reads a job spec, streams combined builder stdout/stderr to the durable artifact, runs the build, writes the report. Nothing may block on it. |
-| legacy SQLite queue | `codex_cli_bridge.py` `_acquire_codex_lock` | `/var/tmp/koskadeux/control/codex_queue.sqlite3` | reviewer dispatches only | SUPERSEDED for builds. Still serves the three streaming:event_stream reviewer rows; untangle before deleting. Source of defects F-05/G-02. |
-| minimal bridge | `koskadeux_mcp/minimal_bridge.py` `dispatch()` | git worktrees under `/var/tmp/koskadeux/minimal-bridge-worktrees/`; reports and `*.builder-output.log` / `*.tests-output.log` under the job directory; outcomes at `KD_BRIDGE_OUTCOMES_DB` | git, Codex CLI | Build semantics only. It streams combined builder output before preservation/push and records artifact paths, byte counts, completeness, exit code and explicit test status. Serialisation is ts's job. |
+| tsp_queue wrapper | `koskadeux_mcp/tsp_queue.py` | durable socket/slot files beneath `KD_TS_SOCKET_DIR`; default `/Users/max/koskadeux-state/ts-sockets` mode `0700` | `ts` binary | Thin wrapper: enqueue, list, output, remove, kill. Resolves the binary from `KD_TS_BIN` (default `ts`). This root is independent of `KOSKADEUX_DURABLE_STATE_DIR`. |
+| bridge runner | `koskadeux_mcp/bridge_runner.py` | job specs, reports, `*.builder-output.log`, and `*.tests-output.log` under `KD_TS_JOB_DIR`; default `/Users/max/koskadeux-state/ts-sockets/jobs` | `minimal_bridge.dispatch` | The process ts actually executes. Reads a job spec, streams combined output to the durable artifact, runs the build, and writes the report. Nothing may block on it. |
+| legacy SQLite queue | no current source consumer | `/var/tmp/koskadeux/control/codex_queue.sqlite3` if residue exists | none | Retired residue: the former consumer was removed. Preserve it; do not migrate, query, or reactivate it under S1456. |
+| minimal bridge | `koskadeux_mcp/minimal_bridge.py` `dispatch()` | ephemeral Git worktrees under `/var/tmp/koskadeux/minimal-bridge-worktrees/`; durable reports/transcripts under the job directory; durable outcomes default `/Users/max/koskadeux-state/bridge_outcomes.db` | git, Codex CLI | Build semantics only. It streams combined builder output before preservation/push and records artifact paths, byte counts, completeness, exit code and explicit test status. Serialisation is ts's job. |
 | dispatch handler | `tools/agents.py _dispatch_via_minimal_bridge` | — | tsp_queue | Resolves base_sha, writes the job spec, enqueues, returns a handle immediately. It MUST NOT wait for the build. |
+
+S1456 does not relocate any Task Spooler socket, slot marker, job spec, report,
+builder/test transcript, or `bridge_outcomes.db`: those defaults are already
+durable and have their own `KD_TS_*` / `KD_BRIDGE_*` contracts. It also does not
+make Task Spooler's queue server state a member of the five-record migration.
 
 ### §C.1 Why the previous queue was replaced
 

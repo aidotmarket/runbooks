@@ -403,43 +403,54 @@ localhost:8765/health` (allow ~10s startup for Infisical fetches before judging 
 log everything to a file. After the bounce, every live instance must re-open + re-plan.
 
 
-## Durable state relocation and restart-window discipline (S1499, T-2026-000585)
+## Durable runtime-state path contracts (S1499 and S1456 candidate)
 
-The gateway OAuth credential store and the session registry live in durable storage:
-`/Users/max/koskadeux-state/gateway_storage.json` (0600) and `/Users/max/koskadeux-state/registry.db`.
-They were moved out of /var/tmp because macOS may clear it, and a cleared credential store
-locks BOTH instances out with no automated recovery. Transitional symlinks remain at the old
-/var/tmp paths for any long-running process started on pre-S1499 code.
+The already-live S1499 gateway OAuth store and session registry remain
+`/Users/max/koskadeux-state/gateway_storage.json` (mode `0600`) and
+`/Users/max/koskadeux-state/registry.db`. Their transitional old-path symlinks
+predate S1456 and are not a model for new records.
 
-Failure signature and lesson: a relocation/restart script dispatched through shell_request is a
-CHILD of the gateway/MCP service process group. `launchctl bootout` kills the whole group, so the
-script dies silently the moment it stops its own ancestor. nohup does not protect against this.
-Any procedure that stops com.koskadeux.gateway or com.koskadeux.mcp must run from the operator's
-terminal or an independent launchd job, never via shell_request. Sequencing rule: move the data
-files while the services are stopped and BEFORE they start on code carrying new paths, or the
-gateway boots with an empty credential store.
+S1456 is narrower than the retired design formerly recorded here. Its reviewed
+code candidate moves only these five MCP-owned records, all fixed children of
+`KOSKADEUX_DURABLE_STATE_DIR` (default `/Users/max/koskadeux-state`):
 
-S1456 extends this boundary to every durable runtime record. The canonical layout is:
+| Consumer contract | Durable path |
+|---|---|
+| Council/background dispatch records | `/Users/max/koskadeux-state/cc_tasks` |
+| Deprecated-instance-alias counters | `/Users/max/koskadeux-state/session_instance_alias_counters.json` |
+| Admin restart history | `/Users/max/koskadeux-state/restart_count.json` |
+| Reloader and ground-truth deployment marker | `/Users/max/koskadeux-state/deployed_sha` |
+| Probe/reloader same-SHA refresh request | `/Users/max/koskadeux-state/mcp_secret_refresh_request` |
 
-| Record | Canonical path | Temporary compatibility path | Cutover rule |
-|---|---|---|---|
-| Session registry | `/Users/max/koskadeux-state/registry.db` | `/var/tmp/koskadeux/registry.db` if present | Existing SQLite, owner, and read/write checks; production opens with SQLite `mode=rw` and never creates a replacement |
-| Gateway storage | `/Users/max/koskadeux-state/gateway_storage.json` | `/var/tmp/koskadeux/gateway_storage.json` if present | Existing file and owner checks before handler startup |
-| Council Hall | `/Users/max/koskadeux-state/council_hall.db` | `/var/tmp/koskadeux/council_hall.db` | Copy and hash-verify while stopped; SQLite opens with `mode=rw` |
-| Boot/session runtime | `/Users/max/koskadeux-state/boot_gate_runtime.json` | `/var/tmp/koskadeux/boot_gate_runtime.json` | Never overwrite an existing durable checkpoint; retain both inventories and link the old path only after verification |
-| Dispatch/verdict/usage state | `/Users/max/koskadeux-state/cc_tasks`, `/Users/max/koskadeux-state/verdicts`, `/Users/max/koskadeux-state/agent_usage.csv` | `/var/tmp/koskadeux/` equivalents | Copy/hash-verify, retain a rollback snapshot, then install compatibility links |
-| Reload markers | `/Users/max/koskadeux-state/reloader/deployed_sha` and refresh request | `/var/tmp/koskadeux/` equivalents | `KOSKADEUX_RELOADER_STATE_DIR` and `KOSKADEUX_DEPLOYED_SHA` are the supported overrides |
+No compatibility symlink is created for these five records. Legacy
+`KOSKADEUX_STATE_DIR`, `KOSKADEUX_CC_TASKS_DIR`, and
+`KOSKADEUX_PROBE_STATE_DIR` cannot redirect them. Probe retry/backoff state
+`mcp_probe_restart_state.json` remains ephemeral under
+`KOSKADEUX_PROBE_STATE_DIR`; it is not the refresh request. The canonical probe
+derives the repository root from its own script path before importing the
+shared resolver, so launchd execution from `/` does not rely on cwd or an
+installed package.
 
-The non-destructive cutover utility is
-`/Users/max/koskadeux-mcp/scripts/migrate_durable_state.py`. Its default mode is
-inventory-only. `--execute` is allowed only in an independently launched stop window;
-it snapshots source inventories, refuses conflicting targets except for preserving an
-already newer `boot_gate_runtime.json`, verifies copies by size and SHA-256, and leaves
-the source retained behind a compatibility symlink. It must not be invoked through
-`shell_request`; use Max's terminal or an independent one-shot launchd job. If the
-utility refuses, do not delete, retry, or start services on the new paths.
+`admin.py` reads and writes restart history only at the resolved durable file.
+Absent history means zero. A present malformed, wrong-shaped, symlinked, or
+unreadable file fails with stable `restart_history_unreadable`; `/admin/status`
+returns 503. Increment uses a mode-`0600` sibling temporary, file fsync, atomic
+replace, and parent fsync. A persistence failure prevents exit and returns the
+service state to `RUNNING`; a post-replace parent-fsync failure poisons further
+increments for that process because the complete old/new record is
+persistence-indeterminate. The record counts an attempted restart, not a
+verified relaunch.
 
-After activation, verify both health endpoints, the deployed marker, target ownership,
-the relocation snapshot, and a fresh PID. Every live instance then performs its own
-`kd_session_open` followed by `kd_session_plan`; the relocation is not complete until
-those post-restart gates and the runbook evidence are recorded.
+The candidate controller is `scripts/durable_runtime_state.py`, not the
+retired `migrate_durable_state.py --execute` interface. `inventory
+--candidate-sha <sha>` and `status` are read-only. Every mutating `migrate`,
+`cutover`, `resume`, `rollback`, or `accept` call refuses without `--reviewed-live`, exact
+reviewed code/runbooks SHAs, and non-secret authorization/peer-clearance
+evidence IDs. The full candidate-only contract is the DRAFT discovery page
+`runbooks/durable-runtime-state.md`; neither page authorizes live use.
+
+A controller that fences `com.koskadeux.mcp` must be independent of the MCP
+process group. Never launch the cutover from `shell_request`, install or
+kickstart a candidate plist during documentation work, or infer a live cutover
+from isolated tests. After any separately authorized handler restart, each
+live instance still re-runs its own `kd_session_open` and `kd_session_plan`.
