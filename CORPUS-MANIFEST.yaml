@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 09a82bf1ef484ac8ebc13d9d6ade629044747b63
+  inventory_sha: e85c9fded5ebf2ca8ca7fc991a58ecf997f94bc9
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -733,7 +733,7 @@ documents:
       - deployed customer surface and current feature flags
     independent_review_required: true
   - path: gcp-auth.md
-    git_blob_oid: b87000ace1405a500902324e0a903613b17460fc
+    git_blob_oid: dc21439dd4122581039de40b9fd3b8da497f1f2e
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1282,7 +1282,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/durable-runtime-state.md
-    git_blob_oid: 8c89580dd1272de57fea4f72b624f86585ed7a73
+    git_blob_oid: 8ddfa76d8925eab95ce7fd489cfac8461bbc632b
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1666,7 +1666,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: trust-channel.md
-    git_blob_oid: 4176758f445d911c642cc04b167be8d9cbd6ba22
+    git_blob_oid: 99fc11d9955b2584a29a0d872fe0d375a69b9ac1
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
