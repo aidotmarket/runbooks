@@ -1291,13 +1291,13 @@ documents:
     target_paths:
       - runbooks/durable-runtime-state.md
     evidence:
-      - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:koskadeux_mcp/durable_state_cutover.py
-        finding: Exact Gate 3 R5 candidate for the receipt-bound five-record controller, terminal publication
-          fence, and same-process live acceptance boundary; independent exact-artifact review remains
+      - ref: git:aidotmarket/koskadeux-mcp@fd404351f8eb17da33f43d0b2629228ee10bc8e4:koskadeux_mcp/durable_state_cutover.py
+        finding: Exact Gate 3 R6 candidate for the receipt-bound five-record controller, shared terminal
+          fence, exported mutation gates, and same-process live acceptance boundary; independent review remains
           required.
-      - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
-        finding: Gate 2 contract updated at the exact R5 candidate for idempotent crash resume, terminal
-          reproof, independent-controller refusal, guarded rollback, and reviewed-live acceptance.
+      - ref: git:aidotmarket/koskadeux-mcp@fd404351f8eb17da33f43d0b2629228ee10bc8e4:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
+        finding: Gate 2 contract updated at the exact R6 candidate for both terminal dispositions,
+          exported mutation refusal, guarded no-request recovery, and reviewed-live acceptance.
     verify_against:
       - exact code and Gate specs
       - isolated tests and Council
