@@ -236,7 +236,9 @@ failed verification are indistinguishable at the reader.
 - A missing metadata key must not be readable as a negative verdict. `metadata.get("kyc_status", "not_started")` turns "we never looked" into "you failed".
 - Zero-row writes on the money path must log. The users leg does; the seller_profiles leg does not.
 - Repair of production seller records is reviewed code with a dry run, never hand SQL.
-- General seller profile edit paths, including `aim.profile.update`, may write only these five business fields: `business_name`, `business_description`, `website`, `phone`, and `address`. Payment, KYC, earnings, and Stripe identity fields are never profile-editable. `updated_at` is server-controlled and advances only on an existing, authorized, changed-row update. Backend candidate `a2649f29b55310e37f3180b884e23e54938c8b8f` is pending merge/deploy, not production proof.
+- General seller profile edit paths, including `aim.profile.update`, may write only these five business fields: `business_name`, `business_description`, `website_url`, `require_buyer_approval`, and `auto_approve_threshold`. Payment, KYC, earnings, and Stripe identity fields are never profile-editable; `updated_at` is server-controlled.
+- **Final S1606 evidence.** The allow-list merged to backend `main` at `db5e2ea6e2dcdf0c70d215a23e034e696b5444c1` and deployed as `db21d9a3-e44c-4d74-9f8b-6e90b84fc81b`; the action-path compatibility repair merged at `ca1837b47bf292411295e314195486186adad44a` and deployed as `fd112e13-5eb7-4091-860f-65933a6e7e19`; the audit UUID/datetime JSON serialization repair merged at `79e62b758e3efdb9622fa016d0a2808ec11c7e33` and deployed as `e8f732d8-450f-4f09-8c67-5a28c403f206`.
+- Live isolated synthetic-seller proof on that exact final deployment returned HTTP 200 for action list/check and confirmed `aim.profile.update` succeeded: the allowed `business_name` digest changed and was restored, forbidden Stripe/KYC digests remained unchanged, and permission tier moved 1→2→1. Mutation and restoration each produced a successful audit row with a result. Final-deployment logs contained no UUID-serialization or action-path `AttributeError`; this is not a blanket error-free service-log claim. Normal seller-capability provisioning created the synthetic seller profile, and its failed and successful audit rows were retained, not deleted.
 
 ### §H.2 Known gaps
 
@@ -259,6 +261,7 @@ DISCHARGED S1529: registered in `CATALOG.json` at canonical path `runbooks/strip
 | Created | S1472, 2026-08-07, vulcan |
 | Ticket | T-2026-000572 |
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
+| Updated | S1606, 2026-08-25, mars — recorded the final merged/deployed allow-list and isolated live proof for `BQ-PROFILE-UPDATE-MASS-ASSIGNMENT-S1604` |
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
 | Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); §H.3 catalog debt discharged |
 | Updated | S1483, 2026-08-08, vulcan — §H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); §H.3 catalog debt recorded |
