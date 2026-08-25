@@ -97,6 +97,14 @@ Verify both the exact mediation 422 string and an array-valued validation 422 in
 
 **T-2026-000698 proof (2026-08-24):** frontend candidate `648a232537086ec29013859eb57ad78fbdfb031b`, merge `cc7fc0d069ac83fa331d6ad339de0e65a73a2b88`, Railway deployment `4ea6a792-b13f-4715-bdd9-5a6ef702dc05`, and production E2E run `run-20260824T183519Z-9f8666bb` (passed with no findings).
 
+## Marketplace search reset
+
+The **Clear all** control in `components/search/MarketplaceSearchExperience.tsx` clears the complete URL-driven search state, including `q`, `type`, category, price, format, and sort. It must navigate to the current marketplace pathname with no query string; preserving `q` leaves a customer trapped in the same zero-result state.
+
+Verify this at phone size through the sanctioned `kdbrowser` GUI runner with real Chrome: open `https://ai.market/listings?q=financial+markets` at 390×844, confirm the zero-result state, activate **Clear all**, then require the URL to become `https://ai.market/listings`, the search input to be empty, and a non-zero catalog result count to be visible.
+
+**T-2026-000708 proof (2026-08-25):** frontend candidate `81797ab2afd2e0ae2eac95265eba8a5ec3920fc7`, merge `ac3a15a7646a6dcd6b41ed45335ac9d44c00ed96`, Railway deployment `78fc9b57-d1a6-495a-98bb-a0d281d7c480` (`SUCCESS` at the exact merge SHA), and an isolated `kdbrowser` real-Chrome acceptance at 390×844 that observed 0 results before the action and the restored unfiltered catalog at `/listings` after it.
+
 ## Troubleshooting
 
 | Problem | Diagnosis | Fix |
@@ -104,6 +112,7 @@ Verify both the exact mediation 422 string and an array-valued validation 422 in
 | White screen / 500 | Check Railway deploy logs | Fix build error, push to main |
 | API calls failing | Check `NEXT_PUBLIC_API_URL` | Verify env var in Railway |
 | Listings not showing | Backend search endpoint issue | Check backend `/api/v1/search` |
+| **Clear all** leaves the same search or zero-result state visible | The handler preserved one or more URL search parameters instead of removing the full query string | Inspect `MarketplaceSearchExperience.tsx`; require navigation to the current pathname without query parameters, then repeat the phone-sized `kdbrowser` Chrome acceptance above |
 | OAuth not working | Google client ID mismatch | Check `GOOGLE_CLIENT_ID` in both frontend env and backend |
 | Styles broken after deploy | Tailwind purge issue | Check Tailwind config, redeploy |
 | Authenticated inquiry stays on **Submitting...** or the rejection disappears | Correlate the browser transcript with the backend `message_audit` timestamp; inspect the persistent authenticated alert path | Run `mediation-contact-leak-probe`; fix the backend post-audit latency or the frontend persistent-result path according to the evidence, then require both attempts to pass |
