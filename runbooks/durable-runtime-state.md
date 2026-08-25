@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
-`0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e`. The locked Gate 1 design is
+`556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
@@ -258,9 +258,13 @@ only the durable CC directory from its exact initial mode to the migration-
 required `0700`, archives the stale legacy marker bytes mode `0600`, atomically
 replaces only the legacy marker with the durable B bytes and mode, and never
 overwrites the durable marker. Resume re-proves both marker preimages before
-any CC copy and again after the union; the legacy marker is re-read immediately
-before replacement. The final check/replace syscall window is excluded by the
-required peer clearance and quiescent live window. Prepared receipts resume
+any CC copy and again after the union. The archive is published from the
+receipt-pinned stale bytes rather than by reopening the mutable live marker;
+its temporary and published forms, every resume, pre-normalization, and final
+completion all re-prove exact bytes and mode `0600`. The legacy marker is
+re-read immediately before replacement. The final check/replace syscall window
+is excluded by the required peer clearance and quiescent live window. Prepared
+receipts resume
 only from receipt-pinned subsets at the five tested crash boundaries; the
 durable CC root must be at its exact initial mode or `0700`. The evidence-only
 `adjudication-receipts/` and `migration-receipts/` directories are excluded
@@ -675,8 +679,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e
-last_refresh_date: 2026-08-25T10:14:59Z
+last_refresh_commit: 556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b
+last_refresh_date: 2026-08-25T10:46:10Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -686,7 +690,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e`; locked Gate 1 SHA
+`556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
 and a no-live-touch build boundary. The final documentation head, generated
