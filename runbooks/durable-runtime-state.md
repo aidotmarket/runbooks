@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
-`0f4a32db2a8714ecaca5134080e597489fc194c6`. The locked Gate 1 design is
+`0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
@@ -675,7 +675,7 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 0f4a32db2a8714ecaca5134080e597489fc194c6
+last_refresh_commit: 0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e
 last_refresh_date: 2026-08-25T10:14:59Z
 owner_agent: vulcan
 refresh_triggers:
@@ -686,7 +686,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`0f4a32db2a8714ecaca5134080e597489fc194c6`; locked Gate 1 SHA
+`0f4a32db2adb6d28f1a1f1b9f1a045163fd2bb3e`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
 and a no-live-touch build boundary. The final documentation head, generated
