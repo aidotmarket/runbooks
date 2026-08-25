@@ -10,11 +10,11 @@ superseded_by: []
 owner: vulcan
 last_verified_at: 2026-08-25
 system_name: durable-runtime-state
-purpose_sentence: Discovery-only candidate for the reviewed S1456 five-record durable runtime-state path, exact-preimage conflict adjudication, migration, cutover, resume, acceptance, and lossless rollback contracts.
+purpose_sentence: Reviewed S1456 five-record durable runtime-state contract and live acceptance evidence for exact-preimage conflict adjudication, migration, cutover, resume, acceptance, and lossless rollback.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page records the exact reviewed candidate contract for later independent review and does not authorize a live migration, launchd action, publication, or cutover.
+authoritative_scope: None while DRAFT; this page records the reviewed contract and completed live evidence but does not itself authorize a future migration, launchd action, publication, cutover, or rollback.
 linter_version: 1.0.0
 ---
 
@@ -22,21 +22,20 @@ linter_version: 1.0.0
 
 ## §A. Header
 
-This is a **DRAFT discovery document, not operating authority**. It describes
-the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
-`556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b`. The locked Gate 1 design is
+This remains a **DRAFT reference document, not operating authority**. It
+describes the Gate 4 remediation accepted live at exact `koskadeux-mcp` SHA
+`dd23191057ed2a8b2eefc3fd1de5675cedbec27b`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
-candidate. The runbooks candidate starts from published runbooks main
-`8843542562daf6bc3b5d80f6911d4136279da458` on branch
-`docs/bq-durable-state-gate4-s1605`.
+candidate. The separately reviewed live runbooks identity was published
+runbooks main `4cece4cbb7d42b314855a658546a9f2ddf411f03`.
 
-Candidate tests and this page do not prove a live cutover. Do not use this page
-to install, unload, bootstrap, kickstart, migrate, publish, or write either live
-runtime-state root. A live Gate 4 action requires separately reviewed exact
-code and runbooks SHAs, explicit authorization evidence, peer-clearance
-evidence, immediate preflight, and the controller's `--reviewed-live` boundary.
+This page does not authorize a new live cutover. S1605 performed the live Gate
+4 action under separately reviewed exact code/runbooks SHAs, explicit
+authorization evidence, peer-clearance evidence, immediate preflight, and the
+controller's `--reviewed-live` boundary. Future install, unload, bootstrap,
+kickstart, migrate, publish, cutover, or rollback work requires fresh authority.
 No secret, record content, review content, or credential belongs in a command
 transcript or receipt.
 
@@ -44,12 +43,12 @@ transcript or receipt.
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| One resolver for five MCP-owned records | PLANNED | `koskadeux_mcp/runtime_state_paths.py` | Python/shell isolated path and consumer-parity tests | 2026-08-19 |
-| Strict restart-history durability | PLANNED | `admin.py` | malformed/symlink/read/write/fsync and 503/no-exit tests | 2026-08-19 |
-| Sanitized inventory and copy-first migration | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | CLI and isolated migration tests | 2026-08-19 |
-| Exact-preimage conflict adjudication and MCP descendant refusal | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | union/conflict/preimage/crash-resume, adapter/CLI authority, and launcher PID/exec tests | 2026-08-25 |
-| Receipt-bound macOS cutover and rollback | PLANNED | `koskadeux_mcp/durable_state_macos.py` | simulated launchd/crash/cutover/rollback tests | 2026-08-19 |
-| Finite 16-point soak and same-process acceptance | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | injected private clock/scheduler tests; no 15-minute unit sleep | 2026-08-24 |
+| One resolver for five MCP-owned records | SHIPPED | `koskadeux_mcp/runtime_state_paths.py` | Python/shell isolated path and consumer-parity tests plus S1605 live probes | 2026-08-25 |
+| Strict restart-history durability | SHIPPED | `admin.py` | malformed/symlink/read/write/fsync and 503/no-exit tests | 2026-08-25 |
+| Sanitized inventory and copy-first migration | SHIPPED | `koskadeux_mcp/durable_state_cutover.py` | CLI and isolated migration tests plus accepted migration receipt | 2026-08-25 |
+| Exact-preimage conflict adjudication and MCP descendant refusal | SHIPPED | `koskadeux_mcp/durable_state_cutover.py` | union/conflict/preimage/crash-resume, adapter/CLI authority, launcher PID/exec tests, and accepted adjudication receipt | 2026-08-25 |
+| Receipt-bound macOS cutover and rollback | SHIPPED | `koskadeux_mcp/durable_state_macos.py` | simulated launchd/crash/cutover/rollback tests plus terminal accepted forward receipt | 2026-08-25 |
+| Finite 16-point soak and same-process acceptance | SHIPPED | `koskadeux_mcp/durable_state_cutover.py` | injected private clock/scheduler tests plus 16 live checks over 902.34 seconds | 2026-08-25 |
 
 ## §C. Architecture & Interactions
 
@@ -58,8 +57,8 @@ transcript or receipt.
 | Shared resolvers | `koskadeux_mcp/runtime_state_paths.py`, `scripts/runtime_state_paths.sh` | five fixed durable children | MCP, probe, reloader, publishers | Side-effect free; one root; legacy variables inert. |
 | Admin restart history | `admin.py` | durable `restart_count.json` | drain/restart and `/admin/status` | Strict schema, atomic write, sanitized fail-closed errors. |
 | Transaction controller | `scripts/durable_runtime_state.py` | `cutovers/s1456` migration, adjudication, and transaction receipts | independent Gate 4 process | Inventory/status read-only; mutations reviewed-live gated. |
-| macOS adapter | `koskadeux_mcp/durable_state_macos.py` | staged and installed definitions plus sanitized evidence | Git, launchd, local health | Candidate implementation; no live action in this build. |
-| Soak and acceptance | `koskadeux_mcp/durable_state_cutover.py`, `scripts/durable_runtime_state.py accept` | `s1456.soak.v1` result and terminal receipt | production adapter plus private injected test seam | Sixteen finite checkpoints run in the accepting process; live time only after authorization. |
+| macOS adapter | `koskadeux_mcp/durable_state_macos.py` | staged and installed definitions plus sanitized evidence | Git, launchd, local health | Accepted live in S1605 under exact-artifact authority. |
+| Soak and acceptance | `koskadeux_mcp/durable_state_cutover.py`, `scripts/durable_runtime_state.py accept` | `s1456.soak.v1` result and terminal receipt | production adapter plus private injected test seam | Sixteen finite checkpoints ran in the accepting process after explicit authorization. |
 
 ### §C.1 Five-record disposition
 
@@ -668,19 +667,21 @@ Gate 4 remediation candidate acceptance additionally requires the full
 authority binding, unchanged default migration refusal, copy-only lossless
 union, durable CC mode `0700`, stale-marker archive, durable-marker
 no-overwrite, all five
-crash-resume boundaries, and inherited descendant refusal. Live acceptance is
-still separate: exact-artifact review and authority checkpoint;
-successful forward sequence and first reloader no-op; all path/consumer/marker
-probes; exactly 16 on-time soak checks over at least 900 monotonic seconds; no
-old-root change; and terminal `accepted`. None was performed or claimed by this
-documentation build.
+crash-resume boundaries, and inherited descendant refusal. Live acceptance was
+completed separately in S1605 against exact code SHA
+`dd23191057ed2a8b2eefc3fd1de5675cedbec27b` and reviewed runbooks SHA
+`4cece4cbb7d42b314855a658546a9f2ddf411f03`. Transaction
+`s1456-dd23191057ed-to-dd23191057ed-a0001` reached terminal `accepted` after 16
+on-time checks over 902.34 monotonic seconds with stable MCP generation 28221,
+successful CC smoke `ebbfb5fe`, unchanged old-root hashes, exact marker and
+publisher agreement, and healthy MCP, probe, reloader, gateway, and handlers.
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b
-last_refresh_date: 2026-08-25T10:46:10Z
+last_refresh_commit: dd23191057ed2a8b2eefc3fd1de5675cedbec27b
+last_refresh_date: 2026-08-25T13:04:12Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -689,13 +690,15 @@ refresh_triggers:
 scheduled_cadence: 1y
 ```
 
-Lifecycle evidence for this candidate: exact code candidate SHA
-`556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b`; locked Gate 1 SHA
+Lifecycle evidence for the accepted deployment: exact code SHA
+`dd23191057ed2a8b2eefc3fd1de5675cedbec27b`; reviewed runbooks SHA
+`4cece4cbb7d42b314855a658546a9f2ddf411f03`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
-worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
-and a no-live-touch build boundary. The final documentation head, generated
-counts, ACTIVE equality, tests, drift, and push result belong in the external
-candidate report because a document cannot truthfully self-pin its own commit.
+worktree; accepted adjudication/migration receipts; terminal forward transaction
+`s1456-dd23191057ed-to-dd23191057ed-a0001`; and CC smoke `ebbfb5fe`. The final
+documentation head, generated counts, tests, drift, and push result belong in
+the external completion report because a document cannot truthfully self-pin
+its own commit.
 
 ## §K. Conformance
 
