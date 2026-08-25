@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: e85c9fded5ebf2ca8ca7fc991a58ecf997f94bc9
+  inventory_sha: 8ff3beb0c6fb51b55bcdf790218ea0f69a6e582d
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -102,7 +102,7 @@ documents:
       - production-safe behavior probes and canonical state
     independent_review_required: true
   - path: ai-market-frontend.md
-    git_blob_oid: eca6e0406dc4eb0e3e240819e3bba5e0243259ca
+    git_blob_oid: c7b5ba5e3d3a1d13aa3f13a9a2576589f55fabcf
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -887,7 +887,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: c676dd3a7f4e570e0b28cc784f95065d92410a2c
+    git_blob_oid: 374743d6f78a4167c3d7f7c0dd1034137bdba32a
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1050,7 +1050,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/agent-dispatch.md
-    git_blob_oid: bdfa712d977e6f8651d5a331ac4632089b6b1bfe
+    git_blob_oid: 18dee967f7cda334c092de117e5b535c3c830239
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1268,7 +1268,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: a9138175f736673c5b7c8adfcd431d66bd001bcf
+    git_blob_oid: f4cc577a3ece50997d3c7966af39ba3b4ad7039e
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1444,7 +1444,7 @@ documents:
       - anchor, linter vocabulary, AC8 figures
     independent_review_required: true
   - path: runbooks/stripe-connect-identity.md
-    git_blob_oid: 0eec8c02c16a309d9e3aa6d50a2104e120c5b00b
+    git_blob_oid: c07682d08ce21032974f440522898908197121db
     catalog_state: active
     status: active
     proposed_disposition: retain_active
