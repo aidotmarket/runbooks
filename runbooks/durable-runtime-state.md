@@ -24,7 +24,7 @@ linter_version: 1.0.0
 
 This is a **DRAFT discovery document, not operating authority**. It describes
 the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
-`91bc9b85a6b3db4a6cc99bea7e0b8c90542c255b`. The locked Gate 1 design is
+`0f5347543ff7ea01472e1d5bd1004346834aca67`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
@@ -244,12 +244,15 @@ SHA must be B. It publishes a mode-`0600` `s1456.adjudication.v1` prepared
 receipt containing the reviewed code/runbooks SHAs and non-secret authority
 IDs, then copy-only unions disjoint CC entries into both roots without
 overwrite. A same-path metadata/content conflict, unexpected entry, missing
-union member, unsafe root, or live/indeterminate task refuses. It archives the
-stale legacy marker bytes mode `0600`, atomically replaces only the legacy
-marker with the durable B bytes and mode, and never overwrites the durable
-marker. Prepared receipts resume only from receipt-pinned subsets at the three
-tested crash boundaries. Completion requires exact CC equivalence and matching
-B markers before unchanged migration may issue its normal receipt.
+union member, unsafe root, or live/indeterminate task refuses. It normalizes
+only the durable CC directory from its exact initial mode to the migration-
+required `0700`, archives the stale legacy marker bytes mode `0600`, atomically
+replaces only the legacy marker with the durable B bytes and mode, and never
+overwrites the durable marker. Prepared receipts resume only from receipt-
+pinned subsets at the four tested crash boundaries; the durable CC root must
+be at its exact initial mode or `0700`. Completion requires exact CC
+equivalence and matching B markers before unchanged migration may issue its
+normal receipt.
 
 ### §E.3 Deterministic identity, ACTIVE selection, and orphans
 
@@ -564,7 +567,8 @@ table below authorizes a live repair.
 - One uniquely verified ACTIVE transaction; atomic monotonic receipts and
   no-overwrite pointer/terminal publication.
 - Exact candidate/prior code plus exact runbooks SHA and evidence IDs are
-  checkpointed before a live mutation, including conflict adjudication.
+  checkpointed before a live mutation, including conflict adjudication and
+  durable CC mode normalization.
 - Before marker seal the persistent domain contains no candidate definition;
   after seal only a reviewed safe prefix is allowed.
 - Rollback preserves verified post-cutover task/counter/history deltas.
@@ -644,7 +648,8 @@ artifacts, manifest, and the README schema/population correction.
 Gate 4 remediation candidate acceptance additionally requires the full
 `tests/runtime_state` suite, focused Ruff and diff checks, exact CLI/adapter
 authority binding, unchanged default migration refusal, copy-only lossless
-union, stale-marker archive, durable-marker no-overwrite, all three
+union, durable CC mode `0700`, stale-marker archive, durable-marker
+no-overwrite, all four
 crash-resume boundaries, and inherited descendant refusal. Live acceptance is
 still separate: exact-artifact review and authority checkpoint;
 successful forward sequence and first reloader no-op; all path/consumer/marker
@@ -656,7 +661,7 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: 91bc9b85a6b3db4a6cc99bea7e0b8c90542c255b
+last_refresh_commit: 0f5347543ff7ea01472e1d5bd1004346834aca67
 last_refresh_date: 2026-08-25T08:55:18Z
 owner_agent: vulcan
 refresh_triggers:
@@ -667,7 +672,7 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`91bc9b85a6b3db4a6cc99bea7e0b8c90542c255b`; locked Gate 1 SHA
+`0f5347543ff7ea01472e1d5bd1004346834aca67`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
 worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
 and a no-live-touch build boundary. The final documentation head, generated
