@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 9bfbfa13cef8d754f5f99212645ceebc35d0df56
+  inventory_sha: af35c282ba3e73f9887aec8f7e1bc0c655d384ee
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -1282,7 +1282,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/durable-runtime-state.md
-    git_blob_oid: 90bf7b27ad33ba2764fc4e2f1e58cc7e1c55e2c8
+    git_blob_oid: 8a56bc5cfa50b5fdac47d8343fc1deb9968fe49c
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1292,11 +1292,11 @@ documents:
       - runbooks/durable-runtime-state.md
     evidence:
       - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:koskadeux_mcp/durable_state_cutover.py
-        finding: Exact Gate 3 R4 candidate for the receipt-bound five-record controller and same-process
-          live acceptance boundary; independent exact-artifact review remains required.
+        finding: Exact Gate 3 R5 candidate for the receipt-bound five-record controller, terminal
+          publication fence, and same-process live acceptance boundary; independent exact-artifact review remains required.
       - ref: git:aidotmarket/koskadeux-mcp@448e3d3ac282fe005edfbecb8b50f409d3777632:specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md
-        finding: Gate 2 contract updated at the exact R4 candidate for idempotent crash resume, safe RunAtLoad
-          prefixes, guarded rollback, dirty-tree refusal, and reviewed-live acceptance.
+        finding: Gate 2 contract updated at the exact R5 candidate for idempotent crash resume, terminal
+          reproof, independent-controller refusal, guarded rollback, and reviewed-live acceptance.
     verify_against:
       - exact code and Gate specs
       - isolated tests and Council
