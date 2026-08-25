@@ -8,9 +8,9 @@ error_signatures: []
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-24
+last_verified_at: 2026-08-25
 system_name: durable-runtime-state
-purpose_sentence: Discovery-only candidate for the reviewed S1456 five-record durable runtime-state path, migration, cutover, resume, acceptance, and lossless rollback contracts.
+purpose_sentence: Discovery-only candidate for the reviewed S1456 five-record durable runtime-state path, exact-preimage conflict adjudication, migration, cutover, resume, acceptance, and lossless rollback contracts.
 owner_agent: vulcan
 escalation_contact: max
 lifecycle_ref: §J
@@ -23,14 +23,14 @@ linter_version: 1.0.0
 ## §A. Header
 
 This is a **DRAFT discovery document, not operating authority**. It describes
-the candidate implemented at exact `koskadeux-mcp` SHA
-`fd404351f8eb17da33f43d0b2629228ee10bc8e4`. The locked Gate 1 design is
+the Gate 4 remediation candidate implemented at exact `koskadeux-mcp` SHA
+`5ab1da824671739b935aed8bd868289eb6997298`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
-`specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in the reviewed code
+`specs/BQ-DURABLE-STATE-RELOCATION-S1456-GATE2.md` in that exact code
 candidate. The runbooks candidate starts from published runbooks main
-`612eac36bfbbc5d9b2b607853b946677ad37d69a` on branch
-`docs/bq-durable-state-relocation-s1456-s1605`.
+`8843542562daf6bc3b5d80f6911d4136279da458` on branch
+`docs/bq-durable-state-gate4-s1605`.
 
 Candidate tests and this page do not prove a live cutover. Do not use this page
 to install, unload, bootstrap, kickstart, migrate, publish, or write either live
@@ -47,6 +47,7 @@ transcript or receipt.
 | One resolver for five MCP-owned records | PLANNED | `koskadeux_mcp/runtime_state_paths.py` | Python/shell isolated path and consumer-parity tests | 2026-08-19 |
 | Strict restart-history durability | PLANNED | `admin.py` | malformed/symlink/read/write/fsync and 503/no-exit tests | 2026-08-19 |
 | Sanitized inventory and copy-first migration | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | CLI and isolated migration tests | 2026-08-19 |
+| Exact-preimage conflict adjudication and MCP descendant refusal | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | union/conflict/preimage/crash-resume, adapter/CLI authority, and launcher PID/exec tests | 2026-08-25 |
 | Receipt-bound macOS cutover and rollback | PLANNED | `koskadeux_mcp/durable_state_macos.py` | simulated launchd/crash/cutover/rollback tests | 2026-08-19 |
 | Finite 16-point soak and same-process acceptance | PLANNED | `koskadeux_mcp/durable_state_cutover.py` | injected private clock/scheduler tests; no 15-minute unit sleep | 2026-08-24 |
 
@@ -56,7 +57,7 @@ transcript or receipt.
 |---|---|---|---|---|
 | Shared resolvers | `koskadeux_mcp/runtime_state_paths.py`, `scripts/runtime_state_paths.sh` | five fixed durable children | MCP, probe, reloader, publishers | Side-effect free; one root; legacy variables inert. |
 | Admin restart history | `admin.py` | durable `restart_count.json` | drain/restart and `/admin/status` | Strict schema, atomic write, sanitized fail-closed errors. |
-| Transaction controller | `scripts/durable_runtime_state.py` | `cutovers/s1456` receipts | independent Gate 4 process | Inventory/status read-only; mutations reviewed-live gated. |
+| Transaction controller | `scripts/durable_runtime_state.py` | `cutovers/s1456` migration, adjudication, and transaction receipts | independent Gate 4 process | Inventory/status read-only; mutations reviewed-live gated. |
 | macOS adapter | `koskadeux_mcp/durable_state_macos.py` | staged and installed definitions plus sanitized evidence | Git, launchd, local health | Candidate implementation; no live action in this build. |
 | Soak and acceptance | `koskadeux_mcp/durable_state_cutover.py`, `scripts/durable_runtime_state.py accept` | `s1456.soak.v1` result and terminal receipt | production adapter plus private injected test seam | Sixteen finite checkpoints run in the accepting process; live time only after authorization. |
 
@@ -145,7 +146,7 @@ The count records a restart attempt before exit, not proof of relaunch.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Independent Gate 4 controller | inventory/status; reviewed migration/cutover/resume/rollback/accept | `scripts/durable_runtime_state.py` | separate exact-artifact live authority | PLANNED |
+| Independent Gate 4 controller | inventory/status; reviewed adjudication/migration/cutover/resume/rollback/accept | `scripts/durable_runtime_state.py` | separate exact-artifact live authority | PLANNED |
 | MCP handler | CC records, alias counters, restart history | shared Python resolver | process service identity | PLANNED |
 | Probe | retry cache plus same-SHA refresh writer | `scripts/mcp_probe.py` | launchd service identity | PLANNED |
 | Reloader | CC liveness, marker and request reader/remover | `scripts/reload_when_idle.sh` | launchd service identity | PLANNED |
@@ -170,6 +171,7 @@ selects `inventory`, so `--candidate-sha <B>` alone is read-only inventory.
 |---|---|---|
 | `inventory` | `inventory --candidate-sha <B>` | Read-only sanitized source/destination inventory after proving B exists in the control repository. No directories or records are created. |
 | `status` | `status` | Read-only sanitized ACTIVE/nonterminal/terminal/orphan transaction status. An absent transaction root returns empty lists. |
+| `adjudicate` | `adjudicate --candidate-sha <B> --expected-source-cc-manifest <hash> --expected-destination-cc-manifest <hash> --expected-source-deployed-sha <sha> --expected-destination-deployed-sha <sha> <reviewed-live-inputs>` | Reconciles only the reviewed disjoint CC-task and stale legacy-marker conflicts. The durable marker must already equal B. |
 | `migrate` | `migrate --candidate-sha <B> <reviewed-live-inputs>` | Performs the reviewed preflight and then copy-first migration only. It is not an ungated execute switch. |
 | `cutover` | `cutover --candidate-sha <B> --prior-sha <A> <reviewed-live-inputs>` | Starts or advances the receipt-bound A-to-B forward transaction. |
 | `resume` | `resume <reviewed-live-inputs>` | Selects only the uniquely verified ACTIVE transaction, re-proves evidence, and continues forward or rollback from the last proven boundary. |
@@ -234,6 +236,20 @@ mode-`0600` sibling temp, file fsync, atomic replace, and directory fsync.
 `s1456.rollback-reconciliation.v1` and `s1456.soak.v1` likewise contain
 sanitized hashes/times/results, never secrets, record contents, command output,
 or review contents.
+
+The one reviewed Gate 4 conflict path does not alter migration's
+`destination_differs` refusal. `adjudicate` requires exact initial manifests
+for both CC directories and exact legacy/durable deployment SHAs. The durable
+SHA must be B. It publishes a mode-`0600` `s1456.adjudication.v1` prepared
+receipt containing the reviewed code/runbooks SHAs and non-secret authority
+IDs, then copy-only unions disjoint CC entries into both roots without
+overwrite. A same-path metadata/content conflict, unexpected entry, missing
+union member, unsafe root, or live/indeterminate task refuses. It archives the
+stale legacy marker bytes mode `0600`, atomically replaces only the legacy
+marker with the durable B bytes and mode, and never overwrites the durable
+marker. Prepared receipts resume only from receipt-pinned subsets at the three
+tested crash boundaries. Completion requires exact CC equivalence and matching
+B markers before unchanged migration may issue its normal receipt.
 
 ### §E.3 Deterministic identity, ACTIVE selection, and orphans
 
@@ -391,7 +407,11 @@ Every mutating CLI command, public Python wrapper, and exported transaction-
 root, ACTIVE-publication, or receipt-transition primitive repeats the
 independent-controller check before adapter construction, directory/pointer/
 receipt mutation, launchd work, soak, or acceptance. An MCP-owned child is
-never accepted as Gate 4 authority.
+never accepted as Gate 4 authority. Immediately before its final `exec`, the
+production launcher exports `KOSKADEUX_MCP_SERVER_PID=$$`; the server retains
+that PID and every descendant inherits it. Any positive inherited server PID
+refuses mutation, so grandchildren cannot evade the boundary through an
+intermediate shell. Independent operator shells do not inherit the marker.
 
 ### §E.6 Active and accepted rollback reconciliation
 
@@ -452,7 +472,7 @@ backups and receipts.
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | A consumer still resolves one of the five records under `/var/tmp` or follows a legacy override. | Mixed candidate definitions/code or an unconverted consumer. | Compare all Python/shell resolver outputs and exact plist hashes against reviewed B; do not write either root. | G-01 | CONFIRMED |
-| F-02 | Inventory/migration reports differing destination, symlink, wrong owner/mode, or live/indeterminate task. | Preimage drift or unsafe filesystem/liveness state. | Preserve the refusal and review sanitized inventory, liveness counts, types, modes and hashes; never compare contents in logs. | G-02 | CONFIRMED |
+| F-02 | Inventory/migration reports differing destination, or adjudication reports preimage/entry/archive/authority drift, symlink, wrong owner/mode, or live/indeterminate task. | Preimage drift, a same-path conflict, or unsafe filesystem/liveness state. | Preserve the refusal and review sanitized inventory, liveness counts, types, modes and hashes; never compare contents in logs. | G-02 | CONFIRMED |
 | F-03 | `/admin/status` returns 503 `restart_history_unreadable` or drain returns to RUNNING without exit. | Present restart history is invalid/unreadable or a write became persistence-indeterminate. | Stop increments; inspect only type/owner/mode and validate the schema without printing content. Treat post-replace fsync failure as old-or-new indeterminate. | G-03 | CONFIRMED |
 | F-04 | `status` reports multiple nonterminals, pointer mismatch, candidate residue, or sanitized orphan. | Interrupted/racing ACTIVE publication, manual transaction changes, or unexpected directory contents. | Use read-only `status`; compare pointer/receipt identities and hashes. Do not rename, delete, or auto-select an orphan. | G-04 | CONFIRMED |
 | F-05 | Candidate health/handler/generation, first no-op tick, publisher agreement, or a soak point fails. | Publication/config/process drift or a B request/old-root write appeared. | Record the failed sanitized proof and invoke only receipt-bound rollback under separate reviewed-live authority. | G-05 | CONFIRMED |
@@ -475,7 +495,7 @@ backups and receipts.
   component_ref: Transaction controller
   root_cause: unsafe ownership, mode, symlink, liveness, or destination preimage
   repair_entry_point: a separately reviewed filesystem or liveness plan
-  change_pattern: preserve the refusal and resolve the exact unsafe precondition before rerunning read-only inventory
+  change_pattern: preserve the refusal and resolve the exact unsafe precondition before rerunning read-only inventory; use adjudication only for the reviewed receipt-bound disjoint-task and stale-marker case
   rollback_procedure: sources and the refused destination remain unchanged
   integrity_check: sanitized inventory shows the reviewed owner, mode, liveness counts, and exact hashes
 - id: G-03
@@ -544,7 +564,7 @@ table below authorizes a live repair.
 - One uniquely verified ACTIVE transaction; atomic monotonic receipts and
   no-overwrite pointer/terminal publication.
 - Exact candidate/prior code plus exact runbooks SHA and evidence IDs are
-  checkpointed before a live mutation.
+  checkpointed before a live mutation, including conflict adjudication.
 - Before marker seal the persistent domain contains no candidate definition;
   after seal only a reviewed safe prefix is allowed.
 - Rollback preserves verified post-cutover task/counter/history deltas.
@@ -598,9 +618,13 @@ not be empty. No per-record production override exists.
 
 ### §H.6 Adjudication
 
-Code and binding specs win over this discovery page. Any mismatch stops the
-candidate before commit/review; any live-state uncertainty stops before action
-or triggers receipt-bound rollback after action begins.
+Code and binding specs win over this discovery page. The only approved
+pre-migration exception is the exact-preimage, receipt-bound union/archive/
+legacy-marker normalization described in §E.2. It cannot select a nearby SHA,
+overwrite the durable marker, merge a same-path conflict, add another record,
+or weaken normal migration. Any mismatch stops before mutation; any drift after
+a prepared receipt preserves all originals and receipt evidence for reviewed
+resume or stop.
 
 ## §I. Acceptance Criteria
 
@@ -617,7 +641,12 @@ focused lint/catalog/manifest tests plus the full runbooks suite, and has a
 diff limited to this page, the minimum five operator path contracts, generated
 artifacts, manifest, and the README schema/population correction.
 
-Live acceptance is separate: exact-artifact review and authority checkpoint;
+Gate 4 remediation candidate acceptance additionally requires the full
+`tests/runtime_state` suite, focused Ruff and diff checks, exact CLI/adapter
+authority binding, unchanged default migration refusal, copy-only lossless
+union, stale-marker archive, durable-marker no-overwrite, all three
+crash-resume boundaries, and inherited descendant refusal. Live acceptance is
+still separate: exact-artifact review and authority checkpoint;
 successful forward sequence and first reloader no-op; all path/consumer/marker
 probes; exactly 16 on-time soak checks over at least 900 monotonic seconds; no
 old-root change; and terminal `accepted`. None was performed or claimed by this
@@ -627,8 +656,8 @@ documentation build.
 
 ```yaml lifecycle
 last_refresh_session: S1605
-last_refresh_commit: fd404351f8eb17da33f43d0b2629228ee10bc8e4
-last_refresh_date: 2026-08-25T00:11:40Z
+last_refresh_commit: 5ab1da824671739b935aed8bd868289eb6997298
+last_refresh_date: 2026-08-25T08:55:18Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -638,9 +667,9 @@ scheduled_cadence: 1y
 ```
 
 Lifecycle evidence for this candidate: exact code candidate SHA
-`fd404351f8eb17da33f43d0b2629228ee10bc8e4`; locked Gate 1 SHA
+`5ab1da824671739b935aed8bd868289eb6997298`; locked Gate 1 SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 file from the exact code
-worktree; runbooks base `612eac36bfbbc5d9b2b607853b946677ad37d69a`;
+worktree; runbooks base `8843542562daf6bc3b5d80f6911d4136279da458`;
 and a no-live-touch build boundary. The final documentation head, generated
 counts, ACTIVE equality, tests, drift, and push result belong in the external
 candidate report because a document cannot truthfully self-pin its own commit.
