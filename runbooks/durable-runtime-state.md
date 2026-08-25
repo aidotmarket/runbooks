@@ -681,7 +681,7 @@ publisher agreement, and healthy MCP, probe, reloader, gateway, and handlers.
 ```yaml lifecycle
 last_refresh_session: S1605
 last_refresh_commit: dd23191057ed2a8b2eefc3fd1de5675cedbec27b
-last_refresh_date: 2026-08-25T19:30:00Z
+last_refresh_date: 2026-08-25T20:34:00Z
 owner_agent: vulcan
 refresh_triggers:
   - any reviewed code or binding-spec change to the five-record path contract
@@ -729,6 +729,21 @@ atomic repository batches with exact expected-tip leases:
 
 The archive refs are recovery evidence only. They do not authorize rollback or
 new mutation; the receipt-bound rollback contract above remains unchanged.
+
+The final S1605 Gate 4 residue was closed separately after the same terminal
+transaction, deployed-code ancestry, and live health evidence was rechecked.
+Each original ref below was verified against its remote tip, copied to the exact
+archive ref, and then deleted under an exact expected-tip lease (the two
+runbook deletions were one atomic batch):
+
+| Repository | Removed working ref | Retained archive ref | Exact tip |
+|---|---|---|---|
+| `koskadeux-mcp` | `fix/bq-durable-state-gate4-s1605` | `archive/s1605/gate4/durable-state-conflict-adjudication` | `556d8f86b8e3a79a38577b7ae9f802d2ccb3b47b` |
+| `runbooks` | `docs/bq-durable-state-gate4-s1605` | `archive/s1605/gate4/durable-state-gate4` | `da021acb64cee1b349f7c0ab2d2a12623e46b12e` |
+| `runbooks` | `docs/bq-durable-state-live-acceptance-s1605` | `archive/s1605/gate4/durable-state-live-acceptance` | `2302133c486041aa6d8c336146a30cce345fe636` |
+
+These additional archives have the same evidence-only status and do not change
+the accepted transaction or rollback authority.
 
 ## §K. Conformance
 

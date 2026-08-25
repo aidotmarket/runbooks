@@ -66,6 +66,15 @@ Below the runbooks grid, a "Repositories" section lists all repos in the `aidotm
 
 **Publisher serialization recovery (S1605).** If one run prints both `snapshot write FAILED: Object of type PosixPath is not JSON serializable` and `Living State publish FAILED` with the same error, inspect `items[].branch_refs[].deployment_attestation.source`. The durable deployment-marker constant remains a `Path`; the producer converts it with `os.fspath` only when constructing the JSON attestation and strictly serializes the snapshot before opening the local destination. Do not hand-edit the board, add `default=str`, introduce a generic normalizer, or change sole-writer/exit semantics. After the repaired producer is merged and deployed, run the normal publisher once and require: no `FAILED` line, `/Users/max/koskadeux-state/open-items-board.json` parses as complete JSON, Living State advances with a fresh `generated_at`, and the authorized operator Chrome session shows that fresh timestamp. This is recovery evidence, not a new gate or confirmation.
 
+**S1605 serialization-runbook ref closeout.** After the repaired producer was
+deployed and repeated publisher/Chrome checks showed fresh, parseable board
+state, `docs/bq-board-json-boundary-s1605` at
+`872cccfcad3516d3fef770849854fa5d0143198a` was copied byte-for-byte to
+`archive/s1605/gate4/board-json-boundary` and the original remote ref was
+deleted under an exact expected-tip lease. The archive is recovery evidence
+only; it does not add a gate, confirmation, writer, or alternate publication
+path.
+
 **Names, overviews and display metadata.** Titles, one-paragraph business explanations, explicit runbook links and the two bounded `outside_verification_open` flags come from `koskadeux-mcp/scripts/open_items_catalog.json`. They affect presentation only: they cannot change lifecycle stage, deletion safety, branch membership or sole-writer authority. An absent item still appears under its raw git slug, flagged "no plain name yet". Every overview renders inline under its title. Runbook links are validated against exact, non-archived `origin/main:CATALOG.json` entries; a link means the document is registered, not that its contents are verified or authoritative. Catalog failure is stated as a board gap and conservatively shows completed-looking rows instead of hiding unresolved work.
 
 **No activity window (S1483).** The board previously showed only work touched in the last 14 days and named the excluded repos in an "honest gaps" footer. Max removed the window: the page is called open items, so it shows everything open however long it has sat, and the footer is suppressed because there is nothing left to disclaim. `GT_ITEMS_DAYS` still narrows the view for a deliberate recent-activity cut; unset means show everything. Expect a large number — 215 at S1483 against 25 under the old window. Read it as **retained matching remote work refs, not live commitments**: merged refs remain part of the lifecycle, and a one-time triage is still needed before any safe manual branch removal.
