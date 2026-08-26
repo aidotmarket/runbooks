@@ -313,11 +313,29 @@ Classify a proposed change at the highest-risk predicate it touches. Any ambigui
 scenario_set: []
 ```
 
+### §I.1 Recurring policy-bridge incident
+
+`T-2026-000714` tracks the recurring F-03 defect in Codex Desktop. When
+`browser.user.openTabs()` succeeds but the authorized operator tab fails with
+`The admin-enforced policy could not be verified`, run E-01 and E-02 before
+reporting the stop. If both pass, do not ask Max to reinstall the extension,
+change Chrome profiles, or repeat generic browser troubleshooting. Record the
+incident against `T-2026-000714`; the supported immediate recovery remains a
+fresh Codex Desktop/app-server lifecycle followed by exactly one E-03 proof.
+
+This is an unresolved product defect, not an operator configuration choice.
+The durable acceptance condition is that repeated task/session opens can claim
+and DOM-read the existing authorized `ops.ai.market` tab while policy remains
+fail-closed. A same-lifecycle browser reselect, JavaScript-kernel reset,
+trusted-worker restart, policy edit, local allowlist, or identity substitution
+is not a repair.
+
 The dated incident notes below are evidence for the exact recovery boundaries.
 
 - S1588 prior confirmed transport recovery: a human reinstalled the extension, the session refreshed the Chrome binding with `agent.browsers.get("chrome")`, and DOM control then worked.
 - S1605 policy-failure note, 2026-08-24: `browser.user.openTabs()` first exposed the authorized `https://ops.ai.market/build-queue` tab, but `claimTab`/`playwright.domSnapshot` failed closed with `The admin-enforced policy could not be verified`. Chrome, extension and native-host diagnostics passed; direct embedded app-server config reads succeeded with requirements null. No policy was changed or bypassed.
 - S1605 completed recovery note, 2026-08-24: on a later disconnected binding, `agent.browsers.get("chrome")` reported Chrome unavailable while the same three diagnostics passed. The packaged troubleshooting path opened one approved normal operator-profile window. After two seconds, the exact Chrome selector connected, full Browser documentation loaded, the returned blank tab was claimed and navigated once to `https://ops.ai.market/build-queue`, and DOM proof showed `max@ai.market`, a connected page, and the expected live queue. This proves G-05 only; it does not convert F-03 policy failures into the same class.
+- S1622 recurrence note, 2026-08-26: the existing authorized `https://ops.ai.market/build-queue` tab was visible through `browser.user.openTabs()`, but claim/DOM access failed with the exact F-03 policy error. All E-01 transport diagnostics passed. E-02 returned `config_read_ok=true`, `config_requirements_read_ok=true`, `requirements_present=false`, and no explicit browser-use value. The incident was filed as `T-2026-000714`; no policy, profile, extension, manifest, browser identity, or allowlist was changed.
 - S1605 repeated G-05 proof, 2026-08-26: Chrome was not running while the selected Profile 1 extension was installed and enabled and the native-host manifest was correct. The already-authorized packaged `open-chrome-window.js --browser chrome` path opened the normal operator profile; after the documented two-second wait, refreshing the exact Chrome binding loaded Browser documentation and allowed a fresh tab to navigate once to `https://ops.ai.market/build-queue`. Visible DOM and screenshot proof showed the authorized operator page refreshed at 16:40 local time with 10 visible open rows, four certified-done rows hidden and zero alerts; the five former deployment-evidence warnings were absent. No Infisical access, `kdbrowser` identity, profile copy, extension change, policy change or browser-family substitution was used.
 
 ## §J. Lifecycle
