@@ -61,6 +61,9 @@ nohup .../.venv/bin/python -u -m alembic upgrade head < /dev/null >> /tmp/s1511_
 5. Deploys superseded mid-flight report status `REMOVED`, not `FAILED`; always list the service deployments and judge the newest.
 6. Teardown additions for this service: the service and its domain die with `environmentDelete`; also delete `/tmp/.receipt_secret_key`, `/tmp/.receipt_internal_api_key`, `/tmp/.receipt_poller_key`, `/tmp/.receipt_queue_role_pw`.
 
+## R.6b V-2b receipt procedure (done S1621)
+Probe sources in the package: `v2b_watcher_runner.py` (two competing runners over advisory lock (5393, 1), run as `issue_channel_watcher` with a receipt-only role password), `v2b_scheduler_cadence_probe.py` (cadence + lock-busy skip = non-overlap), `v2b_competing_lease_probe.py` (seeds ONE synthetic queued intent with the exact validated section 4.3 policy and its canonical digest, then two simultaneous authenticated lease calls; expect one 200 + one 204, completion 200, replay 409). Seeding requires: policy fields exactly the reviewed six, `reservation_amount_usd` numerically equal to `max_budget_usd`, `reservation_held=true`, `utc_day` set, `action='dispatch_codex'`. Replica note: Railway `serviceInstanceUpdate` ACCEPTS a staged `numReplicas=2` (no platform rejection); the watcher service definition must pin `numReplicas: 1` via config-as-code, with the advisory lock as the runtime invariant. Receipt env has no exec surface: run probes from Titan-1 against the receipt Postgres and deployed queue surface, and say so in the receipt's observer line.
+
 ## R.7 Failure modes met producing receipts
 | Symptom | Cause | Fix |
 |---|---|---|
