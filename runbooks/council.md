@@ -28,7 +28,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-18
+last_verified_at: 2026-08-26
 system_name: council
 purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
 owner_agent: vulcan
@@ -53,7 +53,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 | Reviewer trigger | SHIPPED | `tools/agents.py` | Returns status=submitted with the two file paths immediately; exact-bytes tests | 2026-08-17 |
 | Directory exchange | SHIPPED | `scripts/council_dir.py` | One write path for MCP and CLI; detached worker per request; unit tests green at S1568 | 2026-08-17 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
-| MP build dispatch | SHIPPED | `tools/agents.py:_handle_call_mp` | Existing MP build tests; unchanged by S1527 | 2026-08-12 |
+| MP build dispatch | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | Live remote no-op dispatch plus existing minimal-bridge tests | 2026-08-26 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
 
@@ -108,7 +108,17 @@ Credentials are launcher inputs only:
 - GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
 
-MP is not a reviewer. `council_request agent=mp mode=build|author` continues through the existing MP build system. Reviewer simplification must not change MP routing, worktrees, verification, or publication.
+The public agent/build surface has two names: `council_request` for review and
+`dispatch_mp_build` for builds. Build status and listing remain actions on
+`council_request`: `action=check_build` and `action=list_builds`. The former
+public aliases `call_mp`, `call_claude_code`, `dispatch_build`, `check_build`,
+and `list_builds` are retired and raw calls are refused as unknown before any
+handler or build side effect.
+
+MP is not a reviewer. The private `council_request agent=mp mode=build|author`
+path continues through the same minimal MP build system for existing callers;
+it is not a second advertised build tool. Registered raw state and shell
+compatibility names are unchanged by this agent/build route reduction.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -116,7 +126,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | Directory Exchange | `scripts/council_dir.py:submit_member` | `/Users/max/council/<member>/` and one fixed `.member.lock` | Member Launcher | One lock-before-write path for MCP and CLI; exact original-byte suffix; no queue, retry, or alternate transport. |
 | Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | File-in/file-out. GLM request bytes are carried over stdin because its shell tool is disabled. |
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
-| MP Build Dispatch | `tools/agents.py:_handle_call_mp` | existing MP task stores | Codex CLI | Separate and unchanged. |
+| MP Build Dispatch | `dispatch_mp_build` → `tools/agents.py:_handle_dispatch_mp_build` | existing MP task stores | Minimal bridge and Codex CLI | The separately advertised build route. |
 
 ## §D. Agent Capability Map
 
@@ -126,7 +136,7 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 | Kimi | Council review | Directory exchange | Own Council directory | COMPLETE |
 | GLM | Council review | Directory exchange | Own Council directory | COMPLETE |
 | MP | Mandatory build; never a voter | Separate MP build path | Explicit build/author workspace | COMPLETE |
-| Vulcan and Mars | Trigger work; never vote | `council_request` | Governed operational scope | COMPLETE |
+| Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
 
 ## §E. Operate
 
@@ -187,15 +197,15 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 - id: E-05
   trigger: An approved implementation needs the mandatory MP builder.
   pre_conditions: [approved_build_scope, clean_dedicated_worktree, active_session]
-  tool_or_endpoint: council_request(agent=mp, mode=build, task=<build_task>, cwd=<repo>, caller_instance=<peer>, session_id=<session>)
+  tool_or_endpoint: dispatch_mp_build(task=<build_task>, repo=<org/repo>, expected_branch=<build/branch>, caller_instance=<peer>, ref_entity=<work_ref>)
   argument_sourcing:
     task: approved build scope
-    cwd: exact build checkout
+    repo: canonical configured repository identity
+    expected_branch: exact disposable or delivery build branch
     caller_instance: vulcan or mars
-    session_id: active session
-  idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: build scope plus target checkout plus session
-  expected_success: {shape: MP task receipt and build result, verification: follow the MP build runbook}
+    ref_entity: active BQ, support ticket, or bounded work reference
+  idempotency: NOT_IDEMPOTENT
+  expected_success: {shape: queued receipt with task_id and expected_branch, verification: poll the task_id with council_request(action=check_build) and follow the MP build runbook}
   expected_failures:
     - {signature: MP build failure, cause: follow the separate MP build runbook}
   next_step_success: Verify the MP artifact independently.
@@ -312,12 +322,14 @@ MP is not a reviewer. `council_request agent=mp mode=build|author` continues thr
 ### §H.1 Invariants
 
 - `council_request` is the only public Council reviewer trigger.
+- `dispatch_mp_build` is the only separately advertised public build trigger.
+- Build checking and listing are `council_request` actions, not separate tools.
 - CC, Kimi, and GLM all use `scripts/council_dir.py`.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
 - Dispatch returns a durable request ID immediately and polling never retries.
-- MP build dispatch remains separate.
+- MP build dispatch remains separate from reviewer transport.
 
 ### §H.2 BREAKING predicates
 
@@ -386,24 +398,25 @@ scenario_set:
       - kind: human_action
         verb: inspect
         object: live tool list
-        target: council_request present and council_hall absent
+        target: council_request and dispatch_mp_build each present once; call_mp, call_claude_code, dispatch_build, check_build, and list_builds absent
     weight: 0.25
   - id: I-04
     type: operate
     refs: [E-05, §H.1]
     scenario: Dispatch an MP build after the reviewer simplification.
     expected_answers:
-      - kind: classification
-        label: MP path unchanged
+      - kind: tool_call
+        tool: dispatch_mp_build
+        argument_keys: [task, repo, expected_branch, caller_instance, ref_entity]
     weight: 0.25
 ```
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1557
-last_refresh_commit: 31c843b6b24779a5250cf406e5d1975e7b4f3177
-last_refresh_date: 2026-08-16T22:35:00Z
+last_refresh_session: S1605
+last_refresh_commit: 75be0caab2efb6aa8af4c20566b3ec4365ea930d
+last_refresh_date: 2026-08-26T09:16:22Z
 owner_agent: vulcan
 refresh_triggers:
   - council_request reviewer routing changes
