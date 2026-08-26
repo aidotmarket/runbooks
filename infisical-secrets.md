@@ -198,3 +198,34 @@ The shell env on Titan-1 exports `INFISICAL_PROJECT_ID` = the **koskadeux-mcp** 
 ### `infisical secrets delete` defaults to `--type personal` (S964)
 
 A plain `infisical secrets delete NAME` under machine-identity auth returns `400 Bad Request — Must be user to delete personal secret`, because the CLI default is `--type personal` and machine identities have no personal secrets. To delete a normal (shared) secret, pass `--type shared` explicitly.
+
+## GitHub Tokens — inventory, minting, verification (S1612)
+
+### Inventory (identities only; values live in Infisical)
+
+| Identity | Project/env | Kind & scope | Expiry | Purpose |
+|---|---|---|---|---|
+| `ISSUE_CHANNEL_GITHUB_TOKEN` | ai-market-backend / prod | Fine-grained PAT, owner `aidotmarket`, ALL repos, **Actions: read-only** + Metadata | **2026-11-24** (renew before) | s1511 issue-channel watcher CI polling |
+| `GITHUB_TOKEN`, `GITHUB_SECRETS_TOKEN` | ai-market-backend / prod | pre-existing backend integrations | see GitHub console | backend |
+| gh CLI keyring (maxrobbins) | local keychain, not Infisical | classic, broad `repo` | n/a | Max interactive + operator probes only. NEVER wire into a service: shared-overbroad fails V-3-class credential review. |
+
+### Minting a fine-grained org PAT (browser, S1612 lessons)
+
+1. Open `https://github.com/settings/personal-access-tokens/new?target_name=aidotmarket` — the query param sets the resource owner directly; the owner SelectPanel's remote list intermittently fails to load.
+2. Set name, repository access, and the needed permission (e.g. Actions → Read-only; Metadata is auto-added). Expiration LAST.
+3. **Automation trap:** the expiration menu commits its value only on a real pointer-event sequence (pointerdown→mouseup→click). A synthetic `.click()` leaves hidden input `user_programmatic_access[default_expires_at]` blank or corrupted (observed value `Actions`), and submit fails with `Expiration date can't be blank`. Verify the hidden input reads the day count (e.g. `90`) before generating. A raw `form.submit()` bypasses the component serializer and silently creates nothing — always confirm the token appears in the list afterwards.
+4. Store the one-time value straight into Infisical (correct project!), never in files, transcripts, or chat.
+
+### Verifying scope after minting (safe, run within one shell, never echo the value)
+
+- Positive read: `GET /repos/aidotmarket/<repo>/actions/runs?branch=main&per_page=1` → 200.
+- Prohibited-write probe (harmless no-op even if wrongly permitted): `PUT /repos/aidotmarket/<repo>/actions/workflows/<id>/enable` on an already-enabled workflow → expect 403 `Resource not accessible by personal access token`. That error string is the normal fine-grained scope refusal, not an auth outage.
+- Least-privilege probe: `GET .../contents/README.md` → 403 when Contents is not granted.
+
+## Failure signatures (S1612 additions)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `403 TokenError "invalid signature"` on Infisical API calls | Calling **app.infisical.com** — our instance is self-hosted at **`https://secrets.ai.market`** (see header). The sysadmin token at `~/.config/infisical/sysadmin-token` is valid for the self-hosted host only. | Use `https://secrets.ai.market/api/v3/secrets/raw?...` with the workspace IDs in Quick Reference. Do not "refresh" the token; it is not expired. |
+| `v3/secrets/raw` returns 404 `Secret ... not found` for a secret you just stored | Wrong project: secrets are per-workspace (backend / frontend / koskadeux-mcp), and a secret stored via the UI lands in whichever project was selected. | Search all three workspace IDs from Quick Reference before concluding the secret is missing. |
+| GitHub API `Resource not accessible by personal access token` | Fine-grained PAT lacks that permission — expected on scope probes | Only escalate if it appears on an operation the token is documented to allow. |
