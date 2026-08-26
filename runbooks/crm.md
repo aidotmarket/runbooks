@@ -48,7 +48,7 @@ error_signatures:
     section: §F. Isolate
   - signature: empty contact_id on upsert
     section: §F. Isolate
-last_verified_at: "2026-08-14"
+last_verified_at: "2026-08-26"
 superseded_by: []
 supersedes:
   - crm-architecture
@@ -239,12 +239,19 @@ All six fields are `null` if inspection fails. That keeps the liveness endpoint 
 not a healthy schema result. For release verification, require HTTP 200, non-null fields,
 `alembic_drift == false`, and both schema-drift fields `false`.
 
-At 12:45Z on 2026-08-14 the public endpoint returned HTTP 200 with `status=degraded`, Alembic
-head/current `s1488_money_path_tables`, `alembic_drift=false`,
-`schema_known_retired_count=0`, `schema_missing_table_count=1`,
-`schema_unmapped_table_count=40` and `schema_model_tables=219`. Server logs identify the one
-inherited missing modeled table as `trust_messages`. This CRM reduction neither establishes full
-schema health nor repairs `trust_messages`; never hide that drift in `KNOWN_RETIRED_TABLES`.
+At 12:45Z on 2026-08-14 the public endpoint returned HTTP 200 with `status=degraded` and one
+inherited missing modeled table, `trust_messages`. That orphan had no migration, production
+table, route or runtime importer. It was retired by backend PR #294 without creating a table or
+adding an exception to `KNOWN_RETIRED_TABLES`.
+
+At 22:45Z on 2026-08-26, Railway deployment
+`330aee93-40ff-4276-adcc-6069e1137b67` was `SUCCESS` on exact merged backend SHA
+`b92afcc6d777c71ba22d0bcb46e88c95075ba25e`. A no-cache public `GET /health` returned HTTP 200,
+`status=healthy`, Alembic head/current `s1599_listing_attest_repair`,
+`alembic_drift=false`, `schema_model_tables=233`, `schema_missing_table_count=0`,
+`schema_unmapped_table_count=41`, `schema_known_retired_count=0`, `schema_drift=false` and
+`model_schema_drift=false`. Continue to treat any future nonzero missing-table count as real drift;
+never hide it in `KNOWN_RETIRED_TABLES`.
 
 **Live operation proof.** Outside checks through 12:49Z completed `find_contact`,
 `list_interactions`, `search_interactions` and a pipeline question read-only; the pipeline answer
