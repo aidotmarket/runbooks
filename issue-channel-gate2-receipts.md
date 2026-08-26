@@ -39,6 +39,7 @@ From the detached checkout of the chunk-2 head (NOT the working clone):
 ```bash
 cd /Users/max/koskadeux-state/review-checkouts/s1511-backend-40f57482
 export SECRET_KEY=$(openssl rand -hex 32)   # Settings import requires it; dummy is fine
+export ENVIRONMENT=development RUN_ONE_SHOT_S1163_P2=1   # mandatory: the chain contains an operator-gated one-shot (schema-migration.md), clean bootstrap is never a bare upgrade
 export DATABASE_URL="postgresql://postgres:<pw>@<proxy-host>:<port>/issue_channel_receipt?ssl=require"
 nohup .../.venv/bin/python -u -m alembic upgrade head < /dev/null >> /tmp/s1511_receipt_migration.log 2>&1 & disown
 ```
@@ -58,6 +59,7 @@ nohup .../.venv/bin/python -u -m alembic upgrade head < /dev/null >> /tmp/s1511_
 | `connect() got an unexpected keyword argument 'sslmode'` | asyncpg DSN | use `?ssl=require` |
 | Settings ValidationError SECRET_KEY | backend Settings import during alembic env | export dummy `SECRET_KEY` |
 | migration log stalls at `alembic_version` CREATE | second alembic runner lock-blocked behind first | one runner rule (R.5) |
+| `RuntimeError: s1163_p2_quarantine is an operator-controlled one-shot migration` | chain contains an operator-gated one-shot | export `RUN_ONE_SHOT_S1163_P2=1` (R.5); documented in schema-migration.md |
 | Railway CLI `Environment not found` / stale env ids | `~/.railway/config.json` link cache is stale | trust live GraphQL, never the CLI link file |
 | GraphQL `projects{edges:[]}` on account token | workspace-level listing not exposed for this token shape | query `project(id:...)` directly |
 | secret "missing" from vault | searched one of three Infisical projects | R.3 search rule |
