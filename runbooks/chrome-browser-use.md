@@ -29,7 +29,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: "2026-08-24"
+last_verified_at: "2026-08-26"
 system_name: chrome-browser-use
 purpose_sentence: Diagnose and recover sanctioned Codex Desktop control of an operator's existing Chrome tabs on Titan 1 without bypassing policy or crossing browser identities.
 owner_agent: vulcan
@@ -318,6 +318,7 @@ The dated incident notes below are evidence for the exact recovery boundaries.
 - S1588 prior confirmed transport recovery: a human reinstalled the extension, the session refreshed the Chrome binding with `agent.browsers.get("chrome")`, and DOM control then worked.
 - S1605 policy-failure note, 2026-08-24: `browser.user.openTabs()` first exposed the authorized `https://ops.ai.market/build-queue` tab, but `claimTab`/`playwright.domSnapshot` failed closed with `The admin-enforced policy could not be verified`. Chrome, extension and native-host diagnostics passed; direct embedded app-server config reads succeeded with requirements null. No policy was changed or bypassed.
 - S1605 completed recovery note, 2026-08-24: on a later disconnected binding, `agent.browsers.get("chrome")` reported Chrome unavailable while the same three diagnostics passed. The packaged troubleshooting path opened one approved normal operator-profile window. After two seconds, the exact Chrome selector connected, full Browser documentation loaded, the returned blank tab was claimed and navigated once to `https://ops.ai.market/build-queue`, and DOM proof showed `max@ai.market`, a connected page, and the expected live queue. This proves G-05 only; it does not convert F-03 policy failures into the same class.
+- S1605 repeated G-05 proof, 2026-08-26: Chrome was not running while the selected Profile 1 extension was installed and enabled and the native-host manifest was correct. The already-authorized packaged `open-chrome-window.js --browser chrome` path opened the normal operator profile; after the documented two-second wait, refreshing the exact Chrome binding loaded Browser documentation and allowed a fresh tab to navigate once to `https://ops.ai.market/build-queue`. Visible DOM and screenshot proof showed the authorized operator page refreshed at 16:40 local time with 10 visible open rows, four certified-done rows hidden and zero alerts; the five former deployment-evidence warnings were absent. No Infisical access, `kdbrowser` identity, profile copy, extension change, policy change or browser-family substitution was used.
 
 ## §J. Lifecycle
 
