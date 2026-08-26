@@ -136,6 +136,13 @@ History: probing production on 2026-07-12 inferred the RIGHTMOST `X-Forwarded-Fo
 
 Verification standard: for a configured limit N, caller A must 429 on request N+1 (accounting for endpoint-specific semantics), and — once A is exhausted — an unrelated caller B must still retain its own full budget. A single observed 429 is not sufficient proof that a limit binds correctly.
 
+Endpoint tests that exercise the trusted `X-Forwarded-For` path must also model
+an internal socket peer in the ASGI request scope. Starlette's stock
+`TestClient` uses the non-IP peer name `testclient`; the resolver correctly
+classifies that as unknown and will not trust a forwarding header on its own.
+Set the test peer to an internal/CGNAT address instead of weakening or mocking
+the production trust rule.
+
 T-2026-000240 centralized all active consumers on this contract; it did not change any numeric thresholds, since current telemetry did not justify tuning them.
 
 ## Scheduled jobs (APScheduler)
