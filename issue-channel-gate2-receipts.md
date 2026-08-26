@@ -53,6 +53,14 @@ nohup .../.venv/bin/python -u -m alembic upgrade head < /dev/null >> /tmp/s1511_
 - **Queue endpoint fail-closed (V-3 step 6):** requires the queue surface deployed as a service in the receipt env (branch `build/bq-s1511-gate2-backend-queue-harness`); probe all three operations from OUTSIDE Railway with absent key, a wrong existing internal key, and the dedicated poller key; record TLS identity and OpenAPI/route-table exclusion.
 - **V-2b / V-2c / V-4:** per spec section 8 verbatim; V-4's real-backup line means the REAL backend backup/restore including the `issue_channel` schema (CORE S3 - unanimous Council where required), never a synthetic copy.
 
+## R.6a Deploying the queue surface into the receipt env (V-3 step 6, done S1621)
+1. `serviceCreate(input:{projectId, environmentId, name:"receipt-s1511-queue", branch:"build/bq-s1511-gate2-backend-queue-harness", source:{repo:"aidotmarket/ai-market-backend"}})` - Railway builds the repo Dockerfile; confirm `deployment.meta.commitHash` equals the verified chunk head before trusting the deployment.
+2. Required receipt-only variables beyond the obvious: `SECRET_KEY`, `DATABASE_URL` (internal `receipt-s1511-pg.railway.internal:5432`, superuser ok for receipts), `ISSUE_CHANNEL_QUEUE_DATABASE_URL` (role `issue_channel_queue_api`, `?ssl=require` for asyncpg; set a receipt-only password on the role first via superuser `ALTER ROLE`), `ISSUE_CHANNEL_POLLER_KEY` (receipt-only), `PORT`, and - Settings validators demand these even with `ENVIRONMENT=development` - non-default `DOWNLOAD_TOKEN_SECRET_KEY` and `INTERNAL_API_KEY`. Iterate on deployment logs for any further validator additions.
+3. Startup runs `alembic upgrade head`; with the receipt DB already at head it is a no-op, so the one-shot env var is not needed at boot.
+4. `serviceDomainCreate(targetPort: 8000)` gives the outside-Railway probe URL. The probe script is `review-packages/S1511-GATE2-RECEIPTS/v3_queue_failclosed_probe.py` (env: `QUEUE_BASE_URL`, `RECEIPT_POLLER_KEY`, `WRONG_INTERNAL_KEY` - reuse the receipt `INTERNAL_API_KEY` as the wrong-existing-internal condition). Expected with correct key on an empty receipt DB: snapshot 404, lease 204, complete-intent 409; anything else on the correct key is a finding.
+5. Deploys superseded mid-flight report status `REMOVED`, not `FAILED`; always list the service deployments and judge the newest.
+6. Teardown additions for this service: the service and its domain die with `environmentDelete`; also delete `/tmp/.receipt_secret_key`, `/tmp/.receipt_internal_api_key`, `/tmp/.receipt_poller_key`, `/tmp/.receipt_queue_role_pw`.
+
 ## R.7 Failure modes met producing receipts
 | Symptom | Cause | Fix |
 |---|---|---|
