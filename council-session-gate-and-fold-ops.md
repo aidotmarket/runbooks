@@ -66,8 +66,12 @@ context and the 10% of sessions exceeding 40 steps consumed 46% of all tokens
 - Per-dispatch overrides for named heavy rounds (constitutional / money-path):
   `KD_KIMI_THINKING_KEEP=all` and/or `KD_KIMI_MAX_STEPS_PER_TURN=<n>` in the
   dispatch environment.
-- First live verification is pending the Kimi billing-cycle refresh (quota 403 since
-  2026-08-27T00:02Z). Until then the panel is two-seat CC+GLM per Max Event-Ledger
-  decisions `a5de3120` and `a85f6b63`; restore the three-seat panel when quota returns.
+- Live-verified S1626 (2026-08-27): Max enabled a small Kimi balance, and a live
+  open_response dispatch under the new defaults completed clean (response file
+  written, no quota 403). Three-seat CC+Kimi+GLM panel RESTORED as of S1626,
+  discharging the temporary two-seat CC+GLM authority from Max Event-Ledger
+  decisions `a5de3120` and `a85f6b63`. Balance is small: keep review prompts
+  tight and reserve `KD_KIMI_*` heavy-round overrides for constitutional or
+  money-path rounds only.
 - Review volume itself (~30 full-panel dispatches/day) is folded into
   BQ-GATE-ESTATE-REDUCTION-S1472, not handled ad hoc.
