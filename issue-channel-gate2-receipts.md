@@ -143,3 +143,17 @@ harness branch `build/bq-s1511-gate2-backend-queue-harness` (receipt-support com
 referenced by receipts), and checkout `s1511-receipts1-86e364c2` (not on the recorded
 prune list; prune candidate at next housekeeping). All receipt-DB probes in this
 runbook are now HISTORICAL — nothing here is live infrastructure.
+
+## R.11 PRODUCTION INSTALL (S1629, 2026-08-27) — live state of record
+
+- Watcher service: `issue-channel-watcher` id `d48dd44c-4541-4387-89da-50b2b1d0c8fe`, project ai-market, env production, deploys `aidotmarket/koskadeux-mcp` main via `deploy/issue-channel-watcher/{Dockerfile,railway.toml}` (root Dockerfile/railway.toml deliberately untouched — service-definition test pins them). CMD: guard (`scripts/replica_singleton_guard_watcher.py`, session lock (0x1511,3)) then `scripts/issue_channel.py --source github` (GitHub-only per rollout step 6; record_only via shipped dispatch_rules.yaml). Run lock stays (0x1511,2).
+- Migration `s1511_issue_channel_queue` CANNOT run via the container's `alembic upgrade head`: it requires env `ISSUE_CHANNEL_APPLICATION_DB_ROLE`, refuses a superuser app role, and requires the migration role ≠ app role. Run it OUT-OF-BAND as postgres with the env set (done S1629). Backend deploys no-op afterwards.
+- Backend application role is now `ai_market_app` (NOSUPERUSER; grants on public/mcp_safe/quarantine + default privs from postgres). API + celery-worker `DATABASE_URL` use it; `ai-market-backup` deliberately stays superuser for pg_dump; celery-beat carries no own DATABASE_URL. 26/26 matrix probe on production: `review-packages/S1511-PROD-INSTALL/prod-matrix-receipt-s1629.json`.
+- Credentials (values in Infisical bd272d48/prod/): `ISSUE_CHANNEL_WATCHER_DATABASE_URL`, `ISSUE_CHANNEL_QUEUE_DATABASE_URL`, `DATABASE_URL_AI_MARKET_APP`. Railway service vars are literals (not references) — re-point them if the Postgres credential ever rotates.
+- Two live defects fixed on koskadeux-mcp main with local-pg regressions: `6630ac5cf6` (advisory_lock left autobegun tx; run_once never started), `832dd69d2c` (same-episode second fingerprint violated unique episode_key; crash loop on a day's 2nd CI failure). Both were carried-GLM-1 compositional-gap territory: when a review says "proof is compositional", run the assembled loop against real Postgres before install.
+
+| Symptom | Cause / fix |
+| --- | --- |
+| Backend deploy FAILED: `ISSUE_CHANNEL_APPLICATION_DB_ROLE ... is required` | By-design migration guard; run the migration out-of-band per R.11, never bypass. |
+| Watcher: `A transaction is already begun on this Session` | Pre-6630ac5cf6 code; pull main. |
+| Watcher crash loop: `duplicate key ... canonical_issues_episode_key_key` | Pre-832dd69d2c code; pull main. |
