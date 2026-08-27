@@ -128,3 +128,18 @@ Packages: V2 `57d2bd99`, V3 `3a0ee923` (V3 is authoritative; `corrective/` + `co
 | Railway deployment `meta.serviceManifest` shows staged replica count while BUILDING | Transient pre-finalization value; only the finalized manifest (DEPLOYING/SUCCESS/FAILED) is evidential. |
 | Guard blocks a normal redeploy | Old instance holds the advisory lock during drain; the 90s retry window covers it — do not remove the guard, wait. |
 | Probe DENY checks all fail with pg_code 25P02 | A helper ran `RESET ROLE` on an aborted transaction, masking the real 42501; wrap per-check work in SAVEPOINTs and suppress errors in the reset path. |
+
+
+## R.10 TORN DOWN (S1624, 2026-08-27) — receipt environment no longer exists
+
+Acceptance achieved (unanimous two-seat round 3, package V3 `3a0ee923`; Event Ledger
+`33cd4513`). Removed the same session: Railway environment `receipt-s1511`
+(services receipt-s1511-queue + receipt-s1511-pg, env id cce7977e), all `/tmp/.receipt_*`
+secret files incl. `receipt_app_login`'s, the V-4 dump `/tmp/v4_receipt_s1511.dump`,
+the r2probe LaunchAgent, worktree `/tmp/s1624-r8-wt`, and pinned checkouts
+`s1511-g2recut-cdb8e50e` + `s1511-backend-40f57482`. RETAINED: the immutable packages
+V1/V2/V3 + tarballs under `review-packages/` (sole evidence source from now on), the
+harness branch `build/bq-s1511-gate2-backend-queue-harness` (receipt-support commits
+referenced by receipts), and checkout `s1511-receipts1-86e364c2` (not on the recorded
+prune list; prune candidate at next housekeeping). All receipt-DB probes in this
+runbook are now HISTORICAL — nothing here is live infrastructure.
