@@ -157,3 +157,17 @@ runbook are now HISTORICAL — nothing here is live infrastructure.
 | Backend deploy FAILED: `ISSUE_CHANNEL_APPLICATION_DB_ROLE ... is required` | By-design migration guard; run the migration out-of-band per R.11, never bypass. |
 | Watcher: `A transaction is already begun on this Session` | Pre-6630ac5cf6 code; pull main. |
 | Watcher crash loop: `duplicate key ... canonical_issues_episode_key_key` | Pre-832dd69d2c code; pull main. |
+
+## R.12 ROLLOUT STEPS 7-8 LIVE (S1630, 2026-08-27) — poller + board/ops channel display
+
+- **Titan-1 poller (step 7)**: LaunchAgent `com.koskadeux.issue-channel-poller` (StartInterval 300s, RunAtLoad) runs `~/bin/issue_channel_poller_launch.sh`, which refreshes the sysadmin Infisical JWT, fetches `ISSUE_CHANNEL_POLLER_KEY` (project bd272d48/prod) per run — never stored on disk — and execs `koskadeux-mcp venv python scripts/issue_channel_poller.py --base-url https://api.ai.market`. Outbound-only; executor lock `poller-executor.lock` inside `/Users/max/koskadeux-state/issue-channel/` (0700). Logs: `/var/tmp/koskadeux/issue-channel-poller.{out,err}.log`.
+- **Step 7 proofs (all live, external)**: 401 on snapshot+lease with absent and wrong key; authenticated mirror atomically writes `snapshot.json` preserving cloud `generated_at`; empty-queue lease → `no_intent` (204); stale-on-mirror-stop → session-open line rendered `channel stale` past 2x300s (18:42:25Z), recovered after agent load.
+- **Board + ops display (step 8)**: session-open line carries the channel segment (AC-5b hunk on koskadeux-mcp main). ops frontend renderer shipped via `ops-ai-market` PR #27 (branch `build/bq-s1511-ops-channel-renderer`, head `bdefc10f`, base `f093293`; MP built, GLM APPROVE zero findings, 30/30 component tests + tsc clean, vulcan `npm run build` verified; merge `ca17d10`; Railway `ops-dashboard` deploy SUCCESS on `ca17d102d6`). Live page verified rendering `CHANNEL / channel unavailable (github)`; line/page agree on the same mirrored snapshot. `expired_unleased` → "dispatcher offline / queue undrained" is fixture-proved in the reviewed component test (a live fault cannot exist while dispatch is disabled, and the board must never be hand-fed).
+- **GitHub token state**: Issues:read granted+verified S1630 (see infisical-secrets.md). Checks:read NOT grantable in the PAT console (no `checks` field in the edit form) while the API 403 demands `checks=read` — open org-PAT-policy question for Max. Until settled, `channel unavailable (github)` is the honest steady state; CI-failure signal itself is fully carried by actions:read.
+- **Direct push to ops-ai-market main is refused by repository rules** — merge via PR (`gh pr create` + `gh pr merge`).
+
+| Symptom | Cause / fix |
+| --- | --- |
+| Board says `channel stale` | Poller/mirror stopped: `launchctl print gui/$(id -u)/com.koskadeux.issue-channel-poller`, then err log. Re-bootstrap the plist if absent. |
+| Board says `channel unavailable (github)` | Known-honest PAT scope gap (checks). See R.12 GitHub token state. |
+| Poller exit nonzero, err log shows 401 | Poller key rotated in Infisical but not on backend service (or vice versa) — R.3 rotation rule: both together. |
