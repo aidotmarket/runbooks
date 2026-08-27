@@ -12,7 +12,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-07-26
+last_verified_at: 2026-08-26
 system_name: build-queue-reconciliation
 purpose_sentence: Build Queue reconciliation keeps Living State, Build Queue status, and git evidence aligned before more build work is dispatched.
 owner_agent: vulcan
@@ -37,6 +37,7 @@ The YAML frontmatter above is the summary header. §J is authoritative for refre
 | Trigger B session-open advisory report | SHIPPED | `koskadeux-mcp:kd_session_open` | Strict lint and conformant scenario harness | 2026-07-17 |
 | Trigger C manual reconciliation | SHIPPED | `koskadeux-mcp:kd_reconcile_bq` | Strict lint and conformant scenario harness | 2026-07-17 |
 | Trigger D event-driven reconciliation | SHIPPED | `koskadeux-mcp:koskadeux_server.py` | Startup log signature checks and conformant scenario harness | 2026-07-17 |
+| Bounded rotating active-build sweep | SHIPPED | `ai-market-backend:app/services/reconciliation_job.py` | 60 focused and caller-contract tests; Living State event `bf023b5a-e062-4eb4-8d1c-3fbae7f6ed44` records two consecutive production runs completing in 31 and 29 seconds | 2026-08-26 |
 | Weekly bypass-rate report | SHIPPED | `koskadeux-mcp/scripts/bypass_audit_report.py` | Manual report checklist and scheduled-job log signature | 2026-07-17 |
 | Target-repository backfill | SHIPPED | `koskadeux-mcp/scripts/backfill_target_repos.py` | Dry-run-before-apply procedure | 2026-07-17 |
 
@@ -50,6 +51,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 | Pre-dispatch Gate | `council_request(mode=build)` | BQ entity and reconciliation audit events | Reconciler Core, build dispatcher | Trigger A blocks risky dispatch until drift is patched, rejected, or bypassed with an audit justification. |
 | Session-open Advisory | `kd_session_open` | In-progress BQ entities | Reconciler Core, session opening | Trigger B reports drift read-only and never mutates Living State or emits reconciliation events. |
 | Event Pollers | `koskadeux_server.py:BackgroundScheduler` | `infra:build-queue-poller-cursor`, `infra:git-push-poller-cursor` | Build completion callbacks, Build Queue transitions, git pushes | Trigger D reacts to new evidence and patches only after successful audit emission on the safe path. |
+| Active-build Sweep | `ai-market-backend:app.services.reconciliation_job.reconciliation_scheduler_job` | Process-local `ReconciliationCursor`; active and unknown-status `build:*` entities | APScheduler, Living State, git remotes, stranded-drain maintenance | Every one-minute scheduled pass selects at most eight keys after the previous key, wraps deterministically, and still runs maintenance. A process restart safely begins again at the first key. Explicit manual `all=true` and GitHub `full_pass` calls use an unbounded active-entity worklist, still honor existing per-entity backoff, and do not advance the scheduler cursor. |
 | Bypass Audit | `scripts/bypass_audit_report.py:main` | `ls_drift_bypassed` events | Living State event listing, weekly handoff | Produces the rolling seven-day report manually or every Monday at 09:00 UTC. |
 | Target Repo Backfill | `scripts/backfill_target_repos.py:main` | `body.target_repos` on BQ entities | Repository ownership evidence | Runs dry first, then applies only after ownership and target repositories are verified. |
 
@@ -587,9 +589,9 @@ scenario_set:
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1345
-last_refresh_commit: 03cd4c0
-last_refresh_date: 2026-07-26T09:50:00Z
+last_refresh_session: S1622
+last_refresh_commit: 800f2798a
+last_refresh_date: 2026-08-26T23:53:02Z
 owner_agent: vulcan
 refresh_triggers:
   - reconciliation classification or cleanly_extends invariant changes
