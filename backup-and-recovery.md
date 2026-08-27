@@ -201,3 +201,13 @@ Root cause (verified against ground truth; corrects an earlier hypothesis that b
 Fix (commit 63fa4f17, Gate-3: DeepSeek APPROVE + GLM APPROVE_WITH_NITS): `GET /backup-status` now derives postgres+qdrant freshness from the S3-canonical signal — the same S3 object ages the launchd watchdog trusts — via a new side-effect-free `BackupVerificationMonitor.get_s3_backup_status()`. Redis is demoted to optional history only; the endpoint no longer hard-fails when Redis is down. Response contract (`available`, `targets[t].timestamp/status/last_backup_age_hours`) preserved so `backup-verify.yml` age math is unchanged. Scope: postgres+qdrant only, observability-only, no schema/IAM/backup-job changes; the write-only-key invariant (§C/§H-2) is untouched (freshness from ListBucket, never GetObject).
 
 Noted follow-ups (non-blocking, not done here): (a) `get_s3_backup_status` runs sync boto3 calls inside an async method — same pattern as the existing `run_check`; wrap in `asyncio.to_thread` if the internal endpoint ever sees concurrent load. (b) Extend the status board to the other three watchdog targets (infisical-secrets, railway-config, cloudflare) so the board matches the watchdog's full coverage. (c) The §F "secondary alert" (`backup-verify.yml`) now reads the S3-canonical signal, so its prior false-positive class is closed.
+
+
+## Issue-channel schema restores (pointer, S1624)
+
+Dumps taken with `--no-owner --no-privileges` carry no ACLs or default privileges.
+After restoring the `issue_channel` schema, the role matrix MUST be recreated with
+`restore_roles_step_v3.py` (migration-reuse runner; see
+`issue-channel-gate2-receipts.md`, "S1624 corrective rounds 2-3"). The older
+hand-copied `restore_roles_step.sql`/`_v2.sql` are historical and must not be used:
+v2 demonstrably leaves the watcher read-only on a clean restore.

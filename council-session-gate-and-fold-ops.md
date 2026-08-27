@@ -52,3 +52,22 @@ Author-mode credentials:
 - CC (claude-opus-4-8, `agent=cc mode=review`): first-class read-only reviewer since S1213 roster change — plan mode, pinned dispatch_sha, model verified (mismatch discards the vote); never a build path for BQ/development code.
 - AG (Gemini/Vertex) is PAUSED from active gate rosters since the S1213 roster change (explicit review dispatch remains valid). Review-mode WORKS as of S833: the preload union-type schema rejection (S829) is fixed (87b7a541, nullable form) and the post-Vertex telemetry NoneType crash is fixed (d4d4c3d4); both live (MCP 1.10). AG was `open_response`-only until this deploy. Still defaults to ACTION — include READ-ONLY for non-build tasks; inline the diff and keep prompts tight (turn-budget).
 - Review-mode `verdict_target_branch` persistence currently returns `branch_missing` even when the branch exists — capture verdict text from the task record and persist to state/branch manually.
+
+
+## Kimi consumption controls (S1624, Max-approved; koskadeux-mcp 0cb3c62bf7)
+
+August measurement (699 review sessions): 595M of 638M input tokens were re-sent
+context and the 10% of sessions exceeding 40 steps consumed 46% of all tokens
+(median review: 12 steps). Standing defaults in `scripts/council_dir.py::_kimi_env`:
+
+- `KIMI_MODEL_THINKING_KEEP=false` — prior-turn reasoning is NOT re-sent.
+- `KIMI_LOOP_MAX_STEPS_PER_TURN=40` — hard runaway cap; on cap the CLI exits with
+  `loop.max_steps_exceeded` and writes no response file (surfaces as member failure).
+- Per-dispatch overrides for named heavy rounds (constitutional / money-path):
+  `KD_KIMI_THINKING_KEEP=all` and/or `KD_KIMI_MAX_STEPS_PER_TURN=<n>` in the
+  dispatch environment.
+- First live verification is pending the Kimi billing-cycle refresh (quota 403 since
+  2026-08-27T00:02Z). Until then the panel is two-seat CC+GLM per Max Event-Ledger
+  decisions `a5de3120` and `a85f6b63`; restore the three-seat panel when quota returns.
+- Review volume itself (~30 full-panel dispatches/day) is folded into
+  BQ-GATE-ESTATE-REDUCTION-S1472, not handled ad hoc.

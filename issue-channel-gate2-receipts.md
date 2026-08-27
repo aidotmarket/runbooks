@@ -72,7 +72,7 @@ Gotchas: seed the snapshot row with `generated_at = now` immediately before the 
 ## R.6d V-4 receipt procedure (done S1623)
 Executed only after a Council-unanimous execution plan (koskadeux-mcp branch plan/s1511-v4-execution-v3 @ 6155dabb; Kimi + GLM APPROVE_WITH_MANDATES folded, CC APPROVE_WITH_NITS honored). Probes: `v4-probe/v4_lib.py` (10 sentinel classes x 4 encodings: exact/base64/url/hex), `v4_main.py` (phase A), `v4_phaseB.py` (phase B), `restore_roles_step.sql` (the D4 documented restore step).
 Phase A: purge prior v4 rows -> seed as-sanitized rows through the WATCHER role (real writer path) across all six issue_channel tables + one intent + snapshot row, plus two labeled PLANTED-SELF-TEST sentinel rows (scanner self-test) -> lease/complete via the deployed queue surface -> scan every table row, all three endpoint responses, and the local mirror. Zero hits outside planted rows AND the scanner must find every planted encoding. Retention proven by inserting without `expires_at` (30d quarantine / 90d sanitized-raw server defaults). Interrupted-tx: open a tx, INSERT an intent, `os.close(conn.fileno())` (NOT socket.fromfd - that dups the fd and kills nothing), verify row absent and no lingering backend/locks; terminate leftover `v4-interrupted` backends in the purge step or re-runs count them as stuck.
-Phase B (clean-before-immutable order): real-mechanism dump `pg_dump -Fc --no-owner --no-privileges` (pg 17, same major as the deployed container; backup_pg.py has no -n/-N filter) -> scan raw bytes AND `pg_restore -f -` SQL text BEFORE upload (the SQL-text scan is load-bearing; -Fc compression makes raw-byte scanning non-evidential) -> upload ONLY to `receipts/s1511/postgres/<date>/` with `--checksum-sha256`, assert the S3 response digest matches, and assert `postgres/ai-market/` + `backup-health/ai-market/` newest objects are unchanged before/after -> restore into `issue_channel_restore` -> inventory match (tables/constraints/indexes/alembic head/row counts) -> zero-decryption disposition -> grants ABSENT as expected (dump cannot carry ACLs/default-privs; roles are cluster-level) -> apply `restore_roles_step.sql` -> full `v3_role_matrix_probe.py` PASS on the restored DB.
+Phase B (clean-before-immutable order): real-mechanism dump `pg_dump -Fc --no-owner --no-privileges` (pg 17, same major as the deployed container; backup_pg.py has no -n/-N filter) -> scan raw bytes AND `pg_restore -f -` SQL text BEFORE upload (the SQL-text scan is load-bearing; -Fc compression makes raw-byte scanning non-evidential) -> upload ONLY to `receipts/s1511/postgres/<date>/` with `--checksum-sha256`, assert the S3 response digest matches, and assert `postgres/ai-market/` + `backup-health/ai-market/` newest objects are unchanged before/after -> restore into `issue_channel_restore` -> inventory match (tables/constraints/indexes/alembic head/row counts) -> zero-decryption disposition -> grants ABSENT as expected (dump cannot carry ACLs/default-privs; roles are cluster-level) -> apply the restore role step -> full role-matrix probe PASS on the restored DB. SUPERSEDED (S1624): the binding restore role step is now `restore_roles_step_v3.py` (package V3 `corrective3/r6/`), which executes the pinned migration's own `_apply_security_matrix` verbatim instead of hand-copied SQL; v1/v2 SQL files are historical only — v2 provably leaves the watcher read-only on a clean restore.
 Gotchas: PG17 pg_dump emits `SET transaction_timeout` which a PG16 receipt server rejects as pg_restore's single ignorable error - assert exactly that one error, prod restores are same-major; `aclexplode('{}'::aclitem[])` errors ("ACL arrays must be one-dimensional") - use `c.relacl is not null` + lateral instead; `correlation_key`/`episode_key` are plain identifiers, exclude them from key-material checks and test bytea columns + crypto defaults instead (backend-wide pgcrypto rides in any full dump and is outside issue_channel scope). RESUME_FROM_RESTORE=1 / RESUME_FROM_GRANTS=1 resume a failed phase B on the same sha256-verified artifact without a second WORM upload.
 Receipt: `v4-noncustodial-surface-scan.json` (PASS, provable-now scope; deferred items recorded as binding implementation mandates mapped to their increments). Teardown additions: `drop database issue_channel_restore`; `/tmp/v4_receipt_s1511.dump`; the WORM object under `receipts/s1511/` self-expires with the bucket's 35d COMPLIANCE lock and cannot be deleted earlier.
 
@@ -92,3 +92,39 @@ Receipt: `v4-noncustodial-surface-scan.json` (PASS, provable-now scope; deferred
 
 ## R.9 Owner
 BQ-CI-HEALTH-VISIBLE-AT-SESSION-OPEN-S1511 (P1). Maintained by whichever instance holds the s1511 claim; updated same-session whenever the receipt process changes. Superseded section-by-section as `issue-ingestion-channel.md` lands.
+
+
+## S1624 corrective rounds 2-3 (round-1/2 review findings, executed fixes)
+
+Packages: V2 `57d2bd99`, V3 `3a0ee923` (V3 is authoritative; `corrective/` + `corrective3/`).
+
+- **Restore role step is v3 (migration reuse).** `restore_roles_step_v3.py` imports the
+  migration from the pinned backend checkout and runs `_apply_security_matrix` verbatim
+  (alembic transport shimmed; all statements logged). Any future restore MUST use this
+  mechanism; verify on a clean `--no-owner --no-privileges` restore with the 26-check
+  probe (`r6_clean_restore_probe.py`): watcher full DML incl. future tables, app role
+  42501-denied on all four future-object classes (TABLE/SEQUENCE/FUNCTION/TYPE), queue
+  narrow rights, PUBLIC zero grants.
+- **Service credential rule (found-and-fixed).** The r5 negative check caught the queue
+  service `DATABASE_URL` carrying the Postgres superuser credential. Production mandate:
+  the backend service app DSN must NEVER carry a superuser or watcher credential; the
+  queue routes bind only the dedicated queue-role DSN. Receipt env now uses NOSUPERUSER
+  `receipt_app_login` (public schema only, denied on issue_channel).
+- **Single-replica enforcement is layered and both layers are mandatory in production:**
+  (1) config-as-code `numReplicas = 1` in railway.toml — reasserted in the finalized
+  manifest on every deploy; (2) `scripts/replica_singleton_guard.py` as the image
+  entrypoint (session advisory lock (0x1511,2) on the queue-role DSN, 90s retry for
+  redeploy overlap) — a deployment whose definition carries 2 replicas ends FAILED
+  (proven: deployment efb70cb7); (3) the v2b advisory-lock runtime exclusion.
+
+### Failure/symptom table additions (Railway + tooling, learned S1624)
+
+| Symptom | Cause / fix |
+| --- | --- |
+| `pg_restore: unsupported version (1.16) in file header` | Archive from pg_dump 17+; use `/opt/homebrew/opt/postgresql@17/bin/pg_restore`, not `/opt/homebrew/bin`. |
+| `pg_restore --schema=X` into empty DB: "schema X does not exist" | `--schema` filters objects but omits CREATE SCHEMA; create the schema first. |
+| Container loop: `can't open file '/app/scripts/...'` | `.dockerignore` excludes `scripts/`; add `!scripts/<file>` negations. |
+| asyncpg `CantChangeRuntimeParamError: parameter "ssl"` | DSN carries `?ssl=require` which asyncpg forwards as a server param; strip the query string and pass `ssl="require"` as a connect kwarg. |
+| Railway deployment `meta.serviceManifest` shows staged replica count while BUILDING | Transient pre-finalization value; only the finalized manifest (DEPLOYING/SUCCESS/FAILED) is evidential. |
+| Guard blocks a normal redeploy | Old instance holds the advisory lock during drain; the 90s retry window covers it — do not remove the guard, wait. |
+| Probe DENY checks all fail with pg_code 25P02 | A helper ran `RESET ROLE` on an aborted transaction, masking the real 42501; wrap per-check work in SAVEPOINTs and suppress errors in the reset path. |
