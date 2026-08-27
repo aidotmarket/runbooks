@@ -46,7 +46,8 @@ curl -s https://api.ai.market/health
 | `/api/v1/listings` | `listings.py`, `public.py` | Create/edit/search listings |
 | `/api/v1/orders` | `orders.py`, `checkout.py` | Order lifecycle, Stripe checkout |
 | `/api/v1/deliveries` | `deliveries.py`, `fulfillment_download.py` | File delivery, download tokens |
-| `/api/v1/stripe` | `stripe.py`, `stripe_connect.py` | Payments, seller onboarding |
+| `/api/v1/connect` | `stripe_connect.py` | Supported Standard Connect seller onboarding and status |
+| `/api/v1/webhooks/stripe` | `webhooks.py` | Central Stripe events for Connect, checkout, payments, disputes, and payouts |
 | `/api/v1/allai` | `allai.py` | allAI brain, search, agent dispatch |
 | `/api/v1/cp/agents` | `agent_control.py` | Agent control plane — fleet management |
 | `/api/v1/crm` | `crm.py`, `crm_pipeline.py` | CRM contacts, organizations, pipeline |
