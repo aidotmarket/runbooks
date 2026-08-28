@@ -207,8 +207,8 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   expected_failures:
     - signature: trust returns HTTP 409
       cause: pre-publish evidence, an unsafe or redacted placeholder, another hard gate, or a stale decision revision blocks promotion; refresh first, then reject or leave pending, never bypass
-    - signature: equivalence decision returns HTTP 422
-      cause: the required 0-100 rating or active reviewer identity is missing
+    - signature: decision returns HTTP 422
+      cause: the active ops reviewer identity is missing, or an equivalence edge has no required 0-100 rating
   next_step_success: done
   next_step_failure: §F F-05
 - id: E-05
