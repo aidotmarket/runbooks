@@ -88,7 +88,7 @@ S1632's manual semantic-trust plane is deployed in backend merge `2e91c1b0b7feda
 
 The E-05 production baseline at `2026-08-28T17:13:53Z` recorded Alembic `s1396_trust_decisions`; exact zero rows in `structure_fingerprints`, `generation_interactions`, `correction_deltas`, `equivalence_edges`, `concept_term_alignments`, `corpus_trust_decisions`, `corpus_records`, and `corpus_projection_outbox`; zero sentinel-placeholder matches in every semantic table; and no latest trust or projection state to reconcile. Across the API, worker, and beat services, all five then-deployed capture/trust/freeze variables were literally absent and therefore false by deployed code default. The pilot allowlist, pilot ceiling, and separately gated error-prior aggregation control named by the current E-05 were not present in that release, so E-06 was blocked before any flag change. This is a clean pre-activation baseline, not activation evidence.
 
-The bounded pilot guard is deployed in backend merge `ee6fd5918b999ed2d7cff383c0ec293ea5c0a031`: API deployment `1e733ed6-5ccd-4b44-9d7a-3ab46067966e`, worker `c3e937da-cea1-432d-9de4-ff77c44e7680`, and beat `89040bcc-966e-47fd-9248-d62cc98e3cc2`, all `SUCCESS` on that exact merge. CC and GLM independently approved exact candidate `c46c59ebaf3e92e2a864846a7e7068421d9cf070`; both independently ran all 84 focused tests, including all six real-PostgreSQL cases, and Kimi was excluded by Max. The post-deployment E-05 rerun at `2026-08-28T18:50:17Z` recorded Alembic current/head `s1396_trust_decisions`; exact zero rows in all nine inspected stores, including `metadata_fingerprint_quarantine`; zero placeholder-sentinel matches in all seven content-bearing semantic stores; and no latest trust or projection state. Across API, worker, and beat, all eight capture, trust, freeze, allowlist, ceiling, and aggregation variables were literally absent, so deployed defaults keep capture and aggregation off. Public health was reachable and reported current/head aligned with no Alembic drift, but overall `degraded` because the broader schema-drift monitor reported six model tables missing and 41 unmapped tables. No flag was changed. E-06 remains blocked pending an exact synthetic or explicitly authorized listing, a positive reviewed ceiling, recorded Max authorization, and resolution or explicit adjudication of any load-bearing health drift.
+The bounded pilot guard is deployed in backend merge `ee6fd5918b999ed2d7cff383c0ec293ea5c0a031`: API deployment `1e733ed6-5ccd-4b44-9d7a-3ab46067966e`, worker `c3e937da-cea1-432d-9de4-ff77c44e7680`, and beat `89040bcc-966e-47fd-9248-d62cc98e3cc2`, all `SUCCESS` on that exact merge. CC and GLM independently approved exact candidate `c46c59ebaf3e92e2a864846a7e7068421d9cf070`; the builder and CC each ran all 84 focused tests including all six real-PostgreSQL cases, while GLM ran 78 with the six PostgreSQL cases skipped and verified those paths statically. Kimi was excluded by Max. The post-deployment E-05 rerun at `2026-08-28T18:50:17Z` recorded Alembic current/head `s1396_trust_decisions`; exact zero rows in all nine inspected stores, including `metadata_fingerprint_quarantine`; zero placeholder-sentinel matches in all seven content-bearing semantic stores; and no latest trust or projection state. Across API, worker, and beat, all eight capture, trust, freeze, allowlist, ceiling, and aggregation variables were literally absent, so deployed defaults keep capture and aggregation off. Public health was reachable and reported current/head aligned with no Alembic drift, but overall `degraded` because the broader schema-drift monitor reported six model tables missing and 41 unmapped tables. No flag was changed. E-06 remains blocked pending an exact synthetic or explicitly authorized listing, a positive reviewed ceiling, recorded Max authorization, and resolution or explicit adjudication of any load-bearing health drift.
 
 ### §C.3.1 The corpus-capture taxonomy: evidence is not trust
 
@@ -483,8 +483,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 71090f05a3f774b798fd8933b868bb6ea335e10d
-last_refresh_date: 2026-08-28T17:13:53Z
+last_refresh_commit: 88d8aa5ecc3fb9f74672964ccc9109380c54b41c
+last_refresh_date: 2026-08-28T18:50:17Z
 owner_agent: sysadmin
 refresh_triggers:
   - each S1299 chunk landing
@@ -502,7 +502,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1632 / 2026-08-28T17:13:53Z
+last_lint_run: S1632 / 2026-08-28T18:50:17Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
