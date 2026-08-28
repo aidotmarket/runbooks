@@ -205,6 +205,8 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     shape: one new revision in corpus_trust_decisions; item moves to trusted, rejected, or superseded; no projection job is created
     verification: refresh the same filter and inspect decision_revision, reason_code, rating, and state; confirm the capture/projection banner did not change
   expected_failures:
+    - signature: decision returns HTTP 403
+      cause: the supplied internal-key reviewer is not in the approved ops allowlist; use an approved ops identity and never widen the allowlist to bypass review
     - signature: trust returns HTTP 409
       cause: pre-publish evidence, an unsafe or redacted placeholder, another hard gate, or a stale decision revision blocks promotion; refresh first, then reject or leave pending, never bypass
     - signature: decision returns HTTP 422
