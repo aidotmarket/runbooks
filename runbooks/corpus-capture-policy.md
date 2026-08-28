@@ -11,13 +11,13 @@ error_signatures: []
 supersedes: []
 superseded_by: []
 owner: sysadmin
-last_verified_at: 2026-08-22
+last_verified_at: 2026-08-28
 system_name: corpus-capture-policy
-purpose_sentence: This runbook is the operating authority for what ai.market keeps in allAI semantic memory and the corpus, what it never keeps, and how retention of the transport queue is managed.
+purpose_sentence: This runbook is the operating authority for what ai.market retains as safe corpus evidence, what may be promoted to trusted knowledge, what may enter active projection, and what it never keeps.
 owner_agent: sysadmin
 escalation_contact: Max (human operator)
 lifecycle_ref: §J
-authoritative_scope: Capture policy for allAI semantic memory and the corpus - the keep/never-keep rules for Event Ledger admission, entity indexing, the six S1299 capture classes, the S1396 moat capture, and qdrant_sync_outbox transport-row retention. NOT the outbox producer/consumer mechanics themselves; see qdrant-sync-outbox.md. NOT Qdrant hosting; see qdrant.md.
+authoritative_scope: Capture policy for allAI semantic memory and the corpus - the keep/never-keep rules for Event Ledger admission, entity indexing, the S1299 capture classes, the S1396 corpus-capture taxonomy, human trust decisions, future automation thresholds, and qdrant_sync_outbox transport-row retention. NOT the outbox producer/consumer mechanics themselves; see qdrant-sync-outbox.md. NOT Qdrant hosting; see qdrant.md.
 linter_version: 1.0.0
 ---
 
@@ -42,10 +42,11 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Entity default-DENY admission at producers | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
 | Corpus control plane (six classes) | SHIPPED | `app/services/corpus_admission_service.py` | `tests/test_corpus_admission.py` | 2026-08-21 |
 | Structure-fingerprint moat capture (S1396) | PARTIAL | `app/services/metadata_corpus_capture.py` | `tests/test_s1396_chunk_c.py` | 2026-08-22 |
+| S1396 semantic trust ledger and Corpus console | PARTIAL | `app/services/corpus_trust_service.py` | `tests/test_s1396_corpus_trust.py` | 2026-08-28 |
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
-Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, and the default-off Chunk C metadata-generation and seller-correction producers are live. The relevant capture flags remain disabled and later S1396 activation/projection/equivalence chunks are not yet shipped, so moat capture remains PARTIAL. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, and the default-off Chunk C metadata-generation and seller-correction producers are live. The S1632 trust-ledger/API and ops Console changes are candidates until their exact commits merge and deploy. All relevant capture and projection flags remain disabled; no candidate status in this runbook authorizes activation. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
 ## §C. Architecture & Interactions
 
@@ -56,6 +57,7 @@ Status notes: S1299 corpus admission and producer default-DENY are live. `Corpus
 | Entity indexing gate | `app/services/state_service.py`, `app/services/corpus_admission_service.py` | `state_entities`, corpus tables, `qdrant_sync_outbox` | Qdrant sync consumer | S1299 producer admission is default-DENY. Non-admitted writes do not create semantic transport work; Qdrant remains a derived projection. |
 | Corpus control plane | `app/services/corpus_admission_service.py` | corpus tables per S1299 | producer admission, curator workflow | The six-class control plane is live. Postgres is corpus of record; Qdrant is a derived projection. |
 | S1396 moat-capture foundation and default-off producers | `app/services/metadata_corpus_capture.py`, `app/services/metadata_corpus_curator.py`, `app/tasks/scheduled.py`, S1396 migrations, `scripts/s1396_activate_moat_roles.py` | S1396 capture tables, `corpus_role_assignments` | enrichment, seller edits, admission, later projection/activation | The schema, three approved metadata-moat steward assignments, and Chunk C metadata-generation/seller-correction producers are live. Relevant flags remain off, so the deployed producers write nothing until separately approved activation. |
+| S1396 semantic trust boundary and Corpus console | `app/services/corpus_trust_service.py`, `app/api/v1/endpoints/ops_corpus.py`, ops.ai.market `/corpus` | S1396 evidence tables, `corpus_trust_decisions` | authenticated ops review, future projection | Safe admission is not semantic trust. Human decisions are append-only and revisioned. The console can trust, reject, or supersede evidence and records an equivalence rating from 0 to 100. No console action enables capture or projection. CANDIDATE until exact backend/frontend commits deploy. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
 ### §C.1 What we KEEP - current, live today
@@ -82,12 +84,36 @@ The B-schema and B-activate foundation is deployed at backend commit `925e3e072b
 
 Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`: API deployment `028c0e19-bbba-4d23-b790-936399910e5c`, worker `fcfc3108-cb27-4b49-8b70-29c527c759e4`, beat `6af5269d-176b-467a-a998-9f6db469517f`, and backup `a4914ef6-6c4c-4a89-bac7-c04c8750891a`, all `SUCCESS`. Read-only production verification on 2026-08-22 UTC recorded Alembic current/head `s1595_s1396_c_durability`, both new durability tables and their constraints present, zero rows in those tables, all five relevant/global flags absent and therefore on code defaults, and zero Chunk C interactions, corrections, corpus records, or projection rows since deployment. The code is live but capture remains disabled; activation, projection, equivalence mappings, and completion of S1396 remain separate governed work.
 
+### §C.3.1 The corpus-capture taxonomy: evidence is not trust
+
+The permanent-memory boundary has three separate layers. A record may advance only one layer at a time:
+
+1. **Safe evidence** is privacy-safe, provenance-bound observation. It may include AI proposals, seller acceptance, seller correction, negative outcomes, unresolved schema-family proposals, and proposed equivalence edges. Admission proves only that retaining the record is allowed; it does not prove the record is correct.
+2. **Trusted knowledge** is safe evidence with a current semantic decision. In v1 only a human curator can create the `trusted`, `rejected`, or `superseded` decision. Decisions are append-only and revisioned; a later decision does not erase history.
+3. **Active projection** is a derived, rebuildable view of current trusted knowledge. S1396 projection remains disabled and deferred. No evidence row, numerical score, or console decision may directly switch a flag or enqueue projection work.
+
+Negative evidence is useful and may remain in the safe-evidence layer with typed outcome codes. It must never be retrieved as truth. AI-generated metadata has zero self-confirming authority: model repetition, confidence, or reuse of its own proposal is not independent evidence. Seller acceptance of AI-drafted metadata is one weak, listing-scoped evidence vote; a seller correction is stronger but is not universal taxonomy truth.
+
+### §C.3.2 Equivalence policy: hard gates first, score second
+
+Every dataset-equivalence edge has a numerical rating from 0 to 100. The score explains degree of structural equivalence and prioritizes review; it never overrides a hard gate and does not by itself prove truth.
+
+- **Hard gates:** resolved subjects and scope; complete provenance and lineage; no raw customer data, PII, secret, redacted placeholder, unresolved typed conflict, replay, or AI self-corroboration. A failed gate makes the edge non-promotable regardless of score.
+- **0-40:** reject territory for future shadow automation. Safe negative evidence may remain.
+- **41-84:** manual review.
+- **85-100:** future automation candidate only when every hard gate passes and independent evidence is sufficient. The initial automation target requires three independent non-AI observations, or two independent observations plus curator confirmation. Repeated captures from the same seller, account, device/session, source snapshot, or reused AI proposal collapse to one evidence cluster.
+- **Typed conflict veto:** incompatible keys, types, cardinality, nullability, scope, or lineage blocks automatic promotion even when text or name similarity is high.
+- **Scope rule:** similarity may prove a narrow `subset_of` relation without proving `same_data_kind`, semantic interchangeability, or universal equivalence.
+
+The initial thresholds are Council calibration seeds, not active automation. Capture and projection stay off while shadow labels are collected. Do not enable automatic trusted promotion until audited precision in the 85-100 band is at least 99%, placeholder detection is 100% on the adversarial fixture set, AI self-promotion observed count is zero, and conflict detection is at least 95% on injected conflicts.
+
 ### §C.4 What we NEVER keep
 
 - Raw customer data in any form or transit path (non-custodial invariant, CORE S1/P2). Absolute.
 - Machine housekeeping: cursors, heartbeats, scheduler ticks, unchanged-status polls, duplicate retries, session opens, ownership claims and releases, config-change chatter, dispatch results.
 - The dropped classes with no enum value: raw buyer or search queries, raw customer prompts, support and chat transcripts, emails and notifications, CRM notes, order and delivery payloads, uploaded or delivered datasets, row-level clickstream, raw social posts, arbitrary web scrape, unreviewed AI output, chain-of-thought, model traces, and miscellaneous memory.
 - PII anywhere on the capture path: admission is fail-closed REJECT, never redact-and-keep, and rejections persist no content, spans, or pattern names - only aggregate reason-code counters.
+- Redacted or sentinel semantic placeholders such as `redacted_term`, `redacted_stem`, `[redacted]`, `unknown`, `masked`, or an empty fallback as taxonomy terms, schema-family anchors, or equivalence endpoints. Unsafe names may leave content-free quarantine coordinates and aggregate reason codes only; they never create a semantic row.
 
 ### §C.5 Retention of the transport queue
 
@@ -102,6 +128,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 | Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
 | Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
+| Max / Corpus Curator | Review privacy-safe S1396 evidence; record trust, rejection, supersession, and 0-100 equivalence rating | ops.ai.market CORPUS tab; `/api/v1/ops/corpus/` | authenticated ops operator mapped to an active application user | PLANNED |
 
 ## §E. Operate - Serving Customers
 
@@ -123,7 +150,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
   next_step_success: done
   next_step_failure: §F F-01
 - id: E-02
-  trigger: Weekly P2 quarantine review - classify unknown event types when the fixed-subject SupportTicket is refreshed by the sysadmin obligation run (since S1585 the ticket is AI-owned: human_required=false, assignee ai_agent/sysadmin; it appears on neither Max's needs-Max rows nor the OPS Attention list, and is discharged via the TICKETS panel or the E-02 SQL)
+  trigger: "Weekly P2 quarantine review - classify unknown event types when the fixed-subject SupportTicket is refreshed by the sysadmin obligation run (since S1585 the ticket is AI-owned: human_required=false, assignee ai_agent/sysadmin; it appears on neither Max's needs-Max rows nor the OPS Attention list, and is discharged via the TICKETS panel or the E-02 SQL)"
   pre_conditions:
     - authenticated operator access to the ops.ai.market TICKETS tab
     - read-only database access
@@ -134,7 +161,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
     deployed_backend: "ce64f51e8b377eb07520aae6210c41bf3979d5dd on API deployment 2279e5d0-9488-439d-a322-ab385196f2cf, beat c9ae4975-8267-439c-9aa5-9734163b7c9b, and worker d6358539-b01c-436e-8729-db7dd66e6c3e"
   idempotency: IDEMPOTENT
   expected_success:
-    shape: a normal breach creates or reuses exactly one open waiting_internal SupportTicket (AI-owned since S1585: human_required=false, assignee ai_agent/sysadmin) visible on the TICKETS tab; the open quarantine list is reviewed and each type is either added to an exact never/embed list or deliberately left unknown
+    shape: "a normal breach creates or reuses exactly one open waiting_internal SupportTicket (AI-owned since S1585: human_required=false, assignee ai_agent/sysadmin) visible on the TICKETS tab; the open quarantine list is reviewed and each type is either added to an exact never/embed list or deliberately left unknown"
     verification: after an exact-rule deployment, the existing monitor changes only matching open-row status to classified before it pages remaining unknowns; a read-only query proves the intended rows are no longer open; repeated or rotating unknown breaches reuse one ticket; the operator resolves that ticket only after the monitor is healthy; routine backlog sends no Telegram page and no customer data changes
   expected_failures:
     - signature: open count grows without review
@@ -161,6 +188,48 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
       cause: wrong predicate; restore is not possible, transport rows are not backed up - re-check the statement before running
   next_step_success: done
   next_step_failure: escalation to Max
+- id: E-04
+  trigger: Review a pending S1396 corpus item
+  pre_conditions:
+    - authenticated operator access to the ops.ai.market CORPUS tab
+    - evidence has already passed the privacy-safe admission boundary
+    - capture and projection flags are not changed by this procedure
+  tool_or_endpoint: "https://ops.ai.market/corpus; GET /api/v1/ops/corpus/?trust_state=pending; POST /api/v1/ops/corpus/{evidence_kind}/{evidence_id}/decision"
+  argument_sourcing:
+    evidence_kind: selected from the closed console filter
+    evidence_id: selected from the pending item
+    equivalence_rating: operator assessment from 0 through 100, required only for an equivalence edge
+    reason_code: selected from the closed decision choices; no free-text customer material
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: one new revision in corpus_trust_decisions; item moves to trusted, rejected, or superseded; no projection job is created
+    verification: refresh the same filter and inspect decision_revision, reason_code, rating, and state; confirm the capture/projection banner did not change
+  expected_failures:
+    - signature: decision returns HTTP 403
+      cause: the supplied internal-key reviewer is not in the approved ops allowlist; use an approved ops identity and never widen the allowlist to bypass review
+    - signature: trust returns HTTP 409
+      cause: pre-publish evidence, an unsafe or redacted placeholder, another hard gate, or a stale decision revision blocks promotion; refresh first, then reject or leave pending, never bypass
+    - signature: decision returns HTTP 422
+      cause: the active ops reviewer identity is missing, or an equivalence edge has no required 0-100 rating
+  next_step_success: done
+  next_step_failure: §F F-05
+- id: E-05
+  trigger: Before any S1396 capture, automatic-trust, or projection activation proposal
+  pre_conditions:
+    - read-only production database and Railway configuration access
+  tool_or_endpoint: "read-only production queries for S1396 table counts, corpus_trust_decisions by latest state, corpus_projection_outbox, and exact Railway CORPUS_* flag values"
+  argument_sourcing:
+    deployed_sha: exact Railway deployment source SHA
+    flags: the three S1396 capture flags plus CORPUS_APPROVED_KNOWLEDGE_ENABLED and CORPUS_GLOBAL_FREEZE_ENABLED
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: exact deployment identity; no redacted semantic row; trusted decisions have human reviewer and valid revision; projection remains empty until a separately approved projection release
+    verification: reconcile database counts, latest decisions, deployment SHA, and literal flag values; do not infer absent flags as enabled
+  expected_failures:
+    - signature: any semantic row contains a redacted placeholder or has no current trust lineage
+      cause: corpus contamination; freeze activation and use §G G-04
+  next_step_success: return evidence to the activation gate without changing flags
+  next_step_failure: §G G-04
 ```
 
 ## §F. Isolate - Diagnosing Deviations
@@ -171,6 +240,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 | F-02 | Quarantine backlog grows and stays open | weekly review not happening, genuinely novel event families | §E E-02 listing ordered by count | §G-01 | CONFIRMED |
 | F-03 | Junk admitted through token matching | an operational event type contains an embed token such as decision or review | `SELECT event_type, count(*) FROM state_events WHERE indexing_disposition='embed' AND ts >= now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC` and judge each type against §C.1 | §G-01 | HYPOTHESIZED |
 | F-04 | Google spend rises with no matching capture volume | generation-side spend (agents, mediation), not capture; or attribution gap hides the driver | compare §E E-01 volumes with GCP Monitoring aiplatform request_count; remember allai_cost_daily contains only zero rows and proves nothing |  | CONFIRMED |
+| F-05 | Corpus item cannot be trusted, or trusted knowledge appears semantically wrong | hard gate failure, insufficient independent evidence, reviewer conflict, redacted placeholder, source withdrawal, or newer contradictory evidence | inspect the item and latest decision in the CORPUS tab; run §E E-05; do not inspect or copy raw customer payloads | §G-04 | CONFIRMED |
 
 ## §G. Repair - Fixing Problems
 
@@ -199,6 +269,14 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
   change_pattern: preferred repair is landing S1299 Chunk 2 (default-DENY at producers, no outbox row at all); the interim lever QDRANT_ENTITY_DENYLIST_PREFIXES stops Vertex embeds for matching prefixes BUT the consumer deletes the matching Qdrant points and no re-embed tooling exists until S1299 Chunk 3, so treat a broad denylist extension as a production-data change needing Max approval
   rollback_procedure: removing a prefix stops further deletes but does not restore deleted points until Chunk 3 rebuild tooling exists
   integrity_check: §E E-01 daily entity counts fall to policy expectations without unexplained Qdrant point loss for kept namespaces
+- id: G-04
+  symptom_ref: F-05
+  component_ref: S1396 semantic trust boundary and Corpus console
+  root_cause: trusted evidence is contradicted, withdrawn, unsafe, or superseded
+  repair_entry_point: ops.ai.market CORPUS tab and app/services/corpus_trust_service.py
+  change_pattern: append a rejected or superseded decision with a closed reason code; if projection exists, remove the derived projection first and rebuild only from current trusted decisions; a privacy or erasure incident separately hard-deletes the exact affected lineage under the applicable privacy procedure
+  rollback_procedure: never mutate or delete an ordinary decision revision; append a later curator-confirmed revision after the evidence is re-established
+  integrity_check: latest decision is the intended state, older revisions remain auditable, no redacted semantic row exists, and no rejected or superseded item appears in active projection
 ```
 
 ## §H. Evolve - Extending the System
@@ -209,6 +287,11 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 - Default-DENY is the posture. A new capture class exists only through the S1299 class registry with a named owner role, a measured feedback loop, and a prune rule. No class, no capture.
 - Non-custodial is absolute and senior to every other goal in this runbook.
 - Rejection paths persist no content, ever. Counters and stable reason codes only.
+- Safe admission and semantic trust are independent gates. A privacy-safe evidence row is never implicitly trusted.
+- Corpus trust decisions are human-only in v1, append-only, revisioned, and use closed reason codes. The console accepts no free-text rationale or customer material.
+- AI output cannot corroborate itself. Seller evidence is listing-scoped and cannot independently establish a universal taxonomy fact.
+- Equivalence is always rated 0-100, but hard gates and typed conflict vetoes are senior to the score.
+- Redacted placeholders are void for semantic use: never score them as zero, never match two placeholders, and never retain them as taxonomy or alignment records.
 - Postgres is the corpus of record; Qdrant is derived and rebuildable. Any change that makes Qdrant the only copy of something is wrong.
 - Repetition is filtered at the producer, not the consumer: a filtered record writes no row at all.
 - The Event Ledger (state_events) itself remains an append-only audit record independent of capture; capture policy governs what is embedded and projected, not what is audited. Ledger retention belongs to BQ-DATABASE-CLEANUP-RETENTION-S1300.
@@ -220,6 +303,8 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 - Any change that adds a capture path which bypasses admission is BREAKING.
 - Any change that makes Qdrant canonical is BREAKING.
 - Any change that removes the k>=5 gate from behavioral aggregates is BREAKING.
+- Any change that treats safe admission, an AI confidence, or a numerical equivalence rating as sufficient semantic trust is BREAKING.
+- Any change that lets rejected, superseded, pre-publish, or placeholder-bearing evidence enter active projection is BREAKING.
 
 ### §H.3 REVIEW predicates
 
@@ -228,6 +313,7 @@ Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`:
 - Changing denylist prefixes requires REVIEW.
 - Changing retention windows requires REVIEW.
 - Adding a producer requires REVIEW.
+- Changing trust states, equivalence scoring, hard gates, evidence independence, automated thresholds, or projection eligibility requires REVIEW.
 
 ### §H.4 SAFE predicates
 
@@ -273,13 +359,13 @@ scenario_set:
     weight: 0.09090909090909091
   - id: I-02
     type: operate
-    refs: [E-03]
-    scenario: The outbox table is 1.4 GB of processed rows; reduce it safely.
+    refs: [E-04]
+    scenario: A pending equivalence edge is ready for Max to assess in the Corpus console.
     expected_answers:
       - kind: human_action
-        verb: obtain
-        object: explicit approval
-        target: Max before the E-03 purge
+        verb: record
+        object: 0-100 equivalence rating and closed decision
+        target: append-only corpus trust revision without enabling projection
     weight: 0.09090909090909091
   - id: I-03
     type: isolate
@@ -310,14 +396,12 @@ scenario_set:
         target: _NEVER_EXACT or _NEVER_PREFIXES via reviewed PR
     weight: 0.09090909090909091
   - id: I-06
-    type: repair
-    refs: [G-03]
-    scenario: Stop the internal entity embed bleed this week without waiting for Chunk 2.
+    type: ambiguous
+    refs: [E-04]
+    scenario: An AI-proposed equivalence scores 96 but has no independent non-AI evidence.
     expected_answers:
-      - kind: human_action
-        verb: obtain
-        object: explicit approval
-        target: Max before a broad denylist extension
+      - kind: classification
+        label: pending or rejected; never automatically trusted
     weight: 0.09090909090909091
   - id: I-07
     type: evolve
@@ -336,13 +420,14 @@ scenario_set:
         label: BREAKING
     weight: 0.09090909090909091
   - id: I-09
-    type: operate
-    refs: [E-02]
-    scenario: The weekly quarantine review must classify high-volume unknown event types.
+    type: isolate
+    refs: [F-05, G-04]
+    scenario: A trusted equivalence is contradicted by newer evidence of equal or greater weight.
     expected_answers:
-      - kind: tool_call
-        tool: psql
-        argument_keys: [dsn, query]
+      - kind: human_action
+        verb: append
+        object: rejected or superseded trust revision
+        target: remove derived projection first and preserve prior evidence
     weight: 0.09090909090909091
   - id: I-10
     type: isolate
@@ -356,26 +441,25 @@ scenario_set:
     weight: 0.09090909090909091
   - id: I-11
     type: ambiguous
-    refs: [E-01, F-01, F-04]
-    scenario: Embedding spend rises, but the cause could be capture churn, generation traffic, or the known attribution gap.
+    refs: [F-05]
+    scenario: An equivalence score is 92, but the two sources have incompatible key types.
     expected_answers:
-      - kind: human_action
-        verb: compare
-        object: E-01 capture volume
-        target: GCP Monitoring aiplatform request_count
+      - kind: classification
+        label: typed conflict veto; manual review, never automatic promotion
     weight: 0.09090909090909091
 ```
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1588
-last_refresh_commit: a75fde9b4ada61509ff3b8f6f3655fcb341a51ff
-last_refresh_date: 2026-08-21T01:32:00Z
+last_refresh_session: S1632
+last_refresh_commit: 71090f05a3f774b798fd8933b868bb6ea335e10d
+last_refresh_date: 2026-08-28T11:27:12Z
 owner_agent: sysadmin
 refresh_triggers:
   - each S1299 chunk landing
   - S1396 design approval
+  - any change to the evidence/trust/projection boundary or Corpus console
   - any change to event admission rules or denylist prefixes
   - any capture-related cost incident
 scheduled_cadence: 90d
@@ -388,7 +472,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1588 / 2026-08-21T01:35:00Z
+last_lint_run: S1632 / 2026-08-28T11:27:12Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
