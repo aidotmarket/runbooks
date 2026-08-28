@@ -206,7 +206,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     verification: refresh the same filter and inspect decision_revision, reason_code, rating, and state; confirm the capture/projection banner did not change
   expected_failures:
     - signature: trust returns HTTP 409
-      cause: pre-publish evidence, an unsafe or redacted placeholder, or another hard gate blocks promotion; reject or leave pending, never bypass
+      cause: pre-publish evidence, an unsafe or redacted placeholder, another hard gate, or a stale decision revision blocks promotion; refresh first, then reject or leave pending, never bypass
     - signature: equivalence decision returns HTTP 422
       cause: the required 0-100 rating or active reviewer identity is missing
   next_step_success: done
