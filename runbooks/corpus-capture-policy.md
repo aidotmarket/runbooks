@@ -451,8 +451,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 5249812c052be3464146c922587d6d5ddae337d8
-last_refresh_date: 2026-08-28T11:13:00Z
+last_refresh_commit: 71090f05a3f774b798fd8933b868bb6ea335e10d
+last_refresh_date: 2026-08-28T11:27:12Z
 owner_agent: sysadmin
 refresh_triggers:
   - each S1299 chunk landing
@@ -470,7 +470,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1632 / 2026-08-28T11:13:00Z
+last_lint_run: S1632 / 2026-08-28T11:27:12Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null
