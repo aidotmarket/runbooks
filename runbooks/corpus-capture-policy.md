@@ -42,11 +42,11 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Entity default-DENY admission at producers | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
 | Corpus control plane (six classes) | SHIPPED | `app/services/corpus_admission_service.py` | `tests/test_corpus_admission.py` | 2026-08-21 |
 | Structure-fingerprint moat capture (S1396) | PARTIAL | `app/services/metadata_corpus_capture.py` | `tests/test_s1396_chunk_c.py` | 2026-08-22 |
-| S1396 semantic trust ledger and Corpus console | PARTIAL | `app/services/corpus_trust_service.py` | `tests/test_s1396_corpus_trust.py` | 2026-08-28 |
+| S1396 semantic trust ledger and Corpus console | SHIPPED | `app/services/corpus_trust_service.py` | `tests/test_s1396_corpus_trust.py`, authorized Chrome DOM proof | 2026-08-28 |
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
-Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, and the default-off Chunk C metadata-generation and seller-correction producers are live. The S1632 trust-ledger/API and ops Console changes are candidates until their exact commits merge and deploy. All relevant capture and projection flags remain disabled; no candidate status in this runbook authorizes activation. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, the default-off Chunk C metadata-generation and seller-correction producers, and the exact-listing/hard-ceiling pilot guard are live. The S1632 trust-ledger/API and ops Console are also live and operator-proven, but the wider S1396 capture programme remains partial because capture, equivalence, automatic trust, and projection are still disabled. A shipped review plane or pilot guard does not authorize activation. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
 ## §C. Architecture & Interactions
 
@@ -56,8 +56,8 @@ Status notes: S1299 corpus admission and producer default-DENY are live. `Corpus
 | Event compatibility classifier and legacy quarantine obligation | `app/services/qdrant_event_admission.py`, `app/allai/agents/sysadmin/monitors.py` | `qdrant_event_type_quarantine` | Qdrant sync worker, weekly SupportTicket | Exact EMBED/NEVER rules remain a worker-side compatibility gate. `admit_event` has no current production caller. The existing monitor reconciles an `open` row to `classified` only when its normalized type is in an exact set, before paging rows that remain unknown. |
 | Entity indexing gate | `app/services/state_service.py`, `app/services/corpus_admission_service.py` | `state_entities`, corpus tables, `qdrant_sync_outbox` | Qdrant sync consumer | S1299 producer admission is default-DENY. Non-admitted writes do not create semantic transport work; Qdrant remains a derived projection. |
 | Corpus control plane | `app/services/corpus_admission_service.py` | corpus tables per S1299 | producer admission, curator workflow | The six-class control plane is live. Postgres is corpus of record; Qdrant is a derived projection. |
-| S1396 moat-capture foundation and default-off producers | `app/services/metadata_corpus_capture.py`, `app/services/metadata_corpus_curator.py`, `app/tasks/scheduled.py`, S1396 migrations, `scripts/s1396_activate_moat_roles.py` | S1396 capture tables, `corpus_role_assignments` | enrichment, seller edits, admission, later projection/activation | The schema, three approved metadata-moat steward assignments, and Chunk C metadata-generation/seller-correction producers are live. Relevant flags remain off, so the deployed producers write nothing until separately approved activation. |
-| S1396 semantic trust boundary and Corpus console | `app/services/corpus_trust_service.py`, `app/api/v1/endpoints/ops_corpus.py`, ops.ai.market `/corpus` | S1396 evidence tables, `corpus_trust_decisions` | authenticated ops review, future projection | Safe admission is not semantic trust. Human decisions are append-only and revisioned. The console can trust, reject, or supersede evidence and records an equivalence rating from 0 to 100. No console action enables capture or projection. CANDIDATE until exact backend/frontend commits deploy. |
+| S1396 moat-capture foundation and default-off producers | `app/services/metadata_corpus_capture.py`, `app/services/metadata_corpus_curator.py`, `app/tasks/scheduled.py`, S1396 migrations, `scripts/s1396_activate_moat_roles.py` | S1396 capture tables, `corpus_role_assignments` | enrichment, seller edits, admission, later projection/activation | The schema, three approved metadata-moat steward assignments, Chunk C metadata-generation/seller-correction producers, strict UUID allowlist, full retained-row ceiling, and separately gated aggregation are live. Relevant flags and pilot controls remain absent/off, so the deployed producers write nothing until separately approved activation. |
+| S1396 semantic trust boundary and Corpus console | `app/services/corpus_trust_service.py`, `app/api/v1/endpoints/ops_corpus.py`, ops.ai.market `/corpus` | S1396 evidence tables, `corpus_trust_decisions` | authenticated ops review, future projection | Safe admission is not semantic trust. Human decisions are append-only and revisioned. The console can trust, reject, or supersede evidence and records an equivalence rating from 0 to 100. No console action enables capture or projection. Backend and ops deployments are exact and the authorized Max operator surface is live. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
 ### §C.1 What we KEEP - current, live today
@@ -83,6 +83,12 @@ Per metadata-generation interaction: the structure fingerprint of the customer s
 The B-schema and B-activate foundation is deployed at backend commit `925e3e072bcba1ae8a601a7c961d3738cf6898ec` (Railway deployment `a72aeec9-444b-403b-984e-26d30fe4ed1d`). Production verification recorded exactly one active assignment for each of `metadata_moat_interaction_steward`, `metadata_moat_correction_steward`, and `metadata_moat_equivalence_steward`, zero legacy-role rows, all three S1396 capture flags false, and receipt `/Users/max/koskadeux-state/receipts/s1396/s1396-b-activate-925e3e072b.json` with mode `0600` and digest `d96819ee006599716f0b7329d303ebac952a9fe75bd750d3ec09dcf11ef094bd`. This evidence activates governance ownership only; it does not activate capture producers or complete S1396.
 
 Chunk C is deployed at backend merge `54f6299129753266d9842638acc42f07b8d701a1`: API deployment `028c0e19-bbba-4d23-b790-936399910e5c`, worker `fcfc3108-cb27-4b49-8b70-29c527c759e4`, beat `6af5269d-176b-467a-a998-9f6db469517f`, and backup `a4914ef6-6c4c-4a89-bac7-c04c8750891a`, all `SUCCESS`. Read-only production verification on 2026-08-22 UTC recorded Alembic current/head `s1595_s1396_c_durability`, both new durability tables and their constraints present, zero rows in those tables, all five relevant/global flags absent and therefore on code defaults, and zero Chunk C interactions, corrections, corpus records, or projection rows since deployment. The code is live but capture remains disabled; activation, projection, equivalence mappings, and completion of S1396 remain separate governed work.
+
+S1632's manual semantic-trust plane is deployed in backend merge `2e91c1b0b7fedad5e7190d47fdca67d81eb5faa0`: API deployment `6cd9ebb7-164a-4d6e-ad25-24db09f6fcf0`, worker `aeac9c07-1add-46af-9388-88aec775323d`, and beat `6856b93a-c4ca-4d62-b4f3-88054dbc76d4`, all `SUCCESS`. The ops console change from merge `512bd712f8bd101faa6602879f949c4c8ece9aa5` is contained in deployed ops commit `786cb222bfc67ad2093e3a835dedecea639c1bb9` on deployment `844628c6-0a71-4c85-a3e9-0b0c0ef10a52`. After a complete Codex Desktop process replacement, authorized Chrome DOM proof on 2026-08-28 showed `max@ai.market`, connected state, the `CORPUS` navigation item, the manual-only/projection-gated notice, capture inactive, and zero items in every trust-state queue.
+
+The E-05 production baseline at `2026-08-28T17:13:53Z` recorded Alembic `s1396_trust_decisions`; exact zero rows in `structure_fingerprints`, `generation_interactions`, `correction_deltas`, `equivalence_edges`, `concept_term_alignments`, `corpus_trust_decisions`, `corpus_records`, and `corpus_projection_outbox`; zero sentinel-placeholder matches in every semantic table; and no latest trust or projection state to reconcile. Across the API, worker, and beat services, all five then-deployed capture/trust/freeze variables were literally absent and therefore false by deployed code default. The pilot allowlist, pilot ceiling, and separately gated error-prior aggregation control named by the current E-05 were not present in that release, so E-06 was blocked before any flag change. This is a clean pre-activation baseline, not activation evidence.
+
+The bounded pilot guard is deployed in backend merge `ee6fd5918b999ed2d7cff383c0ec293ea5c0a031`: API deployment `1e733ed6-5ccd-4b44-9d7a-3ab46067966e`, worker `c3e937da-cea1-432d-9de4-ff77c44e7680`, and beat `89040bcc-966e-47fd-9248-d62cc98e3cc2`, all `SUCCESS` on that exact merge. CC and GLM independently approved exact candidate `c46c59ebaf3e92e2a864846a7e7068421d9cf070`; the builder and CC each ran all 84 focused tests including all six real-PostgreSQL cases, while GLM ran 78 with the six PostgreSQL cases skipped and verified those paths statically. Kimi was excluded by Max. The post-deployment E-05 rerun at `2026-08-28T18:50:17Z` recorded Alembic current/head `s1396_trust_decisions`; exact zero rows in all nine inspected stores, including `metadata_fingerprint_quarantine`; zero placeholder-sentinel matches in all seven content-bearing semantic stores; and no latest trust or projection state. Across API, worker, and beat, all eight capture, trust, freeze, allowlist, ceiling, and aggregation variables were literally absent, so deployed defaults keep capture and aggregation off. Public health was reachable and reported current/head aligned with no Alembic drift, but overall `degraded` because the broader schema-drift monitor reported six model tables missing and 41 unmapped tables. No flag was changed. E-06 remains blocked pending an exact synthetic or explicitly authorized listing, a positive reviewed ceiling, recorded Max authorization, and resolution or explicit adjudication of any load-bearing health drift.
 
 ### §C.3.1 The corpus-capture taxonomy: evidence is not trust
 
@@ -128,7 +134,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 | Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
 | Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
-| Max / Corpus Curator | Review privacy-safe S1396 evidence; record trust, rejection, supersession, and 0-100 equivalence rating | ops.ai.market CORPUS tab; `/api/v1/ops/corpus/` | authenticated ops operator mapped to an active application user | PLANNED |
+| Max / Corpus Curator | Review privacy-safe S1396 evidence; record trust, rejection, supersession, and 0-100 equivalence rating | ops.ai.market CORPUS tab; `/api/v1/ops/corpus/` | authenticated ops operator mapped to an active application user | COMPLETE |
 
 ## §E. Operate - Serving Customers
 
@@ -217,10 +223,10 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   trigger: Before any S1396 capture, automatic-trust, or projection activation proposal
   pre_conditions:
     - read-only production database and Railway configuration access
-  tool_or_endpoint: "read-only production queries for S1396 table counts, corpus_trust_decisions by latest state, corpus_projection_outbox, and exact Railway CORPUS_* flag values"
+  tool_or_endpoint: "read-only production queries for S1396 table counts, corpus_trust_decisions by latest state, corpus_projection_outbox, and exact Railway CORPUS_* capture, aggregation, freeze, pilot-allowlist, and pilot-ceiling values"
   argument_sourcing:
     deployed_sha: exact Railway deployment source SHA
-    flags: the three S1396 capture flags plus CORPUS_APPROVED_KNOWLEDGE_ENABLED and CORPUS_GLOBAL_FREEZE_ENABLED
+    flags: the three S1396 capture flags plus CORPUS_APPROVED_KNOWLEDGE_ENABLED, CORPUS_METADATA_ERROR_PRIOR_AGGREGATION_ENABLED, CORPUS_GLOBAL_FREEZE_ENABLED, CORPUS_SHADOW_PILOT_LISTING_IDS, and CORPUS_SHADOW_PILOT_MAX_ROWS
   idempotency: IDEMPOTENT
   expected_success:
     shape: exact deployment identity; no redacted semantic row; trusted decisions have human reviewer and valid revision; projection remains empty until a separately approved projection release
@@ -230,6 +236,30 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
       cause: corpus contamination; freeze activation and use §G G-04
   next_step_success: return evidence to the activation gate without changing flags
   next_step_failure: §G G-04
+- id: E-06
+  trigger: Activate the first S1396 shadow-capture pilot after E-05 is clean
+  pre_conditions:
+    - E-05 was rerun against the exact deployed release and is clean
+    - a deployed bounded-scope control limits capture to an explicit pilot listing set and enforces a hard row ceiling
+    - the pilot subjects are synthetic or explicitly authorized, and no raw customer data is inspected or retained
+    - the exact activation package has independent Council review and recorded Max authorization
+  tool_or_endpoint: "Railway production variables for API, worker, and beat; enable only CORPUS_METADATA_GENERATION_INTERACTION_ENABLED and CORPUS_CORRECTION_DELTA_ENABLED inside the deployed pilot scope"
+  argument_sourcing:
+    enabled_flags: "CORPUS_METADATA_GENERATION_INTERACTION_ENABLED=true; CORPUS_CORRECTION_DELTA_ENABLED=true"
+    prohibited_flags: "CORPUS_EQUIVALENCE_EDGE_ENABLED=false; CORPUS_APPROVED_KNOWLEDGE_ENABLED=false; CORPUS_METADATA_ERROR_PRIOR_AGGREGATION_ENABLED=false"
+    bounded_control: "CORPUS_SHADOW_PILOT_LISTING_IDS=<exact reviewed listing UUIDs>; CORPUS_SHADOW_PILOT_MAX_ROWS=<positive reviewed hard ceiling>; both controls must exist in the exact deployed code before either enabled flag changes"
+    service_scope: "set an enabled capture flag only on the exact service proven to execute that capture point; keep the beat service's aggregation flag false; do not mirror both capture flags across API, worker, and beat by habit"
+    emergency_stop: "CORPUS_GLOBAL_FREEZE_ENABLED=true, then set both enabled pilot flags false"
+    pilot_scope: exact reviewed allowlist and ceiling from the activation package; never an unbounded global flag flip
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: one bounded metadata-generation interaction and its later seller correction can be retained as safe evidence; no evidence is trusted automatically and no projection row is created
+    verification: rerun E-05; verify the combined retained-row count across corpus_records, structure_fingerprints, generation_interactions, correction_deltas, concept_term_alignments, and metadata_fingerprint_quarantine never exceeds the hard ceiling; reconcile each new row to the authorized pilot set; inspect only privacy-safe fields in CORPUS; verify equivalence, approved-knowledge, and projection remain off
+  expected_failures:
+    - signature: no deployed allowlist/ceiling, any non-pilot row, any raw data or sentinel placeholder, a correction without its generation interaction, or any projection row
+      cause: the pilot is unbounded, contaminated, or has broken lineage; set the emergency stop and use §G G-04
+  next_step_success: collect manual labels in shadow mode; do not widen scope or enable automation from a successful first sample
+  next_step_failure: freeze capture and use §G G-04
 ```
 
 ## §F. Isolate - Diagnosing Deviations
@@ -453,8 +483,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 71090f05a3f774b798fd8933b868bb6ea335e10d
-last_refresh_date: 2026-08-28T11:27:12Z
+last_refresh_commit: 88d8aa5ecc3fb9f74672964ccc9109380c54b41c
+last_refresh_date: 2026-08-28T18:50:17Z
 owner_agent: sysadmin
 refresh_triggers:
   - each S1299 chunk landing
@@ -472,7 +502,7 @@ first_staleness_detected_at: null
 
 ```yaml conformance
 linter_version: 1.0.0
-last_lint_run: S1632 / 2026-08-28T11:27:12Z
+last_lint_run: S1632 / 2026-08-28T18:50:17Z
 last_lint_result: PASS
 retrofit: false
 trace_matrix_path: null

@@ -29,7 +29,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: "2026-08-26"
+last_verified_at: "2026-08-28"
 system_name: chrome-browser-use
 purpose_sentence: Diagnose and recover sanctioned Codex Desktop control of an operator's existing Chrome tabs on Titan 1 without bypassing policy or crossing browser identities.
 owner_agent: vulcan
@@ -47,6 +47,8 @@ linter_version: 1.0.0
 YAML frontmatter above is authoritative for the §A header fields.
 
 This runbook covers the normal authorized operator Chrome identity used for internal operations such as `https://ops.ai.market/build-queue`. The `kdbrowser` account and its browser profile are only for isolated ai.market synthetic customer journeys. Never use a `kdbrowser` identity or profile for internal operations, and never move an internal operator tab into that identity.
+
+**Boot-time hard rule:** when `browser.user.openTabs()` succeeds and a following `claimTab` or `playwright.domSnapshot` call returns `The admin-enforced policy could not be verified`, the diagnosis is F-03: a stale or unavailable Codex Desktop Browser service/config bridge. It is not an administrator policy decision. Before proposing recovery, read live state entity `incident:codex-browser-bridge-f03`; while `T-2026-000714` remains open, carry that entity into every Vulcan handoff. On Titan 1, the host-local ai.market project bootstrap at `/Users/max/.codex/.chatgpt-projects/g-p-6a7121bd8a948191bd8fe9bd87db7224/AGENTS.md` repeats this rule so it is loaded before browser work in a fresh chat. That bootstrap is runtime project configuration, not a file tracked by the ai.market product repositories.
 
 ## §B. Capability Matrix
 
@@ -342,13 +344,14 @@ The dated incident notes below are evidence for the exact recovery boundaries.
 - S1622 recurrence note, 2026-08-26: the existing authorized `https://ops.ai.market/build-queue` tab was visible through `browser.user.openTabs()`, but claim/DOM access failed with the exact F-03 policy error. All E-01 transport diagnostics passed. E-02 returned `config_read_ok=true`, `config_requirements_read_ok=true`, `requirements_present=false`, and no explicit browser-use value. The incident was filed as `T-2026-000714`; no policy, profile, extension, manifest, browser identity, or allowlist was changed.
 - S1622 completed F-03 recovery proof, 2026-08-26: the exact verified Codex Desktop main process PID `80060` had ignored the normal quit path and `SIGTERM`. A PID-specific `SIGKILL` ended only that process; a normal relaunch produced new PID `41886` with start time `2026-08-26 21:23:56 Europe/Madrid`. Chrome was not running after the app lifecycle, so the packaged `open-chrome-window.js --browser chrome` path opened the normal Profile 1 window. After the documented two-second wait, a fresh exact Chrome binding connected, the returned blank tab was claimed and navigated once to `https://ops.ai.market/build-queue`, and DOM proof showed signed-in `max@ai.market`, connected status, 9 open items, 66 retained branches and 0 alerts at the authoritative `2026-08-26T19:32:07Z` refresh. No profile, extension, native-host manifest, policy, allowlist, or browser identity changed. This is the first confirmed S1622 repair of F-03 by a complete Codex Desktop process replacement.
 - S1605 repeated G-05 proof, 2026-08-26: Chrome was not running while the selected Profile 1 extension was installed and enabled and the native-host manifest was correct. The already-authorized packaged `open-chrome-window.js --browser chrome` path opened the normal operator profile; after the documented two-second wait, refreshing the exact Chrome binding loaded Browser documentation and allowed a fresh tab to navigate once to `https://ops.ai.market/build-queue`. Visible DOM and screenshot proof showed the authorized operator page refreshed at 16:40 local time with 10 visible open rows, four certified-done rows hidden and zero alerts; the five former deployment-evidence warnings were absent. No Infisical access, `kdbrowser` identity, profile copy, extension change, policy change or browser-family substitution was used.
+- S1632 completed F-03 recovery proof, 2026-08-28: the exact verified Codex Desktop main process PID `41886` did not end through the normal quit path, then ended after PID-specific `SIGTERM`; no name-wide or unresolved process target was used. A normal relaunch produced new main PID `32900` with start time `2026-08-28 19:06:45 Europe/Madrid`. The fresh Chrome binding loaded Browser documentation, returned the existing authorized ops tab, and the single permitted E-03 claim/DOM attempt succeeded. After navigation of that claimed tab to `https://ops.ai.market/corpus`, visible DOM showed signed-in `max@ai.market`, connected state, the `CORPUS` navigation item, manual-approval/projection-gated policy text, capture inactive, zero needs-review/trusted/rejected/superseded items, and no pending review rows. No policy, profile, extension, manifest, allowlist, browser identity, or alternate browser was changed. This independently confirms the defect is the stale Codex Desktop Browser service/config bridge described by F-03, not an administrator policy decision.
 
 ## §J. Lifecycle
 
 ```yaml lifecycle
-last_refresh_session: S1605
+last_refresh_session: S1632
 last_refresh_commit: cc4f1cd01b77a5446b7883e9fe66d95b7c179afa
-last_refresh_date: 2026-08-24T00:00:00Z
+last_refresh_date: 2026-08-28T17:13:53Z
 owner_agent: vulcan
 refresh_triggers:
   - browser_plugin_upgrade
@@ -356,6 +359,7 @@ refresh_triggers:
   - managed_config_contract_change
   - recurrence_with_new_signature
   - successful_s1605_recovery_proof
+  - successful_s1632_f03_recovery_proof
 scheduled_cadence: 90d
 ```
 
