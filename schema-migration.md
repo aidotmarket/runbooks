@@ -25,9 +25,24 @@ When two branches each add a revision on top of the same parent:
 3. PR the merge alongside the second-merged branch.
 
 ## S.5 Production deploy alignment
-- Railway runs `alembic upgrade head` via Dockerfile CMD on every deploy.
+- Railway runs `scripts/run_alembic_startup.sh` via the Dockerfile command on
+  every backend deploy. When `AUTHOR_DISPATCH_DATABASE_URL` is present, the
+  helper scopes that schema-owner DSN to the Alembic child process only. The
+  application then starts with the original restricted `DATABASE_URL` from the
+  container environment. Local and staging environments without the author DSN
+  fall back to `DATABASE_URL`.
+- The production application role is intentionally DDL-denied. Do not grant it
+  `CREATE` on `public` to make a migration pass. Before relying on the split,
+  verify only the presence of both Railway variable names (never print their
+  values), and use the established Infisical author DSN for read-only catalog
+  checks of the two roles.
 - After merge to main, watch the Railway deploy log for the alembic upgrade step.
-- If alembic fails on production: rollback the Railway deploy + revert the PR. Do NOT manually edit production schema.
+- If Alembic fails on production, first confirm Railway retained the previous
+  successful deployment. Do not manually edit production schema. Revert the
+  feature PR when its migration bytes are defective. When the migration bytes
+  are verified and the failure is instead the execution role or transport,
+  land the smallest independently reviewed deploy-path repair and let Alembic
+  apply the unchanged migration on the next deploy.
 
 ## S.6 Schema-only PR rules
 - Schema-only PRs (no app code changes) require MP review-mode approval.
@@ -41,6 +56,13 @@ When two branches each add a revision on top of the same parent:
 - **Forward test passes but backward fails**: missing `downgrade()` coverage. Common with constraint additions where reverting requires explicit drop.
 - **Production diverged from local**: someone hand-applied schema. Pull latest, compare via `alembic current` on production, reconcile via merge revision.
 - **Long-running migrations on production**: Railway deploy timeouts. Pre-deploy the schema change in a separate maintenance-window PR; ship code that uses it in a follow-up PR.
+- **`permission denied for schema public` from the application role**: confirm
+  the failed deployment never replaced the prior successful one, then verify
+  that `scripts/run_alembic_startup.sh` is present and that the production
+  service has both `AUTHOR_DISPATCH_DATABASE_URL` and `DATABASE_URL`. The
+  author role must have `CREATE` on `public`; the application role must not.
+  Repair the migration connection boundary and redeploy. Never grant DDL to the
+  application role and never apply the migration body by hand.
 
 ## S.7a S1163 schema-classification tooling (operator reference)
 
