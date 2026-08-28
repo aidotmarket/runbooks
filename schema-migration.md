@@ -27,10 +27,12 @@ When two branches each add a revision on top of the same parent:
 ## S.5 Production deploy alignment
 - Railway runs `scripts/run_alembic_startup.sh` via the Dockerfile command on
   every backend deploy. When `AUTHOR_DISPATCH_DATABASE_URL` is present, the
-  helper scopes that schema-owner DSN to the Alembic child process only. The
-  application then starts with the original restricted `DATABASE_URL` from the
-  container environment. Local and staging environments without the author DSN
-  fall back to `DATABASE_URL`.
+  helper uses that schema-owner DSN as the Alembic child process's
+  `DATABASE_URL`. The application then starts with the original restricted
+  `DATABASE_URL` from the container environment. The pre-existing author
+  variable remains visible in that environment; this boundary prevents the app
+  database engine from selecting it, rather than removing the secret. Local and
+  staging environments without the author DSN fall back to `DATABASE_URL`.
 - The production application role is intentionally DDL-denied. Do not grant it
   `CREATE` on `public` to make a migration pass. Before relying on the split,
   verify only the presence of both Railway variable names (never print their
