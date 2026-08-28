@@ -252,7 +252,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   idempotency: NOT_IDEMPOTENT
   expected_success:
     shape: one bounded metadata-generation interaction and its later seller correction can be retained as safe evidence; no evidence is trusted automatically and no projection row is created
-    verification: rerun E-05; reconcile each new row to the authorized pilot set and ceiling; inspect only privacy-safe fields in CORPUS; verify equivalence, approved-knowledge, and projection remain off
+    verification: rerun E-05; verify the combined retained-row count across corpus_records, structure_fingerprints, generation_interactions, correction_deltas, concept_term_alignments, and metadata_fingerprint_quarantine never exceeds the hard ceiling; reconcile each new row to the authorized pilot set; inspect only privacy-safe fields in CORPUS; verify equivalence, approved-knowledge, and projection remain off
   expected_failures:
     - signature: no deployed allowlist/ceiling, any non-pilot row, any raw data or sentinel placeholder, a correction without its generation interaction, or any projection row
       cause: the pilot is unbounded, contaminated, or has broken lineage; set the emergency stop and use §G G-04
