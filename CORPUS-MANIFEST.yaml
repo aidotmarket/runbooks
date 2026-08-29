@@ -380,6 +380,24 @@ documents:
       - deployed koskadeux-mcp builder control surface
       - MP dispatch corpus fire counts
     independent_review_required: true
+  - path: runbooks/buyer-request-publication-and-discovery.md
+    git_blob_oid: 81af37e64ca66a236209825a6ef93421f4ef11c0
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: buyer-requests
+    risk: P0
+    target_paths:
+      - runbooks/buyer-request-publication-and-discovery.md
+    evidence:
+      - ref: git:aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2
+        finding: Exact deployed matching-aware backend release with external email disabled and the forward s1632_request_matching migration graph retained.
+      - ref: git:aidotmarket/ai-market-frontend@1b8a6c2da7934217392ca4e1030128da3bec6111
+        finding: Exact reviewed-local homepage and Buyer Requests navigation candidate; not production deployment evidence.
+    verify_against:
+      - Railway deployment identities
+      - live flags, aggregate delivery state, and public discovery
+    independent_review_required: false
   - path: cc-machine-identity.md
     git_blob_oid: 1423bdcfb247a79b93fdbbf2c77d5dcdecafa2f4
     catalog_state: grandfathered
@@ -777,6 +795,20 @@ documents:
     verify_against:
       - live provider and synchronization configuration
       - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: issue-channel-gate2-receipts.md
+    git_blob_oid: e07e4365be537bec495cb1547bb1354cd00bd92c
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - runbooks/issue-ingestion-channel.md
+    evidence: []
+    verify_against:
+      - S1511 Gate 2 spec and immutable receipts
+      - deployed issue-channel schema, roles, probes, and canonical state
     independent_review_required: true
   - path: local-secops.md
     git_blob_oid: ede7e36cee5de8ff1eb096e868322cada7575990
