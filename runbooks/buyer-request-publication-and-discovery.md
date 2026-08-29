@@ -51,11 +51,22 @@ The frontmatter is authoritative. This runbook describes current code and deploy
 |---|---|---|---|---|
 | One persisted publication decision and reason (deployed) | SHIPPED | `app/services/request_publication_service.py` | `tests/test_request_publication_service.py`, cross-surface tests | 2026-08-29 |
 | Public HTML/API/text/sitemap eligibility gate (deployed) | SHIPPED | `app/api/v1/endpoints/public.py` | publication, requests.txt, llms, SEO surface tests | 2026-08-29 |
-| Durable seller matching and in-app delivery (merged, not yet deployed) | PARTIAL | `app/services/request_matching_service.py` | 173 bounded tests; Council no HIGH/MEDIUM | 2026-08-29 |
+| Durable seller matching and in-app delivery (deployed; email off) | SHIPPED | `app/services/request_matching_service.py` | 173 bounded tests; Council no HIGH/MEDIUM | 2026-08-29 |
 | External seller email (disabled) | PLANNED | `app/core/config.py` | controlled local retry/idempotency tests only | 2026-08-29 |
 | Homepage demand feed and Buyer Requests navigation (review candidate, not deployed) | PARTIAL | `app/page.tsx` | 257 frontend tests; typecheck | 2026-08-29 |
 | Public MCP request search (not built) | PLANNED | — | none | 2026-08-29 |
 | Later digest sender (retained state only, not built) | PLANNED | — | cap-state test only | 2026-08-29 |
+
+Pinned rollout evidence, refreshed whenever production or candidate identity changes:
+
+| Surface | Immutable artifact | State and evidence |
+|---|---|---|
+| Publication gate and public discovery | `aidotmarket/ai-market-backend@faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67` | Deployed by Railway deployment `b8114a63-06d8-42b9-817e-617b4e69769f`, image `sha256:b534428f6d128ae795f9b05542d678399b30f9bb98956fc836152902d7a961fe`; now superseded by the matching release. |
+| Matching and in-app delivery | `aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2` | Current production deployment `d61dca86-70f6-46ae-b77a-c1e1b1fb4890`, image `sha256:8c6391b8fd6757a9868dcb863468586117e8df1962d8260a2329a3300606d2c8`; Railway status `SUCCESS`. |
+| Homepage feed and navigation | `aidotmarket/ai-market-frontend@cb5df78d07020eddf2171d57af1715aa58019553` | Local review candidate only; not deployed. |
+| Public MCP request search and digest sender | No backing artifact | Not built. |
+
+Production proof for the matching release: `BUYER_REQUEST_MATCHING_ENABLED=true`, publication side effects on, external email false; all 33 retained outbox rows processed with zero matching errors; zero delivery rows were created because all 33 retained sample requests remain ineligible. `/api/health` reports process health. `/health` reports HTTP 200 with `alembic_head=alembic_current=s1632_request_matching` and `alembic_drift=false`; its overall `degraded` label is the pre-existing model-inventory drift, not migration drift.
 
 ## §C. Architecture & Interactions
 
@@ -68,7 +79,7 @@ The market uses one decision everywhere. An open, unexpired request from a verif
 | Transition outbox | `request_publication_outbox` | unique request/version row | search, cache, matching | Keeps committed work until each consumer records completion or visible retry state. |
 | Seller selection | `process_request_matching_outbox` | `request_match_deliveries` | Qdrant listings plus Postgres | Threshold 0.75, maximum five sellers, one best listing per seller, no synthetic/self match. |
 | Delivery | `drain_request_match_deliveries` | independent in-app/email states | notifications, Resend | Completed channels are not repeated; retries retain missing work. |
-| Later inventory | `process_listing_match_inventory` | listing checked/retry columns | canonical listing indexing | A better current listing may replace an unsent row; delivered rows remain immutable. |
+| Later inventory | `process_inventory_rematches` | listing checked/retry columns | canonical listing indexing | A better current listing may replace an unsent row; delivered rows remain immutable. |
 | Relevance inspection | first three genuine reports | delivery inspection state/code | automated inspector | A concrete question is visible; it does not block publication or in-app delivery. |
 
 Human review is an exception for genuine ambiguity, not the normal publication path. Infrastructure unavailability retries automatically. No request may sit in an unexplained queue.
@@ -87,7 +98,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 
 ```yaml operate
 - id: E-01
-  trigger: Deploy the merged Chunk 2 matching release
+  trigger: Verify or redeploy the current Chunk 2 matching release
   pre_conditions:
     - exact merge SHA is 8a5e2671442abfb54c6b3c8f84281afff21f5bd2
     - Alembic has one head named s1632_request_matching
@@ -98,8 +109,8 @@ Human review is an exception for genuine ambiguity, not the normal publication p
     revision: exact reviewed merge SHA, never an unpinned branch label
   idempotency: IDEMPOTENT
   expected_success:
-    shape: deployment reports the exact SHA; health is ready; alembic_version is s1632_request_matching
-    verification: read-only deployment identity, health, schema, flag, and row-state checks
+    shape: deployment reports the exact SHA; /api/health is healthy; alembic head and current are both s1632_request_matching with no migration drift
+    verification: read-only deployment identity, both health endpoints, schema, flag, and aggregate row-state checks; an unrelated model-schema warning does not prove this migration failed
   expected_failures:
     - signature: request_match_deliveries table does not exist
       cause: application code started before the forward migration completed
@@ -167,9 +178,9 @@ Human review is an exception for genuine ambiguity, not the normal publication p
   component_ref: Delivery
   root_cause: a systemic code/schema/worker failure
   repair_entry_point: BUYER_REQUEST_MATCHING_ENABLED=false and BUYER_REQUEST_MATCH_EMAILS_ENABLED=false
-  change_pattern: Disable new matching and every external email, then roll application code back while leaving the forward schema and all delivery/outbox rows intact.
-  rollback_procedure: Redeploy the last known-good application SHA. Extra matching tables and columns remain in place and preserve work for repair or replay.
-  integrity_check: health ready; publication public gate unchanged; matching workers perform no new allocation; retained rows and attempts remain queryable
+  change_pattern: Disable new matching and every external email while leaving the forward schema and all delivery/outbox rows intact.
+  rollback_procedure: First set both switches false and redeploy the current reviewed matching SHA 8a5e2671442abfb54c6b3c8f84281afff21f5bd2. If the application binary itself must be rolled back, redeploy publication SHA faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67 and still retain the forward schema.
+  integrity_check: /api/health is HTTP 200 healthy; publication public reads remain gated; matching creates no new allocation during one worker interval; delivery/outbox counts, states, attempts, and next-attempt times remain queryable. On an application rollback to faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67, /health is expected to remain HTTP 200 but report degraded with alembic_head=s1632_request_publication, alembic_current=s1632_request_matching, and alembic_drift=true because the forward schema was deliberately preserved.
 
 - id: G-02
   symptom_ref: F-02

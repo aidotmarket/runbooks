@@ -38,13 +38,13 @@ Credential setup happens at startup in `app/core/gcp_credentials.py`:
 | `https://api.ai.market/sitemap-listings.xml` | Backend (FastAPI) | All published listing detail pages |
 | `https://api.ai.market/sitemap-requests.xml` | Backend (FastAPI) | Only requests whose persisted publication decision is `eligible` |
 
-Both are referenced in `robots.txt` (served by frontend). Google Search Console has both submitted.
+All three are referenced in `robots.txt` (served by frontend). The listing sitemaps are submitted in Google Search Console; verify request-sitemap submission in Search Console rather than inferring it from `robots.txt`.
 
 ### robots.txt
 
 Served by frontend at `https://ai.market/robots.txt`. Source: `app/robots.txt/route.ts`.
 
-Allows all crawlers, blocks `/dashboard`, `/login`, `/register`, `/api/`. References both sitemaps.
+Allows all crawlers, blocks `/dashboard`, `/login`, `/register`, `/api/`. References all three sitemaps.
 
 ## Bing Webmaster
 

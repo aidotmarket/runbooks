@@ -2,7 +2,7 @@
 
 ## What it is
 
-The data-request feature lets a buyer post a "I'm looking for X kind of data" listing and receive responses from sellers. Lifecycle: a buyer drafts a request, publishes it to the public board, sellers reply with proposals, the buyer picks a winning response and the flow proceeds to payment + fulfillment via the standard listing/order pipeline.
+The data-request feature lets a buyer post a "I'm looking for X kind of data" listing and receive responses from sellers. Lifecycle: a buyer drafts a request, submits it for publication, eligible requests become public, sellers reply with proposals, the buyer picks a winning response and the flow proceeds to payment + fulfillment via the standard listing/order pipeline.
 
 **Customer-facing entry point:** `ai.market/requests/new` (create) and `ai.market/requests` (browse the eligible public board).
 
@@ -32,7 +32,7 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 | POST | `/data-requests` | Create draft request (auth required) |
 | GET | `/data-requests` | List + filter (auth-aware visibility) |
 | GET | `/data-requests/{slug_or_id}` | Detail |
-| PATCH | `/data-requests/{request_id}` | Edit draft |
+| PATCH | `/data-requests/{request_id}` | Edit draft or open request |
 | POST | `/data-requests/{request_id}/publish` | Move from draft → open |
 | PUT | `/data-requests/{request_id}/publication-consent` | Consent to the exact current public content hash |
 | DELETE | `/data-requests/{request_id}/publication-consent` | Withdraw public consent and remove public eligibility |
