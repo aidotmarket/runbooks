@@ -279,7 +279,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 682ff2946d41130e66cb32ff720f3eb65cf15b2d
+last_refresh_commit: 1c350cb6d398e7be459201935af44f2a14afb716
 last_refresh_date: 2026-08-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
