@@ -38,7 +38,7 @@ Credential setup happens at startup in `app/core/gcp_credentials.py`:
 | `https://api.ai.market/sitemap-listings.xml` | Backend (FastAPI) | All published listing detail pages |
 | `https://api.ai.market/sitemap-requests.xml` | Backend (FastAPI) | Only requests whose persisted publication decision is `eligible` |
 
-All three are referenced in `robots.txt` (served by frontend). The listing sitemaps are submitted in Google Search Console; verify request-sitemap submission in Search Console rather than inferring it from `robots.txt`.
+All three are referenced in `robots.txt` (served by frontend). Read submission state for each exact URL from live Google Search Console rather than inferring it from `robots.txt` or this document.
 
 ### robots.txt
 
@@ -65,7 +65,7 @@ Allows all crawlers, blocks `/dashboard`, `/login`, `/register`, `/api/`. Refere
 - `/llms.txt` — LLM-readable site description with dataset listings
 - `/llms-full.txt` — detailed supply and eligible demand discovery; apex exposure remains an S1632 verification item
 - `/requests.txt` and `/.well-known/requests.txt` — eligible Buyer Requests only
-- `/api/v1/public/data-requests/{slug}.md` — eligible request markdown
+- `/api/v1/public/requests/{slug}.md` — eligible request markdown
 - `/.well-known/ai-agents.json` — Agent discovery manifest
 - `/.well-known/ai-plugin.json` — OpenAI plugin manifest
 

@@ -63,10 +63,12 @@ Pinned rollout evidence, refreshed whenever production or candidate identity cha
 |---|---|---|
 | Publication gate and public discovery | `aidotmarket/ai-market-backend@faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67` | Deployed by Railway deployment `b8114a63-06d8-42b9-817e-617b4e69769f`, image `sha256:b534428f6d128ae795f9b05542d678399b30f9bb98956fc836152902d7a961fe`; now superseded by the matching release. |
 | Matching and in-app delivery | `aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2` | Current production deployment `d61dca86-70f6-46ae-b77a-c1e1b1fb4890`, image `sha256:8c6391b8fd6757a9868dcb863468586117e8df1962d8260a2329a3300606d2c8`; Railway status `SUCCESS`. |
-| Homepage feed and navigation | `aidotmarket/ai-market-frontend@cb5df78d07020eddf2171d57af1715aa58019553` | Local review candidate only; not deployed. |
+| Homepage feed and navigation | `aidotmarket/ai-market-frontend@1b8a6c2da7934217392ca4e1030128da3bec6111` | Local review candidate only; not deployed. |
 | Public MCP request search and digest sender | No backing artifact | Not built. |
 
 Production proof for the matching release: `BUYER_REQUEST_MATCHING_ENABLED=true`, publication side effects on, external email false; all 33 retained outbox rows processed with zero matching errors; zero delivery rows were created because all 33 retained sample requests remain ineligible. `/api/health` reports process health. `/health` reports HTTP 200 with `alembic_head=alembic_current=s1632_request_matching` and `alembic_drift=false`; its overall `degraded` label is the pre-existing model-inventory drift, not migration drift.
+
+Refresh that proof only from authorised read-only sources: Railway's exact deployment list, the three resolved boolean settings from `app.core.config.settings`, aggregate counts/states from `request_publication_outbox`, `request_match_deliveries`, and `data_requests`, plus public GETs to `/api/health` and `/health`. Do not dump all environment variables, customer rows, request text, or identities into evidence.
 
 ## §C. Architecture & Interactions
 
@@ -179,8 +181,8 @@ Human review is an exception for genuine ambiguity, not the normal publication p
   root_cause: a systemic code/schema/worker failure
   repair_entry_point: BUYER_REQUEST_MATCHING_ENABLED=false and BUYER_REQUEST_MATCH_EMAILS_ENABLED=false
   change_pattern: Disable new matching and every external email while leaving the forward schema and all delivery/outbox rows intact.
-  rollback_procedure: First set both switches false and redeploy the current reviewed matching SHA 8a5e2671442abfb54c6b3c8f84281afff21f5bd2. If the application binary itself must be rolled back, redeploy publication SHA faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67 and still retain the forward schema.
-  integrity_check: /api/health is HTTP 200 healthy; publication public reads remain gated; matching creates no new allocation during one worker interval; delivery/outbox counts, states, attempts, and next-attempt times remain queryable. On an application rollback to faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67, /health is expected to remain HTTP 200 but report degraded with alembic_head=s1632_request_publication, alembic_current=s1632_request_matching, and alembic_drift=true because the forward schema was deliberately preserved.
+  rollback_procedure: Set both switches false and retain or redeploy the current reviewed, migration-aware SHA 8a5e2671442abfb54c6b3c8f84281afff21f5bd2. Do not deploy faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67 against a database at s1632_request_matching; its normal container start runs an older Alembic graph first and cannot locate the retained revision. If the current binary itself is implicated, stop and supply a separately reviewed rollback artifact that contains the forward migration graph; never stamp or downgrade merely to make an older image boot.
+  integrity_check: /api/health is HTTP 200 healthy; /health has alembic_head=alembic_current=s1632_request_matching and alembic_drift=false; publication public reads remain gated; matching creates no new allocation during one worker interval; delivery/outbox counts, states, attempts, and next-attempt times remain queryable
 
 - id: G-02
   symptom_ref: F-02
@@ -196,7 +198,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 
 `s1632_request_matching.downgrade()` drops the entire `request_match_deliveries` table and the outbox/listing retry columns. After matching has processed any request, that destroys deduplication, delivery, suppression, inspection, and retry evidence; a later re-upgrade can re-alert sellers because the unique history is gone.
 
-Therefore the normal rollback is G-01: switches off, old application, schema retained. Do not run `alembic downgrade s1632_request_publication` in production merely to roll back code. A destructive downgrade requires Max's explicit authority, a verified export/backup of every matching table/column, a proven restore procedure, external email off, matching quiesced, and a written decision accepting the possible replay/duplicate-alert consequence. Without all of those, stop.
+Therefore the normal rollback is G-01: switches off on the current migration-aware application, schema retained. Do not deploy the older publication image against the forward revision, and do not run `alembic downgrade s1632_request_publication` in production merely to roll back code. A destructive downgrade requires Max's explicit authority, a verified export/backup of every matching table/column, a proven restore procedure, external email off, matching quiesced, and a written decision accepting the possible replay/duplicate-alert consequence. Without all of those, stop.
 
 ## §H. Evolve
 
