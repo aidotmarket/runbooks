@@ -90,6 +90,8 @@ Receipt: `v4-noncustodial-surface-scan.json` (PASS, provable-now scope; deferred
 ## R.8 Related
 `alerts-at-open.md` (session-open alerts; its forward-work pointer is replaced at implementation completion per spec 2.6), `schema-migration.md` (general alembic discipline), `titan-1.md` (Railway account token), spec worktree at `cdb8e50e`.
 
+- Operating the working system (health checks, DB access from Titan-1, replay corpus export, resolution/expiry policy, Kimi packaging, build verification): [issue-channel.md](issue-channel.md) (S1635). This runbook stays evidence-process only.
+
 ## R.9 Owner
 BQ-CI-HEALTH-VISIBLE-AT-SESSION-OPEN-S1511 (P1). Maintained by whichever instance holds the s1511 claim; updated same-session whenever the receipt process changes. Superseded section-by-section as `issue-ingestion-channel.md` lands.
 
