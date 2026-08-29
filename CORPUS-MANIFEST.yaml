@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: a60c064d13e4b6af17fc0d0b20bceb8494a28cd6
+  inventory_sha: fce55865ce2a1b17d829d9b659e04eb99e404479
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 116
-    source_documents: 112
+    operational_documents: 119
+    source_documents: 115
     active: 27
-    grandfathered: 85
+    grandfathered: 88
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -845,7 +845,7 @@ documents:
       - live provider, queue, snapshot, and board behavior
     independent_review_required: true
   - path: issue-channel-gate2-receipts.md
-    git_blob_oid: e07e4365be537bec495cb1547bb1354cd00bd92c
+    git_blob_oid: 043cd59916868bfdd9495989260ed882773f757f
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1348,7 +1348,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: 7f1d6a226a8c53ed596c598d998b73abf2c0a729
+    git_blob_oid: be5f3380364dfa370da5b250f41c4c43b53f6381
     catalog_state: active
     status: active
     proposed_disposition: retain_active
