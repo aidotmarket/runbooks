@@ -53,7 +53,7 @@ The frontmatter is authoritative. This runbook describes current code and deploy
 | Public HTML/API/text/sitemap eligibility gate (deployed) | SHIPPED | `app/api/v1/endpoints/public.py` | publication, requests.txt, llms, SEO surface tests | 2026-08-29 |
 | Durable seller matching and in-app delivery (deployed; email off) | SHIPPED | `app/services/request_matching_service.py` | 173 bounded tests; Council no HIGH/MEDIUM | 2026-08-29 |
 | External seller email (disabled) | PLANNED | `app/core/config.py` | controlled local retry/idempotency tests only | 2026-08-29 |
-| Homepage demand feed and Buyer Requests navigation (review candidate, not deployed) | PARTIAL | `app/page.tsx` | 257 frontend tests; typecheck | 2026-08-29 |
+| Homepage demand feed and Buyer Requests navigation (deployed) | SHIPPED | `app/page.tsx` | 258 frontend tests; typecheck; anonymous production GETs | 2026-08-29 |
 | Public MCP request search (not built) | PLANNED | — | none | 2026-08-29 |
 | Later digest sender (retained state only, not built) | PLANNED | — | cap-state test only | 2026-08-29 |
 
@@ -63,10 +63,12 @@ Pinned rollout evidence, refreshed whenever production or candidate identity cha
 |---|---|---|
 | Publication gate and public discovery | `aidotmarket/ai-market-backend@faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67` | Deployed by Railway deployment `b8114a63-06d8-42b9-817e-617b4e69769f`, image `sha256:b534428f6d128ae795f9b05542d678399b30f9bb98956fc836152902d7a961fe`; now superseded by the matching release. |
 | Matching and in-app delivery | `aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2` | Current production deployment `d61dca86-70f6-46ae-b77a-c1e1b1fb4890`, image `sha256:8c6391b8fd6757a9868dcb863468586117e8df1962d8260a2329a3300606d2c8`; Railway status `SUCCESS`. |
-| Homepage feed and navigation | `aidotmarket/ai-market-frontend@1b8a6c2da7934217392ca4e1030128da3bec6111` | Local review candidate only; not deployed. |
+| Homepage feed and navigation | `aidotmarket/ai-market-frontend@3e61ca6d296edf1ae55c4b5710044d5315802e9c` | Current production deployment `4509ace1-941f-466f-bd0f-24ccb73dfb03`, image `sha256:5d0b80fbd6f27ccb912e0900a864f363d4589276ad7510106608131f5af36d9f`; Railway status `SUCCESS`. |
 | Public MCP request search and digest sender | No backing artifact | Not built. |
 
 Production proof for the matching release: `BUYER_REQUEST_MATCHING_ENABLED=true`, publication side effects on, external email false; all 33 retained outbox rows processed with zero matching errors; zero delivery rows were created because all 33 retained sample requests remain ineligible. `/api/health` reports process health. `/health` reports HTTP 200 with `alembic_head=alembic_current=s1632_request_matching` and `alembic_drift=false`; its overall `degraded` label is the pre-existing model-inventory drift, not migration drift.
+
+Anonymous production proof for the frontend release: `/` contains the primary `Buyer Requests` navigation and, while the eligible public feed total is zero, renders `Tell the market what data you need` with links to `/requests/new` and `/requests`; it does not claim `Buyer demand, live now`. `/requests` returns HTTP 200, and `/sitemap.xml` contains the stable `/requests` index. Immediately after deployment, the generated Next.js sitemap still held 12 legacy sample detail URLs from its prior one-hour cache even though `/api/v1/public/request-sitemap-entries` returned `total=0`; treat the API projection as source of truth and recheck after cache expiry. Do not delete retained samples or create a second frontend eligibility rule to clear that cache.
 
 Refresh that proof only from authorised read-only sources: Railway's exact deployment list, the three resolved boolean settings from `app.core.config.settings`, aggregate counts/states from `request_publication_outbox`, `request_match_deliveries`, and `data_requests`, plus public GETs to `/api/health` and `/health`. Do not dump all environment variables, customer rows, request text, or identities into evidence.
 
