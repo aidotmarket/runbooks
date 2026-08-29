@@ -1,29 +1,17 @@
 ---
-runbook_id: anthropic-prompt-caching
-domain: cost-operations
-status: DRAFT
-authoritative_for: []
+title: Anthropic Prompt Caching
+owner: vulcan
+last_verified: '2026-08-19'
 aliases: []
 error_signatures: []
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-19
-system_name: anthropic-prompt-caching
-purpose_sentence: Discovery-only record of ai.market Anthropic prompt-cache placement, stable anonymous-prefix separation, usage accounting, and fail-closed production acceptance.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page documents the reviewed prompt-cache implementation, its deployment gate, and its unresolved live-evidence requirement but does not itself authorize paid model traffic, deployment, provider changes, or a completion claim.
-linter_version: 1.0.0
 ---
 
 # Anthropic Prompt Caching
 
-## §A. Header
+## Overview
 
-This is a **DRAFT discovery document, not operating authority**. Build Queue
-item `s1555`, “Stop paying full price for the same prompt,” received its initial
+This page records the verified state and remaining evidence gaps for Build Queue
+item `s1555`, “Stop paying full price for the same prompt,” which received its initial
 cache placement in exact `ai-market-backend` commit
 `84df5f976bd5dea6730c7ea7f1f8da476cf45b88`. Git proves that commit is an
 ancestor of production-reported revision
@@ -57,18 +45,17 @@ cost 1.25 times base input, reads cost 0.1 times base input, and the effective
 production model `claude-opus-4-7` required at least 2,048 cacheable tokens.
 Shorter marked prompts are processed without caching and without an error.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `app/services/copilot_brain.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests; §C.1 lists every surface | 2026-08-19 |
+| Mark complete system-content blocks for provider caching; some include per-request context | SHIPPED | `app/services/copilot_brain.py` | `ai-market-backend@84df5f...`: `tests/test_llm_prompt_caching.py` request-shape tests; Architecture & interactions.1 lists every surface | 2026-08-19 |
 | Preserve exact prompt bytes and request semantics | SHIPPED | `tests/test_llm_prompt_caching.py` | `ai-market-backend@84df5f...`: exact request-shape tests | 2026-08-19 |
 | Capture anonymous-stream cache write/read usage and accounting | SHIPPED | `app/routers/anonymous_chat.py` | direct inspection of exact deployed revision `ed12d1b...` plus its retained tests | 2026-08-19 |
 | Keep anonymous live facts outside the cache-marked stable instruction block | PLANNED | `app/routers/anonymous_chat.py` | `ai-market-backend@ccd7fc02...`: 346 exact anonymous unit tests; 39 focused tests; CC/Kimi/GLM approve-class exact reviews | 2026-08-19 |
 | Prove a real production cache write followed by a read of that exact prefix | PARTIAL | `app/routers/anonymous_chat.py` | existing telemetry lacks exact prefix/request linkage; no valid live pair retained | 2026-08-19 |
-| Dedicated indexed operating authority | PLANNED | `runbooks/anthropic-prompt-caching.md` | runbook lint/catalog/manifest tests | 2026-08-19 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -95,7 +82,7 @@ provider owns the ephemeral cache. ai.market records only sanitized token
 counts and estimated cost; it must never log prompts, credentials, responses,
 or customer content to prove caching.
 
-### §C.1 Exact implementation scope
+### Architecture & interactions.1 Exact implementation scope
 
 Exact `84df5f...` added cache placement to the four previously missed
 large-prompt families: CoPilot, listing enhancement, authenticated allAI
@@ -115,7 +102,7 @@ contains the complete `serialize_untrusted_public_facts(snapshot)` output and
 no marker. This changes no validation snapshot, output-release gate, rate
 limit, retry policy, schema, model selection, or customer-data handling.
 
-### §C.2 Usage-field meaning
+### Architecture & interactions.2 Usage-field meaning
 
 `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, and
 `output_tokens` are separate provider usage fields. Total billed input volume
@@ -125,7 +112,7 @@ Application logs render cache creation as `cache_write` and hits as
 nor a hit: the prompt may be below the provider minimum, the surface may not
 expose final stream usage, or the log sink may be unavailable.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -134,20 +121,19 @@ expose final stream usage, or the log sink may be unavailable.
 | Council | Review exact code/runbook artifacts | CC/Kimi/GLM exact-artifact review | reviewer-only | PARTIAL — backend review complete; refreshed runbook review pending |
 | Human operator | Authorize a paid two-request proof when organic evidence is unavailable | explicit financial authority | narrowly bounded model/path/request count | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 []
 ```
 
-The operate form is empty because this page is DRAFT and cannot grant financial
-authority. Max separately authorized the exact harmless two-request proof in
+No financial operation is prescribed by this page. Max separately authorized the exact harmless two-request proof in
 S1572. That authorization becomes usable only after the exact reviewed backend
 SHA is deployed, source and health are reverified, the effective model and its
 minimum are known, and both requests can be bound to one identical eligible
 prefix inside the provider TTL.
 
-### §E.1 No-cost verification sequence
+### How to operate.1 No-cost verification sequence
 
 1. Resolve remote main and the active Railway deployment; retain deployment ID,
    status, reported revision, and timestamp.
@@ -180,7 +166,7 @@ full paired journey. The currently reachable logs lack the required exact
 prefix linkage, so they cannot close this BQ even if an unrelated write and read
 appear. Retain `UNVERIFIED` unless a valid linked pair is available.
 
-### §E.2 Paid proof boundary
+### How to operate.2 Paid proof boundary
 
 A synthetic proof is a financial action because it sends Anthropic requests.
 It requires an explicit instruction naming the maximum request count and
@@ -206,7 +192,7 @@ customer identity, expose a key, or repeat after the first valid pair. Stop on
 any different model/prefix, provider error, missing usage, unexpected output,
 rate-limit effect, or uncertain charge.
 
-### §E.3 Current 2026-08-19 evidence
+### How to operate.3 Current 2026-08-19 evidence
 
 - Railway deployment `82d8c1dc-2c81-4c22-ad65-f9f00c193ac3`: `SUCCESS`.
 - Production-reported revision: `ed12d1b86c5475f41a9bed7057946b079a6bbd75`.
@@ -234,7 +220,7 @@ Therefore deployed code presence is verified, deployed anonymous reuse is known
 to miss, and repaired live cache effectiveness remains `UNVERIFIED` until exact
 deployment and the authorized linked pair.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -245,7 +231,7 @@ deployment and the authorized linked pair.
 | F-05 | A synthetic probe would be the only remaining proof. | No organic matching traffic or inaccessible provider/Railway evidence. | Stop and request narrow financial authority; do not silently create model traffic. | G-05 | CONFIRMED |
 | F-06 | Anonymous cache writes never become reads despite identical harmless inputs. | A fresh timestamp or retrieved live facts are inside the marked block. | Inspect the exact deployed system-block boundary and require `generated_at` plus serialized live facts only in the immediately following unmarked block. | G-06 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -298,9 +284,9 @@ deployment and the authorized linked pair.
   integrity_check: exact tests prove stable first-block bytes, ordered complete second-block facts, conservative accounting, and unchanged fail-closed release
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Cache reuse requires an identical complete ordered prefix; never alter prompt meaning for cost.
 - Provider token fields, not estimated savings, prove cache creation/read.
@@ -309,24 +295,24 @@ deployment and the authorized linked pair.
   completion.
 - No synthetic provider request without explicit financial authority.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Changing prompt bytes/order, model/tool request semantics, provider, TTL,
 minimum-token behavior, customer data handling, cost enforcement, or safety
 fallbacks is breaking and requires design plus exact-artifact review.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Adding/removing a cache marker, moving the breakpoint, changing usage-field
 mapping, log/metric names, cost rates, or live acceptance evidence requires
 tests, this page, and exact-artifact review to move together.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Editorial clarification and updated point-in-time provider links/prices are safe
 only when they change no request, accounting, authority, or acceptance meaning.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -352,22 +338,17 @@ The candidate uses provider `ephemeral` caching with its default five-minute
 TTL. Cost rates remain configuration values and must follow current provider
 pricing through a separately reviewed change.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Exact deployed code and provider usage fields win over this page. Official
 Anthropic documentation wins for current TTL/minimum/pricing behavior. Any
 mismatch or evidence uncertainty keeps the BQ `production_unknown`.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set: []
 ```
-
-Documentation acceptance requires this DRAFT in the generated catalog/router,
-one pending manifest record, unchanged ACTIVE authority, current generated
-artifacts, lint/manifest/catalog/full-suite success, exact review, and exact
-publication.
 
 BQ completion additionally requires: exact reviewed repair `ccd7fc02...` as the
 active production revision; direct inspection of the deployed revision's usage
@@ -381,7 +362,7 @@ board refreshed from Git/deployment evidence. A log search returning no rows,
 an unlinked write/read pair, an SDK mock, a code ancestor proof, or a single
 cache write cannot substitute for the linked live pair.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1572
@@ -399,12 +380,3 @@ scheduled_cadence: 90d
 The final runbooks SHA, generated pins, test result, review verdicts, live pair,
 and queue refresh belong in external evidence because this file cannot
 truthfully self-pin its own commit.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
-```

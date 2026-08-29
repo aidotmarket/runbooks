@@ -1,65 +1,43 @@
 ---
-runbook_id: infrastructure-discovery
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: infrastructure-discovery
-    section: §C. Architecture & Interactions
-  - topic: security-credential-exposure
-    section: §G. Repair
-  - topic: security-secret-disclosure
-    section: §G. Repair
+title: Infrastructure Discovery
+owner: sysadmin
+last_verified: '2026-07-17'
 aliases: []
 error_signatures:
-  - signature: infrastructure_locator_guessed
-    section: §F. Isolate
-  - signature: credential_exposed
-    section: §F. Isolate
-  - signature: secret_disclosure
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: sysadmin
-last_verified_at: 2026-07-17
-system_name: infrastructure-discovery
-purpose_sentence: This companion provides the required three-surface route for locating repositories, services, secrets, configuration, and deploy surfaces.
-owner_agent: sysadmin
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for infrastructure discovery through Living State, this cataloged runbook, and the inward operations discovery endpoint.
-linter_version: 1.0.0
+- credential_exposed
+- infrastructure_locator_guessed
+- secret_disclosure
 ---
 
 # Infrastructure Discovery
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: delivery companion.** Full CORE and the Boot Kernel prevail. This runbook routes discovery; it does not duplicate resource locators. Runbook locators remain generated in `CATALOG.json`, and infrastructure locators remain in `config:resource-registry`.
 
 **Fetch trigger:** locating any repository, service, secret, config, or deploy surface.
 
 **Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 3 and 4.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Living State resource registry | SHIPPED | `config:resource-registry` | Operator route verification | 2026-07-17 |
-| Cataloged discovery runbook | SHIPPED | `CATALOG.json` | Catalog validation and pinned retrieval | 2026-07-17 |
+| Runbook index | SHIPPED | `INDEX.md`, `ERRORS.md` | `scripts/index.py` freshness check | 2026-08-30 |
 | Inward machine discovery surface | SHIPPED | `/api/v1/ops/infra.llms.txt` | Inward endpoint smoke verification | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Resource Registry | `state_request(action=get, key=config:resource-registry)` | Living State | SysAdmin and operational tools | Canonical infrastructure paths, services, configs, deploy surfaces, and secret identifiers. |
-| Discovery Runbook | Gateway-delivered catalog excerpt or `runbook-catalog search` at the supplied full SHA | SHA-pinned runbooks catalog | Human and agent operators | Explains route order without copying locators. |
+| Runbook pages | `INDEX.md`, `ERRORS.md`, or direct Markdown search | Git | Human and agent operators | Explain route order without copying locators. |
 | Inward Discovery Surface | `/api/v1/ops/infra.llms.txt` | Backend-generated operational inventory | Internal agents | Machine-readable inward route; never a public secret disclosure surface. |
 
 ### Required three-surface route
 
 1. **State authority:** read `config:resource-registry` for the current locator candidate.
-2. **Runbook authority:** fetch `infrastructure-discovery` through the SHA-pinned `CATALOG.json` for the workflow and failure handling.
+2. **Runbook procedure:** read `runbooks/infrastructure-discovery.md` for the workflow and failure handling.
 3. **Inward machine surface:** query `/api/v1/ops/infra.llms.txt` for internal agent discovery and verify it agrees with registry authority.
 
 Registry authority does not make an unobserved resource real. Before a build,
@@ -70,19 +48,17 @@ checkout). An agent report, prior-session note, or remembered path is not that
 proof. If the registry cannot be read safely, the candidate is absent, or the
 identity differs, discovery is unresolved and the mutation must not start.
 
-Do not hardcode repository, service, secret, configuration, or deploy locators into this companion. `CATALOG.json` is the locator authority for catalog members; `config:resource-registry` is the locator authority for infrastructure.
+Do not hardcode repository, service, secret, configuration, or deploy locators into this page. Use `INDEX.md` only to find documentation; use `config:resource-registry` for current infrastructure locators.
 
 ### Normative projection — CORE §4, Infrastructure
 
 Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
-<!-- catalog:historical -->
 > For any operational query (service health, deploy status, repo locations, infrastructure config), check Living State.
 
 > `state_get("config:resource-registry")` — canonical paths for repos, services, configs
 
 > The SysAdmin agent maintains these entities. GitHub tools are also available via MCP — use `tool_search` to discover them.
-<!-- /catalog:historical -->
 
 The projection above is retained as source provenance because it uses legacy
 tool spelling. Its current operational equivalent is to read
@@ -99,7 +75,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 The registry and inward surface may identify secret names and approved retrieval routes; neither may expose secret values.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -107,7 +83,7 @@ The registry and inward surface may identify secret names and approved retrieval
 | SysAdmin | Maintain registry accuracy | `state_request action=patch` | Registry write with optimistic version | COMPLETE |
 | Internal agent | Read machine discovery inventory | `/api/v1/ops/infra.llms.txt` | Internal authenticated read | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -141,20 +117,9 @@ The registry and inward surface may identify secret names and approved retrieval
   expected_failures: [{signature: registry_version_conflict, cause: another writer changed the registry first}]
   next_step_success: Regenerate or refresh derived discovery surfaces.
   next_step_failure: Re-read ownership and version before retrying without overwrite.
-- id: E-04
-  trigger: The runbooks catalog on main has changed (members, sections, or content digests) and the boot kernel catalog pin must be bumped to the new runbooks main SHA.
-  pre_conditions: [runbooks_main_ci_green, koskadeux_mcp_lane_free, gateway_restart_coordinated_with_peer]
-  tool_or_endpoint: koskadeux-mcp tools/boot_kernel_v2.py pinned constants (BOOT_KERNEL_V2_CATALOG_REF, BOOT_KERNEL_V2_CATALOG_DIGEST, BOOT_KERNEL_V2_CATALOG_ENTRIES, BOOT_KERNEL_V2_CATALOG_SECTIONS)
-  argument_sourcing: {ref: the runbooks main SHA being pinned, digest: sha256 of CATALOG.json bytes at that SHA, entries_and_sections: counts computed from that same CATALOG.json}
-  idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: hash(pinned_runbooks_sha)
-  expected_success: {shape: one koskadeux-mcp commit updating all four pinned constants together through MP build and Council review then a coordinated gateway restart, verification: catalog validation and strict lint are green at the pinned SHA and a post-restart session open loads the new catalog without BOOT errors}
-  expected_failures: [{signature: pin_constants_partially_updated, cause: ref bumped without digest or counts so the boot loader fails validation}, {signature: uncoordinated_gateway_restart, cause: restart executed while a peer instance held live work}]
-  next_step_success: Record the new pin SHA in the session handoff and confirm both instances boot cleanly against it.
-  next_step_failure: Revert the pin commit, restore the previous gateway process, and re-verify boot before retrying.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -162,7 +127,7 @@ The registry and inward surface may identify secret names and approved retrieval
 | F-02 | The inward discovery endpoint disagrees with Living State. | Derived inventory is stale or generated from a different source. | Compare the endpoint entry with the same resource in `config:resource-registry`. | G-02 | CONFIRMED |
 | F-03 | A credential value appears in a registry response or full process-environment diagnostic. | A credential-bearing URL was stored as locator metadata, or an unredacted diagnostic returned injected secret values. | Do not fetch, quote, fingerprint in public output, or repeat the value. Record only the affected credential name, owner boundary, and exposure surface; treat the credential as compromised and open a no-secret incident record. | G-03 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -191,25 +156,25 @@ The registry and inward surface may identify secret names and approved retrieval
   integrity_check: The old credential is rejected, declared consumers pass redacted least-privilege probes with the replacement, and fresh registry and diagnostic output contains no credential value.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
-Discovery has three routes, but one locator authority per class: `CATALOG.json` for catalog documents and `config:resource-registry` for infrastructure. A locator is only a candidate until the execution host and the resource's native read-only surface prove existence and identity at the action boundary.
+Discovery has three routes: plain Markdown for procedures, `config:resource-registry` for infrastructure locators, and the inward machine surface. A locator is only a candidate until the execution host and the resource's native read-only surface prove existence and identity at the action boundary.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Hardcoded locators, credential-bearing URLs or secret values in discovery output, unrestricted process-environment dumps, public exposure of the inward endpoint, or companion overrides of CORE are BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Review changes to registry schema, resource identity, endpoint authentication, generator inputs, or catalog resolution.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Explanatory examples are safe when they contain no live locator or secret value.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -227,11 +192,11 @@ Living State, runbook catalog resolution, internal backend authentication, and S
 
 Unknown, unsafe, unavailable, absent, or identity-mismatched locator authority fails closed; no remembered path or agent report is a fallback.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 CORE governs safety, the registry governs current infrastructure locators, and this runbook governs the lookup workflow.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -243,12 +208,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-01], scenario: A secret value appears inside discovery documentation., expected_answers: [{kind: classification, label: SECRET_DISCLOSURE}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: An agent reports a canonical repository path that does not exist on the execution host., expected_answers: [{kind: human_action, verb: stop, object: mutation, target: unresolved discovery}, {kind: human_action, verb: verify, object: registry candidate existence and native identity, target: execution host}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: Generated inward discovery data is stale., expected_answers: [{kind: human_action, verb: regenerate, object: inward discovery surface, target: current registry data}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal embeds all live repository paths in this runbook., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A registry schema adds an owner field for each resource., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: A runbook example conflicts with the current resource registry., expected_answers: [{kind: human_action, verb: prefer, object: current registry locator, target: bounded operation}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal embeds all live repository paths in this runbook., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A registry schema adds an owner field for each resource., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: A runbook example conflicts with the current resource registry., expected_answers: [{kind: human_action, verb: prefer, object: current registry locator, target: bounded operation}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1266
@@ -257,18 +222,5 @@ last_refresh_date: 2026-07-17T22:00:00Z
 owner_agent: sysadmin
 refresh_triggers: [CORE infrastructure discovery changes, config:resource-registry schema changes, inward endpoint route or authentication changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1266 / 2026-07-17T22:00:00Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

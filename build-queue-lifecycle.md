@@ -1,20 +1,19 @@
 ---
-system_name: build-queue-lifecycle
-purpose_sentence: Living State is the canonical store of all development-work state, surfaced at ops.ai.market/build-queue, tracking every item from filed through to live-in-production with ledgered transitions, stale-item escalation, and a Council-adjudicated cleanup path.
-owner_agent: vulcan
-escalation_contact: max@ai.market
-lifecycle_ref: §J
-authoritative_scope: Living State lifecycle fields, the atomic mutate-plus-event write path, the soft-freeze and cleanup-token config entities, and the build-queue dashboard read proxy. Explicitly OUT of scope are the legacy build_queue/build_queue_history tables, retired in early May.
-linter_version: 1.0.0
+title: Build-Queue Lifecycle Management
+owner: vulcan
+last_verified: '2026-07-26'
+aliases: []
+error_signatures:
+- completion_evidence_required
+- token_not_active
 ---
 
 # Build-Queue Lifecycle Management
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. Living State is the single canonical store; the dashboard at ops.ai.market/build-queue is a read projection; git holds code and spec file content only. The legacy backend build_queue and build_queue_history tables were dropped (migration 20260507_001_drop_bq_legacy) and must never be reintroduced.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -30,7 +29,7 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
 | Legacy build_queue table retirement | LIVE | migration 20260507_001_drop_bq_legacy | archive verified 106 items/465 rows | 2026-05 (S577) |
 | Plain-English summary + work-type backfill | PARTIAL | bulk patch pass (Max pre-approved) | n/a (data backfill) | ~80 items pending |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -53,18 +52,18 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
 | any | (priority change) | drag-reorder writes priority, actor=max | ledgered event; activity-only touch |
 | no movement 3/7/14 sessions | yellow/red/briefing-escalation | reconciler on `last_affirmed_at` age | affirm resets the clock |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan / Mars | file / patch / transition / complete / cancel | `state_request` (put/patch/bq_update/bq_complete/bq_bulk_update) | full write via persistence helper | LIVE |
-| Vulcan / Mars | run cleanup adjudication pre-flight | Chunk-4 cleanup manifest (see §F) | token-scoped | LIVE |
+| Vulcan / Mars | run cleanup adjudication pre-flight | Chunk-4 cleanup manifest (see When it breaks) | token-scoped | LIVE |
 | Reconciler | recompute eligibility + drift (sweep/backstop since S1103) | lifecycle_eligibility_handler | system | LIVE |
 | State write path | synchronous eligibility-column refresh on every build-entity write | `StateService._refresh_build_eligibility_columns` | system | LIVE (S1103, backend main 85958681; Gate-4 liveness-proven by prod probe) |
-| Dispatch wrapper | reject dispatches lacking a valid active build-queue reference | dispatch enforcement gate | system | see §H.1 |
+| Dispatch wrapper | reject dispatches lacking a valid active build-queue reference | dispatch enforcement gate | system | see Changes and maintenance.1 |
 | Max | priority reorder, batch cleanup sign-off | dashboard | actor=max ledgered | LIVE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: transition-to-live
@@ -87,7 +86,7 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
 - id: batch-cleanup-signoff
   trigger: Chunk-4 cleanup pre-flight produced a draft manifest awaiting Max sign-off
   pre_conditions:
-    - cleanup manifest exists (see §F)
+    - cleanup manifest exists (see When it breaks)
     - a valid active cleanup token issued
   tool_or_endpoint: POST /api/v1/allai/state/atomic_write with token
   argument_sourcing:
@@ -103,7 +102,7 @@ YAML frontmatter above is authoritative for the §A header fields. Living State 
   next_step_failure: re-issue a fresh token, re-run sign-off
 ```
 
-## §F. Isolate
+## When it breaks
 
 Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft cleanup manifest plus a reconciliation report. **Chunk 5 (this runbook) does NOT execute cleanup adjudication** — operators must reference the most recent Chunk-4 cleanup manifest rather than re-running adjudication from this surface (AC5.2). The manifest is the authoritative record of what was proposed and signed off.
 
@@ -117,7 +116,7 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
 | F6 | Cleanup intent unclear / which items | reading stale manifest or none | locate latest Chunk-4 cleanup manifest (do NOT re-adjudicate here) | G6 | MED |
 | F7 | Creating a NEW build entity fails with `state_put failed: JSONDecodeError` (gateway) / bare HTTP 500 (backend) | body.priority missing on create: the `mirror_column_recompute_fn` trigger derives `priority_tier` from `body.priority` (P0–P3) with NO default, and `entities_build_promoted_required_chk` requires it NOT NULL for kind=build; the gateway masks the empty 500 body as JSONDecodeError | railway logs show `CheckViolationError ... entities_build_promoted_required_chk`; reproduce with curl on `/api/v1/allai/state/atomic_write` | G7 | HIGH (verified S1170) |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G1
@@ -154,9 +153,9 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
   integrity_check: state put with body.priority set returns {key, version} instead of JSONDecodeError
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Living State is the SOLE canonical store of development-work state. The legacy build_queue/build_queue_history tables are retired and must not be reintroduced.
 - Every lifecycle mutation routes through `_persist_with_lifecycle_invariants`; no handler writes the DB directly.
@@ -165,25 +164,25 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
 - Transitions are explicit only; no automatic promotion to live from CI/deploy/webhook signals.
 - Every dispatch through any council member or build path requires a valid active build-queue reference; dispatches without one are rejected and the rejection is logged.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Reintroducing a second canonical store for work state (e.g., resurrecting backend build_queue).
 - Allowing a completed transition without evidence on any write path.
 - Making the cleanup token reusable / non-atomic.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding a new lifecycle stage or work-type category (taxonomy is fixed at four for v1; expansion is config-only, Council REVIEW).
 - Changing stale thresholds away from 3/7/14 sessions.
 - Changing the atomic_write transaction boundary.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Tuning stale thresholds within config (values are config, not hardcoded).
 - Adding read-only dashboard panels or filters.
 - Backfilling business_summary / work_type tags.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -201,7 +200,7 @@ ai-market-backend `/api/v1/allai/state` (Railway Postgres). koskadeux-mcp is an 
 
 config:build-queue-freeze (freeze inactive by default); config:build-queue-tokens (no active tokens by default).
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 **Cleanup token lifecycle (AC5.5).**
 - **Issuance:** a cleanup token is created in `config:build-queue-tokens` in the `active` state, scoped to a specific cleanup operation/target (the Chunk-4 manifest it authorizes). Tokens are not general-purpose credentials.
@@ -209,7 +208,7 @@ config:build-queue-freeze (freeze inactive by default); config:build-queue-token
 - **Scoping:** a token authorizes only the operation it was issued for; it cannot be replayed against a different manifest or operation.
 - **Revocation:** an unused token can be revoked (state -> revoked) before consumption; a revoked or already-used token fails the CAS and the protected operation does not run.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -248,7 +247,7 @@ scenario_set:
     weight: 1
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S792
@@ -260,29 +259,12 @@ refresh_triggers:
   - change to the atomic_write boundary or token mechanics
   - change to stale-escalation thresholds
 scheduled_cadence: on-change (no fixed cadence; event-driven)
-last_harness_pass_rate: not_yet_run
-last_harness_date: not_yet_run
 first_staleness_detected_at: null
 ```
 
-## §K. Conformance
-
-Stale-item escalation (AC3.2–3.5) is enforced operationally: the reconciler flags no-movement at 3 sessions (yellow), 7 sessions (red), and 14 sessions (discrete morning-briefing escalation row, AC5.1). Affirming an item via explicit revalidation resets `last_affirmed_at`; ordinary activity (priority, comments) touches activity only and does NOT reset the staleness clock.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: not_yet_run
-last_lint_result: structurally_complete_lint_pending_linter_date_field_defect_consistent_with_sibling_AK_runbooks
-trace_matrix_path: specs/bq-build-queue-lifecycle-s544-gate2-v6.md
-word_count_delta: new_file
-```
-
-
----
-
 ## Operator guide (procedures & recovery)
 
-*Folded in from the former koskadeux-mcp operational runbook during the single-source consolidation (S866). The narrative below is the hands-on operator procedure; the §A–§K matrix above is the structured/linted reference for the same system. A later editorial pass can de-duplicate any overlap.*
+*Folded in from the former koskadeux-mcp operational runbook during the single-source consolidation (S866). The narrative below is the hands-on operator procedure; the Overview–§K matrix above is the structured/linted reference for the same system. A later editorial pass can de-duplicate any overlap.*
 
 ### Overview
 
@@ -308,7 +290,7 @@ Every item is in exactly one of five stages. Movement is left-to-right except fo
 | **Filed** | Item exists in Living State with `business_summary` filled, but no builder has picked it up yet. Equivalent to status `planned`. | `bq_create` action completes; default initial stage. | Vulcan (when filing from a Council session) or Max (manually). |
 | **In Progress** | A builder agent is actively working. Status is `in_progress`. The dashboard shows the assignee (e.g. MP, AG, KD) and elapsed time since the transition. | `bq_update status=in_progress`. | Vulcan (when dispatching) or the builder agent itself. |
 | **In Review** | The builder has finished and a reviewer (council member or Max) is evaluating. Status is `review` or `failed` pending re-dispatch. | `bq_update status=review`. | The builder agent on completion of work; Vulcan on review dispatch. |
-| **Live in Production** | The work is shipped and observable in the production environment relevant to the work-type (see §C). Status is `completed`. **Evidence is required to enter this stage** — see §G of the spec and the centralized transition invariant validator (AC1.10). | `bq_update status=completed` with `evidence={evidence_summary, evidence_refs, actor}`. | Builder, reviewer, or Max — but only with evidence. |
+| **Live in Production** | The work is shipped and observable in the production environment relevant to the work-type (see Architecture & interactions). Status is `completed`. **Evidence is required to enter this stage** — see Repair of the spec and the centralized transition invariant validator (AC1.10). | `bq_update status=completed` with `evidence={evidence_summary, evidence_refs, actor}`. | Builder, reviewer, or Max — but only with evidence. |
 | **Cancelled** | The work will not ship. Status is `cancelled` or `deferred`. The item remains in Living State and is searchable; it does not vanish. | `bq_update status=cancelled` (with reason) or `status=deferred`. | Max, Vulcan, or a council reviewer with explicit reason. |
 
 The forward path is **Filed → In Progress → In Review → Live in Production**. Cancellation is a side-exit available from any of the first three. Once Live in Production is reached, the item is immutable except for affirmation timestamps; if the work needs revisiting, file a new BQ that references the prior one.
@@ -341,7 +323,7 @@ To clear a stale item from the escalation list:
 1. Open the dashboard, find the item, click into it.
 2. If the work is still active, click **Affirm** — this writes `last_affirmed_at = now()` and resets the stale clock.
 3. If the work has actually shipped but no one marked it complete, use Mark Complete with evidence.
-4. If the work is dead, cancel it with a one-line reason (see §F).
+4. If the work is dead, cancel it with a one-line reason (see When it breaks).
 
 Never silence a stale alarm by editing the timestamp directly. The affirm action is ledgered; a manual edit is not.
 
@@ -397,7 +379,7 @@ Cancelled items remain searchable indefinitely. To find one:
 - Search the Event Ledger for `event_type=bq_cancelled` plus a substring of the code.
 - Query Living State directly: `state_request action=search prefix=build:` then filter `body.status in (cancelled, deferred)`.
 
-When in doubt between cancel and defer, prefer cancel. A deferred item that sits for months is harder to act on than a cancelled item that someone re-files fresh. The Chunk 4 cleanup manifest (see §G) used this same heuristic to dispose of the legacy backlog; this runbook does **not** trigger a new cleanup pass — it documents how the existing one works.
+When in doubt between cancel and defer, prefer cancel. A deferred item that sits for months is harder to act on than a cancelled item that someone re-files fresh. The Chunk 4 cleanup manifest (see Repair) used this same heuristic to dispose of the legacy backlog; this runbook does **not** trigger a new cleanup pass — it documents how the existing one works.
 
 ---
 
@@ -409,11 +391,11 @@ The harness lives in `tools/cleanup_adjudication.py` and runs in three phases:
 
 1. **Draft verdicts.** `draft_verdicts()` snapshots every item with `status in (planned, in_progress, review)` and `last_affirmed_at` older than the configured cleanup horizon. It produces a manifest with one draft verdict per item — typically `cancel`, `defer`, or `keep_active` — and captures each item's `current_version_stamp` so the later signoff can perform per-item CAS.
 2. **Council review.** `dispatch_council_review()` sends the manifest to MP, AG, and DS in `mode=open_response`. Each reviewer flags items where they disagree with the draft verdict. The harness returns the disagreement set; Vulcan reconciles before going to Max.
-3. **Max signoff.** `apply_max_signoff()` requires a Max-issued approval token. On invocation it auto-issues a `cleanup_adjudication_token` (see §I), then walks the manifest applying each verdict via `bq_update` with the per-item `expected_version` and the adjudication token attached. Items whose `version_stamp` has moved since the snapshot are skipped and reported back; the rest are mutated and ledgered.
+3. **Max signoff.** `apply_max_signoff()` requires a Max-issued approval token. On invocation it auto-issues a `cleanup_adjudication_token` (see Acceptance criteria), then walks the manifest applying each verdict via `bq_update` with the per-item `expected_version` and the adjudication token attached. Items whose `version_stamp` has moved since the snapshot are skipped and reported back; the rest are mutated and ledgered.
 
 Draft verdicts land at `config:cleanup-adjudication-runs/<run_id>` in Living State, with the resolved manifest archived alongside after signoff. The Chunk 4 cleanup pre-flight manifest is the canonical archive of what was disposed of during cutover; reference it by run_id when explaining the historical state of the queue.
 
-While a cleanup adjudication run is active, soft-freeze (§H) is engaged to prevent racing writes from invalidating the snapshot.
+While a cleanup adjudication run is active, soft-freeze (Changes and maintenance) is engaged to prevent racing writes from invalidating the snapshot.
 
 ---
 
@@ -434,9 +416,9 @@ What it allows (passes through normally):
 - The `affirm` action (updates `last_affirmed_at` only — does not change lifecycle state)
 - Writes to non-`build:*` entities (out of soft-freeze scope)
 
-Soft-freeze engages automatically during cleanup adjudication runs (§G) and can be engaged manually for cutover windows or incident response. To override soft-freeze for a single emergency operation, mint a `freeze_lift_operation` token from Max's seat (see §I). The token is single-use, time-boxed to 5 minutes, and bypasses the freeze for exactly one mutation; the bypass is stamped into the Event Ledger so the audit trail records who overrode and why.
+Soft-freeze engages automatically during cleanup adjudication runs (Repair) and can be engaged manually for cutover windows or incident response. To override soft-freeze for a single emergency operation, mint a `freeze_lift_operation` token from Max's seat (see Acceptance criteria). The token is single-use, time-boxed to 5 minutes, and bypasses the freeze for exactly one mutation; the bypass is stamped into the Event Ledger so the audit trail records who overrode and why.
 
-If soft-freeze is stuck active (the `active` field is `true` and you cannot identify the cleanup run that engaged it), see §J for the recovery procedure. Do not toggle the freeze field directly without checking what engaged it — you may unblock a cleanup mid-pass.
+If soft-freeze is stuck active (the `active` field is `true` and you cannot identify the cleanup run that engaged it), see Maintenance for the recovery procedure. Do not toggle the freeze field directly without checking what engaged it — you may unblock a cleanup mid-pass.
 
 ---
 
@@ -504,7 +486,7 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
 1. Read `config:build-queue-freeze` and inspect the `engaged_by` field.
 2. If `engaged_by` references a cleanup adjudication run, look that run up at `config:cleanup-adjudication-runs/<run_id>`. If the run completed (signoff applied, manifest archived), it is safe to set `active=false` directly via `state_request action=patch`. If the run is mid-pass, do not touch the freeze — let the cleanup harness finish and release it.
 3. If `engaged_by` references a manual engagement (cutover, incident), confirm with whoever engaged it before releasing.
-4. If `engaged_by` is unset and the freeze is mysteriously active, there is a bug — file a BQ and use a `freeze_lift_operation` token (§I) to perform any urgent mutations until the bug is fixed. Do not bulk-disable the freeze without root-causing.
+4. If `engaged_by` is unset and the freeze is mysteriously active, there is a bug — file a BQ and use a `freeze_lift_operation` token (Acceptance criteria) to perform any urgent mutations until the bug is fixed. Do not bulk-disable the freeze without root-causing.
 
 ---
 
@@ -516,14 +498,14 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
 - **Living State entities:** `build:*` (one per item), `config:build-queue-freeze` (soft-freeze boolean), `config:build-queue-tokens` (atomic override tokens), `config:cleanup-adjudication-runs/<run_id>` (cleanup manifests).
 - **Production endpoints:**
   - `GET /api/v2/build-queue` — list view backing the dashboard.
-  - `POST /api/v2/build-queue/reorder` — drag-reorder (§E).
-  - `POST /api/v2/build-queue/{code}/cancel` — cancellation (§F).
+  - `POST /api/v2/build-queue/reorder` — drag-reorder (How to operate).
+  - `POST /api/v2/build-queue/{code}/cancel` — cancellation (When it breaks).
   - `POST /api/v2/build-queue/{code}/complete` — Mark Complete drill-down (requires evidence).
-  - `POST /api/v2/build-queue/{code}/affirm` — clear stale-item alarm (§D).
-  - `POST /api/v1/allai/state/atomic_write` — single-use atomic-token write endpoint (§I).
+  - `POST /api/v2/build-queue/{code}/affirm` — clear stale-item alarm (Agent capabilities).
+  - `POST /api/v1/allai/state/atomic_write` — single-use atomic-token write endpoint (Acceptance criteria).
 - **Related runbooks:**
   - [runbooks/agent-dispatch.md](runbooks/agent-dispatch.md) — how builder agents are dispatched.
-  - [morning-briefing.md](morning-briefing.md) — the morning briefing where stale-item escalations (§D) appear.
+  - [morning-briefing.md](morning-briefing.md) — the morning briefing where stale-item escalations (Agent capabilities) appear.
   - [runbooks/activation-verification.md](activation-verification.md) — proof-of-life checks for shipped work.
 - **CORE.md cross-reference:** this runbook should be linked from CORE.md under the Build Queue section. That edit is not part of this commit; file a follow-up if it has not been added by the time you read this.
 

@@ -1,18 +1,28 @@
 ---
-system_name: trust-channel
-purpose_sentence: Operate, isolate, repair, and directionally verify the ai.market Trust Channel device and WebSocket control plane.
-owner_agent: vulcan
-escalation_contact: Max
-lifecycle_ref: §J
-authoritative_scope: Device registration, Trust Channel session establishment, both WebSocket implementations, connection registry behavior, periodic revocation decisions, and directional production verification in ai-market-backend.
-linter_version: 1.0.0
+title: ai.market Trust Channel Control Plane Runbook
+owner: vulcan
+last_verified: '2026-08-25'
+aliases: []
+error_signatures:
+- Device ID already registered to another user
+- AUTH_FAILED or Device is inactive or revoked
+- HTTP 503 KMS not ready
+- HTTP 404 Device not found
+- target socket remains usable after a check opportunity
+- A remains authorized after an exception
+- B disconnects with A
+- no targeted indeterminate injection exists
+- zero rows
+- active DB row but no live socket
+- CRYPTO_SCHEME_MISMATCH
+- KMS readiness check failed
 ---
 
 # ai.market Trust Channel Control Plane Runbook
 
-## §A. Header
+## Overview
 
-The YAML frontmatter is authoritative. This runbook was source-audited against
+This runbook was source-audited against
 `aidotmarket/ai-market-backend` `origin/main` at
 `a51770aba9fe372ab3e305b4a3e3ab871b94d857` on 2026-07-13. The KMS registration and
 handshake sections were re-audited against production merge
@@ -35,7 +45,7 @@ Current-source warning: `trust_websocket.py:_check_session_validity` and
 `True`. That is a known live control-plane defect, not acceptable behavior. Do not
 mark S1210 or an incident resolved from a happy-path check alone.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -56,7 +66,7 @@ frame, then handles control frames before the modulo check. If frame 50 is a
 check and the next opportunity is frame 100. An idle socket receives no periodic
 revocation query. `TrustSession.expires_at` is also not consulted by either helper.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -100,7 +110,7 @@ protected delivery while its authorization is unknown. There is no current quara
 state in `TrustConnectionRecord`; until one exists, targeted teardown is the
 source-supported fail-closed primitive.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -114,7 +124,7 @@ No current operator endpoint lists or closes one in-memory registry record. Do n
 targeted production quarantine through an invented admin route. If source repair is not
 yet deployed, that capability is a gap owned by S1210.
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -210,7 +220,7 @@ yet deployed, that capability is a gap owned by S1210.
       cause: wrong environment, wrong device_id, or no persisted registration
     - signature: active DB row but no live socket
       cause: process registry is ephemeral and is not represented by the DB row alone
-  next_step_success: Classify the observation as valid, revoked, or still indeterminate using §C.
+  next_step_success: Classify the observation as valid, revoked, or still indeterminate using Architecture & interactions.
   next_step_failure: Use logs and the exact deployment SHA; do not convert missing evidence into a valid result.
 - id: E-05
   trigger: KMS-backed RSA registration or either Trust Channel handshake needs production verification after credential or key-routing recovery.
@@ -281,16 +291,16 @@ This query cannot prove registry membership because the registry is process memo
 Use logs from the same deployment and the observed socket to complete that part of the
 decision.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Registration succeeds but hello returns `AUTH_FAILED`, `Device not found`, or inactive/revoked | Wrong environment/device id, owner revoked it, or cryptographic keys do not match the stored registration | Read the one target device row; compare client route, key type, and public-key fingerprint without exposing private material; inspect the correlated handshake log | §G-01 | CONFIRMED |
-| F-02 | A proven-revoked device remains usable on an existing socket | No non-control frame landed on the exact 50-frame boundary, the socket is idle, DB state was read on a different environment, or validity was indeterminate and failed open | Confirm target DB state and deployed SHA; count inbound frames and whether the boundary frame was handled as control; find `Revocation check failed` or `Session validity check failed` for the same device/time | §G-02 | CONFIRMED |
-| F-03 | Log contains `Revocation check failed` or `Session validity check failed`, yet the affected connection continues | Current exception handler returns `True` in either WebSocket implementation | Pin the running SHA and inspect both `_check_session_validity` helpers; reproduce with a targeted exception while a separate valid control remains active | §G-03 | CONFIRMED |
-| F-04 | An older connection closes with 1012 `New session initiated` when the same device reconnects | Expected single-record replacement in the in-process registry | Compare device id and connection ids; confirm the newer record is current and the old session teardown reason is `session_replaced` | §G-04 | CONFIRMED |
-| F-05 | Valid control B disconnects when target A is revoked or made indeterminate | Broad DB outage, backend restart, registry-wide drain, shared identifiers, or non-targeted fault injection | Prove A and B have distinct device/session/connection ids; inspect close reasons and deployment restart events; repeat only in a safe environment with a target-scoped fault | §G-05 | HYPOTHESIZED |
-| F-06 | Client receives HTTP 410 or a `migration_required` frame from `/api/v1/trust/ws` | Client uses the deprecated alias | Confirm the requested path in client telemetry and the migration frame's endpoint field | §G-06 | CONFIRMED |
+| F-01 | Registration succeeds but hello returns `AUTH_FAILED`, `Device not found`, or inactive/revoked | Wrong environment/device id, owner revoked it, or cryptographic keys do not match the stored registration | Read the one target device row; compare client route, key type, and public-key fingerprint without exposing private material; inspect the correlated handshake log | Repair-01 | CONFIRMED |
+| F-02 | A proven-revoked device remains usable on an existing socket | No non-control frame landed on the exact 50-frame boundary, the socket is idle, DB state was read on a different environment, or validity was indeterminate and failed open | Confirm target DB state and deployed SHA; count inbound frames and whether the boundary frame was handled as control; find `Revocation check failed` or `Session validity check failed` for the same device/time | Repair-02 | CONFIRMED |
+| F-03 | Log contains `Revocation check failed` or `Session validity check failed`, yet the affected connection continues | Current exception handler returns `True` in either WebSocket implementation | Pin the running SHA and inspect both `_check_session_validity` helpers; reproduce with a targeted exception while a separate valid control remains active | Repair-03 | CONFIRMED |
+| F-04 | An older connection closes with 1012 `New session initiated` when the same device reconnects | Expected single-record replacement in the in-process registry | Compare device id and connection ids; confirm the newer record is current and the old session teardown reason is `session_replaced` | Repair-04 | CONFIRMED |
+| F-05 | Valid control B disconnects when target A is revoked or made indeterminate | Broad DB outage, backend restart, registry-wide drain, shared identifiers, or non-targeted fault injection | Prove A and B have distinct device/session/connection ids; inspect close reasons and deployment restart events; repeat only in a safe environment with a target-scoped fault | Repair-05 | HYPOTHESIZED |
+| F-06 | Client receives HTTP 410 or a `migration_required` frame from `/api/v1/trust/ws` | Client uses the deprecated alias | Confirm the requested path in client telemetry and the migration frame's endpoint field | Repair-06 | CONFIRMED |
 
 Isolation rules:
 
@@ -306,7 +316,7 @@ Isolation rules:
   as an emergency last resort. Record the blast radius and reconnect/reprove valid
   controls; it is incident containment, not S1210 acceptance evidence.
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -364,9 +374,9 @@ Isolation rules:
 finding register; the build entity is the narrow P0 remediation scope. Findings C–I,
 cryptography redesign, registration redesign, and data-plane work are outside S1210.
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Authorization uncertainty fails closed.
 - `valid` is positive proof, not absence of a revocation signal.
@@ -381,7 +391,7 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
   customer payloads.
 - Registry presence is process-local evidence, not durable cross-process truth.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Any change that lets a DB/registry exception continue authorization.
 - Any change that treats a missing device/session/registry record as valid.
@@ -389,7 +399,7 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
 - Removing the owner binding or cryptographic proof from registration/handshake.
 - Reusing `/api/v1/trust/ws` as an active data path.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing revocation cadence from the current 50-frame, message-driven behavior.
 - Adding durable or cross-process connection-registry state.
@@ -400,13 +410,13 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
 Security changes require unanimous Council review with builder excluded and directional
 evidence bound to the reviewed deployment SHA.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Documentation corrections that preserve mounted route names and runtime semantics.
 - Additional redacted correlation fields that do not expose credentials or payloads.
 - Focused test naming or fixture refactors that leave all three outcome assertions intact.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -431,13 +441,13 @@ Relevant defaults are `REVOCATION_CHECK_INTERVAL = 50`, a one-hour newly created
 session expiry, the heartbeat interval/timeout constants, and full-handshake reconnect.
 The current revocation helpers do not enforce `expires_at`.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Classify at the highest-risk predicate touched. Any authorization-result, isolation,
 quarantine, cadence, registry, or reconnect change is at least REVIEW; fail-open or
 cross-connection effects are BREAKING until corrected and directionally proven.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -519,7 +529,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-09
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal changes exceptions back to continue authorization for availability.
     expected_answers:
       - kind: classification
@@ -527,7 +537,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal adds a target-scoped quarantine state to connection records.
     expected_answers:
       - kind: classification
@@ -552,9 +562,9 @@ scenario_set:
 ```
 
 Pass threshold: weighted score at least 0.80. All 12 scenarios have equal weight;
-no §I.1 weight justification is required.
+no Acceptance criteria.1 weight justification is required.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1606
@@ -568,8 +578,6 @@ refresh_triggers:
   - KMS credential, lifecycle, key-purpose routing, or RSA registration contract changes
   - a Trust Channel authorization or isolation incident occurs
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
 ```
 
@@ -585,13 +593,3 @@ Refresh log:
   for `build/s1578-trust-established-json` on production backend
   `bab65d9177fc`; both modern routes returned JSON-safe `established` frames and
   the disposable devices and sessions were inactive after cleanup.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1605 / 2026-08-25T18:31:33Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```

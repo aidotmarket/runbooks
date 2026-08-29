@@ -1,3 +1,11 @@
+---
+title: ai-market-backend — Central Platform API
+owner: unassigned
+last_verified: '2026-08-27'
+aliases: []
+error_signatures: []
+---
+
 # ai-market-backend — Central Platform API
 
 ## What it is
@@ -171,7 +179,7 @@ When a held inquiry remains on **Submitting...** even though `message_audit` alr
 
 **T-2026-000698 proof (2026-08-24):** backend candidate `7009c41fbf3ce8ea5c741f683c28379831451539`, merge `283c6c21ae0d3445fbb619f3bcafc52d980bf431`, and Railway deployment `bce826e7-25f4-40a9-8b1a-513fbbfdfa75`. Production E2E run `run-20260824T183519Z-9f8666bb` completed both plain and disguised contact attempts with a visible held result. PostgreSQL showed exactly two new `message_audit` rows, both `held` with retry count 3, and zero new inquiry rows in the run window.
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|

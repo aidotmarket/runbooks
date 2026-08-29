@@ -1,16 +1,24 @@
+---
+title: Account Capability & Onboarding Runbook
+owner: Vulcan / Mars (ai.market backend peers)
+last_verified: '2026-07-02'
+aliases: []
+error_signatures: []
+---
+
 # Account Capability & Onboarding Runbook
 
 > Covers the capability model that gates buying and selling on ai.market: how a user becomes a seller, what "provisioning" vs "active" means, the readiness signals that move a seller to active, the `require_capability` guard, the 403 `CapabilityRequiredError` contract, the self-serve buyer→seller request endpoint, the read-capabilities endpoint, and the capability-aware dashboard. Backing code verified against `aidotmarket/ai-market-backend` deployed main `839eef35` (slice-2 ship, S1054) and `aidotmarket/ai-market-frontend` deployed main `4932ecd` (capability-aware dashboard + floating setup bar, S1054).
 
 ---
 
-## §A. Header
+## Overview
 
 - **system_name:** Account Capability & Onboarding (ai.market backend + dashboard)
 - **purpose_sentence:** Authorize who can buy and who can sell on ai.market by resolving per-user buyer/seller capabilities from persisted status plus live readiness signals, let a buyer self-serve request the seller capability, expose that state over HTTP, gate seller endpoints accordingly, and route the dashboard to the user's next setup step instead of erroring.
 - **owner_agent:** Vulcan / Mars (ai.market backend peers)
 - **escalation_contact:** Max
-- **lifecycle_ref:** see §J (authoritative for refresh tracking)
+- **lifecycle_ref:** see Maintenance (authoritative for refresh tracking)
 - **authoritative_scope:** This runbook is the source of truth for the capability model (buyer default-on, seller additive), the provisioning→active readiness rules, the `require_capability` / `assert_user_capability` guard, the 403 `CapabilityRequiredError` body, the `GET /api/v1/auth/capabilities` read contract, the `POST /api/v1/auth/capabilities/seller/request` self-serve request contract, and the `next_action` field. It describes the capability-aware dashboard + floating setup bar (`ai-market-frontend`) as a downstream CONSUMER of these contracts, not as their source of truth. It is NOT the source of truth for sign-up/login (see `auth-signup-flow.md`) or 2FA setup (see `two-factor-auth.md`). It IS the home of the Stripe Connect ACTIVATION CHAIN procedure (E-06) — the click → hosted onboarding → return-sync → webhook → durable-write path that flips a seller active — added S1097 after both legs of that chain failed for the first live seller with no runbook owning them (Stripe keys themselves: `infisical-secrets.md`; session/cookie behavior on the Stripe round-trip: `browser-session-auth.md`).
 - **linter_version:** 1.0.0
 
@@ -27,7 +35,7 @@ There is no separate cache credential. The Redis readiness cache was removed (S1
 
 ---
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -49,7 +57,7 @@ There is no separate cache credential. The Redis readiness cache was removed (S1
 
 ---
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -71,7 +79,7 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ---
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -83,7 +91,7 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ---
 
-## §E. Operate — Serving Customers
+## How to operate
 
 ### E-01 — New user wants to buy
 - **id:** E-01
@@ -105,9 +113,9 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 - **argument_sourcing:** `user_id`: the authenticated user's id from the JWT `sub`.
 - **idempotency:** IDEMPOTENT.
 - **expected_success:** returns `seller` readiness with `effective_status=provisioning` (or `not_requested`), a `missing_steps` list drawn from `profile_name`, `company_name`, `totp_enabled`, `stripe_payouts_live`, and a `next_action` naming the first outstanding step.
-- **expected_failures:** 401 if not authenticated; an unreadable durable column yields `reason=durable_signal_unavailable` (see §F-03).
+- **expected_failures:** 401 if not authenticated; an unreadable durable column yields `reason=durable_signal_unavailable` (see When it breaks-03).
 - **next_step_success:** surface the missing steps to the customer in plain language (see Customer-facing copy below); the floating bar deep-links each.
-- **next_step_failure:** if `durable_signal_unavailable`, follow §G-02.
+- **next_step_failure:** if `durable_signal_unavailable`, follow Repair-02.
 
 ### E-03 — Seller completes Stripe payouts and goes active
 - **id:** E-03
@@ -117,9 +125,9 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 - **argument_sourcing:** durable signal: written by the Stripe sync path; read by `_read_durable_stripe_signal`.
 - **idempotency:** IDEMPOTENT_WITH_KEY (durable write keyed by `user_id`; re-running is safe).
 - **expected_success:** `missing_steps` empties, effective seller status flips to `active` (§2.0.1 fall-through), seller actions (create listing, etc.) succeed.
-- **expected_failures:** if the durable write did not land, status stays `provisioning` with `missing_steps=[stripe_payouts_live]` (see §F-02).
+- **expected_failures:** if the durable write did not land, status stays `provisioning` with `missing_steps=[stripe_payouts_live]` (see When it breaks-02).
 - **next_step_success:** seller can list/sell; the floating bar disappears (no longer provisioning).
-- **next_step_failure:** §G-01 to resync the durable signal.
+- **next_step_failure:** Repair-01 to resync the durable signal.
 
 ### E-04 — Operator resolves a specific user's capabilities
 - **id:** E-04
@@ -130,7 +138,7 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 - **idempotency:** IDEMPOTENT.
 - **expected_success:** returns persisted status, effective status, missing steps, and reason.
 - **expected_failures:** `LookupError` if the user id does not exist.
-- **next_step_success:** map `missing_steps`/`reason` to §F.
+- **next_step_success:** map `missing_steps`/`reason` to When it breaks.
 - **next_step_failure:** confirm the user id.
 
 ### E-05 — Buyer self-serve requests the seller capability
@@ -141,9 +149,9 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 - **argument_sourcing:** `user`: resolved by the async auth dep from the access-type JWT (no body selector; the endpoint never targets another user_id).
 - **idempotency:** IDEMPOTENT (`not_requested`→`provisioning`; re-request on an existing provisioning/active row is a safe no-op).
 - **expected_success:** seller row is `provisioning`; response reflects provisioning + `missing_steps` + `next_action`; NO privilege is granted (still gated until readiness completes).
-- **expected_failures:** 401 if unauthenticated; 409 if the seller capability is `suspended` (policy enforcement — see §F-06); rollback with no row change on `IntegrityError`.
+- **expected_failures:** 401 if unauthenticated; 409 if the seller capability is `suspended` (policy enforcement — see When it breaks-06); rollback with no row change on `IntegrityError`.
 - **next_step_success:** the dashboard shows the floating setup bar; user works the four steps.
-- **next_step_failure:** on 409 suspended, do NOT auto-clear — route per §F-06 (escalation, not a code repair).
+- **next_step_failure:** on 409 suspended, do NOT auto-clear — route per When it breaks-06 (escalation, not a code repair).
 
 ### E-06 — Stripe Connect activation chain (click → active)
 - **id:** E-06
@@ -169,21 +177,21 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ---
 
-## §F. Isolate — Diagnosing Deviations
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Seller gets 403 on a state-changing seller action; body shows `missing_steps` | Seller is genuinely still provisioning (a readiness step is incomplete) | Read the 403 `CapabilityRequiredError` body; `effective_status=provisioning` and `missing_steps` names the incomplete step(s) | | CONFIRMED |
-| F-02 | `missing_steps=[stripe_payouts_live]` though the seller finished Stripe onboarding | Durable `users.stripe_payouts_enabled` not written/synced after payouts went live | Read `users.stripe_payouts_enabled` for the user; if not `"true"`, the durable write lagged | §G-01 | CONFIRMED |
-| F-03 | `reason=durable_signal_unavailable` on seller readiness | The durable column read raised or returned `None`; resolver returns `live=False, unavailable=True` | Check backend logs for `capability_readiness_durable_signal_unavailable ... severity=high`; inspect the column value/type | §G-02 | CONFIRMED |
-| F-04 | A seller passes the async resolve but fails the sync Stripe-path gate (or vice versa) | Sync and async readiness derivations drifted apart | Confirm `stripe.py:_require_seller_capability_sync` calls the shared `compute_*` helpers | §G-03 | HYPOTHESIZED |
+| F-02 | `missing_steps=[stripe_payouts_live]` though the seller finished Stripe onboarding | Durable `users.stripe_payouts_enabled` not written/synced after payouts went live | Read `users.stripe_payouts_enabled` for the user; if not `"true"`, the durable write lagged | Repair-01 | CONFIRMED |
+| F-03 | `reason=durable_signal_unavailable` on seller readiness | The durable column read raised or returned `None`; resolver returns `live=False, unavailable=True` | Check backend logs for `capability_readiness_durable_signal_unavailable ... severity=high`; inspect the column value/type | Repair-02 | CONFIRMED |
+| F-04 | A seller passes the async resolve but fails the sync Stripe-path gate (or vice versa) | Sync and async readiness derivations drifted apart | Confirm `stripe.py:_require_seller_capability_sync` calls the shared `compute_*` helpers | Repair-03 | HYPOTHESIZED |
 | F-05 | 403 on a provisioning-level read endpoint (e.g., discovery readiness) | User never requested seller; persisted status `not_requested` | Resolve the user; `persisted_status=not_requested` | | CONFIRMED |
 | F-06 | `POST .../seller/request` returns 409 | Seller capability is `suspended` (policy enforcement), so a self-serve request is refused by design | Resolve the user; `persisted_status=suspended` and a `reason`/suspension timestamp is set. This is expected behavior, not a bug — clearing suspension is a policy action (Max / Council), never an automatic repair | | CONFIRMED |
-| F-07 | All four steps look done but seller stays `provisioning` | (pre-S1054) the provisioning early-return short-circuited the active fall-through | Confirm deployed `compute_effective_seller_status` includes the §2.0.1 fix (no early provisioning return before the `missing_steps==[]`→active check); on current main this is fixed | §G-03 | CONFIRMED |
+| F-07 | All four steps look done but seller stays `provisioning` | (pre-S1054) the provisioning early-return short-circuited the active fall-through | Confirm deployed `compute_effective_seller_status` includes the §2.0.1 fix (no early provisioning return before the `missing_steps==[]`→active check); on current main this is fixed | Repair-03 | CONFIRMED |
 
 ---
 
-## §G. Repair — Fixing Problems
+## Repair
 
 ### G-01 — Resync the durable payouts signal
 - **id:** G-01
@@ -217,9 +225,9 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ---
 
-## §H. Evolve — Extending the System
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 - **Buyer is default-on.** Every active user can buy; the buyer branch must not be gated behind readiness steps.
 - **Seller is additive and gated.** A seller endpoint that requires `active` must never be served to a user whose effective seller status is below the required status.
 - **Publishing requires an active seller, on the canonical path only.** A listing reaches the marketplace through one entry point, `POST /api/v1/vz/publish` (shared by vectorAIz and AIM Data). It asserts `active` seller capability after trust-token validation and before any listing create/update, taking identity only from the verified install binding (`vz_installs.seller_id`), never the request body. This is what enforces `no_anonymous_uploads` on the live publish path. Other/legacy publish surfaces are being REMOVED (not separately gated) under the publish-paths consolidation (`BQ-PUBLISH-PATHS-CONSOLIDATION-S1060`); `aim.py /nodes/{id}/tools/publish` is AIM-node tool registration, not a dataset publish, and is out of scope.
@@ -240,7 +248,7 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ---
 
-## §I. Acceptance Criteria (scenario set)
+## Acceptance criteria
 
 **Weighting:** equal-weight default (1/N, N = 14). No unequal weights declared.
 
@@ -256,14 +264,14 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 10. (F) All four steps done but seller stays provisioning. Expected first action: confirm deployed `compute_effective_seller_status` carries the §2.0.1 fix (no early provisioning return). [F-07]
 11. (G) Durable signal stale after payouts live. Expected first action: re-run the durable write via the Stripe sync/Connect endpoint for the user (entry `app/api/v1/endpoints/stripe.py`). [G-01]
 12. (G) Durable column unreadable/None. Expected first action: inspect/backfill `users.stripe_payouts_enabled` at `_read_durable_stripe_signal`. [G-02]
-13. (H) Propose letting `POST .../seller/request` promote straight to `active`. Expected verdict: **BREAKING**. [§H]
+13. (H) Propose letting `POST .../seller/request` promote straight to `active`. Expected verdict: **BREAKING**. [Changes and maintenance]
 14. (Ambiguous) Seller is blocked and reason is empty/unclear. Acceptable first actions: (a) `GET /api/v1/auth/capabilities` / `CapabilityResolver.resolve(user_id)` to read persisted+effective status, OR (b) read `users.stripe_payouts_enabled`, OR (c) read the 403 body if one was returned. Any of these scores correct.
 
 Pass threshold: weighted score ≥ 0.80.
 
 ---
 
-## §J. Lifecycle
+## Maintenance
 
 - **last_refresh_session:** S1097
 - **last_refresh_commit:** 8ac99a03 (backend deployed main) / 41a75d3 (frontend deployed main, hydration-gate fix)
@@ -271,8 +279,6 @@ Pass threshold: weighted score ≥ 0.80.
 - **owner_agent:** Vulcan / Mars (ai.market backend peers)
 - **refresh_triggers:** capability/onboarding BQ completion, Gate approval on the onboarding redesign, any incident touching seller readiness, scheduled cadence
 - **scheduled_cadence:** 90 days
-- **last_harness_pass_rate:** not_yet_run (harness run still queued from first authoring)
-- **last_harness_date:** null (harness run queued)
 - **first_staleness_detected_at:** null
 - **refresh_log:**
   - S1051 (2026-06-28): first authoring — slice-1 capability model, guard, 403 contract, readiness signals.
@@ -280,13 +286,3 @@ Pass threshold: weighted score ≥ 0.80.
   - S1054 (2026-06-29): slice-2 refresh — added `GET /api/v1/auth/capabilities`, `POST /api/v1/auth/capabilities/seller/request`, `next_action`, capability-aware dashboard + floating setup bar (frontend consumers), and the §2.0.1 provisioning→active fall-through fix. Slice-2 shipped to prod 2026-06-28 (backend `839eef35`, frontend `4932ecd`).
 
 ---
-
-## §K. Conformance
-
-- **linter_version:** 1.0.0
-- **last_lint_run:** S1054, 2026-06-29
-- **last_lint_result:** PENDING — CI run on next merge; author validated §A–§K presence/order, agent forms, §F↔§G cross-references (F-02→G-01, F-03→G-02, F-04/F-07→G-03), and acceptance-scenario↔procedure references by hand
-- **trace_matrix_path:** n/a (greenfield, not a retrofit)
-- **word_count_delta:** slice-2 additions (two endpoints, next_action, dashboard/bar consumers, §2.0.1 fix) over the S1051 baseline
-- **§K.0 — Linter version compatibility**
-  - **linter_version:** 1.0.0 (matches `runbook-tools` package version; reconcile with `runbook-lint --version` on first CI run)

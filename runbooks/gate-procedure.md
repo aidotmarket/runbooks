@@ -1,38 +1,22 @@
 ---
-runbook_id: gate-procedure
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: gate-procedure
-    section: §C. Architecture & Interactions
+title: Gate Procedure
+owner: vulcan
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: gate_eligibility_unknown
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-07-27
-system_name: gate-procedure
-purpose_sentence: This companion carries the full Gate 1 through Gate 4 and Council consensus procedure needed for authoring, review, build dispatch, and recovery.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for gate selection, Council rounds, verdict thresholds, dispatch eligibility, author tokens and leases, and recovery routing.
-linter_version: 1.0.0
+- gate_eligibility_unknown
 ---
 
 # Gate Procedure
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: delivery companion.** Full CORE, the Boot Kernel, the approved BQ design/spec, and live gate state prevail over this document. Current roster and dispatch defaults come from `infra:council-comms`.
 
 **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
 
 **Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, section 5.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -45,7 +29,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Server-selected all-corpus first-plan delivery (staged; inactive by default) | PLANNED | `koskadeux-mcp/tools/runbook_delivery.py` | `koskadeux-mcp/tests/test_runbook_first_delivery_s1413.py`, `tools/session.py:_handle_kd_session_plan`, and runbooks discovery-vector tests | 2026-08-02 |
 | Backend runbook-authority write boundary (staged rollout prerequisite) | PLANNED | `ai-market-backend/app/services/runbook_compat.py` | `ai-market-backend/tests/test_runbook_authority_write_boundary_s1413.py` plus guarded state-write and atomic-write coverage | 2026-08-02 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -56,9 +40,6 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Gate 4 Verification | `state_request action=bq_complete` | Production and customer evidence | Completion | Nothing completes without production verification and non-builder evidence. |
 | Council Rounds | `council_request` and Council Hall | Positions, debate, final verdicts | Gate records | At most three rounds; full valid panel precedes threshold evaluation. |
 | Author Binding | `dispatch_id` and `dispatch_token` | Bound dispatch id and gate lease | Author mode | UUIDv7 id, signed credential, target gate, start, expiry, and extension count are explicit. |
-| Runbook-first delivery | `tools/session.py:_handle_kd_session_plan` | Immutable catalog/manifest snapshot and Kóska-owned SQLite delivery controls | `runbook_tools.catalog.search:search_catalog_delivery` | Staged only. When enabled, server-selected content is admitted before plan acceptance or other business-authority writes. |
-
-**STAGED / INACTIVE BY DEFAULT — runbook-first planning.** This paragraph describes reviewed branch behavior, not a deployed capability. `KOSKADEUX_RUNBOOK_DELIVERY_MODE` defaults to `legacy`; only the exact value `runbook_first` selects the staged path. On the first `kd_session_plan`, Kóska derives one or two search objectives from the authenticated session plan, searches one immutable full-SHA snapshot of the complete runbook corpus, and returns the serializer's exact canonical text before plan acceptance, the plan file, intent, debt, waiver, or other business-authority writes. An `ACTIVE` match is a candidate to inspect. Pending-verification and archived matches are visibly discovery-only leads; archived material is historical-only. Neither class is proof that its operational claims are true, so every load-bearing fact still needs verification against its owning code, configuration, schema, probe, or live state.
 
 Caller prose grants no authority in this mode. Caller-supplied `runbook_consultation`, paths, references, attestations, waivers, and `no_entry_found` text are ignored for admission and cannot block the plan, mint a server reference, prove reading, or discharge debt. The old classifier runs only after durable server-selected admission, as non-blocking telemetry, and its output is not persisted as accepted consultation. This separation is the point of the rollout: the server finds relevant material first; an agent is never asked to invent documentation evidence merely to pass a gate.
 
@@ -108,9 +89,9 @@ The selection and eligibility bullets are companion synthesis of the approved ke
 
 Author mode binds a UUIDv7 `dispatch_id`, signed `dispatch_token`, `target_gate`, and `bound_dispatch_id` to the intended BQ/gate. The gate lease records `lease_started_at`, `lease_expires_at`, `extension_count`, and `extended_at`; extensions update optimistic state rather than silently renewing. Review uses `mode=review` and explicit read-only scope. Build uses `mode=build`, `agent=mp`, BQ code, branch/worktree, approved spec reference, and acceptance manifest. These mechanics cannot relax gate approval or reviewer independence.
 
-The §B author-dispatch-token-and-lease row and this machinery are companion synthesis of the shipped live gate tooling fields exposed by the koskadeux-mcp `state_request` and `council_request` author-mode parameters, not CORE-derived rules. If this description diverges from the live tool schema, the live tool schema prevails.
+The Capabilities author-dispatch-token-and-lease row and this machinery are companion synthesis of the shipped live gate tooling fields exposed by the koskadeux-mcp `state_request` and `council_request` author-mode parameters, not CORE-derived rules. If this description diverges from the live tool schema, the live tool schema prevails.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -119,7 +100,7 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
 | CC, Kimi, GLM | Review and vote independently | `council_request mode=review` | Read-only | COMPLETE |
 | Max | Decide genuine forks and approve constitutional changes | Human decision | Final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -155,31 +136,16 @@ The §B author-dispatch-token-and-lease row and this machinery are companion syn
   expected_failures: [{signature: invalid_gate_promotion, cause: audit is tainted, mandates remain, or production evidence is absent}]
   next_step_success: Complete and record the BQ evidence.
   next_step_failure: Return REVISE or REJECT to Gate 2 or obtain valid Gate 4 evidence.
-- id: E-04
-  trigger: An operator is considering enabling the staged server-selected runbook-first path.
-  pre_conditions: [gateway_change_reviewed_but_not_assumed_deployed, backend_A1_boundary_verified_live, exact_runbook_tools_pin_known, immutable_catalog_full_SHA_known]
-  tool_or_endpoint: gateway deployment configuration plus one fresh authenticated kd_session_open and first kd_session_plan
-  argument_sourcing: {mode: require exact KOSKADEUX_RUNBOOK_DELIVERY_MODE value, package: read the installed runbook-tools source identity rather than a working checkout, catalog: require git:aidotmarket/runbooks@<40-lowercase-hex>:CATALOG.json, backend: verify RUNBOOK_AUTHORITY_WRITE_MODE and protected-route behavior from the running service, response: retain exact returned TextContent.text bytes}
-  idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: hash(gateway_deployment + backend_deployment + catalog_full_SHA + session_id)
-  expected_success: {shape: exact canonical first-plan JSON with ACTIVE candidates and clearly separate discovery-only leads, verification: "prove the response bytes are unchanged, the catalog and inventory identities resolve, caller consultation prose was not accepted, and later plan writes occurred only after admission"}
-  expected_failures: [{signature: runbook_first_delivery_failed, cause: package, immutable catalog, signing key, serializer contract, quota store, or transport admission could not be proven}]
-  next_step_success: Keep rollout scoped and measure retrieval usefulness before restoring any broad blocking enforcement.
-  next_step_failure: Return to legacy mode, preserve the exact error and deployment identities, and repair the named prerequisite without fabricating a reference.
 ```
 
-Runbook maintenance uses two commits so content and activation evidence cannot be confused. First commit the final document set as content commit C, with no manifest, catalog, router, or README regeneration; C is staged and must never be activated. While exact C is checked out, run `python -m runbook_tools.corpus_manifest --refresh-from <full-C-sha>`, then `runbook-catalog generate`. Commit only `CORPUS-MANIFEST.yaml` and the corresponding generated catalog/router/README identity surfaces as direct child M. Confirm `git diff --name-only <C>..<M>` contains no document-content path. At M run `python -m runbook_tools.corpus_manifest`, `runbook-catalog check`, `runbook-catalog select --mode lint-selection`, and `runbook-lint --mode strict --format github`; then validate the committed snapshot with `runbook-catalog validate --catalog-ref "git:aidotmarket/runbooks@<full-M-sha>:CATALOG.json"`. Verify the remote has exact C and M objects and atomically move the deployed old-M pin to new M. A failed check, stale inventory, unexpected diff path, remote-object mismatch, or compare-and-swap loss leaves old M serving.
-
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Build dispatch eligibility cannot be proven. | A gate, claim, reconciliation, runbook, compliance, builder, or independence operand is unknown. | Read the BQ, approved specs, claim state, reconciliation result, runbook refs, and dispatch envelope. | G-01 | CONFIRMED |
 | F-02 | Gate 3 review changed files or used the builder. | Review mode or reviewer independence was violated. | Compare git status, dispatch mode, builder list, reviewer list, and target SHA. | G-02 | CONFIRMED |
-| F-03 | Staged runbook-first planning returns an exact `runbook_*` or budget error before plan acceptance. | The mode, installed package, immutable catalog pin, HMAC key, canonical library contract, durable quota, or byte budget is invalid or unavailable. | Preserve the exact error code; verify the running gateway configuration, installed package identity, full-SHA catalog and inventory objects, backend A1 mode, and SQLite control-store health. Do not submit invented caller evidence. | G-03 | CONFIRMED |
-| F-04 | A first-plan response exposes only discovery leads, or an ACTIVE candidate conflicts with current code/state. | Relevant material is pending/archived rather than ACTIVE, or an ACTIVE document is stale; retrieval is not semantic verification. | Read `catalog_state`, `historical_only`, `authoritative_gap`, and immutable source identities, then compare the claim with its owning live source. | G-04 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -196,45 +162,29 @@ Runbook maintenance uses two commits so content and activation evidence cannot b
   root_cause: A write-capable or non-independent dispatch was treated as review evidence.
   repair_entry_point: council_request mode=review
   change_pattern: Discard the tainted vote and redispatch an eligible non-builder with explicit read-only scope.
-  rollback_procedure: Remove the invalid verdict from promotion evidence.
+  rollback_procedure: Remove the invalid verdict from gate evidence.
   integrity_check: Replacement review changes no files and binds to the intended commit.
-- id: G-03
-  symptom_ref: F-03
-  component_ref: Runbook-first delivery
-  root_cause: At least one exact package, configuration, catalog, serializer, quota, backend-boundary, or transport prerequisite is absent or contradictory.
-  repair_entry_point: koskadeux-mcp/tools/runbook_delivery.py and tools/session.py:_handle_kd_session_plan
-  change_pattern: Leave or restore KOSKADEUX_RUNBOOK_DELIVERY_MODE=legacy; repair the component named by the exact error; rerun focused gateway delivery and transport tests before a fresh authenticated first-plan probe.
-  rollback_procedure: Use legacy mode through the normal drained gateway restart; do not weaken a fail-closed error or substitute caller-authored evidence.
-  integrity_check: The fresh plan receives unchanged canonical bytes before business writes, the backend A1 boundary contains or rejects protected writes, and no caller prose appears as accepted consultation.
-- id: G-04
-  symptom_ref: F-04
-  component_ref: Runbook-first delivery
-  root_cause: Discovery found potentially useful material that has no current authority, or an ACTIVE claim failed ground-truth verification.
-  repair_entry_point: Owning runbook content plus the C to M inventory refresh procedure
-  change_pattern: Use the lead only to locate evidence; correct or draft grounded runbook content in C, create mechanical activation child M, and keep old M serving until every check and pin compare-and-swap succeeds.
-  rollback_procedure: Do not activate C or the failed M; retain the old catalog pin and record the gap without inventing a citation.
-  integrity_check: New M binds every changed path and blob to C, contains no document edit, validates at its full SHA, and the corrected operational claim matches its owning source.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 Gate selection is evidence-driven, dispatch fails closed, MP builds, builders do not review their work, and Gate 4 verifies production.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Removing a gate, reducing required valid participation, bypassing unanimous risk classes, or allowing unknown eligibility is BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Review changes to token claims, lease fields, round transport, statuses, voter validation, or completion evidence.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Adding examples is safe when it does not change gate meaning, thresholds, eligibility, or authority.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -252,11 +202,11 @@ Living State, repository evidence, Council dispatch, current roster, and product
 
 Unknown evidence fails closed; no token, lease, or roster default can manufacture approval.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Apply CORE risk thresholds, approved design/spec authority, and current gate evidence; escalate only real unresolved forks to Max.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -268,12 +218,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-01], scenario: A gate lease expired before author-mode completion., expected_answers: [{kind: classification, label: LEASE_NOT_VALID}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: A claim blocker makes build eligibility unknown., expected_answers: [{kind: human_action, verb: resolve, object: claim evidence, target: dispatch preflight}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: A review dispatch wrote a verdict file and source changes., expected_answers: [{kind: human_action, verb: replace, object: tainted review, target: clean read-only review}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal lets two of three returned votes count when one voter failed., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A signed token gains an additive audit claim., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Gate 3 rejects implementation without changing design authority., expected_answers: [{kind: classification, label: RETURN_TO_GATE_2}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal lets two of three returned votes count when one voter failed., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A signed token gains an additive audit claim., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Gate 3 rejects implementation without changing design authority., expected_answers: [{kind: classification, label: RETURN_TO_GATE_2}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1369
@@ -282,18 +232,5 @@ last_refresh_date: 2026-07-27T21:55:39Z
 owner_agent: vulcan
 refresh_triggers: [CORE gate or consensus changes, author token or lease schema changes, BQ gate transition or completion changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T21:55:39Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

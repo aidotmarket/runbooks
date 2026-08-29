@@ -1,3 +1,11 @@
+---
+title: CRM Target-State Runbook — System Standard
+owner: unassigned
+last_verified: '2026-08-09'
+aliases: []
+error_signatures: []
+---
+
 > **SUPERSEDED 2026-08-09 (S1490). DO NOT USE.**
 > Replaced by `runbooks/crm.md`. This document describes fourteen `crm_*` tables as active in
 > production. All fourteen were deleted on 2026-07-03 by migration
@@ -369,7 +377,7 @@ BQ-CRM-TESTING-V2 (reopen of CRM-TESTING) generates tests for every "Gap" cell i
 
 ---
 
-## 6. Known Broken/Partial Items Requiring Immediate Fix
+## When it breaks
 
 1. **Outreach generation broken**: `outreach_generation_service.py:37` maps to `CRMTaskType.FOLLOW_UP_EMAIL` which doesn't exist as an enum → **BQ-CRM-FIX-OUTREACH**
 2. **V2 operations not production-safe**: `domains/crm/operations/service.py:33` doesn't set `entity_id` despite non-null constraint on `CRMInteraction.entity_id` and `CRMTask.entity_id` → **BQ-CRM-FIX-V2-OPS**

@@ -1,3 +1,11 @@
+---
+title: Vulcan Configuration — Context Hydration & Memory Architecture
+owner: unassigned
+last_verified: '2026-03-24'
+aliases: []
+error_signatures: []
+---
+
 # Vulcan Configuration — Context Hydration & Memory Architecture
 
 ## Overview
@@ -116,3 +124,7 @@ Is it historical context ("why did we do X")?
 - `infra:railway` — Railway services, deploy config, DB access methods
 - `config:resource-registry` — File paths, tool names, ports, domains
 - This runbook: `aidotmarket/runbooks/vulcan-configuration.md`
+
+## When it breaks
+
+This page does not define a separate break/fix procedure. Correct the prose if the documented operation changes.

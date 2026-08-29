@@ -1,3 +1,11 @@
+---
+title: Issue-Channel Gate 2 Receipts Runbook
+owner: unassigned
+last_verified: '2026-08-29'
+aliases: []
+error_signatures: []
+---
+
 # Issue-Channel Gate 2 Receipts Runbook
 
 ## R.1 Purpose and scope boundary
@@ -76,7 +84,7 @@ Phase B (clean-before-immutable order): real-mechanism dump `pg_dump -Fc --no-ow
 Gotchas: PG17 pg_dump emits `SET transaction_timeout` which a PG16 receipt server rejects as pg_restore's single ignorable error - assert exactly that one error, prod restores are same-major; `aclexplode('{}'::aclitem[])` errors ("ACL arrays must be one-dimensional") - use `c.relacl is not null` + lateral instead; `correlation_key`/`episode_key` are plain identifiers, exclude them from key-material checks and test bytea columns + crypto defaults instead (backend-wide pgcrypto rides in any full dump and is outside issue_channel scope). RESUME_FROM_RESTORE=1 / RESUME_FROM_GRANTS=1 resume a failed phase B on the same sha256-verified artifact without a second WORM upload.
 Receipt: `v4-noncustodial-surface-scan.json` (PASS, provable-now scope; deferred items recorded as binding implementation mandates mapped to their increments). Teardown additions: `drop database issue_channel_restore`; `/tmp/v4_receipt_s1511.dump`; the WORM object under `receipts/s1511/` self-expires with the bucket's 35d COMPLIANCE lock and cannot be deleted earlier.
 
-## R.7 Failure modes met producing receipts
+## When it breaks
 | Symptom | Cause | Fix |
 |---|---|---|
 | `connect() got an unexpected keyword argument 'sslmode'` | asyncpg DSN | use `?ssl=require` |

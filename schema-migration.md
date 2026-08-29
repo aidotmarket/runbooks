@@ -1,3 +1,11 @@
+---
+title: Schema Migration Runbook
+owner: unassigned
+last_verified: '2026-08-28'
+aliases: []
+error_signatures: []
+---
+
 # Schema Migration Runbook
 
 ## S.1 Purpose
@@ -51,7 +59,7 @@ When two branches each add a revision on top of the same parent:
 - Code-with-schema PRs require both MP + AG (or DS) reviewer approval.
 - The `alembic_version` table column width has been widened (S576): revision IDs can now exceed 32 chars. Tracked under BQ-ALEMBIC-VERSION-NUM-WIDEN-S576 (product backend BQ, NOT consolidated under S612 per AG mandate).
 
-## S.7 Common failure modes
+## When it breaks
 - **Multi-heads on main**: must merge before next revision lands.
 - **Hand-rolled head detection lies**: never infer the head set by grepping/parsing `revision`/`down_revision` out of the version files — merge revisions use a multi-line tuple `down_revision`, which single-line parsers miss, producing false multi-head counts (and false “all clear” single-head reads). Always run the real `alembic heads`. To run it locally without a DB (the `heads` command reads the script tree only, no connection needed) but past the app `Settings` import, export dummy env first: `export SECRET_KEY=$(openssl rand -hex 32) DATABASE_URL=postgresql+asyncpg://u:p@localhost:5432/dummy ENVIRONMENT=development`.
 - **A migration metadata test names an old merge as the predecessor**: run `alembic heads` before changing migration files. A historical revision can legitimately point to its branch predecessor while a later merge collapses that branch into the single current lineage. If the real graph has one head, inspect the migration and Git history and correct the stale test expectation; do not rewrite an applied migration merely to satisfy the test.

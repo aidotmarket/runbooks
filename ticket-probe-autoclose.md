@@ -1,20 +1,22 @@
 ---
-system_name: ticket-probe-autoclose
-purpose_sentence: "Support tickets auto-close on the production symptom, not the delivery path: each ticket carries a machine still-broken probe, and a reconciler auto-resolves it (with evidence) once the probe reports not-broken twice, while an unreachable probe alarms and never closes."
-owner_agent: vulcan
-escalation_contact: max@ai.market
-lifecycle_ref: §J
-authoritative_scope: "The ticket-probe feature (BQ-TWO-TRACK-TICKET-PROBE-AUTOCLOSE-S1126, slice 1) — the probe schema/validation and probe-state columns on support_ticket, the probe runner, the ticket-probe reconciler with its deploy + heartbeat triggers, daily probe-rot canary, and unreachable alarms, plus the steady-state enablement (feature flag, launcher, launchd plist). Explicitly OUT of scope: the creation-time classification gate, the classification sweep, and the session-close intersection guard (later slices), and the separate git-branch BQ reconciler (tools/lifecycle/handler.py + eligibility.py), which this feature must never reuse or alter."
-linter_version: 1.0.0
+title: Ticket-Probe Auto-Close (Two-Track Enforcement, Slice 1)
+owner: vulcan
+last_verified: '2026-07-05'
+aliases: []
+error_signatures:
+- 422 http probe target host is not in TICKET_PROBE_HTTP_ALLOWLIST
+- 422 P0/P1 support tickets require a valid machine probe
+- '{enabled:false}'
+- '{lock_acquired:false}'
+- job runs but stats.enabled=false
 ---
 
 # Ticket-Probe Auto-Close (Two-Track Enforcement, Slice 1)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. This feature decouples ticket closure from the delivery mechanism (git branches / build gates) and couples it to the production symptom. A ticket carries a `probe` describing the condition that means STILL BROKEN; when production says the problem is gone (probe returns not_broken twice in a row), the ticket auto-resolves with the probe output as evidence — however the fix shipped. "Probe cannot reach its surface" (unreachable, including timeout and probe-rot) ALARMS and never closes. Backend surfaces live in `ai-market-backend`; runner + reconciler + scheduling live in `koskadeux-mcp`. The whole feature is gated by `TICKET_PROBE_RECONCILER_ENABLED` and does nothing when off. It is a no-op until a ticket is given a probe: reconcile only ever touches open tickets whose `probe IS NOT NULL`.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -31,7 +33,7 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
 | Steady-state enabled on Titan-1 (flag in .env; launchd loaded; lock DSN via Infisical launcher) | SHIPPED | `scripts/launch_ticket_probe_reconciler.sh` | — | 2026-07-05 |
 | http probes require backend TICKET_PROBE_HTTP_ALLOWLIST (Railway env) or create 422s | PARTIAL | `app/schemas/support_ticket.py` | `tests/test_bq_ttpa_s1126_c1.py` | 2026-07-05 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -42,7 +44,7 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
 | Deploy hook | koskadeux-mcp kd_deploy.py run_ticket_probe_reconciler_after_deploy() | none | reconciler | Fires after a successful prod deploy+restart; try/except, flag-gated |
 | launchd heartbeat | launch_agents/com.koskadeux.ticket-probe-reconciler.plist -> scripts/launch_ticket_probe_reconciler.sh | Infisical (AUTHOR_DISPATCH_DATABASE_URL for lock) | scheduler CLI | Hourly (StartInterval 3600) + RunAtLoad; launcher Infisical-fetches the lock DSN (launchd has no shell env) |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -50,9 +52,9 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
 | vulcan | Run a manual reconcile pass | koskadeux-mcp kd_scheduler.py --ticket-probe-reconcile | internal + lock DSN | COMPLETE |
 | vulcan | Enable/disable steady-state | .env TICKET_PROBE_RECONCILER_ENABLED + launchctl bootout/bootstrap | Titan-1 shell | COMPLETE |
 | mars | Same operations (equal authority) | as above | as above | COMPLETE |
-| sysadmin | Respond to an unreachable/probe-rot alarm | peer bus alert -> this runbook §F/§G | operational | COMPLETE |
+| sysadmin | Respond to an unreachable/probe-rot alarm | peer bus alert -> this runbook When it breaks/Repair | operational | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -69,7 +71,7 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
     verification: GET the ticket and confirm probe is present and probe_last_state is null until first reconcile
   expected_failures:
     - signature: 422 http probe target host is not in TICKET_PROBE_HTTP_ALLOWLIST
-      cause: backend Railway env TICKET_PROBE_HTTP_ALLOWLIST does not include the target host (see §G-01)
+      cause: backend Railway env TICKET_PROBE_HTTP_ALLOWLIST does not include the target host (see Repair-01)
     - signature: 422 P0/P1 support tickets require a valid machine probe
       cause: creating/patching a critical/high ticket without a valid probe
   next_step_success: Reconciler will pick up the ticket on the next deploy or hourly heartbeat
@@ -88,11 +90,11 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
     verification: exit 0; stats printed; /var/tmp/koskadeux/ticket_probe_reconciler.log updated
   expected_failures:
     - signature: '{enabled:false}'
-      cause: flag not set in the run environment (see §F F1)
+      cause: flag not set in the run environment (see When it breaks F1)
     - signature: '{lock_acquired:false}'
-      cause: another run holds the lock, OR the lock DSN is missing/unreachable (see §F F2)
+      cause: another run holds the lock, OR the lock DSN is missing/unreachable (see When it breaks F2)
   next_step_success: not_broken x2 auto-resolves the ticket; unreachable alarms
-  next_step_failure: See §F to isolate, §G to repair
+  next_step_failure: See When it breaks to isolate, Repair to repair
 - id: E-03
   trigger: Turn the feature on or off for steady state
   pre_conditions:
@@ -111,7 +113,7 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
   next_step_failure: Recheck .env and reload the job
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -122,7 +124,7 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
 | F-05 | Auto-close never fires despite not_broken | probe-state fields not persisting, <2 consecutive not_broken, or cooldown collapsing runs | GET the ticket; confirm probe_consecutive_not_broken increments across runs | G-05 | HYPOTHESIZED |
 | F-06 | Alarm storm for one ticket | dedup window not applied, or many genuinely-unreachable tickets | Inspect Event Ledger support_ticket_probe_unreachable per ticket per hour | G-06 | HYPOTHESIZED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -175,9 +177,9 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
   integrity_check: At most one alarm per ticket per 1h window in the Event Ledger
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Flag off (`TICKET_PROBE_RECONCILER_ENABLED` unset/false) is a FULL no-op: no fetch, no probe, no PATCH, no alarm, no lock.
 - `resolved` is terminal for auto-close: the reconciler never advances a ticket to `closed`; an operator owns resolved->closed.
@@ -187,25 +189,25 @@ YAML frontmatter above is authoritative for the §A header fields. This feature 
 - Backend probe validation MUST match the runner's assert_broken contract for every kind (drift here silently breaks a probe kind end-to-end).
 - The support-ticket PATCH path stays internal-only (403 for non-internal principals).
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Removing or renaming any probe-state column (probe, probe_last_state, probe_last_checked_at, probe_consecutive_not_broken, resolution_source, probe_last_canary_at, probe_rot).
 - Changing the runner's return values (broken/not_broken/unreachable) or the assert_broken shape for any kind without matching the backend validator.
 - Making the patch path externally reachable, or letting external callers set resolved_at/resolution_source/status.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing the auto-close threshold (2x not_broken), the 5-min cooldown, the 30s probe timeout, the daily canary cadence, or the 1h alarm dedup window.
 - Adding a new probe kind (must be added to BOTH backend validation and the runner in the same change).
 - Changing the advisory-lock key or DSN source.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Adding a host to TICKET_PROBE_HTTP_ALLOWLIST.
 - Attaching/removing a probe on an individual ticket.
 - Editing log/observability strings that carry no secret.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -223,11 +225,11 @@ Railway Postgres (support_ticket via backend), the advisory-lock DB (AUTHOR_DISP
 
 TICKET_PROBE_RECONCILER_ENABLED default false. On Titan-1 it is set true in koskadeux-mcp .env (S1128). TICKET_PROBE_HTTP_ALLOWLIST is unset by default (http probes require it on the backend).
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Owner agent vulcan adjudicates evolution. BREAKING changes require a spec + Council Gate-3 (reviewer!=builder) before merge and a Gate-4 controlled enable. REVIEW changes require a single-reviewer pass. SAFE changes may proceed directly and be noted here in the same session.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -357,7 +359,7 @@ scenario_set:
     weight: 0.05
 ```
 
-### §I.1 Weight Justification
+### Acceptance criteria.1 Weight Justification
 
 Core paths carry 0.1; two secondary guards carry 0.05. Per-scenario:
 
@@ -375,7 +377,7 @@ Core paths carry 0.1; two secondary guards carry 0.05. Per-scenario:
 
 Weights sum to 1.0.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1128
@@ -388,19 +390,5 @@ refresh_triggers:
   - change to the enablement mechanism (flag, launcher, plist) or the advisory-lock DSN source
   - adding a new probe kind
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: "2026-07-05T00:00:00Z"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-Slice 1 scope only. Later slices (creation-time classification gate, classification sweep, session-close intersection guard) are explicitly out of scope and will extend this runbook when built. Two carried non-blocking notes: the SELECT-only validator is deliberately conservative (may reject exotic-but-legitimate SQL), and the runner's http client timeout is fixed at 30s independent of a configurable per-probe timeout (inert at the default).
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: "S1128 / 2026-07-05T21:40:00Z"
-last_lint_result: PASS
-trace_matrix_path: specs/BQ-TWO-TRACK-TICKET-PROBE-AUTOCLOSE-S1126-GATE2.md
-word_count_delta: null
 ```

@@ -1,54 +1,23 @@
 ---
-runbook_id: agent-dispatch
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: agent-dispatch
-    section: §C. Architecture & Interactions
+title: Agent Dispatch
+owner: vulcan
+last_verified: '2026-08-25'
 aliases: []
 error_signatures:
-  - signature: gateway_timeout
-    section: §E. Operate
-  - signature: stale_task_state
-    section: §E. Operate
-  - signature: progress_guard_timeout
-    section: §E. Operate
-  - signature: unsupported_line_claim
-    section: §E. Operate
-  - signature: health_failure
-    section: §E. Operate
-  - signature: schema_validation_failure
-    section: §E. Operate
-  - signature: env_var_in_inherited_only
-    section: §E. Operate
-  - signature: default_cwd_false_positive
-    section: §E. Operate
-  - signature: bootout_without_plist_patch
-    section: §E. Operate
-  - signature: tr_truncation_false_negative
-    section: §E. Operate
-  - signature: mp_busy
-    section: §E. Operate
-  - signature: strict_verdict_invalid
-    section: §E. Operate
-  - signature: structural_gate_unknown
-    section: §X.8 — S1415 structural build/review gate replacement
-  - signature: cutover_admission_unknown
-    section: §X.8 — S1415 structural build/review gate replacement
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-25
-system_name: agent-dispatch
-purpose_sentence: MP build-dispatch mechanics; Council reviewer transport is owned exclusively by council.md.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Stable dispatch mechanics + symptom/repair patterns. Live config (current model frontiers, dispatch participants, environment paths) is canonically tracked in infra:council-comms Living State entity.
-
-  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` per parent runbooks/council.md §A. Same-file references retain bare IDs.
-linter_version: 1.0.0
+- bootout_without_plist_patch
+- cutover_admission_unknown
+- default_cwd_false_positive
+- env_var_in_inherited_only
+- gateway_timeout
+- health_failure
+- mp_busy
+- progress_guard_timeout
+- schema_validation_failure
+- stale_task_state
+- strict_verdict_invalid
+- structural_gate_unknown
+- tr_truncation_false_negative
+- unsupported_line_claim
 ---
 
 # Agent Dispatch
@@ -62,32 +31,32 @@ linter_version: 1.0.0
 > runbook remains authoritative only for the separate MP build path and general
 > non-reviewer dispatch operations.
 
-> **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name have been merged into this one, at the catalog-indexed path `runbooks/agent-dispatch.md`, and the repo-root copy has been deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` is folded in here (§W, §X, and the §X pointer inside §G.1) and is now superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss. Nothing was rewritten, summarised, or reconciled by hand.
+> **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name have been merged into this one, at the catalog-indexed path `runbooks/agent-dispatch.md`, and the repo-root copy has been deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` is folded in here (§W, §X, and the §X pointer inside Repair.1) and is now superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss. Nothing was rewritten, summarised, or reconciled by hand.
 >
 > **Where the retired root copy's sections went.** The two documents used the same section letters for different things, so some labels had to move. Everything is present.
 >
 > | Retired root copy | Now at | Note |
 > |---|---|---|
 > | Preamble duplicate-copy warning | Removed | It described the fork that this merge resolves. |
-> | S612 consolidation-owner block | §A.1 | The §A–§D layout it mandates is not the §A–§K house standard used here. Unmapped: see §A.1. |
-> | Council roster | §B.1 | Resolved at S1351. §B and §D record implementation coverage; §B.1 records operational roster truth. See §B.1. |
-> | §C.0 | §C.0 | Unchanged, now a subsection of §C. A later status note for it sits at "§C.0 status note (S1152)" further down, in its original position. |
-> | §C Architecture | §C.1 | The house §C keeps the letter. |
-> | §G Repair | §G.2 | The house §G keeps the letter. |
-> | §G.1 | §G.1 | Unchanged. |
-> | §I Scenarios | §G.3 | The house §I is the harness-bound scenario set and must match `tests/fixtures/harness_scenarios/agent-dispatch/` exactly, so the root scenarios moved under Repair, which is what they describe. |
-> | §J Plus-One Discipline | §Y | The house §J is Lifecycle. |
+> | S612 consolidation-owner block | Overview.1 | The Overview–Agent capabilities layout it mandates is not the Overview–§K house standard used here. Unmapped: see Overview.1. |
+> | Council roster | Capabilities.1 | Resolved at S1351. Capabilities and Agent capabilities record implementation coverage; Capabilities.1 records operational roster truth. See Capabilities.1. |
+> | Architecture & interactions.0 | Architecture & interactions.0 | Unchanged, now a subsection of Architecture & interactions. A later status note for it sits at "Architecture & interactions.0 status note (S1152)" further down, in its original position. |
+> | Architecture & interactions Architecture | Architecture & interactions.1 | The house Architecture & interactions keeps the letter. |
+> | Repair Repair | Repair.2 | The house Repair keeps the letter. |
+> | Repair.1 | Repair.1 | Unchanged. |
+> | Acceptance criteria scenarios | Repair.3 | The root scenarios moved under Repair, which is what they describe. |
+> | Maintenance Plus-One Discipline | §Y | The house Maintenance is Lifecycle. |
 > | §K Conflict Adjudication Procedure | §Z | The house §K is Conformance. |
 > | §L through §X | Unchanged | No collision. |
 >
-> **Two conflicts were recorded here at S1348 and are now RESOLVED at S1351** by the frontmatter owner against live `infra:council-comms` v62, which is the canonical source both surfaces already named. (1) The roster disagreement in §B.1 is settled: AG operational status is PAUSED and XAI is RETIRED, and the active gate voter panel is CC + Kimi + GLM. (2) The duplicate XAI retirement record is settled: the Retired-Agents Appendix is XAI's single home, the unique code-retirement evidence from the S1153 note has been folded into it, and the standalone duplicate is removed.
+> **Two conflicts were recorded here at S1348 and are now RESOLVED at S1351** by the frontmatter owner against live `infra:council-comms` v62, which is the canonical source both surfaces already named. (1) The roster disagreement in Capabilities.1 is settled: AG operational status is PAUSED and XAI is RETIRED, and the active gate voter panel is CC + Kimi + GLM. (2) The duplicate XAI retirement record is settled: the Retired-Agents Appendix is XAI's single home, the unique code-retirement evidence from the S1153 note has been folded into it, and the standalone duplicate is removed.
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. This runbook documents stable dispatch mechanics, operational failure patterns, and repair decisions for Council agent dispatch.
+This runbook documents stable dispatch mechanics, operational failure patterns, and repair decisions for Council agent dispatch.
 
 
-### §A.1 Consolidation ownership and revision policy (S612, folded from the retired root copy)
+### Overview.1 Consolidation ownership and revision policy (S612, folded from the retired root copy)
 
 Historical text carried verbatim from the retired root copy. Its former
 MP/AG/DeepSeek reviewer roster and Council-R1 approval rule are superseded and
@@ -96,20 +65,18 @@ point is that new dispatch failure surfaces are filed as revisions to this
 runbook rather than as new build-queue items. Current revisions follow the live
 CC/Kimi/GLM review panel from `infra:council-comms`.
 
-<!-- catalog:historical -->
 >
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for agent dispatch reliability after the S612 consolidation that collapsed ~20 process BQs into BQ-PROCESS-AGENT-DISPATCH-RELIABILITY-S612 (P0). Per MP review mandate, content is organized under four explicit sub-sections; existing body sections map into these per the survivor BQ body.absorbed_bqs subsection field. Future failure surfaces file as revisions to this runbook, NOT as new BQs.
 >
 > **Sub-section layout (Council R1 mandate, MP/AG/DS concurrent):**
-> - **§A Dispatch routing & credentials** — dispatch routing failure modes, tool namespace prefix quirks, bq_code mandatory on Council dispatches, fold-dispatch credential primary minting, spec-authoring compliance-gate misfire.
-> - **§B Builder runtime reliability** — MP/Codex wrapper repair-exhausted false-failure, MP runner workspace contamination, MP build timeout tunability, mid-round server checkpoint loss recovery, manifest emission verifier safety, Codex bridge CI workflow stability.
-> - **§C Reviewer wrapper contracts** — progress-guard wrong for review mode (write-first pattern), DS spec inlining requirement, AG read-only enforcement.
-> - **§D Agent-specific behaviors** — DS verdict emission + enum drift + spec mandate cleanup + diff access; AG review auto-chunking + sandbox writes + streaming generation + review depth security; MP codex CLI streaming wrapper regression.
+> - **Overview Dispatch routing & credentials** — dispatch routing failure modes, tool namespace prefix quirks, bq_code mandatory on Council dispatches, fold-dispatch credential primary minting, spec-authoring compliance-gate misfire.
+> - **Capabilities Builder runtime reliability** — MP/Codex wrapper repair-exhausted false-failure, MP runner workspace contamination, MP build timeout tunability, mid-round server checkpoint loss recovery, manifest emission verifier safety, Codex bridge CI workflow stability.
+> - **Architecture & interactions Reviewer wrapper contracts** — progress-guard wrong for review mode (write-first pattern), DS spec inlining requirement, AG read-only enforcement.
+> - **Agent capabilities Agent-specific behaviors** — DS verdict emission + enum drift + spec mandate cleanup + diff access; AG review auto-chunking + sandbox writes + streaming generation + review depth security; MP codex CLI streaming wrapper regression.
 >
 > Revisions require Council R1 review-mode approval. Filed under S612.
-<!-- /catalog:historical -->
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -124,26 +91,24 @@ CC/Kimi/GLM review panel from `infra:council-comms`.
 | Structural-build no-loss retirement and recovery (staged; not deployed) | PLANNED | `koskadeux-mcp/tools/agents.py` | `tools/structural_quarantine.py:safe_retire_worktree`, `tests/unit/test_pre_push_gate_composition.py`, and `tests/unit/test_structural_quarantine_journal.py` | 2026-08-02 |
 
 
-### §B.1 Council roster (folded from the retired root copy)
+### Capabilities.1 Council roster (folded from the retired root copy)
 
 Carried from the retired root copy and corrected at S1351 against live `infra:council-comms` v62.
 
-**Read §B and §D as implementation coverage, and this block as operational roster truth.** They are answering different questions and the apparent disagreement was never a contradiction. §B records whether the dispatch code exists and is wired; §D records whether the adapter and auth scope are complete. Neither says whether the agent currently votes. AG carries `COMPLETE` implementation coverage in §D and is PAUSED operationally. XAI carries `DEPRECATED` dispatch status in §B because the client is cold-storage rather than deleted, and is RETIRED operationally. DeepSeek carries `COMPLETE` implementation coverage and is retired from voting. The §B and §D last-verified dates of 2026-04-29 apply to the code claims only.
+**Read Capabilities and Agent capabilities as implementation coverage, and this block as operational roster truth.** They are answering different questions and the apparent disagreement was never a contradiction. Capabilities records whether the dispatch code exists and is wired; Agent capabilities records whether the adapter and auth scope are complete. Neither says whether the agent currently votes. AG carries `COMPLETE` implementation coverage in Agent capabilities and is PAUSED operationally. XAI carries `DEPRECATED` dispatch status in Capabilities because the client is cold-storage rather than deleted, and is RETIRED operationally. DeepSeek carries `COMPLETE` implementation coverage and is retired from voting. The Capabilities and Agent capabilities last-verified dates of 2026-04-29 apply to the code claims only.
 
 `infra:council-comms` remains canonical for live roster state. Read it before dispatching.
 
 
 **Gate voter panel: CC + Kimi + GLM — exactly three** (Max direct directive S1319; CORE v9.13 names CC, Kimi and GLM in the amendment gate). ACTIVATION STATUS: ACTIVE. Kimi replaced the DeepSeek seat at the S1319 cutover (koskadeux-mcp `1a7d9c6e`, deployed at `2257a367`, gateway restarted 2026-07-24). `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` in `council_gate_runner.py` are exactly {cc, kimi, glm}. The deployed gateway enforces this panel.
 
-<!-- catalog:historical -->
 > HISTORICAL, superseded: the panel was CC + DeepSeek + GLM from S1213, activated at S1223 (49739a44 merged to koskadeux-mcp main as d370d65c, gateway restarted on the merged SHA, live per-voter proof CC/DeepSeek/GLM all APPROVE plus fail-closed quorum verification inside the Chunk 5 freeze; Vulcan ratification peer msg #1178). That record is retained as history and must not be read as current roster state. Consensus: 2/3 standard only after 3/3 valid participation; 3/3 unanimous for security/auth/money/production-data/customer-data; missing/failed/malformed/model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter.
-<!-- /catalog:historical -->
 
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
 - **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
 - **Kimi**: gate voter, review-only, with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `2db3201d` on koskadeux-mcp `fdf50693`.
-- **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per §H.2) plus Max approval.
+- **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per Changes and maintenance.2) plus Max approval.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
 - **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
 - **XAI is RETIRED** (Max go, S994).
@@ -154,13 +119,11 @@ Historical rounds with vulcan/ag/mp voter keys remain readable (schema legacy ke
 This section documents the S1213 roster change and discharges the S1221 waived roster-change runbook attestations (S1221-D1..D7).
 
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 Dispatch is a gateway-controlled routing layer. Operators submit a task, target agent, mode, working directory, and evidence references; the gateway chooses the agent backend, applies mode constraints, and returns either a synchronous result or a background task id.
 
-<!-- catalog:historical -->
 Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder.
-<!-- /catalog:historical -->
 
 Current operational truth is the block above: MP is mandatory builder, CC/Kimi/GLM are the gate voters, AG is paused, and DeepSeek is retired.
 
@@ -187,7 +150,7 @@ fetch fails but the local origin ref is usable, the job records
 | Environment Loader | launch scripts and LaunchAgents | PATH, Infisical-backed tokens, local config | Codex CLI, Gemini, DeepSeek, Claude Code | `gemini` must be on PATH; provider tokens must come from approved secret sources. |
 | MCP Tool Prefix | dispatched prompt or MCP tool invocation | tool-call transcript | Koskadeux MCP bridge | Tool prefix casing must use capitalized `Koskadeux:`; lowercase can silently fail. |
 | Peer Bus | `koskadeux-mcp/tools/peer_messages.py:_handle_peer_msg_send` | peer message rows, per-instance ack state | Vulcan, Mars | Coordination channel between the two peer instances. `kind` drives the ack requirement; send dedupes on `(from_instance, to_instance, kind, ref_entity)`. See F-07/G-07. |
-| Cross-Runbook IDs | runbook prose convention | same-file IDs, file-qualified IDs | §F and §G references | Same-file references use `F-01`; cross-runbook references use `agent-dispatch:F-01`. |
+| Cross-Runbook IDs | runbook prose convention | same-file IDs, file-qualified IDs | When it breaks and Repair references | Same-file references use `F-01`; cross-runbook references use `agent-dispatch:F-01`. |
 | Structural Worktree Retirement | `tools/agents.py:_teardown_structural_build_worktree` | retained worktree, quarantine journal, terminal receipt | `tools/structural_quarantine.py`, Git worktree registry, Codex invocation lease | Staged no-loss path; an ambiguous retirement is retained for operator recovery, never deleted. |
 
 Agent processes require a clean working directory when the task may write, a readable repo when the task is review-only, provider credentials in the approved environment, and PATH entries for backend CLIs. `run_background` style dispatch must explicitly export required PATH segments because it does not inherit the interactive shell environment.
@@ -285,7 +248,7 @@ richer meta and assuming the live path behaves the same way is a mistake that
 has been made before.
 
 
-### §C.0 AG / Gemini response-schema constraints (Vertex google-genai Schema subset)
+### Architecture & interactions.0 AG / Gemini response-schema constraints (Vertex google-genai Schema subset)
 
 AG runs on Gemini via the Vertex google-genai SDK, whose `Schema` type accepts only a
 subset of JSON Schema. A `response_schema` (e.g. `AG_REVIEW_RESPONSE_FORMAT` in
@@ -310,7 +273,7 @@ input-schema rejection. It is also distinct from the AG review **ref-resolution*
 (`dispatch_sha`/`base`/`head` preload) — a separate fix in the same S1132 session.
 
 
-### §C.1 Architecture: MP Codex CLI bridge and timeout knobs (was root copy §C)
+### Architecture & interactions.1 Architecture: MP Codex CLI bridge and timeout knobs (was root copy Architecture & interactions)
 
 MP build dispatches use the Codex CLI bridge. For
 `council_request agent=mp mode=build` and `dispatch_mp_build`, the default
@@ -343,7 +306,7 @@ Timeout knobs:
   env var is not set.
 
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -356,12 +319,12 @@ Timeout knobs:
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
-This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and retired from voting at S1321. The live gate voter panel is CC + Kimi + GLM and is recorded in §B.1, with `infra:council-comms` canonical.
+This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and retired from voting at S1321. The live gate voter panel is CC + Kimi + GLM and is recorded in Capabilities.1, with `infra:council-comms` canonical.
 
-XAI uses `PARTIAL` coverage here only because §D coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in §B, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
+XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in Capabilities, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
 
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -499,7 +462,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
   next_step_failure: Preserve the named path and quarantine record, stop cleanup and redispatch, and repair registration or escalate with the exact receipt.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -517,7 +480,7 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 | F-12 | A structural build terminal receipt says `worktree_retirement_ambiguous`, `retained_recovery_required`, or names a retained worktree after a forced failure. | The same-filesystem move, Git registration repair/proof, invocation retirement, or exactly-once disposition did not complete unambiguously. | Read the exact terminal receipt and quarantine journal; inspect only its named recovery path; verify tracked/untracked bytes, top-level, common directory, and receipt device/inode. A local path miss outside the gateway view is not deletion evidence. | G-12 | CONFIRMED |
 
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -619,9 +582,8 @@ XAI uses `PARTIAL` coverage here only because §D coverage status is constrained
 ```
 
 
-### §G.1 Current empty-completion handling and historical provider incident
+### Repair.1 Current empty-completion handling and historical provider incident
 
-<!-- catalog:historical -->
 Historical symptom: a review dispatch to DeepSeek or the former GLM inline path failed with a parse
 error and `raw_response_length=0`, e.g. `DeepSeekResponseParseError: ...
 (candidate_count=0, ..., raw_response_length=0)`, or a blank GLM verdict. A
@@ -633,8 +595,7 @@ content share ONE output budget. With a small `max_tokens`, a substantive review
 spends the whole budget thinking and returns zero content tokens -> empty
 completion -> parse failure. This is already written down in
 `config:resource-registry` -> `secrets.OPENROUTER_API_KEY.notes`. Read the
-registry and TOPIC-ROUTER on the error string BEFORE reading code.
-<!-- /catalog:historical -->
+registry and `ERRORS.md` on the error string BEFORE reading code.
 
 Current handling:
 
@@ -658,7 +619,6 @@ A merge to main is not live until `com.koskadeux.mcp` restarts onto the new
 commit. The retained DeepSeek service is outside the active roster and is not
 part of current gate verification.
 
-<!-- catalog:historical -->
 > **READ §X FIRST.** These two commands are correct but INCOMPLETE as written.
 > A bare kickstart taken while a Council panel or build is in flight destroys it
 > silently, and the automatic guard that is meant to prevent that cannot see our
@@ -675,10 +635,9 @@ after. Verify with a real review dispatch against a large diff, not a probe: a
 trivial probe passes even when the bug is fully present (verified live S1190 —
 GLM 39.5k-char prompt, 24,790 reasoning tokens, `finish_reason=stop`, full
 verdict envelope).
-<!-- /catalog:historical -->
 
 
-### §G.2 Codex CLI progress and timeout error types (was root copy §G)
+### Repair.2 Codex CLI progress and timeout error types (was root copy Repair)
 
 `error_type=stuck_no_progress` means Codex CLI produced no observable progress
 for the configured progress window. Treat this as a genuine hang or wait state:
@@ -702,7 +661,7 @@ draft response, but disk state still needs customer-perspective verification.
 callers. New streaming paths should report `hard_timeout` instead.
 
 
-### §G.3 Scenarios: MP build timeout outcomes (was root copy §I)
+### Repair.3 Scenarios: MP build timeout outcomes (was root copy Acceptance criteria)
 
 Scenario: MP build reports `stuck_no_progress`.
 
@@ -725,34 +684,34 @@ output file was written. This is expected and is the primary fix for the old
 600-second false failure mode.
 
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Dispatch mode must preserve read-only versus write-capable auth boundaries.
 - Live model frontiers, dispatch participants, timeout defaults, and retired-agent state remain authoritative in `infra:council-comms`.
-- Same-file §F/§G references use bare IDs; cross-runbook references use file-qualified IDs.
+- Same-file When it breaks/Repair references use bare IDs; cross-runbook references use file-qualified IDs.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Removing a dispatch tool such as `council_request`, `dispatch_mp_build`, or `council_hall` is BREAKING.
 - Granting write scope to any review-only, paused, or retired dispatch backend without a Council-approved role change is BREAKING.
 - Reactivating any retired member as an active voter is BREAKING because deployed role projection and gate membership change.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding a new dispatch tool is REVIEW.
 - Changing the model frontier for any callable builder, reviewer, or Hall participant is REVIEW.
 - Changing default dispatch participants, review order, or Council Hall participant sets is REVIEW.
 - Replacing a backend server, CLI, or API client is REVIEW.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Bumping an internal timeout is SAFE when auth scope, tool surface, and fallback ownership do not change.
 - Updating symptom prose or repair examples is SAFE when IDs and contracts remain stable.
 - Adding a new verification command to an existing repair is SAFE.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -770,18 +729,18 @@ A runtime dependency is any CLI, server, API, token, LaunchAgent, PATH entry, or
 
 A config default is any model frontier, timeout, cost cap, participant list, or retired-agent flag read from `infra:council-comms`.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 When two agents classify a dispatch change differently, use the more restrictive class. Max resolves changes that affect auth scope, money/security behavior, or active Council membership.
 
 
-## §I. Scenario Set
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-02, §D, council:I-02]
+    refs: [E-02, Agent capabilities, council:I-02]
     scenario: |
       id: E-02. trigger: A completed dispatch-gateway patch needs optional non-gate AG advice and infra:council-comms explicitly permits that advisory dispatch. pre_conditions: live-state AG advisory eligibility, commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: eligibility from current infra:council-comms; task from the advisory questions plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns non-gate read-only advice with no file writes, and cited lines are verified before attachment. expected_failures: missing live-state eligibility, progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, unhealthy AG backend, or counting AG toward a gate. next_step_success: attach the result as advisory evidence and obtain the required CC/Kimi/GLM votes separately. next_step_failure: preserve the advisory failure and fail closed for gate purposes; never substitute AG, MP, or DeepSeek for an active voter.
     expected_answers:
@@ -809,7 +768,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-03
     type: operate
-    refs: [E-03, §D, council:I-01]
+    refs: [E-03, Agent capabilities, council:I-01]
     scenario: |
       id: E-03. trigger: A gate review needs Kimi's required active-voter coverage. pre_conditions: Kimi provider is healthy, review scope is read-only, the exact dispatch SHA is known, and the configured cost cap is available. tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; cost cap and model from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on kimi + dispatch_sha + review_scope. expected_success: Kimi returns a schema-valid binding verdict with complete at-SHA evidence from only the four bounded repository-read tools. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, schema validation failure, or cost-cap refusal. next_step_success: add the Kimi vote to the CC/Kimi/GLM gate set. next_step_failure: fail the gate closed and retry Kimi without substituting MP, AG, or DeepSeek.
     expected_answers:
@@ -857,7 +816,7 @@ scenario_set:
     type: repair
     refs: [G-02, F-02]
     scenario: |
-      id: G-02. trigger: A live-state-authorized non-gate AG advisory dispatch exhausts MAX_TURNS without a usable result. pre_conditions: infra:council-comms still explicitly permits the advisory retry, and the failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from §E. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns focused non-gate advisory evidence over only the dispatch diff. expected_failures: second timeout, broad architecture critique, fabricated file:line claim, or an attempt to count AG toward a gate. next_step_success: attach the replacement as advisory evidence and obtain CC/Kimi/GLM votes separately. next_step_failure: preserve AG non-response and fail closed for gate purposes; never use MP or DeepSeek as voter coverage.
+      id: G-02. trigger: A live-state-authorized non-gate AG advisory dispatch exhausts MAX_TURNS without a usable result. pre_conditions: infra:council-comms still explicitly permits the advisory retry, and the failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from How to operate. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns focused non-gate advisory evidence over only the dispatch diff. expected_failures: second timeout, broad architecture critique, fabricated file:line claim, or an attempt to count AG toward a gate. next_step_success: attach the replacement as advisory evidence and obtain CC/Kimi/GLM votes separately. next_step_failure: preserve AG non-response and fail closed for gate purposes; never use MP or DeepSeek as voter coverage.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -878,18 +837,18 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-09
     type: evolve
-    refs: [§H, §D]
+    refs: [Changes and maintenance, Agent capabilities]
     scenario: |
-      id: H-01. trigger: A proposal adds a new active Council agent to dispatch rotation. pre_conditions: proposed agent role, auth scope, backend surface, model frontier, review_order impact, and dispatch_patterns patch are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; backend contract from proposed code; auth boundary from §D and §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because active membership and dispatch math change. expected_failures: calling it SAFE because existing tools still accept the same arguments, or skipping retired-agent policy review. next_step_success: open Gate 1/Gate 2 Council review before activation. next_step_failure: block active dispatch until adjudicated.
+      id: H-01. trigger: A proposal adds a new active Council agent to dispatch rotation. pre_conditions: proposed agent role, auth scope, backend surface, model frontier, review_order impact, and dispatch_patterns patch are known. tool_or_endpoint: infra:council-comms patch plus runbook update. argument_sourcing: roster and review_order from Living State; backend contract from proposed code; auth boundary from Agent capabilities and Changes and maintenance invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because active membership and dispatch math change. expected_failures: calling it SAFE because existing tools still accept the same arguments, or skipping retired-agent policy review. next_step_success: open Gate 1/Gate 2 Council review before activation. next_step_failure: block active dispatch until adjudicated.
     expected_answers:
       - kind: classification
         label: BREAKING
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H, §D]
+    refs: [Changes and maintenance, Agent capabilities]
     scenario: |
-      id: H-02. trigger: A proposal changes the frontier model for MP while keeping the Codex CLI dispatch surface unchanged. pre_conditions: prior model, proposed model, role, timeout/cost effects, and review-quality evidence are available. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from §D. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model meets or exceeds the prior dispatch role. expected_failures: treating it as docs-only because handler arguments are unchanged, or ignoring role-specific quirks. next_step_success: update model policy and runbook rows after review. next_step_failure: keep the prior frontier.
+      id: H-02. trigger: A proposal changes the frontier model for MP while keeping the Codex CLI dispatch surface unchanged. pre_conditions: prior model, proposed model, role, timeout/cost effects, and review-quality evidence are available. tool_or_endpoint: infra:council-comms.model_policy.agent_frontier_models patch. argument_sourcing: current model policy from Living State; performance evidence from dispatch history; affected runbook rows from Agent capabilities. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW and require evidence that the new model meets or exceeds the prior dispatch role. expected_failures: treating it as docs-only because handler arguments are unchanged, or ignoring role-specific quirks. next_step_success: update model policy and runbook rows after review. next_step_failure: keep the prior frontier.
     expected_answers:
       - kind: classification
         label: REVIEW
@@ -898,7 +857,7 @@ scenario_set:
     type: ambiguous
     refs: [F-01, F-03, F-05, G-01, G-03, G-05]
     scenario: |
-      id: AMB-01. trigger: A dispatch failed silently and the operator cannot tell whether the cause is auth, gateway timeout, mutex contention, or malformed task/cwd. pre_conditions: submitted payload, auth context, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available. tool_or_endpoint: compare gateway logs, auth/token state, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: token source from launch env; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: branch the ambiguity into concrete §F symptoms: auth/token outside this runbook's provider setup, F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, assuming auth without timing evidence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching §G repair and preserve the failed transcript. next_step_failure: escalate with payload and log excerpts.
+      id: AMB-01. trigger: A dispatch failed silently and the operator cannot tell whether the cause is auth, gateway timeout, mutex contention, or malformed task/cwd. pre_conditions: submitted payload, auth context, gateway timing, queue logs, MCP tool prefix, cwd, and backend transcript are available. tool_or_endpoint: compare gateway logs, auth/token state, MP mutex queue, payload shape, and MCP trace before retrying. argument_sourcing: token source from launch env; timing from gateway logs; queue position from MP backend logs; task and cwd from request payload. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: branch the ambiguity into concrete When it breaks symptoms: auth/token outside this runbook's provider setup, F-01 gateway timeout, F-03 mutex queue, F-05 lowercase prefix, or malformed cwd/task such as S347 shorthand. expected_failures: blind redispatch, assuming auth without timing evidence, or ignoring a queued MP task that may still finish. next_step_success: apply the matching Repair repair and preserve the failed transcript. next_step_failure: escalate with payload and log excerpts.
     expected_answers:
       - kind: human_action
         verb: triage
@@ -918,7 +877,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Lifecycle metadata records the S1369 roster and exact-SHA review-path refresh. The most recent registered scenario-harness pass remains the earlier S1265 run.
 
@@ -931,32 +890,12 @@ refresh_triggers:
   - council_request dispatch contract or allowed_tools handling changes
   - agent backend auth/env wiring changes
   - active, retired, or reactivation state changes for Council agents
-  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
 ```
 
-The dispatch scenario set is registered under `tests/fixtures/harness_scenarios/agent-dispatch/` and passed the S1265 conformant harness.
 
 
-## §K. Conformance
-
-Conformance fields for the S1369 content refresh.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T22:21:28Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
-
-The §K block records the strict-lint result; harness state is authoritative in §J.
-
-
-<!-- catalog:historical -->
 ## §L Historical DeepSeek Review-Round Completeness (superseded)
 
 The following terminal DeepSeek states are retained only to interpret historical
@@ -974,7 +913,6 @@ The former degraded-round rule allowed a primary verdict to carry after a
 terminal DeepSeek failure. It is not current gate authority. Current gate rounds
 require complete valid CC/Kimi/GLM participation; a missing, failed, malformed,
 model-mismatched, or incomplete active voter fails the gate closed.
-<!-- /catalog:historical -->
 
 ## §M Sandbox-Based Review-Mode Tool Restriction
 
@@ -1005,7 +943,7 @@ requests targeting `main` that touch the profile run
 is absent, obtain Max approval and re-commit or update the PR body with the
 trailer before merging.
 
-This restriction is additive to the operator runbook requirements in §A-§K.
+This restriction is additive to the operator runbook requirements in Overview-§K.
 Follow the current dispatch and repair rules. Historical plus-one and
 DeepSeek-conflict procedures below do not remain in force; the sandbox only
 narrows an explicitly live-state-authorized non-gate AG advisory dispatch.
@@ -1036,7 +974,6 @@ not a fault.
 Positive lockdown is scoped to **BQ-PEER-BUS-GATEWAY-INSTANCE-IDENTITY-S843**. S858 neutralizes the
 clobber; it does not yet fully sandbox all agent writes.
 
-<!-- catalog:historical -->
 ## §N Historical DeepSeek Skip Rule (superseded)
 
 The former DeepSeek +1 process rejected "DeepSeek SKIPPED" outcomes. DeepSeek is
@@ -1045,9 +982,7 @@ now retired, so current gate dispatches must not target it at all.
 Historical fanout regression coverage remains in
 `tests/integration/test_skip_fanout_regression.py`; it does not alter the current
 CC/Kimi/GLM roster or permit fallback.
-<!-- /catalog:historical -->
 
-<!-- catalog:historical -->
 ## §O Historical Structural Middleware Wiring
 
 This section records retained middleware plumbing from
@@ -1100,9 +1035,7 @@ Failure modes:
 - Ledger emission failure: caller policy decides whether the dispatch fails open
   or closed. Preserve the adapter result when fail-open is intentional, and make
   fail-closed behavior explicit in the caller.
-<!-- /catalog:historical -->
 
-<!-- catalog:historical -->
 ## §P Historical DeepSeek Context-Access Auto-Resolution Layer (superseded)
 
 Everything in this section documents retained pre-retirement behavior only.
@@ -1171,7 +1104,6 @@ Design references:
 
 - `specs/bq-council-deepseek-context-access-fix-gate1.md`
 - `specs/bq-council-deepseek-context-access-fix-gate2.md`
-<!-- /catalog:historical -->
 
 ## §Q — Build Dispatch CI-Workflow Verification and Recovery
 
@@ -1319,7 +1251,7 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 
 ## §U — Post-build wrapper failure with a delivered commit (RepairExhaustedError recovery, S1147)
 
-**Symptom:** a structural MP build dispatch returns `RepairExhaustedError: schema repair exhausted` (builder-output-manifest could not be repaired into a valid structural response), but `git log` in the build cwd shows MP's commit landed and `git status` is clean. Observed S1147 on BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146 C1 (task d8f1c473, commit c710ed75). This is the §B "MP delivered even though the envelope says failed" family (S451 quirk), surfacing on the §O structural path at the output-validation stage — the failure is in manifest parsing/repair, NOT in the build.
+**Symptom:** a structural MP build dispatch returns `RepairExhaustedError: schema repair exhausted` (builder-output-manifest could not be repaired into a valid structural response), but `git log` in the build cwd shows MP's commit landed and `git status` is clean. Observed S1147 on BQ-RUNBOOK-FIRST-ENFORCEMENT-S1146 C1 (task d8f1c473, commit c710ed75). This is the Capabilities "MP delivered even though the envelope says failed" family (S451 quirk), surfacing on the §O structural path at the output-validation stage — the failure is in manifest parsing/repair, NOT in the build.
 
 **Procedure (do NOT redispatch a rebuild):**
 1. Confirm delivery: `git log --oneline -3`, `git status --short`, and inspect the commit diff against the chunk's spec scope.
@@ -1330,7 +1262,7 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 
 **Escalation:** if this recurs, file a BQ against the SchemaRepair/manifest-parser stage of the §O middleware rather than repeating manual recovery.
 
-**Related:** before ANY MP dispatch pinned to a SHA that was committed via the GitHub API, `git fetch origin main` in the target repo first — the local clone will not have the object and the dispatch fails with `object/path is not available locally` (observed twice S1147; see §T and the TOPIC-ROUTER symptom table).
+**Related:** before ANY MP dispatch pinned to a SHA that was committed via the GitHub API, `git fetch origin main` in the target repo first — the local clone will not have the object and the dispatch fails with `object/path is not available locally` (observed twice S1147; see §T and `ERRORS.md`).
 
 ### §U addenda (S1147, activation session)
 
@@ -1343,9 +1275,9 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 
 The manual-recovery loop in §U is now largely obsolete: the pipeline auto-recovers. Two S1150 fixes landed (koskadeux-mcp `745ba12d`, `25006e5e`) closing tickets T-2026-000193 and T-2026-000177: (1) structural build dispatches no longer die on a variable-scope error introduced by the S1147 wrapper fix — root-cause any repeat of "Gateway Error: upstream service unavailable" on build dispatch by running the handler in-process to get the real traceback (the gateway swallows it; the in-process repro is the decisive diagnostic, see T-193 for the recipe); (2) the pre-push gate no longer discards a green commit when the builder omits the manifest fence — it synthesizes a schema-valid manifest from the git diff, flags `requires_manual_diff_review`, and proceeds through CI + claim verification. Expected terminal state for a structural build on main is now `error_type=push_failed` with ALL gates passed and `operator_recovery_guidance` naming the verified commit — the guardrail refusing an automated main push is by design; the instance reviews (builder ≠ reviewer) and performs the `KD_ALLOW_MAIN_PUSH=1` merge. Keep §U's steps only for the case where gates genuinely did not run.
 
-### §C.0 status note (S1152)
+### Architecture & interactions.0 status note (S1152)
 
-The §C.0 "sanitize at the adapter" fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. Trigger: the S1150 close gate added `additionalProperties` to `kd_session_close.runbook_exit`, which killed ALL AG dispatches at tool-fetch time (observed S1152 hall voter dispatch). If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
+The Architecture & interactions.0 "sanitize at the adapter" fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. Trigger: the S1150 close gate added `additionalProperties` to `kd_session_close.runbook_exit`, which killed ALL AG dispatches at tool-fetch time (observed S1152 hall voter dispatch). If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
 
 ## Gate-change consultation for shipped mandates (S1164, discharges S1164-D4)
 Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — CC, Kimi, and GLM — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit CC/Kimi/GLM review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
@@ -1359,7 +1291,7 @@ CC (`council_request agent=cc mode=review`) is a read-only gate voter with files
 - **Inline diff cap, CC-only.** The CC preload inlines the pinned diff and HARD-FAILS loud (`cc_review_diff_truncated`) if it exceeds `CC_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 120000, read at process start — a change needs a handler restart). Shipped T-2026-000263 @ koskadeux-mcp 83c9189d after a 45.4k single-file Gate 2 spec could not pass the shared 40k cap and `review_paths` cannot narrow a single file.
 - **Historical inline-diff truncation controls remain relevant only to CC and retained legacy backends.** CC's preload fails closed on `cc_review_diff_truncated`. The former GLM and Kimi inline-cap defects tracked by T-2026-000399/T-2026-000400 were superseded for those two voters by deployed `fdf50693`: both now use the shared exact-SHA loop with only `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show`, pagination to completion, and required-file coverage before a verdict. DeepSeek remains retired; do not use its retained inline backend for gate coverage.
 - **Model verification.** A `model_matched: false` CC result discards the vote (CORE §5); redispatch.
-- **Historical output-schema contract (S1248; superseded by the current Council directory transport).** The former CC review path injected no output schema into the prompt and validated the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA`. This retained history is not current operating authority: the live response-file path in `runbooks/council.md` preserves reviewer output unchanged, including a `REJECT` with no mandates, and operators must not invent a mandate.
+- **Historical output-schema contract (S1248; superseded by the current Council directory transport).** The former CC review path injected no output schema into the prompt and validated the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA`. The live response-file path in `runbooks/council.md` preserves reviewer output unchanged, including a `REJECT` with no mandates, and operators must not invent a mandate.
 
 ## §W — A dispatched build reports "running" for ever (abandoned worker, S1338, discharges S1338-D1)
 
@@ -1537,7 +1469,7 @@ Until B lands, treat any declared build timeout as advisory rather than
 enforced.
 
 **Related:** T-2026-000393 (residuals, including ~130 legacy records that will
-report running for ever and are deliberately not guessed at), and §B on the
+report running for ever and are deliberately not guessed at), and Capabilities on the
 "MP delivered even though the envelope says failed" family, which is the
 opposite error — that one under-reports success, this one under-reports death.
 
@@ -1864,11 +1796,11 @@ enough — it must be recorded on the peer's entity.
 ### §X.3.4 Two subjects that already have owners — stop attesting them
 
 - **Disposition of an approved build item stale beyond the seven-day window**
-  belongs to `aging-policy` (`stale_queue_undispatched`, §F. Isolate). S1375
+  belongs to `aging-policy` (`stale_queue_undispatched`, When it breaks. Isolate). S1375
   filed a `no_entry_found` attestation for this in error. CORE S17 requires the
   item to be surfaced and, if deferred, an explicit recorded decision event.
 - **Establishing whether a branch actually landed** belongs to
-  `branch-landed-verification` (§E-03). Do not re-derive it.
+  `branch-landed-verification` (How to operate-03). Do not re-derive it.
 
 ## §X.4 — Dispatch prompts that run in the shared checkout MUST end with "restore checkout to main" (S1376)
 
@@ -1922,7 +1854,6 @@ At every session open, and again before any dispatch, merge, or close:
    ack what requires ack before proceeding with the turn's claim or dispatch.
 
 
-<!-- catalog:historical -->
 ## §Y Historical Plus-One Discipline (superseded)
 
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.
@@ -1932,7 +1863,6 @@ CC/Kimi/GLM panel from infra:council-comms; MP is builder-only, AG is paused, an
 neither MP, AG, nor DeepSeek can satisfy or supplement a missing gate vote.
 Conflict events from historical rounds remain readable, but their roster does
 not authorize a current dispatch.
-<!-- /catalog:historical -->
 
 
 ## §Z Current gate-voter disagreement routing
@@ -1943,7 +1873,6 @@ gate closed and returns through the current Council process; unresolved
 disagreement escalates to Max. Do not substitute MP, AG, DeepSeek, XAI, a
 reduced quorum, or a legacy conflict event for any required current vote.
 
-<!-- catalog:historical -->
 ### Historical DeepSeek Conflict Adjudication Procedure (superseded)
 
 This procedure applies only when interpreting legacy MP/AG plus DeepSeek rounds.
@@ -1965,7 +1894,6 @@ Adjudication events use `verdict_conflict_adjudicated`. Emergency waivers use
 Only authorized adjudicators may unblock a conflict. The default authorized
 actor is `max`; non-authorized events are audit evidence only and do not unblock
 dispatch.
-<!-- /catalog:historical -->
 
 
 ## Retired-Agents Appendix
@@ -1977,7 +1905,6 @@ coverage. Reactivation is Max-gated: it requires Max's explicit authorization,
 an updated canonical roster and schemas, a reviewed deployment, and live
 verification before any XAI result can count.
 
-<!-- catalog:historical -->
 XAI was Council's challenger/architect-only voter from S342-S528. It was retired due to consistent line-number fabrication on code audits, excluded from `gate3_post_build_audit` since S342 per BQ-COUNCIL-XAI-LINE-NUMBER-VERIFICATION, and DeepSeek graduation S528 superseded the architecture-only niche with broader review competence.
 
 Cold-storage state: preserved via `xai_client.py` and `grok_cli_bridge.py` in the koskadeux-mcp repo; reactivation runbook documented at `infra:council-comms.retired_agents.xai` Living State entity.
@@ -1985,7 +1912,6 @@ Cold-storage state: preserved via `xai_client.py` and `grok_cli_bridge.py` in th
 Reactivation procedure summary: see `infra:council-comms.retired_agents.xai.reactivation_procedure` for step-by-step. Trigger conditions are a model upgrade significantly improving line-number reliability or a specific audit niche that XAI uniquely fills.
 
 **Retirement completed in code (S1153, folded here at S1351 from the former standalone note).** XAI/Grok is retired in CODE as well as roster. Max-directed Codex cleanup @ koskadeux-mcp `d75abc40` removed xai from all active Council schemas/enums, KD routing, Council Hall, gate-write validation, cross-review registration, and seed state; `council_request(agent="xai")` returns a retirement error; `XAIClient` was removed from kd_clients while legacy `xai_client.py` and `grok_cli_bridge.py` remain on disk, unrouted. Post-hoc cross-review: AG APPROVE with one LOW finding, that the Council Hall seat enum was narrowed to {mp, ag} instead of widened to the active roster, fixed @ `c49fa6c9` with GLM APPROVE. Activation of both commits required an MCP server restart. HISTORICAL detail, do not read as current roster: the S1153 fixtures and hall seats referenced ag/mp/glm/deepseek/cc, which was the roster of that date. Roster canonical remains `infra:council-comms` (XAI retired since S528/S994).
-<!-- /catalog:historical -->
 
 
 ## Appendix - E-04 Canonical Smoke Sequence (laptop-routing durability fix)
@@ -2006,7 +1932,7 @@ Precedent S691 (first complete codified application; predecessor durability gap 
 
 ### T-2026-000300 harness semantics (shipped 2026-07-21, koskadeux-mcp @ 57590559)
 
-The enforcing code ships an atomically-versioned §E supplement at `koskadeux-mcp/runbooks/agent-dispatch.md` (rows E-T300-01/02); that file is a narrow supplement and THIS runbook remains canonical. Summary of the shipped semantics:
+The enforcing code ships an atomically-versioned How to operate supplement at `koskadeux-mcp/runbooks/agent-dispatch.md` (rows E-T300-01/02); that file is a narrow supplement and THIS runbook remains canonical. Summary of the shipped semantics:
 
 | Signature / procedure | Meaning | Operator action |
 |---|---|---|

@@ -1,24 +1,22 @@
 ---
-system_name: Koskadeux Gateway Transport
-purpose_sentence: The OAuth-fronted streamable-http gateway (:8767) that proxies both AI instances' MCP tool calls to the upstream Koskadeux tool server (:8765).
-owner_agent: mars
-escalation_contact: Max (via peer relay through Living State)
-lifecycle_ref: §J
-authoritative_scope: gateway_server.py transport/session configuration, restart, and transport-layer failure isolation/repair. NOT upstream tool dispatch (koskadeux_server.py); NOT session lifecycle locks (see session-open-protocol.md / session-registry-recovery.md).
-linter_version: v1
+title: Koskadeux Gateway Transport Runbook
+owner: mars
+last_verified: '2026-06-15'
+aliases: []
+error_signatures:
+- kickstart non-zero / no fresh pid
 ---
 
 # Koskadeux Gateway Transport Runbook
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 **Repo:** aidotmarket/koskadeux-mcp · **Local path:** `/Users/max/koskadeux-mcp` · **Entry:** `gateway_server.py`
 **Public:** `https://mcp.ai.market`, fronted by Cloudflare via the `cloudflared` tunnel `koskadeux` (launchd `com.koskadeux.cloudflared`; MUST-KEEP, do not decommission). A parallel Tailscale Funnel surface exists at `https://koskadeux-10.tail30cd96.ts.net` (also proxies `:8767`) but no DNS record points to it; it is a documented fallback, not the live path for `mcp.ai.market`. See `cloudflare-and-dns.md` (transport source of truth) and `mcp-gateway.md`. · **Local:** `:8767`
 **Process mgmt:** launchd `com.koskadeux.gateway` (wrapped by `infisical run`). The upstream tool server is a SEPARATE service: launchd `com.koskadeux.mcp`, `koskadeux_server.py` on `:8765`. Restarting the gateway does NOT restart the upstream.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -29,7 +27,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Long-call heartbeat (>client ceiling) | LIVE | gateway_server.py _await_with_heartbeat + GATEWAY_KEEPALIVE_INTERVAL=15 | tests/unit/test_gateway_heartbeat.py + live 330s call | 2026-06-02 (S751) |
 | Upstream auto-restart fallback | LIVE | gateway_server.py _try_auto_restart_upstream | — | — |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -39,7 +37,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 Key fact: both AI instances authenticate via the SAME OAuth connector. Under stateful streamable-http they mapped to ONE shared server session, so concurrent in-session requests shared a response-routing map -> cross-talk (misroute or orphan -> 300s). Stateless gives each request a fresh transport (mcp_session_id=None) -> structurally isolated.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -47,7 +45,7 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
 | mars/vulcan | edit transport config | shell_request -> edit gateway_server.py + restart | shell+git | covered |
 | sysadmin | service health | launchctl/lsof | local | partial |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: gw-restart
@@ -66,10 +64,10 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
     - signature: kickstart non-zero / no fresh pid
       cause: wrong launchd domain or plist not loaded
   next_step_success: verify a normal tool call returns
-  next_step_failure: launchctl stop+start; if still down, §G gw-rollback
+  next_step_failure: launchctl stop+start; if still down, Repair gw-rollback
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -78,7 +76,7 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
 | gw-replay | A mid-flight dispatch re-executes on restart | request redelivery on session re-establishment | compare dispatch logs around restart timestamp | BQ-...-REPLAY-ON-RESTART-S751 (open) | MED |
 | gw-longstall | A genuinely long call (>~300s) is killed client-side though gateway+upstream still working | no client-facing heartbeat during the await | check call duration vs ceiling; confirm heartbeat present | gw-heartbeat | HIGH (S751) |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: gw-stateless
@@ -107,9 +105,9 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
   integrity_check: a >300s call through the gateway returns its result (S751: 330s call returned 07:16:37Z)
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Long-call heartbeats MUST route via related_request_id=ctx.request_id, or stateless sends them to the GET stream not the per-request POST stream (no liveness). Heartbeat sends are best-effort and MUST NOT abort the call.
 
@@ -117,21 +115,21 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
 - Both AI instances share one OAuth connector; response isolation MUST be structural (stateless), not session-dependent.
 - Gateway restart drops live connections; coordinate a quiet window when peers are active.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Removing `stateless_http=True` (reintroduces cross-talk).
 - Adding shared per-session mutable response state to ProxyFastMCP.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Forwarding upstream keepalive/progress notifications through the gateway (changes long-call delivery model).
 - Changing transport away from streamable-http.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Editing _normalize_tool_name, _remote_tools_cache TTL, retry/backoff counts.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -149,11 +147,11 @@ Upstream koskadeux_server.py on :8765; Infisical-injected MCP_BEARER_TOKEN; laun
 
 stateless_http=True; streamable_http_path="/"; httpx read timeout 660s.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Transport-layer changes affecting both instances: MP review + live two-instance verification. One-line reversible config = Charter-light (one reviewer + one round + empirical).
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -181,7 +179,7 @@ scenario_set:
     weight: 0.5
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S751.w
@@ -192,17 +190,5 @@ refresh_triggers:
   - any change to gateway_server.py transport/session config
   - any gateway transport incident (cross-talk, mass 300s, gateway-down)
 scheduled_cadence: on-change
-last_harness_pass_rate: n/a
-last_harness_date: 2026-06-01
 first_staleness_detected_at: n/a
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: v1
-last_lint_run: pending
-last_lint_result: pending
-trace_matrix_path: n/a
-word_count_delta: new
 ```

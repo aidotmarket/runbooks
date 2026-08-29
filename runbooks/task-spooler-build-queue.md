@@ -1,45 +1,29 @@
 ---
-runbook_id: task-spooler-build-queue
-domain: council-operations
-status: ACTIVE
+title: Task Spooler Build Queue
 owner: vulcan
-system_name: task-spooler-build-queue
-purpose_sentence: How builder jobs are queued and run on Titan-1 using Task Spooler, why the hand-written FIFO it replaces failed, and exactly how to list, inspect, unblock and clear the build queue without editing a database by hand.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The queueing and execution layer between "an operator dispatches a build" and "a builder process starts": the Task Spooler binary, socket-per-repository conventions, job lifecycle, and operator recovery commands. Build semantics after the builder starts (worktree creation, commit, secret scan, push) belong to the minimal bridge and are covered in builder-controls.md. Council review dispatch is agent-dispatch.md.
-authoritative_for:
-  - topic: task-spooler-queue-architecture
-    section: §C. Architecture & Interactions
-  - topic: build-queue-operator-recovery
-    section: §E. Operate
+last_verified: '2026-08-10'
 aliases:
-  - build-queue-runner
-  - codex-queue
+- build-queue-runner
+- codex-queue
 error_signatures:
-  - signature: Codex FIFO unavailable
-    section: §F. Isolate
-  - signature: dispatch refused before model execution
-    section: §F. Isolate
-  - signature: tsp command not found
-    section: §F. Isolate
-  - signature: queued row with idle slot
-    section: §G. Repair
-last_verified_at: "2026-08-10"
-superseded_by: []
-supersedes: []
-linter_version: 1.0.0
+- Codex FIFO unavailable
+- dispatch refused before model execution
+- queued row with idle slot
+- tsp command not found
+- no such job
+- builder output artifact missing or incomplete
+- cannot remove a running job
+- minimal_bridge_repo_unresolved
+- minimal_bridge_base_unresolved
+- jobs lost on kill
 ---
 
 # Task Spooler Build Queue
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. Max directive S1488, verbatim: "Implement task spooler and document it properly in a runbook that is indexed." Task Spooler replaces a hand-written SQLite FIFO that produced seven distinct defects and whose every cancelled row, across its entire history, was cleared by hand by an operator.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -51,7 +35,7 @@ YAML frontmatter above is authoritative for the §A header fields. Max directive
 | Bridge integration (dispatch enqueues, never waits) | SHIPPED | `koskadeux_mcp/bridge_runner.py` | `tests/test_tsp_queue.py`, `tests/unit/test_c2_minimal_bridge_routing.py` | 2026-08-10 |
 | Durable builder transcript and test-output artifacts | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | `tests/test_minimal_bridge.py` covers clean exit, timeout, crash and no-change paths | 2026-08-10 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -69,7 +53,7 @@ builder/test transcript, or `bridge_outcomes.db`: those defaults are already
 durable and have their own `KD_TS_*` / `KD_BRIDGE_*` contracts. It also does not
 make Task Spooler's queue server state a member of the five-record migration.
 
-### §C.1 Why the previous queue was replaced
+### Architecture & interactions.1 Why the previous queue was replaced
 
 The hand-written SQLite FIFO at `/var/tmp/koskadeux/control/codex_queue.sqlite3` produced seven defects, catalogued from a live end-to-end observation on 2026-08-09 09:00-09:46 UTC (Mars S1487 field report, folded to `build:bq-minimal-builder-bridge-s1455` `phase2_queue_acceptance_criteria_s1488`):
 
@@ -83,16 +67,16 @@ The hand-written SQLite FIFO at `/var/tmp/koskadeux/control/codex_queue.sqlite3`
 
 Every one of these is a solved problem in any mature job queue. Task Spooler solves all seven with a binary and no code of ours.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan / Mars | Dispatch a build | `dispatch_mp_build` (enqueues via tsp_queue, returns a handle) | operator | COMPLETE |
-| Vulcan / Mars | Inspect, unblock or clear the queue | `ts -l`, `ts -c`, `ts -r`, `ts -K` per §E | operator | COMPLETE |
+| Vulcan / Mars | Inspect, unblock or clear the queue | `ts -l`, `ts -c`, `ts -r`, `ts -K` per How to operate | operator | COMPLETE |
 | MP (Codex) | Build, including on this control surface (Max ruling S1488 event `6005ec17`: Codex may edit any builder control file; its only rule is that it cannot review its own work as a Council member, CORE S4) | minimal bridge | builder | COMPLETE |
 | Council (CC/Kimi/GLM) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -204,7 +188,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   next_step_failure: See F-03
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -215,7 +199,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 | F-05 | Rows sit `queued` in the OLD SQLite queue while nothing is running | Legacy defect: the owner PID recorded is the shared MCP server, which never dies, so the sweep can never fire | `sqlite3 /var/tmp/koskadeux/control/codex_queue.sqlite3 "select ticket,state,pid from codex_queue where state in ('queued','running');"` then check whether that pid is the MCP server | G-02 | CONFIRMED |
 | F-06 | A build for one repository is not starting while an unrelated repository's build runs | Everything is sharing one socket instead of one socket per repository | Compare `TS_SOCKET` values used by the two dispatches | G-04 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -255,9 +239,9 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   integrity_check: "Two jobs on different queue keys are both in state `running` at the same time"
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Nothing a caller touches may wait. Dispatch returns a handle before anything queues. This is a Max directive (S1488) and a hard acceptance criterion, not a preference.
 - Serialisation is scoped to real contention. Different repositories never block each other.
@@ -267,25 +251,25 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 - Combined builder stdout/stderr is streamed to a durable per-job artifact before preservation or push; no terminal path may discard it.
 - A report records whether tests were not configured, passed, failed, or unavailable. `clean_exit` is never a substitute for test evidence.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Reintroducing any caller-side wait, poll loop, lease, heartbeat or PID-liveness check on the dispatch path.
 - Returning the dispatch handle after the queue wait rather than before.
 - Collapsing per-repository sockets back to one global queue.
 - Making the ts binary name a hardcoded literal rather than `KD_TS_BIN`.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing the slot count away from 1 per repository socket. The reason the old queue used one slot was never recorded; if concurrency is enabled, the shared `~/.codex` home is the collision candidate to settle first, because the minimal bridge inherits the environment and does not seed a private `CODEX_HOME` per run (the legacy bridge did).
 - Adding a broker, daemon or queue library. The whole point of this choice is that there is none.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Changing socket directory location via `KD_TS_SOCKET_DIR`.
 - Adding read-only inspection helpers over `ts -l`.
 - Adding queue keys for new repositories.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -303,11 +287,11 @@ Homebrew formula `task-spooler` 1.0.4, binary `ts`. No broker, no daemon of ours
 
 `KD_TS_BIN=ts`, `KD_TS_SOCKET_DIR=/Users/max/koskadeux-state/ts-sockets` (0700), one slot per socket.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Queue behaviour questions are settled by reading Task Spooler's own documentation and by measurement on Titan-1, not by writing new rules. Correctness of any change to this surface is adjudicated at Gate 3 by the Council, per CORE S4. Where this runbook and `builder-controls.md` overlap, builder-controls is authoritative for what happens after the builder starts and this runbook is authoritative for how the job got there.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -404,7 +388,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H.2
+      - Changes and maintenance.2
     scenario: A proposed change makes the dispatch handler wait for the queue before returning its handle.
     expected_answers:
       - kind: classification
@@ -413,7 +397,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H.3
+      - Changes and maintenance.3
     scenario: Someone proposes raising the slot count above one to run builds concurrently.
     expected_answers:
       - kind: classification
@@ -433,7 +417,7 @@ scenario_set:
     weight: 0.05
 ```
 
-### §I.1 Weight Justification
+### Acceptance criteria.1 Weight Justification
 
 Weights are deliberately unequal, one line per scenario.
 
@@ -449,7 +433,7 @@ Weights are deliberately unequal, one line per scenario.
 - I-10 (0.05): lowest weight. A single REVIEW classification with one prerequisite to name.
 - I-11 (0.05): lowest weight. Judgement under ambiguity, but the safe default (do not kill a running job) is short and unambiguous.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1498
@@ -457,22 +441,10 @@ last_refresh_commit: 1e8e23db698bad3fa33d4e79c600e06535a671de
 last_refresh_date: 2026-08-10T11:01:39Z
 owner_agent: vulcan
 refresh_triggers:
-  - The bridge or durable builder-output contract changes; refresh §B/§C/§E and record the implementation SHA
+  - The bridge or durable builder-output contract changes; refresh Capabilities/Architecture & interactions/How to operate and record the implementation SHA
   - Task Spooler is upgraded past 1.0.4
   - Slot count moves away from 1, or the CODEX_HOME concurrency question is settled
   - The legacy SQLite queue in codex_cli_bridge.py is deleted; remove F-05 and G-02
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1488 / 2026-08-09T10:20:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

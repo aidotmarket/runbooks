@@ -1,3 +1,11 @@
+---
+title: AIM Node — The Runtime
+owner: unassigned
+last_verified: '2026-04-07'
+aliases: []
+error_signatures: []
+---
+
 # AIM Node — The Runtime
 
 The universal network client for ai.market. Same codebase, two modes: **provider** (wraps a model/pipeline endpoint, serves it to buyers) and **consumer** (searches marketplace, sends requests via local HTTP proxy). Peer-to-peer — all model/pipeline traffic flows directly between buyer and seller nodes. ai.market never sees or touches payloads.
@@ -216,7 +224,7 @@ Both sides submit metering events to `POST /aim/metering/events` on ai.market us
 
 Metering reporter submits at configurable intervals (default: every 60s or every 100 calls, whichever first).
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|

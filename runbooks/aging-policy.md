@@ -1,38 +1,22 @@
 ---
-runbook_id: aging-policy
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: aging-policy
-    section: §C. Architecture & Interactions
+title: Aging Policy
+owner: vulcan
+last_verified: '2026-07-17'
 aliases: []
 error_signatures:
-  - signature: stale_queue_undispatched
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-07-17
-system_name: aging-policy
-purpose_sentence: This companion carries the staleness thresholds, work-in-progress limits, boot obligations, anti-duplication rule, and close carry requirements.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for stale and critical-stale standup decisions, queue ordering, repeat incidents, WIP limits, and session-close aging accountability.
-linter_version: 1.0.0
+- stale_queue_undispatched
 ---
 
 # Aging Policy
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: delivery companion.** Full CORE and the Boot Kernel prevail. Current item ages, priorities, incident counts, and statuses come from Living State, never this file.
 
 **Fetch trigger:** stale or critical-stale standup or queue decision.
 
 **Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, section 6.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -42,7 +26,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | WIP and anti-duplication constraints | SHIPPED | `build:bq-*` | Pre-dispatch checks | 2026-07-17 |
 | Close carry accountability | SHIPPED | `infra:handoff:instance=*` | Session close verification | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -56,7 +40,6 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 
 Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
-<!-- catalog:historical -->
 > - **7-day threshold:** Any BQ item that has passed Gate 2 (or Gate 1 with no Gate 2 required) and has not been dispatched for build within 7 days is STALE.
 > - **14-day threshold:** Any stale item older than 14 days is CRITICAL-STALE.
 > - **Repeat incident rule:** If a production failure recurs in a domain where an approved BQ fix exists but was never built:
@@ -82,15 +65,14 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 > - Items carried forward more than 3 sessions without dispatch require escalation to Max with explicit "dispatch or cancel" recommendation
 
 > Before creating any new BQ entity, search Living State (`state_bq_status`) for existing items in the same domain. If an approved-but-unbuilt item covers the same problem space, dispatch it instead of creating a new spec.
-<!-- /catalog:historical -->
 
 The projection above is retained as source provenance because its tool names are
 no longer callable. Its aging thresholds, WIP limits, escalation rules, and
-anti-duplication policy remain represented by the current §C–§H instructions
+anti-duplication policy remain represented by the current Architecture & interactions–Changes and maintenance instructions
 below. Use `state_request(action=bq_status)` for queue reads and
 `state_request(action=event, ...)` for decision events.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -98,7 +80,7 @@ below. Use `state_request(action=bq_status)` for queue reads and
 | MP | Build the selected approved item | `council_request mode=build` | Approved repository scope | COMPLETE |
 | Max | Explicitly override queue ordering or decide dispatch versus cancel | Human decision | Final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -135,14 +117,14 @@ below. Use `state_request(action=bq_status)` for queue reads and
   next_step_failure: Leave the session open for idempotent handoff retry.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Approved work is older than seven days and undispatched. | Queue ordering, missing ownership, WIP saturation, or unlogged override deferred it. | Read BQ approval and dispatch timestamps, incident count, active WIP, and decision events. | G-01 | CONFIRMED |
 | F-02 | A successor spec duplicates approved unbuilt work. | Anti-duplication search was skipped or stale state was used. | Compare the proposed problem with all active same-domain BQ summaries and approved scope. | G-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -163,25 +145,25 @@ below. Use `state_request(action=bq_status)` for queue reads and
   integrity_check: One authoritative BQ covers the problem and its next action is explicit.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 Aging is computed from live approval and dispatch evidence; queue obligations cannot be erased by a new session or successor spec.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Weakening thresholds, WIP limits, repeat-incident actions, close carry, or anti-duplication obligations is BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Review changes to timestamp sources, standup rendering, incident counting, priority ordering, or handoff schema.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Display and explanation improvements are safe when computed classifications and required actions are unchanged.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -199,11 +181,11 @@ Living State, accurate UTC timestamps, Build Queue dispatch status, and handoff 
 
 No missing timestamp is treated as fresh; unresolved evidence is surfaced rather than guessed.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 CORE sets the rules, live state supplies values, and Max decides explicit queue-order overrides.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -215,12 +197,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-02], scenario: A new spec covers the same problem as an approved BQ., expected_answers: [{kind: classification, label: DUPLICATE_SUCCESSOR}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: An old approved item was omitted from standup., expected_answers: [{kind: human_action, verb: recompute, object: aging list, target: live BQ state}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: Duplicate successor authoring has begun., expected_answers: [{kind: human_action, verb: stop, object: duplicate spec, target: existing approved BQ}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal moves critical-stale from fourteen to thirty days., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: Standup adds a clearer age display without changing classification., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Approval timestamp is missing for an undispatched item., expected_answers: [{kind: human_action, verb: surface, object: unknown age evidence, target: queue decision}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal moves critical-stale from fourteen to thirty days., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: Standup adds a clearer age display without changing classification., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Approval timestamp is missing for an undispatched item., expected_answers: [{kind: human_action, verb: surface, object: unknown age evidence, target: queue decision}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1266
@@ -229,18 +211,5 @@ last_refresh_date: 2026-07-17T22:00:00Z
 owner_agent: vulcan
 refresh_triggers: [CORE aging threshold or WIP changes, Build Queue timestamp semantics changes, standup or handoff aging fields change]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1266 / 2026-07-17T22:00:00Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

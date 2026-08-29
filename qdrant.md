@@ -1,20 +1,20 @@
 ---
-system_name: qdrant
-purpose_sentence: Qdrant holds DERIVED vector indexes (semantic-search/matchmaking embeddings) rebuilt from Postgres, which is the source of truth; this runbook covers its hosting, API-key authentication, and S3 backup coverage.
-owner_agent: sysadmin
-escalation_contact: Max (human operator)
-lifecycle_ref: §J
-authoritative_scope: The Railway-hosted Qdrant service in the ai-market project, its API-key auth, the backend's connection to it, and the per-collection S3 snapshot backups. NOT the embedding/inference pipeline (see allAI) nor the S3 backup transport (see backup-and-recovery.md).
-linter_version: 1.0.0
+title: Qdrant — Vector Database (hosting, auth, backups)
+owner: sysadmin
+last_verified: '2026-06-30'
+aliases: []
+error_signatures:
+- unauth returns 200
+- backend qdrant calls 401 after rotation
+- HTTP 401
 ---
 
 # Qdrant — Vector Database (hosting, auth, backups)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -23,7 +23,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Backend authenticates with the key | SHIPPED | `app/core/qdrant_client.py` | backend /backup-status qdrant collection_source=qdrant_api | 2026-06-30 |
 | Per-collection S3 snapshot backups (all live collections) | SHIPPED | `scripts/backup_qdrant.py` | watchdog + /backup-status; S1081: all 4 collections verified backed up (action_logs, knowledge_base, knowledge_base_v2, listings) | 2026-06-30 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -32,7 +32,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Backup watchdog | runbooks/scripts/s3_backup_watchdog.sh (Titan-1 launchd com.aimarket.s3-backup-watchdog) | S3 aimarket-backups-prod/qdrant/ | Telegram alert | checks qdrant/ prefix freshness |
 | SysAdmin backup monitor | app/allai/agents/sysadmin/backup_monitor.py _evaluate_s3_qdrant_collections | Redis history; S3 | /backup-status endpoint | cross-checks live collection list vs S3 snapshots |
 
-### §C.1 Source of truth vs derived index (READ FIRST)
+### Architecture & interactions.1 Source of truth vs derived index (READ FIRST)
 
 Qdrant stores **derived** data only. It is NOT a system of record. Every collection is an embedding index rebuilt from Postgres:
 
@@ -41,14 +41,14 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 
 **Implication for backups and DR:** losing a Qdrant collection is a *reindex/re-embed window*, not data loss. The S3 snapshots here are a recovery-time **convenience** (they skip the re-embedding cost and the rebuild window), NOT source-of-truth protection. The data that MUST be backed up is Postgres (priority-1; see `backup-and-recovery.md`). This matches the canonical backup-scope rule "Qdrant excluded (re-ingestable)" in `config:resource-registry`. Treat the Qdrant backup-coverage monitor as a convenience signal, not a data-loss alarm.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | report backup freshness | backup_status / backup_verify skills | internal API key | COMPLETE |
-| SysAdmin | run qdrant snapshot | runbooks/scripts/backup_qdrant.py (Titan-1) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per §G G-02 |
+| SysAdmin | run qdrant snapshot | runbooks/scripts/backup_qdrant.py (Titan-1) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per Repair G-02 |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -101,7 +101,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   next_step_failure: G-01
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -109,7 +109,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 | F-02 | /backup-status qdrant status=corrupt, collections show no_backups | live collection has no S3 snapshot prefix (real backup gap) | read collection_results in /backup-status | G-02 | CONFIRMED |
 | F-03 | unauth /collections returns 200 | auth not enforced (key unset or stale deploy) | curl without api-key header | G-01 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -130,31 +130,31 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   integrity_check: /backup-status qdrant aggregate=ok (every live collection has a fresh prefix)
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Qdrant is a DERIVED index; Postgres is the source of truth. Never treat a Qdrant collection as primary data; any collection can be rebuilt (listings via POST /api/v1/search/reindex).
 - Qdrant MUST require an API key (no anonymous access). The key lives in Infisical (canonical) and is mirrored to the backend service env and the Qdrant service env.
 - The backend's key and the Qdrant service's key MUST be identical, or the backend cannot connect.
 - Rotation order is ALWAYS backend-first, Qdrant-second.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Removing QDRANT__SERVICE__API_KEY from the Qdrant service (re-opens the DB to the internet).
 - Setting different keys on the backend vs the Qdrant service.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing QDRANT_HOST or the public domain.
 - Adding a new Qdrant collection (must be added to the backup job — see G-02).
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Rotating the key via E-02 in a maintenance window.
 - Read-only auth checks (E-01).
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -172,18 +172,18 @@ Upstream source of truth: Postgres (listings table etc.) — Qdrant is rebuilt f
 
 Qdrant default is NO auth — this is overridden by QDRANT__SERVICE__API_KEY. Backend QDRANT_API_KEY default is None; monitor _qdrant_headers tolerates an unset key (sends keyless).
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Auth/key changes are security changes: unanimous Council + Max GO per CORE, except an emergency re-open rollback (G-01 rollback) which may be done immediately to restore service, then reviewed.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
     refs:
-      - §E E-01
+      - How to operate E-01
     scenario: Verify Qdrant rejects unauthenticated access on the public URL.
     expected_answers:
       - kind: tool_call
@@ -194,7 +194,7 @@ scenario_set:
   - id: I-02
     type: operate
     refs:
-      - §E E-01
+      - How to operate E-01
     scenario: Verify Qdrant accepts the collections request when the api-key header is supplied.
     expected_answers:
       - kind: tool_call
@@ -206,7 +206,7 @@ scenario_set:
   - id: I-03
     type: operate
     refs:
-      - §E E-02
+      - How to operate E-02
     scenario: Rotate the Qdrant API key during a maintenance window, backend-first.
     expected_answers:
       - kind: tool_call
@@ -218,7 +218,7 @@ scenario_set:
   - id: I-04
     type: isolate
     refs:
-      - §F F-01
+      - When it breaks F-01
     scenario: Backend embedding calls return 401 after a key change; identify the mismatch.
     expected_answers:
       - kind: tool_call
@@ -229,7 +229,7 @@ scenario_set:
   - id: I-05
     type: isolate
     refs:
-      - §F F-02
+      - When it breaks F-02
     scenario: The backup dashboard shows a Qdrant collection with no S3 snapshot.
     expected_answers:
       - kind: tool_call
@@ -240,7 +240,7 @@ scenario_set:
   - id: I-06
     type: isolate
     refs:
-      - §F F-03
+      - When it breaks F-03
     scenario: An unauthenticated client still reads collections; determine why enforcement is off.
     expected_answers:
       - kind: tool_call
@@ -251,7 +251,7 @@ scenario_set:
   - id: I-07
     type: repair
     refs:
-      - §G G-01
+      - Repair G-01
     scenario: Restore matched keys on backend and Qdrant after a 401 incident.
     expected_answers:
       - kind: tool_call
@@ -263,7 +263,7 @@ scenario_set:
   - id: I-08
     type: repair
     refs:
-      - §G G-02
+      - Repair G-02
     scenario: Extend the snapshot job to back up every live collection.
     expected_answers:
       - kind: tool_call
@@ -274,7 +274,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H §H.1
+      - Changes and maintenance Changes and maintenance.1
     scenario: Confirm the invariant that Qdrant never allows anonymous access.
     expected_answers:
       - kind: tool_call
@@ -285,7 +285,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H §H.2
+      - Changes and maintenance Changes and maintenance.2
     scenario: Confirm that removing QDRANT__SERVICE__API_KEY is treated as a BREAKING change.
     expected_answers:
       - kind: classification
@@ -296,8 +296,8 @@ scenario_set:
   - id: I-11
     type: ambiguous
     refs:
-      - §F F-02
-      - §G G-02
+      - When it breaks F-02
+      - Repair G-02
     scenario: The dashboard reads "corrupt" but Qdrant responds normally; decide whether this is a backup-coverage gap or a Qdrant outage before acting.
     expected_answers:
       - kind: classification
@@ -308,7 +308,7 @@ scenario_set:
     weight: 0.0909
 ```
 
-### §I.1 Weight Justification
+### Acceptance criteria.1 Weight Justification
 
 All scenarios carry near-equal weight (≈1/11); coverage breadth is valued uniformly for this small, security-critical surface. Per-scenario notes for the divergent (non-baseline) entries:
 
@@ -324,7 +324,7 @@ All scenarios carry near-equal weight (≈1/11); coverage breadth is valued unif
 - I-10: BREAKING-predicate recognition; equal weight.
 - I-11: corrupt-vs-outage disambiguation; equal weight.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1081
@@ -336,18 +336,5 @@ refresh_triggers:
   - new Qdrant collection added
   - backup coverage change
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: "2026-06-30"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-retrofit: false
-linter_version: 1.0.0
-last_lint_run: S1081 / 2026-06-30T19:25:00Z
-last_lint_result: WARN
-trace_matrix_path: null
-word_count_delta: null
 ```

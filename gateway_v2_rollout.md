@@ -1,3 +1,11 @@
+---
+title: Gateway V2 Rollout
+owner: unassigned
+last_verified: '2026-06-06'
+aliases: []
+error_signatures: []
+---
+
 # Gateway V2 Rollout
 
 ## Purpose
@@ -50,3 +58,6 @@ For DIST, use the AIM Node release process and release script only. Verify the i
 - Revoked access blocks new connect/invoke and prevents new meter acceptance except separately approved reconciliation for completed delivery.
 - No backend logs, traces, request bodies, persisted records, or receipts contain payload bytes or raw seller secrets.
 
+## When it breaks
+
+Stop the rollout and follow `gateway_v2_rollback.md` when a staging gate or validation step fails.

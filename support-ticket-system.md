@@ -1,11 +1,19 @@
+---
+title: Support Ticket System — operations
+owner: unassigned
+last_verified: '2026-06-22'
+aliases: []
+error_signatures: []
+---
+
 # Support Ticket System — operations
 
-## §A. Header
+## Overview
 **Owner surface:** ai.market support/trouble ticket engine (ai-market-backend `app/api/v1/endpoints/support.py`, `app/services/support_ticket_service.py`, `app/api/v1/dependencies/support_ticket_auth.py`, `app/tasks/scheduled.py`). One ticket system for dev, ops, and customer issues, operated by agents with human escalation on risk.
 **Spec source of truth:** `specs/BQ-SUPPORT-TICKET-SYSTEM-S811-GATE1.md` (Gate 1 design + Gate 2 R1 changelog + **Amendment A1 / S819** schema reconciliation). Do not relitigate the decision record in §2/§14 of that spec.
 **Last verified live:** 2026-06-22 (S987 — added agent management MCP tools `support_ticket_list/get/patch/message`, backend-shape verified vs `support.py`; S851 added dev-ticket/BQ taxonomy; engine MVP verified 2026-06-11/S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
 
-## §B. Capability Matrix
+## Capabilities
 **Live as of 2026-06-11:**
 - Core engine tables: `support_ticket`, `support_message`, `support_rate_counter`.
 - Customer/agent API behind auth at `/api/v1/support/*` (create, list, read, patch, message tickets).
@@ -22,13 +30,13 @@
 - Search upgrade — in flight as chunk **C3a**; MVP search is Postgres FTS only.
 - **Email polling is switched OFF** (`GMAIL_POLLING_ENABLED=False`); the poller is a break-glass fallback, not the canonical path.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 A ticket (`support_ticket`) holds a thread of `support_message` rows. Every requester is keyed by `requester_key` = `COALESCE(party_id, actor_type:actor_id)`; rate limits and duplicate collapse are enforced on that key. Email arriving at support@ai.market is parsed by `process_support_inbound_email`, which either attaches a message to an existing ticket, opens a new one, or — when intake is unsafe — writes a durable row to `support_email_dlq` (lost/unprocessable mail) or `support_email_quarantine` (sender/ticket mismatch) instead of silently dropping or mis-attaching. CRM/allAI surfaces read denormalized ticket metadata; they do not infer ticket state from message bodies. The customer-data surface (endpoints + email durability, chunks C2 + C2b) passed one unanimous Gate 3 over the combined diff.
 
-## §D. Agent Capability Map
-Either Vulcan instance operates this runbook. Admin triage (DLQ/quarantine review) is internal-only — it requires the internal API key principal (§E auth model), never a customer or external-agent key. Schema changes to any support table require **MP schema review before dispatch** (schema gate, per Amendment A1) and must check `alembic heads` for multiple heads first. The `GMAIL_POLLING_ENABLED` flip is a **Max-gated** ops step, not an agent decision. Agents enumerate and work tickets through the `support_ticket_*` Koskadeux MCP tools (§E — Agent operate interface), not raw curl; ops-class tickets can be diagnosed with the SysAdmin `diagnose_ops_ticket` skill, which attaches an internal ops-diagnosis message to the ticket.
+## Agent capabilities
+Either Vulcan instance operates this runbook. Admin triage (DLQ/quarantine review) is internal-only — it requires the internal API key principal (How to operate auth model), never a customer or external-agent key. Schema changes to any support table require **MP schema review before dispatch** (schema gate, per Amendment A1) and must check `alembic heads` for multiple heads first. The `GMAIL_POLLING_ENABLED` flip is a **Max-gated** ops step, not an agent decision. Agents enumerate and work tickets through the `support_ticket_*` Koskadeux MCP tools (How to operate — Agent operate interface), not raw curl; ops-class tickets can be diagnosed with the SysAdmin `diagnose_ops_ticket` skill, which attaches an internal ops-diagnosis message to the ticket.
 
-## §E. Operate
+## How to operate
 
 ### Auth model — three principal classes (`get_support_principal`)
 All `/api/v1/support/*` ticket and message routes resolve a `SupportPrincipal`. There are exactly three ways to authenticate, tried in this order:
@@ -63,7 +71,7 @@ Agents do not curl the API directly — they use `tools/support_ticket.py` in `k
 - **Duplicate-subject collapse.** On create the service computes `subject_hash = sha256(normalized subject)`, `requester_key`, and the UTC-hour `collapse_window_start`. Within the same transaction it does a 1-hour lookback for an open ticket (status NOT IN resolved/closed) with the same hash+key; if found it folds into that ticket. The unique partial index `(subject_hash, requester_key, collapse_window_start) WHERE status NOT IN ('resolved','closed')` + `ON CONFLICT DO UPDATE` makes same-bucket concurrent creates atomic.
 - **`collapsed=true` means** the create did not mint a new ticket — it returned an existing open ticket for the same normalized subject in the window, with `updated_at` bumped. Collapse is an abuse control, **not** an exactness guarantee: two creates racing across an hour boundary can produce two tickets. That cross-boundary race is an **accepted residual** — do NOT add sliding-window locking for it.
 
-## §F. Isolate — admin triage procedures
+## When it breaks
 
 ### Email durability metrics
 `GET /api/v1/support/email-durability/metrics` (internal only) returns, per source (`dlq`, `quarantine`), `pending_count` and `oldest_pending_age_seconds`. This is the primary backlog signal for both tables.
@@ -87,18 +95,18 @@ Triage:
 - **Release:** `POST /email-quarantine/{row_id}/release` with a JSON body `{"body_text": "..."}`. The body text **must be supplied** (the raw email body is not stored on the quarantine row). Release attaches **exactly one** inbound message to the candidate ticket using the resolved sender party and the Gmail message id (so re-release is idempotent — an already-`released` row returns without re-attaching), then marks the row `released`. Requires a non-null `candidate_ticket_id` and `pending` status.
 - **Drop:** `POST /email-quarantine/{row_id}/drop` — marks `dropped` (pending only). Use for spoofing / wrong-recipient / abuse.
 
-## §G. Repair — email intake go-live procedure
+## Repair
 Email polling is **OFF** today (`GMAIL_POLLING_ENABLED=False`); the canonical path is the push webhook, and the poller is a break-glass fallback. Turning intake on:
 1. **Max gate.** Flipping `GMAIL_POLLING_ENABLED=True` is a Max-approved ops step. Do not flip it autonomously.
 2. **Mailbox prerequisites.** support@ai.market in Google Workspace; a `SUPPORT-INBOX` Gmail label rule on mail addressed to support@ai.market. **Label-gap behavior:** the intake does NOT depend on the label alone — a message addressed to support@ai.market but missing `SUPPORT-INBOX` is still processed, and emits a `support_email_label_gap` warning (message id + thread id) so the mailbox rule can be repaired. A missing label degrades observability, not delivery.
 3. **Beat cadence.** `poll_gmail_inbox` runs on Celery beat every 60s (soft limit 50s, hard 55s, max 3 retries). When disabled it returns `{status: disabled}` and does no work.
 4. **Monitoring signals after flip:**
    - **Stale-poll alert** — no successful poll in 10 minutes (poll heartbeat). This is *not* the only dropped-mail signal — DLQ rows catch what a live poll mishandles.
-   - **DLQ/quarantine pending count + oldest age** via the metrics endpoint (§F). Watch `gmail_polling_retry_exhausted` rows specifically — they mean Gmail itself is degraded (auth/quota/5xx).
+   - **DLQ/quarantine pending count + oldest age** via the metrics endpoint (When it breaks). Watch `gmail_polling_retry_exhausted` rows specifically — they mean Gmail itself is degraded (auth/quota/5xx).
 
 Transient-retry mechanics: transient Gmail errors retry at ~60s / 300s / 900s (base + jitter) before a `gmail_polling_retry_exhausted` DLQ row is written.
 
-## §H. Evolve
+## Changes and maintenance
 Schema changes to any support table require MP schema review before dispatch and a single Alembic head (`alembic heads`; merge first if multiple). The §4.1 authorization predicate is bound to the **real** `party_role_binding` schema via Amendment A1 — any future predicate change updates spec §A1.1, not just code. Phase 2 brings the Support Steward agent, automated low-risk resolution send, portal-pages decision, and `ticket_link`/audit tables if volume proves need. Dev-class tickets carry full payload detail and are searchable but **never** auto-create build-queue entities — promotion is an explicit human/Steward action.
 
 ### Dev tickets vs the Build Queue — classification & batch triage (S851)
@@ -108,17 +116,14 @@ The support engine's `issue_class='dev'` is the home for **trouble tickets**: sm
 - **BQ** if it is costly-to-reverse or cross-cutting — production schema migration, auth/security predicate, secrets, money/billing, customer-data exposure, multi-domain/cross-system protocol change — **or** it introduces a genuinely new customer-visible capability. These earn full Council gate ceremony per the Design Charter.
 - **Dev trouble ticket** otherwise — bounded reversible fixes/modifications to existing behaviour, single-service patches, config-only changes. **Default to ticket;** a BQ must be justified against the criteria above.
 
-**Lifecycle / promotion / demotion.** Dev tickets ride the existing `SupportTicketStatus` flow (`new → triaged → in_progress → resolved → closed`); no new states. Promotion ticket→BQ is an explicit human/Steward act: mint a `build:` entity (`status=planned`, `business_summary` required) cross-referenced to the ticket; dev tickets NEVER auto-create BQ entities (unchanged from §H above). Demotion/retirement BQ→ticket: set the BQ `status=blocked` plus a `decision` event recording the reason (“reclassified as dev ticket” / “retired: obsolete | no owner | no longer reproduces”) — Living State has no `cancelled` status — and open/link a dev ticket. Preserve links both ways; never delete history.
+**Lifecycle / promotion / demotion.** Dev tickets ride the existing `SupportTicketStatus` flow (`new → triaged → in_progress → resolved → closed`); no new states. Promotion ticket→BQ is an explicit human/Steward act: mint a `build:` entity (`status=planned`, `business_summary` required) cross-referenced to the ticket; dev tickets NEVER auto-create BQ entities (unchanged from Changes and maintenance above). Demotion/retirement BQ→ticket: set the BQ `status=blocked` plus a `decision` event recording the reason (“reclassified as dev ticket” / “retired: obsolete | no owner | no longer reproduces”) — Living State has no `cancelled` status — and open/link a dev ticket. Preserve links both ways; never delete history.
 
 **Batch triage cadence.** The open dev-ticket queue (`issue_class=dev`, status `new|triaged`, not linked to an active BQ) surfaces at session open alongside aging obligations. When enough small tickets accumulate, either peer instance dispatches them as ONE batch build — a set of independently-small, collectively-reversible fixes — reviewed at Charter-light ceremony (one reviewer, one round). Keep the batch small enough to review cleanly.
 
 **Backlog reform guardrail.** When sweeping legacy BQs into this taxonomy, every retire/demote decision requires a second peer instance's confirmation and a documented `decision` event, to avoid burying a genuinely irreversible item among the small fixes. Target surviving true-BQ count: **≤25** (Max, S851). Tracked by `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 This runbook is correct when: the three principal classes and their visibility rules match `support_ticket_auth.py`; the seven admin endpoints and their internal-only guard match `support.py`; DLQ/quarantine reasons match the strings emitted in `support_ticket_service.py` and `scheduled.py`; the rate limits read 30 tickets/hour and 120 messages/hour; `collapsed` is described as fold-into-existing with the cross-boundary race called an accepted residual; and the go-live section states that polling is Max-gated and currently off.
 
-## §J. Lifecycle
-Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics. Updated S851 (2026-06-15): added the dev-ticket vs Build Queue taxonomy + batch-triage cadence (§H) and corrected the console capability (§B); see Living State `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`. Updated S987 (2026-06-22): added the agent management MCP tools (§B/§D/§E) — `support_ticket_list/get/patch/message` in koskadeux-mcp — plus the SysAdmin `diagnose_ops_ticket` reference; see Living State `build:bq-support-ticket-management-mcp-tooling-s986` (merged main e9007524).
-
-## §K. Conformance
-Registered in TOPIC-ROUTER.md under "Support tickets". `scripts/router_drift_check.py` enforces the link. Structurally complete to the §A–§K standard; lint pending the known linter date-field defect that is consistent across sibling §A–§K runbooks (shipped per sibling precedent).
+## Maintenance
+Created S819 (2026-06-11) covering the BQ-SUPPORT-TICKET-SYSTEM-S811 MVP engine + Amendment A1 email-durability chunk C2b. Refresh triggers: email intake go-live (`GMAIL_POLLING_ENABLED` flip), admin UI ship, agent skills leaving shadow mode, the C3a search upgrade landing, or any change to the auth predicate / rate limits / collapse semantics. Updated S851 (2026-06-15): added the dev-ticket vs Build Queue taxonomy + batch-triage cadence (Changes and maintenance) and corrected the console capability (Capabilities); see Living State `build:bq-trouble-ticket-taxonomy-backlog-reform-s851`. Updated S987 (2026-06-22): added the agent management MCP tools (Capabilities/Agent capabilities/How to operate) — `support_ticket_list/get/patch/message` in koskadeux-mcp — plus the SysAdmin `diagnose_ops_ticket` reference; see Living State `build:bq-support-ticket-management-mcp-tooling-s986` (merged main e9007524).

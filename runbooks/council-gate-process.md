@@ -1,55 +1,28 @@
 ---
-runbook_id: council-gate-process
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: council-gate-process
-    section: §C. Architecture & Interactions
+title: Council Gate Process
+owner: mp
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: missing_design_artifact
-    section: §E. Operate
-  - signature: unresolved_mandates
-    section: §E. Operate
-  - signature: gate1_status_trap
-    section: §E. Operate
-  - signature: chunk_scope_gap
-    section: §E. Operate
-  - signature: authoring_distinction_trap
-    section: §E. Operate
-  - signature: fabricated_line_reference
-    section: §E. Operate
-  - signature: cross_review_block
-    section: §E. Operate
-  - signature: break_glass_left_enabled
-    section: §E. Operate
-  - signature: directional_evidence_missing
-    section: §E. Operate
-  - signature: harness_bound_to_stale_code
-    section: §E. Operate
-supersedes: []
-superseded_by: []
-owner: mp
-last_verified_at: 2026-07-27
-system_name: council-gate-process
-purpose_sentence: Council Build Queue gate-process runbook for operating the BQ four-gate flow and enforcing non-builder cross-review before completion.
-owner_agent: mp
-escalation_contact: vulcan
-lifecycle_ref: §J
-authoritative_scope: |
-  Stable BQ gate mechanics, gate-transition reasoning, cross-review enforcement, and symptom/repair patterns. Live Council membership, review order, dispatch participants, model frontiers, and exceptional overrides are canonically tracked in the infra:council-comms Living State entity.
-
-  Cross-runbook reference convention: same-file references use bare IDs such as `F-01` or `G-01`; cross-file references use `<file-stem>:<id>` such as `agent-dispatch:E-01`.
-linter_version: 1.0.0
+- authoring_distinction_trap
+- break_glass_left_enabled
+- chunk_scope_gap
+- cross_review_block
+- directional_evidence_missing
+- fabricated_line_reference
+- gate1_status_trap
+- harness_bound_to_stale_code
+- missing_design_artifact
+- unresolved_mandates
 ---
 
 # Council Gate Process
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
+This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -62,7 +35,7 @@ The YAML frontmatter above defines the §A header. This runbook documents the st
 | Author-mode dispatch binding | PARTIAL | `dispatch_mp_build` | Provenance captured operationally; stricter tokenization remains a follow-up | 2026-04-29 |
 | Break-glass bypass | SHIPPED | `/var/tmp/koskadeux/break_glass` | Manual emergency path verified by operator cleanup procedure | 2026-04-29 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The gate process is a stateful quality-control pipeline for `build:bq-*` work. A BQ starts as a problem or change request, moves through design, implementation planning, post-build audit, and production verification, then can close only when the reviewer set includes at least one approving agent that did not build the artifact.
 
@@ -103,7 +76,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 
 **Builder obligations that make lighter review safe:** specs carry explicit invariants, non-goals, acceptance criteria, and rollback; each material requirement maps to an automated test; the builder performs a mandatory recorded self-check (full diff read, requirement-to-evidence trace, secrets and migration safety, prescribed suite run, residual risk declared). This is builder verification, not self-review.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -117,7 +90,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 
 MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly CC, Kimi, and GLM; Kimi replaced DeepSeek at S1319, DeepSeek is retired from voting, and AG is paused. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. `infra:council-comms` remains canonical for live membership and model strings.
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -206,7 +179,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   next_step_failure: Rebuild the harness against the pinned SHA or repair the directional-evidence payload; do not weaken the gate to admit prose.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -217,7 +190,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 | F-05 | Break-glass bypass used or left enabled | Emergency sentinel was touched for a gate false positive and not removed after completion | Check `/var/tmp/koskadeux/break_glass` and session notes for bypass rationale | G-05 | CONFIRMED |
 | F-06 | Gate 3 audit contains unsupported line-number claims | Reviewer hallucinated line numbers or reviewed stale diff context | Verify every cited path and line against the commit under audit | G-06 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -270,23 +243,23 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   integrity_check: Attach only findings whose cited files and lines exist at the audited commit.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Every BQ gate transition must leave auditable state on the `build:bq-*` entity.
 - Builder and reviewer provenance must remain separable.
 - Gate 4 completion requires non-builder review evidence unless Max explicitly authorizes emergency break-glass use.
-- Same-file §F/§G references use bare IDs; cross-runbook references use file-qualified IDs such as `agent-dispatch:F-04`.
+- Same-file When it breaks/Repair references use bare IDs; cross-runbook references use file-qualified IDs such as `agent-dispatch:F-04`.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Removing one of the four gates or collapsing Gate 3 and Gate 4 is BREAKING.
 - Removing cross-review enforcement before `state_request(action=bq_complete)` is BREAKING.
 - Granting write-mode authority to any gate voter, or restoring retired/paused voter authority without an approved roster change, is BREAKING.
 - Changing the BQ entity key shape away from `build:bq-*` is BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding a new gate outcome such as `CONDITIONAL` is REVIEW.
 - Changing dispatch participants for a gate is REVIEW.
@@ -294,14 +267,14 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 - Increasing the per-dispatch cost cap for gate review is REVIEW.
 - Changing the verdict regex or accepted completion language is REVIEW.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Clarifying gate prose is SAFE when state fields and transition rules do not change.
 - Adding another verification example to Gate 4 is SAFE.
 - Updating symptom or repair text is SAFE when IDs, component names, and gate contracts remain stable.
-- Correcting stale dates or commit pointers in §J or §K is SAFE when conformance meaning does not change.
+- Correcting stale dates or commit pointers in Maintenance or §K is SAFE when conformance meaning does not change.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -319,17 +292,17 @@ A runtime dependency is any Living State surface, dispatch path, review transcri
 
 A config default is any Council review order, dispatch participant set, model frontier, cost cap, or bypass policy read from `infra:council-comms`.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 When agents disagree on the evolve class for a gate-process change, use the more restrictive class. Max resolves changes that affect completion enforcement, emergency bypass behavior, money/security impact, or active Council membership.
 
-## §I. Scenario Set
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §C, agent-dispatch:E-03]
+    refs: [E-01, Architecture & interactions, agent-dispatch:E-03]
     scenario: |
       id: E-01. trigger: A new BQ has a written problem statement and needs Gate 1 design review before any Gate 2 spec or author-mode build dispatch. pre_conditions: build:bq-* entity exists, scope and out-of-scope are explicit, the live CC/Kimi/GLM panel is available, and no chunk spec has been promoted. tool_or_endpoint: state_request(action=bq_update, bq_code=<code>, gate=1, status=<status>, note=<panel_evidence_refs>, session_id=<session>, gate_status_update=true, expected_version=<version>). argument_sourcing: BQ code and version from Living State; reviewer panel from infra:council-comms; status from the complete valid panel using APPROVED, APPROVED_WITH_MANDATES, or REJECTED; note from immutable verdict references. idempotency: IDEMPOTENT_WITH_KEY on BQ code + gate1 + reviewer + verdict_commit. expected_success: Gate 1 status and references to the complete CC/Kimi/GLM verdict set, including mandates, are attached to the BQ entity with design evidence. expected_failures: missing problem statement, missing/malformed/model-mismatched active voter, unresolved mandates hidden in prose, or accidental author dispatch before Gate 1 is settled. next_step_success: author the Gate 2 chunking spec only after status is APPROVED or mandates are resolved. next_step_failure: return to design authoring or escalate ambiguous scope to Vulcan; never substitute MP, AG, or DeepSeek.
     expected_answers:
@@ -452,18 +425,18 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H, E-01, E-04]
+    refs: [Changes and maintenance, E-01, E-04]
     scenario: |
-      id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from §H.5; invariants from §H.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before state_request(action=bq_complete). expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
+      id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from Changes and maintenance.5; invariants from Changes and maintenance.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before state_request(action=bq_complete). expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
     expected_answers:
       - kind: classification
         label: BREAKING
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [§H, F-01, G-01]
+    refs: [Changes and maintenance, F-01, G-01]
     scenario: |
-      id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from §C and §E-04; review predicates from §H.3; invariants from §H.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
+      id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from Architecture & interactions and How to operate-04; review predicates from Changes and maintenance.3; invariants from Changes and maintenance.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
     expected_answers:
       - kind: classification
         label: REVIEW
@@ -481,7 +454,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Lifecycle metadata records the S1369 gate-roster refresh. The most recent registered scenario-harness pass remains the earlier S1265 run.
 
@@ -494,25 +467,6 @@ refresh_triggers:
   - BQ gate lifecycle or state entity contract changes
   - cross-review-gate enforcement changes
   - chunk approval, closeout, or production verification policy changes
-  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.16666666666666666
-last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
 ```
-
-The gate-process scenario set is registered under `tests/fixtures/harness_scenarios/council-gate-process/` and passed the S1265 conformant harness.
-
-## §K. Conformance
-
-Conformance fields for the S1369 content refresh.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T22:12:57Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
-
-The §K block records the strict-lint result; harness state is authoritative in §J.

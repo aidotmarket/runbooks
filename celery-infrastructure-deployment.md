@@ -1,3 +1,11 @@
+---
+title: Celery Infrastructure Deployment
+owner: unassigned
+last_verified: '2026-04-19'
+aliases: []
+error_signatures: []
+---
+
 # Celery Infrastructure Deployment
 
 ## What it does
@@ -397,3 +405,7 @@ Recommended deeper checks:
 
 Created for BQ-CELERY-INFRASTRUCTURE-DEPLOYMENT Gate 3 Chunk E.
 References backend implementation at `464398c`, `f1e9665`, `b539d8f`, and `e908c44`.
+
+## When it breaks
+
+Use the On-Call Playbook and Verification Checks above when the deployed Celery topology fails.

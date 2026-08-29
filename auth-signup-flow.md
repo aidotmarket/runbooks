@@ -1,3 +1,11 @@
+---
+title: auth-signup-flow — Sign-up & Login Path Reference
+owner: unassigned
+last_verified: '2026-08-15'
+aliases: []
+error_signatures: []
+---
+
 # auth-signup-flow — Sign-up & Login Path Reference
 
 ## What it is
@@ -33,7 +41,7 @@ The auth flow must commit the user FIRST. Side effects run in isolated transacti
 
 The `auth.router` mounts at prefix `/auth` (line 133 of `router.py`); the `oauth.router` self-prefixes with `/oauth` and mounts without an additional prefix (line 234). No route collision. Do not confuse the two when investigating sign-up issues.
 
-## Known issues
+## When it breaks
 
 ### Active: CRM provisioning blocking sign-up (P0, customer-blocking)
 

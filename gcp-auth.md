@@ -1,21 +1,17 @@
 ---
-system_name: gcp-auth
-purpose_sentence: Google Cloud authentication for the ai.market backend covering Gmail API, Pub/Sub, Vertex AI Gemini, and the Trust Channel KMS runtime.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Authentication for all GCP-backed services used by ai.market: Gmail OAuth refresh tokens (gmail_tokens table), the OAuth consent-screen requirement, gcloud CLI session auth, Pub/Sub gmail-push wiring, Vertex AI Gemini API-key auth, and the Trust Channel KMS service-account runtime. Secret values are canonical in Infisical (project bd272d48-c5a1-4b52-9d24-12066ae4403c); this runbook documents auth mechanics and recovery, not secret values.
-linter_version: 1.0.0
+title: GCP Auth
+owner: vulcan
+last_verified: '2026-08-25'
+aliases: []
+error_signatures: []
 ---
 
 # GCP Auth
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. §J is authoritative for lifecycle refresh tracking; this header is the display summary for stateless readers.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -26,7 +22,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | Vertex AI Gemini API-key auth | SHIPPED | `ai-market-backend app.core.config Settings.VERTEX_GEMINI_KEY` | Verified via Infisical key-prefix check expecting AQ. | 2026-06-01 |
 | Trust Channel KMS service-account ADC | SHIPPED | `ai-market-backend app/core/gcp_credentials.py + app/core/kms_lifecycle.py` | `tests/test_kms_lifecycle_s1606.py`; live RSA registration and both Trust Channel handshakes | 2026-08-25 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 
@@ -53,7 +49,7 @@ GCP authentication for ai.market spans four independent auth paths. Gmail OAuth 
 
 Vertex client construction is `genai.Client(vertexai=True, api_key=settings.VERTEX_GEMINI_KEY.get_secret_value())`; every `embed_content` call MUST pass `EmbedContentConfig(output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS)` because the default output is 3072-dimensional, larger than the qdrant collection.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -64,7 +60,7 @@ Vertex client construction is `genai.Client(vertexai=True, api_key=settings.VERT
 
 Only Max can perform the interactive gcloud browser login and change the OAuth consent-screen User Type; these cannot be done headlessly by an agent. Vulcan/Mars own the non-interactive recovery steps (token DB update, redeploy, key verification). The backend services consume the stored credentials at runtime.
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -81,7 +77,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
     - {signature: "wrong_active_account", cause: gcloud pointed at a non-prod account}
     - {signature: "wrong_project", cause: gcloud config project is not aimarket-prod}
   next_step_success: No action; auth is healthy.
-  next_step_failure: Isolate using §F-03 for account/project mismatch.
+  next_step_failure: Isolate using When it breaks-03 for account/project mismatch.
 - id: E-02
   trigger: Gmail-dependent jobs (briefing, drop pipeline, draft sending) stopped because refresh tokens expired.
   pre_conditions: [OAuth consent screen confirmed or being set to Internal, GOOGLE_OAUTH_CREDENTIALS_JSON available in Railway env, railway CLI authenticated on Titan-1]
@@ -96,7 +92,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
     - {signature: "consent_screen_not_internal", cause: tokens re-expire in 7 days because User Type is still External/Testing}
     - {signature: "db_unreachable_from_titan", cause: setup script cannot reach postgres.railway.internal directly; the token must be pushed via railway connect Postgres}
   next_step_success: Verify briefing and drop pipeline resume on the next scheduled run.
-  next_step_failure: Apply §G-01 to fix the consent screen before re-issuing tokens.
+  next_step_failure: Apply Repair-01 to fix the consent screen before re-issuing tokens.
 - id: E-03
   trigger: Verify the Vertex AI Gemini API key is the correct Express key type before or after a rotation.
   pre_conditions: [infisical CLI authenticated on Titan-1, project id bd272d48-c5a1-4b52-9d24-12066ae4403c reachable]
@@ -109,7 +105,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   expected_failures:
     - {signature: "wrong_key_prefix", cause: an OAuth token or a legacy Developer API key (AIza...) is stored instead of a Vertex Express key}
   next_step_success: No action; the Vertex key is valid.
-  next_step_failure: Isolate using §F-04 and re-create the key scoped to the Vertex AI API.
+  next_step_failure: Isolate using When it breaks-04 and re-create the key scoped to the Vertex AI API.
 - id: E-04
   trigger: Verify Trust Channel KMS authentication and key-purpose readiness before or after a credential recovery.
   pre_conditions: [infisical and railway CLIs authenticated on Titan-1, production project aimarket-prod selected, read-only GCP KMS access available]
@@ -127,21 +123,21 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_failure: Keep Trust Channel registration fail-closed; repair the exact credential, IAM, key name, or algorithm mismatch without exporting any KMS private key.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Morning briefing or drop pipeline silently stopped | Gmail refresh token expired because the OAuth consent screen is External/Testing rather than Internal | Open the GCP Console OAuth consent screen for project aimarket-prod and check User Type; check gmail_tokens.updated_at age | §G-01 | CONFIRMED |
-| F-02 | gcloud reports `Reauthentication failed` | The interactive gcloud session expired | Run gcloud auth list and confirm whether max@ai.market is still active | §G-02 | CONFIRMED |
-| F-03 | gcloud reports `does not have permission` or operations hit the wrong project | Wrong gcloud account active or gcloud pointed at the wrong project | Compare gcloud config account and project against max@ai.market and aimarket-prod | §G-03 | CONFIRMED |
-| F-04 | AG council reviews fail with `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login` | The AG adapter authenticated with the local user OAuth/ADC token (now expired) instead of the Vertex API key. Vertex Gemini uses the Vertex Express API key (`VERTEX_API_KEY`, AQ. prefix), NOT OAuth/ADC (§E, §H.1). Recurs whenever the local ADC token expires. | Confirm `VERTEX_API_KEY` is present in the com.koskadeux.mcp process env (`ps eww <mcp pid>`) and AQ.-prefixed in Infisical bd272d48 | §G-04 | CONFIRMED |
-| F-05 | Gemini embed upserts fail / qdrant dimension mismatch | An embed call omitted `output_dimensionality` and defaulted to 3072, exceeding the qdrant collection dimension | Check the embed call passes `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS` | §G-05 | CONFIRMED |
-| F-04 | `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED` on Gemini calls | Wrong key type passed (an OAuth token or a legacy Developer API key instead of a Vertex Express key) | Check the stored VERTEX_GEMINI_KEY prefix; a valid key starts with AQ. | §G-04 | CONFIRMED |
-| F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | §G-05 | CONFIRMED |
-| F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | §G-06 | CONFIRMED |
-| F-07 | Trust Channel registration returns 503 or a handshake logs `CRYPTO_SCHEME_MISMATCH` | KMS credential is unavailable/invalid, IAM or key readiness failed, or signing/decrypt was routed to the wrong purpose-specific key | Verify non-secret credential metadata matches between Infisical and Railway; confirm both version-1 algorithms; inspect the exact deployment and correlated Trust Channel log window | §G-07 | CONFIRMED |
+| F-01 | Morning briefing or drop pipeline silently stopped | Gmail refresh token expired because the OAuth consent screen is External/Testing rather than Internal | Open the GCP Console OAuth consent screen for project aimarket-prod and check User Type; check gmail_tokens.updated_at age | Repair-01 | CONFIRMED |
+| F-02 | gcloud reports `Reauthentication failed` | The interactive gcloud session expired | Run gcloud auth list and confirm whether max@ai.market is still active | Repair-02 | CONFIRMED |
+| F-03 | gcloud reports `does not have permission` or operations hit the wrong project | Wrong gcloud account active or gcloud pointed at the wrong project | Compare gcloud config account and project against max@ai.market and aimarket-prod | Repair-03 | CONFIRMED |
+| F-04 | AG council reviews fail with `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login` | The AG adapter authenticated with the local user OAuth/ADC token (now expired) instead of the Vertex API key. Vertex Gemini uses the Vertex Express API key (`VERTEX_API_KEY`, AQ. prefix), NOT OAuth/ADC (How to operate, Changes and maintenance.1). Recurs whenever the local ADC token expires. | Confirm `VERTEX_API_KEY` is present in the com.koskadeux.mcp process env (`ps eww <mcp pid>`) and AQ.-prefixed in Infisical bd272d48 | Repair-04 | CONFIRMED |
+| F-05 | Gemini embed upserts fail / qdrant dimension mismatch | An embed call omitted `output_dimensionality` and defaulted to 3072, exceeding the qdrant collection dimension | Check the embed call passes `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS` | Repair-05 | CONFIRMED |
+| F-04 | `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED` on Gemini calls | Wrong key type passed (an OAuth token or a legacy Developer API key instead of a Vertex Express key) | Check the stored VERTEX_GEMINI_KEY prefix; a valid key starts with AQ. | Repair-04 | CONFIRMED |
+| F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | Repair-05 | CONFIRMED |
+| F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | Repair-06 | CONFIRMED |
+| F-07 | Trust Channel registration returns 503 or a handshake logs `CRYPTO_SCHEME_MISMATCH` | KMS credential is unavailable/invalid, IAM or key readiness failed, or signing/decrypt was routed to the wrong purpose-specific key | Verify non-secret credential metadata matches between Infisical and Railway; confirm both version-1 algorithms; inspect the exact deployment and correlated Trust Channel log window | Repair-07 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -204,9 +200,9 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   integrity_check: Infisical and Railway expose matching non-secret credential metadata; readiness fetches both public keys with exact algorithms; RSA registration returns distinct public keys; both Trust Channel WebSocket paths establish; cleanup leaves the probe device and sessions inactive; correlated logs contain no KMS or crypto-scheme error.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - The OAuth consent screen for aimarket-prod MUST be User Type Internal, or Gmail refresh tokens expire after 7 days.
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
@@ -217,23 +213,23 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 - **Embeddings MUST use a REGIONAL Vertex endpoint; completions MUST use the GLOBAL one.** These are two separate clients in `app/core/llm.py` (`_get_gemini_embedding_client()` regional, `_get_gemini_client()` global) and MUST NOT be merged. `gemini-embedding-001` is ~10.4s on global and ~0.3s regionally; the approved completion model (`APPROVED_GEMINI_MODEL`, currently `gemini-3.1-pro-preview`) returns **HTTP 404 on every regional endpoint** and is served only from global. Google's published model-location table claims otherwise and is wrong — MP cited it and approved a change that would have 404'd every allAI completion. Measure from the production container; the container is ground truth. The region is `VERTEX_EMBEDDING_LOCATION` (default `us-west1`, matching Railway `us-west2`); setting it to `global` is the rollback and costs the 10.4s back.
 - Embedding vectors are **bit-identical** across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so changing `VERTEX_EMBEDDING_LOCATION` never requires re-embedding the Qdrant corpus.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Changing the OAuth consent screen away from Internal is BREAKING because refresh tokens begin expiring.
 - Renaming or aliasing `VERTEX_GEMINI_KEY` is BREAKING because Pydantic case-sensitive settings will fail to load the key.
 - Moving Gemini auth to the Trust Channel service-account ADC path is BREAKING because Gemini and KMS use independent credential mechanisms and scopes.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Rotating the Vertex Express API key requires REVIEW because AG reads a separate `VERTEX_API_KEY` that must be synced.
 - Changing the Pub/Sub gmail-push topic or subscription target requires REVIEW because it reroutes the drop pipeline.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Verifying auth state via the read-only gcloud and Infisical checks is SAFE.
 - Re-issuing Gmail tokens while the consent screen is already Internal is SAFE.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -251,17 +247,17 @@ A runtime dependency is any external system required at run time: GCP OAuth, the
 
 A config default is any default identity or scope value: the active gcloud account max@ai.market, the project aimarket-prod, and the canonical secret name VERTEX_GEMINI_KEY.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 When two operators classify a GCP-auth change differently, use the more restrictive class and record the dispute. Max resolves any classification dispute that alters identity, project scope, or the consent-screen setting.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §D]
+    refs: [E-01, Agent capabilities]
     scenario: |
       id: E-01. trigger: routine verification that GCP auth is healthy. tool_or_endpoint: gcloud auth list; gcloud config get-value project; gcloud pubsub topics list; gcloud pubsub subscriptions list. expected_success: active account max@ai.market; project aimarket-prod; topic gmail-push and subscription gmail-push-sub present. next_step_failure: isolate with F-03.
     expected_answers:
@@ -272,7 +268,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-02
     type: operate
-    refs: [E-02, §C]
+    refs: [E-02, Architecture & interactions]
     scenario: |
       id: E-02. trigger: Gmail jobs stopped because refresh tokens expired. tool_or_endpoint: setup_gmail_auth.py then update gmail_tokens via railway connect Postgres then railway redeploy. expected_success: fresh tokens for max@ai.market and ally@ai.market and the Gmail watch renewed. next_step_failure: apply G-01 to fix the consent screen first.
     expected_answers:
@@ -283,7 +279,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-03
     type: operate
-    refs: [E-03, §C]
+    refs: [E-03, Architecture & interactions]
     scenario: |
       id: E-03. trigger: verify the Vertex Gemini key type. tool_or_endpoint: infisical secrets get VERTEX_GEMINI_KEY then head -c 4. expected_success: prefix is AQ. confirming a Vertex Express key. next_step_failure: isolate with F-04.
     expected_answers:
@@ -360,7 +356,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: |
       id: H-01. trigger: a proposal would switch the OAuth consent screen away from Internal. expected_success: classify as BREAKING because refresh tokens begin expiring. next_step_success: block the change and keep Internal.
     expected_answers:
@@ -369,7 +365,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: |
       id: H-02. trigger: a proposal would rename or alias VERTEX_GEMINI_KEY. expected_success: classify as BREAKING because Pydantic case-sensitive settings would fail to load the key. next_step_success: keep the canonical uppercase name.
     expected_answers:
@@ -389,7 +385,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Lifecycle metadata records the Gate 2 conformance refresh state for this runbook.
 
@@ -405,17 +401,5 @@ refresh_triggers:
   - Pub/Sub gmail-push topic or subscription target changes
   - gcloud account or project defaults change
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1606 / 2026-08-25T09:56:13Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

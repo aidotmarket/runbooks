@@ -1,20 +1,21 @@
 ---
-system_name: max-reporting
-purpose_sentence: Operate, diagnose, and evolve the Communicating-with-Max discipline that limits Max-facing output to one end-of-round summary with exactly two carve-outs.
-owner_agent: mars
-escalation_contact: Max (rule changes); either instance (Vulcan/Mars) operates this runbook
-lifecycle_ref: §J
-authoritative_scope: The per-round Max-facing output contract (CORE §3 "Execution Philosophy — Communicating with Max"), the summary's required structure and voice, the two carve-outs (hard stop, blocking question), the timestamp header and round-end markers, and the boot-contract marker test that guards the rule. NOT authoritative for session open/close mechanics (session-open-protocol.md, session-close-protocol.md), the write-like-max skill content itself (skill source is canonical), business_summary field rules (CORE §8), or peer-to-peer messaging (runbooks/peer-instance-discipline.md).
-linter_version: 1.0.0
+title: Max Reporting — the End-of-Round Summary Discipline
+owner: mars
+last_verified: '2026-07-31'
+aliases: []
+error_signatures:
+- summary contains codes/jargon or narrates process steps
+- continuing to improvise after reporting the stop
+- bundling status updates into the question
+- boot-contract test failure on the marker text
 ---
 
 # Max Reporting — the End-of-Round Summary Discipline
 
 > The system-enforced comms contract: between the start of a round and its single end-of-round summary, an instance emits nothing Max-facing, with exactly two carve-outs. CORE §3 is the canonical statement; `infra:opening-prompt` carries the longer elaboration and points back to CORE §3. This runbook is the operator page: how to compose the summary, when a carve-out applies, how to diagnose violations, and how the rule may change.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
@@ -26,7 +27,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Boot-contract marker test | Regression guard: asserts the marker text "The ONLY Max-facing output in a round is one short end-of-round summary" is present in the boot constitution payload | koskadeux-mcp test suite (boot-contract tests) | koskadeux-mcp CI |
 | `date -u` on Titan-1 | The `[YYYY-MM-DD HH:MM UTC]` timestamp header on every Max-facing reply | Titan-1 shell | Titan-1 |
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -36,19 +37,19 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Timestamp header + round-end markers (CONTINUE / DECISION / CLOSE SESSION) | SHIPPED | `max-reporting.md` | none (convention) | 2026-07-12 |
 | Automated lint of outgoing summaries for jargon/codes | PLANNED | — | n/a | 2026-07-12 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Rule source | CORE.md §3 | constitution store (db) | delivered on every `kd_session_open` | Canonical. If CORE §3 and any elaboration conflict, CORE §3 wins. |
 | Elaboration | `infra:opening-prompt` | Living State | boot payload `opening_prompt` | Longer prose; explicitly subordinate to CORE §3. |
 | Marker guard | koskadeux-mcp boot-contract test | git (test source) | CI on koskadeux-mcp | Dropping or weakening the §3 marker text from the boot payload fails the build. |
-| The operator (Vulcan/Mars) | this runbook §E | none | write-like-max skill; `date -u` | The rule governs OUTPUT only; Max's own interface choices (e.g. thinking visibility) are his call. |
-| Waiver store | `config:runbook-waivers` | Living State | runbook-first-gates.md §E-05 discharge path | Carries the accumulated waivers on this subject until discharged by this file's commit SHA. |
+| The operator (Vulcan/Mars) | this runbook How to operate | none | write-like-max skill; `date -u` | The rule governs OUTPUT only; Max's own interface choices (e.g. thinking visibility) are his call. |
+| Waiver store | `config:runbook-waivers` | Living State | runbook-first-gates.md How to operate-05 discharge path | Carries the accumulated waivers on this subject until discharged by this file's commit SHA. |
 
 Prose: a round is one work cycle that ends in a summary. Everything an instance does inside the round — tool calls, dispatches, diagnostics — stays off Max's screen. The summary is the single delivery point. Two narrow interrupts exist and nothing else: a hard stop (work cannot safely continue) and a blocking question (Max's answer is genuinely required to proceed and cannot wait).
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -57,7 +58,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
 | Vulcan/Mars | Ask a blocking question | single question, single response | n/a | COMPLETE |
 | Max | Approve changes to the rule | CORE.md amendment (Max approval + one peer review) | Max authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -78,7 +79,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
     verification: re-read before sending; if a non-technical co-founder would stumble, rewrite
   expected_failures:
     - signature: summary contains codes/jargon or narrates process steps
-      cause: drafting from working state instead of outcome-first (§F-02)
+      cause: drafting from working state instead of outcome-first (When it breaks-02)
   next_step_success: await Max's next instruction
   next_step_failure: rewrite before sending; the violation is preventable at composition time
 - id: E-02
@@ -94,7 +95,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
     verification: no further tool calls after the report
   expected_failures:
     - signature: continuing to improvise after reporting the stop
-      cause: treating the carve-out as a progress note (§F-01)
+      cause: treating the carve-out as a progress note (When it breaks-01)
   next_step_success: wait for Max or for the blocker to clear
   next_step_failure: stop means stop
 - id: E-03
@@ -110,7 +111,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
     verification: if the question needs a paragraph of background, it was probably not blocking
   expected_failures:
     - signature: bundling status updates into the question
-      cause: smuggling narration through the carve-out (§F-01)
+      cause: smuggling narration through the carve-out (When it breaks-01)
   next_step_success: resume the round with the answer
   next_step_failure: strip the question to the decision and re-ask
 - id: E-04
@@ -127,22 +128,22 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
     verification: boot-contract test green after the change
   expected_failures:
     - signature: boot-contract test failure on the marker text
-      cause: the amendment weakened or dropped the guarded clause (§F-03)
+      cause: the amendment weakened or dropped the guarded clause (When it breaks-03)
   next_step_success: peer ratification recorded in the CORE changelog
   next_step_failure: restore the marker text or update the test in the SAME reviewed change
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Max-facing narration, acknowledgements, or progress notes appear mid-round | drafting replies between tool calls; treating a carve-out as a status channel | read the transcript: any Max-visible text between round start and the summary that is neither a hard stop nor a blocking question is a violation | §G-01 | CONFIRMED |
-| F-02 | Summary contains BQ codes, gate numbers, SHAs, tool names, or session numbers in prose | composing from working state; skipping the write-like-max pass | scan the summary for the exclusion list in §E-01 | §G-02 | CONFIRMED |
-| F-03 | koskadeux-mcp CI fails the boot-contract marker assertion | a CORE edit dropped or reworded the guarded clause "The ONLY Max-facing output in a round is one short end-of-round summary" | run the boot-contract test locally; diff CORE §3 against the marker text | §G-03 | CONFIRMED |
-| F-04 | Plan gate rejects a session naming this subject ("End-of-round summary / Max reporting" waiver bite) | ≥2 undischarged waiver rows accumulated on the subject before this runbook existed | count the subject's rows in `config:runbook-waivers` lacking discharged_by kind created/commit | §G-04 | CONFIRMED |
-| F-05 | Summary omits the timestamp header or round-end marker | convention skipped under time pressure | look at the top and bottom of the sent summary | §G-02 | CONFIRMED |
+| F-01 | Max-facing narration, acknowledgements, or progress notes appear mid-round | drafting replies between tool calls; treating a carve-out as a status channel | read the transcript: any Max-visible text between round start and the summary that is neither a hard stop nor a blocking question is a violation | Repair-01 | CONFIRMED |
+| F-02 | Summary contains BQ codes, gate numbers, SHAs, tool names, or session numbers in prose | composing from working state; skipping the write-like-max pass | scan the summary for the exclusion list in How to operate-01 | Repair-02 | CONFIRMED |
+| F-03 | koskadeux-mcp CI fails the boot-contract marker assertion | a CORE edit dropped or reworded the guarded clause "The ONLY Max-facing output in a round is one short end-of-round summary" | run the boot-contract test locally; diff CORE §3 against the marker text | Repair-03 | CONFIRMED |
+| F-04 | Plan gate rejects a session naming this subject ("End-of-round summary / Max reporting" waiver bite) | ≥2 undischarged waiver rows accumulated on the subject before this runbook existed | count the subject's rows in `config:runbook-waivers` lacking discharged_by kind created/commit | Repair-04 | CONFIRMED |
+| F-05 | Summary omits the timestamp header or round-end marker | convention skipped under time pressure | look at the top and bottom of the sent summary | Repair-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -158,7 +159,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
   component_ref: The operator (Vulcan/Mars)
   root_cause: jargon or missing header/marker in the summary
   repair_entry_point: the summary draft
-  change_pattern: rewrite outcome-first in plain business English via the write-like-max skill; strip the §E-01 exclusion list; add the `date -u` header and a round-end marker before sending
+  change_pattern: rewrite outcome-first in plain business English via the write-like-max skill; strip the How to operate-01 exclusion list; add the `date -u` header and a round-end marker before sending
   rollback_procedure: n/a
   integrity_check: a non-technical reader can act on the summary unaided
 - id: G-03
@@ -173,15 +174,15 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
   symptom_ref: F-04
   component_ref: Waiver store
   root_cause: subject accumulated waivers before the owning page existed
-  repair_entry_point: "config:runbook-waivers rows via runbook-first-gates.md §E-05"
+  repair_entry_point: "config:runbook-waivers rows via runbook-first-gates.md How to operate-05"
   change_pattern: "this runbook IS the covering page: patch the subject's waiver rows with discharged_by {kind: created, ref_or_reason: <bare SHA of the commit that added this file>}"
   rollback_procedure: re-patch discharged_by to null
   integrity_check: next kd_session_open standup no longer tripwires the subject
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - **One summary per round.** The only Max-facing output in a round is one short end-of-round summary.
 - **Exactly two carve-outs.** Hard stop; blocking question. No third category may be added without a CORE amendment.
@@ -190,27 +191,27 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
 - **The marker test guards the delivered payload.** The boot-contract assertion checks the constitution payload returned on open, not a side copy.
 - **Output-only scope.** The rule takes no position on Max's interface choices (e.g. deliberately enabling thinking visibility).
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing the single-summary rule or adding a third carve-out without a Max-approved, peer-reviewed CORE amendment.
 - Removing or weakening the boot-contract marker assertion, or pointing it at anything other than the delivered boot payload.
 - Making the elaboration (`infra:opening-prompt`) authoritative over CORE §3.
-- Changing or removing any §H.1 invariant.
+- Changing or removing any Changes and maintenance.1 invariant.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the summary's required structure (the four numbered elements) or the prose exclusion list.
 - Changing the timestamp header format or the round-end marker vocabulary.
-- Adding automated linting of outgoing summaries (the NOT_BUILT §B row).
+- Adding automated linting of outgoing summaries (the NOT_BUILT Capabilities row).
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 SAFE otherwise:
-- Documentation and example additions; refreshing §B/§J after verifications.
+- Documentation and example additions; refreshing Capabilities/Maintenance after verifications.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -218,7 +219,7 @@ Not a code system. The nearest modules are CORE.md §3 (constitution store) and 
 
 #### public contract
 
-The CORE §3 clause text, the marker sentence guarded by the boot-contract test, and the summary structure in §E-01.
+The CORE §3 clause text, the marker sentence guarded by the boot-contract test, and the summary structure in How to operate-01.
 
 #### runtime dependency
 
@@ -228,11 +229,11 @@ None added. The discipline uses only existing surfaces (chat, `date -u`, write-l
 
 None. The rule is unconditional; there is no enforce-mode toggle.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to §H.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to Changes and maintenance.1 as a clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -274,7 +275,7 @@ scenario_set:
     scenario: Reviewing a transcript, you find "on it — dispatching the builder now" sent to Max mid-round. Violation?
     expected_answers:
       - kind: classification
-        verdict: yes — narration outside the two carve-outs; repair per §G-01
+        verdict: yes — narration outside the two carve-outs; repair per Repair-01
     weight: 0.07692308
   - id: I-06
     type: isolate
@@ -290,11 +291,11 @@ scenario_set:
     scenario: The plan gate bites on the subject "End-of-round summary / Max reporting" although this runbook now exists at commit abc1234. Fix?
     expected_answers:
       - kind: human_action
-        action: 'patch the subject rows in config:runbook-waivers with discharged_by {kind: created, ref_or_reason: abc1234} per runbook-first-gates.md §E-05'
+        action: 'patch the subject rows in config:runbook-waivers with discharged_by {kind: created, ref_or_reason: abc1234} per runbook-first-gates.md How to operate-05'
     weight: 0.07692308
   - id: I-08
     type: evolve
-    refs: [§H.2]
+    refs: [Changes and maintenance.2]
     scenario: A proposal adds a third carve-out ("brief progress note on tasks longer than an hour") directly to this runbook. Classify.
     expected_answers:
       - kind: classification
@@ -306,7 +307,7 @@ scenario_set:
     scenario: A summary was sent without the UTC timestamp header and without a round-end marker. Is this a rule violation and where is it caught?
     expected_answers:
       - kind: human_action
-        action: convention violation, not a carve-out breach — caught by reading the sent message top and bottom; repair per §G-02 on the next summary
+        action: convention violation, not a carve-out breach — caught by reading the sent message top and bottom; repair per Repair-02 on the next summary
     weight: 0.07692308
   - id: I-10
     type: isolate
@@ -314,7 +315,7 @@ scenario_set:
     scenario: A summary reads "merged feed47b6 after Gate-1 mandates folded; dispatched task 1920d298". What specifically fails and how do you verify?
     expected_answers:
       - kind: human_action
-        action: scan against the §E-01 exclusion list — SHAs, gate numbers, and task ids in prose all fail; verify by re-reading the draft before sending
+        action: scan against the How to operate-01 exclusion list — SHAs, gate numbers, and task ids in prose all fail; verify by re-reading the draft before sending
     weight: 0.07692308
   - id: I-11
     type: repair
@@ -334,15 +335,15 @@ scenario_set:
     weight: 0.07692308
   - id: I-13
     type: evolve
-    refs: [§H.3]
+    refs: [Changes and maintenance.3]
     scenario: A proposed change renames the round-end marker vocabulary from CONTINUE / DECISION / CLOSE SESSION to a three-icon scheme. Classify.
     expected_answers:
       - kind: classification
-        verdict: REVIEW — marker vocabulary is a §H.3 predicate, not a §H.1 invariant
+        verdict: REVIEW — marker vocabulary is a Changes and maintenance.3 predicate, not a Changes and maintenance.1 invariant
     weight: 0.07692308
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1189
@@ -355,21 +356,9 @@ refresh_triggers:
   - any change to infra:opening-prompt's Communicating-with-Max section
   - a third undischarged waiver or a confirmed violation pattern on this subject
 scheduled_cadence: 180d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-12T09:00:00Z
 first_staleness_detected_at: null
 ```
 
 Refresh log:
 - S1192 (2026-07-12): owner_agent corrected to mars — empirical lint run confirmed the current linter has no owner enum restriction (the S1189 'enum lacks mars' claim was stale for this linter); either instance still operates this page.
-- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum was believed to predate the S811 symmetric-peer model — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload), `infra:opening-prompt` (same payload), and the runbook-first-gates.md §E-05/§G-07 discharge procedure. Written to clear the two accumulated waivers on subject "End-of-round summary / Max reporting".
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1189 / 2026-07-12T09:00:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
+- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum was believed to predate the S811 symmetric-peer model — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload), `infra:opening-prompt` (same payload), and the runbook-first-gates.md How to operate-05/Repair-07 discharge procedure. Written to clear the two accumulated waivers on subject "End-of-round summary / Max reporting".

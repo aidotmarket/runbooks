@@ -1,37 +1,31 @@
 ---
-runbook_id: corpus-capture-policy
-domain: allai-corpus
-status: ACTIVE
-authoritative_for:
-  - topic: corpus-capture-policy
-    section: §C. Architecture & Interactions
-aliases:
-  - allai-corpus-policy
-error_signatures: []
-supersedes: []
-superseded_by: []
+title: Corpus Capture Policy - What We Keep
 owner: sysadmin
-last_verified_at: 2026-08-28
-system_name: corpus-capture-policy
-purpose_sentence: This runbook is the operating authority for what ai.market retains as safe corpus evidence, what may be promoted to trusted knowledge, what may enter active projection, and what it never keeps.
-owner_agent: sysadmin
-escalation_contact: Max (human operator)
-lifecycle_ref: §J
-authoritative_scope: Capture policy for allAI semantic memory and the corpus - the keep/never-keep rules for Event Ledger admission, entity indexing, the S1299 capture classes, the S1396 corpus-capture taxonomy, human trust decisions, future automation thresholds, and qdrant_sync_outbox transport-row retention. NOT the outbox producer/consumer mechanics themselves; see qdrant-sync-outbox.md. NOT Qdrant hosting; see qdrant.md.
-linter_version: 1.0.0
+last_verified: '2026-08-28'
+aliases:
+- allai-corpus-policy
+error_signatures:
+- thousands of rows per day for one target_type
+- open count grows without review
+- the fixed-subject ticket is absent or duplicated because its query or persistence failed
+- pending or dead_letter rows deleted
+- decision returns HTTP 403
+- trust returns HTTP 409
+- decision returns HTTP 422
+- any semantic row contains a redacted placeholder or has no current trust lineage
+- no deployed allowlist/ceiling, any non-pilot row, any raw data or sentinel placeholder, a correction without its generation interaction, or any projection row
 ---
 
 <!-- Canonical source path: runbooks/corpus-capture-policy.md -->
 
 # Corpus Capture Policy - What We Keep
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 **Governing principle (Max, 2026-07-30, decision event d0052189-43c2-4251-9684-501ecc8daaf0):** capture only data that is necessary to operate the market, filter repetitive data, and treat metadata about customer data as the most important data. Target: reduce Google embedding API calls and new capture database writes by more than 95% against the 2026-07-21..07-28 baseline (roughly 55,000 rows and 32,000 embeddings per day, measured 100% internal-operations content).
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -46,9 +40,9 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
 
-Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, the default-off Chunk C metadata-generation and seller-correction producers, and the exact-listing/hard-ceiling pilot guard are live. The S1632 trust-ledger/API and ops Console are also live and operator-proven, but the wider S1396 capture programme remains partial because capture, equivalence, automatic trust, and projection are still disabled. A shipped review plane or pilot guard does not authorize activation. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (§E E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
+Status notes: S1299 corpus admission and producer default-DENY are live. `CorpusAdmissionService`, called by `StateService`, is the current writer authority; the older `admit_event` helper is not on that path. S1396 B-schema, B-activate, the default-off Chunk C metadata-generation and seller-correction producers, and the exact-listing/hard-ceiling pilot guard are live. The S1632 trust-ledger/API and ops Console are also live and operator-proven, but the wider S1396 capture programme remains partial because capture, equivalence, automatic trust, and projection are still disabled. A shipped review plane or pilot guard does not authorize activation. The retention sweep and the attribution alarm have no owning build yet; the sweep is currently a Max-gated manual operation (How to operate E-03) and the attribution gap is the detection failure behind the July 2026 cost incident (allai_cost_daily has only zero rows).
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -60,12 +54,12 @@ Status notes: S1299 corpus admission and producer default-DENY are live. `Corpus
 | S1396 semantic trust boundary and Corpus console | `app/services/corpus_trust_service.py`, `app/api/v1/endpoints/ops_corpus.py`, ops.ai.market `/corpus` | S1396 evidence tables, `corpus_trust_decisions` | authenticated ops review, future projection | Safe admission is not semantic trust. Human decisions are append-only and revisioned. The console can trust, reject, or supersede evidence and records an equivalence rating from 0 to 100. No console action enables capture or projection. Backend and ops deployments are exact and the authorized Max operator surface is live. |
 | Transport queue | `app/services/qdrant_sync_worker.py` | `qdrant_sync_outbox` | Vertex embeddings, Qdrant | Transport only, never canonical. Processed rows are purgeable; canonical content lives in state_entities and state_events. |
 
-### §C.1 What we KEEP - current, live today
+### Architecture & interactions.1 What we KEEP - current, live today
 
 1. **Events, central admission first.** `CorpusAdmissionService` is the writer authority. Decision-grade operating records may be admitted as bounded `operational_learning`; the exact event-type sets remain a secondary worker compatibility gate, not the producer admission decision.
 2. **Entities, default-DENY at producers.** S1299 producer admission is live. A non-admitted entity write does not create semantic transport work; configured denylist behavior remains defense in depth.
 
-### §C.2 What we KEEP - the live S1299 corpus classes
+### Architecture & interactions.2 What we KEEP - the live S1299 corpus classes
 
 Only these six classes exist; everything else is denied by default at the producer:
 
@@ -76,7 +70,7 @@ Only these six classes exist; everything else is denied by default at the produc
 5. **approved_knowledge** - versioned, approved documentation with owner, authority, review date, and supersession.
 6. **curated_ai_output** - human-curated AI synthesis with source references and model provenance, down-weighted at 0.20 and experiment-gated.
 
-### §C.3 What we KEEP - the moat capture (S1396, foundation and default-off producers live)
+### Architecture & interactions.3 What we KEEP - the moat capture (S1396, foundation and default-off producers live)
 
 Per metadata-generation interaction: the structure fingerprint of the customer source (schema shape, never content), the metadata allAI generated for it, the seller's corrections to that metadata, and persisted equivalence mappings between differently-labeled listings that describe the same kind of data. This is the compounding classification-and-matching asset Max defined as the long-term moat on 2026-07-29.
 
@@ -92,7 +86,7 @@ The bounded pilot guard is deployed in backend merge `ee6fd5918b999ed2d7cff383c0
 
 The load-bearing health-drift adjudication was completed read-only on the current API deployment and refreshed at `2026-08-28T19:46:08Z`. The six supposedly missing model tables were exactly `issue_channel.canonical_issues`, `issue_channel.dispatch_intents`, `issue_channel.safe_quarantine_records`, `issue_channel.safe_raw_records`, `issue_channel.safe_snapshot_records`, and `issue_channel.source_records`; production inspection proved all six physically present under the `issue_channel` schema. The monitor queries only `information_schema.tables WHERE table_schema = 'public'` and compares those bare public names with schema-qualified SQLAlchemy model keys, so it misclassifies every `issue_channel` model as missing. The current 41-table unmapped inventory contains no `corpus_*` table, and the refreshed exact Corpus audit still reports zero rows in all nine stores and zero sentinel-placeholder matches. Durable receipt `/Users/max/koskadeux-state/receipts/s1396/s1632-corpus-health-adjudication-20260828.json` has mode `0600` and SHA-256 `ac37a13849a6be8ec3a9fb7c1acdecf75630aac04647050b7add7be4de72513a`. This adjudicates the reported schema drift as non-load-bearing for the first bounded Corpus pilot only; it does not declare the public health endpoint green, excuse the health-check defect, or authorize activation. E-06 remains blocked pending an exact synthetic or explicitly authorized listing UUID, a positive reviewed ceiling, and recorded Max authorization.
 
-### §C.3.1 The corpus-capture taxonomy: evidence is not trust
+### Architecture & interactions.3.1 The corpus-capture taxonomy: evidence is not trust
 
 The permanent-memory boundary has three separate layers. A record may advance only one layer at a time:
 
@@ -102,7 +96,7 @@ The permanent-memory boundary has three separate layers. A record may advance on
 
 Negative evidence is useful and may remain in the safe-evidence layer with typed outcome codes. It must never be retrieved as truth. AI-generated metadata has zero self-confirming authority: model repetition, confidence, or reuse of its own proposal is not independent evidence. Seller acceptance of AI-drafted metadata is one weak, listing-scoped evidence vote; a seller correction is stronger but is not universal taxonomy truth.
 
-### §C.3.2 Equivalence policy: hard gates first, score second
+### Architecture & interactions.3.2 Equivalence policy: hard gates first, score second
 
 Every dataset-equivalence edge has a numerical rating from 0 to 100. The score explains degree of structural equivalence and prioritizes review; it never overrides a hard gate and does not by itself prove truth.
 
@@ -115,7 +109,7 @@ Every dataset-equivalence edge has a numerical rating from 0 to 100. The score e
 
 The initial thresholds are Council calibration seeds, not active automation. Capture and projection stay off while shadow labels are collected. Do not enable automatic trusted promotion until audited precision in the 85-100 band is at least 99%, placeholder detection is 100% on the adversarial fixture set, AI self-promotion observed count is zero, and conflict detection is at least 95% on injected conflicts.
 
-### §C.4 What we NEVER keep
+### Architecture & interactions.4 What we NEVER keep
 
 - Raw customer data in any form or transit path (non-custodial invariant, CORE S1/P2). Absolute.
 - Machine housekeeping: cursors, heartbeats, scheduler ticks, unchanged-status polls, duplicate retries, session opens, ownership claims and releases, config-change chatter, dispatch results.
@@ -123,22 +117,22 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - PII anywhere on the capture path: admission is fail-closed REJECT, never redact-and-keep, and rejections persist no content, spans, or pattern names - only aggregate reason-code counters.
 - Redacted or sentinel semantic placeholders such as `redacted_term`, `redacted_stem`, `[redacted]`, `unknown`, `masked`, or an empty fallback as taxonomy terms, schema-family anchors, or equivalence endpoints. Unsafe names may leave content-free quarantine coordinates and aggregate reason codes only; they never create a semantic row.
 
-### §C.5 Retention of the transport queue
+### Architecture & interactions.5 Retention of the transport queue
 
-`qdrant_sync_outbox` is transport, not record. Rows with status done are purgeable after a short buffer; dead_letter rows are kept for diagnosis until their root cause is closed. One-shot purge executed 2026-07-30 under Max GO (event d0052189): 498,000 processed rows removed, 1.3 GB, canonical tables untouched. No automatic sweep exists yet (the §B retention-sweep row is PLANNED with no owning build); until one ships, run §E E-03 under the same gating.
+`qdrant_sync_outbox` is transport, not record. Rows with status done are purgeable after a short buffer; dead_letter rows are kept for diagnosis until their root cause is closed. One-shot purge executed 2026-07-30 under Max GO (event d0052189): 498,000 processed rows removed, 1.3 GB, canonical tables untouched. No automatic sweep exists yet (the Capabilities retention-sweep row is PLANNED with no owning build); until one ships, run How to operate E-03 under the same gating.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| SysAdmin | Measure capture volume and composition | SQL in §E E-01 | read-only backend DB | COMPLETE |
-| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket (AI-owned since S1585: human_required=false, assignee ai_agent/sysadmin; discharged via the TICKETS panel or the E-02 SQL; appears on neither Max's needs-Max rows nor the OPS Attention list), read-only SQL in §E E-02, code edit per §G G-01, then existing-monitor reconciliation | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
-| Vulcan/Mars | One-shot purge of processed outbox rows | SQL in §E E-03 | production DB write with explicit Max GO | COMPLETE |
-| Vulcan/Mars | Extend event admit/never rules | code edit per §G G-01 with Council review | PR authorship | COMPLETE |
+| SysAdmin | Measure capture volume and composition | SQL in How to operate E-01 | read-only backend DB | COMPLETE |
+| SysAdmin + Max (human operator) | Surface and discharge the weekly quarantined-event-type classification obligation | SupportTicket (AI-owned since S1585: human_required=false, assignee ai_agent/sysadmin; discharged via the TICKETS panel or the E-02 SQL; appears on neither Max's needs-Max rows nor the OPS Attention list), read-only SQL in How to operate E-02, code edit per Repair G-01, then existing-monitor reconciliation | owner-surface ticket handling, backend DB read, PR authorship | COMPLETE |
+| Vulcan/Mars | One-shot purge of processed outbox rows | SQL in How to operate E-03 | production DB write with explicit Max GO | COMPLETE |
+| Vulcan/Mars | Extend event admit/never rules | code edit per Repair G-01 with Council review | PR authorship | COMPLETE |
 | Corpus Curator (S1299 C6) | Class-policy ownership and candidate curation | S1299 curator workflow | corpus_curator application role | PLANNED |
 | Max / Corpus Curator | Review privacy-safe S1396 evidence; record trust, rejection, supersession, and 0-100 equivalence rating | ops.ai.market CORPUS tab; `/api/v1/ops/corpus/` | authenticated ops operator mapped to an active application user | COMPLETE |
 
-## §E. Operate - Serving Customers
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -154,9 +148,9 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     verification: no single target_id repeats more than a handful of times per day; embed disposition is a small fraction of total events
   expected_failures:
     - signature: thousands of rows per day for one target_type
-      cause: an unfiltered producer or a rule regression; go to §F F-01
+      cause: an unfiltered producer or a rule regression; go to When it breaks F-01
   next_step_success: done
-  next_step_failure: §F F-01
+  next_step_failure: When it breaks F-01
 - id: E-02
   trigger: "Weekly P2 quarantine review - classify unknown event types when the fixed-subject SupportTicket is refreshed by the sysadmin obligation run (since S1585 the ticket is AI-owned: human_required=false, assignee ai_agent/sysadmin; it appears on neither Max's needs-Max rows nor the OPS Attention list, and is discharged via the TICKETS panel or the E-02 SQL)"
   pre_conditions:
@@ -176,7 +170,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
       cause: the P2 classification obligation ticket remains open; review it on the TICKETS tab without paging Telegram
     - signature: the fixed-subject ticket is absent or duplicated because its query or persistence failed
       cause: support-ticket owner-surface failure, not a higher-priority quarantine backlog; the bounded P1 operational escalation pages Telegram with stable dedup
-  next_step_success: §G G-01 for any rule change, then resolve the fixed-subject ticket through the supported ticket surface only after the read-only status query is healthy
+  next_step_success: Repair G-01 for any rule change, then resolve the fixed-subject ticket through the supported ticket surface only after the read-only status query is healthy
   next_step_failure: restore support-ticket query/persistence from the deduplicated P1 operational escalation; otherwise continue the P2 review on the TICKETS tab
 - id: E-03
   trigger: Purge processed transport rows (Max-gated maintenance)
@@ -220,7 +214,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     - signature: decision returns HTTP 422
       cause: the active ops reviewer identity is missing, or an equivalence edge has no required 0-100 rating
   next_step_success: done
-  next_step_failure: §F F-05
+  next_step_failure: When it breaks F-05
 - id: E-05
   trigger: Before any S1396 capture, automatic-trust, or projection activation proposal
   pre_conditions:
@@ -235,9 +229,9 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     verification: reconcile database counts, latest decisions, deployment SHA, and literal flag values; do not infer absent flags as enabled
   expected_failures:
     - signature: any semantic row contains a redacted placeholder or has no current trust lineage
-      cause: corpus contamination; freeze activation and use §G G-04
+      cause: corpus contamination; freeze activation and use Repair G-04
   next_step_success: return evidence to the activation gate without changing flags
-  next_step_failure: §G G-04
+  next_step_failure: Repair G-04
 - id: E-06
   trigger: Activate the first S1396 shadow-capture pilot after E-05 is clean
   pre_conditions:
@@ -259,22 +253,22 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
     verification: rerun E-05; verify the combined retained-row count across corpus_records, structure_fingerprints, generation_interactions, correction_deltas, concept_term_alignments, and metadata_fingerprint_quarantine never exceeds the hard ceiling; reconcile each new row to the authorized pilot set; inspect only privacy-safe fields in CORPUS; verify equivalence, approved-knowledge, and projection remain off
   expected_failures:
     - signature: no deployed allowlist/ceiling, any non-pilot row, any raw data or sentinel placeholder, a correction without its generation interaction, or any projection row
-      cause: the pilot is unbounded, contaminated, or has broken lineage; set the emergency stop and use §G G-04
+      cause: the pilot is unbounded, contaminated, or has broken lineage; set the emergency stop and use Repair G-04
   next_step_success: collect manual labels in shadow mode; do not widen scope or enable automation from a successful first sample
-  next_step_failure: freeze capture and use §G G-04
+  next_step_failure: freeze capture and use Repair G-04
 ```
 
-## §F. Isolate - Diagnosing Deviations
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Embedding or outbox volume spikes above policy expectations | new unfiltered producer, entity churn before S1299 Chunk 2, rule regression | run §E E-01; then `SELECT split_part(target_id,':',1), count(*), count(distinct target_id) FROM qdrant_sync_outbox WHERE created_at >= now() - interval '1 day' AND target_type='entity' GROUP BY 1 ORDER BY 2 DESC` to see namespace and repetition | §G-03 | CONFIRMED |
-| F-02 | Quarantine backlog grows and stays open | weekly review not happening, genuinely novel event families | §E E-02 listing ordered by count | §G-01 | CONFIRMED |
-| F-03 | Junk admitted through token matching | an operational event type contains an embed token such as decision or review | `SELECT event_type, count(*) FROM state_events WHERE indexing_disposition='embed' AND ts >= now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC` and judge each type against §C.1 | §G-01 | HYPOTHESIZED |
-| F-04 | Google spend rises with no matching capture volume | generation-side spend (agents, mediation), not capture; or attribution gap hides the driver | compare §E E-01 volumes with GCP Monitoring aiplatform request_count; remember allai_cost_daily contains only zero rows and proves nothing |  | CONFIRMED |
-| F-05 | Corpus item cannot be trusted, or trusted knowledge appears semantically wrong | hard gate failure, insufficient independent evidence, reviewer conflict, redacted placeholder, source withdrawal, or newer contradictory evidence | inspect the item and latest decision in the CORPUS tab; run §E E-05; do not inspect or copy raw customer payloads | §G-04 | CONFIRMED |
+| F-01 | Embedding or outbox volume spikes above policy expectations | new unfiltered producer, entity churn before S1299 Chunk 2, rule regression | run How to operate E-01; then `SELECT split_part(target_id,':',1), count(*), count(distinct target_id) FROM qdrant_sync_outbox WHERE created_at >= now() - interval '1 day' AND target_type='entity' GROUP BY 1 ORDER BY 2 DESC` to see namespace and repetition | Repair-03 | CONFIRMED |
+| F-02 | Quarantine backlog grows and stays open | weekly review not happening, genuinely novel event families | How to operate E-02 listing ordered by count | Repair-01 | CONFIRMED |
+| F-03 | Junk admitted through token matching | an operational event type contains an embed token such as decision or review | `SELECT event_type, count(*) FROM state_events WHERE indexing_disposition='embed' AND ts >= now() - interval '7 days' GROUP BY 1 ORDER BY 2 DESC` and judge each type against Architecture & interactions.1 | Repair-01 | HYPOTHESIZED |
+| F-04 | Google spend rises with no matching capture volume | generation-side spend (agents, mediation), not capture; or attribution gap hides the driver | compare How to operate E-01 volumes with GCP Monitoring aiplatform request_count; remember allai_cost_daily contains only zero rows and proves nothing |  | CONFIRMED |
+| F-05 | Corpus item cannot be trusted, or trusted knowledge appears semantically wrong | hard gate failure, insufficient independent evidence, reviewer conflict, redacted placeholder, source withdrawal, or newer contradictory evidence | inspect the item and latest decision in the CORPUS tab; run How to operate E-05; do not inspect or copy raw customer payloads | Repair-04 | CONFIRMED |
 
-## §G. Repair - Fixing Problems
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -289,7 +283,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   symptom_ref: F-01
   component_ref: Transport queue
   root_cause: processed transport rows accumulating (no automatic sweep exists)
-  repair_entry_point: runbooks/corpus-capture-policy.md §E E-03
+  repair_entry_point: runbooks/corpus-capture-policy.md How to operate E-03
   change_pattern: run the Max-gated one-shot purge; file or advance the recurring-sweep build so the manual step disappears
   rollback_procedure: none - purged transport rows are not restorable; canonical data is unaffected by design
   integrity_check: table row count equals recent buffer plus dead_letter plus pending
@@ -300,7 +294,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   repair_entry_point: app/core/config.py
   change_pattern: preferred repair is landing S1299 Chunk 2 (default-DENY at producers, no outbox row at all); the interim lever QDRANT_ENTITY_DENYLIST_PREFIXES stops Vertex embeds for matching prefixes BUT the consumer deletes the matching Qdrant points and no re-embed tooling exists until S1299 Chunk 3, so treat a broad denylist extension as a production-data change needing Max approval
   rollback_procedure: removing a prefix stops further deletes but does not restore deleted points until Chunk 3 rebuild tooling exists
-  integrity_check: §E E-01 daily entity counts fall to policy expectations without unexplained Qdrant point loss for kept namespaces
+  integrity_check: How to operate E-01 daily entity counts fall to policy expectations without unexplained Qdrant point loss for kept namespaces
 - id: G-04
   symptom_ref: F-05
   component_ref: S1396 semantic trust boundary and Corpus console
@@ -311,11 +305,11 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
   integrity_check: latest decision is the intended state, older revisions remain auditable, no redacted semantic row exists, and no rejected or superseded item appears in active projection
 ```
 
-## §H. Evolve - Extending the System
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
-- The governing principle in §A binds every future capture proposal: necessary to operate the market, repetition filtered, customer-data metadata first.
+- The governing principle in Overview binds every future capture proposal: necessary to operate the market, repetition filtered, customer-data metadata first.
 - Default-DENY is the posture. A new capture class exists only through the S1299 class registry with a named owner role, a measured feedback loop, and a prune rule. No class, no capture.
 - Non-custodial is absolute and senior to every other goal in this runbook.
 - Rejection paths persist no content, ever. Counters and stable reason codes only.
@@ -328,7 +322,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Repetition is filtered at the producer, not the consumer: a filtered record writes no row at all.
 - The Event Ledger (state_events) itself remains an append-only audit record independent of capture; capture policy governs what is embedded and projected, not what is audited. Ledger retention belongs to BQ-DATABASE-CLEANUP-RETENTION-S1300.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Any change that captures raw customer data or PII is BREAKING.
 - Any change that persists rejected content is BREAKING.
@@ -338,7 +332,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Any change that treats safe admission, an AI confidence, or a numerical equivalence rating as sufficient semantic trust is BREAKING.
 - Any change that lets rejected, superseded, pre-publish, or placeholder-bearing evidence enter active projection is BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding or retiring a capture class requires REVIEW.
 - Changing admit/never event rules requires REVIEW.
@@ -347,14 +341,14 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Adding a producer requires REVIEW.
 - Changing trust states, equivalence scoring, hard gates, evidence independence, automated thresholds, or projection eligibility requires REVIEW.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Documentation changes are SAFE when they do not change behavior.
 - Adding tests is SAFE when it does not change behavior.
 - Tightening a reject path is SAFE when it preserves the governing invariants.
 - Adding content-free telemetry is SAFE when it preserves the governing invariants.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -362,7 +356,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 
 #### public contract
 
-The six-class enum, admission reason codes, quarantine table shape, and the governing principle in §A.
+The six-class enum, admission reason codes, quarantine table shape, and the governing principle in Overview.
 
 #### runtime dependency
 
@@ -372,11 +366,11 @@ Postgres, embedding provider (swappable per CORE S6), Qdrant, and Railway.
 
 `QDRANT_ENTITY_DENYLIST_PREFIXES` is currently `infra:git-push-poller-cursor`; all S1299 and S1396 class flags default false. The S1396 Chunk C release does not change any production flag value.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-Evaluate §H.2 before §H.3, and §H.3 before §H.4. If the documented predicates do not resolve a classification, do not infer a new policy: escalate the unresolved case to Max and record the resulting ruling before implementation.
+Evaluate Changes and maintenance.2 before Changes and maintenance.3, and Changes and maintenance.3 before Changes and maintenance.4. If the documented predicates do not resolve a classification, do not infer a new policy: escalate the unresolved case to Max and record the resulting ruling before implementation.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -437,7 +431,7 @@ scenario_set:
     weight: 0.09090909090909091
   - id: I-07
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Proposal to log rejected candidate text for debugging.
     expected_answers:
       - kind: classification
@@ -445,7 +439,7 @@ scenario_set:
     weight: 0.09090909090909091
   - id: I-08
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Ambiguous - a proposal to capture per-buyer search strings hashed with SHA-256 so they are "not raw data".
     expected_answers:
       - kind: classification
@@ -481,7 +475,7 @@ scenario_set:
     weight: 0.09090909090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1632
@@ -495,18 +489,5 @@ refresh_triggers:
   - any change to event admission rules or denylist prefixes
   - any capture-related cost incident
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1632 / 2026-08-28T18:50:17Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```

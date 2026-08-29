@@ -1,23 +1,12 @@
 ---
-runbook_id: e2e-video-review
-domain: e2e-testing
-status: ACTIVE
-authoritative_for:
-  - topic: e2e-video-review
-    section: §C. Architecture & Interactions
-aliases: []
-error_signatures: []
-supersedes: []
-superseded_by: []
+title: E2E Video Review
 owner: mars
-last_verified_at: 2026-07-23
-system_name: e2e-video-review
-purpose_sentence: Hold the design reasoning for the video-and-Gemini review of test runs - what we chose, what we rejected and why, and what is still open - so that a future instance improving this process starts from the argument rather than repeating it.
-owner_agent: mars
-escalation_contact: Max (any change to the four questions, to what a finding must prove before it is accepted, or to what is recorded and where); either instance (Vulcan/Mars) operates this runbook
-lifecycle_ref: §J
-authoritative_scope: The DESIGN LOGIC and decision record for reviewing e2e browser-run recordings with a video model - the four owner questions, the evidence a finding must carry, the three-path acceptance gate, deduplication, severity assignment, pass structure, and the rejected alternatives with their reasons. NOT authoritative for the browser_journey runner (e2e-browser-runner.md), the status publisher and coverage manifest (e2e-test-status-publisher.md), charter authoring honesty and the integrity audit (e2e-programme-integrity.md), the ops.ai.market render surface (ops-ai-market.md), or Council dispatch mechanics (agent-dispatch.md).
-linter_version: 1.0.0
+last_verified: '2026-07-23'
+aliases: []
+error_signatures:
+- you cannot find the reasoning for an existing choice
+- both reviewers agree with everything
+- the question is settled by argument instead of measurement
 ---
 
 <!-- Canonical source path: runbooks/e2e-video-review.md -->
@@ -28,11 +17,10 @@ linter_version: 1.0.0
 >
 > The browser agent runs headless and leaves only text behind. Video is being added so a human, and a video model, can see what the run actually looked like. This runbook is NOT an operating manual for a shipped system - very little of it is built. It is the DESIGN RECORD, kept in the runbooks on Max's instruction so that whoever improves this process next can see the reasoning and the rejected alternatives instead of rediscovering them.
 >
-> Read the §H.6 decision log first. It is the decision log, and it is the reason this file exists. Owner BQ `BQ-E2E-RUN-VIDEO-AND-GEMINI-REVIEW-S1315`.
+> Read the Changes and maintenance.6 decision log first. It is the decision log, and it is the reason this file exists. Owner BQ `BQ-E2E-RUN-VIDEO-AND-GEMINI-REVIEW-S1315`.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
@@ -40,12 +28,12 @@ YAML frontmatter above is authoritative for the §A header fields.
 |---|---|---|---|
 | Run recordings | The video of each browser journey, the primary evidence this whole mechanism reads | `/Users/max/Downloads/testvideos` on Titan-1, Max-specified. VOLATILE by design - Max deletes old ones and macOS may clear Downloads | e2e-harness |
 | Step transcript | The agent's own declared intent and actions per step. Without it the acceptance gate cannot tell a tester fault from a product fault | e2e-harness run artifacts | e2e-browser-runner.md |
-| Playwright trace | DOM snapshots and network activity. NOT fed raw - see §H.6 decision log entry 3 | e2e-harness run artifacts | e2e-browser-runner.md |
+| Playwright trace | DOM snapshots and network activity. NOT fed raw - see Changes and maintenance.6 decision log entry 3 | e2e-harness run artifacts | e2e-browser-runner.md |
 | Coverage catalog | The 30 journeys. Answers the owner's flow question, which a video model cannot | `docs/coverage.json` in e2e-harness | e2e-programme-integrity.md |
 | Gemini via Vertex | The video model. Samples video at roughly one frame per second and can cite MM:SS timestamps | Google Cloud project already used by Council | Council / agent-dispatch.md |
 | ops.ai.market Test page | Where Max picks a recording and submits it. Currently read-only; a submit action is a command surface | `aidotmarket/ops-ai-market` | ops-ai-market.md |
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -59,53 +47,53 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Evidence-object schema defined | BROKEN | `runbooks/e2e-video-review.md` | n/a | 2026-07-23 |
 | Definition of a violated contract | BROKEN | `runbooks/e2e-video-review.md` | n/a | 2026-07-23 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Recorder | e2e-harness browser journey runner | video files on Titan-1 | run report, tickets | Must fail soft. A recording problem must never change a run's outcome. Must create its directory at write time, every run. |
-| Evidence assembler | not yet built | — | transcript, trace, catalog | Builds the single object both the model and the gate read. Load-bearing and currently UNDEFINED - see §F-02. |
+| Evidence assembler | not yet built | — | transcript, trace, catalog | Builds the single object both the model and the gate read. Load-bearing and currently UNDEFINED - see When it breaks-02. |
 | Video model | Gemini via the existing Vertex connection | — | evidence assembler | Sees roughly one frame per second. Cannot read a binary archive. Cannot see the agent's intent unless the assembler gives it. |
 | Acceptance gate | not yet built | — | findings, tickets | Decides accepted, accepted-with-review, or demoted. Never discards. |
 | Ticket path | support ticket API | support tickets | gate, dedup signature | Only fully accepted findings auto-file. Everything else waits for a human. |
 
 Prose: a run produces a video, a step transcript and a trace. An assembler turns those into one evidence object. The model reads the video plus that object and returns structured findings. A gate decides what each finding has earned. Severity is applied by us from the category, not by the model. A stable signature decides whether a finding is new or the same one recurring. The point of the whole chain is that a finding arrives with its evidence attached, because the failure mode of this programme has always been output that looks like insight.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan/Mars | Read the decision log before changing anything here | this runbook §H.7 | none | COMPLETE |
+| Vulcan/Mars | Read the decision log before changing anything here | this runbook Changes and maintenance.7 | none | COMPLETE |
 | Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Titan-1 | PARTIAL — cannot be settled until a real recording exists |
-| Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<kimi\|glm>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in §H.6; current calls use the deployed role/schema projection |
+| Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<kimi\|glm>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in Changes and maintenance.6; current calls use the deployed role/schema projection |
 | Kimi / GLM | Attack a proposed question set or gate outside a binding gate vote | `council_request mode=open_response` | Council dispatch | COMPLETE — use separate prompts and preserve both receipts; DeepSeek is retired from active voting |
 | CC | Review built code | `council_request mode=review` | Council dispatch | COMPLETE — note CC supports review mode only, not open_response |
 | Gemini | Analyse a recording and return findings | Vertex, existing Council connection | Google Cloud project | PLANNED |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
   trigger: You are about to change how test-run video is reviewed, or how findings from it are accepted
   pre_conditions:
     - none
-  tool_or_endpoint: "read §H.6 decision log in this runbook BEFORE proposing anything"
+  tool_or_endpoint: "read Changes and maintenance.6 decision log in this runbook BEFORE proposing anything"
   argument_sourcing:
-    decisions: §H.6 decision log of this runbook
-    owner_questions: §H.1 invariants
+    decisions: Changes and maintenance.6 decision log of this runbook
+    owner_questions: Changes and maintenance.1 invariants
   idempotency: IDEMPOTENT
   expected_success:
     shape: 'you can state which decision you are reopening, what its original reasoning was, and what new information justifies changing it'
-    verification: 'name the decision number in the §H.6 decision log and quote the reason it was decided that way'
+    verification: 'name the decision number in the Changes and maintenance.6 decision log and quote the reason it was decided that way'
   expected_failures:
     - signature: you cannot find the reasoning for an existing choice
-      cause: the decision log is incomplete - add it rather than working around it (§F-01)
+      cause: the decision log is incomplete - add it rather than working around it (When it breaks-01)
   next_step_success: propose the change, then put it to Council per E-02
-  next_step_failure: repair the log per §G-01
+  next_step_failure: repair the log per Repair-01
 - id: E-02
   trigger: A change to the questions, the gate, or the finding schema is proposed
   pre_conditions:
-    - the change names the §H.6 decision it revises
+    - the change names the Changes and maintenance.6 decision it revises
   tool_or_endpoint: "council_request(agent=<kimi|glm>, mode=open_response, task=<adversarial_prompt>, cwd=<repo>) once for each of two schema-visible challengers, separately"
   argument_sourcing:
     reviewers: select Kimi and GLM only after confirming both in the deployed role projection and connected client schema; this is non-gate deliberation and does not alter the binding voter contract
@@ -117,9 +105,9 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
     verification: 'the second reviewer was given the FIRST reviewer conclusions and asked to attack them by name'
   expected_failures:
     - signature: both reviewers agree with everything
-      cause: they were asked to review rather than to attack, or the second was not shown the first's conclusions (§F-03)
+      cause: they were asked to review rather than to attack, or the second was not shown the first's conclusions (When it breaks-03)
   next_step_success: record the adjudication, then freeze
-  next_step_failure: re-dispatch with an adversarial framing per §G-03
+  next_step_failure: re-dispatch with an adversarial framing per Repair-03
 - id: E-03
   trigger: Settle the open question of one analysis pass versus two
   pre_conditions:
@@ -134,31 +122,31 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
     verification: 'the number is measured on a real recording, not estimated'
   expected_failures:
     - signature: the question is settled by argument instead of measurement
-      cause: exactly the error this runbook exists to prevent (§F-04)
-  next_step_success: record the decision in the §H.6 decision log with the measurement
+      cause: exactly the error this runbook exists to prevent (When it breaks-04)
+  next_step_success: record the decision in the Changes and maintenance.6 decision log with the measurement
   next_step_failure: do not proceed - an unmeasured split is a guess
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Someone proposes a change that was already considered and rejected | The decision log is incomplete, or the proposer did not read it. This runbook exists because a BQ body is not read and goes stale | search the §H.6 decision log for the topic; if the reasoning is absent, that is the defect | §G-01 | CONFIRMED |
-| F-02 | The acceptance gate cannot tell a tester fault from a product fault | The evidence object omits the agent's declared per-step intent. The gate depends entirely on it and the schema is not yet defined | inspect what the assembler actually passes; if intent is missing, the gate is decorative | §G-02 | CONFIRMED |
-| F-03 | Council rounds all agree and nothing is caught | Reviewers were asked to review rather than to attack, or the later reviewer was never shown the earlier conclusions by name | check the dispatch text - it must name the prior conclusions and ask for them to be attacked | §G-03 | CONFIRMED |
-| F-04 | A structural choice is defended by argument when it is really an empirical question | Reviewers cannot measure. Pass structure and context fit are measurements | ask what number would settle it, then go and measure that number | §G-04 | CONFIRMED |
-| F-05 | Recordings stop appearing with no error anywhere | The target directory was cleared, by Max or by macOS, and the writer assumed it persisted | check the directory exists; if the code did not recreate it, that is the defect | §G-05 | CONFIRMED |
-| F-06 | Findings are confident, plausible, and wrong | The model attributed a harness fault to the product. On video an agent clicking the wrong element is indistinguishable from a broken control, and a prompt instruction not to conflate them does not prevent it | check whether the finding cites the agent's declared intent and hard evidence of misbehaviour, or only a screenshot impression | §G-06 | CONFIRMED |
-| F-07 | The same defect files a fresh ticket every night | Deduplication keyed on values that change per run, such as timings, or on free text the model rephrases | compare two nights of the same defect; if the signature differs, the dedup is fiction | §G-07 | CONFIRMED |
+| F-01 | Someone proposes a change that was already considered and rejected | The decision log is incomplete, or the proposer did not read it. This runbook exists because a BQ body is not read and goes stale | search the Changes and maintenance.6 decision log for the topic; if the reasoning is absent, that is the defect | Repair-01 | CONFIRMED |
+| F-02 | The acceptance gate cannot tell a tester fault from a product fault | The evidence object omits the agent's declared per-step intent. The gate depends entirely on it and the schema is not yet defined | inspect what the assembler actually passes; if intent is missing, the gate is decorative | Repair-02 | CONFIRMED |
+| F-03 | Council rounds all agree and nothing is caught | Reviewers were asked to review rather than to attack, or the later reviewer was never shown the earlier conclusions by name | check the dispatch text - it must name the prior conclusions and ask for them to be attacked | Repair-03 | CONFIRMED |
+| F-04 | A structural choice is defended by argument when it is really an empirical question | Reviewers cannot measure. Pass structure and context fit are measurements | ask what number would settle it, then go and measure that number | Repair-04 | CONFIRMED |
+| F-05 | Recordings stop appearing with no error anywhere | The target directory was cleared, by Max or by macOS, and the writer assumed it persisted | check the directory exists; if the code did not recreate it, that is the defect | Repair-05 | CONFIRMED |
+| F-06 | Findings are confident, plausible, and wrong | The model attributed a harness fault to the product. On video an agent clicking the wrong element is indistinguishable from a broken control, and a prompt instruction not to conflate them does not prevent it | check whether the finding cites the agent's declared intent and hard evidence of misbehaviour, or only a screenshot impression | Repair-06 | CONFIRMED |
+| F-07 | The same defect files a fresh ticket every night | Deduplication keyed on values that change per run, such as timings, or on free text the model rephrases | compare two nights of the same defect; if the signature differs, the dedup is fiction | Repair-07 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
   symptom_ref: F-01
   component_ref: Evidence assembler
   root_cause: the decision log does not record why a choice was made
-  repair_entry_point: §H.6 decision log of this runbook
+  repair_entry_point: Changes and maintenance.6 decision log of this runbook
   change_pattern: 'add the missing decision with its date, what was proposed, what was rejected, and the REASON. A decision without its reason is worthless, because the next instance cannot tell whether new information justifies changing it. Max asked for this file precisely so improvement starts from the argument rather than repeating it'
   rollback_procedure: none wanted
   integrity_check: a reader can state why the current choice beats the rejected one
@@ -167,7 +155,7 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
   component_ref: Evidence assembler
   root_cause: the evidence object omits the agent's declared intent, so the gate cannot function
   repair_entry_point: the evidence-object schema
-  change_pattern: 'define the schema explicitly BEFORE building anything that depends on it. It must carry, at minimum, the agent per-step declared intent, the action actually taken, failed network requests with status codes, console errors, failed assertions, and the state of the elements involved. Extract these as text - do NOT pass the raw trace archive, see §H.6 decision log entry 3'
+  change_pattern: 'define the schema explicitly BEFORE building anything that depends on it. It must carry, at minimum, the agent per-step declared intent, the action actually taken, failed network requests with status codes, console errors, failed assertions, and the state of the elements involved. Extract these as text - do NOT pass the raw trace archive, see Changes and maintenance.6 decision log entry 3'
   rollback_procedure: none wanted
   integrity_check: pick a real run and confirm the gate can classify each finding using only the object
 - id: G-03
@@ -212,9 +200,9 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
   integrity_check: run the same defect twice and confirm one signature and a recurrence count, not two tickets
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - **Max's four questions are the spine and are not removable.** What a user hits, what the tester gets wrong, how to improve the flow, and how to improve the experience.
 - **A finding arrives with its evidence or it does not arrive as a finding.** Point findings cite a timestamp, what was on screen, and what was expected. Diffuse findings cite a time range, the pattern, and the expected baseline.
@@ -225,7 +213,7 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
 - **The recording directory is verified or created at write time, every run.** It is volatile by design.
 - **Recording and analysis never change a test run's outcome.** Fail soft, log loudly.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing or reinterpreting one of Max's four questions without his decision.
@@ -235,22 +223,22 @@ BREAKING if ANY of (first match wins):
 - Deduplicating on run-varying values, which silently converts recurrence into a flood of duplicates.
 - Assuming the recording directory persists.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the evidence-object schema, since the gate depends on it entirely.
 - Changing the definition of a violated contract.
-- Changing pass structure, which must be settled by measurement per §E-03.
+- Changing pass structure, which must be settled by measurement per How to operate-03.
 - Sending recordings anywhere other than the existing Google Cloud project.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 SAFE otherwise:
 - Wording of this runbook and of the decision log entries.
 - Adding a new evaluation category that only widens what is looked for.
 - Read-only tooling that lists or plays recordings.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -268,7 +256,7 @@ The Titan-1 recording folder, the existing Google Cloud connection, and the supp
 
 The recording location, the retention and size limits, and the category-to-severity rubric.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 The more restrictive classification wins between disagreeing agents. Anything touching Max's four questions, what a finding must prove, or where recordings go escalates to Max.
 
@@ -291,12 +279,12 @@ Every entry records what was proposed, what was rejected, and WHY. A decision wi
 
 - The evidence-object schema is undefined and the gate depends on it. BUILD BLOCKER.
 - "Violated contract" is undefined while doing decisive work in the gate. BUILD BLOCKER.
-- One pass versus two, pending measurement (§E-03).
+- One pass versus two, pending measurement (How to operate-03).
 - Whether authenticated-session recordings may be kept at all, given video cannot be redacted the way text can. Max decision.
 - Retention and size limits on the recording folder. Max decision.
 - Whether analysis runs automatically each night or only when Max asks. Max decision.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -390,7 +378,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-09
     type: evolve
-    refs: [§H.2]
+    refs: [Changes and maintenance.2]
     scenario: A change auto-files tickets from accept-with-review findings to save human time. Classify.
     expected_answers:
       - kind: classification
@@ -398,7 +386,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-10
     type: evolve
-    refs: [§H.3]
+    refs: [Changes and maintenance.3]
     scenario: A change adds a new evaluation category for subscription upsell clarity, widening what is looked for. Classify.
     expected_answers:
       - kind: classification
@@ -406,7 +394,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-11
     type: ambiguous
-    refs: [§H.6, F-06]
+    refs: [Changes and maintenance.6, F-06]
     scenario: A finding shows a price displayed as zero. No technical check failed, and the agent's intent is irrelevant because it merely looked at the page. Product defect, or unprovable?
     expected_answers:
       - kind: classification
@@ -419,7 +407,7 @@ scenario_set:
     weight: 0.090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1315
@@ -427,25 +415,13 @@ last_refresh_commit: fcca188
 last_refresh_date: 2026-07-23T13:20:00Z
 owner_agent: mars
 refresh_triggers:
-  - any decision in the §H.6 decision log being revisited or reversed
+  - any decision in the Changes and maintenance.6 decision log being revisited or reversed
   - the evidence-object schema or the contract definition being defined, which clears the two build blockers
   - the pass-structure measurement being taken
   - Max ruling on authenticated-session recordings, retention, or automatic nightly analysis
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: "2026-07-23T13:24:00.585073+00:00"
 ```
 
 Refresh log:
 - S1315 (2026-07-23): first authoring, on Max's instruction that the logic of how this is being set up must live in the runbooks and be easily available when the process is improved. Captures three rounds of Council critique in which each reviewer corrected the other, and records two build blockers rather than papering over them.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1315 / 2026-07-23T13:20:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```

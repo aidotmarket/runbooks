@@ -1,3 +1,11 @@
+---
+title: two-factor-auth — TOTP Two-Factor Authentication Reference
+owner: unassigned
+last_verified: '2026-07-10'
+aliases: []
+error_signatures: []
+---
+
 # two-factor-auth — TOTP Two-Factor Authentication Reference
 
 ## What it is
@@ -43,7 +51,7 @@ This yields a 44-character value ending in `=`. The decode logic in `_decoded_en
 
 **Environment-slug gotcha (important):** the Infisical project's environment slug is **`prod`**, not `production`. The code default `INFISICAL_ALLOWED_ENVS = ["production"]` in `config.py` is misleading — the live backend resolves secrets from `prod`. Setting the key under a `production` slug silently does nothing (that environment does not exist in the project).
 
-## Known issues / failure modes
+## When it breaks
 
 ### 500 — "TOTP encryption key not configured"
 Raised when `settings.TOTP_ENCRYPTION_KEY` is empty in the **running** process. Two common causes:

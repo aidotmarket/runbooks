@@ -1,52 +1,22 @@
 ---
-runbook_id: stripe-connect-identity
-domain: payments
-status: ACTIVE
-authoritative_for:
-  - topic: stripe-connect-identity-stores
-    section: "§C. Architecture & Interactions"
-  - topic: seller-connect-linkage-divergence
-    section: "§F. Isolate"
-aliases:
-  - connect-identity-bridge
-  - seller-stripe-linkage
-error_signatures:
-  - signature: seller_profiles_connect_id_never_written
-    section: "§F. Isolate"
-  - signature: stripe_connect_user_update_zero_rows
-    section: "§F. Isolate"
-  - signature: kyc_status_absent_defaults_not_started
-    section: "§F. Isolate"
-  - signature: two_connect_onboarding_endpoints_disagree
-    section: "§F. Isolate"
-  - signature: webhook_predicate_column_mismatch
-    section: "§F. Isolate"
-supersedes: []
-superseded_by: []
+title: Stripe Connect Identity Bridge
 owner: vulcan
-last_verified_at: '2026-08-07'
-system_name: Stripe Connect Identity Bridge
-purpose_sentence: Record where a seller's Stripe Connect account identity is stored, which store each reader trusts, which writer populates which store, and why those three answers do not currently agree.
-owner_agent: vulcan
-escalation_contact: Max
-lifecycle_ref: "§J"
-authoritative_scope: >-
-  This runbook is the source of truth for WHERE the Stripe Connect account identity and
-  its derived status live, which code path writes each store, and which code path reads
-  each store. It is NOT the source of truth for the Connect activation chain procedure
-  (click, hosted onboarding, return-sync, webhook, durable write), which is owned by
-  account-capability-onboarding.md E-06; nor for Stripe API credentials
-  (infisical-secrets.md); nor for sign-up and login (auth-signup-flow.md). Where this
-  runbook and those disagree about a STORE, this runbook wins; where they disagree about
-  a PROCEDURE, they win.
-linter_version: 1.0.0
+last_verified: '2026-08-07'
+aliases:
+- connect-identity-bridge
+- seller-stripe-linkage
+error_signatures:
+- kyc_status_absent_defaults_not_started
+- seller_profiles_connect_id_never_written
+- stripe_connect_user_update_zero_rows
+- two_connect_onboarding_endpoints_disagree
+- webhook_predicate_column_mismatch
 ---
 
 # Stripe Connect Identity Bridge
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 **Why this runbook exists.** On 2026-08-07 our first real seller was found to be live at
 Stripe with payouts enabled while our own seller record said his verification had not
@@ -64,7 +34,7 @@ T-2026-000572.
 
 ---
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -77,7 +47,7 @@ T-2026-000572.
 
 ---
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 ### C.1 The Connect fact is stored in four places
 
@@ -130,7 +100,7 @@ failed verification are indistinguishable at the reader.
 
 ---
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -140,7 +110,7 @@ failed verification are indistinguishable at the reader.
 
 ---
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -176,7 +146,7 @@ failed verification are indistinguishable at the reader.
 
 ---
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -188,7 +158,7 @@ failed verification are indistinguishable at the reader.
 
 ---
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -227,9 +197,9 @@ failed verification are indistinguishable at the reader.
 
 ---
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Stripe is the only authority on Connect account state. Everything of ours is a cache and must be reconcilable from Stripe outward, never from our own rows outward.
 - A store with readers and no writer is a defect, not a spare column. Either give it an authority or delete it.
@@ -240,7 +210,7 @@ failed verification are indistinguishable at the reader.
 - **Final S1606 evidence.** The allow-list merged to backend `main` at `db5e2ea6e2dcdf0c70d215a23e034e696b5444c1` and deployed as `db21d9a3-e44c-4d74-9f8b-6e90b84fc81b`; the action-path compatibility repair merged at `ca1837b47bf292411295e314195486186adad44a` and deployed as `fd112e13-5eb7-4091-860f-65933a6e7e19`; the audit UUID/datetime JSON serialization repair merged at `79e62b758e3efdb9622fa016d0a2808ec11c7e33` and deployed as `e8f732d8-450f-4f09-8c67-5a28c403f206`.
 - Live isolated synthetic-seller proof on that exact final deployment returned HTTP 200 for action list/check and confirmed `aim.profile.update` succeeded: the allowed `business_name` digest changed and was restored, forbidden Stripe/KYC digests remained unchanged, and permission tier moved 1→2→1. Mutation and restoration each produced a successful audit row with a result. Final-deployment logs contained no UUID-serialization or action-path `AttributeError`; this is not a blanket error-free service-log claim. Normal seller-capability provisioning created the synthetic seller profile, and its failed and successful audit rows were retained, not deleted.
 
-### §H.2 Known gaps
+### Changes and maintenance.2 Known gaps
 
 - No regression test asserts that a seller onboarded through `stripe_connect.py` ends up with a `kyc_status` in `party_identity`.
 - No test exercises `account.updated` against a seller whose `seller_profiles.stripe_connect_id` is NULL.
@@ -248,13 +218,7 @@ failed verification are indistinguishable at the reader.
 - **The frontend has no onboarding-error redirect.** Recorded S1483, 2026-08-08, paired with the T-2026-000565 C2-A merge. `ai-market-frontend` used to carry a global axios response interceptor keyed on `detail.onboarding_url` that redirected any 403 of that shape to `/dashboard`, plus `getOnboardingStatus` against `/auth/onboarding/status` and two `skipOnboardingRedirect` opt-outs. All of it is deleted as of frontend `main` (chunk C2-A, base `a823e45a`, head `e37c595d`). Consequences for anyone working this surface: a backend 403 carrying `onboarding_url` now reaches the calling component as an ordinary rejected promise, so any new client-side gate must be built deliberately rather than assumed to exist. The dashboard catches its own fetch errors and renders a retry card; no other caller depended on the redirect. The only surviving `onboarding_url` references in the frontend are the Stripe-hosted Connect flow at `api/connect.ts:15-16` and its test, which are unrelated to the retired gate and must not be removed with it. The backend enforcers (`app/api/deps.py:_enforce_onboarding` and the second implementation at `app/api/v1/endpoints/listings.py:71`) are still in place and are retired in C2-B.
 - **C2-C legacy-path deletion remains blocked by fresh evidence.** T-2026-000565 Gate 2 Amendment A1 R4 (`aidotmarket/ai-market-backend` `1ab86d07291fc333622ca1a572e499ff35d35084`) discharges only the unproducible requirement for retroactive long-window Railway logs. Before C2-C dispatch, all P1-P7 checks in that exact artifact remain binding: current writer/caller inventory, deployed-frontend reachability, live and test Stripe registration reads, fresh `stripe_account_id` measurement, durable `aim.profile.update` history, connected-account reconciliation, C2-B production proof, and Max's explicit deletion approval. P1-P6 must be measured at the declared heads no more than 24 hours before dispatch; any unavailable or failed read blocks dispatch. The amendment does not authorize deletion or production-data mutation.
 
-### §H.3 Catalog debt
-
-DISCHARGED S1529: registered in `CATALOG.json` at canonical path `runbooks/stripe-connect-identity.md` via the G-01 anchor advance and landed to `main` in the same change. Original debt recorded S1483.
-
----
-
-## §J. Lifecycle
+## Maintenance
 
 | Field | Value |
 |---|---|
@@ -263,7 +227,7 @@ DISCHARGED S1529: registered in `CATALOG.json` at canonical path `runbooks/strip
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
 | Updated | S1606, 2026-08-25 — recorded the final merged/deployed allow-list and isolated live proof for `BQ-PROFILE-UPDATE-MASS-ASSIGNMENT-S1604` |
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
-| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); §H.3 catalog debt discharged |
-| Updated | S1483, 2026-08-08, vulcan — §H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); §H.3 catalog debt recorded |
+| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); Changes and maintenance.3 catalog debt discharged |
+| Updated | S1483, 2026-08-08, vulcan — Changes and maintenance.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); Changes and maintenance.3 catalog debt recorded |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |

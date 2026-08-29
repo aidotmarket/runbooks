@@ -1,43 +1,25 @@
 ---
-runbook_id: policy-kernel-enforcement
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: policy-kernel-enforcement
-    section: §C. Architecture & Interactions
+title: Policy Kernel Enforcement Gate
+owner: vulcan
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: policy_kernel_not_evaluable
-    section: §F. Isolate
-  - signature: policy_kernel_enforcement_setting_invalid
-    section: §F. Isolate
-  - signature: policy_kernel_preflight_indeterminate
-    section: §F. Isolate
-  - signature: dispatch_terminal_state_missing_after_restart
-    section: §F. Isolate
-  - signature: deployed_sha_stale
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-07-27
-system_name: policy-kernel-enforcement
-purpose_sentence: Operate, diagnose, and safely roll back the live Policy Kernel enforcement path on the Council compliance gate.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The Council compliance gate Policy Kernel enforcement switch, readiness preflight, refusal alert, restart safety, break-glass continuity, and rollback. This runbook does not change the legacy parity adapter, break_glass, or author-dispatch behavior.
-
-  Cross-runbook reference convention: same-file references use bare IDs such as `F-01` or `G-01`; cross-file references use `<file-stem>:<id>`.
-linter_version: 1.0.0
+- deployed_sha_stale
+- dispatch_terminal_state_missing_after_restart
+- policy_kernel_enforcement_setting_invalid
+- policy_kernel_not_evaluable
+- policy_kernel_preflight_indeterminate
+- dispatch_in_flight
+- dispatch_indeterminate
+- task_inventory_unreadable
+- policy_kernel_preflight_not_ready
+- policy_kernel_new_refusal
+- wrong_emergency_lever
 ---
 
 # Policy Kernel Enforcement Gate
 
-## §A. Header
-
-The YAML frontmatter above defines the §A header.
+## Overview
 
 ### Live activation record
 
@@ -45,7 +27,7 @@ As of 2026-07-27, enforcement is **ON**, `main` is `6b03e99e`, and the handler w
 
 This is a live, load-bearing gate. A restart can destroy in-flight dispatches, and an invalid switch value causes a full gate outage. Follow the restart guard in E-01 before every kickstart.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -57,7 +39,7 @@ This is a live, load-bearing gate. A restart can destroy in-flight dispatches, a
 | Exact off/on/off rollback | SHIPPED | `tests/test_council_gate_kernel_enforcement.py:test_off_on_off_restores_the_exact_original_outcome` | Exact original outcome restored by off/on/off test | 2026-07-27 |
 | Existing `break_glass` short-circuit | SHIPPED | `council_compliance_gate.py:CouncilComplianceGate.check` | Four tests: three bypass cases and one control | 2026-07-27 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The switch `COUNCIL_GATE_POLICY_KERNEL_ENFORCEMENT` is read by `read_council_gate_policy_kernel_enforcement` in `/Users/max/koskadeux-mcp/council_compliance_gate.py`. Its committed default is exactly `off`. Only exact `off` and `on` values are accepted; any other value raises, and the compliance gate converts that configuration error into a refusal. A typo is therefore a full Council-gate outage.
 
@@ -100,7 +82,7 @@ It classifies every task record as LIVE, TERMINAL or INDETERMINATE and exits non
 
 The earlier version of this procedure told operators to stop on any `.meta.json` without a matching `.done`. That check was unsatisfiable and was therefore routinely bypassed with private ad-hoc checks. On 2026-07-27 it reported 135 blocking records, 134 of which carried no owner identity at all and so could never be resolved by waiting. It was replaced under T-2026-000437.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -110,7 +92,7 @@ The earlier version of this procedure told operators to stop on any `.meta.json`
 | Policy Kernel | Evaluate Council hard-floor predicates | `evaluate_council_gate_hard_floor` | Deterministic decision only | COMPLETE |
 | Legacy parity adapter | Record comparison against the legacy outcome | `compare_council_gate_parity` | Telemetry only while enforcement is on | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -270,7 +252,7 @@ curl -sS http://127.0.0.1:8765/health
 
 Record the SHA before kickstart and the PID/start time after kickstart. Do not read `/var/tmp/koskadeux/deployed_sha` as proof.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -281,7 +263,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 | F-05 | `/var/tmp/koskadeux/deployed_sha` disagrees with observed handler behavior or the checkout. | The marker is stale because manual kickstart does not update it. | Ignore the marker; compare handler process start time with the checkout SHA recorded at that time or reconstruct from the checkout reflog. | G-05 | CONFIRMED |
 | F-06 | The refusal marker count drops or restarts from one. | `count_since_process_start` is process-lifetime state and the handler restarted. | Compare the log timestamp with the current handler process start time. | G-06 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -334,9 +316,9 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
   integrity_check: Every reported count is associated with one process start time.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Only exact `off` and `on` switch values are valid; invalid configuration fails closed.
 - When enforcement is on, `not_evaluable` never allows.
@@ -345,7 +327,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - A handler restart is forbidden while any task metadata lacks its matching `.done`.
 - Deployment proof binds handler start time to checkout state and never relies on `deployed_sha`.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Allowing a kernel `not_evaluable` status is BREAKING.
 - Moving the `break_glass` check behind any enforcement point is BREAKING.
@@ -353,7 +335,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - Restarting the handler without protecting in-flight dispatches is BREAKING.
 - Changing the enforcement decision from kernel-authoritative back to a mixed or implicit path is BREAKING.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing the committed switch default is REVIEW.
 - Expanding preflight beyond the known sentinel-lease divergence is REVIEW.
@@ -361,13 +343,13 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - Changing the refusal marker fields, level, or process-counter semantics is REVIEW.
 - Adding durable dispatch recovery across handler restart is REVIEW.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Clarifying incident commands is SAFE when switch, decision, alert, and restart semantics do not change.
 - Adding a verified example of a refused incomplete request is SAFE.
 - Correcting dates, paths, or source references is SAFE when grounded in current code and deployment evidence.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -385,17 +367,17 @@ A runtime dependency is `/Users/max/koskadeux-mcp/.env`, the `com.koskadeux.mcp`
 
 The config default is the literal string `off` in `COUNCIL_GATE_POLICY_KERNEL_ENFORCEMENT_DEFAULT`.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Use the more restrictive class when classifications differ. Max adjudicates changes to fail-closed behavior, break-glass ordering, live enablement, or restart safety.
 
-## §I. Scenario Set
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §C]
+    refs: [E-01, Architecture & interactions]
     scenario: |
       An operator is preparing a handler restart. The task directory contains one `abc.meta.json` with no `abc.done`. The first action must protect the dispatch rather than reload the switch. Use E-01 and the restart stop condition.
     expected_answers:
@@ -417,7 +399,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-03
     type: operate
-    refs: [E-05, §C]
+    refs: [E-05, Architecture & interactions]
     scenario: |
       Enforcement is on and an authorized bounded emergency requires bypassing the compliance gate. Choose the actual live lever before any kernel predicate executes.
     expected_answers:
@@ -483,7 +465,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-09
     type: evolve
-    refs: [§H, F-01]
+    refs: [Changes and maintenance, F-01]
     scenario: |
       A proposal would let `not_evaluable` requests proceed to reduce incident refusals. Classify the change against the live enforcement invariants.
     expected_answers:
@@ -492,7 +474,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H, E-02]
+    refs: [Changes and maintenance, E-02]
     scenario: |
       A proposal expands preflight from the known sentinel-lease divergence to additional request-shape divergences without changing the live decision path. Classify the change.
     expected_answers:
@@ -523,7 +505,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1364
@@ -538,17 +520,5 @@ refresh_triggers:
   - break-glass ordering changes
   - handler restart or dispatch persistence changes
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1364 / 2026-07-27T08:30:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

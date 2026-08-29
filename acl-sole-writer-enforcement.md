@@ -1,20 +1,23 @@
 ---
-system_name: acl-sole-writer-enforcement
-purpose_sentence: Per-field sole-writer access control for Living State writes — the WS9 reform subsystem that observes unauthorized writes in WARN mode and, once operator-flipped, rejects them with a 403 so only the canonical writer role may mutate each governed field.
-owner_agent: vulcan
-escalation_contact: Max
-lifecycle_ref: §J
-authoritative_scope: koskadeux-mcp tools/acl_enforce/ (identity, lookup, gate, audit, orchestrate), the field_acl table, and the acl_* event_ledger rows. Does NOT cover the state_request write-path hook (WS9 Chunk 6, not yet shipped) or the field_acl row seed migration (WS6, separate workstream).
-linter_version: 1.0.0
+title: ACL Sole-Writer Enforcement (WS9)
+owner: vulcan
+last_verified: '2026-06-24'
+aliases: []
+error_signatures:
+- ValueError "field_acl already contains enforce rows
+- verdict.ready is False with non-empty blocked_reasons
+- StateRequestError 409 acl_phase_c_slo_not_ready
+- StateRequestError 409 field_acl_row_already_enforced
+- StateRequestError 404 field_acl_row_not_found
+- empty report (total_writes=0)
 ---
 
 # ACL Sole-Writer Enforcement (WS9)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -28,7 +31,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Phase E single-row rollback (enforce->warn) | SHIPPED | `tools/acl_enforce/orchestrate.py:rollback_phase_e_row` | `tests/acl_enforce/test_orchestrate.py` | 2026-06-06 |
 | Live write-path enforcement hook (state_request put/patch) | PLANNED | — | none | — |
 
-**PARTIAL note (Phase D enforce-flip):** code-complete and unit-tested but never executed against production; gated on (a) explicit Max direction, (b) the live write-path hook landing (Chunk 6, see PLANNED row), and (c) resolution of the precedence defect in §F-05. Operative mode for the whole subsystem today is WARN-only, and no live interception exists until the Chunk 6 hook ships.
+**PARTIAL note (Phase D enforce-flip):** code-complete and unit-tested but never executed against production; gated on (a) explicit Max direction, (b) the live write-path hook landing (Chunk 6, see PLANNED row), and (c) resolution of the precedence defect in When it breaks-05. Operative mode for the whole subsystem today is WARN-only, and no live interception exists until the Chunk 6 hook ships.
 
 **WARN-mode rows + trigger added S1008 (s621_008 residue migration `20260622_002`):** four new `field_acl` rows shipped in `enforce_mode='warn'`, tagged `added_by_session_id='S998-s621_008-residue'`:
 - `build` / `queue_position` (exact) — role `queue_position_orchestrator`
@@ -36,9 +39,9 @@ YAML frontmatter above is authoritative for the §A header fields.
 - `build` / `body.draft.drain_force_push_evidence` (prefix) — role `drain_handler`
 - `infra` / `body` under key `infra:migration-manifest:` (prefix) — role `migration_orchestrator`
 
-The same migration added a DB-side trigger `archive_sets_reconciliation_block` (function + `archive_sets_reconciliation_block_trg`) that writes `body.lifecycle.reconciliation_block` when an entity is archived. **Before any future Phase D enforce-flip:** seed these four roles into the writer-identity map and confirm the trigger's writes resolve to an authorized writer (or are exempted), otherwise the flip will 403-brick legitimate archive / drain / queue-position / migration-manifest writes. These rows are WARN-only today; listed here for flip-readiness, not a change to the subsystem's operative mode. (Rows seeded by the WS6/reform migration, which §A scopes out of this runbook; recorded here because the enforce-flip must account for them.)
+The same migration added a DB-side trigger `archive_sets_reconciliation_block` (function + `archive_sets_reconciliation_block_trg`) that writes `body.lifecycle.reconciliation_block` when an entity is archived. **Before any future Phase D enforce-flip:** seed these four roles into the writer-identity map and confirm the trigger's writes resolve to an authorized writer (or are exempted), otherwise the flip will 403-brick legitimate archive / drain / queue-position / migration-manifest writes. These rows are WARN-only today; listed here for flip-readiness, not a change to the subsystem's operative mode. (Rows seeded by the WS6/reform migration, which Overview scopes out of this runbook; recorded here because the enforce-flip must account for them.)
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -50,16 +53,16 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 | field_acl (state store) | — | Postgres (Living State DB; reach via DATABASE_PUBLIC_URL from Titan-1) | — | Columns include enforce_mode IN ('warn','enforce'), sole_writer_role, sole_writer_session_match, key_pattern/key_pattern_type, path_pattern/path_type. |
 | event_ledger (state store) | — | Postgres event_ledger | — | Emits acl_warn_started, acl_audit_done, acl_flip_ready, acl_flip_blocked, acl_flip_done, acl_row_rollback, acl_warn_violation, acl_enforce_violation (all event_type <=32 chars). |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| vulcan / mars (orchestrating instance) | run WARN-start, readiness check, flip, rollback, audit | shell_request to Titan-1: direct invocation of tools/acl_enforce/orchestrate.py + audit.py functions with a live DB connection (no dedicated CLI/MCP wrapper yet) | Titan-1 shell + DATABASE_PUBLIC_URL | PARTIAL — first-class CLI/MCP tool wrapper is a tracked §H REVIEW item; operated today via direct library calls on Titan-1 |
+| vulcan / mars (orchestrating instance) | run WARN-start, readiness check, flip, rollback, audit | shell_request to Titan-1: direct invocation of tools/acl_enforce/orchestrate.py + audit.py functions with a live DB connection (no dedicated CLI/MCP wrapper yet) | Titan-1 shell + DATABASE_PUBLIC_URL | PARTIAL — first-class CLI/MCP tool wrapper is a tracked Changes and maintenance REVIEW item; operated today via direct library calls on Titan-1 |
 | state_request (runtime path) | enforce on put/patch pre-persistence | gate.py:enforce_field_acl (future hook) | Living State write path | PLANNED |
 | reconciliation_job / lifecycle / drain / claim handlers | governed writers subject to the gate | state_request | per field_acl sole_writer_role row | PLANNED |
 | Max | direct the enforce-flip (Phase D) | operator instruction relayed to the orchestrating instance | final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -77,7 +80,7 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
     - signature: ValueError "field_acl already contains enforce rows"
       cause: a prior flip already moved one or more rows to enforce; system is not in pure-WARN
   next_step_success: leave the gate in WARN and accumulate acl_warn_violation events over the observation window
-  next_step_failure: see §F-04; roll back the erroneous enforce rows (§G-01) if the flip was unintended
+  next_step_failure: see When it breaks-04; roll back the erroneous enforce rows (Repair-01) if the flip was unintended
 - id: E-02
   trigger: Before any flip, confirm the candidate rows are flip-ready
   pre_conditions:
@@ -95,13 +98,13 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
     - signature: verdict.ready is False with non-empty blocked_reasons
       cause: warn_violation_count / unknown_writer_count / missing_session_match_count nonzero on a row, or global rate over threshold
   next_step_success: proceed to E-03 (flip) only with explicit Max direction
-  next_step_failure: see §F-01; remediate offending writers then re-run (§G-02)
+  next_step_failure: see When it breaks-01; remediate offending writers then re-run (Repair-02)
 - id: E-03
   trigger: Max directs flipping a verified-ready row set from WARN to ENFORCE
   pre_conditions:
     - E-02 returned ready=True for exactly this row set
     - explicit Max direction recorded
-    - the §F-05 precedence defect has been resolved (gate before broad enforce)
+    - the When it breaks-05 precedence defect has been resolved (gate before broad enforce)
   tool_or_endpoint: tools/acl_enforce/orchestrate.py:execute_phase_d_flip(conn, eligible_rows, operator)
   argument_sourcing:
     conn: Living State DB via DATABASE_PUBLIC_URL
@@ -118,8 +121,8 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
       cause: one or more target rows were already enforce
     - signature: StateRequestError 404 field_acl_row_not_found
       cause: a target (entity_kind, path_pattern, path_type) tuple does not exist in field_acl
-  next_step_success: monitor acl_enforce_violation events; roll back any row that misbehaves via §G-01
-  next_step_failure: see §F-01 / §F-02 / §F-03 by signature
+  next_step_success: monitor acl_enforce_violation events; roll back any row that misbehaves via Repair-01
+  next_step_failure: see When it breaks-01 / When it breaks-02 / When it breaks-03 by signature
 - id: E-04
   trigger: Operator wants a dry-run inventory of recent writes vs current ACL rows (no mutation)
   pre_conditions:
@@ -138,17 +141,17 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
   next_step_failure: widen window_days and re-run
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Flip raises 409 acl_phase_c_slo_not_ready | WARN window not clean for the row set; SloVerdict.ready=False | Re-run evaluate_phase_c_slo(conn, rows) and read blocked_reasons + per_row counters | §G-02 | CONFIRMED |
-| F-02 | Flip raises 409 field_acl_row_already_enforced | One or more target rows already at enforce_mode='enforce' | SELECT enforce_mode FROM field_acl WHERE (entity_kind,path_pattern,path_type) IN (...) | §G-01 | CONFIRMED |
-| F-03 | Flip or rollback raises 404 field_acl_row_not_found | Row key tuple mismatch, or row absent (seed not applied) | SELECT * FROM field_acl matching the tuple; compare against WS6 seed | §G-03 | CONFIRMED |
-| F-04 | start_phase_b_warn raises ValueError "field_acl already contains enforce rows" | System is not in pure-WARN; a flip already happened | SELECT count(*) FROM field_acl WHERE enforce_mode='enforce' | §G-01 | CONFIRMED |
+| F-01 | Flip raises 409 acl_phase_c_slo_not_ready | WARN window not clean for the row set; SloVerdict.ready=False | Re-run evaluate_phase_c_slo(conn, rows) and read blocked_reasons + per_row counters | Repair-02 | CONFIRMED |
+| F-02 | Flip raises 409 field_acl_row_already_enforced | One or more target rows already at enforce_mode='enforce' | SELECT enforce_mode FROM field_acl WHERE (entity_kind,path_pattern,path_type) IN (...) | Repair-01 | CONFIRMED |
+| F-03 | Flip or rollback raises 404 field_acl_row_not_found | Row key tuple mismatch, or row absent (seed not applied) | SELECT * FROM field_acl matching the tuple; compare against WS6 seed | Repair-03 | CONFIRMED |
+| F-04 | start_phase_b_warn raises ValueError "field_acl already contains enforce rows" | System is not in pure-WARN; a flip already happened | SELECT count(*) FROM field_acl WHERE enforce_mode='enforce' | Repair-01 | CONFIRMED |
 | F-05 | Phase A advisory and runtime gate disagree on which row applies | Phase A classifies on most-specific row (acl_rows[0]); gate.py defensive-ANDs across all matching specificity levels | Compare collect_phase_a_audit classification vs gate.py enforce_field_acl matching for the same (entity_kind,key,path) | | HYPOTHESIZED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -177,9 +180,9 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
   integrity_check: lookup returns a FieldAclRow for the (entity_kind, key, path); the subsequent flip/rollback no longer 404s
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - enforce_mode is the closed set {'warn','enforce'} only; adding a third mode re-architects Phase D and the SLO contract.
 - field_acl is the single authority for per-field write authorization in the single-source-of-truth reform.
@@ -188,28 +191,28 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 - ai.market non-custodial invariant is unaffected: this governs internal Living State write authorization, never customer data.
 - All DB access is via DATABASE_PUBLIC_URL with credentials from Infisical; no secrets committed.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Adds, removes, or renames a field_acl column in the published DDL contract.
 - Changes the enforce_mode allowed value set.
 - Changes the resolve_writer_role return contract (WriterIdentity shape) or the SloVerdict shape.
 - Removes the in-transaction SLO re-validation or row locking in execute_phase_d_flip.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adds a new sole_writer_role to the seed or a new identity token to resolve_writer_role.
 - Changes the specificity ordering semantics (exact>prefix>glob>NULL) in lookup.
 - Adds a new acl_* event_type (must stay within the 32-char event_type cap).
 - Wires enforce_field_acl into a new call site, e.g. the state_request put/patch hook (WS9 Chunk 6 is itself a REVIEW-class change).
-- Adds a first-class CLI/MCP tool wrapper for the cutover functions (closes the §D tool-gap).
+- Adds a first-class CLI/MCP tool wrapper for the cutover functions (closes the Agent capabilities tool-gap).
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
-- Adds a new §E operate scenario, §F symptom, or test without touching the gate/flip logic.
+- Adds a new How to operate operate scenario, When it breaks symptom, or test without touching the gate/flip logic.
 - Tightens a blocked_reason or audit message string.
 - Adds a read-only diagnostic query over event_ledger or field_acl.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -227,11 +230,11 @@ The koskadeux-mcp pyproject runtime dependencies; WS9 adds no new runtime depend
 
 None specific to this subsystem; the DB target is supplied at runtime via the DATABASE_PUBLIC_URL environment variable, which is not a config default.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 If two agents classify the same change differently, the more restrictive classification wins. Disputes unresolvable under the predicates escalate to Max; the ruling is appended here as a per-system clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -374,7 +377,7 @@ scenario_set:
     weight: 0.09090909090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S784
@@ -382,22 +385,10 @@ last_refresh_commit: 2deca00f
 last_refresh_date: "2026-06-06"
 owner_agent: vulcan
 refresh_triggers:
-  - WS9 Chunk 6 (state_request enforce hook) ships — add live write-path rows to §B and a wiring scenario to §E
+  - WS9 Chunk 6 (state_request enforce hook) ships — add live write-path rows to Capabilities and a wiring scenario to How to operate
   - Any change to the field_acl DDL or the enforce_mode value set
   - Before any production enforce-flip (Phase D execution)
-  - Resolution of the §F-05 precedence defect
+  - Resolution of the When it breaks-05 precedence defect
 scheduled_cadence: 90d
-last_harness_pass_rate: null
-last_harness_date: "2026-06-06"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S784 / 2026-06-06T09:48:00Z
-last_lint_result: PASS
-trace_matrix_path: harness/acl-sole-writer-enforcement.trace.yaml
-word_count_delta: initial
 ```

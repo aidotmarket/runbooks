@@ -1,29 +1,31 @@
 ---
-system_name: codex-mp
-purpose_sentence: Operating manual for MP (Codex), the Council's mandatory builder (not a gate voter since the S1213 roster change) — dispatch mechanics, configuration, timeouts, failure recovery, and the model-swap procedure.
-owner_agent: vulcan
-escalation_contact: Max (strategic forks, model-tier changes); Mars (structural middleware / runbook-gate internals)
-lifecycle_ref: §J
-authoritative_scope: MP/Codex dispatch paths, Codex CLI configuration and auth, MP timeout and mutex behavior, MP failure signatures and recoveries, MP model-swap procedure. NOT authoritative for the Council roster (infra:council-comms) or gate semantics (agent-dispatch.md, runbook-first gates).
-linter_version: 1.0.0
+title: Codex / MP — Council Primary Builder
+owner: vulcan
+last_verified: '2026-08-20'
+aliases: []
+error_signatures:
+- RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED
+- gateway timeout on foreground dispatch >30s
+- 'RepairExhaustedError: schema repair exhausted'
+- silent past 300s with status still running
+- dispatches 4xx/hang after swap
 ---
 
 # Codex / MP — Council Primary Builder
 
 **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/Kimi/GLM — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path (S1213/CORE 9.8 supersedes the S1148 MP-vs-CC build split for code work; CC's role is gate voting via its read-only review path). MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Legacy build dispatch (council_request mode=build, no dispatch_class) (S1148, T-113 fix via task 50f9dfad) | SHIPPED | `tools/agents.py:_handle_call_mp` | tests/regression/test_legacy_dispatch_unchanged.py | 2026-07-08 |
 | Structural build dispatch (dispatch_class=structural, §O middleware) (S1150, end-to-end on 7ad740a4) | SHIPPED | `council_dispatch_middleware/ + tools/agents.py` | dispatch+AG suite (24/24 at S1131) | 2026-07-09 |
 | Background dispatch + polling (S1148) | SHIPPED | `codex_cli_bridge.py:dispatch_codex_cli_streaming; council_request action=check_build` | covered by dispatch suite | 2026-07-08 |
-| Review dispatch (mode=review, READ-ONLY advisory) (S1147 gate reviews) | SHIPPED | `tools/agents.py:_handle_call_mp` | see §F-06 caveat | 2026-07-07 |
+| Review dispatch (mode=review, READ-ONLY advisory) (S1147 gate reviews) | SHIPPED | `tools/agents.py:_handle_call_mp` | see When it breaks-06 caveat | 2026-07-07 |
 | Spec authoring (mode=author, Gate 1) (S1147) | SHIPPED | `tools/agents.py:_handle_call_mp` | — | 2026-07-07 |
 | Concurrency mutex (one Codex CLI at a time) (S1148, MP+CC serialized cleanly) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
 | Pre-push CI verification gate + auto-revert (S1150, manifest synthesis fix 25006e5e) | SHIPPED | `ci_verification.py (CI_WORKFLOW_TEST_PATHS)` | agent-dispatch.md §Q | 2026-07-09 |
@@ -31,9 +33,9 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Progress-based stall abort (S1111) | SHIPPED | `codex_cli_bridge.py (MP_PROGRESS_WINDOW_S=900)` | — | 2026-06-01 |
 | Hard timeout backstop (env-tunable) (S1111 fix 995e1338) | SHIPPED | `.env MP_HARD_UPPER_BOUND_S=1800; envelope default in tools/agents.py:_build_mp_provider_envelope` | tests/regression/test_legacy_dispatch_unchanged.py | 2026-06-01 |
 | dispatch_mp_build convenience wrapper | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | — | 2026-06-01 |
-| Codex CLI "goals" loop autonomy on long non-interactive builds (S827 probe: prefix harmless; loop engagement UNVERIFIED — see §F note) | PARTIAL | `/goal prefix accepted (codex exec)` | unverified on long builds | 2026-06-12 |
+| Codex CLI "goals" loop autonomy on long non-interactive builds (S827 probe: prefix harmless; loop engagement UNVERIFIED — see When it breaks note) | PARTIAL | `/goal prefix accepted (codex exec)` | unverified on long builds | 2026-06-12 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -42,9 +44,9 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.6-sol" (frontier-only policy; S1200 per Max directive, T-2026-000197). **The served string is `gpt-5.6-sol` — NOT `gpt-5.6`, NOT `gpt-5.6-codex`; both 400 on our ChatGPT account tier.** Two surfaces must agree: this file AND koskadeux-mcp/.env `MP_MODEL` (the bridge passes `-m MODEL` from the env explicitly). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.3. |
 | Structural middleware (§O) | council_dispatch_middleware/ | builder-output manifests | ci_verification.py pre-push gate, SchemaRepair | Fires only when caller passes dispatch_class=structural. Terminal state push_failed is a DESIGNED guardrail: verified commit preserved, instance reviews then merges with KD_ALLOW_MAIN_PUSH=1 (S1150). |
 | Runbook-refs gate | tools/runbook_ref.py:RunbookRefResolver | config:resource-registry (runbooks repo path); runbook_gate ledger events; config:runbook-gate-config | aidotmarket/runbooks checkout | BLOCK mode: mode=build/author REQUIRES runbook_refs (RunbookRef {path, section, synthesis} or Attestation {no_entry_found, subject, reason} — attestation creates dischargeable session debt). |
-| Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see §G-05). |
+| Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see Repair-05). |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -52,10 +54,10 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Vulcan/Mars | Poll background task | council_request (action=check_build, task_id) | same | COMPLETE |
 | Vulcan/Mars | Convenience background build | dispatch_mp_build | same | COMPLETE |
 | MP | Build/commit/push on Titan-1 repos | Codex CLI (codex exec) via bridge | Max's local git + gh credentials | COMPLETE |
-| MP | Honor READ-ONLY in reviews | prompt-level only | — | PARTIAL — advisory, not enforced (S452); see §F-06. Closes via prompt prefix + post-review `git status` check. |
+| MP | Honor READ-ONLY in reviews | prompt-level only | — | PARTIAL — advisory, not enforced (S452); see When it breaks-06. Closes via prompt prefix + post-review `git status` check. |
 | CC (Claude Code) | Trouble-ticket fixes ONLY | council_request (agent=cc) | Max ruling S1148 (ledger dedupe_key=s1148-cc-ticket-dispatch-ruling) | COMPLETE — NOT a BQ build path; that remains MP. |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -68,7 +70,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   tool_or_endpoint: council_request(agent=mp, mode=build, task=..., cwd=<FULL macOS path>, session_id=..., runbook_refs=[...], timeout_s optional)
   argument_sourcing:
     cwd: config:resource-registry (full path — shorthand like "backend" is BROKEN, S347)
-    runbook_refs: runbooks/TOPIC-ROUTER.md lookup; RunbookRef {path, section, synthesis}
+    runbook_refs: INDEX.md or direct Markdown search; RunbookRef {path, section, synthesis}
     timeout_s: only if the build should exceed the env default; explicit per-dispatch wins over MP_HARD_UPPER_BOUND_S
   idempotency: NOT_IDEMPOTENT
   expected_success:
@@ -76,11 +78,11 @@ YAML frontmatter above is authoritative for the §A header fields.
     verification: git fetch + inspect the actual diff at file:line before accepting claims (builder output verification); run stated tests if in doubt
   expected_failures:
     - signature: 'RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED'
-      cause: missing/unresolvable runbook_refs (see §F-08)
+      cause: missing/unresolvable runbook_refs (see When it breaks-08)
     - signature: 'gateway timeout on foreground dispatch >30s'
-      cause: use background dispatch + check_build polling (§F-01)
+      cause: use background dispatch + check_build polling (When it breaks-01)
   next_step_success: gated cross-review by the voter panel CC+Kimi+GLM with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
-  next_step_failure: consult §F symptom table BEFORE diagnosing from code
+  next_step_failure: consult When it breaks symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required
   pre_conditions:
@@ -95,7 +97,7 @@ YAML frontmatter above is authoritative for the §A header fields.
     verification: review the preserved commit, then KD_ALLOW_MAIN_PUSH=1 git push origin main (fast-forward only)
   expected_failures:
     - signature: 'RepairExhaustedError: schema repair exhausted'
-      cause: manifest parse/repair failure AFTER a delivered commit (§F-03; recover per agent-dispatch.md §U, do NOT rebuild)
+      cause: manifest parse/repair failure AFTER a delivered commit (When it breaks-03; recover per agent-dispatch.md §U, do NOT rebuild)
   next_step_success: as E-01
   next_step_failure: agent-dispatch.md §U procedure
 - id: E-03
@@ -112,14 +114,14 @@ YAML frontmatter above is authoritative for the §A header fields.
     verification: run `git status` in cwd after the review — MP treats READ-ONLY as advisory (S452)
   expected_failures:
     - signature: silent past 300s with status still running
-      cause: MP may have already delivered (§F-02); check ground truth before redispatching
+      cause: MP may have already delivered (When it breaks-02); check ground truth before redispatching
   next_step_success: record verdict per agent-dispatch.md §S (gate-level fields, not per-chunk)
-  next_step_failure: §F-02 ground-truth check
+  next_step_failure: When it breaks-02 ground-truth check
 - id: E-04
   trigger: Codex model swap (e.g., gpt-5.6 → successor on release; gpt-5.5→gpt-5.6 executed S1181, T-2026-000197)
   pre_conditions:
     - availability VERIFIED on our Codex CLI auth tier (smoke dispatch) — a config pointing at an unserved model breaks the mandatory primary builder
-  tool_or_endpoint: manual per §G-05
+  tool_or_endpoint: manual per Repair-05
   argument_sourcing:
     model_string: OpenAI release notes + codex CLI model list
   idempotency: NOT_IDEMPOTENT
@@ -128,33 +130,33 @@ YAML frontmatter above is authoritative for the §A header fields.
     verification: model_actual assertion + full-tree grep count of old model string == historical/pricing rows only
   expected_failures:
     - signature: dispatches 4xx/hang after swap
-      cause: model not served on tier — revert config.toml model line (§G-05 rollback)
-  next_step_success: update infra:council-comms agent_frontier_models.mp + provider status with evidence; refresh this runbook §B/§C rows + §J
-  next_step_failure: revert per §G-05, keep ticket open
+      cause: model not served on tier — revert config.toml model line (Repair-05 rollback)
+  next_step_success: update infra:council-comms agent_frontier_models.mp + provider status with evidence; refresh this runbook Capabilities/Architecture & interactions rows + Maintenance
+  next_step_failure: revert per Repair-05, keep ticket open
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Foreground council_request(agent=mp) times out ~30s | Gateway proxy timeout on tasks >30s | reproduce with a trivial task (fast) vs a real build (times out) | §G-01 | CONFIRMED |
-| F-02 | Task "running" indefinitely / silent past 300s, but files expected | MP delivered and committed even though the envelope tracker stalled (S451 family) | `git log --oneline -3` + `git status --short` in cwd; py_compile changed files | §G-02 | CONFIRMED |
-| F-03 | Structural build returns RepairExhaustedError but commit landed and worktree clean | Builder-output-manifest parse/repair failure AFTER the build succeeded (hit 4/4 structural builds S1147) | git log shows the commit; diff matches chunk scope | §G-03 | CONFIRMED |
-| F-04 | Build killed at exactly 600s | Pre-S1111 hardcoded envelope default overriding MP_HARD_UPPER_BOUND_S; OR server running stale module (gateway must be restarted after codex_cli_bridge.py changes — Python import cache) | check server process start time vs fix commit 995e1338; envelope timeout in dispatch args | §G-04 | CONFIRMED |
-| F-05 | Dispatch fails "object/path is not available locally" on a SHA-pinned task | The pinned SHA was committed via GitHub API; local clone lacks the object | `git cat-file -t <sha>` in cwd fails | §G-06 | CONFIRMED |
-| F-06 | READ-ONLY review modified/committed/pushed files | MP treats READ-ONLY as advisory and "helpfully" remediates (S452, observed repeatedly) | `git status` + `git log` in cwd immediately after review | §G-07 | CONFIRMED |
+| F-01 | Foreground council_request(agent=mp) times out ~30s | Gateway proxy timeout on tasks >30s | reproduce with a trivial task (fast) vs a real build (times out) | Repair-01 | CONFIRMED |
+| F-02 | Task "running" indefinitely / silent past 300s, but files expected | MP delivered and committed even though the envelope tracker stalled (S451 family) | `git log --oneline -3` + `git status --short` in cwd; py_compile changed files | Repair-02 | CONFIRMED |
+| F-03 | Structural build returns RepairExhaustedError but commit landed and worktree clean | Builder-output-manifest parse/repair failure AFTER the build succeeded (hit 4/4 structural builds S1147) | git log shows the commit; diff matches chunk scope | Repair-03 | CONFIRMED |
+| F-04 | Build killed at exactly 600s | Pre-S1111 hardcoded envelope default overriding MP_HARD_UPPER_BOUND_S; OR server running stale module (gateway must be restarted after codex_cli_bridge.py changes — Python import cache) | check server process start time vs fix commit 995e1338; envelope timeout in dispatch args | Repair-04 | CONFIRMED |
+| F-05 | Dispatch fails "object/path is not available locally" on a SHA-pinned task | The pinned SHA was committed via GitHub API; local clone lacks the object | `git cat-file -t <sha>` in cwd fails | Repair-06 | CONFIRMED |
+| F-06 | READ-ONLY review modified/committed/pushed files | MP treats READ-ONLY as advisory and "helpfully" remediates (S452, observed repeatedly) | `git status` + `git log` in cwd immediately after review | Repair-07 | CONFIRMED |
 | F-07 | Second MP/CC dispatch appears hung at start | fcntl mutex serialization behind a running Codex CLI (deliberate) | `lsof /var/tmp/koskadeux/codex_cli.lock`; check_build on the other task |  | CONFIRMED |
-| F-08 | Dispatch rejected RUNBOOK_REF_MISSING or RUNBOOK_REF_UNRESOLVED (failed_check path/section) | BLOCK-mode runbook gate: refs absent, path not a file under the runbooks repo, or section heading doesn't resolve; historical: registry file-as-repo-root bug (fixed a3e71da9) | run RunbookRefResolver locally in the koskadeux venv with the same refs; grep the runbook for the exact heading | §G-08 | CONFIRMED |
-| F-09 | Structural build ends in push_failed though everything green | DESIGNED guardrail terminal state — verified commit preserved for instance review | inspect preserved commit | §G-09 | CONFIRMED |
-| F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | §G-05 | CONFIRMED |
+| F-08 | Dispatch rejected RUNBOOK_REF_MISSING or RUNBOOK_REF_UNRESOLVED (failed_check path/section) | BLOCK-mode runbook gate: refs absent, path not a file under the runbooks repo, or section heading doesn't resolve; historical: registry file-as-repo-root bug (fixed a3e71da9) | run RunbookRefResolver locally in the koskadeux venv with the same refs; grep the runbook for the exact heading | Repair-08 | CONFIRMED |
+| F-09 | Structural build ends in push_failed though everything green | DESIGNED guardrail terminal state — verified commit preserved for instance review | inspect preserved commit | Repair-09 | CONFIRMED |
+| F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | Repair-05 | CONFIRMED |
 | F-11 | MP verdict/manifest claims don't match reality (files, line numbers, test counts) | Builder messages over-claim; also spec-over-prompt: MP follows the committed spec over a diverging dispatch prompt (S530 — usually MP is RIGHT) | manual diff inspection at file:line (mandatory on every fold); compare prompt vs spec text |  | CONFIRMED |
-| F-12 | Canonical repo checkout found on detached HEAD after an MP review; a peer-held branch checkout silently abandoned | Review dispatched WITHOUT cwd: MP falls back to the canonical checkout and `git checkout <dispatch_sha>` moves its HEAD (S1175: Mars's spec branch checkout detached during vulcan's T-115 review; no data lost — branch was committed+pushed) | `git worktree list` + `git reflog -3` in the canonical checkout ("checkout: moving from <branch> to <sha>") | §G-10 | CONFIRMED |
-| F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (§G-11 step 1); compare handler `ps lstart` (LOCAL time — Titan-1 is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | §G-11 | CONFIRMED |
-| F-14 | All Codex sessions 401 Unauthorized on wss endpoints; `codex login status` = Not logged in | `~/.codex/auth.json` missing or its refresh-token chain burned ("refresh token was already used") — stale backups do NOT recover it because refresh tokens rotate | `ls ~/.codex/auth.json` + `codex login status` | §G-12 | CONFIRMED (S1185) |
-| F-15 | MP repeatedly introduces new defects while fixing prior ones on a hard/safety-critical component (fix N creates defect N+1) | Default reasoning effort too low for the component's complexity | Count audit rounds: ≥2 REVISE rounds where the fix itself introduced a NEW defect (S1186 escalation spine: uuid4 dedup regression, ack leaks, benign-false storms) | §G-13 | CONFIRMED (S1186) |
-| F-16 | Any git push refused with "GUARDRAIL: refusing malformed pre-push record" | Stale pre-push hook installed in that repository. The pre-fix copy rejects the local ref `HEAD`, so the ordinary `git push origin HEAD:refs/heads/<branch>` form is misread as a corrupted record. The message points at git or at credentials rather than at the hook's own field validation, which is why it reads like a security refusal (T-2026-000556, S1441) | `shasum -a 256 <repo>/.git/hooks/pre-push` against `koskadeux-mcp/githooks/pre-push`; any mismatch is a stale install. The fixed hook names the rejected field on refusal, the stale one does not | §G-14 | CONFIRMED (S1441) |
+| F-12 | Canonical repo checkout found on detached HEAD after an MP review; a peer-held branch checkout silently abandoned | Review dispatched WITHOUT cwd: MP falls back to the canonical checkout and `git checkout <dispatch_sha>` moves its HEAD (S1175: Mars's spec branch checkout detached during vulcan's T-115 review; no data lost — branch was committed+pushed) | `git worktree list` + `git reflog -3` in the canonical checkout ("checkout: moving from <branch> to <sha>") | Repair-10 | CONFIRMED |
+| F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (Repair-11 step 1); compare handler `ps lstart` (LOCAL time — Titan-1 is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | Repair-11 | CONFIRMED |
+| F-14 | All Codex sessions 401 Unauthorized on wss endpoints; `codex login status` = Not logged in | `~/.codex/auth.json` missing or its refresh-token chain burned ("refresh token was already used") — stale backups do NOT recover it because refresh tokens rotate | `ls ~/.codex/auth.json` + `codex login status` | Repair-12 | CONFIRMED (S1185) |
+| F-15 | MP repeatedly introduces new defects while fixing prior ones on a hard/safety-critical component (fix N creates defect N+1) | Default reasoning effort too low for the component's complexity | Count audit rounds: ≥2 REVISE rounds where the fix itself introduced a NEW defect (S1186 escalation spine: uuid4 dedup regression, ack leaks, benign-false storms) | Repair-13 | CONFIRMED (S1186) |
+| F-16 | Any git push refused with "GUARDRAIL: refusing malformed pre-push record" | Stale pre-push hook installed in that repository. The pre-fix copy rejects the local ref `HEAD`, so the ordinary `git push origin HEAD:refs/heads/<branch>` form is misread as a corrupted record. The message points at git or at credentials rather than at the hook's own field validation, which is why it reads like a security refusal (T-2026-000556, S1441) | `shasum -a 256 <repo>/.git/hooks/pre-push` against `koskadeux-mcp/githooks/pre-push`; any mismatch is a stale install. The fixed hook names the rejected field on refusal, the stale one does not | Repair-14 | CONFIRMED (S1441) |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -226,7 +228,7 @@ YAML frontmatter above is authoritative for the §A header fields.
   component_ref: Runbook-refs gate
   root_cause: refs must be structured objects whose path resolves to a real file under the registered runbooks repo and whose section matches a real heading
   repair_entry_point: dispatch arguments (runbook_refs)
-  change_pattern: 'consult runbooks/TOPIC-ROUTER.md; pass [{path, section, synthesis}] with an EXACT existing heading (grep "^#" the runbook); if genuinely no entry exists, pass Attestation {no_entry_found: true, subject, reason} — this creates session debt discharged by a runbooks commit before close; never bypass the gate'
+  change_pattern: 'consult INDEX.md or search the Markdown directly; pass [{path, section, synthesis}] with an exact existing heading (grep "^#" the runbook); if genuinely no entry exists, pass Attestation {no_entry_found: true, subject, reason}; never invent a reference'
   rollback_procedure: n/a
   integrity_check: dispatch accepted; runbook_gate ledger event outcome RESOLVED
 - id: G-09
@@ -271,9 +273,9 @@ YAML frontmatter above is authoritative for the §A header fields.
   integrity_check: 'every repository installed hook sha256 equals githooks/pre-push, AND a synthetic protected-branch record is still refused without KD_ALLOW_MAIN_PUSH in each of them'
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - MP is the mandatory primary builder for BQ/development code builds; CC is ticket-fixes only (Max S1148); CC is NEVER a BQ/spec build path.
 - Builder ≠ reviewer, always. Auth/security/customer-data/money changes require unanimous Council.
@@ -286,23 +288,23 @@ YAML frontmatter above is authoritative for the §A header fields.
 - Provider version pins are not mismatches. GLM serves `z-ai/glm-5.2-20260616` for requested `z-ai/glm-5.2`; Vertex can suffix a version. `_model_matches()` accepts `expected` plus a `-`/`@`/`:` suffix. MP is the exception and compares EXACTLY, because its rollout returns the exact requested string.
 - reasoning_effort: gpt-5.6-sol supports none | low | medium | high | xhigh. It does NOT support `minimal` — that is a hard 400. `minimal` was removed from ALLOWED_REASONING_EFFORTS and from the tool schemas at S1205. Re-check the served set on any model swap; it is model-specific.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Changes the council_request tool contract for agent=mp (argument names/shapes) without a shim.
 - Removes or weakens the runbook-refs gate, the CI verification gate, or the builder≠reviewer rule.
 - Changes the mutex/serialization semantics of the Codex CLI bridge.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
-- Model swap (follow §G-05; availability-gated).
+- Model swap (follow Repair-05; availability-gated).
 - Timeout/stall-window default changes (MP_HARD_UPPER_BOUND_S, MP_PROGRESS_WINDOW_S).
 - New dispatch_class or middleware stage.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
-- Prompt-template wording improvements; new §F/§G rows from observed incidents; test additions; doc updates.
+- Prompt-template wording improvements; new When it breaks/Repair rows from observed incidents; test additions; doc updates.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -314,17 +316,17 @@ The council_request / dispatch_mp_build / check_build tool signatures registered
 
 #### runtime dependency
 
-Entries in koskadeux-mcp requirements; the Codex CLI binary version is an OPERATIONAL dependency tracked in §C, not a runtime dependency in the Python sense.
+Entries in koskadeux-mcp requirements; the Codex CLI binary version is an OPERATIONAL dependency tracked in Architecture & interactions, not a runtime dependency in the Python sense.
 
 #### config default
 
-~/.codex/config.toml values and koskadeux-mcp .env values named in §C.
+~/.codex/config.toml values and koskadeux-mcp .env values named in Architecture & interactions.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-More restrictive classification wins; unresolvable disputes escalate to Max and the ruling is appended to §H.1.
+More restrictive classification wins; unresolvable disputes escalate to Max and the ruling is appended to Changes and maintenance.1.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -396,7 +398,7 @@ scenario_set:
     weight: 0.09090909
   - id: I-09
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Proposal — remove the fcntl mutex so MP and CC can run concurrently in different repos. Classify.
     expected_answers:
       - kind: classification
@@ -404,7 +406,7 @@ scenario_set:
     weight: 0.09090909
   - id: I-11
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Proposal — add a retry wrapper that automatically redispatches an MP build once when check_build reports failed. Classify.
     expected_answers:
       - kind: classification
@@ -412,7 +414,7 @@ scenario_set:
     weight: 0.09090909
   - id: I-10
     type: ambiguous
-    refs: [§H, G-05]
+    refs: [Changes and maintenance, G-05]
     scenario: Proposal — bump MP_HARD_UPPER_BOUND_S from 1800 to 3600 for one giant migration build. Classify and name the safer alternative.
     expected_answers:
       - kind: classification
@@ -421,7 +423,7 @@ scenario_set:
     weight: 0.09090909
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1181
@@ -431,20 +433,8 @@ owner_agent: vulcan
 refresh_triggers:
   - model swap (T-2026-000197 gpt-5.6 and any successor)
   - any change to codex_cli_bridge.py, _handle_call_mp, or the structural middleware
-  - any new MP failure signature observed in production (add §F/§G rows same session)
+  - any new MP failure signature observed in production (add When it breaks/Repair rows same session)
   - runbook-gate semantics change (BQ-RUNBOOK-FIRST-ENFORCEMENT follow-ups)
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-08T23:45:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1181 / 2026-07-11T12:40:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

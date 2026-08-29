@@ -1,3 +1,11 @@
+---
+title: Session Open Protocol
+owner: unassigned
+last_verified: '2026-08-20'
+aliases: []
+error_signatures: []
+---
+
 # Session Open Protocol
 
 ## O.1 Purpose
@@ -64,7 +72,7 @@ The boot gate is instance-keyed in `registry.db`. `vulcan` open does not disturb
 - Each peer may open, plan, and operate concurrently. Each PLANNING→OPERATIONAL transition is independent.
 - If a peer sees a PLANNING_GATE error after a known gateway restart, re-open with `kd_session_open(instance=...)` then `kd_session_plan` and resume.
 - New opens pass `instance`, never `instance_role`, `parent_session_id`, or `.W` session ids.
-- **Missing-instance and agent-dispatch opens are namespaced to `scratch` (S858), not defaulted to `vulcan`.** An open with no `instance` arg, or an agent sub-session opened via `council_request`, lands in the non-human `scratch` row and skips the human boot payload. `_instance_liveness_collision` additionally refuses an open when the named `instance` already holds a live `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen is allowed; `scratch` is exempt). A live `scratch` row in the registry is normal, not a fault. See agent-dispatch.md §M.1 and session-registry-recovery.md §A.
+- **Missing-instance and agent-dispatch opens are namespaced to `scratch` (S858), not defaulted to `vulcan`.** An open with no `instance` arg, or an agent sub-session opened via `council_request`, lands in the non-human `scratch` row and skips the human boot payload. `_instance_liveness_collision` additionally refuses an open when the named `instance` already holds a live `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen is allowed; `scratch` is exempt). A live `scratch` row in the registry is normal, not a fault. See agent-dispatch.md §M.1 and session-registry-recovery.md Overview.
 
 
 ## O.4 Peer work pickup priority order
@@ -124,7 +132,7 @@ The names below are historical S612 work-item identifiers retained verbatim; the
 - BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1)
 - BQ-PROCESS-VULCAN-PRIMARY-DISCIPLINE-S612 (P2)
 
-New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see runbooks/peer-instance-discipline.md §H / §G).
+New process gaps file as runbook revision PRs against the survivor's named runbook — NOT as new BQs (see runbooks/peer-instance-discipline.md Changes and maintenance / Repair).
 
 ## O.10.5 Boot wire budget and the boot-size bake (T-2026-000271, S1256)
 
@@ -136,7 +144,7 @@ The `kd_session_open` boot payload has a hard wire budget of 64,000 JSON charact
 - Keeping boots clean: the biggest instance-controlled lever is the handoff — write lean handoffs (aim well under ~2k chars; durable detail belongs in Living State entities, not the handoff). Instance-to-instance close/reopen cycling for bake evidence requires Max's consent per the close protocol.
 
 ## O.11 Related runbooks
-- `session-close-protocol.md` — non-authoritative transition and legacy close record.
+- `session-close-protocol.md` — transition and legacy close record.
 - `session-registry-recovery.md` — recovery when session registry desyncs.
 - `runbooks/peer-instance-discipline.md` — Vulcan/Mars peer operating discipline.
 - `build-queue-lifecycle.md` — BQ lifecycle and pickup semantics.
@@ -148,3 +156,7 @@ historical protocol is not roster authority. Resolve builders, voters, paused
 members, and retired members from the exact signed deployed tool-and-Council
 contract; if that contract is absent or disagrees with the connected schema,
 stop roster-dependent work rather than copying a prior-session panel.
+
+## When it breaks
+
+Use the open sequence and stale-registry reconciliation above when normal session open cannot complete.

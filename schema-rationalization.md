@@ -1,22 +1,29 @@
 ---
-system_name: schema-rationalization-s1163
-purpose_sentence: Operate the S1163 classify to quarantine to drop procedure for pruning empty, unused tables from the production ai.market Postgres schema.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: BQ-DB-SCHEMA-RATIONALIZATION-S1163 production Postgres schema classification, quarantine monitoring, one-shot quarantine migrations, and P3 drop gates. NOT authoritative for ordinary Alembic practice outside this program, backup implementation, account teardown semantics, or future live-table consolidation BQs.
-linter_version: 1.0.0
+title: Schema Rationalization / Quarantine / Drop
+owner: vulcan
+last_verified: '2026-07-12'
+aliases: []
+error_signatures:
+- Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL
+- status=PRELIMINARY or reason=stats_reset_changed
+- is an operator-controlled one-shot migration
+- empty-only quarantine invariant failed
+- external dependencies on quarantine tables
+- quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0
+- relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table
+- relation 'orders' does not exist or crm_* does not exist
+- empty-only drop invariant failed
+- view or dependency blocker
 ---
 
 # Schema Rationalization / Quarantine / Drop
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 S1163 reduces the production Postgres schema by classifying every `public` table, moving empty unused tables to `quarantine`, watching for live misses, then dropping only after a quiet window and a unanimous Council gate. The hard safety invariant is execution-time empty-only enforcement under an exclusive table lock.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -29,7 +36,7 @@ S1163 reduces the production Postgres schema by classifying every `public` table
 
 P2 production fact: revision `s1163_p2_quarantine` moved 21 tables from `public` to `quarantine` at 2026-07-11T16:50Z and was merged to backend `main` at `31b601788854365d1861c01d029f231d8e721853`.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -41,7 +48,7 @@ P2 production fact: revision `s1163_p2_quarantine` moved 21 tables from `public`
 
 Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_2026_03`, `agent_telemetry_2026_04`, `agent_telemetry_default`, `allai_admin_grants`, `allai_mediation`, `analytics_events`, `conversation_messages`, `conversations`, `dataset_licenses`, `google_tokens`, `knowledge_base`, `license_templates`, `llm_conversations`, `low_confidence_privacy_backfills`, `processed_emails`, `quality_scores`, `referral_earnings`, `seller_inquiry_preferences`, `stripe_webhook_events`.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -52,7 +59,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 | AG/DS/XAI | Independent schema-risk review | `council_request` review | read-only code/spec review | COMPLETE |
 | Max | Business roadmap checkpoint and final P3 approval | Owner ruling | Product owner authority over KEEP-ROADMAP exclusions | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -103,13 +110,13 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
     - signature: "external dependencies on quarantine tables"
       cause: pg_depend/FK/view/policy/function blocker still exists
   next_step_success: start E-03 immediately and run it through the 3-day quarantine window
-  next_step_failure: stop; repair per §G; never bypass the assertion or run through app startup
+  next_step_failure: stop; repair per Repair; never bypass the assertion or run through app startup
 - id: E-03
   trigger: Run the mandatory 3-day quarantine window monitoring check.
   pre_conditions:
     - P2 quarantine has executed in production
     - monitoring window is still open or being closed for P3
-    - quarantine_set is the exact set in §C, not every relation-does-not-exist string in logs
+    - quarantine_set is the exact set in Architecture & interactions, not every relation-does-not-exist string in logs
   tool_or_endpoint: "three checks: (a) psql read-only pg_stat_user_tables; (b) Railway deploymentLogs GraphQL filtered for 'does not exist'/'UndefinedTable'; (c) Titan-1 grep /var/tmp/koskadeux/*.log and ~/Library/Logs/aimarket_*.log"
   argument_sourcing:
     DATABASE_PUBLIC_URL: "Infisical project bd272d48-c5a1-4b52-9d24-12066ae4403c env prod"
@@ -120,8 +127,8 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
     shape: "a) every quarantine table has n_live_tup=0 and n_tup_ins=n_tup_upd=n_tup_del=0; b/c) no log hit names a quarantined table"
     verification: |
       psql "$DATABASE_PUBLIC_URL" -c "SELECT relname,n_live_tup,n_tup_ins,n_tup_upd,n_tup_del FROM pg_stat_user_tables WHERE schemaname='quarantine' ORDER BY relname;"
-      Railway GraphQL deploymentLogs(active backend deployment, filter='does not exist OR UndefinedTable'); cross-check any relation name against §C quarantine_set
-      # note: agent_telemetry substring intentionally matches the _2026_03/_2026_04/_default partitions; verify any hit against the exact §C quarantine_set before acting
+      Railway GraphQL deploymentLogs(active backend deployment, filter='does not exist OR UndefinedTable'); cross-check any relation name against Architecture & interactions quarantine_set
+      # note: agent_telemetry substring intentionally matches the _2026_03/_2026_04/_default partitions; verify any hit against the exact Architecture & interactions quarantine_set before acting
       grep -Ei "does not exist|UndefinedTable|access_tokens|agent_telemetry|allai_admin_grants|allai_mediation|analytics_events|conversation_messages|conversations|dataset_licenses|google_tokens|knowledge_base|license_templates|llm_conversations|low_confidence_privacy_backfills|processed_emails|quality_scores|referral_earnings|seller_inquiry_preferences|stripe_webhook_events" /var/tmp/koskadeux/*.log ~/Library/Logs/aimarket_*.log
   expected_failures:
     - signature: "quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0"
@@ -129,7 +136,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
     - signature: "relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table"
       cause: live code references a quarantined table
     - signature: "relation 'orders' does not exist or crm_* does not exist"
-      cause: false alarm if the named table is not in §C quarantine_set; see T-2026-000234/T-2026-000235
+      cause: false alarm if the named table is not in Architecture & interactions quarantine_set; see T-2026-000234/T-2026-000235
   next_step_success: after the full quiet 3-day window, proceed to P3 gate E-04
   next_step_failure: if hit names a quarantined table, run one-line move-back, reclassify, and record the miss; if false alarm, record as unrelated and continue monitoring
 - id: E-04
@@ -162,20 +169,20 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
   next_step_failure: stop; move back affected table if needed; reclassify and redispatch P3 only after new unanimous gate
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Classification manifest is `PRELIMINARY` or write-delta invalid | Fewer than two snapshots, window below `SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS`, or `pg_stat_database.stats_reset` changed | Read `write_delta_evidence` in `specs/evidence/schema-classification-s1163.json`; compare `valid`, `reason`, `window_days`, `stats_reset_changed` | §G-01 | CONFIRMED |
-| F-02 | Quarantine/drop migration refuses to run as one-shot | Required `RUN_ONE_SHOT_S1163_P2` or `RUN_ONE_SHOT_S1163_P3` missing | Read Alembic stderr for "operator-controlled one-shot migration"; inspect environment of the one command only | §G-02 | CONFIRMED |
-| F-03 | Migration aborts with empty-only invariant failure | Candidate table has rows at execution time after lock acquisition | Read exception text for table name and row count; verify with `SELECT count(*) FROM <schema>.<table>` using read-only DSN | §G-03 | CONFIRMED |
-| F-04 | Migration aborts on external dependencies or mcp_safe blocker | FK, view, trigger, policy, function, grant, or mcp_safe mirror still depends on target | Use exception blocker list; query `pg_depend`/`pg_constraint`; compare against P2 `MCP_SAFE_MIRROR_VIEWS` precedent | §G-04 | CONFIRMED |
-| F-05 | Quarantine monitor finds n_live_tup or n_tup_ins/upd/del nonzero | A production writer used a quarantined table during the window | Run E-03 pg_stat query; confirm the relname is in §C quarantine_set | §G-05 | CONFIRMED |
-| F-06 | Railway/Titan logs show `relation ... does not exist` or `UndefinedTable` for a quarantined table | Live code or job still references a table moved to `quarantine` | Extract relation name from the log and exact timestamp; cross-check against §C quarantine_set | §G-05 | CONFIRMED |
-| F-07 | Railway/Titan logs show missing `orders` or `crm_*` relation | False-alarm class: table was never in the S1163 quarantine set; known unrelated tickets T-2026-000234/T-2026-000235 | Extract relation name and compare against §C quarantine_set; if absent, route to owning ticket/runbook, not S1163 move-back | N/A — repair belongs to the owning ticket/runbook (T-2026-000234 / T-2026-000235), not this runbook | CONFIRMED |
-| F-08 | P3 proposal includes `referral_codes`, invoices, payments, purchases, refunds, or roadmap family | Builder missed Max S1187/S1184 KEEP-ROADMAP exclusions | Inspect P3 target list and migration constants before dispatch; grep migration for excluded names | §G-06 | CONFIRMED |
+| F-01 | Classification manifest is `PRELIMINARY` or write-delta invalid | Fewer than two snapshots, window below `SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS`, or `pg_stat_database.stats_reset` changed | Read `write_delta_evidence` in `specs/evidence/schema-classification-s1163.json`; compare `valid`, `reason`, `window_days`, `stats_reset_changed` | Repair-01 | CONFIRMED |
+| F-02 | Quarantine/drop migration refuses to run as one-shot | Required `RUN_ONE_SHOT_S1163_P2` or `RUN_ONE_SHOT_S1163_P3` missing | Read Alembic stderr for "operator-controlled one-shot migration"; inspect environment of the one command only | Repair-02 | CONFIRMED |
+| F-03 | Migration aborts with empty-only invariant failure | Candidate table has rows at execution time after lock acquisition | Read exception text for table name and row count; verify with `SELECT count(*) FROM <schema>.<table>` using read-only DSN | Repair-03 | CONFIRMED |
+| F-04 | Migration aborts on external dependencies or mcp_safe blocker | FK, view, trigger, policy, function, grant, or mcp_safe mirror still depends on target | Use exception blocker list; query `pg_depend`/`pg_constraint`; compare against P2 `MCP_SAFE_MIRROR_VIEWS` precedent | Repair-04 | CONFIRMED |
+| F-05 | Quarantine monitor finds n_live_tup or n_tup_ins/upd/del nonzero | A production writer used a quarantined table during the window | Run E-03 pg_stat query; confirm the relname is in Architecture & interactions quarantine_set | Repair-05 | CONFIRMED |
+| F-06 | Railway/Titan logs show `relation ... does not exist` or `UndefinedTable` for a quarantined table | Live code or job still references a table moved to `quarantine` | Extract relation name from the log and exact timestamp; cross-check against Architecture & interactions quarantine_set | Repair-05 | CONFIRMED |
+| F-07 | Railway/Titan logs show missing `orders` or `crm_*` relation | False-alarm class: table was never in the S1163 quarantine set; known unrelated tickets T-2026-000234/T-2026-000235 | Extract relation name and compare against Architecture & interactions quarantine_set; if absent, route to owning ticket/runbook, not S1163 move-back | N/A — repair belongs to the owning ticket/runbook (T-2026-000234 / T-2026-000235), not this runbook | CONFIRMED |
+| F-08 | P3 proposal includes `referral_codes`, invoices, payments, purchases, refunds, or roadmap family | Builder missed Max S1187/S1184 KEEP-ROADMAP exclusions | Inspect P3 target list and migration constants before dispatch; grep migration for excluded names | Repair-06 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -228,9 +235,9 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
   integrity_check: grep of the P3 migration contains none of the excluded names except in comments documenting exclusion.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Empty-only is enforced at migration execution time inside the DDL transaction after `ACCESS EXCLUSIVE` lock acquisition; classification evidence alone is never sufficient.
 - P2 and P3 are operator-controlled one-shot migrations and must not run from Railway app startup.
@@ -238,16 +245,16 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 - OWNED-ELSEWHERE tables (`state_*`, `author_dispatch_*`, `peer_messages`, `comms_feed`, `alembic_version`) are outside S1163 and cannot be quarantined or dropped here.
 - Partition families are one classification/drop unit; no child-only quarantine/drop.
 - `referral_codes` is KEEP-ROADMAP by Max S1187; invoices, payments, purchases, refunds and the finance roadmap family are KEEP-ROADMAP by Max S1184.
-- Relation-does-not-exist errors for tables absent from §C quarantine_set are not S1163 quarantine misses.
+- Relation-does-not-exist errors for tables absent from Architecture & interactions quarantine_set are not S1163 quarantine misses.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Drops or quarantines a table with rows, or weakens the lock-before-count invariant.
 - Adds any app-startup path that can run P2/P3 one-shot migrations.
 - Removes a KEEP-ROADMAP or OWNED-ELSEWHERE exclusion without a fresh Max ruling and unanimous Council gate.
 - Drops a partition child independently from its parent family.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changes classifier evidence rules or classification labels.
 - Changes the P2/P3 migration target set.
@@ -255,14 +262,14 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 - Adds a runtime dependency to execute classification or migrations.
 - Changes backup-health, Council, or Max checkpoint gates.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Documentation update preserving all invariants.
 - Adding a monitor query or log source that cannot mutate production.
 - Test additions for classifier helpers or migration constants.
 - Narrow bugfix to formatting of evidence output with no classification semantic change.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -280,11 +287,11 @@ Entries in backend runtime dependency files used by production services. Local-o
 
 Values committed in backend config files. Environment variables such as `RUN_ONE_SHOT_S1163_P2`, `RUN_ONE_SHOT_S1163_P3`, and `SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS` are operator-supplied run controls, not config defaults.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 If agents disagree on change class, the more restrictive class wins. Any dispute touching table ownership, roadmap status, or customer-data risk escalates to Max.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -361,7 +368,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-09
     type: evolve
-    refs: [§H.2]
+    refs: [Changes and maintenance.2]
     scenario: A proposal drops agent_telemetry_2026_03 but keeps the parent and other children.
     expected_answers:
       - kind: classification
@@ -378,7 +385,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-11
     type: evolve
-    refs: [§H.3]
+    refs: [Changes and maintenance.3]
     scenario: A proposal changes the classifier so KEEP-ROADMAP tables require a new evidence field before being excluded from P3.
     expected_answers:
       - kind: classification
@@ -386,7 +393,7 @@ scenario_set:
     weight: 0.0909090909
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1163
@@ -400,17 +407,5 @@ refresh_triggers:
   - classifier rules or evidence format changes
   - S1163 closes with final table count and account-teardown footprint re-derived
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-12T10:57:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1163 / 2026-07-12T10:57:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

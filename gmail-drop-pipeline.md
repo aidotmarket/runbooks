@@ -1,6 +1,14 @@
+---
+title: Gmail Drop Pipeline
+owner: unassigned
+last_verified: '2026-07-09'
+aliases: []
+error_signatures: []
+---
+
 # Gmail Drop Pipeline
 
-> **Doc status:** content current as of S1162 (party model + T-2026-000200 restore). Full §A–K structural retrofit (BQ-RUNBOOK-STANDARD.md) still pending.
+> **Doc status:** content current as of S1162 (party model + T-2026-000200 restore). Full Overview–K structural retrofit (BQ-RUNBOOK-STANDARD.md) still pending.
 
 ## What it does
 
@@ -183,4 +191,4 @@ Updated S364 — Fixed 4 bugs: (1) CC contacts now get interactions logged, (2) 
 Updated S360 — corrected topic/subscription names to `gmail-crm-drop`.
 Updated S370 — Fixed 2 bugs: (1) `db.begin()` inside active transaction silently killed all CRM ingest (`ef36f82`, `begin_nested()` fix), (2) Gmail `labelAdded` events not handled (`8bf4b87`). Verified E2E: email → contact created + interaction logged.
 Updated S372 — Fixed DRAFT duplication bug: Apple Mail IMAP auto-saves triggered messageAdded events, handler processed drafts as real emails. DRAFT label check added (`eb26181`).
-Updated S1162 — T-2026-000200 restore: party-model ingest + `email_ingest_receipt` idempotency. Gate-3 closed; deploy-drift incident (`DuplicateTableError`) fixed via an idempotent `has_table`-guarded migration. Merges: `9515df7f` (restore) + `ccaf91a3` (idempotent migration). Verified: prod deploy SUCCESS, `/health` 200, alembic head = `t200_email_ingest_receipt`, receipt data preserved, 10/10 real-PG integration suite. NOTE: content-accuracy update only — full §A–K structural retrofit still pending.
+Updated S1162 — T-2026-000200 restore: party-model ingest + `email_ingest_receipt` idempotency. Gate-3 closed; deploy-drift incident (`DuplicateTableError`) fixed via an idempotent `has_table`-guarded migration. Merges: `9515df7f` (restore) + `ccaf91a3` (idempotent migration). Verified: prod deploy SUCCESS, `/health` 200, alembic head = `t200_email_ingest_receipt`, receipt data preserved, 10/10 real-PG integration suite. NOTE: content-accuracy update only — full Overview–K structural retrofit still pending.

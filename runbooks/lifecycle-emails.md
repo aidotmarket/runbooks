@@ -1,30 +1,17 @@
 ---
-runbook_id: lifecycle-emails
-domain: ai-market-backend
-status: DRAFT
-authoritative_for: []
+title: Lifecycle Emails
+owner: vulcan
+last_verified: '2026-08-20'
 aliases: []
 error_signatures:
-  - signature: "operator does not exist: userstatus = character varying"
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-20
-system_name: lifecycle-emails
-purpose_sentence: Discovery-only lifecycle-email task, selection, outbox, suppression, retry, unsubscribe, and recovery reference for the S1548 backend candidate.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page records the exact S1548 candidate behavior, deployed service identities, and counts-only live selection/claim evidence but authorizes no task execution, deployment, rollback, or production action.
-linter_version: 1.0.0
+- 'operator does not exist: userstatus = character varying'
 ---
 
 # Lifecycle Emails
 
-## §A. Header
+## Overview
 
-This is a non-authoritative DRAFT for Build Queue item
+This page records the verified state and remaining evidence gaps for Build Queue item
 `build:bq-signup-lifecycle-emails-s1548`. It is grounded in exact
 `aidotmarket/ai-market-backend` revision
 `77dae96fd8a80fe768091061bc3846fb1b5e8d55`. The backend deployment
@@ -43,10 +30,9 @@ counts `{selected: 51, claimed: 51}`. No
 `operator does not exist: userstatus = character varying` log has occurred
 since deployment. This proves the repaired selection/claim path. Drain and
 delivery behavior and recipient inbox delivery were not part of this predicate
-repair and were not re-verified here. This DRAFT claims no browser
-verification.
+repair and were not re-verified here. No browser verification was performed.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -54,7 +40,7 @@ verification.
 | Idempotent outbox, suppression, and retry boundary | PARTIAL | `app/models/lifecycle_email_send.py; app/services/lifecycle_email_claims.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover the boundary; live aggregate counts prove 51 selections produced 51 claims, but drain/delivery was not re-verified here | 2026-08-20 |
 | Signed lifecycle unsubscribe | PARTIAL | `app/api/v1/endpoints/lifecycle_emails.py; app/services/lifecycle_email_unsubscribe.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_d.py` | 2026-08-20 |
 | Signup and attempt selection | PARTIAL | `app/tasks/lifecycle_emails.py; app/api/v1/endpoints/ops_signups.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_b.py; tests/test_s1548_ops_signups_phase_c.py` | 2026-08-20 |
-| Exact production deployment and repaired daily selection/claim path | SHIPPED | `app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Backend/beat/worker deployment and image identities are in §A; live task `bd169cfa-3675-4a61-bf32-cc95c1325555` succeeded with `{selected: 51, claimed: 51}` and no matching failure log since deployment | 2026-08-20 |
+| Exact production deployment and repaired daily selection/claim path | SHIPPED | `app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Backend/beat/worker deployment and image identities are in Overview; live task `bd169cfa-3675-4a61-bf32-cc95c1325555` succeeded with `{selected: 51, claimed: 51}` and no matching failure log since deployment | 2026-08-20 |
 
 `PARTIAL` means the behavior is present in the exact deployed revision and has
 focused test coverage, but the specific behavior was not fully re-verified live
@@ -62,7 +48,7 @@ here. This runbook work did not rerun those backend tests. `SHIPPED` is limited
 to exact deployment identity and the repaired daily selection/claim path; it
 does not extend to drain/delivery or recipient inbox delivery.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -83,20 +69,19 @@ Selection/capture creates a claim with `sent_at` unset and commits it before
 network delivery. The drain owns delivery and final status; a sweep never sends
 mail directly.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 []
 ```
 
-The operate form is intentionally empty because this DRAFT grants no production
-authority. The registered schedules are:
+No production operation is prescribed here. The registered schedules are:
 
 - `lifecycle_emails.drain_outbox`: every 300 seconds.
 - `lifecycle_emails.attempt_sweep`: hourly at minute 35.
@@ -107,7 +92,7 @@ The retained live evidence is the operator-triggered
 `bd169cfa-3675-4a61-bf32-cc95c1325555` at `2026-08-20T20:19:19Z`. It
 succeeded in `6.481179486960173s` with aggregate counts
 `{selected: 51, claimed: 51}`. The exact deployed revision and service image
-identities are recorded in §A, and no
+identities are recorded in Overview, and no
 `operator does not exist: userstatus = character varying` log has occurred
 since deployment. This evidence proves the repaired selection/claim path only.
 No drain/delivery, recipient inbox delivery, or browser verification was
@@ -130,13 +115,13 @@ behavior. Before the hold expired, day-3/day-7 catch-up excluded users created
 before the launch cutoff. At and after the hold instant, the launch-cutoff
 filter no longer applies; do not treat either constant as a current hold.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | `operator does not exist: userstatus = character varying` from `lifecycle_emails.daily_sweep` | PostgreSQL is comparing the shared `userstatus` enum mapping directly with a varchar parameter. | Retain the sanitized signature and counts, verify the active production revision exactly, and inspect whether the lifecycle selection contains `CAST(users.status AS VARCHAR) = 'active'`. Do not infer deployment from branch ancestry. | G-01 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -151,45 +136,45 @@ filter no longer applies; do not treat either constant as a current hold.
 
 The recorded backend deployment is exactly
 `77dae96fd8a80fe768091061bc3846fb1b5e8d55`; its deployment and image identities
-are in §A. The operator-triggered task in §E succeeded with 51 selections and
+are in Overview. The operator-triggered task in How to operate succeeded with 51 selections and
 51 claims, and the failure signature has not appeared since deployment. This
 live task proves the repaired selection/claim path. It does not prove the
 separate drain/delivery path or recipient inbox delivery, neither of which was
 part of this predicate repair or re-verified here. A rollback uses the normal
-reviewed/deployed revert above; this DRAFT does not authorize it.
+reviewed/deployed revert above; execute it only through that reviewed workflow.
 
 The wider shared ORM mapping mismatch is explicitly out of scope. This repair
 is limited to the lifecycle selection predicate and must not change policy,
 models, schemas, migrations, or other callers.
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Selection/capture commits an idempotent outbox claim before the drain makes a network call.
 - Lifecycle delivery never targets unverified, inactive, synthetic/test, or opted-out users.
 - Day-3 suppresses only the complete-Stripe-plus-listing case.
-- Exact deployment and the repaired live daily selection/claim path are bound to the evidence in §A and §E.
+- Exact deployment and the repaired live daily selection/claim path are bound to the evidence in Overview and How to operate.
 - Drain/delivery and recipient inbox delivery remain separate from the repaired predicate and were not re-verified here.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Changing eligibility, suppression, claim uniqueness, claim-before-drain
 ordering, retry limits, unsubscribe signing, or message timing is breaking.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Any task schedule, outbox field, lifecycle preference shape, synthetic filter,
 status comparison, or production target SHA change requires focused backend
-tests, exact-artifact review, and this DRAFT to be refreshed.
+tests, exact-artifact review, and this page to be refreshed.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Counts-only evidence updates and editorial clarification are safe only when
 they grant no authority, change no runtime behavior, and do not broaden the
 specific path proved by the retained evidence.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -200,7 +185,7 @@ unsubscribe endpoint.
 #### public contract
 
 The public contract covered here is the idempotent signed
-`/api/v1/emails/lifecycle/unsubscribe` route. This DRAFT does not redefine email
+`/api/v1/emails/lifecycle/unsubscribe` route. This page does not redefine email
 copy, the ops Signups response, or transactional email preferences.
 
 #### runtime dependency
@@ -214,16 +199,16 @@ Schedules and expired hold constants are the exact values above. The
 verification-enforcement cutoff and synthetic email domain remain backend
 configuration, not values invented by this runbook.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-Exact backend source and post-deploy evidence win over this DRAFT. For this
+Exact backend source and post-deploy evidence win over this page. For this
 refresh, exact deployment identity plus the operator-triggered counts bind the
 repaired selection/claim result to the deployed revision. They do not establish
 drain/delivery or recipient inbox delivery. Uncertain future deployment
 identity or counts without revision binding remain `UNKNOWN`; no local test,
 Git ancestry, or browser inference substitutes for live evidence.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set: []
@@ -241,7 +226,7 @@ operator-triggered task proving the repaired selection/claim path with
 counts-only output. Drain/delivery, recipient inbox delivery, and browser
 verification were outside this predicate repair and were not re-verified here.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1588
@@ -257,15 +242,3 @@ scheduled_cadence: 90d
 
 The final runbooks commits and generated corpus pins belong in repository
 history because this document cannot truthfully self-pin them.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
-```
-
-This DRAFT remains discovery-only and must not be marked ACTIVE by local
-authoring, catalog generation, or manifest registration.

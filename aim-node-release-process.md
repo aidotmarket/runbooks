@@ -1,3 +1,11 @@
+---
+title: AIM Node Release Process
+owner: unassigned
+last_verified: '2026-04-08'
+aliases: []
+error_signatures: []
+---
+
 # AIM Node Release Process
 
 ## What it does

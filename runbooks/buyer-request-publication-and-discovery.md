@@ -1,51 +1,25 @@
 ---
-runbook_id: buyer-request-publication-and-discovery
-domain: buyer-requests
-status: ACTIVE
-authoritative_for:
-  - topic: buyer-request-discovery-operations
-    section: §C. Architecture & Interactions
-  - topic: buyer-request-matching-rollout
-    section: §E. Operate
-  - topic: buyer-request-matching-rollback
-    section: §G. Repair
-aliases:
-  - buyer-requests
-  - request-publication
-  - request-matching
-error_signatures:
-  - signature: BUYER_REQUEST_MATCH_RELEVANCE_QUESTION
-    section: §F. Isolate
-  - signature: rolling_24h_cap
-    section: §F. Isolate
-  - signature: delivery_cycle_failed
-    section: §F. Isolate
-  - signature: request_match_deliveries table does not exist
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
+title: Buyer Request Publication and Discovery
 owner: vulcan
-last_verified_at: "2026-08-29"
-system_name: buyer-request-publication-and-discovery
-purpose_sentence: Operate the one automated path that decides whether a Buyer Request is public, makes eligible demand discoverable, matches relevant sellers, and preserves work during failure or rollback.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Buyer Request publication eligibility, public discovery projections, seller
-  matching and notification rollout, and safe rollback. Customer-data capture
-  policy belongs to corpus-capture-policy.md; general listing SEO belongs to
-  seo-infrastructure.md.
-linter_version: 1.0.0
+last_verified: '2026-08-29'
+aliases:
+- buyer-requests
+- request-matching
+- request-publication
+error_signatures:
+- BUYER_REQUEST_MATCH_RELEVANCE_QUESTION
+- delivery_cycle_failed
+- request_match_deliveries table does not exist
+- rolling_24h_cap
 ---
 
 # Buyer Request Publication and Discovery
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative. This runbook describes current code and deployed state separately; a merged commit is not called deployed until Railway proves the exact SHA.
+This runbook describes current code and deployed state separately; a merged commit is not called deployed until Railway proves the exact SHA.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -79,7 +53,7 @@ Production identity proof for the buyer controls: Railway serves the exact revie
 
 Refresh that proof only from authorised read-only sources: Railway's exact deployment list, the three resolved boolean settings from `app.core.config.settings`, aggregate counts/states from `request_publication_outbox`, `request_match_deliveries`, and `data_requests`, plus public GETs to `/api/health` and `/health`. Do not dump all environment variables, customer rows, request text, or identities into evidence.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The market uses one decision everywhere. An ordinary open, unexpired request from a verified non-synthetic buyer becomes public only when the buyer has consented to the exact current public text and the automated safety result is clean. Public website, API, sitemap, text, agent, homepage, search-submission, and seller-matching surfaces consume that persisted decision; none may invent its own eligibility rule. The current nine public test requests are a narrow operator-authorised visibility exception: they passed the safety check and were previously public, retain their synthetic-buyer classification, and therefore remain excluded from seller matching. This exception does not authorise publishing the four test requests flagged for contact or personal data.
 
@@ -95,7 +69,7 @@ The market uses one decision everywhere. An ordinary open, unexpired request fro
 
 Human review is an exception for genuine ambiguity, not the normal publication path. Infrastructure unavailability retries automatically. No request may sit in an unexplained queue.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -106,7 +80,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 | Vulcan/Mars | Deploy, inspect, and roll back through this runbook | Railway, read-only SQL, runbooks | operator | COMPLETE |
 | Human reviewer | Answer a concrete exception question; no routine queue | bounded exception surface | explicit exception only | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -149,7 +123,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
     - signature: BUYER_REQUEST_MATCH_RELEVANCE_QUESTION
       cause: the inspector has one concrete semantic uncertainty; matching work is retained
   next_step_success: leave automatic matching on; record exact proof
-  next_step_failure: isolate with §F; disable matching with G-01 only if failure is systemic
+  next_step_failure: isolate with When it breaks; disable matching with G-01 only if failure is systemic
 
 - id: E-03
   trigger: Consider enabling external seller-match email
@@ -172,7 +146,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
   next_step_failure: set the flag false; preserve delivery rows for diagnosis and retry
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -182,7 +156,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 | F-04 | More than one alert to the same seller/request | Out-of-band write, missing uniqueness, or a different legacy route | Verify unique constraint, delivery row, completed channel timestamps, and that legacy `request.published` handler is the no-op | G-01 | CONFIRMED |
 | F-05 | Email does not send | Expected kill switch, preference, synthetic seller, cap, or provider failure | Read `BUYER_REQUEST_MATCH_EMAILS_ENABLED` and channel state before treating it as an outage | G-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -210,9 +184,9 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 
 Therefore the normal rollback is G-01: switches off on the current migration-aware application, schema retained. Do not deploy the older publication image against the forward revision, and do not run `alembic downgrade s1632_request_publication` in production merely to roll back code. A destructive downgrade requires Max's explicit authority, a verified export/backup of every matching table/column, a proven restore procedure, external email off, matching quiesced, and a written decision accepting the possible replay/duplicate-alert consequence. Without all of those, stop.
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - One persisted publication decision gates every public, search, agent, promotional, and seller-matching surface.
 - Synthetic/test identities create no public, search, match, or email effect.
@@ -220,24 +194,24 @@ Therefore the normal rollback is G-01: switches off on the current migration-awa
 - A delivered seller/request channel is never re-alerted.
 - External email stays off until controlled proof and explicit authority.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - A surface publishes or matches without the authoritative eligibility decision.
 - A migration or cleanup deletes delivery/outbox evidence.
 - A retry can duplicate a completed channel or lose a failed one.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing threshold, five-seller limit, email cap, digest behavior, or relevance inspection.
 - Adding another public or agent discovery surface.
 - Enabling external seller email.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Adding read-only state/reason visibility or tests that preserve the same decision.
 - Correcting copy or runbook evidence without changing runtime policy.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -255,11 +229,11 @@ Postgres, canonical Qdrant listings collection, scheduler/Celery, notification s
 
 Matching enabled, threshold 0.75, five sellers, email disabled, three emails per rolling 24 hours.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 When a request is ambiguous, keep it private and show the primary reason. When matching relevance is ambiguous, retain the match with a concrete inspection question; do not stop unrelated clean work.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -275,7 +249,7 @@ scenario_set:
     weight: 1.0
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1632
@@ -288,13 +262,4 @@ refresh_triggers:
   - either matching/email switch default changes
   - production deployment or rollback evidence changes
 scheduled_cadence: 1m
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```

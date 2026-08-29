@@ -1,3 +1,11 @@
+---
+title: Seller SEO Validation Runbook
+owner: unassigned
+last_verified: '2026-04-01'
+aliases: []
+error_signatures: []
+---
+
 # Seller SEO Validation Runbook
 
 Discovery health checks and readiness scoring for marketplace listings.
@@ -58,7 +66,7 @@ These call `maybe_log_low_publish_readiness()` which runs `validate_on_publish()
 - `common_failures`: Most frequent failing checks across all listings
 - `is_truncated`: Whether results were limited
 
-## Troubleshooting
+## When it breaks
 
 ### Low readiness score
 Check which specific checks are failing via the seller endpoint. Most common issues: missing JSON-LD (check `app/services/jsonld_service.py`), robots.txt blocking, or listing not in sitemap.

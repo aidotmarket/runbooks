@@ -1,22 +1,25 @@
 ---
-system_name: constitution-amendment
-purpose_sentence: Amend CORE through the normal unanimous Council gate plus Max approval, or an explicit matter-specific Max supersession, with boot-safe versioned delivery.
-owner_agent: mars
-escalation_contact: Max (human operator)
-lifecycle_ref: §J
-authoritative_scope: The amendment process for CORE.md / infra:constitution only. NOT the companion docs (BUSINESS-CONTEXT.md, PROTOCOLS.md, INFRASTRUCTURE.md), NOT the Design Charter (changed by replacement per its own rule), NOT runbooks (standard §L governs those).
-linter_version: 1.0.0
+title: Constitution Amendment — changing CORE.md
+owner: mars
+last_verified: '2026-07-28'
+aliases: []
+error_signatures:
+- missing / malformed / model-mismatched verdict
+- any non-APPROVE-class verdict
+- Max declines or amends
+- version_conflict on the patch
+- GUARDRAIL refusal text on the push
+- entity and file differ
 ---
 
 # Constitution Amendment — changing CORE.md
 
 **The rule (CORE footer, v9.13; Max directives S1242 and S1370; voter roster updated S1319):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -26,7 +29,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Git mirror on backend main | SHIPPED | `ai-market-backend:docs/core/CORE.md` | manual byte diff vs entity (E-04) | 2026-07-16 |
 | Unanimous Council gate or explicit Max supersession for amendments | SHIPPED | `koskadeux-mcp:tools/agents.py` | CORE v9.13 footer + §5 decision rules | 2026-07-27 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -35,7 +38,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Boot delivery | `tools/session.py:kd_session_open` | Titan-1 `registry.db` | both instances on every open | 46,000-char wire budget; §3 marker assertion; constitution_source=db. |
 | Council gate | `tools/agents.py:council_request` | council task logs | CC / Kimi / GLM voters | 3/3 valid unanimous verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -44,7 +47,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Vulcan / Mars | commit + push the git mirror | `shell_request` (git; `KD_ALLOW_MAIN_PUSH=1` on the push) | Titan-1 shell | COMPLETE |
 | Max | final approval / veto | direct instruction in session | human | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -140,17 +143,17 @@ YAML frontmatter above is authoritative for the §A header fields.
   next_step_failure: G-02
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Entity patch rejected with a version conflict | concurrent write to infra:constitution between get and patch | re-run state_request get; compare returned version vs the expected_version sent | G-01 | CONFIRMED |
 | F-02 | Git file and entity content diverge | one side edited without the other, or a retyped (not file-read) patch introduced drift | byte-compare `git show origin/main:docs/core/CORE.md` vs entity body.content | G-02 | CONFIRMED |
 | F-03 | Boot-contract CI test fails after an amendment | §3 comms marker text altered, or constitution dropped/truncated in the boot payload | run `tests/integration/test_constitution_comms_invariant.py` in koskadeux-mcp; grep content for the marker string | G-03 | CONFIRMED |
-| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing exact dispatch SHA, or incomplete Kimi/GLM at-SHA evidence coverage | inspect each council task result; classify per agent-dispatch.md / codex-mp.md §F | | CONFIRMED |
+| F-04 | Council gate cannot reach 3/3 valid verdicts | voter transport failure, malformed verdict enum, model mismatch, missing exact dispatch SHA, or incomplete Kimi/GLM at-SHA evidence coverage | inspect each council task result; classify per agent-dispatch.md / codex-mp.md When it breaks | | CONFIRMED |
 | F-05 | Push to backend main prints a GUARDRAIL refusal yet may have landed | pre-push hook emits the refusal text even on a KD_ALLOW_MAIN_PUSH=1 push that succeeds (observed S1242, commits 356a2dfe and 6851a671) | `git fetch origin && git log -1 origin/main`, and confirm via the GitHub API commits/main | | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -179,9 +182,9 @@ YAML frontmatter above is authoritative for the §A header fields.
   integrity_check: test_constitution_comms_invariant.py green; content size under 46,000
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Every CORE.md change — including editorial — requires a unanimous Council gate (CC, Kimi, GLM; 3/3 valid verdicts) AND Max's direct approval, unless Max explicitly supersedes the Council for the exact named matter under CORE v9.13 §5. Supersession must be recorded in the Event Ledger and may never be inferred. No reduced quorum, voter substitution, or builder vote is permitted.
 - The §3 comms-invariant marker text stays verbatim; the boot-contract test enforces it.
@@ -189,24 +192,24 @@ YAML frontmatter above is authoritative for the §A header fields.
 - Total content stays under the 46,000-char boot wire budget.
 - Amendment records in the entity body are append-only; approvals are quoted verbatim.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Weakening or removing the amendment rule itself (footer or this runbook's gate steps).
 - Any edit touching the §3 marker sentence.
 - Content exceeding the wire budget.
 - Patching the entity without expected_version.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing any procedural step in this runbook (normal runbook PR review per standard §L).
 - Changing where the mirror lives or how boot sources the constitution.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
-- §J metadata refresh on this runbook.
+- Maintenance metadata refresh on this runbook.
 - Typo fixes in this runbook's prose that do not alter a step.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -224,18 +227,18 @@ Postgres (state_entities) on Railway; the koskadeux MCP server (localhost:8765) 
 
 The 46,000-char boot wire budget (koskadeux-mcp boot fit logic); KD_ALLOW_MAIN_PUSH gate on backend main pushes.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Disputed classifications escalate to Max. Emergency exception: none — there is no emergency path for constitution edits; if production is on fire, fix production, not the constitution.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
     refs:
-      - §E E-01
+      - How to operate E-01
     scenario: Max asks to change a CORE §3 rule; produce the correct first action.
     expected_answers:
       - kind: tool_call
@@ -247,7 +250,7 @@ scenario_set:
   - id: I-02
     type: operate
     refs:
-      - §E E-03
+      - How to operate E-03
     scenario: An amendment has 3/3 Council APPROVE and Max's recorded approval; apply it.
     expected_answers:
       - kind: tool_call
@@ -260,7 +263,7 @@ scenario_set:
   - id: I-03
     type: operate
     refs:
-      - §E E-04
+      - How to operate E-04
     scenario: An amendment was just applied; verify it reached both stores and boot delivery.
     expected_answers:
       - kind: tool_call
@@ -272,7 +275,7 @@ scenario_set:
   - id: I-04
     type: isolate
     refs:
-      - §F F-01
+      - When it breaks F-01
     scenario: The entity patch returns a version conflict; diagnose before retrying.
     expected_answers:
       - kind: tool_call
@@ -284,7 +287,7 @@ scenario_set:
   - id: I-05
     type: isolate
     refs:
-      - §F F-03
+      - When it breaks F-03
     scenario: CI fails on the boot-contract test right after a constitution edit; find why.
     expected_answers:
       - kind: tool_call
@@ -295,7 +298,7 @@ scenario_set:
   - id: I-06
     type: isolate
     refs:
-      - §F F-05
+      - When it breaks F-05
     scenario: The main push printed a GUARDRAIL refusal; determine whether the commit landed before doing anything else.
     expected_answers:
       - kind: tool_call
@@ -306,7 +309,7 @@ scenario_set:
   - id: I-07
     type: repair
     refs:
-      - §G G-02
+      - Repair G-02
     scenario: The git CORE.md and the entity content differ by one paragraph; repair.
     expected_answers:
       - kind: human_action
@@ -315,7 +318,7 @@ scenario_set:
   - id: I-08
     type: repair
     refs:
-      - §G G-03
+      - Repair G-03
     scenario: The §3 marker sentence was reworded in an amendment; repair.
     expected_answers:
       - kind: human_action
@@ -324,7 +327,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H §H.2
+      - Changes and maintenance Changes and maintenance.2
     scenario: A proposal suggests dropping the Council gate for "editorial-only" CORE changes; classify.
     expected_answers:
       - kind: classification
@@ -333,7 +336,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H §H.4
+      - Changes and maintenance Changes and maintenance.4
     scenario: A typo fix in this runbook's prose that changes no step; classify.
     expected_answers:
       - kind: classification
@@ -342,8 +345,8 @@ scenario_set:
   - id: I-11
     type: ambiguous
     refs:
-      - §E E-03
-      - §F F-02
+      - How to operate E-03
+      - When it breaks F-02
     scenario: Max approves an amendment verbally but does not explicitly say that he supersedes the Council; the Council gate was never run and the instance is about to apply. What is the correct first action?
     expected_answers:
       - kind: human_action
@@ -356,7 +359,7 @@ scenario_set:
     weight: 0.09090909
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1369
@@ -368,18 +371,5 @@ refresh_triggers:
   - Council roster change
   - boot wire budget change
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: "2026-07-16"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-retrofit: false
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T22:04:46Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

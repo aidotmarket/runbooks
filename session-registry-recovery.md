@@ -1,23 +1,25 @@
 ---
-system_name: session-registry-recovery
-purpose_sentence: Keep Koskadeux session-ID allocation monotonic and unblocked by documenting the durable high-water-mark registry, its test-isolation guard, the two-signal stale-session self-heal, and the recovery paths when session opens stall or numbers look wrong.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The Koskadeux session registry on Titan-1: the SQLite store at /Users/max/koskadeux-state/registry.db (tables sessions, session_seq, schema_migrations, close_transactions), the durable monotonic allocator and its Living State anchor config:session-seq, the KOSKADEUX_REGISTRY_DB override, pytest isolation from the live DB, the last_seen + peer-bus stale-session self-heal, the append-only schema migrations, and the operator recovery paths. This runbook is the source of truth for diagnosing and repairing session-open blocks and session-number anomalies. It is NOT the source of truth for the boot-payload contents (session-open-protocol.md) or session close (session-close-protocol.md). The retired primary/worker lock-slot model is out of scope (symmetric peers, CORE v9.2 S811).
-linter_version: 1.0.0
+title: Session Registry Recovery
+owner: vulcan
+last_verified: '2026-08-10'
+aliases: []
+error_signatures:
+- integrity_check_not_ok
+- schema_version_below_7
+- next_value_below_anchor
+- number_reused_or_regressed
+- restart_did_not_fire
+- migration_rollback_in_logs
 ---
 
 # Session Registry Recovery
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. §J is authoritative for lifecycle refresh tracking; this header is the display summary for stateless readers.
 
 > **Model note.** As of CORE v9.2 (S811) Koskadeux runs **symmetric peers** (vulcan, mars) with no primary/worker lock slots. The session registry is an **instance-keyed `sessions` table** (one row per instance, plus a non-human `scratch` row) carrying a **durable monotonic high-water mark** (`session_seq` + Living State anchor `config:session-seq`), shipped S867. The older `infra:active-session-lock` primary/worker slot model and the iCloud lock-pointer are retired; recovery procedures here target the current model.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -34,7 +36,7 @@ The YAML frontmatter above defines the §A header. §J is authoritative for life
 | Admin recovery endpoints (boot-gate bypass) | SHIPPED | `koskadeux-mcp tools/admin_endpoints.py` | Reachable on gateway 8767 when no session is open | 2026-06-16 |
 | Legacy primary/worker lock slots + iCloud lock-pointer | DEPRECATED | `koskadeux-mcp tools/icloud_sync.py (legacy)` | Retired under symmetric peers (CORE v9.2 S811); not a recovery path | 2026-06-16 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The session registry is a SQLite database on Titan-1 at `/Users/max/koskadeux-state/registry.db` (relocated from OS-clearable /var/tmp in S1499, T-2026-000585; a transitional symlink remains at the old path), opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
 
@@ -78,7 +80,7 @@ never remove the source or overwrite a conflicting target.
 | MCP restart | `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp` |
 | Backup dir | `/var/tmp/koskadeux/backups/` |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -89,7 +91,7 @@ never remove the source or overwrite a conflicting target.
 
 Both instances own the non-interactive recovery steps (inspect, migrate, cleanup, re-seed, restart-and-verify). The self-heal runs automatically inside `kd_session_open`. Max is the escalation contact for a host-level restart or a strategic decision (for example, deliberately re-anchoring the counter).
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -146,7 +148,7 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   idempotency_key: the timestamped backup filename makes repeated backups distinct and safe
   expected_success:
     shape: a fresh server pid with a recent start time, schema version 7, session_seq present and monotonic, and integrity ok
-    verification: ps -o lstart on the new pid shows a recent start, and the §E-01 checks pass
+    verification: ps -o lstart on the new pid shows a recent start, and the How to operate-01 checks pass
   expected_failures:
     - signature: "restart_did_not_fire"
       cause: a backgrounded or detached kickstart was killed by the shell sandbox before running, repair via G-04 restart guidance
@@ -156,17 +158,17 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   next_step_failure: Isolate using F-04.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | kd_session_open is blocked or hangs and a row appears occupied with no live process | A stale OPERATIONAL or PLANNING row whose instance is no longer running; self-heal did not fire because last_seen was recently bumped, OR (observed S901) the stale row belongs to a DIFFERENT instance than the one opening — on-open self-heal evaluates the opening instance's own slot and does not sweep foreign-instance stale rows, so a stale scratch/peer row survives another instance's open and needs a manual reap | Read the sessions table and compare last_seen_at age against the TTL; check peer_status and the peer bus for a real signal from that instance | §G-01 | CONFIRMED |
-| F-02 | A session number regressed, reused, or looks lower than expected | The live registry.db was mutated by a test run or a row was rewritten, rewinding the max-based floor; or a rebuild did not re-seed from the anchor | Compare session_seq.next_value, the config:session-seq anchor, and the max non-scratch row; cross-check the peer bus for the real latest number | §G-02 | CONFIRMED |
-| F-03 | The scratch row appears to drive the allocator or a surprising scratch number shows up | scratch rows are test or agent-isolation residue; the allocator must exclude scratch from its max | Read the sessions table for the scratch row and confirm the allocator floor uses only vulcan and mars rows | §G-03 | CONFIRMED |
-| F-04 | health reports registry_mode memory_only, or logs show a migration rollback, or integrity_check is not ok | SQLite corruption, a failed mid-run migration leaving memory-only mode, or a pending migration not yet applied | Run integrity_check and read schema_migrations; check the server logs for a rollback sentinel | §G-04 | CONFIRMED |
-| F-05 | The schema_migrations version row disagrees with the real table shape | Test mutation of the live DB advanced or rewound the version row independent of the actual DDL | Inspect the live schema with sqlite3 .schema sessions and compare against the version row; the live DDL is authoritative | §G-05 | CONFIRMED |
+| F-01 | kd_session_open is blocked or hangs and a row appears occupied with no live process | A stale OPERATIONAL or PLANNING row whose instance is no longer running; self-heal did not fire because last_seen was recently bumped, OR (observed S901) the stale row belongs to a DIFFERENT instance than the one opening — on-open self-heal evaluates the opening instance's own slot and does not sweep foreign-instance stale rows, so a stale scratch/peer row survives another instance's open and needs a manual reap | Read the sessions table and compare last_seen_at age against the TTL; check peer_status and the peer bus for a real signal from that instance | Repair-01 | CONFIRMED |
+| F-02 | A session number regressed, reused, or looks lower than expected | The live registry.db was mutated by a test run or a row was rewritten, rewinding the max-based floor; or a rebuild did not re-seed from the anchor | Compare session_seq.next_value, the config:session-seq anchor, and the max non-scratch row; cross-check the peer bus for the real latest number | Repair-02 | CONFIRMED |
+| F-03 | The scratch row appears to drive the allocator or a surprising scratch number shows up | scratch rows are test or agent-isolation residue; the allocator must exclude scratch from its max | Read the sessions table for the scratch row and confirm the allocator floor uses only vulcan and mars rows | Repair-03 | CONFIRMED |
+| F-04 | health reports registry_mode memory_only, or logs show a migration rollback, or integrity_check is not ok | SQLite corruption, a failed mid-run migration leaving memory-only mode, or a pending migration not yet applied | Run integrity_check and read schema_migrations; check the server logs for a rollback sentinel | Repair-04 | CONFIRMED |
+| F-05 | The schema_migrations version row disagrees with the real table shape | Test mutation of the live DB advanced or rewound the version row independent of the actual DDL | Inspect the live schema with sqlite3 .schema sessions and compare against the version row; the live DDL is authoritative | Repair-05 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -211,9 +213,9 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   integrity_check: sqlite3 .schema sessions matches the expected version-7 shape and the version row reads 7.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - The session-number allocator MUST be monotonic: a newly issued number is never less than or equal to any previously issued number, even after a registry wipe, rebuild, or restore (it re-seeds from `config:session-seq`).
 - The durable anchor `config:session-seq` only ever increases; it is never lowered.
@@ -223,26 +225,26 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
 - A stale row is auto-closed only on TWO signals (last_seen past TTL AND no recent peer-bus signal); the peer check fails open on error so a live session is never killed.
 - Schema migrations are append-only; existing column names and types are frozen, and idempotency is keyed on the live table shape, not the `schema_migrations` version row.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Making the allocator able to issue a number less than or equal to a prior number (including resetting to 1, or lowering the anchor) is BREAKING; it violates the monotonic invariant.
 - Removing or weakening the pytest production-path guard, or the collection-time env override, is BREAKING; tests would corrupt live session state.
 - Changing allocation to issue before reserving the anchor, or to fail open when Living State is unreachable, is BREAKING; it reintroduces the regression vector.
 - Removing a column from `sessions`, `session_seq`, or `schema_migrations`, or changing a column type, is BREAKING; migrations are append-only.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Changing the stale TTL (`SESSION_LIVE_TTL_SECONDS`) or the second-signal source for self-heal requires REVIEW; it changes when a row is considered reapable.
 - Adding a new schema migration requires REVIEW; it must be append-only, transactional, and idempotent on the live DDL.
 - Changing how `scratch` is namespaced or admitted to the `sessions` table requires REVIEW.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Read-only inspection of the registry, the anchor, and the migration state is SAFE.
 - Running the migration runner with status, or applying an already-defined append-only migration, is SAFE.
 - Re-seeding the anchor upward to the true high-water mark is SAFE (the anchor only increases).
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -260,17 +262,17 @@ A runtime dependency is any external system required at run time: SQLite for `re
 
 A config default is a shipped default value: the production `registry.db` path, `SESSION_LIVE_TTL_SECONDS` of 1800, and the current schema version 7.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-When two instances classify a registry change differently, the more restrictive class wins and the dispute is recorded. Max resolves any classification dispute that touches the monotonic invariant, the test-isolation guard, or the anchor semantics; the ruling is added here as a §H.1 clarification.
+When two instances classify a registry change differently, the more restrictive class wins and the dispute is recorded. Max resolves any classification dispute that touches the monotonic invariant, the test-isolation guard, or the anchor semantics; the ruling is added here as a Changes and maintenance.1 clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §C]
+    refs: [E-01, Architecture & interactions]
     scenario: |
       id: E-01. trigger: routine verification the registry is healthy. tool_or_endpoint: sqlite3 against schema_migrations, session_seq, sessions, and PRAGMA integrity_check. expected_success: schema version 7, session_seq.next_value above every live number, integrity ok, only vulcan mars scratch rows. next_step_failure: isolate with F-04.
     expected_answers:
@@ -281,7 +283,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-02
     type: operate
-    refs: [E-02, §C]
+    refs: [E-02, Architecture & interactions]
     scenario: |
       id: E-02. trigger: confirm the counter has not regressed. tool_or_endpoint: compare session_seq.next_value, the config:session-seq anchor, and the max non-scratch number. expected_success: next_value at least the anchor and above the max row. next_step_failure: isolate with F-02.
     expected_answers:
@@ -292,7 +294,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-03
     type: operate
-    refs: [E-03, §C]
+    refs: [E-03, Architecture & interactions]
     scenario: |
       id: E-03. trigger: restart MCP and apply any pending migration safely. tool_or_endpoint: back up registry.db then FOREGROUND launchctl kickstart then verify. expected_success: fresh pid, schema 7, monotonic session_seq, integrity ok. next_step_failure: isolate with F-04.
     expected_answers:
@@ -369,7 +371,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: |
       id: H-01. trigger: a proposal would let the allocator reset the counter to 1 on a fresh registry. expected_success: classify as BREAKING because it violates the monotonic invariant. next_step_success: block the change and re-seed from the anchor instead.
     expected_answers:
@@ -378,7 +380,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: |
       id: H-02. trigger: a proposal would remove the pytest production-path guard so a fixture can write to the real registry.db. expected_success: classify as BREAKING because tests would corrupt live session state. next_step_success: keep the collection-time env override and the guard.
     expected_answers:
@@ -398,7 +400,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Lifecycle metadata records the conformance refresh state for this runbook.
 
@@ -413,17 +415,5 @@ refresh_triggers:
   - stale-session self-heal policy or TTL changes
   - session lifecycle model changes (for example a peer-model change)
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-06-16T08:30:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S873 / 2026-06-16T08:30:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

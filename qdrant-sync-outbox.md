@@ -1,20 +1,24 @@
 ---
-system_name: qdrant-sync-outbox
-purpose_sentence: The Qdrant sync outbox moves canonical allAI state/event changes from Postgres into Qdrant using a claimed, batched consumer.
-owner_agent: sysadmin
-escalation_contact: Max (human operator)
-lifecycle_ref: §J
-authoritative_scope: Producer/consumer operation for public.qdrant_sync_outbox, freshness alarms, integrity reconciliation, DLQ drain, concurrency escalation, Max-gated dedup, and the S1194 cutover procedure. NOT Qdrant service hosting or API-key rotation; see qdrant.md.
-linter_version: 1.0.0
+title: Qdrant Sync Outbox
+owner: sysadmin
+last_verified: '2026-07-16'
+aliases: []
+error_signatures:
+- stale/critical lag
+- rows return to dead_letter
+- 429/5xx from Vertex or Qdrant
+- confirmed missing point, source_version mismatch, or orphan count above threshold
+- confirmation query or Qdrant retrieval raises
+- processing rows remain stale
+- duplicate_rows remains nonzero
 ---
 
 # Qdrant Sync Outbox
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -26,7 +30,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | S1194 dedup | SHIPPED | `scripts/s1194_dedup_qdrant_pending_entities.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-12 |
 | Cutover | PLANNED | future `scripts/s1194_qdrant_cutover.py` | not implemented in P1 | 2026-07-12 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -36,18 +40,18 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Freshness monitors | `app/allai/agents/sysadmin/monitors.py` | `state_entities`, `state_events` | SysAdmin escalation pipeline | Measures stale canonical rows, not Qdrant as source of truth. |
 | Integrity monitor | `app/allai/agents/sysadmin/monitors.py:qdrant_index_integrity_status` | `state_entities`, Qdrant payloads | Qdrant REST | Verifies point existence and `source_version`; legacy unknown rows are degraded, not green. An initially critical result waits `QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS`, then re-reads only implicated keys, re-fetches only their current points, and re-counts orphans only when the first orphan count breached. A confirmation error returns the original critical result. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| SysAdmin | Inspect freshness lag | Internal capability `entity_memory_freshness_lag_seconds`, SQL in §E-01 | read-only backend DB | COMPLETE |
+| SysAdmin | Inspect freshness lag | Internal capability `entity_memory_freshness_lag_seconds`, SQL in How to operate-01 | read-only backend DB | COMPLETE |
 | SysAdmin | Drain DLQ | `POST /api/v1/internal/admin/qdrant/requeue-dead-letters` or `requeue_dead_letters()` | internal admin API | COMPLETE |
 | SysAdmin | Raise `EMBED_CONCURRENCY` | Railway env var edit on backend service | Railway backend deploy scope | COMPLETE |
 | SysAdmin | Run integrity check | `qdrant_index_integrity_status()` | DB read plus Qdrant API key | COMPLETE |
 | SysAdmin | Stop/start consumer | Railway env/deploy controls or app startup/shutdown hooks | backend deploy scope | PARTIAL - no standalone worker service yet |
 | Vulcan/Max | Run optional dedup | `scripts/s1194_dedup_qdrant_pending_entities.py` | production DB write with explicit Max GO | COMPLETE, optional Max-gated maintenance |
 
-## §E. Operate - Serving Customers
+## How to operate
 
 Production deploy sequence for S1194 P1: merge the feature branch, deploy the backend, let Alembic run the online migration at container start, and let the new claimed consumer start draining. The migration adds only nullable/defaulted columns and no CHECK/NOT NULL constraint, so old containers can continue writing `qdrant_sync_outbox` rows during Railway rolling deploy overlap. The S1194 pending-entity dedup script is optional afterwards; it is Max-gated maintenance to accelerate backlog catch-up, not a deploy prerequisite.
 
@@ -67,7 +71,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
     - signature: stale/critical lag
       cause: consumer stopped, backlog too large, stale claims, Vertex/Qdrant failure
   next_step_success: done
-  next_step_failure: §F F-01
+  next_step_failure: When it breaks F-01
 - id: E-02
   trigger: Drain dead-letter rows after fixing the root cause
   pre_conditions:
@@ -84,7 +88,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
     - signature: rows return to dead_letter
       cause: unfixed Vertex/Qdrant/application error
   next_step_success: E-01
-  next_step_failure: §F F-03
+  next_step_failure: When it breaks F-03
 - id: E-03
   trigger: Temporarily raise consumer throughput
   pre_conditions:
@@ -103,7 +107,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
     - signature: 429/5xx from Vertex or Qdrant
       cause: external service saturation
   next_step_success: restore EMBED_CONCURRENCY=1 after drain
-  next_step_failure: revert to EMBED_CONCURRENCY=1 and use §F F-03
+  next_step_failure: revert to EMBED_CONCURRENCY=1 and use When it breaks F-03
 - id: E-04
   trigger: Run the Qdrant integrity check manually
   pre_conditions:
@@ -123,7 +127,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
     - signature: confirmation query or Qdrant retrieval raises
       cause: the monitor returns the original first-pass critical result so a failed confirmation cannot suppress the page
   next_step_success: done
-  next_step_failure: §F F-04
+  next_step_failure: When it breaks F-04
 - id: E-05
   trigger: Stop/start the consumer during deploy or incident handling
   pre_conditions:
@@ -140,7 +144,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
     - signature: processing rows remain stale
       cause: worker killed mid-batch
   next_step_success: E-01
-  next_step_failure: §G G-01
+  next_step_failure: Repair G-01
 - id: E-06
   trigger: Optionally run S1194 pending entity dedup after deploy
   pre_conditions:
@@ -161,19 +165,19 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
   next_step_failure: wait and retry only with Max GO; deploy is not blocked
 ```
 
-## §F. Isolate - Diagnosing Deviations
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Backlog grows or freshness lag rises | consumer stopped, empty-loop sleep only, external failure, old code deployed | `SELECT status,target_type,count(*),min(created_at) FROM qdrant_sync_outbox GROUP BY status,target_type` plus SysAdmin freshness status | §G G-04 | CONFIRMED |
-| F-02 | Rows stuck in `processing` | worker killed after claim before ack | `SELECT id,claimed_at,claimed_by FROM qdrant_sync_outbox WHERE status='processing' ORDER BY claimed_at LIMIT 20` | §G G-01 | CONFIRMED |
-| F-03 | DLQ grows | repeated Vertex/Qdrant failures, invalid event payload, bug in canonical entity read | `SELECT id,target_type,target_id,last_error FROM qdrant_sync_outbox WHERE status='dead_letter' ORDER BY processed_at DESC LIMIT 20` | §G G-02 | CONFIRMED |
-| F-04 | Integrity check reports missing points | Qdrant data loss, failed upsert not retried, payload version mismatch | run E-04 and inspect missing sample | §G G-03 | CONFIRMED |
+| F-01 | Backlog grows or freshness lag rises | consumer stopped, empty-loop sleep only, external failure, old code deployed | `SELECT status,target_type,count(*),min(created_at) FROM qdrant_sync_outbox GROUP BY status,target_type` plus SysAdmin freshness status | Repair G-04 | CONFIRMED |
+| F-02 | Rows stuck in `processing` | worker killed after claim before ack | `SELECT id,claimed_at,claimed_by FROM qdrant_sync_outbox WHERE status='processing' ORDER BY claimed_at LIMIT 20` | Repair G-01 | CONFIRMED |
+| F-03 | DLQ grows | repeated Vertex/Qdrant failures, invalid event payload, bug in canonical entity read | `SELECT id,target_type,target_id,last_error FROM qdrant_sync_outbox WHERE status='dead_letter' ORDER BY processed_at DESC LIMIT 20` | Repair G-02 | CONFIRMED |
+| F-04 | Integrity check reports missing points | Qdrant data loss, failed upsert not retried, payload version mismatch | run E-04 and inspect missing sample | Repair G-03 | CONFIRMED |
 | F-05 | Event freshness stays `pre_admission` | P2 event admission has not shipped | read event monitor evidence; `indexing_disposition` still NULL |  | CONFIRMED |
-| F-06 | Alarm is silent while consumer is disabled | monitor registration, scheduler, or escalation pipeline failure | check scheduler has `qdrant_memory_freshness_monitors`; run E-01 manually | §G G-05 | HYPOTHESIZED |
-| F-07 | `entity_memory_freshness_lag_seconds` is enormous while the outbox is healthy or nearly empty | a new freshness-tracking column or predicate shipped without a legacy-row admission/backfill decision; S1194 example confirmed by T-2026-000260 / S1226: already-synced rows retained `qdrant_indexed_version IS NULL` forever | count stale rows and the NULL subset: `SELECT count(*), count(*) FILTER (WHERE qdrant_indexed_version IS NULL), min(updated_at) FROM state_entities WHERE deleted=false AND (qdrant_synced_at IS NULL OR qdrant_synced_at < updated_at OR qdrant_indexed_version IS DISTINCT FROM version)`; separately confirm pending/processing/DLQ health before blaming the consumer | §G G-03 | CONFIRMED |
+| F-06 | Alarm is silent while consumer is disabled | monitor registration, scheduler, or escalation pipeline failure | check scheduler has `qdrant_memory_freshness_monitors`; run E-01 manually | Repair G-05 | HYPOTHESIZED |
+| F-07 | `entity_memory_freshness_lag_seconds` is enormous while the outbox is healthy or nearly empty | a new freshness-tracking column or predicate shipped without a legacy-row admission/backfill decision; S1194 example confirmed by T-2026-000260 / S1226: already-synced rows retained `qdrant_indexed_version IS NULL` forever | count stale rows and the NULL subset: `SELECT count(*), count(*) FILTER (WHERE qdrant_indexed_version IS NULL), min(updated_at) FROM state_entities WHERE deleted=false AND (qdrant_synced_at IS NULL OR qdrant_synced_at < updated_at OR qdrant_indexed_version IS DISTINCT FROM version)`; separately confirm pending/processing/DLQ health before blaming the consumer | Repair G-03 | CONFIRMED |
 
-## §G. Repair - Fixing Problems
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -218,9 +222,9 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
   integrity_check: disabling consumer for the test window produces a non-green freshness status and escalation
 ```
 
-## §H. Evolve - Extending the System
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Postgres is canonical. Entity embeddings are built from the current `state_entities.kind/key/summary/body`, not from stale entity `embed_text`.
 - No silent exclusion. A row may stop contributing to freshness only through a shipped, monitored admission decision; P2 owns that.
@@ -235,7 +239,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - Transient Postgres/Qdrant version disagreement during an active outbox flush is expected. The integrity monitor confirms only first-pass failing keys against fresh Postgres expectations and freshly fetched current points; rows now consistent, deleted, or no longer verifiable drop out. A first-pass missing-ratio breach uses the same row confirmation, an orphan breach reuses the existing orphan-count SQL, and any confirmation exception preserves the original critical page. Failing rows that become unverifiable between passes yield a degraded P3/unknown result, never healthy.
 - Any migration or code change that adds a freshness predicate or tracking column must include an explicit admission/backfill decision for pre-existing rows in the same reviewed change. The regression test must execute the legacy-row transition against Postgres; SQL-string or schema-shape assertions alone do not prove the data invariant.
 
-### §H.2 Change-class predicate tree
+### Changes and maintenance.2 Change-class predicate tree
 
 BREAKING if any change reintroduces a required partial unique index or writer pause for P1 deploy, trusts entity `embed_text` for version ack, drops `qdrant_indexed_version`, weakens claimed-worker ack/fail guards, changes `source_version` payload semantics, or disables the freshness alarm.
 
@@ -243,7 +247,7 @@ REVIEW if any change changes config defaults (`EMBED_BATCH_SIZE`, `EMBED_CONCURR
 
 SAFE if the change is a focused bugfix preserving the invariants above, adds test coverage, or updates this runbook without changing runtime behavior.
 
-### §H.3 Boundary definitions
+### Changes and maintenance.3 Boundary definitions
 
 `module`: backend source modules are `app/services`, `app/core`, `app/allai`, `app/models`; migrations and scripts are peer trees.
 
@@ -253,73 +257,73 @@ SAFE if the change is a focused bugfix preserving the invariants above, adds tes
 
 `config default`: `EMBED_BATCH_SIZE=50`, `EMBED_CONCURRENCY=1`, `QDRANT_SYNC_EMPTY_POLL_INTERVAL_SECONDS=5`, `QDRANT_CLAIM_STALE_AFTER_SECONDS=900`, `QDRANT_INTEGRITY_CONFIRM_DELAY_SECONDS=30`. Setting the confirmation delay to `<=0` bypasses the confirm pass and restores immediate first-pass critical behavior.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [§E E-01]
+    refs: [How to operate E-01]
     scenario: Check lag during a live incident.
     expected_answers: [{kind: tool_call, tool: entity_memory_freshness_lag_seconds_status, argument_keys: [session_factory]}]
     weight: 0.1
   - id: I-02
     type: operate
-    refs: [§E E-02]
+    refs: [How to operate E-02]
     scenario: Requeue DLQ rows after fixing a Vertex auth error.
     expected_answers: [{kind: tool_call, tool: requeue_dead_letters, argument_keys: [item_ids]}]
     weight: 0.1
   - id: I-03
     type: operate
-    refs: [§E E-03]
+    refs: [How to operate E-03]
     scenario: Raise throughput without changing worker code.
     expected_answers: [{kind: human_instruction, action: set EMBED_CONCURRENCY and redeploy}]
     weight: 0.1
   - id: I-04
     type: isolate
-    refs: [§F F-02]
+    refs: [When it breaks F-02]
     scenario: Rows are stuck processing after a deploy restart.
     expected_answers: [{kind: sql, query_contains: [status='processing', claimed_at]}]
     weight: 0.1
   - id: I-05
     type: isolate
-    refs: [§F F-03]
+    refs: [When it breaks F-03]
     scenario: Dead-letter count increases.
     expected_answers: [{kind: sql, query_contains: [dead_letter, last_error]}]
     weight: 0.1
   - id: I-06
     type: isolate
-    refs: [§F F-05]
+    refs: [When it breaks F-05]
     scenario: Event freshness is unknown before P2.
     expected_answers: [{kind: classification, verdict: pre_admission}]
     weight: 0.1
   - id: I-07
     type: repair
-    refs: [§G G-01]
+    refs: [Repair G-01]
     scenario: Recover stale processing claims.
     expected_answers: [{kind: tool_call, tool: reap_stale_claims, argument_keys: []}]
     weight: 0.1
   - id: I-08
     type: repair
-    refs: [§G G-04]
+    refs: [Repair G-04]
     scenario: Backlog grows but Vertex and Qdrant are healthy.
     expected_answers: [{kind: human_instruction, action: raise EMBED_CONCURRENCY temporarily}]
     weight: 0.1
   - id: I-09
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Propose requiring uq_qdrant_outbox_pending_entity and a writer pause for P1 deploy.
     expected_answers: [{kind: classification, verdict: BREAKING}]
     weight: 0.1
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: Add a unit test for M7 zero-row ack re-enqueue.
     expected_answers: [{kind: classification, verdict: SAFE}]
     weight: 0.1
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1227
@@ -331,26 +335,5 @@ refresh_triggers:
   - any production incident touching qdrant_sync_outbox
   - any freshness predicate or tracking-column change
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-15T11:01:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Linter / Compliance Metadata
-
-```yaml compliance
-linter_version: 1.0.0
-standard_ref: specs/BQ-RUNBOOK-STANDARD.md
-sections_present: [A, B, C, D, E, F, G, H, I, J, K]
-agent_forms:
-  B: capability_matrix
-  C: architecture_table
-  D: agent_capability_map
-  E: operate_yaml
-  F: symptom_index
-  G: repair_yaml
-  H: predicate_tree
-  I: scenario_set
-  J: lifecycle_metadata
-router_registration: TOPIC-ROUTER.md
 ```

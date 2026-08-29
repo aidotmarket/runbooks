@@ -1,20 +1,27 @@
 ---
-system_name: e2e-browser-runner
-purpose_sentence: Operate, diagnose and evolve the browser_journey charter kind in the e2e-harness - the real Chromium browser, driven from Titan-1 via Playwright, that walks ai.market the way a customer does and turns what it finds into reports and tickets.
-owner_agent: mars
-escalation_contact: Max (any journey that authenticates, mutates production, or touches the money path; arming of reset/teardown routes); either instance (Vulcan/Mars) operates this runbook
-lifecycle_ref: §J
-authoritative_scope: The browser_journey charter kind in aidotmarket/e2e-harness - BrowserJourneyRunner, its dispatch branch in the harness runtime, its charter params contract, the production-guard exemption for anonymous journeys, and browser artifact redaction/persistence. NOT authoritative for the rest of the harness (queue, retention sweep, ticket dedup, webhook emitter, launchd schedule), for the production E2E arming of reset/teardown routes (ai-market-backend/docs/runbooks/sysadmin/e2e-prod-arming.md), for the synthetic is_test account pool and its erasure footprint (account-teardown.md), or for Council dispatch mechanics (agent-dispatch.md).
-linter_version: 1.0.0
+title: E2E Browser Runner
+owner: mars
+last_verified: '2026-08-27'
+aliases: []
+error_signatures:
+- 'browser_journey refused: E2E_PROD_FRONTEND_URL is required'
+- status harness_error, summary browser_journey requires params.mode
+- preflight refusal (404, 403, 401, non-200, allowed=false, timeout)
+- 'Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight'
+- no screenshot present
+- one attempt remains on Submitting or no persistent held result is visible
+- held audit exists but an inquiry row was created
+- buyer-01 reaches Listings, sees no create control or incomplete seller onboarding, and the run reports a product blocker
+- recording manifest or artifact refusal before Playwright launch
+- flaky_pass_after_retry
 ---
 
 # E2E Browser Runner
 
 > The missing heart of the E2E programme, shipped in phases. Before S1196 the harness had a queue, redaction, retention, ticket filing, a webhook emitter and a nightly schedule - but no browser. `browser_journey` is the charter kind that opens a real Chromium and walks the product. Phase 1 (live since S1196) is the anonymous public walk: it signs into nothing, declares no accounts and writes nothing. Phase 4 recorded replay is live since S1622 for committed, human-approved journeys; the first promoted recording is the production-read-only `anonymous-allai-s1294.v1`. The signed-in buyer and mutating seller journeys remain later phases. Owner BQ: `BQ-E2E-BROWSER-RUNNER-S1194`, child of `BQ-E2E-TESTING-FRAMEWORK-S1152`.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
@@ -23,13 +30,13 @@ YAML frontmatter above is authoritative for the §A header fields.
 | `aidotmarket/e2e-harness` | The harness itself: queue, runtime dispatch, agentic and recorded browser runners, redaction, retention, tickets | Titan-1 clone `~/Projects/ai-market/e2e-harness`; main at `b3da50904b3019e091487297f5ffde7ed4f694ac` (S1622) | GitHub `aidotmarket/e2e-harness` |
 | Playwright + Chromium | The browser substrate. Declared in `pyproject.toml`; the browser binary is installed separately (`playwright install chromium`) | Titan-1, inside the harness virtualenv | Playwright |
 | `E2E_PROD_FRONTEND_URL` | The ONLY source of the sanctioned production frontend URL. No hardcoded fallback exists; a `browser_journey` refuses to run when it is unset | set by `scripts/harness-env.sh` (S1201); the launchd plist no longer carries it | e2e-harness config |
-| `E2E_PROD_TARGETING_ENABLED` | Harness-side opt-in for production targeting. Required for every browser journey EXCEPT the anonymous exemption (§C) | set by `scripts/harness-env.sh` (S1201) | e2e-harness config |
+| `E2E_PROD_TARGETING_ENABLED` | Harness-side opt-in for production targeting. Required for every browser journey EXCEPT the anonymous exemption (Architecture & interactions) | set by `scripts/harness-env.sh` (S1201) | e2e-harness config |
 | `scripts/harness-env.sh` | The ONE place the harness gets its production environment. Exports the targeting opt-in and the two sanctioned URLs, and fetches `INTERNAL_API_KEY` from Infisical **at runtime** into `E2E_INTERNAL_API_KEY`. No secret is written to the plist, a dotenv file or the repo. The Infisical bearer token reaches curl on stdin via a `-K` config block, never on argv | `e2e-harness/scripts/harness-env.sh`; sourced by `scripts/run-nightly.sh`, which is what the launchd plist runs | e2e-harness (S1201, main `f8c7ba2`) |
 | `E2E_HARNESS_ROOT` | Root for queue, reports, artifacts, profiles, auth-states | harness environment; launchd sets it | e2e-harness config |
 | `GET /api/v1/e2e/preflight/{account_id}` | Per-account production preflight; proves an account is an allowlisted `is_test` pool account before a browser opens | ai.market backend (production) | ai-market-backend |
-| Synthetic `is_test` pool accounts | The ten `seller-01..05@e2e-test.ai.market` / `buyer-01..05@e2e-test.ai.market` production accounts used by authenticated journeys (Phase 2+). They EXIST (created 2026-07-11) and **can all log in** since S1293 (buyer-01 since S1202) — every pool row now carries a real password_hash. Login is pool-wide but preflight authorization is NOT: only ids in E2E_RESET_ALLOWED_ACCOUNT_IDS (currently buyer-01) pass preflight, so a Phase 2+ charter for any other account needs its id added first (§B, §E-02). See BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292 (queued S1292, executed S1293) and T-2026-000241 (buyer-01, resolved S1202) | production `users` table; ids in `ai-market-backend/e2e/account_pool.json` | ai-market-backend (see account-teardown.md) |
+| Synthetic `is_test` pool accounts | The ten `seller-01..05@e2e-test.ai.market` / `buyer-01..05@e2e-test.ai.market` production accounts used by authenticated journeys (Phase 2+). They EXIST (created 2026-07-11) and **can all log in** since S1293 (buyer-01 since S1202) — every pool row now carries a real password_hash. Login is pool-wide but preflight authorization is NOT: only ids in E2E_RESET_ALLOWED_ACCOUNT_IDS (currently buyer-01) pass preflight, so a Phase 2+ charter for any other account needs its id added first (Capabilities, How to operate-02). See BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292 (queued S1292, executed S1293) and T-2026-000241 (buyer-01, resolved S1202) | production `users` table; ids in `ai-market-backend/e2e/account_pool.json` | ai-market-backend (see account-teardown.md) |
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -41,13 +48,13 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Narrow production-guard exemption (no accounts AND `requires_mutation` falsy AND `anonymous: true`) | SHIPPED | `runtime.py:_is_anonymous_browser_preflight_exempt` | `tests/test_runtime.py` | 2026-07-12 |
 | Artifact policy: redacted step transcript AND redacted trace zip persisted; screenshots still WITHHELD (no pixel masking exists) | SHIPPED (S1197: zip-aware redaction) | `browser.py:_redact_and_cleanup`, `src/e2e_harness/redaction.py:redact_zip` | `tests/test_redaction_retention.py` | 2026-07-12 |
 | Zip-aware trace redaction: NDJSON entries redacted line-by-line, `resources/` response bodies and all binary/non-UTF-8 entries WITHHELD, `redaction-manifest.json` records every entry, any failure raises (harness_error, no artifacts) | SHIPPED | `redaction.py:redact_zip`, `_redact_zip_entry` | `tests/test_redaction_retention.py` | 2026-07-12 |
-| Harness production environment, S1201: the targeting opt-in, the two sanctioned URLs and the backend internal API key, loaded from one place; the key is fetched from Infisical at runtime and never written to the plist or the repo | SHIPPED | `scripts/harness-env.sh` | live production verification, §E-02 | 2026-07-13 |
-| Preflight arming for the Phase 2 buyer, S1201: `E2E_RESET_ALLOWED_ACCOUNT_IDS` on the production backend holds buyer-01 and nothing else, so preflight allows that one account and refuses every other. Reset and teardown routes remain 404 because `E2E_TEST_ROUTES_ENABLED` is false — nothing is armed | SHIPPED | — | live production verification, §E-02 | 2026-07-13 |
+| Harness production environment, S1201: the targeting opt-in, the two sanctioned URLs and the backend internal API key, loaded from one place; the key is fetched from Infisical at runtime and never written to the plist or the repo | SHIPPED | `scripts/harness-env.sh` | live production verification, How to operate-02 | 2026-07-13 |
+| Preflight arming for the Phase 2 buyer, S1201: `E2E_RESET_ALLOWED_ACCOUNT_IDS` on the production backend holds buyer-01 and nothing else, so preflight allows that one account and refuses every other. Reset and teardown routes remain 404 because `E2E_TEST_ROUTES_ENABLED` is false — nothing is armed | SHIPPED | — | live production verification, How to operate-02 | 2026-07-13 |
 | Phase 2: authenticated buyer read-only journey to the pay boundary. Login blocker REMOVED S1293 — all ten pool accounts now log in through the customer login endpoint (BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292, queued S1292 / executed S1293, Gate-1 unanimous + Max GO; all ten verified live, HTTP 200). The journey ITSELF is not built yet. Preflight caveat: only buyer-01 is in `E2E_RESET_ALLOWED_ACCOUNT_IDS`, so only buyer-01 passes preflight today; the other nine need their id added before a browser will open. Reset/teardown routes remain 404 (`E2E_TEST_ROUTES_ENABLED` false); the pay boundary itself still needs the Stripe sandbox order router (s1196). | PLANNED | `app/e2e/synthetic_accounts.py` | live login verification S1293 | 2026-07-20 |
 | Phase 3: mutating seller journey (publish a listing); pay step blocked on the Stripe sandbox order router | PLANNED — `build:bq-stripe-sandbox-order-router-s1196` gates the pay step | n/a | n/a | n/a |
 | Phase 4: committed, human-approved deterministic replay with one fresh-context retry; agentic drift probes remain default-off and unimplemented | SHIPPED | `src/e2e_harness/recorded.py` | `tests/test_recorded.py` | 2026-08-27 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -61,7 +68,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, creates the per-run profile directory and the account-scoped auth-state path, and dispatches on `kind`. For `browser_journey`, `BrowserJourneyRunner` launches a persistent Chromium context on that profile directory, navigates to the sanctioned production frontend, asserts the page and a public element, then writes a step transcript, redacts it, deletes the raw browser working files, and returns an outcome. Nothing leaves the machine except reports and (later) tickets.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -72,7 +79,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 | launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run at 02:15 local | plist in the harness repo | Titan-1 | COMPLETE |
 | Codex-as-driver (agentic page reasoning) | Improvise a first walk like a first-time customer | n/a | n/a | PLANNED — Phase 1 walks a fixed public path; the live agent loop lands with the authenticated journeys |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -91,11 +98,11 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     verification: 'cat the newest report json; find $E2E_ARTIFACTS_DIR -type f - the redacted step transcript and the redacted trace.zip are expected; there must be no screenshot'
   expected_failures:
     - signature: 'browser_journey refused: E2E_PROD_FRONTEND_URL is required'
-      cause: production frontend URL not configured (§F-01)
+      cause: production frontend URL not configured (When it breaks-01)
     - signature: 'status harness_error, summary browser_journey requires params.mode'
-      cause: malformed charter params; no browser was opened (§F-02)
+      cause: malformed charter params; no browser was opened (When it breaks-02)
   next_step_success: keep exploratory work agentic; use E-06 only after a recording has been human-approved and committed
-  next_step_failure: repair per §G-01 / §G-02
+  next_step_failure: repair per Repair-01 / Repair-02
 - id: E-02
   trigger: A browser journey needs to touch an account (Phase 2+)
   pre_conditions:
@@ -114,11 +121,11 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     verification: report shows the charter ran; preflight refusals appear before any browser artifact exists
   expected_failures:
     - signature: preflight refusal (404, 403, 401, non-200, allowed=false, timeout)
-      cause: route disabled (404), missing or wrong internal API key (401/403), rate limited (429 - the route is throttled 30/60s and fails closed if Redis is unreachable), account not allowlisted, or not an is_test account (§F-03)
+      cause: route disabled (404), missing or wrong internal API key (401/403), rate limited (429 - the route is throttled 30/60s and fails closed if Redis is unreachable), account not allowlisted, or not an is_test account (When it breaks-03)
     - signature: 'Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight'
-      cause: the harness has no internal key; it refuses before opening a browser and before any network call (§F-03)
-  next_step_success: proceed; remember that a mutating journey writes real rows and must tag/manifest them (§H.1)
-  next_step_failure: do NOT relax the guard; fix the account or the route (§G-03)
+      cause: the harness has no internal key; it refuses before opening a browser and before any network call (When it breaks-03)
+  next_step_success: proceed; remember that a mutating journey writes real rows and must tag/manifest them (Changes and maintenance.1)
+  next_step_failure: do NOT relax the guard; fix the account or the route (Repair-03)
 - id: E-03
   trigger: Investigating what a browser run actually did
   pre_conditions:
@@ -132,9 +139,9 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     verification: the transcript contains no credentials, cookies, headers or DOM dumps by construction
   expected_failures:
     - signature: no screenshot present
-      cause: BY DESIGN - screenshots stay withheld until pixel masking exists (§F-04)
+      cause: BY DESIGN - screenshots stay withheld until pixel masking exists (When it breaks-04)
   next_step_success: file or update a ticket only for a product failure, never for a harness_error
-  next_step_failure: see §G-04
+  next_step_failure: see Repair-04
 - id: E-04
   trigger: Verify that buyer-seller mediation blocks plain and disguised contact details without leaving the customer on Submitting
   pre_conditions:
@@ -159,20 +166,20 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - id: E-05
   trigger: Authoring or reviewing a production charter that asks a synthetic account to create and publish a marketplace listing
   pre_conditions:
-    - check the §B capability matrix before enqueueing; Phase 3 seller publication must be SHIPPED, not PLANNED
+    - check the Capabilities capability matrix before enqueueing; Phase 3 seller publication must be SHIPPED, not PLANNED
     - use a seller-purpose synthetic fixture whose exact account id is explicitly authorized by production preflight; buyer-01 is the read-only buyer fixture and must not be repurposed as a seller
     - confirm the customer surface actually implements the chartered creation path; the dashboard Listings page is currently a management view for listings published through AIM Data and vectorAIz, not a direct creation surface
-  tool_or_endpoint: "review the charter against §B, the production frontend Listings contract, and E-02 before enqueueing"
+  tool_or_endpoint: "review the charter against Capabilities, the production frontend Listings contract, and E-02 before enqueueing"
   argument_sourcing:
     account_id: an explicitly authorized seller-purpose is_test fixture, never buyer-01 and never a real customer
-    workflow_status: the §B capability matrix plus current production code/deployment identity
+    workflow_status: the Capabilities capability matrix plus current production code/deployment identity
   idempotency: IDEMPOTENT
   expected_success:
     shape: while Phase 3 remains PLANNED, the unsupported charter is rejected as harness_error/configuration error before a product finding is created
     verification: no browser mutation occurs, no seller/security/payment state changes, and no product support ticket is filed
   expected_failures:
     - signature: buyer-01 reaches Listings, sees no create control or incomplete seller onboarding, and the run reports a product blocker
-      cause: the charter demanded an unshipped seller workflow from the buyer-only fixture; this is a harness authoring/classification error (§F-12), not evidence of a product regression
+      cause: the charter demanded an unshipped seller workflow from the buyer-only fixture; this is a harness authoring/classification error (When it breaks-12), not evidence of a product regression
   next_step_success: rewrite the charter to use a shipped buyer/read-only journey, or defer it until Phase 3 and an explicitly authorized seller fixture exist
   next_step_failure: do not widen E2E_RESET_ALLOWED_ACCOUNT_IDS, modify account/security state, complete 2FA, or enter Stripe payout details merely to force the charter through; those are separately governed changes
 - id: E-06
@@ -192,7 +199,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
     verification: confirm mode recorded, exact charter/recording identity, no eager session/model request for the anonymous allAI recording, and no raw attempt directory after cleanup
   expected_failures:
     - signature: recording manifest or artifact refusal before Playwright launch
-      cause: unapproved, malformed, hash-mismatched, escaped, unsafe or contract-mismatched recording (§F-02)
+      cause: unapproved, malformed, hash-mismatched, escaped, unsafe or contract-mismatched recording (When it breaks-02)
     - signature: flaky_pass_after_retry
       cause: first stable product failure passed on the one allowed fresh-context retry; count is incremented but no ticket is filed
   next_step_success: retain the run-specific report and recording identity; explicit enqueue governs any future nightly replay
@@ -201,24 +208,24 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 
 **T-2026-000698 production proof (2026-08-24):** `run-20260824T183519Z-9f8666bb` passed `mediation-contact-leak-probe` with no findings and no manual intervention. The plain and word-separated fake phone attempts both left **Submitting...** and visibly returned `Message held for review. Please revise.` Read-only PostgreSQL corroboration found two held audit rows (retry count 3 each) and zero new inquiries. Backend deployment `bce826e7-25f4-40a9-8b1a-513fbbfdfa75` and frontend deployment `4ea6a792-b13f-4715-bdd9-5a6ef702dc05` were both SUCCESS at their exact reviewed merge commits before the run.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | `browser_journey refused: E2E_PROD_FRONTEND_URL is required` | The sanctioned production frontend URL is not configured. There is deliberately NO hardcoded fallback — a hardcoded `https://ai.market` default was removed at S1196 | `echo $E2E_PROD_FRONTEND_URL` in the harness environment; check the launchd plist | §G-01 | CONFIRMED |
-| F-02 | Outcome `harness_error` with a params or recording-refusal message; no browser opened | Charter missing `params.mode`, missing `params.goal` for agentic mode, an unsupported mode, missing/unapproved/malformed recorded artifact, manifest/script hash or contract mismatch, unsafe host/action, or a `start_url` that is not `frontend` or a sanctioned production URL | read the outcome summary in the report; check the charter JSON and the committed recording tree | §G-02 | CONFIRMED |
-| F-03 | Run refused before the browser opened, citing production targeting or preflight | `E2E_PROD_TARGETING_ENABLED` unset, account ids not declared, backend preflight route disabled or returning `allowed=false` | curl the preflight route for the account id; check the flag | §G-03 | CONFIRMED |
-| F-04 | No screenshot in the artifacts | BY DESIGN. Screenshots are replaced by a text placeholder because no deterministic pixel masking exists yet; a screenshot can show a token, an email or customer data. Traces ARE now persisted, redacted (S1197): NDJSON entries are redacted line-by-line, `resources/` response bodies and every binary or non-UTF-8 entry are withheld, and `redaction-manifest.json` records what happened to each entry | `find $E2E_ARTIFACTS_DIR -name '*.zip'` returns the redacted trace; no image files appear | §G-04 | CONFIRMED |
-| F-05 | Playwright cannot launch: executable missing | The Chromium binary was never installed for this virtualenv (the pip dependency does not install the browser) | run `playwright install chromium` in the harness venv and retry | §G-05 | CONFIRMED |
-| F-06 | A browser journey targeted production without the targeting flag | The charter set `anonymous: true` with no accounts and `requires_mutation` falsy, which is the sanctioned exemption — or a charter is abusing that exemption while actually mutating | read the charter params; a journey that authenticates or writes MUST NOT set `anonymous: true` | §G-06 | CONFIRMED |
-| F-07 | A harness problem raised a support ticket | Should not happen: only `failed` outcomes become findings/tickets; `harness_error` never does | grep the run report for the outcome status; check `tickets.py` dedup | §G-07 | CONFIRMED |
-| F-08 | `Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight`, or preflight returns 401 | The harness environment was never loaded — the run did not go through `scripts/run-nightly.sh` / `scripts/harness-env.sh`, or the Infisical token at `~/.config/infisical/sysadmin-token` is dead | `env -i HOME=$HOME PATH=/usr/local/bin:/usr/bin:/bin /bin/bash -c 'source scripts/harness-env.sh && echo ${#E2E_INTERNAL_API_KEY}'` — expect 64 | §G-08 | CONFIRMED |
-| F-09 | Preflight returns 403 `not_allowlisted` for a genuine `is_test` pool account | Preflight consults `E2E_RESET_ALLOWED_ACCOUNT_IDS`. Being an `is_test` pool account is necessary but NOT sufficient — the id must also be on that allowlist | read the variable on the production backend service; compare with the charter's declared account ids | §G-09 | CONFIRMED |
-| F-10 | Preflight passes, then the browser cannot sign in as the synthetic account | RESOLVED for ALL TEN pool accounts (buyer-01..05, seller-01..05). buyer-01 enabled S1202; the remaining nine enabled S1293 (BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292, Gate-1 unanimous + Max GO). Every pool row now carries a real `password_hash` and signs in through the customer login endpoint (all ten verified live, HTTP 200; queued S1292, executed S1293). NOTE: login is pool-wide, but preflight still allowlists buyer-01 only (`E2E_RESET_ALLOWED_ACCOUNT_IDS`) — the other nine need their id added to preflight before a Phase 2+ browser opens (§B, §E-02). | query the production `users` row: every pool account shows a non-NULL `password_hash` and `auth_methods` containing `password` | §G-10 | CONFIRMED |
-| F-11 | A real seller's `view_count` (or featured impressions) climbs on nights the harness ran, or a synthetic buyer's browsing shows up in a real seller's numbers | The harness is not identifying itself. The backend suppresses counter/telemetry writes only when the ACTOR is synthetic — `is_test` on the authenticated user, or the `ai-market-e2e-harness` token in the User-Agent for the anonymous walk. A browser context launched without that UA is indistinguishable from a customer. This was live damage from S1196 to S1202 | `curl -s -X POST "$E2E_PROD_BACKEND_URL/featured-listings/impressions" -H 'Content-Type: application/json' -H 'User-Agent: Mozilla/5.0 ai-market-e2e-harness/0.1' -d '{"listing_id":"<id>","locale":"en","slot":0}'` — expect `{"recorded":false}`. Then GET a published listing twice with that UA and confirm `view_count` does not move | §G-11 | CONFIRMED |
-| F-12 | A seller-publication charter uses buyer-01, finds no create control or seller readiness, and files a product ticket | The charter asks the buyer-only fixture to perform the unshipped Phase 3 seller journey. The dashboard Listings page is a management surface for AIM Data/vectorAIz publications, not direct creation. | Confirm Phase 3 is still PLANNED in §B; confirm the charter account is buyer-01; inspect the deployed Listings contract for the AIM Data/vectorAIz management-only empty state | §G-12 | CONFIRMED |
+| F-01 | `browser_journey refused: E2E_PROD_FRONTEND_URL is required` | The sanctioned production frontend URL is not configured. There is deliberately NO hardcoded fallback — a hardcoded `https://ai.market` default was removed at S1196 | `echo $E2E_PROD_FRONTEND_URL` in the harness environment; check the launchd plist | Repair-01 | CONFIRMED |
+| F-02 | Outcome `harness_error` with a params or recording-refusal message; no browser opened | Charter missing `params.mode`, missing `params.goal` for agentic mode, an unsupported mode, missing/unapproved/malformed recorded artifact, manifest/script hash or contract mismatch, unsafe host/action, or a `start_url` that is not `frontend` or a sanctioned production URL | read the outcome summary in the report; check the charter JSON and the committed recording tree | Repair-02 | CONFIRMED |
+| F-03 | Run refused before the browser opened, citing production targeting or preflight | `E2E_PROD_TARGETING_ENABLED` unset, account ids not declared, backend preflight route disabled or returning `allowed=false` | curl the preflight route for the account id; check the flag | Repair-03 | CONFIRMED |
+| F-04 | No screenshot in the artifacts | BY DESIGN. Screenshots are replaced by a text placeholder because no deterministic pixel masking exists yet; a screenshot can show a token, an email or customer data. Traces ARE now persisted, redacted (S1197): NDJSON entries are redacted line-by-line, `resources/` response bodies and every binary or non-UTF-8 entry are withheld, and `redaction-manifest.json` records what happened to each entry | `find $E2E_ARTIFACTS_DIR -name '*.zip'` returns the redacted trace; no image files appear | Repair-04 | CONFIRMED |
+| F-05 | Playwright cannot launch: executable missing | The Chromium binary was never installed for this virtualenv (the pip dependency does not install the browser) | run `playwright install chromium` in the harness venv and retry | Repair-05 | CONFIRMED |
+| F-06 | A browser journey targeted production without the targeting flag | The charter set `anonymous: true` with no accounts and `requires_mutation` falsy, which is the sanctioned exemption — or a charter is abusing that exemption while actually mutating | read the charter params; a journey that authenticates or writes MUST NOT set `anonymous: true` | Repair-06 | CONFIRMED |
+| F-07 | A harness problem raised a support ticket | Should not happen: only `failed` outcomes become findings/tickets; `harness_error` never does | grep the run report for the outcome status; check `tickets.py` dedup | Repair-07 | CONFIRMED |
+| F-08 | `Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight`, or preflight returns 401 | The harness environment was never loaded — the run did not go through `scripts/run-nightly.sh` / `scripts/harness-env.sh`, or the Infisical token at `~/.config/infisical/sysadmin-token` is dead | `env -i HOME=$HOME PATH=/usr/local/bin:/usr/bin:/bin /bin/bash -c 'source scripts/harness-env.sh && echo ${#E2E_INTERNAL_API_KEY}'` — expect 64 | Repair-08 | CONFIRMED |
+| F-09 | Preflight returns 403 `not_allowlisted` for a genuine `is_test` pool account | Preflight consults `E2E_RESET_ALLOWED_ACCOUNT_IDS`. Being an `is_test` pool account is necessary but NOT sufficient — the id must also be on that allowlist | read the variable on the production backend service; compare with the charter's declared account ids | Repair-09 | CONFIRMED |
+| F-10 | Preflight passes, then the browser cannot sign in as the synthetic account | RESOLVED for ALL TEN pool accounts (buyer-01..05, seller-01..05). buyer-01 enabled S1202; the remaining nine enabled S1293 (BQ-E2E-FULL-POOL-LOGIN-ENABLEMENT-S1292, Gate-1 unanimous + Max GO). Every pool row now carries a real `password_hash` and signs in through the customer login endpoint (all ten verified live, HTTP 200; queued S1292, executed S1293). NOTE: login is pool-wide, but preflight still allowlists buyer-01 only (`E2E_RESET_ALLOWED_ACCOUNT_IDS`) — the other nine need their id added to preflight before a Phase 2+ browser opens (Capabilities, How to operate-02). | query the production `users` row: every pool account shows a non-NULL `password_hash` and `auth_methods` containing `password` | Repair-10 | CONFIRMED |
+| F-11 | A real seller's `view_count` (or featured impressions) climbs on nights the harness ran, or a synthetic buyer's browsing shows up in a real seller's numbers | The harness is not identifying itself. The backend suppresses counter/telemetry writes only when the ACTOR is synthetic — `is_test` on the authenticated user, or the `ai-market-e2e-harness` token in the User-Agent for the anonymous walk. A browser context launched without that UA is indistinguishable from a customer. This was live damage from S1196 to S1202 | `curl -s -X POST "$E2E_PROD_BACKEND_URL/featured-listings/impressions" -H 'Content-Type: application/json' -H 'User-Agent: Mozilla/5.0 ai-market-e2e-harness/0.1' -d '{"listing_id":"<id>","locale":"en","slot":0}'` — expect `{"recorded":false}`. Then GET a published listing twice with that UA and confirm `view_count` does not move | Repair-11 | CONFIRMED |
+| F-12 | A seller-publication charter uses buyer-01, finds no create control or seller readiness, and files a product ticket | The charter asks the buyer-only fixture to perform the unshipped Phase 3 seller journey. The dashboard Listings page is a management surface for AIM Data/vectorAIz publications, not direct creation. | Confirm Phase 3 is still PLANNED in Capabilities; confirm the charter account is buyer-01; inspect the deployed Listings contract for the AIM Data/vectorAIz management-only empty state | Repair-12 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -319,9 +326,9 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   integrity_check: 'a seller-publication charter targeting buyer-01 is refused without a product ticket; the existing buyer read-only journey remains eligible'
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - **The anonymous walk writes nothing.** No sign-in, no account, no cookie loaded, no storage state saved, no production row created. This includes COUNTERS: the walk must never move a real seller's `view_count` or featured metrics. That holds only because the browser identifies itself with the `ai-market-e2e-harness` token and the backend suppresses counter and telemetry writes for that actor (T-2026-000242, S1202). It was NOT true between S1196 and S1202.
 - **The production URL comes from config, always.** No hardcoded host may reappear; when it is unset the runner refuses.
@@ -334,16 +341,16 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - **The browser never presses pay on production** while `E2E_PAYMENT_ISOLATION_VERIFIED` is unset. That flag is set only once the Stripe sandbox order router (`build:bq-stripe-sandbox-order-router-s1196`, money path, unanimous Council plus Max GO) is live and verified.
 - **A mutating journey tags and manifests every row it creates** (Max Ruling 1, S1194), so a future reset has an exact target list rather than a re-derivation guess.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing or widening the production guard, or letting a journey reach production without the targeting flag outside the three-condition anonymous exemption.
 - Persisting an artifact format the redactor cannot actually scan, or removing the withholding of screenshots/zips before zip-aware redaction exists.
-- Allowing a browser journey to authenticate, mutate production, or transact without the gates in §H.1.
+- Allowing a browser journey to authenticate, mutate production, or transact without the gates in Changes and maintenance.1.
 - Reintroducing a hardcoded production host, or making the missing-config case fall through instead of refusing.
 - Making `harness_error` outcomes file product tickets.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Adding a new charter mode (recorded replay, agentic re-walk) or changing the step/timeout/cost caps.
@@ -351,13 +358,13 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the failure-signature composition used for ticket dedup.
 - Adding the live Codex agent loop that drives the browser.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 SAFE otherwise:
 - New public-page assertions on the anonymous walk; test additions; README and documentation.
 - Selector or timeout tuning that does not change what is persisted or which guard applies.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -375,11 +382,11 @@ The `browser_journey` charter shape (`kind`, `account_id`, `params.mode`, `param
 
 Environment variables read in `config.py`: `E2E_PROD_FRONTEND_URL`, `E2E_PROD_TARGETING_ENABLED`, `E2E_HARNESS_ROOT`, artifact/report/retention paths and windows.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything touching authentication, production mutation or the money path escalates to Max; the ruling is added to §H.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything touching authentication, production mutation or the money path escalates to Max; the ruling is added to Changes and maintenance.1 as a clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -449,7 +456,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-09
     type: evolve
-    refs: [§H.2]
+    refs: [Changes and maintenance.2]
     scenario: A proposed change lets any browser_journey without account ids skip the production targeting flag. Classify.
     expected_answers:
       - kind: classification
@@ -457,7 +464,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-10
     type: evolve
-    refs: [§H.3]
+    refs: [Changes and maintenance.3]
     scenario: A proposed change implements zip-aware trace redaction so traces can be persisted. Classify.
     expected_answers:
       - kind: classification
@@ -476,7 +483,7 @@ scenario_set:
     weight: 0.090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1622
@@ -489,21 +496,9 @@ refresh_triggers:
   - the Stripe sandbox order router going live (the pay boundary moves)
   - any change to the production guard or the anonymous exemption
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
 ```
 
 Refresh log:
 - S1622 (2026-08-27): refreshed Phase 4 from planned to shipped against e2e-harness main `b3da50904b3019e091487297f5ffde7ed4f694ac`; recorded the human-approved production-read-only `anonymous-allai-s1294.v1`, exact replay guard, one-retry policy and explicit-enqueue boundary. The parent anonymous-allAI BQ remains open: production has no isolated Railway environment, so Redis/readiness fault injection, real limit exhaustion and anonymous-only kill-switch activation must not be forced against customers merely to obtain Gate-4 evidence.
 - S1196 (2026-07-12): first authoring, against the code shipped this session (e2e-harness main `9d38d2e`) and a live production verification run (headless Chromium walked https://ai.market anonymously; report `run-20260712T143553Z-dc69f64b`). Discharges S1196-D1 and S1196-D2.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1196 / 2026-07-12T14:40:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```

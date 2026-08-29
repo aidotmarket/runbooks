@@ -1,38 +1,22 @@
 ---
-runbook_id: agent-completeness
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: agent-completeness
-    section: §C. Architecture & Interactions
+title: Agent Completeness
+owner: vulcan
+last_verified: '2026-08-24'
 aliases: []
 error_signatures:
-  - signature: incomplete_agent_surface
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: "2026-08-24"
-system_name: agent-completeness
-purpose_sentence: This companion defines the endpoint, skill, health, manifest, and monitoring surfaces required before an agent can pass compliance review.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for agent creation and Gate 3 agent-compliance review; it projects the complete stable checklist from CORE without replacing it.
-linter_version: 1.0.0
+- incomplete_agent_surface
 ---
 
 # Agent Completeness
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: delivery companion.** Full CORE and the Boot Kernel prevail over this document. This companion cannot weaken or extend the agent completeness contract.
 
 **Fetch trigger:** agent creation or Gate 3 agent-compliance review.
 
 **Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 3 and 4.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -40,7 +24,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | Skill, schema, and manifest surfaces | SHIPPED | `BaseAgent` | Internal compliance endpoint | 2026-07-17 |
 | Monitoring policy declarations | SHIPPED | `MonitoringPolicy` | Internal compliance endpoint | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -113,7 +97,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 > - Two tiers: public (redacted, for external LLMs) and internal (full manifests, requires internal key)
 > - Agents expose skills via `@skill`-decorated methods with Pydantic I/O schemas, auto-generated into tool definitions
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -122,7 +106,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 | Koskadeux orchestrator | Invoke the agent | `{agent_key}_request` | MCP request scope | COMPLETE |
 | Claim-first operator | Programmatically claim; start Sol only for work; report bounded outcomes | production claim endpoint then `allai_remediator_request` | Railway child-process auth; personal scoped OAuth MCP; no model credentials | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -197,7 +181,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   next_step_failure: Apply G-05; do not add a reporting store, reporting queue, or reporting agent.
 ```
 
-### §E.1 Manual Needs-Max GitHub incident closeout
+### How to operate.1 Manual Needs-Max GitHub incident closeout
 
 Use this only for an escalated GitHub incident already visible in the Needs-Max projection that the automatic supersession pass cannot verify (non-admitted `workflow_run`, dispatch-triggered, or failed-verification incidents — trigger-eligible incidents auto-resolve within ~15 minutes of the same workflow going green and need no manual closeout); it does not replace the claim-first worker and does not make provider adapters writable.
 
@@ -207,17 +191,17 @@ Use this only for an escalated GitHub incident already visible in the Needs-Max 
 4. Resolve only through `POST /api/v1/observability/incidents/{incident_id}/supersede`, executed by a short-lived `railway run --service ai-market-backend --environment production --no-local` child using its injected `INTERNAL_API_KEY`. Do not open Infisical in a browser, perform an interactive Infisical login, print the key, or copy it into another process or browser.
 5. GET the incident and require `status=resolved`, `resolved_by=human:admin`, plus final `superseded` and `transitioned_to_resolved` actions containing the exact evidence. In authorized operator Chrome, confirm the incident row is gone and the Needs-Max badge decreased. API output alone is not the required rendered-page proof.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Compliance reports an incomplete agent surface. | Endpoint, interaction mode, skill schema, MCP tool, or monitoring declaration is missing. | Compare source and live compliance output with the complete normative checklist in §C. | G-01 | CONFIRMED |
+| F-01 | Compliance reports an incomplete agent surface. | Endpoint, interaction mode, skill schema, MCP tool, or monitoring declaration is missing. | Compare source and live compliance output with the complete normative checklist in Architecture & interactions. | G-01 | CONFIRMED |
 | F-02 | Discovery lists the agent but orchestration cannot call it. | The corresponding MCP request tool is absent or keyed differently. | Compare discovery key, BaseAgent key, route key, and tool name. | G-02 | CONFIRMED |
 | F-03 | An empty or human-only queue result can start Codex; live scoped `tools/list` is not exactly `{allai_remediator_request}`; the runner exposes another external integration; or backend/Railway credentials reach the SDK environment. | Dispatcher ordering drifted, the Railway child boundary was removed, the project-local config was not loaded, or plugin/tool scope widened. | Unload the dispatcher and keep the recurring model task paused. Run dispatcher unit tests, a foreground no-work proof, the exact credential-removal test, and a fresh SDK singleton proof. | G-03 | CONFIRMED |
 | F-04 | The dispatcher is stale, cannot claim/finish, cannot prove `fixed`, or the model exits with prose but no completed finish tool call. | LaunchAgent is absent or failing, Railway CLI auth failed, scoped OAuth/gateway failed, a 15-minute lease expired, fixed verification failed, or the agent did not call `allai_remediator_request(action=finish)`. | Inspect `launchctl print gui/$UID/com.aimarket.allai-remediator-dispatcher` and the compact dispatcher logs; run one foreground check; verify only bounded tool errors, the current claim token, backend-owned provider evidence, and either a completed finish call or a deterministic retryable release with reason `agent_completed_without_finish`. Cloudflare deployment presence is not fixed proof. | G-04 | CONFIRMED |
 | F-05 | Needs-Max counts do not match the audit, a current Remediator escalation is absent WITHOUT a demotion or supersession record, an escalation is duplicated, or viewing the report starts an agent. | The read model stopped using canonical `IncidentAction` events, attention selection drifted from current `escalated`-minus-demoted state, or reporting gained a write/agent path. (An escalation that left the feed WITH a demotion or supersession action is intended S1585 behaviour, not drift.) | Compare `remediator_claimed` and terminal actions for the seven-day window with the endpoint; compare current Remediator-owned escalated incidents without demotion actions against the flagged needs-Max rows; confirm repeated GET requests add no audit rows and start no Codex process. | G-05 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -262,25 +246,25 @@ Use this only for an escalated GitHub incident already visible in the Needs-Max 
   integrity_check: E-07 passes against live audit counts, repeated reads are write-free, and an empty queue cannot start Codex.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 All completeness items are conjunctive; no single healthy surface substitutes for another.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 Removing a required endpoint, typed skill, MCP tool, or monitoring declaration is BREAKING and cannot be normalized by companion prose.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 Review changes to agent keys, endpoint shapes, manifest tiers, MonitoringPolicy schema, or compliance aggregation.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 Examples and explanatory prose are safe when the full normative checklist remains intact.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -298,11 +282,11 @@ Agent service, internal authentication, discovery registry, and Koskadeux MCP.
 
 No requirement defaults to satisfied; missing evidence fails Gate 3 closed.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 CORE decides constitutional requirements. This companion only makes their verification route explicit.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -314,9 +298,9 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-02], scenario: Discovery and MCP use different keys for the same agent., expected_answers: [{kind: classification, label: IDENTITY_MISMATCH}], weight: 0.0625}
   - {id: I-07, type: repair, refs: [G-01], scenario: A ValidationRule is absent from MonitoringPolicy., expected_answers: [{kind: human_action, verb: add, object: missing validation rule, target: code-first MonitoringPolicy}], weight: 0.0625}
   - {id: I-08, type: repair, refs: [G-02], scenario: The corresponding Koskadeux request tool is missing., expected_answers: [{kind: human_action, verb: add, object: canonical request tool, target: tools/agent_request.py}], weight: 0.0625}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0625}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0625}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0625}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0625}
+  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
   - {id: I-12, type: operate, refs: [E-04], scenario: "A fresh strict-config runner still shows Codex root functions.exec, wait, request_user_input, and collaboration controls, while live scoped MCP tools/list is exactly allai_remediator_request and no nested executable or other external integration exists.", expected_answers: [{kind: classification, label: ACCEPT_ONLY_AS_NON_OPERATIONAL_HOST_SCAFFOLDING_WITH_FUNCTIONS_EXEC_RESERVED_FOR_THE_MCP_CALL}], weight: 0.0625}
   - {id: I-13, type: operate, refs: [E-05], scenario: Candidate transport code exists but deployed marker or live singleton discovery is absent., expected_answers: [{kind: classification, label: DO_NOT_ACTIVATE_OR_INFER_DEPLOYMENT}], weight: 0.0625}
   - {id: I-14, type: isolate, refs: [F-04], scenario: The LaunchAgent repeatedly exits nonzero while the queue is enabled., expected_answers: [{kind: classification, label: UNLOAD_DISPATCHER_KEEP_MODEL_TASK_PAUSED_AND_PRESERVE_QUEUE}], weight: 0.0625}
@@ -324,7 +308,7 @@ scenario_set:
   - {id: I-16, type: isolate, refs: [F-04, G-04], scenario: Cloudflare reports a deployment and the worker submits fixed without separate health proof., expected_answers: [{kind: classification, label: REJECT_FIXED_AND_PRESERVE_READ_ONLY_BOUNDARY}], weight: 0.0625}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1605
@@ -333,18 +317,5 @@ last_refresh_date: 2026-08-24T16:58:19Z
 owner_agent: vulcan
 refresh_triggers: [CORE agent completeness changes, agent endpoint or manifest schema changes, MonitoringPolicy or compliance endpoint changes, allAI Remediator backend, filter policy, dispatcher, scoped transport, runner isolation, plugin, cadence, activation, or needs-Max reporting changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1605 / 2026-08-24T16:58:19Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

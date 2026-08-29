@@ -1,3 +1,11 @@
+---
+title: aimarket-mcp-server — Public MCP Integration
+owner: unassigned
+last_verified: '2026-04-01'
+aliases: []
+error_signatures: []
+---
+
 # aimarket-mcp-server — Public MCP Integration
 
 ## What it is
@@ -70,7 +78,7 @@ npx aimarket-mcp
 3. Create GitHub release with tag
 4. PyPI publish (manual or CI)
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|

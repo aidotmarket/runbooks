@@ -1,3 +1,11 @@
+---
+title: ai-market-frontend — Marketplace Web App
+owner: unassigned
+last_verified: '2026-08-25'
+aliases: []
+error_signatures: []
+---
+
 # ai-market-frontend — Marketplace Web App
 
 > Content refresh S811 (PR #28): dual-audience homepage and buyer landing. AIM Federate is retired, with no current public surface, route, redirect, or asset; reintroduction requires explicit Max decision. Copy is governed by [website-copy-standard.md](website-copy-standard.md).
@@ -105,7 +113,7 @@ Verify this at phone size through the sanctioned `kdbrowser` GUI runner with rea
 
 **T-2026-000708 proof (2026-08-25):** frontend candidate `81797ab2afd2e0ae2eac95265eba8a5ec3920fc7`, merge `ac3a15a7646a6dcd6b41ed45335ac9d44c00ed96`, Railway deployment `78fc9b57-d1a6-495a-98bb-a0d281d7c480` (`SUCCESS` at the exact merge SHA), and an isolated `kdbrowser` real-Chrome acceptance at 390×844 that observed 0 results before the action and the restored unfiltered catalog at `/listings` after it.
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|

@@ -1,83 +1,51 @@
 ---
-runbook_id: crm
-domain: platform-data
-status: ACTIVE
+title: CRM
 owner: vulcan
-system_name: crm
-purpose_sentence: The party-model CRM that is ai.market's system of record for people, organisations, identities, roles, interactions, tasks and referrals, with a field-level data dictionary, live production row counts, and the payment and support-ticket connectors.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The CRM data model and its operating surfaces: the party family (party, party_identity,
-  party_person, party_organization, party_role_binding), the crm_party_* operations family,
-  the CRM Steward agent and its 28 skills, the three Koskadeux MCP tools, the REST surface
-  under /api/v1/crm and /api/v1/accounting/crm, and the two outward connectors (payments via
-  party_identity provider stripe_connect, support tickets via support_ticket.requester_party_id).
-  This runbook is the source of truth for which CRM tables exist in production and which were
-  deliberately deleted. Support-ticket lifecycle itself is not in scope. Morning briefing
-  delivery is covered by morning-briefing.md. Marketplace listings, orders and Stripe payment
-  processing are not in scope.
-authoritative_for:
-  - topic: crm-data-model
-    section: §C. Architecture & Interactions
-  - topic: crm-legacy-table-drop
-    section: §C. Architecture & Interactions
-  - topic: crm-diagnosis
-    section: §F. Isolate
-  - topic: crm-connectors
-    section: §C. Architecture & Interactions
+last_verified: '2026-08-26'
 aliases:
-  - crm-architecture
-  - crm-pipeline
-  - crm-target-state
-  - party-model
-  - crm-steward
+- crm-architecture
+- crm-pipeline
+- crm-steward
+- crm-target-state
+- party-model
 error_signatures:
-  - signature: relation "crm_pipeline_stages" does not exist
-    section: §F. Isolate
-  - signature: relation "crm_people" does not exist
-    section: §F. Isolate
-  - signature: relation "crm_entities" does not exist
-    section: §F. Isolate
-  - signature: UndefinedTable
-    section: §F. Isolate
-  - signature: pipeline stages feature is not yet fully set up
-    section: §F. Isolate
-  - signature: the pipeline stages migration may not have been run
-    section: §F. Isolate
-  - signature: empty contact_id on upsert
-    section: §F. Isolate
-last_verified_at: "2026-08-26"
-superseded_by: []
-supersedes:
-  - crm-architecture
-  - crm-pipeline
-  - crm-target-state
-linter_version: 1.0.0
+- UndefinedTable
+- empty contact_id on upsert
+- pipeline stages feature is not yet fully set up
+- relation "crm_entities" does not exist
+- relation "crm_people" does not exist
+- relation "crm_pipeline_stages" does not exist
+- the pipeline stages migration may not have been run
+- empty array
+- gateway timeout
+- unknown entity_id
+- interaction_type rejected
+- ok true with prose describing a missing table
+- ok false with error_code
+- '404'
+- '403'
+- relationship write requested
 ---
 
 # CRM
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-This runbook replaces three legacy documents (`crm-architecture.md`, `crm-pipeline.md`,
-`crm-target-state.md`) that were last accurate in early July 2026 and were never indexed in
-`CATALOG.json`, `TOPIC-ROUTER.md` or `README.md`. All three described a fourteen-table `crm_*`
+This runbook replaces three archived documents (`crm-architecture.md`, `crm-pipeline.md`,
+`crm-target-state.md`) that were last accurate in early July 2026. All three described a fourteen-table `crm_*`
 data model as "Active (production)". Those fourteen tables were deliberately deleted from
 production on 2026-07-03. An agent working from the superseded documents writes queries
 against tables that do not exist and, worse, concludes that a migration failed and tries to
-recreate them. Do not do that. See §H.1 Invariant 1.
+recreate them. Do not do that. See Changes and maintenance.1 Invariant 1.
 
-**Written so it can be used without system access.** §C carries the complete field-level data
+**Written so it can be used without system access.** Architecture & interactions carries the complete field-level data
 dictionary and the production row counts as measured on 2026-08-09, so an agent holding only
 this file can reason about what a query will return, decide whether a symptom is expected, and
-name the probable cause before touching anything. Where a claim needs live confirmation, §F
+name the probable cause before touching anything. Where a claim needs live confirmation, When it breaks
 gives the exact verification query.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -95,14 +63,14 @@ gives the exact verification query.
 | Email drafts | PARTIAL | `app/api/v1/endpoints/crm.py` | `crm_party_email_draft` has 0 rows in production; path is unexercised | 2026-08-09 |
 | Payments connector (party to Stripe Connect) | SHIPPED | `app/services/crm/stripe_connect_identity_reader.py` | 7 `stripe_connect` identities in production | 2026-08-09 |
 | Accounting read contracts | PARTIAL | `app/api/v1/endpoints/accounting_crm.py` | Endpoints mounted; `commission_accrual` and `agreement` both 0 rows, so unexercised | 2026-08-09 |
-| Support-ticket connector (ticket to party) | PARTIAL | `app/models/support.py:SupportTicket.requester_party_id` | Column, FK and index exist; 0 of 580 tickets populated, see §F-04 | 2026-08-09 |
+| Support-ticket connector (ticket to party) | PARTIAL | `app/models/support.py:SupportTicket.requester_party_id` | Column, FK and index exist; 0 of 580 tickets populated, see When it breaks-04 | 2026-08-09 |
 | Trust scoring | PLANNED | `app/domains/crm/trust/` | `party_infraction` and `party_score_snapshot` both 0 rows | 2026-08-09 |
 | Commercial opportunities and agreements | PLANNED | `app/domains/crm/commercial/` | `crm_opportunity` and `agreement` both 0 rows | 2026-08-09 |
-| CRM Steward daily maintenance | DEPRECATED | — | Removed at backend `5143235d`. All three checks read deleted tables and had failed silently since 2026-07-03; see §F-01 |  2026-08-09 |
+| CRM Steward daily maintenance | DEPRECATED | — | Removed at backend `5143235d`. All three checks read deleted tables and had failed silently since 2026-07-03; see When it breaks-01 |  2026-08-09 |
 | Morning briefing | SHIPPED | `app/services/crm_briefing_service_gmail.py` | 105 rows in `crm_briefing_runs`; delivery detail lives in morning-briefing.md | 2026-08-09 |
-| External CRM MCP endpoint | DEPRECATED | — | `api.ai.market/mcp/crm/mcp` returns 404 by design, see §H.1 Invariant 4 | 2026-08-09 |
+| External CRM MCP endpoint | DEPRECATED | — | `api.ai.market/mcp/crm/mcp` returns 404 by design, see Changes and maintenance.1 Invariant 4 | 2026-08-09 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -110,15 +78,15 @@ gives the exact verification query.
 | CRM operations | `app/domains/crm/core/models.py` | `crm_party_task`, `crm_party_interaction`, `crm_party_email_draft`, `crm_party_playbook`, `crm_party_learned_preference`, `crm_party_conversation_state`, `crm_party_referral` | Party core by `party_id` | The work layer. Every active operation uses party-native storage. `legacy_entity_id` on task and interaction is provenance only and must never be joined to a retired table. Relationship reads intentionally return `[]`; relationship writes are unavailable. |
 | CRM service layer | `app/services/crm_service.py:CRMEntityService` | Party core plus CRM operations | Steward skills, REST endpoints | At backend `ad944bd0`, the application tree has zero imports of deleted model modules, zero ORM operations on retired models and zero retired table-string or raw-SQL operations. |
 | CRM Steward agent | `app/allai/agents/crm_steward.py:CRMStewardAgent` | Reads and writes through the service layer | allAI, Koskadeux MCP tools | Parses natural language, chooses skills, returns a structured envelope with `ok`, `status`, `result`, `error`, `warnings`, `trace_id`, `actions_taken`. |
-| Steward skills | `app/services/crm_steward_skills.py:CRM_SKILLS` | Party core plus CRM operations | The steward agent | 28 skills: 9 read (health is one of them) and 19 write. `get_pipeline_status` was removed at backend `5143235d`, see §F-01. |
+| Steward skills | `app/services/crm_steward_skills.py:CRM_SKILLS` | Party core plus CRM operations | The steward agent | 28 skills: 9 read (health is one of them) and 19 write. `get_pipeline_status` was removed at backend `5143235d`, see When it breaks-01. |
 | REST surface | `app/api/v1/router.py` | Party core plus CRM operations | Frontend, internal callers, accounting | Mounted at `/api/v1/crm` behind `require_crm_auth_by_method` and `enforce_crm_permissions`. |
 | Payments connector | `app/services/crm/stripe_connect_identity_reader.py` | `party_identity` where `provider='stripe_connect'` | Stripe Connect, accounting endpoints | Canonical source for seller Stripe Connect identity. Legacy `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written but must not be read by new code. |
 | Accounting contracts | `app/api/v1/endpoints/accounting_crm.py` | `commission_accrual`, `crm_party_referral`, `party_identity` | Accounting consumers | Read-only, prefix `/api/v1/accounting/crm`, scope `accounting:read`. |
-| Support connector | `app/models/support.py:SupportTicket` | `support_ticket`, `support_message` | Support agent, CRM party core | `requester_party_id` and `org_party_id` are real FKs to `party.id`. Populated only when an authenticated non-internal caller opens a ticket. See §F-04. |
+| Support connector | `app/models/support.py:SupportTicket` | `support_ticket`, `support_message` | Support agent, CRM party core | `requester_party_id` and `org_party_id` are real FKs to `party.id`. Populated only when an authenticated non-internal caller opens a ticket. See When it breaks-04. |
 | Event outbox | `app/models/crm_events.py` | `crm_entity_event_outbox` | allAI vector corpus | 15 rows. Producer side of the corpus ingestion path. |
 | Audit log | `app/domains/crm/core/models.py:CrmAuditLog` | `crm_audit_log` | Service layer writes | 71 rows. |
 
-### §C.1 What exists in production, and what does not
+### Architecture & interactions.1 What exists in production, and what does not
 
 Measured directly against the production database on 2026-08-09. Alembic head at the time of
 measurement was `s1299_c1_corpus_control_plane`.
@@ -260,7 +228,7 @@ pending tasks and referrals all returned 200. Relationship and network reads ret
 without SQL. The following API log interval contained nine CRM access requests and zero retired-
 table or `UndefinedTable` matches.
 
-### §C.2 Field dictionary
+### Architecture & interactions.2 Field dictionary
 
 Types are PostgreSQL types as measured in production. "Null" means the column is nullable.
 
@@ -291,7 +259,7 @@ Types are PostgreSQL types as measured in production. "Null" means the column is
 | `personality_profile` | text | yes | AI-generated. |
 | `communication_style` | text | yes | AI-generated. |
 | `context_summary` | text | yes | AI-generated rolling summary. |
-| `last_interaction_at` | timestamptz | yes | Updated when an interaction is logged. Persistently null is a known regression signature, see §F-05. |
+| `last_interaction_at` | timestamptz | yes | Updated when an interaction is logged. Persistently null is a known regression signature, see When it breaks-05. |
 | `notes` | text | yes | |
 
 **`party_organization`** — organisation detail.
@@ -398,11 +366,11 @@ useless for joining.
 | `public_ref` | varchar | no | The reference an operator quotes. |
 | `requester_actor_type` | varchar | no | Always populated. |
 | `requester_actor_id` | varchar | no | Always populated. |
-| `requester_party_id` | uuid | yes | FK to `party.id`, indexed. 0 of 580 populated. See §F-04. |
+| `requester_party_id` | uuid | yes | FK to `party.id`, indexed. 0 of 580 populated. See When it breaks-04. |
 | `org_party_id` | uuid | yes | FK to `party.id`. 0 populated. |
 | `requester_key` | generated | no | Coalesce of `requester_party_id` then the actor type and id pair. This is why nothing has failed: the key silently falls back to the actor pair when the party link is absent. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -422,12 +390,12 @@ useless for joining.
 | CRM Steward | Relationship writes | `create_relationship` | write | GAP — retired storage; any party-native replacement needs separate authority |
 | CRM Steward | Merge and delete | `merge_contacts`, `delete_entity`, `delete_task` | write | COMPLETE |
 | CRM Steward | Move a contact's open tasks forward by N days | `move_contact_forward`, `bulk_move_contacts` | write | COMPLETE |
-| Support agent | Open a ticket carrying a party link | `support_ticket_create` | internal or authenticated user | PARTIAL — internal callers resolve to a null party id; closed by resolving the requester party at creation. See §F-04. |
-| Accounting consumer | Read commission accruals and referrals | `GET /api/v1/accounting/crm/*` | `accounting:read` | PARTIAL — contract shipped but every backing table holds zero rows, so it is unexercised. See §F-10. |
+| Support agent | Open a ticket carrying a party link | `support_ticket_create` | internal or authenticated user | PARTIAL — internal callers resolve to a null party id; closed by resolving the requester party at creation. See When it breaks-04. |
+| Accounting consumer | Read commission accruals and referrals | `GET /api/v1/accounting/crm/*` | `accounting:read` | PARTIAL — contract shipped but every backing table holds zero rows, so it is unexercised. See When it breaks-10. |
 
 **Gap analysis.** Named pipeline stages remain retired: `get_pipeline_status` and the daily
 maintenance routine were removed, `get_contact_context` returns `pipeline=null`, and open-ended
-pipeline questions use the party-native `crm_snapshot` (see §F-01 and §G-01). Relationship
+pipeline questions use the party-native `crm_snapshot` (see When it breaks-01 and Repair-01). Relationship
 reads preserve the shipped empty contract and relationship writes are unavailable; neither path
 touches `crm_relationships`.
 Do not assume the two `move_*` skills shared that fault. Despite the name,
@@ -435,11 +403,11 @@ Do not assume the two `move_*` skills shared that fault. Despite the name,
 `crm_party_task` table via `CRMTaskService.move_entity_tasks_forward`. They are healthy and were
 deliberately left alone. Ticket creation is PARTIAL because internal callers resolve to a null
 party id, so the ticket-to-party link is never written; the gap closes by resolving the requester
-party at creation (see §F-04 and §G-04). The accounting read contracts are PARTIAL because the
+party at creation (see When it breaks-04 and Repair-04). The accounting read contracts are PARTIAL because the
 endpoints are mounted and correct but every backing table holds zero rows, so no consumer has
-ever exercised them (see §F-10).
+ever exercised them (see When it breaks-10).
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -539,23 +507,23 @@ ever exercised them (see §F-10).
   next_step_failure: Do not recreate crm_relationships. New relationship storage requires separately authorized party-native design work.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | A pipeline question reports a missing pipeline table or recommends a migration | A regression or stale caller has reintroduced behavior removed under S1490. Current behavior has no named stages and answers through `crm_snapshot`; `get_contact_context` returns `pipeline=null`. | Ask `crm_request` a pipeline question and inspect `actions_taken`. At `ad944bd0` it must use `crm_snapshot`. `SELECT to_regclass('public.crm_pipeline_stages')` must remain null. | §G-01 | CONFIRMED |
-| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming any of the fourteen retired CRM tables | The running app is not exact backend `ad944bd0`, a candidate regression reintroduced a retired operation, or someone ran one of the 13 explicitly unusable non-deployed helpers in §C.1. The deployed app inventory has zero such imports and operations. | Confirm the exact deployed SHA and caller path. Run `scripts/crm_s1490_inventory.py --check` against the candidate, compare its digest with the attested value in §C.1, and search the same trace for the retired table name. | §G-02 | CONFIRMED |
-| F-03 | An agent proposes recreating `crm_entities`, `crm_people` or any other deleted table, or reports the CRM schema as broken | The agent is working from `crm-architecture.md`, `crm-pipeline.md` or `crm-target-state.md`, all superseded, which describe the deleted fourteen as "Active (production)". | Check whether the agent cites `crm_persons`, a table name that never existed. That phrasing is a reliable tell for the superseded documents. | §G-03 | CONFIRMED |
-| F-04 | A support ticket cannot be tied back to a CRM party, or `requester_party_id` is null on every ticket | `app/api/v1/endpoints/support.py:create_ticket` sets `requester_party_id` from the request for internal callers and from `principal.party_id` otherwise. `get_support_principal` returns a null `party_id` for internal actors, and internal callers do not pass one. Every ticket to date was opened by an internal actor. Nothing errors because `requester_key` falls back to the actor pair. | Count tickets where `requester_party_id` is not null against the total. Expect 0 of 580 as of 2026-08-09. | §G-04 | CONFIRMED |
-| F-05 | `party_person.last_interaction_at` stays null after interactions are logged | The party update after commit in the interaction write path did not run. Historically a regression in `log_interaction`. | Log an interaction via E-02, then read the party back via E-01 and compare `last_interaction_at`. | §G-05 | HYPOTHESIZED |
-| F-06 | A contact upsert returns an empty `contact_id`, output validation fails, and no row appears in `party_person` | The party-native write failed or rolled back. At `ad944bd0`, a retired-table operation inside the deployed app is not an accepted current-state explanation. | Read `actions_taken` and the backend log under the same trace id. Confirm the exact deployed SHA, then diagnose the party-native transaction. If a retired table appears, route to F-02. | §G-02 | CONFIRMED |
-| F-07 | A CRM count looks far too low, for example zero tasks for a user who has tasks | Scoped reads filter on `crm_party_task.assigned_to_user_id`. 26 of 87 tasks have it null, and those are reachable only by admin or internal-key callers. | Count `crm_party_task` rows with a null `assigned_to_user_id` against the total. | §G-06 | CONFIRMED |
-| F-08 | An overdue calculation disagrees between two surfaces | `crm_party_task` carries both `due_date` and `due_at`. Different code paths read different columns. | Read both columns for the disputed task and identify which one the surface reads. | §G-06 | CONFIRMED |
-| F-09 | A join on `legacy_entity_id`, `legacy_playbook_id` or `legacy_source_interaction_id` returns nothing | These columns point at rows in tables deleted 2026-07-03. They are provenance, not joinable keys. | Confirm the target table is absent with `SELECT to_regclass('public.crm_entities')`. | §G-03 | CONFIRMED |
-| F-10 | A commission or agreement query returns empty and the caller reports the feature broken | `commission_accrual`, `commission_plan`, `commission_rule`, `commission_override`, `agreement` and `crm_opportunity` all hold zero rows. The contract is shipped, the feature has never been exercised. | Row-count the table. Empty is the expected state, not a defect. | §G-07 | CONFIRMED |
-| F-11 | `api.ai.market/mcp/crm/mcp` returns 404 | Correct behaviour. The external CRM MCP endpoint was removed deliberately at backend `1a514583`. All CRM access goes through the Koskadeux gateway. | Confirm the 404 and stop. | §G-07 | CONFIRMED |
+| F-01 | A pipeline question reports a missing pipeline table or recommends a migration | A regression or stale caller has reintroduced behavior removed under S1490. Current behavior has no named stages and answers through `crm_snapshot`; `get_contact_context` returns `pipeline=null`. | Ask `crm_request` a pipeline question and inspect `actions_taken`. At `ad944bd0` it must use `crm_snapshot`. `SELECT to_regclass('public.crm_pipeline_stages')` must remain null. | Repair-01 | CONFIRMED |
+| F-02 | `UndefinedTable`, or a relation-does-not-exist error naming any of the fourteen retired CRM tables | The running app is not exact backend `ad944bd0`, a candidate regression reintroduced a retired operation, or someone ran one of the 13 explicitly unusable non-deployed helpers in Architecture & interactions.1. The deployed app inventory has zero such imports and operations. | Confirm the exact deployed SHA and caller path. Run `scripts/crm_s1490_inventory.py --check` against the candidate, compare its digest with the attested value in Architecture & interactions.1, and search the same trace for the retired table name. | Repair-02 | CONFIRMED |
+| F-03 | An agent proposes recreating `crm_entities`, `crm_people` or any other deleted table, or reports the CRM schema as broken | The agent is working from `crm-architecture.md`, `crm-pipeline.md` or `crm-target-state.md`, all superseded, which describe the deleted fourteen as "Active (production)". | Check whether the agent cites `crm_persons`, a table name that never existed. That phrasing is a reliable tell for the superseded documents. | Repair-03 | CONFIRMED |
+| F-04 | A support ticket cannot be tied back to a CRM party, or `requester_party_id` is null on every ticket | `app/api/v1/endpoints/support.py:create_ticket` sets `requester_party_id` from the request for internal callers and from `principal.party_id` otherwise. `get_support_principal` returns a null `party_id` for internal actors, and internal callers do not pass one. Every ticket to date was opened by an internal actor. Nothing errors because `requester_key` falls back to the actor pair. | Count tickets where `requester_party_id` is not null against the total. Expect 0 of 580 as of 2026-08-09. | Repair-04 | CONFIRMED |
+| F-05 | `party_person.last_interaction_at` stays null after interactions are logged | The party update after commit in the interaction write path did not run. Historically a regression in `log_interaction`. | Log an interaction via E-02, then read the party back via E-01 and compare `last_interaction_at`. | Repair-05 | HYPOTHESIZED |
+| F-06 | A contact upsert returns an empty `contact_id`, output validation fails, and no row appears in `party_person` | The party-native write failed or rolled back. At `ad944bd0`, a retired-table operation inside the deployed app is not an accepted current-state explanation. | Read `actions_taken` and the backend log under the same trace id. Confirm the exact deployed SHA, then diagnose the party-native transaction. If a retired table appears, route to F-02. | Repair-02 | CONFIRMED |
+| F-07 | A CRM count looks far too low, for example zero tasks for a user who has tasks | Scoped reads filter on `crm_party_task.assigned_to_user_id`. 26 of 87 tasks have it null, and those are reachable only by admin or internal-key callers. | Count `crm_party_task` rows with a null `assigned_to_user_id` against the total. | Repair-06 | CONFIRMED |
+| F-08 | An overdue calculation disagrees between two surfaces | `crm_party_task` carries both `due_date` and `due_at`. Different code paths read different columns. | Read both columns for the disputed task and identify which one the surface reads. | Repair-06 | CONFIRMED |
+| F-09 | A join on `legacy_entity_id`, `legacy_playbook_id` or `legacy_source_interaction_id` returns nothing | These columns point at rows in tables deleted 2026-07-03. They are provenance, not joinable keys. | Confirm the target table is absent with `SELECT to_regclass('public.crm_entities')`. | Repair-03 | CONFIRMED |
+| F-10 | A commission or agreement query returns empty and the caller reports the feature broken | `commission_accrual`, `commission_plan`, `commission_rule`, `commission_override`, `agreement` and `crm_opportunity` all hold zero rows. The contract is shipped, the feature has never been exercised. | Row-count the table. Empty is the expected state, not a defect. | Repair-07 | CONFIRMED |
+| F-11 | `api.ai.market/mcp/crm/mcp` returns 404 | Correct behaviour. The external CRM MCP endpoint was removed deliberately at backend `1a514583`. All CRM access goes through the Koskadeux gateway. | Confirm the 404 and stop. | Repair-07 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -616,27 +584,27 @@ ever exercised them (see §F-10).
   integrity_check: The investigation closes with a documented reference to C.1 or H.1 rather than a commit.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - **Invariant 1. The fourteen deleted CRM tables stay deleted.** `crm_entities`, `crm_people`, `crm_organizations`, `crm_relationships`, `crm_interactions`, `crm_playbooks`, `crm_tasks`, `crm_email_drafts`, `crm_learned_preferences`, `crm_pipeline_stages`, `crm_contact_pipeline`, `crm_pipeline_history`, `crm_referrals` and `crm_conversation_states` were dropped under an explicit Max GO and unanimous Council approval. Recreating any of them, in a migration or a fallback-create path, requires the same authority again. An agent that concludes the migration did not run is misreading a deliberate decision.
 - **Invariant 2. The party is the canonical participant.** All application reads and writes go directly through `party`, its detail tables and `crm_party_*` operations. Do not reintroduce deleted model imports, legacy routing modes or fallback branches.
 - **Invariant 3. The `stripe_connect` party identity is the canonical seller payment identity.** `users.stripe_account_id` and `seller_profiles.stripe_connect_id` are still dual-written for compatibility. New code must not read them.
 - **Invariant 4. There is no external CRM MCP endpoint.** All agent CRM access goes through the Koskadeux gateway. The 404s on `api.ai.market/mcp/crm/mcp` and the root OAuth routes are deliberate and must not be reintroduced.
 - **Invariant 5. Nothing here creates tables at runtime.** The CRM must never rely on a fallback table-creation path. That pattern is what hid the loss of the money-path tables until a customer reported it.
-- **Invariant 6. Retired operations stay absent from the application.** At backend `ad944bd0`, `app/` has zero deleted-model imports, zero deleted ORM operations, zero retired table-string/raw-SQL operations and zero parse errors. The ten classified name residuals are live schema/display text, not operations. The 477 references across 16 app files and 38 query sites belong only to the dated immutable baseline `ca1e6332`; they are not current state. The 13 non-deployed helpers in §C.1 remain unusable until retired or migrated and must never become entry points.
+- **Invariant 6. Retired operations stay absent from the application.** At backend `ad944bd0`, `app/` has zero deleted-model imports, zero deleted ORM operations, zero retired table-string/raw-SQL operations and zero parse errors. The ten classified name residuals are live schema/display text, not operations. The 477 references across 16 app files and 38 query sites belong only to the dated immutable baseline `ca1e6332`; they are not current state. The 13 non-deployed helpers in Architecture & interactions.1 remain unusable until retired or migrated and must never become entry points.
 - **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Recreating, renaming or altering the type of any column in `party`, `party_person`, `party_organization`, `party_identity` or `party_role_binding`.
 - Changing the meaning of a `party_identity` provider value, or reusing a retired provider name.
 - Changing the ownership predicate for scoped CRM reads.
 - Adding a required column without a default to any table with rows.
-- Changing or removing any invariant in §H.1.
+- Changing or removing any invariant in Changes and maintenance.1.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding or removing a steward skill, or changing a skill's access level between read and write.
 - Adding a new `party_identity` provider value.
@@ -644,14 +612,14 @@ ever exercised them (see §F-10).
 - Adding a new endpoint under `/api/v1/crm` or `/api/v1/accounting/crm`.
 - Any change that introduces a deleted model name, retired table string, relationship storage operation, or legacy routing mode into `app/`.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Fixing a bug inside an existing skill without changing its input or output schema.
 - Adding tests.
 - Updating this runbook.
 - Internal refactor inside a single module that preserves all public signatures.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -669,11 +637,11 @@ An entry in the backend `requirements.txt` or the `pyproject.toml` project depen
 
 A value shipping in the backend's canonical config, `app/core/config.py`. Environment overrides and feature flags are not config defaults.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 If two agents classify the same change differently, the more restrictive classification wins. Anything touching Invariant 1 or Invariant 3 escalates to Max regardless of classification, because both concern deletion authority and the money path.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -730,7 +698,7 @@ scenario_set:
           provenance, not a joinable key. Join on party_id instead. Close without an incident.
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1545
@@ -744,8 +712,6 @@ refresh_triggers:
   - Any change to support ticket party resolution
   - Incident touching CRM data
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
 ```
 
@@ -772,19 +738,7 @@ migration, authentication or ownership-policy change.
 52 deselected; the direct corrective set was 9 passed; diff, compile and inventory checks passed.
 The earlier complete parent-vs-base suite had zero candidate-only failures. The final optional
 whole-suite run was interrupted at 35% and is an incomplete diagnostic, not a pass. Public health
-and outside-operation results are recorded in §C.1.
+and outside-operation results are recorded in Architecture & interactions.1.
 
 Rollback only by reverting `ad944bd0` for a proven candidate regression. Never recreate any of
 the fourteen deliberately retired CRM tables.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: true
-trace_matrix_path: audits/crm-runbook-rewrite-s1490-trace.md
-word_count_delta:
-  before: 10971
-  after: 6406
-  pct: -41.6
-```

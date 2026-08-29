@@ -1,24 +1,27 @@
 ---
-system_name: allai-escalation-safety-spine
-purpose_sentence: "The allAI escalation safety spine preserves human-required pages through a structured always-page allowlist, an independent fail-open watchdog, dead-lettered delivery failures, monitor-unavailable surfacing, and the single @allai_agent_bot Telegram sink."
-owner_agent: vulcan
-escalation_contact: max@ai.market
-lifecycle_ref: §J
-authoritative_scope: "BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 safety-spine chunk plus monitor-binding false-alarm fix: the shipped allAI always-page allowlist, structured escalation-class extraction, fail-open watchdog, escalation pipeline settlement/dead-letter behavior, scheduler sweep, Telegram relay configuration in ai-market-backend main bd1f0dd8, and SysAdmin monitor_unavailable behavior in ai-market-backend main 02e3830f. Explicitly out of scope: later C2 dedupe/coalesce, C3 sustained-window gate, C4 CI-to-ticket-to-MP auto-fix, C5 remediation library expansion, and C6 FOR MAX surfacing except as evolution constraints."
-linter_version: 1.0.0
+title: allAI Escalation Safety Spine
+owner: vulcan
+last_verified: '2026-07-16'
+aliases: []
+error_signatures:
+- 'escalation_pipeline: Telegram disabled/unconfigured'
+- 'escalation_pipeline: submit failed and dead-letter recording failed; leaving watchdog pending unacked'
+- No allowlist log and no page
+- 'escalation_pipeline: deduplicated escalation'
+- 'escalation_pipeline: Redis unavailable - sending without dedup'
+- 'escalation_watchdog: fail-open page failed; retained for retry'
 ---
 
 # allAI Escalation Safety Spine
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. This runbook documents the shipped safety spine for BQ-MONITORING-SYSADMIN-AUTOMATION-S1165 as deployed from ai-market-backend main `bd1f0dd875b44fc89b8128a96532b2905829c8d0` via Railway deployment `2f9e7faf`, plus the S1165 monitor-binding false-alarm fix at ai-market-backend main `02e3830f638a8aadf6ed863c82149ea2e6be1d96`.
 
 Core invariant: silence is the only unacceptable outcome; over-paging is fine. `escalation_watchdog.ack(request)` means "the watchdog need not fail open for this request" - it does not mean "delivered." Delivery is proven by a successful Telegram send, a fallback send, or a confirmed dead-letter record that keeps the incident visible.
 
 Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returned 200, the watchdog sweep job was confirmed in deployment logs on its 15s interval, both safety flags default ON when unset, and no false pages were observed. Known limitation: the Gate-4 assertion "an allowlisted class actually pages end-to-end to Telegram" has not been proven with a live production page because that would place a test alarm on the operator's phone; unit tests cover the page path.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -38,7 +41,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 | Telegram relay configured as the @allai_agent_bot page sink | SHIPPED | `app/services/telegram_relay.py:41` | tests/test_escalation_pipeline.py (49 tests passing) | 2026-07-12 |
 | SysAdmin `monitor_unavailable` is P1/HITL and deliberately outside the always-page allowlist | SHIPPED | `app/allai/agents/sysadmin/agent.py:828` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -49,17 +52,17 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 | Watchdog scheduler | ai-market-backend app/core/scheduler.py:sweep_allai_escalation_watchdog_job | APScheduler job `allai_escalation_watchdog_sweep` | Escalation watchdog and pipeline | Runs every 15 seconds when `watchdog_enabled()` is true. Logs `Running scheduled job: allai_escalation_watchdog_sweep` and warns with `allAI escalation watchdog sweep delivered %d fail-open page(s)` when it sends. |
 | Telegram relay | ai-market-backend app/services/telegram_relay.py:TelegramRelay.is_configured | Railway env `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_ID`, optional `TELEGRAM_BOT_USERNAME`; Infisical source of truth for secrets is the `ai-market` project | Telegram Bot API, allAI event bus, operator notification policy | The sole operator page sink is `@allai_agent_bot`; `TELEGRAM_BOT_USERNAME` defaults to `allai_agent_bot`. Cross-reference [operator-telegram-notifications.md](operator-telegram-notifications.md). |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| vulcan | Diagnose no-page, dead-letter, watchdog, and dedupe symptoms | Read-only source/log/Redis inspection plus this runbook §F | repo read, Railway read, Redis read as authorized | COMPLETE |
-| vulcan | Change safety-spine docs and evolution classification | runbooks repo edit, `runbook-lint` | docs branch only | COMPLETE |
+| vulcan | Diagnose no-page, dead-letter, watchdog, and dedupe symptoms | Read-only source/log/Redis inspection plus this runbook When it breaks | repo read, Railway read, Redis read as authorized | COMPLETE |
+| vulcan | Change safety-spine docs and evolution classification | runbooks repo edit, `scripts/check.py` | docs branch only | COMPLETE |
 | sysadmin | Emit operational escalations through allAI pipeline | `EscalationPipeline.submit(EscalationRequest)` | backend runtime service identity | COMPLETE |
 | allAI Brain | Triage operational events without becoming a silence point | allAI event handling and escalation pipeline | backend runtime service identity | COMPLETE |
 | Max | Approve disabling safety flags or live Telegram test pages | human decision via escalation_contact | owner/operator | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -87,7 +90,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
     - signature: "escalation_pipeline: submit failed and dead-letter recording failed; leaving watchdog pending unacked"
       cause: "Primary submit path and dead-letter recording both failed; watchdog must fail open."
   next_step_success: "Treat the request as visible unless it returned False from non-allowlisted dedupe/suppression."
-  next_step_failure: "Go to §F-01 for no page, §F-03 for dead-letter, or §F-05 for watchdog retry."
+  next_step_failure: "Go to When it breaks-01 for no page, When it breaks-03 for dead-letter, or When it breaks-05 for watchdog retry."
 - id: E-02
   trigger: "An allowlisted class arrives and must produce the first human-required page even if duplicate keys already exist."
   pre_conditions:
@@ -107,7 +110,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
     - signature: "No allowlist log and no page"
       cause: "Class was missing, not structured, misspelled, or the allowlist flag was explicitly disabled."
   next_step_success: "Leave same-incident update metadata in Redis and continue normal incident handling."
-  next_step_failure: "Go to §F-01 and §G-04 before considering any flag change."
+  next_step_failure: "Go to When it breaks-01 and Repair-04 before considering any flag change."
 - id: E-03
   trigger: "A P2 or lower-priority escalation is accepted for digest batching."
   pre_conditions:
@@ -150,10 +153,10 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
     - signature: "escalation_watchdog: fail-open page failed; retained for retry"
       cause: "Delivery failed; pending state remains for retry and eventual dead-letter."
   next_step_success: "Repair allAI heartbeat/quarantine separately; do not disable the watchdog because duplicates are possible."
-  next_step_failure: "Go to §F-05 and §G-03."
+  next_step_failure: "Go to When it breaks-05 and Repair-03."
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -166,7 +169,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 | F-07 | Safety flag is explicitly off | Operator or deploy changed `ALLAI_ALWAYS_PAGE_ALLOWLIST_ENABLED` or `ALLAI_ESCALATION_WATCHDOG_ENABLED` to false | Inspect Railway env; grep deploy logs for missing scheduler registration when watchdog off; remember unset means ON for both flags | G-04 | CONFIRMED |
 | F-08 | Escalation class is `monitor_unavailable` or summary says the check could not run | SysAdmin health-contract runner raised, timed out, failed `CapabilityOutput` validation, or invoked a disabled capability; the monitored condition is UNKNOWN | Inspect structured context for `failure_class=monitor_unavailable`, `condition_status=unknown`, `contract_id`, `runner_name`, `error_type`, `error`, and `monitored_failure_class`; do not infer the domain condition from summary text; confirm `monitor_unavailable` is absent from `ALWAYS_PAGE_ALLOWLIST` in `app/allai/escalation_policy.py:9` |  | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -211,9 +214,9 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
   integrity_check: "Allowlisted requests log `escalation_pipeline: allowlist immediate page`; non-allowlisted duplicates log exactly one dedupe suppression inside the TTL."
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### Changes and maintenance.1 Invariants
 
 - Silence is the only unacceptable outcome; over-paging is fine.
 - `escalation_watchdog.ack(request)` means "the watchdog need not fail open for this request"; it never means "Telegram delivered."
@@ -228,7 +231,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 
 Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C3 sustained-window gate, C4 CI failure to probed dev ticket to MP auto-fix, and C6 FOR MAX ops-console surfacing. Hard rule for C2/C3: no suppression mechanism may ever suppress the first page for an allowlisted class.
 
-### §H.2 BREAKING predicates
+### Changes and maintenance.2 BREAKING predicates
 
 - Changing, removing, or renaming any allowlisted class in `ALWAYS_PAGE_ALLOWLIST`.
 - Moving allowlist evaluation after dedupe, batch, sustained-window, allAI triage, or any future suppression mechanism.
@@ -238,7 +241,7 @@ Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C
 - Adding a second operator Telegram bot or bypassing `@allai_agent_bot`.
 - Changing payment, auth, security, payout, or webhook-signature alert routing without unanimous 4/4 Council approval.
 
-### §H.3 REVIEW predicates
+### Changes and maintenance.3 REVIEW predicates
 
 - Adding a new allowlisted class.
 - Changing watchdog timeout clamp, Redis pending key shape, retry behavior, or scheduler interval.
@@ -246,14 +249,14 @@ Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C
 - Implementing C4 CI ticketing or C6 FOR MAX surfacing.
 - Changing dead-letter record shape, dead-letter alert behavior, or manual drain process.
 
-### §H.4 SAFE predicates
+### Changes and maintenance.4 SAFE predicates
 
 - Documentation-only clarification that preserves this runbook's invariants.
 - Adding tests for existing allowlist, watchdog, dead-letter, or Telegram-disabled behavior.
-- Tightening log messages while preserving the existing searchable substrings listed in §F.
+- Tightening log messages while preserving the existing searchable substrings listed in When it breaks.
 - Manually inspecting Redis keys or logs without mutating production state.
 
-### §H.5 Boundary definitions
+### Changes and maintenance.5 Boundary definitions
 
 #### module
 
@@ -261,7 +264,7 @@ For ai-market-backend, `app/allai/`, `app/core/`, and `app/services/` are produc
 
 #### public contract
 
-Public operational contracts are the `EscalationRequest` fields consumed by callers, the structured class fields `escalation_class`, `context.failure_class`, and `context.incident_class`, the Redis keys named in §C/§F, the two safety flags, and the operator-visible Telegram behavior. Internal helper names may change only if these contracts and tests remain equivalent.
+Public operational contracts are the `EscalationRequest` fields consumed by callers, the structured class fields `escalation_class`, `context.failure_class`, and `context.incident_class`, the Redis keys named in Architecture & interactions/When it breaks, the two safety flags, and the operator-visible Telegram behavior. Internal helper names may change only if these contracts and tests remain equivalent.
 
 #### runtime dependency
 
@@ -271,11 +274,11 @@ Runtime dependencies are Redis, Railway env, the ai-market-backend scheduler, th
 
 `ALLAI_ALWAYS_PAGE_ALLOWLIST_ENABLED` default true. `ALLAI_ESCALATION_WATCHDOG_ENABLED` default true. `ALLAI_ESCALATION_WATCHDOG_TIMEOUT_SECONDS` default 45 and clamps to 30-60. `TELEGRAM_BOT_USERNAME` defaults to `allai_agent_bot`.
 
-### §H.6 Adjudication
+### Changes and maintenance.6 Adjudication
 
 Owner agent vulcan adjudicates documentation and SAFE changes. REVIEW changes require at least one non-builder review. BREAKING changes require a spec, Council approval, and for payment/auth/security classes unanimous 4/4 approval. Max is the only authority allowed to disable either safety flag in production, because disabling them accepts a possible silence path.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -380,7 +383,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H.2 BREAKING predicates
+      - Changes and maintenance.2 BREAKING predicates
     scenario: "A proposed C2 dedupe change would run before the allowlist check."
     expected_answers:
       - kind: classification
@@ -392,7 +395,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H.3 REVIEW predicates
+      - Changes and maintenance.3 REVIEW predicates
     scenario: "A proposed C3 sustained-window threshold preserves allowlist bypass but changes the threshold."
     expected_answers:
       - kind: classification
@@ -421,7 +424,7 @@ scenario_set:
     weight: 0.090909
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 2026-07-12 (`02e3830f`): S1165 monitor-binding false-alarm fix. SysAdmin now escalates
 check-execution failures as `monitor_unavailable` P1/HITL with condition UNKNOWN and preserved
@@ -440,19 +443,5 @@ refresh_triggers:
   - change to Telegram relay configuration, operator bot policy, or Infisical/Railway secret source
   - implementation of S1165 C2, C3, C4, or C6
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: "2026-07-12T00:00:00Z"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-Source citations in this runbook were verified against the ai-market-backend checkout at `/Users/max/Projects/ai-market/ai-market-backend`, branch `main`, commit `02e3830f638a8aadf6ed863c82149ea2e6be1d96` for the SysAdmin monitor-binding lines and commit `bd1f0dd875b44fc89b8128a96532b2905829c8d0` for the original safety-spine lines. The escalation test file contains 49 test functions. I did not create a live production Telegram test page; that remains pending an operator decision because it would alert Max's phone.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: "S1165 / 2026-07-12T00:00:00Z"
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```
