@@ -15,6 +15,9 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `build-queue-operator-recovery` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `build-queue-reconciliation` | `build-queue-reconciliation` (`runbooks/build-queue-reconciliation.md`) | [§C\. Architecture & Interactions](runbooks/build-queue-reconciliation.md#c-architecture-interactions) |
 | `builder-controls-inventory` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
+| `buyer-request-discovery-operations` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§C\. Architecture & Interactions](runbooks/buyer-request-publication-and-discovery.md#c-architecture-interactions) |
+| `buyer-request-matching-rollback` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§G\. Repair](runbooks/buyer-request-publication-and-discovery.md#g-repair) |
+| `buyer-request-matching-rollout` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§E\. Operate](runbooks/buyer-request-publication-and-discovery.md#e-operate) |
 | `constitution-history` | `constitution-history` (`runbooks/constitution-history.md`) | [§C\. Architecture & Interactions](runbooks/constitution-history.md#c-architecture-interactions) |
 | `corpus-capture-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `council-dispatch-failure` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
@@ -55,6 +58,7 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 
 | Signature | Runbook | Section |
 |---|---|---|
+| `BUYER_REQUEST_MATCH_RELEVANCE_QUESTION` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§F\. Isolate](runbooks/buyer-request-publication-and-discovery.md#f-isolate) |
 | `Codex FIFO unavailable` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
 | `Error occurred during tool execution` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `Not logged in` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
@@ -79,6 +83,7 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `cutover_admission_unknown` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§X\.8 — S1415 structural build/review gate replacement](runbooks/agent-dispatch.md#x8-s1415-structural-buildreview-gate-replacement) |
 | `dangling section` | `runbooks` (`runbooks/runbooks.md`) | [§F\. Isolate](runbooks/runbooks.md#f-isolate) |
 | `default_cwd_false_positive` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
+| `delivery_cycle_failed` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§F\. Isolate](runbooks/buyer-request-publication-and-discovery.md#f-isolate) |
 | `deployed_sha_stale` | `policy-kernel-enforcement` (`runbooks/policy-kernel-enforcement.md`) | [§F\. Isolate](runbooks/policy-kernel-enforcement.md#f-isolate) |
 | `directional_evidence_missing` | `council-gate-process` (`runbooks/council-gate-process.md`) | [§E\. Operate](runbooks/council-gate-process.md#e-operate) |
 | `dispatch refused before model execution` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§F\. Isolate](runbooks/task-spooler-build-queue.md#f-isolate) |
@@ -125,8 +130,10 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `relation "crm_entities" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_people" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
 | `relation "crm_pipeline_stages" does not exist` | `crm` (`runbooks/crm.md`) | [§F\. Isolate](runbooks/crm.md#f-isolate) |
+| `request_match_deliveries table does not exist` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§F\. Isolate](runbooks/buyer-request-publication-and-discovery.md#f-isolate) |
 | `required reviewer missing from the live tool schema` | `council` (`runbooks/council.md`) | [§F\. Isolate](runbooks/council.md#f-isolate) |
 | `review_preload_unresolved` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§E\. Operate](runbooks/council-review-collection.md#e-operate) |
+| `rolling_24h_cap` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§F\. Isolate](runbooks/buyer-request-publication-and-discovery.md#f-isolate) |
 | `runbook_context_delivery_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `runbook_impact_evidence_unavailable` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§F\. Isolate](runbooks/peer-instance-discipline.md#f-isolate) |
 | `schema_validation_failure` | `agent-dispatch` (`runbooks/agent-dispatch.md`) | [§E\. Operate](runbooks/agent-dispatch.md#e-operate) |
@@ -160,6 +167,7 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `allai-corpus-policy` | `corpus-capture-policy` (`runbooks/corpus-capture-policy.md`) | [§C\. Architecture & Interactions](runbooks/corpus-capture-policy.md#c-architecture-interactions) |
 | `build-queue-runner` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `builder-bridge` | `builder-controls` (`runbooks/builder-controls.md`) | [§E\. Operate - the indexed control inventory](runbooks/builder-controls.md#e-operate-the-indexed-control-inventory) |
+| `buyer-requests` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§C\. Architecture & Interactions](runbooks/buyer-request-publication-and-discovery.md#c-architecture-interactions) |
 | `codex-queue` | `task-spooler-build-queue` (`runbooks/task-spooler-build-queue.md`) | [§E\. Operate](runbooks/task-spooler-build-queue.md#e-operate) |
 | `connect-identity-bridge` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |
 | `council-verdict-collection` | `council-review-collection` (`runbooks/council-review-collection.md`) | [§C\. Architecture & Interactions](runbooks/council-review-collection.md#c-architecture-interactions) |
@@ -178,6 +186,8 @@ Declared ACTIVE authority keys are listed as authority. Every other current or a
 | `peer-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `peer-message-bus` | `peer-instance-discipline` (`runbooks/peer-instance-discipline.md`) | [§C\. Architecture & Interactions](runbooks/peer-instance-discipline.md#c-architecture-interactions) |
 | `reloader` | `reload-when-idle` (`runbooks/reload-when-idle.md`) | [§C\. Architecture & Interactions](runbooks/reload-when-idle.md#c-architecture-interactions) |
+| `request-matching` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§C\. Architecture & Interactions](runbooks/buyer-request-publication-and-discovery.md#c-architecture-interactions) |
+| `request-publication` | `buyer-request-publication-and-discovery` (`runbooks/buyer-request-publication-and-discovery.md`) | [§C\. Architecture & Interactions](runbooks/buyer-request-publication-and-discovery.md#c-architecture-interactions) |
 | `runbook-runbook` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `runbook-standard` | `runbooks` (`runbooks/runbooks.md`) | [§E\. Operate](runbooks/runbooks.md#e-operate) |
 | `seller-stripe-linkage` | `stripe-connect-identity` (`runbooks/stripe-connect-identity.md`) | [§F\. Isolate](runbooks/stripe-connect-identity.md#f-isolate) |

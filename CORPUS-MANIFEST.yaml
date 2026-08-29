@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: 22d8205f1d7706d27f8652e31381c422f5a0fcde
+  inventory_sha: fce55865ce2a1b17d829d9b659e04eb99e404479
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -12,10 +12,10 @@ inventory:
   source_selector: runbook_tools.catalog.generator.source_paths
   refresh_required_before_execution: true
   counts:
-    operational_documents: 114
-    source_documents: 110
-    active: 26
-    grandfathered: 84
+    operational_documents: 119
+    source_documents: 115
+    active: 27
+    grandfathered: 88
     archived: 4
 policy:
   pending_is_not_authority: true
@@ -31,6 +31,38 @@ risk_scale:
   P2: Routine operational or product guidance with bounded blast radius.
   P3: Historical, scratch, or evidence-only material with no proposed current authority.
 documents:
+  - path: PLAN-runbook-simplification.md
+    git_blob_oid: 86ffb8c38702092b6a4478a97facef6990841a28
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: governance
+    risk: P1
+    target_paths:
+      - specs/runbook-simplification.md
+    evidence:
+      - ref: PLAN-runbook-simplification.md:3
+        finding: Source identifies itself as a proposal for Max with no implementation started.
+    verify_against:
+      - Max decision and assigned scope
+      - current runbook tooling and loader behavior
+    independent_review_required: true
+  - path: PLAN-v5b-controlled-dispatch.md
+    git_blob_oid: f97eff34ed2275500368f91f4639ea54631b3570
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - specs/v5b-controlled-live-dispatch.md
+    evidence:
+      - ref: PLAN-v5b-controlled-dispatch.md:3
+        finding: Source is a proposal for Max and explicitly states that nothing has been run.
+    verify_against:
+      - explicit Max authorization
+      - S1511 spec, canonical state, and live dispatch receipts
+    independent_review_required: true
   - path: account-capability-onboarding.md
     git_blob_oid: 98c4564001c3580edcc56fa01985773c1cab10b1
     catalog_state: grandfathered
@@ -88,7 +120,7 @@ documents:
       - registry database behavior and production-safe session probes
     independent_review_required: true
   - path: ai-market-backend.md
-    git_blob_oid: 471835e14873f466255df900586e028dd654d165
+    git_blob_oid: 4bf4a41568825a7d473d9c6d2b14aaaf07754f4c
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -303,7 +335,7 @@ documents:
       - owning consumer code without exposing secret values
     independent_review_required: true
   - path: backup-and-recovery.md
-    git_blob_oid: 196ff8e2d22b2d68b84a41afd92e749156c2bfe9
+    git_blob_oid: d6da88b79f54596fafe646b4dfb4e9fc445a558b
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -380,8 +412,28 @@ documents:
       - deployed koskadeux-mcp builder control surface
       - MP dispatch corpus fire counts
     independent_review_required: true
+  - path: runbooks/buyer-request-publication-and-discovery.md
+    git_blob_oid: 81af37e64ca66a236209825a6ef93421f4ef11c0
+    catalog_state: active
+    status: active
+    proposed_disposition: retain_active
+    batch: buyer-requests
+    risk: P0
+    target_paths:
+      - runbooks/buyer-request-publication-and-discovery.md
+    evidence:
+      - ref: git:aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2
+        finding: Exact deployed matching-aware backend release with external email disabled and the forward
+          s1632_request_matching migration graph retained.
+      - ref: git:aidotmarket/ai-market-frontend@1b8a6c2da7934217392ca4e1030128da3bec6111
+        finding: Exact reviewed-local homepage and Buyer Requests navigation candidate; not production
+          deployment evidence.
+    verify_against:
+      - Railway deployment identities
+      - live flags, aggregate delivery state, and public discovery
+    independent_review_required: false
   - path: cc-machine-identity.md
-    git_blob_oid: 1423bdcfb247a79b93fdbbf2c77d5dcdecafa2f4
+    git_blob_oid: 23da6edda83d25a6e2f7212d8afbd08b0427cf91
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -486,7 +538,7 @@ documents:
       - current CORE and policy-kernel sources
     independent_review_required: true
   - path: council-session-gate-and-fold-ops.md
-    git_blob_oid: d75c222c336be88ad1714039f0c9638e221239ca
+    git_blob_oid: 7bb2f4efcecd9e3ab491c1fd6b943aef91c94faf
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: merge_then_archive
@@ -561,7 +613,7 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: data-requests.md
-    git_blob_oid: fbb429b75261b6d4269fab59aec7d0157d05c9c6
+    git_blob_oid: 66a3af52da7f2c3a3ae2df6e075317b8da77b3ed
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -650,7 +702,7 @@ documents:
       - published artifacts and production-safe customer probes
     independent_review_required: true
   - path: e2e-browser-runner.md
-    git_blob_oid: 969bc760e2be81be475d427eb19e5aa2a87d8dbf
+    git_blob_oid: 90a16f30f4d125acf9de32aaf82bace6874f4e6d
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -761,7 +813,7 @@ documents:
       - production-safe queries and current canonical state
     independent_review_required: true
   - path: infisical-secrets.md
-    git_blob_oid: a0065b570e4ed27851931f13c3b035e1947b7c17
+    git_blob_oid: b6c8428317faaa7312b1bee535991d443ed96b7e
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -777,6 +829,34 @@ documents:
     verify_against:
       - live provider and synchronization configuration
       - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: issue-channel.md
+    git_blob_oid: 8362d9ef05bcad0bd4eba34331ad3aaad800bc39
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - runbooks/issue-channel.md
+    evidence: []
+    verify_against:
+      - deployed issue-channel code and schema
+      - live provider, queue, snapshot, and board behavior
+    independent_review_required: true
+  - path: issue-channel-gate2-receipts.md
+    git_blob_oid: 043cd59916868bfdd9495989260ed882773f757f
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - runbooks/issue-ingestion-channel.md
+    evidence: []
+    verify_against:
+      - S1511 Gate 2 spec and immutable receipts
+      - deployed issue-channel schema, roles, probes, and canonical state
     independent_review_required: true
   - path: local-secops.md
     git_blob_oid: ede7e36cee5de8ff1eb096e868322cada7575990
@@ -887,7 +967,7 @@ documents:
       - DNS, tunnel, provider, and host configuration
     independent_review_required: true
   - path: ops-ai-market.md
-    git_blob_oid: aa012f96366c2680599532ca6bc3f1c00a4a4936
+    git_blob_oid: d0eed4011ff400498e0254953a9e82b35a6904c4
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1036,7 +1116,7 @@ documents:
       - tests/test_reload_build_guard.sh 18/18
     independent_review_required: false
   - path: runbooks/agent-completeness.md
-    git_blob_oid: 436d52d8c8bd2e1fec774a88765d1a71f26bc150
+    git_blob_oid: db0a310f4d9580ff5324353d4bb6fdddfd295495
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1101,7 +1181,7 @@ documents:
       - current Anthropic cache contract
     independent_review_required: true
   - path: runbooks/chrome-browser-use.md
-    git_blob_oid: d15e28900e01db883f71838bcaefc1d4f407b065
+    git_blob_oid: bb84e0cd69b3583e1d412fecd494bcaac831aaac
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1170,7 +1250,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/build-queue-reconciliation.md
-    git_blob_oid: 4929cdd06678e8f50e6be0c605ee90f5ef70481c
+    git_blob_oid: b389ed4a011937d81732c6bfebbb84d8b274855b
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1198,7 +1278,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/corpus-capture-policy.md
-    git_blob_oid: cc1a33dfb64a00a6dfc932f2343fc1d9d264967d
+    git_blob_oid: a88858d907debb2ff08d2905c7f4fc33dc84d5e1
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1268,7 +1348,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/council.md
-    git_blob_oid: 7f1d6a226a8c53ed596c598d998b73abf2c0a729
+    git_blob_oid: be5f3380364dfa370da5b250f41c4c43b53f6381
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1416,7 +1496,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: runbooks/crm.md
-    git_blob_oid: ca6d3df42482ad7fdbc653fdecc186a3c864c796
+    git_blob_oid: 2851f2beb1e3a3620ce97c32f7d13b43b637e9b5
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -1472,7 +1552,7 @@ documents:
       - owning source, configuration, or live state on the next refresh trigger
     independent_review_required: false
   - path: schema-migration.md
-    git_blob_oid: c73d21b9a5b9058be74c0d635d19d6d58fdaa5f4
+    git_blob_oid: 04802394b000610b2c516822d01476b6b7fdeffd
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
@@ -1500,7 +1580,7 @@ documents:
       - restoration evidence, watchdog output, and owning code
     independent_review_required: true
   - path: seo-infrastructure.md
-    git_blob_oid: af4db45133131999ab91981f8e1aa7f2863d6c69
+    git_blob_oid: b9e7ad57b4c24733712f11fd965dc32d2ff12fe6
     catalog_state: grandfathered
     status: pending_verification
     proposed_disposition: promote
