@@ -55,7 +55,7 @@ The frontmatter is authoritative. This runbook describes current code and deploy
 | External seller email (disabled) | PLANNED | `app/core/config.py` | controlled local retry/idempotency tests only | 2026-08-29 |
 | Homepage demand feed and Buyer Requests navigation (deployed) | SHIPPED | `app/page.tsx` | 258 frontend tests; typecheck; anonymous production GETs | 2026-08-29 |
 | Buyer publication controls and backend reason visibility (deployed) | SHIPPED | `app/requests/[slug]/DataRequestDetailClient.tsx` | 263 frontend tests; typecheck; three-member Council review | 2026-08-29 |
-| Public MCP request search (deployed) | SHIPPED | `app/services/mcp_service.py` | 209 bounded backend tests including the agent route; anonymous production tool call | 2026-08-29 |
+| Public MCP request search (deployed) | SHIPPED | `app/services/mcp_tools.py` | 209 bounded backend tests including the agent route; anonymous production tool call | 2026-08-29 |
 | Later digest sender (retained state only, not built) | PLANNED | — | cap-state test only | 2026-08-29 |
 
 Pinned rollout evidence, refreshed whenever production or candidate identity changes:
