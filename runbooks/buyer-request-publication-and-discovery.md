@@ -54,7 +54,8 @@ The frontmatter is authoritative. This runbook describes current code and deploy
 | Durable seller matching and in-app delivery (deployed; email off) | SHIPPED | `app/services/request_matching_service.py` | 173 bounded tests; Council no HIGH/MEDIUM | 2026-08-29 |
 | External seller email (disabled) | PLANNED | `app/core/config.py` | controlled local retry/idempotency tests only | 2026-08-29 |
 | Homepage demand feed and Buyer Requests navigation (deployed) | SHIPPED | `app/page.tsx` | 258 frontend tests; typecheck; anonymous production GETs | 2026-08-29 |
-| Public MCP request search (not built) | PLANNED | — | none | 2026-08-29 |
+| Buyer publication controls and backend reason visibility (deployed) | SHIPPED | `app/requests/[slug]/DataRequestDetailClient.tsx` | 263 frontend tests; typecheck; three-member Council review | 2026-08-29 |
+| Public MCP request search (deployed) | SHIPPED | `app/services/mcp_service.py` | 209 bounded backend tests including the agent route; anonymous production tool call | 2026-08-29 |
 | Later digest sender (retained state only, not built) | PLANNED | — | cap-state test only | 2026-08-29 |
 
 Pinned rollout evidence, refreshed whenever production or candidate identity changes:
@@ -62,13 +63,19 @@ Pinned rollout evidence, refreshed whenever production or candidate identity cha
 | Surface | Immutable artifact | State and evidence |
 |---|---|---|
 | Publication gate and public discovery | `aidotmarket/ai-market-backend@faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67` | Deployed by Railway deployment `b8114a63-06d8-42b9-817e-617b4e69769f`, image `sha256:b534428f6d128ae795f9b05542d678399b30f9bb98956fc836152902d7a961fe`; now superseded by the matching release. |
-| Matching and in-app delivery | `aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2` | Current production deployment `d61dca86-70f6-46ae-b77a-c1e1b1fb4890`, image `sha256:8c6391b8fd6757a9868dcb863468586117e8df1962d8260a2329a3300606d2c8`; Railway status `SUCCESS`. |
-| Homepage feed and navigation | `aidotmarket/ai-market-frontend@3e61ca6d296edf1ae55c4b5710044d5315802e9c` | Current production deployment `4509ace1-941f-466f-bd0f-24ccb73dfb03`, image `sha256:5d0b80fbd6f27ccb912e0900a864f363d4589276ad7510106608131f5af36d9f`; Railway status `SUCCESS`. |
-| Public MCP request search and digest sender | No backing artifact | Not built. |
+| Matching and in-app delivery | `aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2` | Deployed by Railway deployment `d61dca86-70f6-46ae-b77a-c1e1b1fb4890`, image `sha256:8c6391b8fd6757a9868dcb863468586117e8df1962d8260a2329a3300606d2c8`; now superseded by the MCP release. |
+| Homepage feed and navigation | `aidotmarket/ai-market-frontend@3e61ca6d296edf1ae55c4b5710044d5315802e9c` | Deployed by Railway deployment `4509ace1-941f-466f-bd0f-24ccb73dfb03`, image `sha256:5d0b80fbd6f27ccb912e0900a864f363d4589276ad7510106608131f5af36d9f`; now included in the publication-controls release. |
+| Buyer publication controls | `aidotmarket/ai-market-frontend@7f1d7ba45df3a44c2b57fe4d42f18b398e7a864e` | Current production deployment `62d6fdcf-f673-4118-b0cd-9bbf45922907`, image `sha256:c12b96a4cd2b147053cb6aa876d63f27d742e8cc4fb16fbb0eb370e6186c8ebe`; Railway status `SUCCESS`. The merged tree `b406444395e3de42a6aaaf45eac98cfad3c829d7` exactly matches the three-member Council-reviewed candidate `d13472d0f2320b4fe6e196f3b2652b692e514df0`. |
+| Public MCP request search | `aidotmarket/ai-market-backend@682ff2946d41130e66cb32ff720f3eb65cf15b2d` | Current production deployment `a86e2c9f-b102-4414-8e8c-5c06b9d96fc7`, image `sha256:5d4fad9a84fa6809ec3538fe676b376d3c9645ad1db443a11a416a63aec86839`; Railway status `SUCCESS`. The merged tree exactly matches reviewed candidate `852c0b18b0d778089e89618deb45cd4242c49b58`. |
+| Later digest sender | No backing artifact | Not built. |
 
 Production proof for the matching release: `BUYER_REQUEST_MATCHING_ENABLED=true`, publication side effects on, external email false; all 33 retained outbox rows processed with zero matching errors; zero delivery rows were created because all 33 retained sample requests remain ineligible. `/api/health` reports process health. `/health` reports HTTP 200 with `alembic_head=alembic_current=s1632_request_matching` and `alembic_drift=false`; its overall `degraded` label is the pre-existing model-inventory drift, not migration drift.
 
-Anonymous production proof for the frontend release: `/` contains the primary `Buyer Requests` navigation and, while the eligible public feed total is zero, renders `Tell the market what data you need` with links to `/requests/new` and `/requests`; it does not claim `Buyer demand, live now`. `/requests` returns HTTP 200, and `/sitemap.xml` contains the stable `/requests` index. Immediately after deployment, the generated Next.js sitemap still held 12 legacy sample detail URLs from its prior one-hour cache even though `/api/v1/public/request-sitemap-entries` returned `total=0`; treat the API projection as source of truth and recheck after cache expiry. Do not delete retained samples or create a second frontend eligibility rule to clear that cache.
+Anonymous production proof for the frontend release: `/` contains the primary `Buyer Requests` navigation and, while the eligible public feed total is zero, renders `Tell the market what data you need` with links to `/requests/new` and `/requests`; it does not claim `Buyer demand, live now`. `/requests` returns HTTP 200. After the generated Next.js sitemap's normal one-hour cache expired, `/sitemap.xml` retained the stable `/requests` index and no longer contained any request-detail URLs, matching `/api/v1/public/request-sitemap-entries` at `total=0`. No retained sample was deleted and no second frontend eligibility rule was added.
+
+Anonymous production proof for agent discovery: `/.well-known/webmcp.json` advertises `search_buyer_requests` with its typed public search arguments. An unauthenticated JSON-RPC call to `/api/v1/agent/tools/call` returned a successful empty result (`count=0`, `total=0`, `requests=[]`), matching the authoritative public eligibility projection. The latest production agent-audit row for that call records success and HTTP 200 while suppressing the response payload. This surface exposes only the public allowlist fields and delegates eligibility to `data_request_service.list_requests(public_only=True)`; it does not create another publication rule.
+
+Production identity proof for the buyer controls: Railway serves the exact reviewed tree above, the anonymous `/requests` route remains HTTP 200, and the homepage still renders the Buyer Requests navigation plus the truthful zero-demand invitation. The owner panel relays the backend's decision, reason, content hash, and consent-policy version; withdrawal removes publication consent without deleting the request. The 263-test suite, focused seven-test control set, typecheck, and all three Council reviews passed. A signed-in production owner journey is still unverified because no authorised controlled buyer identity was supplied. Do not invent one or substitute anonymous proof; keep that acceptance item open until a named controlled identity is authorised.
 
 Refresh that proof only from authorised read-only sources: Railway's exact deployment list, the three resolved boolean settings from `app.core.config.settings`, aggregate counts/states from `request_publication_outbox`, `request_match_deliveries`, and `data_requests`, plus public GETs to `/api/health` and `/health`. Do not dump all environment variables, customer rows, request text, or identities into evidence.
 
@@ -93,8 +100,9 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | allAI/backend workers | Decide, publish, match, retry through merged Chunk 2 | publication and matching services | service/database | COMPLETE |
-| Buyer | Consent, edit, withdraw, inspect reason | owner API and frontend | own request | PARTIAL — API is complete; frontend decision-state controls remain open in S1632 |
+| Buyer | Consent, edit, withdraw, inspect reason | owner API and frontend | own request | PARTIAL — deployed code is complete; close after one authorised controlled owner journey proves consent and withdrawal in production |
 | Seller | Receive in-app match and respond | notifications and request response API | own account/listing | PARTIAL — in-app path is merged; external email remains disabled pending controlled proof |
+| Public AI agent | Search eligible Buyer Requests | `search_buyer_requests` on the public MCP server | anonymous, public fields only | COMPLETE |
 | Vulcan/Mars | Deploy, inspect, and roll back through this runbook | Railway, read-only SQL, runbooks | operator | COMPLETE |
 | Human reviewer | Answer a concrete exception question; no routine queue | bounded exception surface | explicit exception only | COMPLETE |
 
@@ -104,7 +112,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 - id: E-01
   trigger: Verify or redeploy the current Chunk 2 matching release
   pre_conditions:
-    - exact merge SHA is 8a5e2671442abfb54c6b3c8f84281afff21f5bd2
+    - exact current merge SHA is 682ff2946d41130e66cb32ff720f3eb65cf15b2d
     - Alembic has one head named s1632_request_matching
     - BUYER_REQUEST_MATCH_EMAILS_ENABLED is false
     - a production backup or recoverable Railway database point exists
@@ -183,7 +191,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
   root_cause: a systemic code/schema/worker failure
   repair_entry_point: BUYER_REQUEST_MATCHING_ENABLED=false and BUYER_REQUEST_MATCH_EMAILS_ENABLED=false
   change_pattern: Disable new matching and every external email while leaving the forward schema and all delivery/outbox rows intact.
-  rollback_procedure: Set both switches false and retain or redeploy the current reviewed, migration-aware SHA 8a5e2671442abfb54c6b3c8f84281afff21f5bd2. Do not deploy faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67 against a database at s1632_request_matching; its normal container start runs an older Alembic graph first and cannot locate the retained revision. If the current binary itself is implicated, stop and supply a separately reviewed rollback artifact that contains the forward migration graph; never stamp or downgrade merely to make an older image boot.
+  rollback_procedure: Set both switches false and retain or redeploy the current reviewed, migration-aware SHA 682ff2946d41130e66cb32ff720f3eb65cf15b2d. Do not deploy faabfb284c69c47d9b8c45a5b1f2abb1d90a3e67 against a database at s1632_request_matching; its normal container start runs an older Alembic graph first and cannot locate the retained revision. If the current binary itself is implicated, stop and supply a separately reviewed rollback artifact that contains the forward migration graph; never stamp or downgrade merely to make an older image boot.
   integrity_check: /api/health is HTTP 200 healthy; /health has alembic_head=alembic_current=s1632_request_matching and alembic_drift=false; publication public reads remain gated; matching creates no new allocation during one worker interval; delivery/outbox counts, states, attempts, and next-attempt times remain queryable
 
 - id: G-02
@@ -271,7 +279,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 8a5e2671442abfb54c6b3c8f84281afff21f5bd2
+last_refresh_commit: 7f1d7ba45df3a44c2b57fe4d42f18b398e7a864e
 last_refresh_date: 2026-08-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
