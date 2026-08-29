@@ -4,7 +4,7 @@ purpose: Exhaustive adjudication ledger for the operational Markdown corpus; onl
 inventory:
   repository: aidotmarket/runbooks
   base_sha: a6d7534a35d921138c139bdf69aaeddd0faec100
-  inventory_sha: ebaeeca2505c7b26ede8845b0fe40e3cb746ac7c
+  inventory_sha: b51923a4d1ed4726c4005eeb5618d1f0db323d03
   blob_oid_scope: Each git_blob_oid names the exact operational-document blob in inventory_sha, not an
     uncommitted working-tree version.
   inventory_path_semantics: When inventory_path is present, git_blob_oid resolves at inventory_sha under
@@ -413,7 +413,7 @@ documents:
       - MP dispatch corpus fire counts
     independent_review_required: true
   - path: runbooks/buyer-request-publication-and-discovery.md
-    git_blob_oid: 297699598a845ed2cc46dcbe5a4dac89ce4d6f96
+    git_blob_oid: 41170d38afc5204a48d09838e9ec2ebfa5e34b6e
     catalog_state: active
     status: active
     proposed_disposition: retain_active
@@ -422,12 +422,11 @@ documents:
     target_paths:
       - runbooks/buyer-request-publication-and-discovery.md
     evidence:
-      - ref: git:aidotmarket/ai-market-backend@8a5e2671442abfb54c6b3c8f84281afff21f5bd2
-        finding: Exact deployed matching-aware backend release with external email disabled and the forward
-          s1632_request_matching migration graph retained.
-      - ref: git:aidotmarket/ai-market-frontend@1b8a6c2da7934217392ca4e1030128da3bec6111
-        finding: Exact reviewed-local homepage and Buyer Requests navigation candidate; not production
-          deployment evidence.
+      - ref: git:aidotmarket/ai-market-backend@682ff2946d41130e66cb32ff720f3eb65cf15b2d
+        finding: Current deployed matching and public-MCP release; external email remains disabled and the
+          s1632_request_matching migration graph is retained.
+      - ref: git:aidotmarket/ai-market-frontend@7f1d7ba45df3a44c2b57fe4d42f18b398e7a864e
+        finding: Current deployed homepage, Buyer Requests navigation, and owner publication-control release.
     verify_against:
       - Railway deployment identities
       - live flags, aggregate delivery state, and public discovery
