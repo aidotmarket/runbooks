@@ -110,7 +110,7 @@ Human review is an exception for genuine ambiguity, not the normal publication p
 
 ```yaml operate
 - id: E-01
-  trigger: Verify or redeploy the current Chunk 2 matching release
+  trigger: Verify or redeploy the current backend matching and public-MCP release
   pre_conditions:
     - exact current merge SHA is 682ff2946d41130e66cb32ff720f3eb65cf15b2d
     - Alembic has one head named s1632_request_matching
@@ -279,7 +279,7 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 7f1d7ba45df3a44c2b57fe4d42f18b398e7a864e
+last_refresh_commit: 682ff2946d41130e66cb32ff720f3eb65cf15b2d
 last_refresh_date: 2026-08-29T00:00:00Z
 owner_agent: vulcan
 refresh_triggers:
