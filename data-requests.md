@@ -39,7 +39,7 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 | DELETE | `/data-requests/{request_id}` | Close / cancel |
 | POST | `/data-requests/{request_id}/responses` | Seller responds with a proposal |
 | GET | `/data-requests/{request_id}/responses` | List responses (visibility scoped) |
-| PATCH | `/responses/{response_id}` | Edit response (separate router; request resolved from the response) |
+| PATCH | `/api/v1/responses/{response_id}` | Edit response (separate router; request resolved from the response) |
 | POST | `/data-requests/{request_id}/messages` | Message thread between buyer + responder |
 
 ## Lifecycle states
