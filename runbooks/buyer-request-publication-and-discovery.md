@@ -279,8 +279,8 @@ scenario_set:
 
 ```yaml lifecycle
 last_refresh_session: S1632
-last_refresh_commit: 1c350cb6d398e7be459201935af44f2a14afb716
-last_refresh_date: 2026-08-29T00:00:00Z
+last_refresh_commit: f2ea13d32a9bc85879f3185ce70f75d0c1fcb2f1
+last_refresh_date: 2026-08-29T21:24:00Z
 owner_agent: vulcan
 refresh_triggers:
   - publication decision or reason mapping changes
