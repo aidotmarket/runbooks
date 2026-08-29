@@ -28,7 +28,7 @@ error_signatures:
 supersedes: []
 superseded_by: []
 owner: vulcan
-last_verified_at: 2026-08-26
+last_verified_at: 2026-08-29
 system_name: council
 purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
 owner_agent: vulcan
@@ -107,6 +107,13 @@ Credentials are launcher inputs only:
   and must run without `--bare`.
 - GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
+
+Kimi retained-session finalization uses `kimi --session <id> --prompt <text>`
+under the same member sandbox and a five-step reserve. Do not add `--auto` to
+that prompt-mode command: Kimi CLI 0.32.0 rejects `--auto` plus `--prompt`
+before it resolves the retained session. S1632 recovered the original 55-step
+review without resending its package, then merged the one-token repair as
+`koskadeux-mcp` PR 196 (`cbc27315868d14e9d5efb61bf53890a0174dc62a`).
 
 The public agent/build surface has two names: `council_request` for review and
 `dispatch_mp_build` for builds. Build status and listing remain actions on
