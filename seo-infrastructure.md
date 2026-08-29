@@ -34,8 +34,9 @@ Credential setup happens at startup in `app/core/gcp_credentials.py`:
 
 | Sitemap | Source | Contents |
 |---------|--------|----------|
-| `https://ai.market/sitemap.xml` | Frontend (Next.js) | Static pages (home, /listings) |
+| `https://ai.market/sitemap.xml` | Frontend (Next.js) | Static pages, listing detail URLs, `/requests`, and eligible request detail URLs |
 | `https://api.ai.market/sitemap-listings.xml` | Backend (FastAPI) | All published listing detail pages |
+| `https://api.ai.market/sitemap-requests.xml` | Backend (FastAPI) | Only requests whose persisted publication decision is `eligible` |
 
 Both are referenced in `robots.txt` (served by frontend). Google Search Console has both submitted.
 
@@ -62,10 +63,15 @@ Allows all crawlers, blocks `/dashboard`, `/login`, `/register`, `/api/`. Refere
 ## AI Crawler Discovery
 
 - `/llms.txt` — LLM-readable site description with dataset listings
+- `/llms-full.txt` — detailed supply and eligible demand discovery; apex exposure remains an S1632 verification item
+- `/requests.txt` and `/.well-known/requests.txt` — eligible Buyer Requests only
+- `/api/v1/public/data-requests/{slug}.md` — eligible request markdown
 - `/.well-known/ai-agents.json` — Agent discovery manifest
 - `/.well-known/ai-plugin.json` — OpenAI plugin manifest
 
 All served by the backend. Crawl stats tracked at `GET /internal/ai-crawl-stats` (internal API key).
+
+Buyer Request discovery is controlled by the same persisted eligibility decision used by the public website. Do not add crawler-specific eligibility rules. Publication enqueues supported search submission; withdrawal or terminal removal purges controlled caches and enqueues update/removal. The owning rollout and rollback procedure is `runbooks/buyer-request-publication-and-discovery.md`.
 
 ## APScheduler Jobs
 

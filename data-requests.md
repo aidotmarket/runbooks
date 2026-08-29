@@ -4,7 +4,9 @@
 
 The data-request feature lets a buyer post a "I'm looking for X kind of data" listing and receive responses from sellers. Lifecycle: a buyer drafts a request, publishes it to the public board, sellers reply with proposals, the buyer picks a winning response and the flow proceeds to payment + fulfillment via the standard listing/order pipeline.
 
-**Customer-facing entry point:** `ai.market/requests/new` (create) and `ai.market/requests` (browse the public board).
+**Customer-facing entry point:** `ai.market/requests/new` (create) and `ai.market/requests` (browse the eligible public board).
+
+**Current publication rule (S1632):** moving a draft to `open` does not by itself make it public. The request is public only when the persisted `publication_decision` is `eligible`. The owning operational runbook is `runbooks/buyer-request-publication-and-discovery.md`; consult it before deployment, matching, email enablement, or rollback.
 
 ## Repos and code map
 
@@ -12,6 +14,8 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 |---|---|---|
 | Backend endpoints | aidotmarket/ai-market-backend | `app/api/v1/endpoints/requests.py` |
 | Backend service | aidotmarket/ai-market-backend | `app/services/data_request_service.py` |
+| Publication decision | aidotmarket/ai-market-backend | `app/services/request_publication_service.py` |
+| Seller matching/delivery | aidotmarket/ai-market-backend | `app/services/request_matching_service.py` |
 | Backend schema | aidotmarket/ai-market-backend | `app/schemas/data_request.py` |
 | Backend model | aidotmarket/ai-market-backend | `app/models/data_request.py` |
 | Frontend create page | aidotmarket/ai-market-frontend | `app/requests/new/page.tsx` |
@@ -30,6 +34,8 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 | GET | `/data-requests/{slug_or_id}` | Detail |
 | PATCH | `/data-requests/{request_id}` | Edit draft |
 | POST | `/data-requests/{request_id}/publish` | Move from draft → open |
+| PUT | `/data-requests/{request_id}/publication-consent` | Consent to the exact current public content hash |
+| DELETE | `/data-requests/{request_id}/publication-consent` | Withdraw public consent and remove public eligibility |
 | DELETE | `/data-requests/{request_id}` | Close / cancel |
 | POST | `/data-requests/{request_id}/responses` | Seller responds with a proposal |
 | GET | `/data-requests/{request_id}/responses` | List responses (visibility scoped) |
@@ -40,7 +46,9 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 
 `draft` → `open` → `responses_received` → `fulfilled` | `closed` | `expired`
 
-A draft is private to the buyer. Once published it's visible on the public board. As responses come in the state advances. Final terminal states are `fulfilled` (a response was accepted and the order pipeline took over), `closed` (buyer cancelled), or `expired` (TTL elapsed).
+A draft is private to the buyer. `publish` changes lifecycle state to `open`; visibility is a separate persisted decision. An open request remains private until verified identity, current content-bound consent, safety, and expiry checks produce `eligible`. Edits invalidate stale consent; withdrawal, closure, expiry, moderation rejection, or synthetic identity removes eligibility. As responses come in the lifecycle advances. Final terminal states are `fulfilled` (a response was accepted and the order pipeline took over), `closed` (buyer cancelled), or `expired` (TTL elapsed).
+
+Owner responses expose `publication_decision`, `publication_reason`, `publication_next_action`, `publication_decision_version`, `public_content_hash`, and the required consent-policy version. Public responses do not expose buyer identity or decision internals.
 
 ## The contract — fields that MUST match between frontend and backend
 
@@ -109,6 +117,7 @@ The response body on a 422 is a Pydantic auto-shape: `{"detail": [{"type":..., "
 
 ## Cross-references
 
+- `runbooks/buyer-request-publication-and-discovery.md` — authoritative publication, discovery, matching, rollout, and rollback procedure
 - `ai-market-backend.md` — broader backend service runbook
 - `ai-market-frontend.md` — broader frontend service runbook
 - BQ-FRONTEND-TYPES-FROM-BACKEND-OPENAPI-S574 — type-generation BQ to prevent future drift
