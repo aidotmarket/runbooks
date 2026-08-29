@@ -31,6 +31,38 @@ risk_scale:
   P2: Routine operational or product guidance with bounded blast radius.
   P3: Historical, scratch, or evidence-only material with no proposed current authority.
 documents:
+  - path: PLAN-runbook-simplification.md
+    git_blob_oid: 86ffb8c38702092b6a4478a97facef6990841a28
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: governance
+    risk: P1
+    target_paths:
+      - specs/runbook-simplification.md
+    evidence:
+      - ref: PLAN-runbook-simplification.md:3
+        finding: Source identifies itself as a proposal for Max with no implementation started.
+    verify_against:
+      - Max decision and assigned scope
+      - current runbook tooling and loader behavior
+    independent_review_required: true
+  - path: PLAN-v5b-controlled-dispatch.md
+    git_blob_oid: f97eff34ed2275500368f91f4639ea54631b3570
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: adjudicate_operational_or_spec
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - specs/v5b-controlled-live-dispatch.md
+    evidence:
+      - ref: PLAN-v5b-controlled-dispatch.md:3
+        finding: Source is a proposal for Max and explicitly states that nothing has been run.
+    verify_against:
+      - explicit Max authorization
+      - S1511 spec, canonical state, and live dispatch receipts
+    independent_review_required: true
   - path: account-capability-onboarding.md
     git_blob_oid: 98c4564001c3580edcc56fa01985773c1cab10b1
     catalog_state: grandfathered
@@ -797,6 +829,20 @@ documents:
     verify_against:
       - live provider and synchronization configuration
       - owning consumer code without exposing secret values
+    independent_review_required: true
+  - path: issue-channel.md
+    git_blob_oid: 8362d9ef05bcad0bd4eba34331ad3aaad800bc39
+    catalog_state: grandfathered
+    status: pending_verification
+    proposed_disposition: promote
+    batch: issue-channel
+    risk: P0
+    target_paths:
+      - runbooks/issue-channel.md
+    evidence: []
+    verify_against:
+      - deployed issue-channel code and schema
+      - live provider, queue, snapshot, and board behavior
     independent_review_required: true
   - path: issue-channel-gate2-receipts.md
     git_blob_oid: e07e4365be537bec495cb1547bb1354cd00bd92c
