@@ -13,13 +13,15 @@ error_signatures:
 - malformed_output
 - expired_unleased
 - duplicate_cardinality
+- support_reconciliation_deadline
+- support_deadline_unavailable
 ---
 
 # Issue Channel
 
 ## What it does
 
-The production Railway service `issue-channel-watcher` runs one replica. It reads GitHub, Railway, and Cloudflare, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
+The Railway service definition for `issue-channel-watcher` permits one replica. When deployed, it reads GitHub, Railway, and Cloudflare, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 
 Provider observations are the sole authority for whether an issue exists and whether it is resolved. A partial, unavailable, untrusted, or unordered observation never resolves an episode. Absence from a lookback window, expiry, timeout, and worker text are not success witnesses.
 
@@ -37,7 +39,7 @@ The live rule table is `config/issue_channel/dispatch_rules.yaml`:
 - The lease is 660 seconds. Queue TTL is 1020 seconds.
 - The completion POST has a 45-second wall deadline and a 64,000-byte response cap. Its phase timeouts do not replace the wall deadline.
 
-The worker is metadata-only triage. Its bounded input contains the canonical public issue, matching and admission summaries, short runbook excerpts, and allowlisted sanitized provider evidence. It receives no logs or code unless that material is explicitly present in those safe fields.
+The worker is metadata-only triage. Its bounded input contains the canonical public issue, matching and admission summaries, short runbook excerpts, and allowlisted sanitized provider evidence. The Claude process receives an explicit empty `--allowedTools` and runs in an empty `TemporaryDirectory` outside every repository. This execution boundary, not prompt text, prevents tool and repository access. It receives no logs or code unless that material is explicitly present in the safe input fields.
 
 The only accepted provider result is strict JSON with exactly these top-level fields:
 
@@ -51,7 +53,7 @@ A triage report is a bounded, sanitized annotation. It is never resolution autho
 
 ## Ticket lifecycle
 
-There is exactly one ops support ticket per canonical episode. Its `source_ref` is a stable SHA-256-derived reference over the episode and the automated-triage reason.
+There is exactly one ops support ticket per canonical episode. Its `source_ref` is the stable SHA-256-derived reference for the `episode_key` under the fixed issue-channel ticket namespace. It does not include the automated-triage reason, so a changing reason cannot create a second ticket for the same episode.
 
 The watcher first journals ticket create or patch intent in `dispatch_intents.sanitized_context.ticket_handoff`, then calls the internal support API. It always reconciles by exact `source_ref`:
 
@@ -63,7 +65,17 @@ The watcher first journals ticket create or patch intent in `dispatch_intents.sa
 
 A support API outage is nonfatal to provider collection, canonical resolution, and snapshot publication.
 
+Each watcher tick selects at most 20 recoverable nonterminal support candidates from the database, ordered by `updated_at`, `created_at`, and `id`. Journaling an attempted row moves it behind untouched rows so later candidates continue to progress. The terminal phases `candidate_invalid`, `human_required_no_close`, `needs_max_complete`, and `resolved_complete` are excluded.
+
+A 45-second monotonic total deadline wraps only the synchronous support calls in that bounded pass. On POSIX it uses `ITIMER_REAL`, restores the prior signal handler and timer, and uses no threads. On exhaustion it records `support_reconciliation_deadline`, stops support work promptly, retains later candidates for the next tick, and continues to snapshot publication below the 300-second cadence. If the process cannot install that deadline safely, it records `support_deadline_unavailable` and makes no synchronous support calls in that pass.
+
 Only a complete provider-success witness resolves the canonical episode. Then, and only then, the watcher auto-resolves the linked ticket when `human_required` is not true. It never closes a ticket from worker text, a partial observation, absence, expiry, or timeout. Human-required tickets never auto-close.
+
+## Snapshot telemetry
+
+Snapshot `mode` is the actual dispatch-rule mode. `collection_mode` and `default_action` remain `record_only`. `action_counts` reports the current bounded watcher pass and separates support mutation attempts from admitted worker dispatches; it is not a historical total. `dispatch_spend` remains the separate admission and measured-spend view.
+
+Daily admission caps and reservations use the intent `utc_day`, which is the admission day. Snapshot `completed_count` and completion-cost UTC-day metrics instead use `completed_at`, or `late_completion_at` for late completions. Around midnight, a bounded run admitted and reserved on one UTC day can complete and be reported on the next. Never use completion-day reporting as cap accounting: it can include prior-day admissions and exclude current-day reservations that have not completed.
 
 ## Access and identities
 
@@ -96,7 +108,7 @@ gh run list --repo aidotmarket/ai-market-backend --branch main --limit 30
 Read the safe local mirror. A healthy mirror is fresh, shows every source complete, and agrees with database status counts:
 
 ```sh
-jq '{generated_at,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,sources:(.snapshot.sources|map_values(.observation_complete)),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
+jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,sources:(.snapshot.sources|map_values(.observation_complete)),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
 ```
 
 Read watcher deploys and logs in Railway, workflow definitions and runs in GitHub Actions, and the safe snapshot at the local mirror path above. Do not use worker output or the mirror alone as provider authority.
@@ -145,6 +157,8 @@ For GitHub CI, a success witness must come from the same workflow and `main`, an
 Only after those facts are true should the same linked non-human-required ticket reach `resolved`. If `human_required=true`, leave it open for the human decision even though the canonical episode resolved.
 
 ## Deployment order and rollback
+
+The backend merge `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` is deployed, backend CI and the deployment receipt are green, and the database Alembic head is `t2026_000727_provider_num_turns`. Post-rollout residue is zero; retained telemetry has 2 legacy rows and 2 canonical rows. The watcher configuration has the managed `INTERNAL_API_KEY` reference, but its deployment was skipped. Do not describe the watcher or canary as deployed or proven. This runbook remains gated until the final watcher deployment and authorized canary proof are complete.
 
 Use backend-first expand/contract whenever the queue contract changes:
 
@@ -375,6 +389,26 @@ Verify: list tickets by exact `source_ref` and retain every `public_ref` and tim
 
 Repair or rollback: stop automatic ticket mutation for the episode and have the support owner reconcile the duplicates. Do not delete or choose a winner from title similarity.
 
+### support_reconciliation_deadline
+
+Symptom: a bounded pass records `support_reconciliation_deadline`; later support candidates remain untouched while provider collection and snapshot publication continue.
+
+Likely cause: one or more synchronous support calls consumed the 45-second total deadline.
+
+Verify: inspect the ordered candidate IDs, handoff phases, attempted-row journal timestamps, support latency, and snapshot publication time. Confirm no more than 20 candidates were selected and the snapshot still published below the 300-second cadence.
+
+Repair or rollback: restore support API latency or availability and let the next tick resume retained candidates in database order. Do not extend the deadline, start threads, or blind-retry an unknown mutation.
+
+### support_deadline_unavailable
+
+Symptom: a bounded pass records `support_deadline_unavailable` and makes no synchronous support calls while collection and snapshot publication continue.
+
+Likely cause: the process could not safely install the POSIX `ITIMER_REAL` deadline or preserve the existing signal state.
+
+Verify: inspect the runtime platform, main-thread signal context, prior handler and timer state, and watcher error code. Confirm candidate rows were retained without mutation attempts.
+
+Repair or rollback: restore the supported POSIX main-thread execution environment or roll back the watcher image. Do not bypass the fail-closed boundary with an unbounded call or a thread.
+
 ### Ticket will not close
 
 Symptom: the canonical episode is resolved but its linked ticket remains open.
@@ -401,7 +435,7 @@ Symptom: new dispatch is refused with a daily cap or `breaker_open` while collec
 
 Likely cause: 4 runs or $12 committed for the UTC day, failure-rate or flap threshold, digest mismatch, or measured cost above budget.
 
-Verify: run the recent-intents and completion-day spend queries and inspect breaker reasons in the mirror.
+Verify: inspect intent `utc_day`, admission reservations, and admitted-count or committed-cost evidence for the capped day. Use the completion-day query only for reporting, and inspect breaker reasons in the mirror.
 
 Repair or rollback: wait for the UTC-day reset when the cap is genuine. For a breaker, repair the underlying journal or transport fault and follow the reviewed manual-reset path. Never erase spend or fault rows.
 

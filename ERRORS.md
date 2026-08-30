@@ -940,6 +940,14 @@
 
 - [Max Reporting — the End-of-Round Summary Discipline](max-reporting.md)
 
+## `support_deadline_unavailable`
+
+- [Issue Channel](issue-channel.md)
+
+## `support_reconciliation_deadline`
+
+- [Issue Channel](issue-channel.md)
+
 ## `target socket remains usable after a check opportunity`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
