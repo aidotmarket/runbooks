@@ -280,6 +280,10 @@
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
 
+## `duplicate_cardinality`
+
+- [Issue Channel](issue-channel.md)
+
 ## `duplicate_claim_on_one_item`
 
 - [Peer Instance Discipline](runbooks/peer-instance-discipline.md)
@@ -356,9 +360,13 @@
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
 
-## `expired_count`
+## `executor_busy_no_lease`
 
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
+- [Issue Channel](issue-channel.md)
+
+## `expired_unleased`
+
+- [Issue Channel](issue-channel.md)
 
 ## `external dependencies on quarantine tables`
 
@@ -540,6 +548,10 @@
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
+## `malformed_output`
+
+- [Issue Channel](issue-channel.md)
+
 ## `Max declines or amends`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
@@ -612,14 +624,6 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
-## `no_history`
-
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
-
-## `nodename nor servname provided, or not known`
-
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
-
 ## `Not Authorized`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
@@ -642,7 +646,7 @@
 
 ## `observation_complete":false`
 
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
+- [Issue Channel](issue-channel.md)
 
 ## `ok false with error_code`
 
@@ -764,10 +768,6 @@
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
-## `RailwayAdapterError`
-
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
-
 ## `Reauthentication failed`
 
 - [GCP Auth](gcp-auth.md)
@@ -823,10 +823,6 @@
 ## `residual weak-link rows`
 
 - [Account Teardown & User-Data Erasure](account-teardown.md)
-
-## `resolution.expiry_ttl`
-
-- [Issue Channel (infrastructure failure channel)](issue-channel.md)
 
 ## `restart_did_not_fire`
 
