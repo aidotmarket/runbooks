@@ -65,14 +65,13 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 - id: E-01
   trigger: A build dispatch with a BQ code reaches the Trigger A reconciliation gate.
   pre_conditions: [BQ_entity_exists, body_target_repos_are_declared, gate_spec_is_readable, build_dispatch_context_is_available]
-  tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural, session_id=<session>, runbook_refs=<delivered_refs>, auto_reconcile=<bool>, bypass_reconcile=<bool>, reconcile_justification=<text>)
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural, session_id=<session>, auto_reconcile=<bool>, bypass_reconcile=<bool>, reconcile_justification=<text>)
   argument_sourcing:
     bq_code: read from the requested Build Queue entity
     bounded_build_task: derive from the approved BQ/spec and include the required output manifest
     absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base
     caller_instance: active registry identity, Mars or Vulcan
     session_id: active registered session
-    delivered_refs: server-issued runbook context for this objective; never caller-invented refs
     auto_reconcile: set true only for HIGH_CONFIDENCE_GIT_AHEAD with cleanly_extends=true
     bypass_reconcile: set true only for an intentional human decision to proceed without patching Living State
     reconcile_justification: obtain the concrete evidence or outage reason from the human authorizing the bypass
@@ -461,7 +460,7 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, auto_reconcile]
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, auto_reconcile]
         argument_values: {agent: mp, mode: build, dispatch_class: structural, auto_reconcile: true}
     weight: 0.08333333333333333
   - id: I-02
@@ -565,7 +564,7 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, bypass_reconcile, reconcile_justification]
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, bypass_reconcile, reconcile_justification]
         argument_values: {agent: mp, mode: build, dispatch_class: structural, bypass_reconcile: true}
     weight: 0.08333333333333333
 ```

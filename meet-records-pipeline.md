@@ -14,9 +14,8 @@ auto-ingested and logged as `meeting` interactions against CRM contacts. Replace
 Fireflies.ai integration (S342). Party-native contacts are supported (S1078): a meeting attaches to
 any contact whether it has an old-style `crm_entity` id or only a `party_id`.
 
-> Scope note: this runbook is accurate to current reality (S1078). It predates the Overview–K runbook
-> standard (`specs/BQ-RUNBOOK-STANDARD.md`); promotion to the full linter-enforced Overview–K form
-> (capability matrix, Acceptance criteria harness scenarios, lifecycle metadata) is a tracked follow-up, not yet done.
+> Scope note: this runbook is accurate to current reality (S1078). Keep this page current by editing
+> the Markdown directly whenever the operating procedure changes.
 
 ## Owner / escalation
 Owner agent: CRM Steward (interaction writes) + SysAdmin (Drive watch / GCP). Escalation: Max.

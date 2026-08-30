@@ -31,7 +31,7 @@ error_signatures:
 > runbook remains authoritative only for the separate MP build path and general
 > non-reviewer dispatch operations.
 
-> **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name have been merged into this one, at the catalog-indexed path `runbooks/agent-dispatch.md`, and the repo-root copy has been deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` is folded in here (§W, §X, and the §X pointer inside Repair.1) and is now superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss. Nothing was rewritten, summarised, or reconciled by hand.
+> **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name were merged into this one at `runbooks/agent-dispatch.md`, and the repo-root copy was deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` was folded in and is superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss.
 >
 > **Where the retired root copy's sections went.** The two documents used the same section letters for different things, so some labels had to move. Everything is present.
 >
@@ -39,17 +39,17 @@ error_signatures:
 > |---|---|---|
 > | Preamble duplicate-copy warning | Removed | It described the fork that this merge resolves. |
 > | S612 consolidation-owner block | Overview.1 | The Overview–Agent capabilities layout it mandates is not the Overview–§K house standard used here. Unmapped: see Overview.1. |
-> | Council roster | Capabilities.1 | Resolved at S1351. Capabilities and Agent capabilities record implementation coverage; Capabilities.1 records operational roster truth. See Capabilities.1. |
-> | Architecture & interactions.0 | Architecture & interactions.0 | Unchanged, now a subsection of Architecture & interactions. A later status note for it sits at "Architecture & interactions.0 status note (S1152)" further down, in its original position. |
-> | Architecture & interactions Architecture | Architecture & interactions.1 | The house Architecture & interactions keeps the letter. |
-> | Repair Repair | Repair.2 | The house Repair keeps the letter. |
-> | Repair.1 | Repair.1 | Unchanged. |
-> | Acceptance criteria scenarios | Repair.3 | The root scenarios moved under Repair, which is what they describe. |
+> | Council roster | Council roster | Resolved at S1351. Capabilities and Agent capabilities record implementation coverage; Council roster records operational roster truth. |
+> | AG / Gemini response-schema constraints | AG / Gemini response-schema constraints | Unchanged, now a readable subsection of Architecture & interactions. A later schema-sanitizer status note remains in its original position. |
+> | MP Codex CLI bridge and timeout knobs | MP Codex CLI bridge and timeout knobs | The house Architecture & interactions keeps the content. |
+> | Codex CLI progress and timeout error types | Codex CLI progress and timeout error types | The house Repair keeps the content. |
+> | Empty-completion handling | Empty-completion handling | Unchanged. |
+> | MP build timeout scenarios | MP build timeout scenarios | The root scenarios moved under Repair, which is what they describe. |
 > | Maintenance Plus-One Discipline | §Y | The house Maintenance is Lifecycle. |
 > | §K Conflict Adjudication Procedure | §Z | The house §K is Conformance. |
 > | §L through §X | Unchanged | No collision. |
 >
-> **Two conflicts were recorded here at S1348 and are now RESOLVED at S1351** by the frontmatter owner against live `infra:council-comms` v62, which is the canonical source both surfaces already named. (1) The roster disagreement in Capabilities.1 is settled: AG operational status is PAUSED and XAI is RETIRED, and the active gate voter panel is CC + Kimi + GLM. (2) The duplicate XAI retirement record is settled: the Retired-Agents Appendix is XAI's single home, the unique code-retirement evidence from the S1153 note has been folded into it, and the standalone duplicate is removed.
+> **Two conflicts were recorded here at S1348 and are now RESOLVED at S1351** by the frontmatter owner against live `infra:council-comms` v62, which is the canonical source both surfaces already named. (1) The Council roster disagreement is settled: AG operational status is PAUSED and XAI is RETIRED, and the active gate voter panel is CC + Kimi + GLM. (2) The duplicate XAI retirement record is settled: the Retired-Agents Appendix is XAI's single home, the unique code-retirement evidence from the S1153 note has been folded into it, and the standalone duplicate is removed.
 
 ## Overview
 
@@ -91,7 +91,7 @@ CC/Kimi/GLM review panel from `infra:council-comms`.
 | Structural-build no-loss retirement and recovery (staged; not deployed) | PLANNED | `koskadeux-mcp/tools/agents.py` | `tools/structural_quarantine.py:safe_retire_worktree`, `tests/unit/test_pre_push_gate_composition.py`, and `tests/unit/test_structural_quarantine_journal.py` | 2026-08-02 |
 
 
-### Capabilities.1 Council roster (folded from the retired root copy)
+### Council roster
 
 Carried from the retired root copy and corrected at S1351 against live `infra:council-comms` v62.
 
@@ -248,7 +248,7 @@ richer meta and assuming the live path behaves the same way is a mistake that
 has been made before.
 
 
-### Architecture & interactions.0 AG / Gemini response-schema constraints (Vertex google-genai Schema subset)
+### AG / Gemini response-schema constraints
 
 AG runs on Gemini via the Vertex google-genai SDK, whose `Schema` type accepts only a
 subset of JSON Schema. A `response_schema` (e.g. `AG_REVIEW_RESPONSE_FORMAT` in
@@ -273,7 +273,7 @@ input-schema rejection. It is also distinct from the AG review **ref-resolution*
 (`dispatch_sha`/`base`/`head` preload) — a separate fix in the same S1132 session.
 
 
-### Architecture & interactions.1 Architecture: MP Codex CLI bridge and timeout knobs (was root copy Architecture & interactions)
+### MP Codex CLI bridge and timeout knobs
 
 MP build dispatches use the Codex CLI bridge. For
 `council_request agent=mp mode=build` and `dispatch_mp_build`, the default
@@ -319,7 +319,7 @@ Timeout knobs:
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
-This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and retired from voting at S1321. The live gate voter panel is CC + Kimi + GLM and is recorded in Capabilities.1, with `infra:council-comms` canonical.
+This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and retired from voting at S1321. The live gate voter panel is CC + Kimi + GLM and is recorded under Council roster, with `infra:council-comms` canonical.
 
 XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in Capabilities, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
 
@@ -330,13 +330,13 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
 - id: E-01
   trigger: A BQ chunk requires MP to build a dispatch-scoped change.
   pre_conditions: [feature_branch_exists, target_repo_clean_or_intentionally_dirty, relevant_specs_read, BQ_entity_has_body_summary, peer_lane_confirmed_free, current_runbook_context_available]
-  tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<mars|vulcan>, dispatch_class=structural, session_id=<session>, runbook_refs=<deployed_contract_appropriate_refs>)
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<mars|vulcan>, dispatch_class=structural, session_id=<session>)
   argument_sourcing:
     prompt: derive from the BQ chunk ACs, required context, and verification plan
     cwd: use the target repo absolute path
     bq_code: use the canonical Build Queue code
     caller_instance_and_session: use the authenticated active operator session
-    runbook_refs: inspect the exact signed deployed capability first; use server-issued objective-bound references only when that capability and the connected schema prove they exist, otherwise supply exact caller-authored legacy path/section references read at one immutable runbooks SHA (or a truthful recorded miss), treating the field as compatibility input rather than evidence of reading
+    runbook_context: read the relevant Markdown directly through INDEX.md, ERRORS.md, or allAI search before dispatch; correct stale procedures in the same change
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(bq_code + prompt_digest + target_commit)
   expected_success: {shape: background task id plus committed artifact, verification: "compare git HEAD, task transcript, and BQ build summary"}
@@ -402,12 +402,12 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
 - id: E-05
   trigger: Any MP build dispatch while Vulcan and Mars share the single Codex CLI lane.
   pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus]
-  tool_or_endpoint: peer_msg_send(kind=claim, to=<peer>, ref_entity=<build_ref>, body=<lane_claim>) then council_request(agent=mp, mode=build, task=<build_task>, cwd=<absolute_repo>, bq_code=<bq_code>, caller_instance=<self>, dispatch_class=structural, session_id=<session_id>, runbook_refs=<selection_refs>)
+  tool_or_endpoint: peer_msg_send(kind=claim, to=<peer>, ref_entity=<build_ref>, body=<lane_claim>) then council_request(agent=mp, mode=build, task=<build_task>, cwd=<absolute_repo>, bq_code=<bq_code>, caller_instance=<self>, dispatch_class=structural, session_id=<session_id>)
   argument_sourcing:
     lane_claim: announce BEFORE dispatch, naming the ref_entity, the work item, and the queued items behind it (established S1303, peer-bus msgs #1524-#1526)
     build_task: derive the bounded implementation brief from the approved BQ/spec and include the required output manifest
     absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base SHA before dispatch
-    selection_refs: inspect the exact signed deployed capability first; when it proves server-issued objective-bound selection references, carry only those references, but while the connected schema exposes caller-authored legacy runbook_refs, supply exact path/section references read at one immutable runbooks SHA or a truthful recorded miss; neither branch permits inventing a title, digest, or reading claim
+    runbook_context: read the relevant Markdown directly before dispatch; no caller-authored evidence or gate field is required
     dispatch_order: strictly one MP task at a time across BOTH instances; queue everything else behind the active task
     release: announce lane release on the peer bus when the active task reaches a terminal state
   idempotency: NOT_IDEMPOTENT
@@ -582,7 +582,7 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
 ```
 
 
-### Repair.1 Current empty-completion handling and historical provider incident
+### Empty-completion handling and historical provider incident
 
 Historical symptom: a review dispatch to DeepSeek or the former GLM inline path failed with a parse
 error and `raw_response_length=0`, e.g. `DeepSeekResponseParseError: ...
@@ -637,7 +637,7 @@ GLM 39.5k-char prompt, 24,790 reasoning tokens, `finish_reason=stop`, full
 verdict envelope).
 
 
-### Repair.2 Codex CLI progress and timeout error types (was root copy Repair)
+### Codex CLI progress and timeout error types
 
 `error_type=stuck_no_progress` means Codex CLI produced no observable progress
 for the configured progress window. Treat this as a genuine hang or wait state:
@@ -661,7 +661,7 @@ draft response, but disk state still needs customer-perspective verification.
 callers. New streaming paths should report `hard_timeout` instead.
 
 
-### Repair.3 Scenarios: MP build timeout outcomes (was root copy Acceptance criteria)
+### MP build timeout scenarios
 
 Scenario: MP build reports `stuck_no_progress`.
 
@@ -755,11 +755,11 @@ scenario_set:
     type: operate
     refs: [E-01, F-04, G-04]
     scenario: |
-      id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, authenticated instance/session, current runbook context, and intentional bypass rationale are available. tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<instance>, dispatch_class=structural, session_id=<session>, runbook_refs=<deployed_contract_appropriate_refs>, bypass_reconcile=true, reconcile_justification=<approved_reason>). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; BQ code from Living State; session and instance from the authenticated caller; runbook_refs from server-issued immutable delivery refs only when a signed deployed contract and the connected schema prove that capability, otherwise from exact caller-authored legacy refs at one immutable runbooks origin/main SHA or an explicit honest miss, treated as compatibility input and never as reading evidence; bypass and justification from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on BQ code + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, missing bound context, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to reconcile before retrying or escalating.
+      id: E-01. trigger: MP must build a dispatch-scoped fix and the operator has approval to bypass stale state reconciliation until after the commit is produced. pre_conditions: feature branch, absolute cwd, task prompt, BQ entity, authenticated instance/session, relevant Markdown read, and intentional bypass rationale are available. tool_or_endpoint: council_request(agent=mp, mode=build, task=<prompt>, cwd=<repo>, bq_code=<code>, caller_instance=<instance>, dispatch_class=structural, session_id=<session>, bypass_reconcile=true, reconcile_justification=<approved_reason>). argument_sourcing: prompt from BQ chunk ACs; cwd from the target repo absolute path; BQ code from Living State; session and instance from the authenticated caller; runbook context from direct Markdown search and reading; bypass and justification from the approved dispatch note. idempotency: IDEMPOTENT_WITH_KEY on BQ code + prompt_digest + target_commit. expected_success: MP returns a background task id and commit SHA, then the operator reconciles git HEAD, task transcript, and BQ summary before promotion. expected_failures: gateway timeout, stale task state, mutex queue delay, missing bound context, or accidental review-mode token. next_step_success: run verification and request review. next_step_failure: use F-04/G-04 to reconcile before retrying or escalating.
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, runbook_refs, bypass_reconcile, reconcile_justification]
+        argument_keys: [agent, mode, task, cwd, bq_code, caller_instance, dispatch_class, session_id, bypass_reconcile, reconcile_justification]
         argument_values:
           agent: mp
           mode: build
@@ -1275,9 +1275,9 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 
 The manual-recovery loop in §U is now largely obsolete: the pipeline auto-recovers. Two S1150 fixes landed (koskadeux-mcp `745ba12d`, `25006e5e`) closing tickets T-2026-000193 and T-2026-000177: (1) structural build dispatches no longer die on a variable-scope error introduced by the S1147 wrapper fix — root-cause any repeat of "Gateway Error: upstream service unavailable" on build dispatch by running the handler in-process to get the real traceback (the gateway swallows it; the in-process repro is the decisive diagnostic, see T-193 for the recipe); (2) the pre-push gate no longer discards a green commit when the builder omits the manifest fence — it synthesizes a schema-valid manifest from the git diff, flags `requires_manual_diff_review`, and proceeds through CI + claim verification. Expected terminal state for a structural build on main is now `error_type=push_failed` with ALL gates passed and `operator_recovery_guidance` naming the verified commit — the guardrail refusing an automated main push is by design; the instance reviews (builder ≠ reviewer) and performs the `KD_ALLOW_MAIN_PUSH=1` merge. Keep §U's steps only for the case where gates genuinely did not run.
 
-### Architecture & interactions.0 status note (S1152)
+### Schema-sanitizer status note (S1152)
 
-The Architecture & interactions.0 "sanitize at the adapter" fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. Trigger: the S1150 close gate added `additionalProperties` to `kd_session_close.runbook_exit`, which killed ALL AG dispatches at tool-fetch time (observed S1152 hall voter dispatch). If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
+The schema-sanitizer fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. The historical S1150 close schema triggered the incident; that field has since been retired. If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
 
 ## Gate-change consultation for shipped mandates (S1164, discharges S1164-D4)
 Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — CC, Kimi, and GLM — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit CC/Kimi/GLM review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.

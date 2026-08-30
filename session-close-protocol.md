@@ -25,24 +25,11 @@ work claims, and handoff untouched. Verify those instance-scoped effects before 
 close complete. Use `session-registry-recovery.md` if the instance row is stale or a close
 partially completes.
 
-Runbook completion is determined by operational behavior impact, not by producing
-prose that satisfies a close field. Detect the exact deployed close contract from
-the signed connected schema:
-
-- When structured `runbook_impact` is deployed, the agent proposes
-  `required|not_required|uncertain`, but the server owns repository baselines,
-  changed paths, action/config/deploy receipts, remote ancestry, and section
-  verification. `not_required` is valid only for a deterministic known
-  behavior-preserving class. Missing evidence becomes `uncertain` and creates or
-  refreshes one deduplicated nonblocking obligation; it does not force filler.
-- While the connected schema still exposes only legacy `runbook_exit`, pass the
-  truthful compatibility declaration required by that exact schema. A legacy
-  commit/created/no-change/waiver value is not evidence of impact and must not
-  induce an unrelated runbook edit. Preserve any resulting legacy debt for
-  migration rather than inventing facts to discharge it.
-- A typed committed close receipt is the only success signal. Response prose,
-  local handoff files, mutable registry rows, author names, and `git cat-file`
-  existence alone are not close truth.
+Runbooks are ordinary Markdown, not a close gate. If the work changed an operating
+procedure, correct the owning page before close and verify the resulting file and
+deployment like any other deliverable. Do not create filler when no procedure
+changed. Session-close success is the typed close result for the named instance;
+response prose or a local handoff file is not a substitute.
 
 The intended current roles are MP as builder/non-voter, CC + Kimi + GLM as
 voters, AG paused, and DeepSeek retired. The exact signed deployed

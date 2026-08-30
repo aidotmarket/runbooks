@@ -139,7 +139,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
   next_step_failure: Stop. Do not use API or curl output as substitute visual/browser proof and do not cross into kdbrowser.
 ```
 
-### How to operate.1 Exact read-only transport diagnostics
+### Exact read-only transport diagnostics
 
 Run these commands exactly. They read process, browser inventory, selected-profile extension status, and native-host manifest status. They do not reveal extension contents, cookies, credentials, or keys.
 
@@ -155,7 +155,7 @@ codex_embedded_node=/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/no
 
 Interpret exit codes before recovery: `chrome-is-running.js --check` returns 0 when running, 1 when not running, and 2 on diagnostic error. `check-extension-installed.js` returns 0 when installed and enabled, 1 when disabled, 2 when missing, and 3 on diagnostic error. `check-native-host-manifest.js` returns 0 when correct, 1 when missing or incorrect, and 2 on diagnostic error.
 
-### How to operate.2 Secret-safe app-server semantic probe
+### Secret-safe app-server semantic probe
 
 Run from the affected working directory. The short delays preserve the initialize handshake ordering. The `jq` projection intentionally discards the full effective config and reports only the read result and browser-use fields.
 
@@ -167,7 +167,7 @@ Run from the affected working directory. The short delays preserve the initializ
 
 Success means the direct read interfaces answered. It does not itself prove that the Browser service received fresh managed config or that DOM access works. If a requirements object contains an unfamiliar or denying value, preserve it without secrets and escalate; never edit it from this runbook.
 
-### How to operate.3 Post-recovery browser proof
+### Post-recovery browser proof
 
 In a fresh Browser runtime when required, select Chrome explicitly with `agent.browsers.get("chrome")`. List `chrome.user.openTabs()`, choose the exact returned object for the existing authorized `https://ops.ai.market/build-queue` tab, pass that object to `chrome.user.claimTab(tab)`, and call `claimedTab.playwright.domSnapshot()`. Verify the expected signed-in operator identity from the visible DOM. Do not guess a tab ID, navigate a replacement identity, or treat curl/API output as this proof.
 
@@ -232,7 +232,7 @@ Apply this table from A through C. `openTabs` success takes precedence over a re
   integrity_check: Browser documentation loads, openTabs answers, and a claimed operator-profile tab returns a DOM snapshot from https://ops.ai.market/build-queue showing the expected signed-in operator identity.
 ```
 
-### Repair.1 Prohibited actions
+### Prohibited actions
 
 Never:
 

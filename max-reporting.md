@@ -45,7 +45,6 @@ error_signatures:
 | Elaboration | `infra:opening-prompt` | Living State | boot payload `opening_prompt` | Longer prose; explicitly subordinate to CORE §3. |
 | Marker guard | koskadeux-mcp boot-contract test | git (test source) | CI on koskadeux-mcp | Dropping or weakening the §3 marker text from the boot payload fails the build. |
 | The operator (Vulcan/Mars) | this runbook How to operate | none | write-like-max skill; `date -u` | The rule governs OUTPUT only; Max's own interface choices (e.g. thinking visibility) are his call. |
-| Waiver store | `config:runbook-waivers` | Living State | runbook-first-gates.md How to operate-05 discharge path | Carries the accumulated waivers on this subject until discharged by this file's commit SHA. |
 
 Prose: a round is one work cycle that ends in a summary. Everything an instance does inside the round — tool calls, dispatches, diagnostics — stays off Max's screen. The summary is the single delivery point. Two narrow interrupts exist and nothing else: a hard stop (work cannot safely continue) and a blocking question (Max's answer is genuinely required to proceed and cannot wait).
 
@@ -140,7 +139,6 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
 | F-01 | Max-facing narration, acknowledgements, or progress notes appear mid-round | drafting replies between tool calls; treating a carve-out as a status channel | read the transcript: any Max-visible text between round start and the summary that is neither a hard stop nor a blocking question is a violation | Repair-01 | CONFIRMED |
 | F-02 | Summary contains BQ codes, gate numbers, SHAs, tool names, or session numbers in prose | composing from working state; skipping the write-like-max pass | scan the summary for the exclusion list in How to operate-01 | Repair-02 | CONFIRMED |
 | F-03 | koskadeux-mcp CI fails the boot-contract marker assertion | a CORE edit dropped or reworded the guarded clause "The ONLY Max-facing output in a round is one short end-of-round summary" | run the boot-contract test locally; diff CORE §3 against the marker text | Repair-03 | CONFIRMED |
-| F-04 | Plan gate rejects a session naming this subject ("End-of-round summary / Max reporting" waiver bite) | ≥2 undischarged waiver rows accumulated on the subject before this runbook existed | count the subject's rows in `config:runbook-waivers` lacking discharged_by kind created/commit | Repair-04 | CONFIRMED |
 | F-05 | Summary omits the timestamp header or round-end marker | convention skipped under time pressure | look at the top and bottom of the sent summary | Repair-02 | CONFIRMED |
 
 ## Repair
@@ -170,14 +168,6 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
   change_pattern: either restore the exact marker text in CORE §3, or — if the rule legitimately changed with Max approval + peer review — update the marker assertion to the new canonical sentence in the same change set, never in a separate unreviewed commit
   rollback_procedure: git revert the CORE edit
   integrity_check: boot-contract test green; kd_session_open payload carries the clause
-- id: G-04
-  symptom_ref: F-04
-  component_ref: Waiver store
-  root_cause: subject accumulated waivers before the owning page existed
-  repair_entry_point: "config:runbook-waivers rows via runbook-first-gates.md How to operate-05"
-  change_pattern: "this runbook IS the covering page: patch the subject's waiver rows with discharged_by {kind: created, ref_or_reason: <bare SHA of the commit that added this file>}"
-  rollback_procedure: re-patch discharged_by to null
-  integrity_check: next kd_session_open standup no longer tripwires the subject
 ```
 
 ## Changes and maintenance
@@ -285,14 +275,6 @@ scenario_set:
       - kind: human_action
         action: diff CORE §3 against the guarded marker sentence; restore it or update the assertion in the same Max-approved, peer-reviewed change
     weight: 0.07692308
-  - id: I-07
-    type: repair
-    refs: [G-04]
-    scenario: The plan gate bites on the subject "End-of-round summary / Max reporting" although this runbook now exists at commit abc1234. Fix?
-    expected_answers:
-      - kind: human_action
-        action: 'patch the subject rows in config:runbook-waivers with discharged_by {kind: created, ref_or_reason: abc1234} per runbook-first-gates.md How to operate-05'
-    weight: 0.07692308
   - id: I-08
     type: evolve
     refs: [H.2]
@@ -361,4 +343,4 @@ first_staleness_detected_at: null
 
 Refresh log:
 - S1192 (2026-07-12): owner_agent corrected to mars — empirical lint run confirmed the current linter has no owner enum restriction (the S1189 'enum lacks mars' claim was stale for this linter); either instance still operates this page.
-- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum was believed to predate the S811 symmetric-peer model — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload), `infra:opening-prompt` (same payload), and the runbook-first-gates.md How to operate-05/Repair-07 discharge procedure. Written to clear the two accumulated waivers on subject "End-of-round summary / Max reporting".
+- S1189 (2026-07-12): first authoring (by mars; owner_agent recorded as vulcan because the linter's owner enum was believed to predate the S811 symmetric-peer model — either instance operates this page), against CORE.md v9.7 §3 (read verbatim from the S1189 boot payload) and `infra:opening-prompt` (same payload). The historical waiver-discharge procedure used in that session was retired with the runbook simplification on 2026-08-30 and is not an operating instruction.
