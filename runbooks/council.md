@@ -3,6 +3,8 @@ title: Council
 owner: vulcan
 last_verified: '2026-08-29'
 aliases:
+- Council dispatch
+- review transport
 - glm-codex-transport
 - glm-profile-isolation
 error_signatures:

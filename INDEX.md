@@ -68,7 +68,7 @@
 - Purpose: FastAPI backend powering all of ai.market. Handles auth, listings, orders, payments, agents, CRM, fulfillment, and the allAI intelligence layer.
 - Owner: `unassigned`
 - Last verified: `2026-08-27`
-- Aliases: none
+- Aliases: Railway backend deployment, FastAPI production API
 - Error signatures: none
 - Status: current
 
@@ -77,7 +77,7 @@
 - Purpose: Content refresh S811 (PR #28): dual-audience homepage and buyer landing. AIM Federate is retired, with no current public surface, route, redirect, or asset; reintroduction requires explicit Max decision. Copy is governed by website-copy-standard.md.
 - Owner: `unassigned`
 - Last verified: `2026-08-25`
-- Aliases: none
+- Aliases: frontend build, Railway frontend deployment, Next.js marketplace
 - Error signatures: none
 - Status: current
 
@@ -148,9 +148,9 @@
 - Path: `runbooks/alerts-at-open.md`
 - Purpose: Two rules hold this together and both are load-bearing:
 - Owner: `mars`
-- Last verified: `2026-08-12`
-- Aliases: none
-- Error signatures: none
+- Last verified: `2026-08-30`
+- Aliases: open items alerts, session open tally, ops build queue alerts
+- Error signatures: alerts unavailable
 - Status: current
 
 ## allAI Escalation Safety Spine
@@ -276,7 +276,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-08-23`
 - Aliases: builder-bridge, minimal-bridge, mp-builder-controls
-- Error signatures: minimal_bridge_repo_unresolved
+- Error signatures: none
 - Status: current
 
 ## Buyer Request Publication and Discovery
@@ -383,7 +383,7 @@
 - Purpose: This runbook is maintained by Vulcan. Neither instance is senior to the other.
 - Owner: `vulcan`
 - Last verified: `2026-08-29`
-- Aliases: glm-codex-transport, glm-profile-isolation
+- Aliases: Council dispatch, review transport, glm-codex-transport, glm-profile-isolation
 - Error signatures: Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, required reviewer missing from the live tool schema
 - Status: current
 
@@ -607,9 +607,9 @@
 - Path: `gcp-auth.md`
 - Purpose: GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 - Owner: `vulcan`
-- Last verified: `2026-08-25`
-- Aliases: none
-- Error signatures: none
+- Last verified: `2026-08-30`
+- Aliases: Vertex authentication, Gmail OAuth, gcloud credentials, Trust Channel KMS
+- Error signatures: RefreshError: Reauthentication is needed. Please run gcloud auth application-default login, 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED, Reauthentication failed
 - Status: current
 
 ## GitHub → Reconciliation Webhook
@@ -904,9 +904,9 @@
 - Path: `session-open-protocol.md`
 - Purpose: The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` and `mars`: handoff load, planning gate, and briefing review. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Absorbs the prior `session_open_standup.md` per AG S612 mandate to eliminate two-file fragmentation.
 - Owner: `unassigned`
-- Last verified: `2026-08-20`
-- Aliases: none
-- Error signatures: none
+- Last verified: `2026-08-30`
+- Aliases: Koskadeux boot, kd_session_open, session planning gate, boot envelope
+- Error signatures: PLANNING_GATE, BOOT_NON_TRUNCATABLE_OVER_BUDGET
 - Status: current
 
 ## Session Registry Recovery

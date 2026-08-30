@@ -1,9 +1,15 @@
 ---
 title: Session Open Protocol
 owner: unassigned
-last_verified: '2026-08-20'
-aliases: []
-error_signatures: []
+last_verified: '2026-08-30'
+aliases:
+- Koskadeux boot
+- kd_session_open
+- session planning gate
+- boot envelope
+error_signatures:
+- PLANNING_GATE
+- BOOT_NON_TRUNCATABLE_OVER_BUDGET
 ---
 
 # Session Open Protocol
@@ -23,10 +29,12 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 
 ### O.2.1 Runbook context
 
-Session open validates `INDEX.md` from the installed runbooks checkout and binds
-the exact checkout commit in the boot envelope. Read the relevant Markdown before
-planning: use `INDEX.md` for subjects and aliases, `ERRORS.md` for literal failure
-text, allAI search for full-text lookup, then open the page and exact heading.
+When boot-kernel mode is on, or when a shadow lease is consumed, session open
+validates `INDEX.md` from the installed runbooks checkout and binds the exact
+checkout commit in the boot envelope. Regardless of boot mode, read the relevant
+Markdown before planning: use `INDEX.md` for subjects and aliases, `ERRORS.md` for
+literal failure text, allAI search for full-text lookup, then open the page and
+exact heading.
 
 `kd_session_plan` does not require caller-authored runbook evidence. A plan is
 accepted because its ordinary planning fields are valid and the instance moves

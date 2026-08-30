@@ -2,7 +2,10 @@
 title: ai-market-frontend — Marketplace Web App
 owner: unassigned
 last_verified: '2026-08-25'
-aliases: []
+aliases:
+- frontend build
+- Railway frontend deployment
+- Next.js marketplace
 error_signatures: []
 ---
 

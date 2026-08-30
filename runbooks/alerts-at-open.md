@@ -1,9 +1,13 @@
 ---
 title: Alerts at session open (S1529)
 owner: mars
-last_verified: '2026-08-12'
-aliases: []
-error_signatures: []
+last_verified: '2026-08-30'
+aliases:
+- open items alerts
+- session open tally
+- ops build queue alerts
+error_signatures:
+- alerts unavailable
 ---
 
 # Alerts at session open (S1529)

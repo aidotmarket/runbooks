@@ -6,8 +6,7 @@ aliases:
 - builder-bridge
 - minimal-bridge
 - mp-builder-controls
-error_signatures:
-- minimal_bridge_repo_unresolved
+error_signatures: []
 ---
 
 # Builder Controls

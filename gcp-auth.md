@@ -1,9 +1,16 @@
 ---
 title: GCP Auth
 owner: vulcan
-last_verified: '2026-08-25'
-aliases: []
-error_signatures: []
+last_verified: '2026-08-30'
+aliases:
+- Vertex authentication
+- Gmail OAuth
+- gcloud credentials
+- Trust Channel KMS
+error_signatures:
+- 'RefreshError: Reauthentication is needed. Please run gcloud auth application-default login'
+- 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED
+- Reauthentication failed
 ---
 
 # GCP Auth
