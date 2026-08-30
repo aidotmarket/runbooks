@@ -101,7 +101,7 @@
 
 ## AIM Data Seller Publish Journey
 - Path: `aim-data-seller-publish-journey.md`
-- Purpose: This runbook discharges the AIM Data seller-publish journey waivers, including S1216-D3, S1219-D1, and their predecessors. It starts after the customer has an AIM Data install and follows the customer-visible path through ai.market sign-in, install registration, local listing preparation, explicit disclosure confirmation, signed publish, and live-listing verification.
+- Purpose: This page fills the AIM Data seller-publish documentation gaps historically recorded as S1216-D3, S1219-D1, and their predecessors. Those identifiers are provenance, not current admission or close requirements. The procedure starts after the customer has an AIM Data install and follows the customer-visible path through ai.market sign-in, install registration, local listing preparation, explicit disclosure confirmation, signed publish, and live-listing verification.
 - Owner: `mars`
 - Last verified: `2026-07-15`
 - Aliases: none
