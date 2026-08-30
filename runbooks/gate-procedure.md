@@ -78,7 +78,7 @@ Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 - Select Gate 1 when no approved design authority exists or the proposal materially changes it.
 - Select Gate 2 for implementation specification/fold, or after Gate 3 returns REVISE or REJECT without a design change.
 - Select Gate 3 for post-build audit and Gate 4 for deployed production verification.
-- Build dispatch requires approved required design, approved Gate 2 when required, no reconciliation/claim/runbook/compliance blocker, MP as builder, and builder exclusion from its review.
+- Build dispatch requires approved required design, approved Gate 2 when required, no unresolved reconciliation, claim, or compliance condition, MP as builder, and builder exclusion from its review. Read relevant Markdown separately when operating-procedure context is needed.
 - If any eligibility operand is unknown or unavailable, dispatch is ineligible.
 
 The selection and eligibility bullets are companion synthesis of the approved kernel design, not a replacement for CORE or the kernel constraint block.
@@ -140,7 +140,7 @@ The Capabilities author-dispatch-token-and-lease row and this machinery are comp
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Build dispatch eligibility cannot be proven. | A gate, claim, reconciliation, runbook, compliance, builder, or independence operand is unknown. | Read the BQ, approved specs, claim state, reconciliation result, runbook refs, and dispatch envelope. | G-01 | CONFIRMED |
+| F-01 | Build dispatch eligibility cannot be proven. | A gate, claim, reconciliation, compliance, builder, or independence operand is unknown. | Read the BQ, approved specs, claim state, reconciliation result, and dispatch envelope. Read relevant Markdown separately when procedure context is needed. | G-01 | CONFIRMED |
 | F-02 | Gate 3 review changed files or used the builder. | Review mode or reviewer independence was violated. | Compare git status, dispatch mode, builder list, reviewer list, and target SHA. | G-02 | CONFIRMED |
 
 ## Repair
@@ -214,7 +214,7 @@ scenario_set:
   - {id: I-04, type: isolate, refs: [F-01], scenario: Gate 2 status is missing before a required build dispatch., expected_answers: [{kind: classification, label: INELIGIBLE}], weight: 0.0909090909}
   - {id: I-05, type: isolate, refs: [F-02], scenario: The builder appears among its own Gate 3 reviewers., expected_answers: [{kind: classification, label: TAINTED_REVIEW}], weight: 0.0909090909}
   - {id: I-06, type: isolate, refs: [F-01], scenario: A gate lease expired before author-mode completion., expected_answers: [{kind: classification, label: LEASE_NOT_VALID}], weight: 0.0909090909}
-  - {id: I-07, type: repair, refs: [G-01], scenario: A claim blocker makes build eligibility unknown., expected_answers: [{kind: human_action, verb: resolve, object: claim evidence, target: dispatch preflight}], weight: 0.0909090909}
+  - {id: I-07, type: repair, refs: [G-01], scenario: A claim conflict makes build eligibility unknown., expected_answers: [{kind: human_action, verb: resolve, object: claim evidence, target: dispatch preflight}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: A review dispatch wrote a verdict file and source changes., expected_answers: [{kind: human_action, verb: replace, object: tainted review, target: clean read-only review}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal lets two of three returned votes count when one voter failed., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A signed token gains an additive audit claim., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
