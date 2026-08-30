@@ -125,7 +125,7 @@ gh run list --repo aidotmarket/ai-market-backend --branch main --limit 30
 Read the safe local mirror. A healthy normal cycle is fresh, agrees with database status counts, has provider keys `github`, `railway`, and `cloudflare` with each provider `status` equal to `ok` and `observation_complete` equal to `true`, and has no synthetic `watcher` marker. If `sources.watcher` is present, diagnose that control marker separately from the provider entries:
 
 ```sh
-jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,source_keys:(.snapshot.sources|keys),sources:(.snapshot.sources|map_values({status,observation_complete,last_attempt,error_class})),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
+jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,source_keys:(.snapshot.sources|keys),sources:(.snapshot.sources|map_values({status,observation_complete,last_attempt,error_class,detail_code})),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
 ```
 
 Read watcher deploys and logs in Railway, workflow definitions and runs in GitHub Actions, and the safe snapshot at the local mirror path above. Do not use worker output or the mirror alone as provider authority.
@@ -512,6 +512,8 @@ Repair or rollback: restore the failing watcher or mirror component and wait for
 Symptom: fresh provider observations are healthy, but the snapshot still contains a synthetic `sources.watcher` control-failure marker.
 
 Likely cause: the marker is current because policy, table, meter, or admission control is still failing; the fixed watcher has not completed a later normal control-plane cycle; or stale-marker cleanup regressed.
+
+Expected fail-closed admission refusals such as `admission:daily_dispatch_cap`, `admission:breaker_open`, and `admission:dispatch_disabled` can also produce the marker; use `detail_code` to route a genuine cap to the existing spend-cap procedure and do not treat it as a storage outage.
 
 Verify: compare the marker's `last_attempt` with fresh provider observation times and Railway deployment `78c6c0db-0ab6-4891-93ef-a53b2f89ca7c`, then inspect current `issue-channel-watcher` logs. Provider partial or unavailable entries remain separate evidence and must be diagnosed even if the synthetic marker clears.
 
