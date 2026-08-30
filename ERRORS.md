@@ -825,14 +825,6 @@
 
 - [Qdrant Sync Outbox](qdrant-sync-outbox.md)
 
-## `runbook_context_delivery_unavailable`
-
-- [Peer Instance Discipline](runbooks/peer-instance-discipline.md)
-
-## `runbook_impact_evidence_unavailable`
-
-- [Peer Instance Discipline](runbooks/peer-instance-discipline.md)
-
 ## `runner/job failure before the Publish request`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)

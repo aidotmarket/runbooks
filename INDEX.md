@@ -760,9 +760,9 @@
 - Path: `runbooks/peer-instance-discipline.md`
 - Purpose: This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mars` are two cooperating instances of the same frontier model with equal authority over shell, git, dispatch, and Living State.
 - Owner: `mars`
-- Last verified: `2026-08-15`
+- Last verified: `2026-08-30`
 - Aliases: peer-bus, peer-message-bus
-- Error signatures: duplicate_claim_on_one_item, over_escalation_to_max, peer_message_silently_deduped, runbook_context_delivery_unavailable, runbook_impact_evidence_unavailable, stale_handoff_trusted_at_open, unread_request_or_alert_at_dispatch, unrecognized_instance_attributed_artifact
+- Error signatures: duplicate_claim_on_one_item, over_escalation_to_max, peer_message_silently_deduped, stale_handoff_trusted_at_open, unread_request_or_alert_at_dispatch, unrecognized_instance_attributed_artifact
 - Status: current
 
 ## Policy Kernel Enforcement Gate

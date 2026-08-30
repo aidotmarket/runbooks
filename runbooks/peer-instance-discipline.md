@@ -1,7 +1,7 @@
 ---
 title: Peer Instance Discipline
 owner: mars
-last_verified: '2026-08-15'
+last_verified: '2026-08-30'
 aliases:
 - peer-bus
 - peer-message-bus
@@ -9,8 +9,6 @@ error_signatures:
 - duplicate_claim_on_one_item
 - over_escalation_to_max
 - peer_message_silently_deduped
-- runbook_context_delivery_unavailable
-- runbook_impact_evidence_unavailable
 - stale_handoff_trusted_at_open
 - unread_request_or_alert_at_dispatch
 - unrecognized_instance_attributed_artifact
