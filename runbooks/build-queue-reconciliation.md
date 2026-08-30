@@ -276,9 +276,9 @@ covers this path. Until that is fixed, read `ADVISORY_GIT_AHEAD` with an empty
 
 ### Measurement discipline
 
-Written in S1345 to discharge runbook debts S1344-D1, S1344-D2 and S1344-D3,
-waived at the S1344 close on the understanding that they would not be waived
-twice.
+Written in S1345 to fill the documentation gaps recorded as S1344-D1,
+S1344-D2, and S1344-D3. Those identifiers are historical provenance, not
+current admission or close requirements.
 
 1. **Never measure a denominator with the Living State `list` action.** It
    silently caps at 500 rows, ignores `offset`, and reports no total. Use

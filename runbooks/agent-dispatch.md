@@ -116,7 +116,7 @@ Per-agent:
 
 Historical rounds with vulcan/ag/mp voter keys remain readable (schema legacy keys); write-path member validation rejects retired members. Canonical roster + per-agent quirks live in `infra:council-comms` (model_policy patched v58, S1222: cc=claude-opus-4-8, vulcan=gpt-5.6-sol).
 
-This section documents the S1213 roster change and discharges the S1221 waived roster-change runbook attestations (S1221-D1..D7).
+This section documents the S1213 roster change. The historical S1221 documentation-gap records (S1221-D1..D7) are retained only as provenance; they are not current operating requirements.
 
 
 ## Architecture & interactions
@@ -1723,9 +1723,9 @@ wastes the whole run at its most expensive point.
 
 ## §X.3 — Council re-dispatch and peer-coordination mechanics (S1375)
 
-Three subjects that repeatedly reached the session-plan gate as
-`no_entry_found` attestations and had no home. Written here so the next
-session cites a runbook instead of attesting again.
+Three subjects that repeatedly lacked findable guidance during historical
+session planning. They are documented here so operators can find and follow
+the owning procedure directly.
 
 ### §X.3.1 Re-dispatching a Council round after verdict-enum drift
 
@@ -1793,11 +1793,11 @@ enough — it must be recorded on the peer's entity.
 - If the answer is (b), record the reciprocal obligation on YOUR entity too, so
   the chunk that owes the discharge knows it owes it.
 
-### §X.3.4 Two subjects that already have owners — stop attesting them
+### §X.3.4 Two subjects that already have owners
 
 - **Disposition of an approved build item stale beyond the seven-day window**
   belongs to `aging-policy` (`stale_queue_undispatched`, When it breaks. Isolate). S1375
-  filed a `no_entry_found` attestation for this in error. CORE S17 requires the
+  incorrectly treated this as missing documentation. CORE S17 requires the
   item to be surfaced and, if deferred, an explicit recorded decision event.
 - **Establishing whether a branch actually landed** belongs to
   `branch-landed-verification` (How to operate-03). Do not re-derive it.
