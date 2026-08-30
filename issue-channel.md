@@ -12,6 +12,9 @@ error_signatures:
 - executor_busy_no_lease
 - malformed_output
 - expired_unleased
+- outcome_unknown
+- candidate_invalid
+- fallback_waiting_resolution
 - duplicate_cardinality
 - support_reconciliation_deadline
 - support_deadline_unavailable
@@ -21,7 +24,7 @@ error_signatures:
 
 ## What it does
 
-The Railway service definition for `issue-channel-watcher` permits one replica. When deployed, it reads GitHub, Railway, and Cloudflare, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
+The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, and Cloudflare, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 
 Provider observations are the sole authority for whether an issue exists and whether it is resolved. A partial, unavailable, untrusted, or unordered observation never resolves an episode. Absence from a lookback window, expiry, timeout, and worker text are not success witnesses.
 
@@ -51,6 +54,12 @@ The only accepted provider result is strict JSON with exactly these top-level fi
 
 A triage report is a bounded, sanitized annotation. It is never resolution authority. `needs_max` must include a decision request and is only for an authority, security, payment, or customer-data decision, or proven ladder exhaustion. Ordinary severity is not enough.
 
+## Canonical persistence
+
+Persistence may fold a newly observed candidate into an existing canonical issue or resolve it through an alias. The runner must therefore discard the candidate's provisional identity after persistence and use the returned `CanonicalIssue` for fingerprint, episode, evaluation, journaling, admission, dispatch context, and every idempotency key. Folded and aliased identities are supported only through that authoritative returned projection.
+
+Before any support mutation, validate that the admission episode is nonempty, the exact canonical row exists, its episode matches the admission episode, and its state is one of `open`, `expired`, or `resolved`. An absent canonical projection, an empty episode, or any identity or episode mismatch is terminal `candidate_invalid`. Journal the safe fault, make zero support calls, and leave collection and snapshot publication independent.
+
 ## Ticket lifecycle
 
 There is exactly one ops support ticket per canonical episode. Its `source_ref` is the stable SHA-256-derived reference for the `episode_key` under the fixed issue-channel ticket namespace. It does not include the automated-triage reason, so a changing reason cannot create a second ticket for the same episode.
@@ -65,11 +74,15 @@ The watcher first journals ticket create or patch intent in `dispatch_intents.sa
 
 A support API outage is nonfatal to provider collection, canonical resolution, and snapshot publication.
 
+An `outcome_unknown` or `expired_unleased` intent without an accepted triage report still needs a durable operator surface. The watcher emits one bounded, low-confidence safe fallback ticket for the authoritative episode `source_ref` and journals phase `fallback_waiting_resolution`. Repeated watcher cycles reconcile and reuse that exact ticket instead of duplicating it. The candidate becomes selectable again only after canonical resolution so the same ticket can advance to its terminal handoff. Fallback ticket work never blocks provider collection or snapshot publication.
+
 Each watcher tick selects at most 20 recoverable nonterminal support candidates from the database, ordered by `updated_at`, `created_at`, and `id`. Journaling an attempted row moves it behind untouched rows so later candidates continue to progress. The terminal phases `candidate_invalid`, `human_required_no_close`, `needs_max_complete`, and `resolved_complete` are excluded.
 
 A 45-second monotonic total deadline wraps only the synchronous support calls in that bounded pass. On POSIX it uses `ITIMER_REAL`, restores the prior signal handler and timer, and uses no threads. On exhaustion it records `support_reconciliation_deadline`, stops support work promptly, retains later candidates for the next tick, and continues to snapshot publication below the 300-second cadence. If the process cannot install that deadline safely, it records `support_deadline_unavailable` and makes no synchronous support calls in that pass.
 
-Only a complete provider-success witness resolves the canonical episode. Then, and only then, the watcher auto-resolves the linked ticket when `human_required` is not true. It never closes a ticket from worker text, a partial observation, absence, expiry, or timeout. Human-required tickets never auto-close.
+Only a complete provider-success witness resolves the canonical episode. Then, and only then, the watcher may auto-resolve the linked ticket when `human_required` is exactly the boolean `false`. Boolean `true`, null, missing, strings, numbers, and malformed values are never treated as false; they park safely without a close call. The watcher never closes a ticket from worker text, a partial observation, absence, expiry, or timeout.
+
+The central backend `update_support_ticket` operation owns lifecycle timestamps. It row-locks the ticket; stamps server `resolved_at` or `closed_at` only on a genuine transition; preserves `resolved_at` across `resolved` to `closed`; leaves timestamps unchanged on a repeated terminal status; and clears both timestamps on a terminal-to-nonterminal reopen while preserving the existing probe reset. It honors an explicit `resolved_at` or `resolution_source` and never invents a `resolution_source`. The uncommon `closed` to `resolved` reversal is not specially normalized; treat it as a product-policy decision instead of guessing or expanding this runbook into a support state-machine specification.
 
 ## Snapshot telemetry
 
@@ -113,6 +126,8 @@ jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,
 
 Read watcher deploys and logs in Railway, workflow definitions and runs in GitHub Actions, and the safe snapshot at the local mirror path above. Do not use worker output or the mirror alone as provider authority.
 
+An ai.market `EMERGENCY LOCAL FALLBACK` banner alone can mean the local connector or client path failed; it is not proof that the shared gateway or database failed. Independently inspect the local connector process and configured path, run `kd status`, issue one small read-only gateway command, and run a read-only database `SELECT`. If the database or the real gateway is unreachable, stop production operations. Never use the local fallback as a production-operation bypass.
+
 ## Diagnose detection
 
 Start with the source entry in the mirror. Compare `expected_resources` with `observed_resources`, check `error_class`, and determine which provider read is incomplete. Then inspect the matching provider directly.
@@ -154,11 +169,15 @@ If ordinary CI severity produced `needs_max`, treat the result as a contract def
 
 For GitHub CI, a success witness must come from the same workflow and `main`, and its `created_at` must be strictly newer than the failure. The observation containing that witness must be complete. Confirm the canonical episode then has `status='resolved'` and a `resolved_at` timestamp.
 
-Only after those facts are true should the same linked non-human-required ticket reach `resolved`. If `human_required=true`, leave it open for the human decision even though the canonical episode resolved.
+Only after those facts are true should the same linked ticket with `human_required` exactly boolean `false` reach `resolved`. Every other representation parks safe even though the canonical episode resolved. Verify terminal ticket status and lifecycle timestamps together; `resolution_source` is optional under current semantics.
 
 ## Deployment order and rollback
 
-The backend merge `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` is deployed, backend CI and the deployment receipt are green, and the database Alembic head is `t2026_000727_provider_num_turns`. Post-rollout residue is zero; retained telemetry has 2 legacy rows and 2 canonical rows. The watcher configuration has the managed `INTERNAL_API_KEY` reference, but its deployment was skipped. Do not describe the watcher or canary as deployed or proven. This runbook remains gated until the final watcher deployment and authorized canary proof are complete.
+Backend integration PR #311 merged as `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` and is active in Railway deployment `8e99939f-aa07-48eb-bd6c-9259d16c7ea4`. The database Alembic head is `t2026_000727_provider_num_turns`, post-rollout provider-turn residue is zero, and the exact backend verification passed 117 tests.
+
+The watcher base PR #207 merged as `b435068161f3dcaa9421c0c84e0a344b9c769490`; final canary hotfix PR #209 merged as `e26ebeffc2ccaf66a2f0cb6f5626f0271e8b4ccd`. Railway deployment `ff27a413-4bed-4656-bbcd-a984255fe177` is the active successful watcher. The exact issue-channel suite passed 425 tests and the final candidate received full CC, Kimi, and GLM approval.
+
+Support-ticket lifecycle PR #314 merged as `0610c160af8ee6c6ee0422eaccb687656ea0aafb` and is active in Railway deployment `b73fa943-ad43-4c65-8c75-29f609936094`. Its focused lifecycle tests passed 8 tests and the relevant support slice passed 64. Merge workflows were green: Role Authority Lint `33326601922`, Site Smoke `33326601911`, Gold Path `33326601925`, Alembic Guardrails `33326601895`, and Dependency Drift `33326601893`.
 
 Use backend-first expand/contract whenever the queue contract changes:
 
@@ -181,44 +200,19 @@ Kill switches are narrow:
 
 Do not disable email during dual coverage. Do not stop collection merely because the support API, worker, or local mirror is unhealthy.
 
-## Authorized canary
+## Live canary and cleanup
 
-The canary was authorized once. Reuse it only with fresh explicit authorization. It deliberately creates a real provider episode and support ticket.
+The authorized canary used stable workflow ID `345908153`. Failure run `33314116206` was created at `2026-08-30T13:24:57Z` and completed with the deliberate failure at `13:25:05Z`. It produced canonical issue `iss_01M19DKMF3R7DD2JA1BHX8QZHQ` for episode `aidotmarket/ai-market-backend|ci_failure|2026-08-30|2`.
 
-1. Deploy the tolerant backend and migration, then the watcher.
-2. Prove every active `main` workflow's latest run is successful and wait for one complete watcher observation.
-3. Reconcile and prove zero open or expired GitHub `ci_failure` episodes for `aidotmarket/ai-market-backend` using the exact preflight SQL below.
-4. Merge only `.github/workflows/issue-channel-canary.yml`.
-5. Record its stable numeric `workflow_id`:
+The episode admitted exactly one intent, `04275df4-bc5d-4de5-b844-81841d8b2003`. It ended `outcome_unknown`; the breaker sample was `failed`; and the journal recorded `lease_expiry`. Before any lease, the watcher performed the guarded authoritative-episode repair. The deployed fallback then created exactly one ops ticket, `T-2026-000731`, with `human_required=false` and phase `fallback_waiting_resolution`.
 
-```sh
-gh workflow list --repo aidotmarket/ai-market-backend --all --json id,path --jq '.[] | select(.path==".github/workflows/issue-channel-canary.yml") | .id'
-```
+Newer same-workflow `main` run `33324876164` was created at `2026-08-30T17:18:11Z` and completed successfully at `17:18:20Z`. The complete watcher observation at `2026-08-30T17:18:52.390720Z` resolved the canonical episode and ticket and advanced the handoff to `resolved_complete`. Later database proof still showed exactly one canonical issue, one intent, and one ticket. Email remained enabled throughout.
 
-6. Dispatch exactly one failure on `main` with the numeric ID. Do not retry if the outcome is unknown; inspect the run first.
+Production proof exposed a pre-existing central-backend inconsistency: ticket status was `resolved` while `resolved_at` was null. After full Council review and the PR #314 deployment above, exact canary ticket `T-2026-000731` was repaired once with guarded SQL using canonical `resolved_at` `2026-08-30T17:18:45.30817Z`. Exactly one row changed, and `resolution_source` intentionally remains null.
 
-```sh
-gh workflow run "$WORKFLOW_ID" --repo aidotmarket/ai-market-backend --ref main -f outcome=failure
-gh run list --repo aidotmarket/ai-market-backend --workflow "$WORKFLOW_ID" --branch main --limit 5
-```
+Cleanup PR #313 merged as `5eb4d992b4b253c048ac03a6b0962febb0fcd437` and removed only `.github/workflows/issue-channel-canary.yml`. All merge workflows were green: Site Smoke `33326033562`, Dependency Drift `33326033541`, Alembic Guardrails `33326033578`, and Gold Path `33326033569`. The workflow no longer exists.
 
-7. Wait for collection and prove exactly one dispatch intent and exactly one support ticket for the canonical episode.
-8. Dispatch one success on the same workflow and `main`. Its `created_at` must be strictly newer than the failure.
-
-```sh
-gh workflow run "$WORKFLOW_ID" --repo aidotmarket/ai-market-backend --ref main -f outcome=success
-gh run list --repo aidotmarket/ai-market-backend --workflow "$WORKFLOW_ID" --branch main --limit 5
-```
-
-9. Wait for a complete watcher observation. Prove the canonical episode resolved and the eligible ticket resolved. A human-required ticket is not eligible.
-10. Only then remove the workflow. Never remove it before resolution.
-11. Wait until every push-triggered workflow from the removal commit is green.
-
-```sh
-gh run list --repo aidotmarket/ai-market-backend --commit "$REMOVAL_SHA" --limit 100
-```
-
-Email remains enabled for the entire canary and cleanup.
+A future deliberate canary requires fresh explicit authorization and a separately reviewed temporary workflow. Before running it, prove a green provider baseline, one complete watcher observation, and zero open or expired matching episodes. Dispatch exactly one failure, inspect an unknown outcome instead of retrying, then use one strictly newer success from the same workflow and `main`. Remove the temporary workflow only after complete observation proves canonical and eligible-ticket resolution, and wait for all cleanup-merge workflows to turn green.
 
 ## Read-only SQL
 
@@ -276,6 +270,44 @@ ORDER BY updated_at DESC
 LIMIT 50;
 ```
 
+Exact canary cardinality and lifecycle:
+
+```sql
+SELECT id, episode_key, status, resolved_at
+FROM issue_channel.canonical_issues
+WHERE episode_key = 'aidotmarket/ai-market-backend|ci_failure|2026-08-30|2';
+
+SELECT id,
+       status,
+       fault_code,
+       sanitized_context -> 'ticket_handoff' AS ticket_handoff
+FROM issue_channel.dispatch_intents
+WHERE sanitized_context -> 'admission' ->> 'episode_key'
+      = 'aidotmarket/ai-market-backend|ci_failure|2026-08-30|2';
+
+SELECT public_ref,
+       source_ref,
+       status,
+       human_required,
+       human_required IS FALSE AS auto_close_eligible,
+       resolved_at,
+       closed_at,
+       resolution_source,
+       CASE
+         WHEN status = 'resolved' THEN resolved_at IS NOT NULL
+         WHEN status = 'closed' THEN resolved_at IS NOT NULL AND closed_at IS NOT NULL
+         ELSE resolved_at IS NULL AND closed_at IS NULL
+       END AS lifecycle_coherent
+FROM support_ticket
+WHERE source_ref = (
+  SELECT sanitized_context -> 'ticket_handoff' ->> 'source_ref'
+  FROM issue_channel.dispatch_intents
+  WHERE id = '04275df4-bc5d-4de5-b844-81841d8b2003'
+);
+```
+
+Each query must return exactly one row and the IDs must be `iss_01M19DKMF3R7DD2JA1BHX8QZHQ`, `04275df4-bc5d-4de5-b844-81841d8b2003`, and `T-2026-000731`. A resolved or closed ticket needs the corresponding server timestamp; a reopened nonterminal ticket needs both lifecycle timestamps cleared. Treat `resolution_source` as optional and do not backfill or invent it merely because it is null.
+
 Completion-day measured spend in UTC:
 
 ```sql
@@ -311,7 +343,7 @@ In `aidotmarket/ai-market-backend`, the queue and migration contract lives in:
 - `app/api/v1/endpoints/support.py`
 - `app/services/support_ticket_service.py`
 
-Focused backend tests are `tests/test_issue_channel_provider_num_turns_migration.py`, `tests/test_issue_channel_migration.py`, `tests/test_issue_channel_queue_api.py`, `tests/test_issue_channel_queue_service.py`, and `tests/test_support_ticket_s811_c2.py`.
+Focused backend tests are `tests/test_issue_channel_provider_num_turns_migration.py`, `tests/test_issue_channel_migration.py`, `tests/test_issue_channel_queue_api.py`, `tests/test_issue_channel_queue_service.py`, and `tests/test_support_ticket_s811_c2.py`. Ticket lifecycle behavior is maintained in `app/api/v1/endpoints/support.py`, `app/services/support_ticket_service.py`, and their focused support tests; do not reimplement it in the watcher.
 
 In `aidotmarket/koskadeux-mcp`, the watcher and local poller live in:
 
@@ -359,29 +391,39 @@ Verify: inspect `fault_code`, the poller timestamp, and validation logs; compare
 
 Repair or rollback: fix the worker producer or compatible validator and add the failing fixture. Do not fabricate measurements, a report, or success fields.
 
-### Queue expired or outcome unknown
+### candidate_invalid
+
+Symptom: support reconciliation parks an intent at terminal phase `candidate_invalid` and makes no support call.
+
+Likely cause: the persisted canonical projection is absent, the admission episode is empty, the exact canonical row is missing, or the canonical and admission episodes disagree.
+
+Verify: compare the returned `CanonicalIssue`, admission episode, exact database row, and canonical state. Confirm later evaluation, journal, context, and idempotency fields all use the returned canonical identity rather than the provisional candidate.
+
+Repair or rollback: repair the persistence projection or identity handoff and add the folded or aliased case to focused tests. Never patch around the check or mutate support from a mismatched candidate.
+
+### expired_unleased or outcome_unknown
 
 Symptom: an intent is `expired_unleased` or `outcome_unknown`.
 
 Likely cause: no lease before 1020 seconds, or a lease expired without an accepted completion.
 
-Verify: inspect `created_at`, `leased_at`, `lease_expires_at`, `reservation_released_at`, `fault_code`, and breaker sample fields.
+Verify: inspect `created_at`, `leased_at`, `lease_expires_at`, `reservation_released_at`, `fault_code`, breaker sample fields, and whether an accepted triage report exists. If no report was accepted, verify one exact episode `source_ref` and handoff phase `fallback_waiting_resolution`.
 
-Repair or rollback: fix the executor, transport, or backend before new admission. Reconcile unknown outcomes from the journal; never blind-retry a worker that may have run.
+Repair or rollback: fix the executor, transport, or backend before new admission. Reconcile unknown outcomes from the journal; never blind-retry a worker that may have run. Let the deterministic fallback provide the low-confidence operator surface while collection and snapshot publication continue.
 
-### No ticket
+### Fallback ticket absent
 
-Symptom: a completed triage has no linked support ticket.
+Symptom: an `outcome_unknown` or `expired_unleased` intent without an accepted report has no linked fallback ticket.
 
-Likely cause: missing `INTERNAL_API_KEY`, support API outage, invalid safe projection, or `create_unknown`.
+Likely cause: missing `INTERNAL_API_KEY`, support API outage, terminal `candidate_invalid`, or an unknown create outcome.
 
-Verify: read `ticket_handoff`, query exact `source_ref`, and inspect watcher logs for the safe error code.
+Verify: read `ticket_handoff`, prove phase `fallback_waiting_resolution` when a mutation was attempted, query the exact authoritative-episode `source_ref`, and inspect watcher logs for the safe error code.
 
 Repair or rollback: restore the named support identity or API, then let the next tick re-query and create only if the exact count is still zero. Collection and resolution remain live.
 
-### Duplicate tickets
+### Fallback ticket duplicated
 
-Symptom: exact `source_ref` reconciliation returns more than one ticket and records `duplicate_cardinality`.
+Symptom: exact authoritative-episode `source_ref` reconciliation returns more than one fallback ticket and records `duplicate_cardinality`.
 
 Likely cause: an earlier blind or concurrent create bypassed the single-ticket ladder.
 
@@ -413,11 +455,21 @@ Repair or rollback: restore the supported POSIX main-thread execution environmen
 
 Symptom: the canonical episode is resolved but its linked ticket remains open.
 
-Likely cause: `human_required=true`, incomplete provider resolution, support API outage, or `resolve_unknown`.
+Likely cause: `human_required` is not exactly boolean `false`, provider resolution is incomplete, the support API is unavailable, or the patch outcome is unknown.
 
-Verify: prove complete provider success, canonical `status='resolved'`, exact linked `public_ref`, ticket status, `human_required`, and ticket handoff phase.
+Verify: prove complete provider success, canonical `status='resolved'`, exact linked `public_ref`, ticket status, the stored type and value of `human_required`, and ticket handoff phase. Null, missing, string, number, malformed, and boolean `true` values must all park safe.
 
-Repair or rollback: leave human-required tickets open. Otherwise restore the support API and allow the next tick to reconcile the patch; do not close from worker text.
+Repair or rollback: correct the producer of an invalid `human_required` value; do not coerce it in the watcher. For exact boolean `false`, restore the support API and let the next tick reconcile the patch. Never close from worker text.
+
+### Lifecycle timestamp inconsistency
+
+Symptom: ticket status is `resolved` with null `resolved_at`, `closed` without both terminal timestamps, a reopened ticket retains terminal timestamps, or repeat terminal updates move timestamps.
+
+Likely cause: a caller bypassed the deployed central transition semantics, historical data predates PR #314, or an uncommon `closed` to `resolved` reversal needs a product-policy decision.
+
+Verify: run the ticket lifecycle query above and inspect status, `resolved_at`, `closed_at`, and optional `resolution_source` together. Compare the canonical `resolved_at` before proposing any repair.
+
+Repair or rollback: use the central update path for normal transitions. Historical repair requires separately authorized guarded SQL with an exact row predicate and expected count. Do not invent `resolution_source` or guess how `closed` to `resolved` should behave.
 
 ### needs_max
 
@@ -469,12 +521,22 @@ Verify: inspect the request field names and the intent's retained columns withou
 
 Repair or rollback: fix the caller to send legacy only, canonical only, or equal dual. Keep the tolerant backend deployed and never overwrite contradictory history or drop `turns`.
 
-### Canary episode does not resolve
+### EMERGENCY LOCAL FALLBACK banner
 
-Symptom: the canary failure exists after a newer success, or its ticket stays open.
+Symptom: ai.market shows `EMERGENCY LOCAL FALLBACK` and an operator suspects a shared gateway or database outage.
 
-Likely cause: success used a different workflow or ref, was not strictly newer, the observation is incomplete, the workflow was removed too early, or the ticket is human-required.
+Likely cause: the local connector process, configured path, or client route failed while the shared services remained healthy.
 
-Verify: compare stable numeric `workflow_id`, ref, failure and success `created_at`, complete observation, canonical status, exact ticket handoff, and `human_required`.
+Verify: independently inspect the local connector process and path, run `kd status`, issue a small read-only gateway command, and execute a read-only database `SELECT`. Do not infer one result from another.
 
-Repair or rollback: keep the workflow present, restore complete observation, and dispatch no additional run until the existing outcome is known. Resolve the current episode through a newer success on the same workflow. Remove the workflow only after canonical and eligible-ticket resolution, then wait for every removal-commit push workflow to turn green.
+Repair or rollback: repair the local client path only when gateway and database checks are healthy. If the database or true gateway is unreachable, stop production operations; never use local fallback as a production bypass.
+
+### Canary cleanup or recreation
+
+Symptom: workflow ID `345908153` still appears after cleanup, the removal merge workflows are not all green, or someone proposes reusing the deleted canary.
+
+Likely cause: PR #313 cleanup did not reach the inspected revision, the workflow cache or query is stale, or a new deliberate canary lacks fresh authorization and review.
+
+Verify: confirm `.github/workflows/issue-channel-canary.yml` is absent at current `main`, the workflow no longer exists, and runs `33326033562`, `33326033541`, `33326033578`, and `33326033569` are green. Preserve the completed canary's exact one-canonical, one-intent, one-ticket proof.
+
+Repair or rollback: do not recreate or dispatch the deleted workflow. A future deliberate canary requires fresh explicit authorization and a separately reviewed temporary workflow, followed by the same failure, newer-success, complete-observation, resolution, and cleanup sequence.

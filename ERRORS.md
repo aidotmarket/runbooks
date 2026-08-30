@@ -148,6 +148,10 @@
 
 - [Buyer Request Publication and Discovery](runbooks/buyer-request-publication-and-discovery.md)
 
+## `candidate_invalid`
+
+- [Issue Channel](issue-channel.md)
+
 ## `Cannot communicate with the ChatGPT browser extension`
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
@@ -375,6 +379,10 @@
 ## `fabricated_line_reference`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
+
+## `fallback_waiting_resolution`
+
+- [Issue Channel](issue-channel.md)
 
 ## `findings_count above zero but no finding text and no ticket refs`
 
@@ -671,6 +679,10 @@
 ## `operator does not exist: userstatus = character varying`
 
 - [Lifecycle Emails](runbooks/lifecycle-emails.md)
+
+## `outcome_unknown`
+
+- [Issue Channel](issue-channel.md)
 
 ## `over_escalation_to_max`
 
