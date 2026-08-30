@@ -173,7 +173,7 @@ Only after those facts are true should the same linked ticket with `human_requir
 
 ## Deployment order and rollback
 
-Backend integration PR #311 merged as `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` and is active in Railway deployment `8e99939f-aa07-48eb-bd6c-9259d16c7ea4`. The database Alembic head is `t2026_000727_provider_num_turns`, post-rollout provider-turn residue is zero, and the exact backend verification passed 117 tests.
+Backend integration PR #311 merged as `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` and was first deployed successfully in Railway deployment `8e99939f-aa07-48eb-bd6c-9259d16c7ea4`; that deployment is now superseded and removed. PR #311 is included in the current active backend deployment `b73fa943-ad43-4c65-8c75-29f609936094`. The database Alembic head is `t2026_000727_provider_num_turns`, post-rollout provider-turn residue is zero, and the exact backend verification passed 117 tests.
 
 The watcher base PR #207 merged as `b435068161f3dcaa9421c0c84e0a344b9c769490`; final canary hotfix PR #209 merged as `e26ebeffc2ccaf66a2f0cb6f5626f0271e8b4ccd`. Railway deployment `ff27a413-4bed-4656-bbcd-a984255fe177` is the active successful watcher. The exact issue-channel suite passed 425 tests and the final candidate received full CC, Kimi, and GLM approval.
 
@@ -286,7 +286,7 @@ WHERE sanitized_context -> 'admission' ->> 'episode_key'
       = 'aidotmarket/ai-market-backend|ci_failure|2026-08-30|2';
 
 SELECT public_ref,
-       source_ref,
+       payload->>'source_ref' AS source_ref,
        status,
        human_required,
        human_required IS FALSE AS auto_close_eligible,
@@ -299,7 +299,7 @@ SELECT public_ref,
          ELSE resolved_at IS NULL AND closed_at IS NULL
        END AS lifecycle_coherent
 FROM support_ticket
-WHERE source_ref = (
+WHERE payload->>'source_ref' = (
   SELECT sanitized_context -> 'ticket_handoff' ->> 'source_ref'
   FROM issue_channel.dispatch_intents
   WHERE id = '04275df4-bc5d-4de5-b844-81841d8b2003'
