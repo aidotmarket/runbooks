@@ -36,7 +36,7 @@ The live rule table is `config/issue_channel/dispatch_rules.yaml`:
 
 - Mode is `live` and the default action is `record_only`.
 - Only GitHub `ci_failure` for `aidotmarket/ai-market-backend` matches `ci-failure-main-single-repo-live-v1` and dispatches Codex.
-- `default-record-only-v1` remains the catch-all. All other observations are collected without worker dispatch.
+- `default-record-only-v1` is the GitHub record-only rule. The top-level `default_action: record_only` is the true catch-all, so every observation not matched for dispatch is collected without worker dispatch.
 - One run is capped at $3, 8 turns, and 600 seconds.
 - UTC-day caps are 4 dispatches and $12 measured cost.
 - The lease is 660 seconds. Queue TTL is 1020 seconds.
@@ -62,7 +62,7 @@ Before any support mutation, validate that the admission episode is nonempty, th
 
 ## Ticket lifecycle
 
-There is exactly one ops support ticket per canonical episode. Its `source_ref` is the stable SHA-256-derived reference for the `episode_key` under the fixed issue-channel ticket namespace. It does not include the automated-triage reason, so a changing reason cannot create a second ticket for the same episode.
+There is exactly one ops support ticket per canonical episode. Its `source_ref` is the stable SHA-256-derived reference for the `episode_key` under the fixed issue-channel ticket namespace. The implementation uses the fixed `AUTOMATED_TRIAGE_REASON` namespace label; no variable triage reason participates in the hash, so changing triage text cannot create a second ticket for the same episode.
 
 The watcher first journals ticket create or patch intent in `dispatch_intents.sanitized_context.ticket_handoff`, then calls the internal support API. It always reconciles by exact `source_ref`:
 
@@ -87,6 +87,10 @@ The central backend `update_support_ticket` operation owns lifecycle timestamps.
 ## Snapshot telemetry
 
 Snapshot `mode` is the actual dispatch-rule mode. `collection_mode` and `default_action` remain `record_only`. `action_counts` reports the current bounded watcher pass and separates support mutation attempts from admitted worker dispatches; it is not a historical total. `dispatch_spend` remains the separate admission and measured-spend view.
+
+The `github`, `railway`, and `cloudflare` entries under `sources` are independent provider-health observations. Diagnose each provider's `status`, `observation_complete`, resources, and error independently; one provider's result does not summarize or erase another provider's state.
+
+`sources.watcher` is different: it is a synthetic watcher-control failure marker, written fail-closed for current policy, table, meter, or admission-control failures. A later completed normal control-plane cycle removes only that exact stale synthetic marker. A current control failure preserves it. Partial or unavailable provider entries remain visible and must still be diagnosed separately; removal of `sources.watcher` does not make an unhealthy provider healthy.
 
 Daily admission caps and reservations use the intent `utc_day`, which is the admission day. Snapshot `completed_count` and completion-cost UTC-day metrics instead use `completed_at`, or `late_completion_at` for late completions. Around midnight, a bounded run admitted and reserved on one UTC day can complete and be reported on the next. Never use completion-day reporting as cap accounting: it can include prior-day admissions and exclude current-day reservations that have not completed.
 
@@ -118,10 +122,10 @@ gh workflow list --repo aidotmarket/ai-market-backend --all
 gh run list --repo aidotmarket/ai-market-backend --branch main --limit 30
 ```
 
-Read the safe local mirror. A healthy mirror is fresh, shows every source complete, and agrees with database status counts:
+Read the safe local mirror. A healthy normal cycle is fresh, agrees with database status counts, has provider keys `github`, `railway`, and `cloudflare` with each provider `status` equal to `ok` and `observation_complete` equal to `true`, and has no synthetic `watcher` marker. If `sources.watcher` is present, diagnose that control marker separately from the provider entries:
 
 ```sh
-jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,sources:(.snapshot.sources|map_values(.observation_complete)),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
+jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,source_keys:(.snapshot.sources|keys),sources:(.snapshot.sources|map_values({status,observation_complete,last_attempt,error_class})),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
 ```
 
 Read watcher deploys and logs in Railway, workflow definitions and runs in GitHub Actions, and the safe snapshot at the local mirror path above. Do not use worker output or the mirror alone as provider authority.
@@ -130,7 +134,7 @@ An ai.market `EMERGENCY LOCAL FALLBACK` banner alone can mean the local connecto
 
 ## Diagnose detection
 
-Start with the source entry in the mirror. Compare `expected_resources` with `observed_resources`, check `error_class`, and determine which provider read is incomplete. Then inspect the matching provider directly.
+Start with the source entry in the mirror. For `github`, `railway`, or `cloudflare`, compare `expected_resources` with `observed_resources`, check `error_class`, and determine which provider read is incomplete. Then inspect the matching provider directly. If the entry is the synthetic `watcher` marker, use its control-failure details and the stale-marker procedure under `When it breaks`; do not treat it as provider health.
 
 For a GitHub CI episode, enumerate active workflows and recent `main` runs. Confirm the workflow identity, conclusion, head branch, and timestamps. A successful read with no history is an observed `no_history` witness; a failed or untrusted read is incomplete.
 
@@ -175,7 +179,9 @@ Only after those facts are true should the same linked ticket with `human_requir
 
 Backend integration PR #311 merged as `e16f205fe59cd9c56fb4482e4b85e2e1f114c22e` and was first deployed successfully in Railway deployment `8e99939f-aa07-48eb-bd6c-9259d16c7ea4`; that deployment is now superseded and removed. PR #311 is included in the current active backend deployment `b73fa943-ad43-4c65-8c75-29f609936094`. The database Alembic head is `t2026_000727_provider_num_turns`, post-rollout provider-turn residue is zero, and the exact backend verification passed 117 tests.
 
-The watcher base PR #207 merged as `b435068161f3dcaa9421c0c84e0a344b9c769490`; final canary hotfix PR #209 merged as `e26ebeffc2ccaf66a2f0cb6f5626f0271e8b4ccd`. Railway deployment `ff27a413-4bed-4656-bbcd-a984255fe177` is the active successful watcher. The exact issue-channel suite passed 425 tests and the final candidate received full CC, Kimi, and GLM approval.
+The watcher base PR #207 merged as `b435068161f3dcaa9421c0c84e0a344b9c769490`; final canary hotfix PR #209 merged as `e26ebeffc2ccaf66a2f0cb6f5626f0271e8b4ccd`. Railway deployment `ff27a413-4bed-4656-bbcd-a984255fe177` was the prior successful watcher deployment and remains useful rollback history. Final watcher recovery PR #210 merged as `f8f9e9d654fdc4b4fece4f7b1940732b18a31c7a`; Railway deployment `78c6c0db-0ab6-4891-93ef-a53b2f89ca7c` is the active successful watcher deployment. Its candidate suite passed 431 tests, the focused regression passed 6 tests, main CI run `33329532859` was green, and the exact candidate received full CC, Kimi, and GLM approval with no HIGH or MEDIUM findings.
+
+The first post-deploy production snapshot was generated at `2026-08-30T18:59:00.526422Z`. Its source keys were exactly `cloudflare`, `github`, and `railway`, with no synthetic `watcher` marker; every provider had `status: ok` and `observation_complete: true`; and the breaker was closed. The canary's public safe-snapshot `issue_id` remained `iss_01M19DKMF3R7DD2JA1BHX8QZHQ`, with status `resolved` and `resolved_at` `2026-08-30T17:18:45.308170Z`.
 
 Support-ticket lifecycle PR #314 merged as `0610c160af8ee6c6ee0422eaccb687656ea0aafb` and is active in Railway deployment `b73fa943-ad43-4c65-8c75-29f609936094`. Its focused lifecycle tests passed 8 tests and the relevant support slice passed 64. Merge workflows were green: Role Authority Lint `33326601922`, Site Smoke `33326601911`, Gold Path `33326601925`, Alembic Guardrails `33326601895`, and Dependency Drift `33326601893`.
 
@@ -202,13 +208,13 @@ Do not disable email during dual coverage. Do not stop collection merely because
 
 ## Live canary and cleanup
 
-The authorized canary used stable workflow ID `345908153`. Failure run `33314116206` was created at `2026-08-30T13:24:57Z` and completed with the deliberate failure at `13:25:05Z`. It produced canonical issue `iss_01M19DKMF3R7DD2JA1BHX8QZHQ` for episode `aidotmarket/ai-market-backend|ci_failure|2026-08-30|2`.
+The authorized canary used stable workflow ID `345908153`. Failure run `33314116206` was created at `2026-08-30T13:24:57Z` and completed with the deliberate failure at `13:25:05Z`. It produced database `canonical_issues.id` UUID `f6c09dc9-87f3-4673-90dc-49eddb50b198` and public safe-snapshot `issue_id` `iss_01M19DKMF3R7DD2JA1BHX8QZHQ` for episode `aidotmarket/ai-market-backend|ci_failure|2026-08-30|2`. Use the UUID for database identity and the `iss_...` value only for public snapshot lookup.
 
 The episode admitted exactly one intent, `04275df4-bc5d-4de5-b844-81841d8b2003`. It ended `outcome_unknown`; the breaker sample was `failed`; and the journal recorded `lease_expiry`. Before any lease, the watcher performed the guarded authoritative-episode repair. The deployed fallback then created exactly one ops ticket, `T-2026-000731`, with `human_required=false` and phase `fallback_waiting_resolution`.
 
 Newer same-workflow `main` run `33324876164` was created at `2026-08-30T17:18:11Z` and completed successfully at `17:18:20Z`. The complete watcher observation at `2026-08-30T17:18:52.390720Z` resolved the canonical episode and ticket and advanced the handoff to `resolved_complete`. Later database proof still showed exactly one canonical issue, one intent, and one ticket. Email remained enabled throughout.
 
-Production proof exposed a pre-existing central-backend inconsistency: ticket status was `resolved` while `resolved_at` was null. After full Council review and the PR #314 deployment above, exact canary ticket `T-2026-000731` was repaired once with guarded SQL using canonical `resolved_at` `2026-08-30T17:18:45.30817Z`. Exactly one row changed, and `resolution_source` intentionally remains null.
+Production proof exposed a pre-existing central-backend inconsistency: ticket status was `resolved` while `resolved_at` was null. After full Council review and the PR #314 deployment above, exact canary ticket `T-2026-000731` was repaired once with guarded SQL using canonical `resolved_at` `2026-08-30T17:18:45.308170Z`. Exactly one row changed, and `resolution_source` intentionally remains null.
 
 Cleanup PR #313 merged as `5eb4d992b4b253c048ac03a6b0962febb0fcd437` and removed only `.github/workflows/issue-channel-canary.yml`. All merge workflows were green: Site Smoke `33326033562`, Dependency Drift `33326033541`, Alembic Guardrails `33326033578`, and Gold Path `33326033569`. The workflow no longer exists.
 
@@ -306,7 +312,7 @@ WHERE payload->>'source_ref' = (
 );
 ```
 
-Each query must return exactly one row and the IDs must be `iss_01M19DKMF3R7DD2JA1BHX8QZHQ`, `04275df4-bc5d-4de5-b844-81841d8b2003`, and `T-2026-000731`. A resolved or closed ticket needs the corresponding server timestamp; a reopened nonterminal ticket needs both lifecycle timestamps cleared. Treat `resolution_source` as optional and do not backfill or invent it merely because it is null.
+Each query must return exactly one row. The database `canonical_issues.id` must be UUID `f6c09dc9-87f3-4673-90dc-49eddb50b198`, the intent ID must be `04275df4-bc5d-4de5-b844-81841d8b2003`, and the ticket `public_ref` must be `T-2026-000731`. A safe-snapshot lookup instead uses public `issue_id` `iss_01M19DKMF3R7DD2JA1BHX8QZHQ`; never substitute it for the database UUID. A resolved or closed ticket needs the corresponding server timestamp; a reopened nonterminal ticket needs both lifecycle timestamps cleared. Treat `resolution_source` as optional and do not backfill or invent it merely because it is null.
 
 Completion-day measured spend in UTC:
 
@@ -501,6 +507,16 @@ Verify: compare mirror `generated_at`, Railway deployment time, watcher logs, qu
 
 Repair or rollback: restore the failing watcher or mirror component and wait for a fresh complete snapshot. Do not treat a stale mirror as provider authority.
 
+### Stale sources.watcher marker
+
+Symptom: fresh provider observations are healthy, but the snapshot still contains a synthetic `sources.watcher` control-failure marker.
+
+Likely cause: the marker is current because policy, table, meter, or admission control is still failing; the fixed watcher has not completed a later normal control-plane cycle; or stale-marker cleanup regressed.
+
+Verify: compare the marker's `last_attempt` with fresh provider observation times and Railway deployment `78c6c0db-0ab6-4891-93ef-a53b2f89ca7c`, then inspect current `issue-channel-watcher` logs. Provider partial or unavailable entries remain separate evidence and must be diagnosed even if the synthetic marker clears.
+
+Repair or rollback: restore the current control failure and let a normal cycle remove only the exact stale synthetic marker. If a completed normal cycle occurred on the fixed deployment and the marker persists, treat it as a regression and rollback candidate. Never delete, hand-edit, or otherwise rewrite snapshot health.
+
 ### Missing INTERNAL_API_KEY
 
 Symptom: support ticket list, create, get, or patch fails authentication while provider state still advances.
@@ -525,9 +541,9 @@ Repair or rollback: fix the caller to send legacy only, canonical only, or equal
 
 Symptom: ai.market shows `EMERGENCY LOCAL FALLBACK` and an operator suspects a shared gateway or database outage.
 
-Likely cause: the local connector process, configured path, or client route failed while the shared services remained healthy.
+Likely cause: the local connector process, configured path, or client route failed while the shared services remained healthy. In the reproduced case, a nested fallback shell could not find `rtk`, while authoritative ai.market calls remained reachable.
 
-Verify: independently inspect the local connector process and path, run `kd status`, issue a small read-only gateway command, and execute a read-only database `SELECT`. Do not infer one result from another.
+Verify: inspect the local connector environment and stderr first, including its effective `PATH` and whether the configured command can find `rtk`. Independently inspect the connector process and path, run `kd status`, issue a small read-only authoritative ai.market gateway command, and execute a read-only database `SELECT`. The banner alone does not prove gateway outage; do not infer one result from another.
 
 Repair or rollback: repair the local client path only when gateway and database checks are healthy. If the database or true gateway is unreachable, stop production operations; never use local fallback as a production bypass.
 
