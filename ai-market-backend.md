@@ -2,7 +2,9 @@
 title: ai-market-backend — Central Platform API
 owner: unassigned
 last_verified: '2026-08-27'
-aliases: []
+aliases:
+- Railway backend deployment
+- FastAPI production API
 error_signatures: []
 ---
 

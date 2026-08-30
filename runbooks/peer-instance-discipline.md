@@ -27,7 +27,7 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Independent instance open/plan/close surface | SHIPPED | `connected kd_session_open, kd_session_plan, and kd_session_close schemas` | Exact connected-schema plus read-only gateway-health probes | 2026-07-31 |
-| Commit-bound runbook index at open | SHIPPED | boot envelope `index_ref` | Fail-closed checkout and INDEX.md validation | 2026-08-30 |
+| Commit-bound runbook index when boot-kernel mode is on or a shadow lease is consumed | SHIPPED | boot envelope `index_ref` | Fail-closed checkout and INDEX.md validation | 2026-08-30 |
 | Direct Markdown lookup | SHIPPED | `INDEX.md`, `ERRORS.md`, allAI search | Runbook search tests plus authenticated docs proof | 2026-08-30 |
 | Peer message bus | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_send` | Manual drain verified S835 | 2026-06-16 |
 | Peer bus inbox drain | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_inbox` | Manual drain verified S835 | 2026-06-16 |
@@ -40,7 +40,7 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Peer Instance | `kd_session_open(instance=vulcan or mars)` | `registry.db` instance rows, per-instance handoff | Living State, shell, git, Council dispatch | Either instance may open first, plan independently, work any item, and close independently. |
-| Runbook Lookup | Boot envelope plus direct Markdown search | Installed runbooks checkout at a validated commit | `INDEX.md`, `ERRORS.md`, allAI search | Read the relevant page and heading; no caller-authored admission evidence is required. |
+| Runbook Lookup | Conditional boot envelope plus direct Markdown search | Installed runbooks checkout; commit validation when boot-kernel mode is on or a shadow lease is consumed | `INDEX.md`, `ERRORS.md`, allAI search | Read the relevant page and heading; no caller-authored admission evidence is required. |
 | Close Boundary | Connected `kd_session_close` schema and close-status surface | Instance-scoped close transaction | Repository and handoff state | Update a runbook only when the operating procedure changed; documentation is not a close gate. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages keyed by recipient, sender, kind, and ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
@@ -66,7 +66,8 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 
 ### First action after `kd_session_open`
 
-Confirm the boot envelope carries a commit-bound `INDEX.md` reference. Use
+When boot-kernel mode is on or a shadow lease is consumed, confirm the boot
+envelope carries a commit-bound `INDEX.md` reference. Regardless of mode, use
 `INDEX.md`, `ERRORS.md`, or allAI search to find the relevant page, then read the
 actual heading before planning. The caller does not submit proof-of-reading data.
 At close, correct a page only if the operating procedure changed; never create

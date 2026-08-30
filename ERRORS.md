@@ -4,6 +4,10 @@
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
 
+## `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED`
+
+- [GCP Auth](gcp-auth.md)
+
 ## `403`
 
 - [CRM](runbooks/crm.md)
@@ -56,6 +60,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `alerts unavailable`
+
+- [Alerts at session open (S1529)](runbooks/alerts-at-open.md)
+
 ## `any non-APPROVE-class verdict`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
@@ -95,6 +103,10 @@
 ## `boot-contract test failure on the marker text`
 
 - [Max Reporting — the End-of-Round Summary Discipline](max-reporting.md)
+
+## `BOOT_NON_TRUNCATABLE_OVER_BUDGET`
+
+- [Session Open Protocol](session-open-protocol.md)
 
 ## `bootout_without_plist_patch`
 
@@ -546,7 +558,6 @@
 
 ## `minimal_bridge_repo_unresolved`
 
-- [Builder Controls](runbooks/builder-controls.md)
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
 ## `missing / malformed / model-mismatched verdict`
@@ -685,6 +696,10 @@
 
 - [CRM](runbooks/crm.md)
 
+## `PLANNING_GATE`
+
+- [Session Open Protocol](session-open-protocol.md)
+
 ## `policy_kernel_enforcement_setting_invalid`
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
@@ -753,9 +768,17 @@
 
 - [Issue Channel (infrastructure failure channel)](issue-channel.md)
 
+## `Reauthentication failed`
+
+- [GCP Auth](gcp-auth.md)
+
 ## `recording manifest or artifact refusal before Playwright launch`
 
 - [E2E Browser Runner](e2e-browser-runner.md)
+
+## `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login`
+
+- [GCP Auth](gcp-auth.md)
 
 ## `relation "crm_entities" does not exist`
 

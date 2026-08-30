@@ -29,7 +29,7 @@ The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves 
 **Deploy directory (NOT a git repo):** `/Users/max/aim-data` — holds `docker-compose.aim-data.yml`, `.env` (secrets + `AIM_DATA_VERSION`), `import/`, and the `aim-data-data` Docker volume. These two directories are easy to confuse; the source code is NOT under `/Users/max/aim-data`.
 **Container image:** `ghcr.io/aidotmarket/aim-data` — published as `:latest` and version-tagged (e.g. `aim-data-v1.20.53`)
 **Customer install guide:** `docs/INSTALL.md` in the repo
-**Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
+**Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — the release path is the standalone `aidotmarket/aim-data` repository.
 
 ## Overview
 
@@ -327,7 +327,7 @@ Concrete items pending follow-up builds. Each is a real customer-facing risk if 
 
 - **~~INSTALL.md `ANTHROPIC_API_KEY` drift~~ DONE 2026-05-27.** Both the prerequisites section and the env-var block in `docs/INSTALL.md` no longer mention `ANTHROPIC_API_KEY`. The env-var block was replaced with a short note that the embedded assistant routes through the ai.market proxy, with cleanup guidance for customers who have an older `.env`. Commits `34a559b` and `4d16186` on `aidotmarket/aim-data`.
 
-- **Release runbook still references the old monorepo.** `aim-data-release-process.md` says the repo is `aidotmarket/vectoraiz`. The release script `release-aim-data.sh` does live in the monorepo (canonical at `/Users/max/Projects/vectoraiz/vectoraiz-monorepo/scripts/`), but the AIM Data product repo is now `aidotmarket/aim-data`. Update the release runbook to reflect both paths.
+- **~~Release runbook references the old monorepo~~ DONE 2026-08-30.** `aim-data-release-process.md` correctly routes releases through `/Users/max/Projects/ai-market/aim-data` and `aidotmarket/aim-data`; the former vectorAIz monorepo path is retired for AIM Data releases.
 
 ### Known unfixed product bugs (from TROUBLESHOOTING.md)
 

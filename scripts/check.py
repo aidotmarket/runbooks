@@ -41,8 +41,30 @@ def check_page(path: Path, root: Path = ROOT) -> list[str]:
     return errors
 
 
+def check_signature_uniqueness(root: Path = ROOT) -> list[str]:
+    destinations: dict[str, list[str]] = {}
+    for path in corpus_paths(root):
+        try:
+            header, _body = read_page(path)
+        except ValueError:
+            continue
+        for signature in header.get("error_signatures", []):
+            if isinstance(signature, str):
+                destinations.setdefault(signature, []).append(
+                    path.relative_to(root).as_posix()
+                )
+    return [
+        f"duplicate error_signature {signature!r}: {', '.join(paths)}"
+        for signature, paths in sorted(
+            destinations.items(), key=lambda item: item[0].casefold()
+        )
+        if len(paths) > 1
+    ]
+
+
 def main(root: Path = ROOT) -> int:
     errors = [error for path in corpus_paths(root) for error in check_page(path, root)]
+    errors.extend(check_signature_uniqueness(root))
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1

@@ -62,7 +62,7 @@ def test_index_output_is_deterministic(tmp_path: Path) -> None:
     assert first[0].index("## Alpha") < first[0].index("## Zeta")
 
 
-def test_duplicate_signature_lists_every_destination(tmp_path: Path) -> None:
+def test_duplicate_signature_is_rendered_but_rejected_by_checker(tmp_path: Path) -> None:
     write(tmp_path, "one.md", page("One", "same failure"))
     write(tmp_path, "runbooks/two.md", page("Two", "same failure"))
 
@@ -71,6 +71,9 @@ def test_duplicate_signature_lists_every_destination(tmp_path: Path) -> None:
     assert errors.count("## `same failure`") == 1
     assert "(one.md)" in errors
     assert "(runbooks/two.md)" in errors
+    assert check.check_signature_uniqueness(tmp_path) == [
+        "duplicate error_signature 'same failure': one.md, runbooks/two.md"
+    ]
 
 
 def test_malformed_header_fails(tmp_path: Path) -> None:

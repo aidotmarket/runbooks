@@ -1,6 +1,6 @@
 # Plan: make the runbooks findable, editable, and trusted — by removing what makes them hard
 
-Author: Mars, S1635 (2026-08-29). Status: PROPOSAL for Max to assign. No implementation started.
+Author: Mars, S1635 (2026-08-29). Status: COMPLETED in S1638 and independently verified in S1642.
 
 ## 1. Why this has been hard (ground truth, not opinion)
 
