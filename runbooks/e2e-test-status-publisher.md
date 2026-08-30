@@ -384,4 +384,4 @@ first_staleness_detected_at: "2026-07-22T22:09:30.726062+00:00"
 ```
 
 Refresh log:
-- S1315 (2026-07-22): first authoring, against the c6 v1 publisher shipped S1314 (e2e-harness main `ed33a10`) and the live record `run-20260722T194244Z-dd2f4034` (opens honestly 0/30). Discharges the S1314 e2e Test-page / coverage-manifest / status-publisher runbook debt.
+- S1315 (2026-07-22): first authoring, against the c6 v1 publisher shipped S1314 (e2e-harness main `ed33a10`) and the live record `run-20260722T194244Z-dd2f4034` (opens honestly 0/30). This filled the S1314 Test-page, coverage-manifest, and status-publisher documentation gaps.

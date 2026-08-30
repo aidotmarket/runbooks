@@ -227,7 +227,7 @@ failed verification are indistinguishable at the reader.
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
 | Updated | S1606, 2026-08-25 — recorded the final merged/deployed allow-list and isolated live proof for `BQ-PROFILE-UPDATE-MASS-ASSIGNMENT-S1604` |
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
-| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); H.3 catalog debt discharged |
-| Updated | S1483, 2026-08-08, vulcan — H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); H.3 catalog debt recorded |
+| Updated | S1529, 2026-08-11, mars — moved to the `runbooks/` canonical path; this historical move predates the simplified `INDEX.md` discovery model |
+| Updated | S1483, 2026-08-08, vulcan — H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); documentation location was still pending at that point |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |

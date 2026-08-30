@@ -337,7 +337,7 @@
 - Path: `codex-mp.md`
 - Purpose: **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/Kimi/GLM — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path (S1213/CORE 9.8 supersedes the S1148 MP-vs-CC build split for code work; CC's role is gate voting via its read-only review path). MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-08-20`
+- Last verified: `2026-08-30`
 - Aliases: none
 - Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
 - Status: current
@@ -499,7 +499,7 @@
 - Path: `dev-tickets.md`
 - Purpose: Owner: both instances. Scope: dev-class support tickets (T-YYYY-NNNNNN) — issues in existing systems. Created S1164 discharging debts S1164-D1/D2/D3. Not for BQs (new development) or customer tickets.
 - Owner: `both instances`
-- Last verified: `2026-07-15`
+- Last verified: `2026-08-30`
 - Aliases: none
 - Error signatures: none
 - Status: current

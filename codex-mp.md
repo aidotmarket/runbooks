@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-08-20'
+last_verified: '2026-08-30'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -37,7 +37,7 @@ error_signatures:
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Council dispatch handler | tools/agents.py:_handle_call_mp | task meta/output files under /var/tmp/koskadeux/; Event Ledger (review verdicts per agent-dispatch.md §S) | Koskadeux gateway (council_request tool), runbook gate (tools/runbook_ref.py), structural middleware | Routes mode=build/review/author/open_response; applies runbook-refs gate before dispatch (BLOCK mode since S1150). |
+| Council dispatch handler | tools/agents.py:_handle_call_mp | task meta/output files under /var/tmp/koskadeux/; Event Ledger (review verdicts per agent-dispatch.md §S) | Koskadeux gateway (council_request tool), direct Markdown lookup through `INDEX.md`/`ERRORS.md`, structural middleware | Routes mode=build/review/author/open_response. Read the relevant Markdown directly before dispatch; no runbook admission field is required. |
 | Codex CLI bridge | codex_cli_bridge.py:run_codex_cli | CODEX_LOCK_FILE /var/tmp/koskadeux/codex_cli.lock (fcntl) | Codex CLI binary (codex exec) | Streaming path dispatch_codex_cli_streaming is production; nonstreaming legacy retained. OS-level timeout backstop from MP_HARD_UPPER_BOUND_S; progress-stall abort at MP_PROGRESS_WINDOW_S. Legacy dispatch_codex_cli (~L899) still contains a dead hardcoded `timeout 600` wrapper — zero live callers, remove on next bridge cleanup. |
 | Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.6-sol" (frontier-only policy; S1200 per Max directive, T-2026-000197). **The served string is `gpt-5.6-sol` — NOT `gpt-5.6`, NOT `gpt-5.6-codex`; both 400 on our ChatGPT account tier.** Two surfaces must agree: this file AND koskadeux-mcp/.env `MP_MODEL` (the bridge passes `-m MODEL` from the env explicitly). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.3. |
 | Structural middleware (§O) | council_dispatch_middleware/ | builder-output manifests | ci_verification.py pre-push gate, SchemaRepair | Fires only when caller passes dispatch_class=structural. Terminal state push_failed is a DESIGNED guardrail: verified commit preserved, instance reviews then merges with KD_ALLOW_MAIN_PUSH=1 (S1150). |
@@ -268,7 +268,7 @@ error_signatures:
 - Builder ≠ reviewer, always. Auth/security/customer-data/money changes require unanimous Council.
 - Frontier-only model policy: MP runs exactly ONE configured model, the current OpenAI frontier (Max S516). No fallback tiers in production dispatch.
 - Spec-grounded dispatches reference the committed spec path @ pinned SHA (agent-dispatch.md §T); never paste long specs inline.
-- Gates are never bypassed with break_glass; the runbook gate's attestation/debt mechanism is the only sanctioned "no runbook" path.
+- Council and CI safeguards are never bypassed with `break_glass`. Runbook context is obtained by reading the relevant Markdown directly; missing or stale guidance is corrected as documentation, not converted into an attestation, debt, or admission decision.
 - One Codex CLI at a time (fcntl mutex) — do not remove the lock to "parallelize".
 - Model telemetry is EVIDENCE, not a label (S1205, T-2026-000243). `model_actual` is read back from the Codex rollout file and `model_matched` is a real comparison that fails CLOSED — false whenever the dispatch failed or the rollout is missing, unparseable, ambiguous, or disagrees with the CLI banner. Never restore a hardcoded default of true, and never add a bypass env var: an evidence gap must read as a failure, not a pass. The honest limit: the rollout records the model we REQUESTED. Combined with the fact that an unsupported model is a hard 400 with no substitution, requested == served for any turn that COMPLETES. Do not overclaim it as a server attestation.
 - The expected model for every Council member is sourced from Living State `infra:council-comms` → `body.model_policy.agent_frontier_models`. The hardcoded dict in council_gate_runner.py is a last-resort fallback that logs CRITICAL when it fires. Add new members to the registry, not to the dict.
@@ -278,7 +278,7 @@ error_signatures:
 ### H.2 BREAKING predicates
 
 - Changes the council_request tool contract for agent=mp (argument names/shapes) without a shim.
-- Removes or weakens the runbook-refs gate, the CI verification gate, or the builder≠reviewer rule.
+- Removes or weakens the CI verification safeguard or the builder≠reviewer rule.
 - Changes the mutex/serialization semantics of the Codex CLI bridge.
 
 ### H.3 REVIEW predicates
@@ -413,7 +413,7 @@ refresh_triggers:
   - model swap (T-2026-000197 gpt-5.6 and any successor)
   - any change to codex_cli_bridge.py, _handle_call_mp, or the structural middleware
   - any new MP failure signature observed in production (add When it breaks/Repair rows same session)
-  - runbook-gate semantics change (BQ-RUNBOOK-FIRST-ENFORCEMENT follow-ups)
+  - runbook lookup or dispatch-context behavior changes
 scheduled_cadence: 90d
 first_staleness_detected_at: null
 ```

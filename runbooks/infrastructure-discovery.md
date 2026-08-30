@@ -178,15 +178,15 @@ Explanatory examples are safe when they contain no live locator or secret value.
 
 #### module
 
-The registry entity, this cataloged runbook, and the inward discovery endpoint generator.
+The registry entity, this indexed Markdown page, and the inward discovery endpoint generator.
 
 #### public contract
 
-Only the runbook id is public catalog metadata; the inward endpoint remains internal.
+Only the page id is public index metadata; the inward endpoint remains internal.
 
 #### runtime dependency
 
-Living State, runbook catalog resolution, internal backend authentication, and SysAdmin ownership.
+Living State, `INDEX.md` lookup, internal backend authentication, and SysAdmin ownership.
 
 #### config default
 

@@ -1,7 +1,7 @@
 ---
 title: Dev Trouble-Ticket Lifecycle Runbook
 owner: both instances
-last_verified: '2026-07-15'
+last_verified: '2026-08-30'
 aliases: []
 error_signatures: []
 ---
@@ -24,7 +24,7 @@ Owner: both instances. Scope: dev-class support tickets (T-YYYY-NNNNNN) — issu
 A ticket is a lead, not a spec. Absence of a current symptom is evidence to investigate resolution or supersession, not permission to close without checking the underlying claim. `resolved` still requires live verification under How to operate.
 
 ## Architecture & interactions
-Trouble-ticket-class fixes route to MP (Codex) or CC — never instance-authored beyond trivial mechanical pre-merge fixes (e.g. migration re-parent). Dispatch `council_request mode=build` with: verified root cause at file:line, required fix, explicit scope bounds, test requirements, branch name, "push, do NOT merge". Runbook refs required by the gate. This applies to koskadeux-mcp self-fixes too (e.g. the S1164 close-gate fix): same build path, same review; the only extra step is that koskadeux-mcp code changes go live on gateway kickstart at a session boundary, never mid-session.
+Trouble-ticket-class fixes route to MP (Codex) or CC — never instance-authored beyond trivial mechanical pre-merge fixes (e.g. migration re-parent). Before dispatch, read the relevant Markdown directly through `INDEX.md`, `ERRORS.md`, or allAI search. Dispatch `council_request mode=build` with: verified root cause at file:line, required fix, explicit scope bounds, test requirements, branch name, "push, do NOT merge". No caller-supplied runbook field is required. This applies to koskadeux-mcp self-fixes too (e.g. the S1164 session-close fix): same build path, same review; the only extra step is that koskadeux-mcp code changes go live on gateway kickstart at a session boundary, never mid-session.
 
 ## Agent capabilities
 Reviewer ≠ builder, minimum one round scaled by risk (Design Charter). KNOWN GAP T-2026-000206: review-mode base/dispatch_sha does NOT inline diffs to DS/GLM — inline the diff manually in the task text, or use AG. Merge with `KD_ALLOW_MAIN_PUSH=1` after conflict-check; backend merges: run `alembic heads` on the branch first (single head or the deploy fails).

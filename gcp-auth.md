@@ -387,7 +387,7 @@ scenario_set:
 
 ## Maintenance
 
-Lifecycle metadata records the Gate 2 conformance refresh state for this runbook.
+Lifecycle metadata records this page's most recent operational refresh.
 
 ```yaml lifecycle
 last_refresh_session: S1606
