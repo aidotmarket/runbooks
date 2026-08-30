@@ -496,23 +496,23 @@ This runbook is acceptable when:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 AIM Data sends listing metadata, never raw customer data. The provisioning exception is signed-VZ, exact-denial, fresh-create, and seller/source scoped. It grants no purchase, payout, settlement, update, or republish authority.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing VZ signature, Redis replay, install binding, seller identity, active-seller controls, the existing-listing denial, or raw-data locality is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to publish JWT claims, seller readiness semantics, seller/source identity, advisory-lock scope, listing side effects, or post-publish onboarding routing.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Copy and documentation changes are safe only when they preserve the exact create-only exception and all blocked capabilities.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -530,7 +530,7 @@ Publication depends on the registered VZ install, Ed25519 key, Redis replay/rate
 
 No configuration flag widens the exception. Missing signing, replay, durable readiness, or identity state fails closed.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Any request to extend the exception beyond the exact fresh-create case is a security-control change requiring separate scope, review, focused tests, deployment proof, and customer verification.
 

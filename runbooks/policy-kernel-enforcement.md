@@ -318,7 +318,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Only exact `off` and `on` switch values are valid; invalid configuration fails closed.
 - When enforcement is on, `not_evaluable` never allows.
@@ -327,7 +327,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - A handler restart is forbidden while any task metadata lacks its matching `.done`.
 - Deployment proof binds handler start time to checkout state and never relies on `deployed_sha`.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Allowing a kernel `not_evaluable` status is BREAKING.
 - Moving the `break_glass` check behind any enforcement point is BREAKING.
@@ -335,7 +335,7 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - Restarting the handler without protecting in-flight dispatches is BREAKING.
 - Changing the enforcement decision from kernel-authoritative back to a mixed or implicit path is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing the committed switch default is REVIEW.
 - Expanding preflight beyond the known sentinel-lease divergence is REVIEW.
@@ -343,13 +343,13 @@ Record the SHA before kickstart and the PID/start time after kickstart. Do not r
 - Changing the refusal marker fields, level, or process-counter semantics is REVIEW.
 - Adding durable dispatch recovery across handler restart is REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Clarifying incident commands is SAFE when switch, decision, alert, and restart semantics do not change.
 - Adding a verified example of a refused incomplete request is SAFE.
 - Correcting dates, paths, or source references is SAFE when grounded in current code and deployment evidence.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -367,7 +367,7 @@ A runtime dependency is `/Users/max/koskadeux-mcp/.env`, the `com.koskadeux.mcp`
 
 The config default is the literal string `off` in `COUNCIL_GATE_POLICY_KERNEL_ENFORCEMENT_DEFAULT`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Use the more restrictive class when classifications differ. Max adjudicates changes to fail-closed behavior, break-glass ordering, live enablement, or restart safety.
 

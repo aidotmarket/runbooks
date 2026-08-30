@@ -124,7 +124,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
       cause: route disabled (404), missing or wrong internal API key (401/403), rate limited (429 - the route is throttled 30/60s and fails closed if Redis is unreachable), account not allowlisted, or not an is_test account (When it breaks-03)
     - signature: 'Production targeting refused: E2E_INTERNAL_API_KEY is required for preflight'
       cause: the harness has no internal key; it refuses before opening a browser and before any network call (When it breaks-03)
-  next_step_success: proceed; remember that a mutating journey writes real rows and must tag/manifest them (Changes and maintenance.1)
+  next_step_success: proceed; remember that a mutating journey writes real rows and must tag/manifest them (H.1)
   next_step_failure: do NOT relax the guard; fix the account or the route (Repair-03)
 - id: E-03
   trigger: Investigating what a browser run actually did
@@ -328,7 +328,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **The anonymous walk writes nothing.** No sign-in, no account, no cookie loaded, no storage state saved, no production row created. This includes COUNTERS: the walk must never move a real seller's `view_count` or featured metrics. That holds only because the browser identifies itself with the `ai-market-e2e-harness` token and the backend suppresses counter and telemetry writes for that actor (T-2026-000242, S1202). It was NOT true between S1196 and S1202.
 - **The production URL comes from config, always.** No hardcoded host may reappear; when it is unset the runner refuses.
@@ -341,16 +341,16 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - **The browser never presses pay on production** while `E2E_PAYMENT_ISOLATION_VERIFIED` is unset. That flag is set only once the Stripe sandbox order router (`build:bq-stripe-sandbox-order-router-s1196`, money path, unanimous Council plus Max GO) is live and verified.
 - **A mutating journey tags and manifests every row it creates** (Max Ruling 1, S1194), so a future reset has an exact target list rather than a re-derivation guess.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing or widening the production guard, or letting a journey reach production without the targeting flag outside the three-condition anonymous exemption.
 - Persisting an artifact format the redactor cannot actually scan, or removing the withholding of screenshots/zips before zip-aware redaction exists.
-- Allowing a browser journey to authenticate, mutate production, or transact without the gates in Changes and maintenance.1.
+- Allowing a browser journey to authenticate, mutate production, or transact without the gates in H.1.
 - Reintroducing a hardcoded production host, or making the missing-config case fall through instead of refusing.
 - Making `harness_error` outcomes file product tickets.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Adding a new charter mode (recorded replay, agentic re-walk) or changing the step/timeout/cost caps.
@@ -358,13 +358,13 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the failure-signature composition used for ticket dedup.
 - Adding the live Codex agent loop that drives the browser.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - New public-page assertions on the anonymous walk; test additions; README and documentation.
 - Selector or timeout tuning that does not change what is persisted or which guard applies.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -382,9 +382,9 @@ The `browser_journey` charter shape (`kind`, `account_id`, `params.mode`, `param
 
 Environment variables read in `config.py`: `E2E_PROD_FRONTEND_URL`, `E2E_PROD_TARGETING_ENABLED`, `E2E_HARNESS_ROOT`, artifact/report/retention paths and windows.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything touching authentication, production mutation or the money path escalates to Max; the ruling is added to Changes and maintenance.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything touching authentication, production mutation or the money path escalates to Max; the ruling is added to H.1 as a clarification.
 
 ## Acceptance criteria
 
@@ -456,7 +456,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-09
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A proposed change lets any browser_journey without account ids skip the production targeting flag. Classify.
     expected_answers:
       - kind: classification
@@ -464,7 +464,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-10
     type: evolve
-    refs: [Changes and maintenance.3]
+    refs: [H.3]
     scenario: A proposed change implements zip-aware trace redaction so traces can be persisted. Classify.
     expected_answers:
       - kind: classification

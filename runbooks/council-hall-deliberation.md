@@ -205,7 +205,7 @@ The capability map reports role boundaries; it is not a participant-selection so
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Independent assessment must happen before any participant sees another participant's answer.
 - Cross-pollination must use a bundle that contains every eligible independent assessment exactly once.
@@ -215,14 +215,14 @@ The capability map reports role boundaries; it is not a participant-selection so
 - Gate voter constants are not Hall participant defaults and must not be used to reconstruct a Hall session.
 - Cross-pollination is capped at 4 rounds; persistent no-consensus after round 4 escalates to Max and does not loop further.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing the independent phase is BREAKING because it destroys the anti-anchoring property of the Hall.
 - Changing deployed `VALID_AGENTS`, `DEFAULT_AGENTS`, start-bound membership, or quorum semantics without a Council config review is BREAKING.
 - Enabling write-mode during Hall deliberation for a session participant is BREAKING because deliberation is read-oriented.
 - Dispatching a paused or retired member without explicit current authorization is BREAKING because role and reliability assumptions change.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new agent to deployed Hall `VALID_AGENTS` or `DEFAULT_AGENTS` requires REVIEW.
 - Changing a configured Hall participant's model frontier requires REVIEW.
@@ -230,14 +230,14 @@ The capability map reports role boundaries; it is not a participant-selection so
 - Increasing the per-dispatch cost cap for deliberation requires REVIEW when it changes who may be included by default.
 - Replacing `mode=open_response` with another open-ended response contract requires REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Editing prompt examples is SAFE when the neutral-prompt invariant and required output fields remain intact.
 - Adding a symptom row or repair pattern is SAFE when existing IDs and component names remain stable.
 - Tightening synthesis formatting is SAFE when the decision record shape does not change.
 - Increasing a timeout for the same participant set is SAFE when cost cap and quorum policy do not change.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -255,7 +255,7 @@ A runtime dependency is any agent backend, MCP gateway endpoint, Living State st
 
 A config default is a deployed `council_hall.py` participant/quorum default or a model frontier, cost cap, timeout, or retired-agent policy read from its actual owning source. Do not infer a Hall participant default from `infra:council-comms` unless that entity gains and documents such a field.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When two agents classify a Hall change differently, use the more restrictive class. Max resolves changes that affect membership, auth scope, money/security behavior, quorum policy, or final decision authority.
 
@@ -396,7 +396,7 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-12
     type: evolve
-    refs: [Changes and maintenance, Changes and maintenance.2, Changes and maintenance.3]
+    refs: [Changes and maintenance, H.2, H.3]
     scenario: |
       id: H-01. trigger: A proposal adds another participant to deployed Hall VALID_AGENTS or DEFAULT_AGENTS. pre_conditions: current deployed constants, proposed values, quorum math, cost cap, auth scope, and gateway code patch are available. tool_or_endpoint: council_hall.py configuration patch plus runbook update. argument_sourcing: current values from the deployed source/receipt rather than Living State inference; new role from proposal; quorum and escalation effects from Changes and maintenance invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because accepted/default membership and consensus math change. expected_failures: calling it SAFE because the backend already appears in a capability inventory. next_step_success: review and deploy the gateway configuration before starting a Hall with the new selection. next_step_failure: continue using the verified deployed behavior, never a roster copied from this scenario.
     expected_answers:
@@ -405,7 +405,7 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-13
     type: evolve
-    refs: [Changes and maintenance, Changes and maintenance.3]
+    refs: [Changes and maintenance, H.3]
     scenario: |
       id: H-02. trigger: A proposal changes Hall verdict values from free-form approve/reject style labels to approve, reject, and conditional. pre_conditions: current response contract, parser behavior, summarize logic, and gate concurrence expectations are known. tool_or_endpoint: council_hall response contract update plus runbook update. argument_sourcing: current output fields from E-02; summary classifications from E-04; gate expectations from council-gate-process. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the response contract changes while preserving the three-phase Hall invariant. expected_failures: treating the enum change as prompt wording only or deploying it without summary/gate interpretation. next_step_success: review parser, summary, and gate mapping before accepting conditional as a new value. next_step_failure: keep the prior verdict contract.
     expected_answers:
@@ -414,7 +414,7 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-14
     type: evolve
-    refs: [Changes and maintenance, Changes and maintenance.3, E-03]
+    refs: [Changes and maintenance, H.3, E-03]
     scenario: |
       id: H-03. trigger: A proposal changes the cross-poll bundle from one prompt plus all independent assessments to per-agent customized bundles that omit each agent's original answer. pre_conditions: proposed bundle schema, anchoring analysis, transcript storage, and compatibility with get_cross_poll_bundle are available. tool_or_endpoint: council_hall(action=get_cross_poll_bundle) schema change. argument_sourcing: current bundle contract from E-03; proposed fields from design patch; integrity requirements from Changes and maintenance invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the public cross-poll contract changes and must prove it still preserves eligible assessments exactly once. expected_failures: calling it SAFE formatting or losing auditability of what each agent saw. next_step_success: require schema review and transcript tests before rollout. next_step_failure: keep the existing bundle structure.
     expected_answers:

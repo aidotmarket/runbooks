@@ -130,7 +130,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 | F-01 | Morning briefing or drop pipeline silently stopped | Gmail refresh token expired because the OAuth consent screen is External/Testing rather than Internal | Open the GCP Console OAuth consent screen for project aimarket-prod and check User Type; check gmail_tokens.updated_at age | Repair-01 | CONFIRMED |
 | F-02 | gcloud reports `Reauthentication failed` | The interactive gcloud session expired | Run gcloud auth list and confirm whether max@ai.market is still active | Repair-02 | CONFIRMED |
 | F-03 | gcloud reports `does not have permission` or operations hit the wrong project | Wrong gcloud account active or gcloud pointed at the wrong project | Compare gcloud config account and project against max@ai.market and aimarket-prod | Repair-03 | CONFIRMED |
-| F-04 | AG council reviews fail with `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login` | The AG adapter authenticated with the local user OAuth/ADC token (now expired) instead of the Vertex API key. Vertex Gemini uses the Vertex Express API key (`VERTEX_API_KEY`, AQ. prefix), NOT OAuth/ADC (How to operate, Changes and maintenance.1). Recurs whenever the local ADC token expires. | Confirm `VERTEX_API_KEY` is present in the com.koskadeux.mcp process env (`ps eww <mcp pid>`) and AQ.-prefixed in Infisical bd272d48 | Repair-04 | CONFIRMED |
+| F-04 | AG council reviews fail with `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login` | The AG adapter authenticated with the local user OAuth/ADC token (now expired) instead of the Vertex API key. Vertex Gemini uses the Vertex Express API key (`VERTEX_API_KEY`, AQ. prefix), NOT OAuth/ADC (How to operate, H.1). Recurs whenever the local ADC token expires. | Confirm `VERTEX_API_KEY` is present in the com.koskadeux.mcp process env (`ps eww <mcp pid>`) and AQ.-prefixed in Infisical bd272d48 | Repair-04 | CONFIRMED |
 | F-05 | Gemini embed upserts fail / qdrant dimension mismatch | An embed call omitted `output_dimensionality` and defaulted to 3072, exceeding the qdrant collection dimension | Check the embed call passes `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS` | Repair-05 | CONFIRMED |
 | F-04 | `401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED` on Gemini calls | Wrong key type passed (an OAuth token or a legacy Developer API key instead of a Vertex Express key) | Check the stored VERTEX_GEMINI_KEY prefix; a valid key starts with AQ. | Repair-04 | CONFIRMED |
 | F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | Repair-05 | CONFIRMED |
@@ -202,7 +202,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The OAuth consent screen for aimarket-prod MUST be User Type Internal, or Gmail refresh tokens expire after 7 days.
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
@@ -213,23 +213,23 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 - **Embeddings MUST use a REGIONAL Vertex endpoint; completions MUST use the GLOBAL one.** These are two separate clients in `app/core/llm.py` (`_get_gemini_embedding_client()` regional, `_get_gemini_client()` global) and MUST NOT be merged. `gemini-embedding-001` is ~10.4s on global and ~0.3s regionally; the approved completion model (`APPROVED_GEMINI_MODEL`, currently `gemini-3.1-pro-preview`) returns **HTTP 404 on every regional endpoint** and is served only from global. Google's published model-location table claims otherwise and is wrong — MP cited it and approved a change that would have 404'd every allAI completion. Measure from the production container; the container is ground truth. The region is `VERTEX_EMBEDDING_LOCATION` (default `us-west1`, matching Railway `us-west2`); setting it to `global` is the rollback and costs the 10.4s back.
 - Embedding vectors are **bit-identical** across Vertex endpoints (cosine 1.000000, max abs diff 0.0), so changing `VERTEX_EMBEDDING_LOCATION` never requires re-embedding the Qdrant corpus.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Changing the OAuth consent screen away from Internal is BREAKING because refresh tokens begin expiring.
 - Renaming or aliasing `VERTEX_GEMINI_KEY` is BREAKING because Pydantic case-sensitive settings will fail to load the key.
 - Moving Gemini auth to the Trust Channel service-account ADC path is BREAKING because Gemini and KMS use independent credential mechanisms and scopes.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Rotating the Vertex Express API key requires REVIEW because AG reads a separate `VERTEX_API_KEY` that must be synced.
 - Changing the Pub/Sub gmail-push topic or subscription target requires REVIEW because it reroutes the drop pipeline.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Verifying auth state via the read-only gcloud and Infisical checks is SAFE.
 - Re-issuing Gmail tokens while the consent screen is already Internal is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -247,7 +247,7 @@ A runtime dependency is any external system required at run time: GCP OAuth, the
 
 A config default is any default identity or scope value: the active gcloud account max@ai.market, the project aimarket-prod, and the canonical secret name VERTEX_GEMINI_KEY.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When two operators classify a GCP-auth change differently, use the more restrictive class and record the dispute. Max resolves any classification dispute that alters identity, project scope, or the consent-screen setting.
 

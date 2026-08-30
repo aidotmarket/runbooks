@@ -158,7 +158,7 @@ Built under BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214 (Max directive S1214). The
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **The queue row is the checkout.** Ownership lives on `body.lifecycle.pickup_ownership`, never in bus messages, handoff prose, or side entities. The peer bus is notification only.
 - **Ownership is written only by claim and release.** put/patch refuse the field (`invalid_ownership`). The Repair-01 backend repair pattern (retired; historical) is the sole sanctioned bypass, only for a regression of the fixed stuck case, always with the event appended and a ticket opened.
@@ -166,7 +166,7 @@ Built under BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214 (Max directive S1214). The
 - **No item can be hidden from everyone.** Stale owners read as unowned in the read path (M3).
 - **The gate never bricks dispatch.** Fail-open on EXCEPTION is preserved (S958 lesson); refusals are deliberate, truthful, and name the holder plus the next unowned item.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing the CAS from claim, or widening ownership writers beyond claim/release.
@@ -174,20 +174,20 @@ BREAKING if ANY of (first match wins):
 - Defaulting `PEER_CLAIM_GATE_ENABLED` to off, or making missing caller identity fail-open on build/review dispatches.
 - Introducing midnight-based or bus-based claim expiry.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the `WORK_CLAIM_STALE_HOURS` default or the claimable-status set.
 - Adding refusal codes or changing refusal payload shapes.
 - Adding a new ownership-bearing item kind beyond Build Queue rows and trouble tickets.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Wording changes in refusal messages; event payload additions; test additions; documentation.
 - Logging or dashboard-display changes that do not alter ownership semantics.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -205,9 +205,9 @@ The Living State backend `atomic_write` endpoint on ai-market-backend; the koska
 
 `WORK_CLAIM_STALE_HOURS` (default 24) and `PEER_CLAIM_GATE_ENABLED` (default 1) in the MCP server environment.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything weakening the one-item-one-owner guarantee or the writable-only-by-claim/release guard escalates to Max; the ruling is added to Changes and maintenance.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything weakening the one-item-one-owner guarantee or the writable-only-by-claim/release guard escalates to Max; the ruling is added to H.1 as a clarification.
 
 ## Acceptance criteria
 
@@ -283,7 +283,7 @@ scenario_set:
     scenario: 'Proposal: expire all claims at midnight to keep the queue tidy.'
     expected_answers:
       - kind: human_action
-        action: classify BREAKING - midnight/bus-based expiry is an explicit Changes and maintenance.2 predicate (the S958-era bug class)
+        action: classify BREAKING - midnight/bus-based expiry is an explicit H.2 predicate (the S958-era bug class)
     weight: 0.0909091
   - id: I-10
     type: ambiguous

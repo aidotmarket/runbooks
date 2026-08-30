@@ -275,7 +275,7 @@ error_signatures:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - MP is the mandatory primary builder for BQ/development code builds; CC is ticket-fixes only (Max S1148); CC is NEVER a BQ/spec build path.
 - Builder ≠ reviewer, always. Auth/security/customer-data/money changes require unanimous Council.
@@ -288,23 +288,23 @@ error_signatures:
 - Provider version pins are not mismatches. GLM serves `z-ai/glm-5.2-20260616` for requested `z-ai/glm-5.2`; Vertex can suffix a version. `_model_matches()` accepts `expected` plus a `-`/`@`/`:` suffix. MP is the exception and compares EXACTLY, because its rollout returns the exact requested string.
 - reasoning_effort: gpt-5.6-sol supports none | low | medium | high | xhigh. It does NOT support `minimal` — that is a hard 400. `minimal` was removed from ALLOWED_REASONING_EFFORTS and from the tool schemas at S1205. Re-check the served set on any model swap; it is model-specific.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Changes the council_request tool contract for agent=mp (argument names/shapes) without a shim.
 - Removes or weakens the runbook-refs gate, the CI verification gate, or the builder≠reviewer rule.
 - Changes the mutex/serialization semantics of the Codex CLI bridge.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Model swap (follow Repair-05; availability-gated).
 - Timeout/stall-window default changes (MP_HARD_UPPER_BOUND_S, MP_PROGRESS_WINDOW_S).
 - New dispatch_class or middleware stage.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Prompt-template wording improvements; new When it breaks/Repair rows from observed incidents; test additions; doc updates.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -322,9 +322,9 @@ Entries in koskadeux-mcp requirements; the Codex CLI binary version is an OPERAT
 
 ~/.codex/config.toml values and koskadeux-mcp .env values named in Architecture & interactions.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-More restrictive classification wins; unresolvable disputes escalate to Max and the ruling is appended to Changes and maintenance.1.
+More restrictive classification wins; unresolvable disputes escalate to Max and the ruling is appended to H.1.
 
 ## Acceptance criteria
 

@@ -263,7 +263,7 @@ Read the exact first failing hop. A UI failure before `/api/marketplace/publish`
 
 Evaluate predicates in order; the first match wins.
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The customer begins this journey from a signed-in AIM Data install; the website never creates or publishes listings.
 - The install-registration route is exactly `POST /api/v1/vz/register`. Registration is the act of provisioning the authenticated caller as seller; it is not named `/register-install`.
@@ -276,27 +276,27 @@ Evaluate predicates in order; the first match wins.
 - A successful publish returns and locally persists the canonical listing id; a disclosure retry never republishes the listing.
 - Any operation touching the money path or a production customer account escalates to Max before mutation.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
-- Changes any Changes and maintenance.1 invariant.
+- Changes any H.1 invariant.
 - Adds or changes a public route/response contract without a backwards-compatible shim, including renaming `/api/v1/vz/register` or adding another publish endpoint.
 - Changes the seller/install auth boundary, weakens the active-seller gate, exports the signing key, or changes scope semantics for existing callers.
 - Removes a field, changes a field type, or adds a required field without a default in the public registration/publish/disclosure contracts or their persisted cross-repo state.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adds a feature to the existing sign-in, registration, listing-preparation, disclosure, or publish surfaces after all BREAKING predicates fail.
-- Moves functions across the source-root module boundaries defined in Changes and maintenance.5 or changes more than one repository in this journey.
+- Moves functions across the source-root module boundaries defined in H.5 or changes more than one repository in this journey.
 - Changes a config default in an authoritative config file or adds a runtime dependency.
 - Changes retry/idempotency behavior, browser job checkpoints, metadata approval transitions, or registration timing without changing a public contract.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
-- Fixes a bug within existing semantics and within one module, preserving all public signatures and Changes and maintenance.1 invariants.
+- Fixes a bug within existing semantics and within one module, preserving all public signatures and H.1 invariants.
 - Adds tests, browser-job assertions, or documentation without changing runtime behavior.
 - Refactors within one module while preserving registration, state-transition, signing, gate, and response contracts.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -314,9 +314,9 @@ Any production dependency entry in either Python project's `requirements*.txt` o
 
 A shipped default in AIM Data `app/config.py` or ai-market-backend's canonical settings/config modules. Environment overrides, feature flags, browser job parameters, and test-only overrides are not config defaults.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-If agents disagree, the more restrictive classification wins. Unresolved disputes, and every question involving the money path or production customer accounts, escalate to Max; record the ruling as a Changes and maintenance.1 clarification in the same change.
+If agents disagree, the more restrictive classification wins. Unresolved disputes, and every question involving the money path or production customer accounts, escalate to Max; record the ruling as a H.1 clarification in the same change.
 
 ## Acceptance criteria
 
@@ -417,7 +417,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance.2
+      - H.2
     scenario: A proposal adds POST /api/v1/aim-data/publish so AIM Data can bypass the VZ route. Classify it.
     expected_answers:
       - kind: classification
@@ -426,7 +426,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance.4
+      - H.4
     scenario: A proposal adds a unit test that asserts Accept all works when listing_id is null, with no production code change. Classify it.
     expected_answers:
       - kind: classification

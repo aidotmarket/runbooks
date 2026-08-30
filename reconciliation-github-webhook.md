@@ -53,11 +53,11 @@ The single GitHub webhook that drives build-queue reconciliation and CI-failure 
 - Duplicate/wrong webhook: `gh api repos/aidotmarket/ai-market-backend/hooks`; keep exactly one pointing at the canonical URL.
 
 ## Changes and maintenance
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 - ONE endpoint (`/api/v1/webhooks/github`), ONE shared secret, ONE GitHub webhook.
 - Signature verified for ALL events before any routing; fail-closed (401 bad sig, 503 secret-unset).
 - `workflow_run` → deploy_monitor behavior must not change when event routing is extended.
-### Changes and maintenance.2 Change rule
+### H.2 Change rule
 Adding an event type = add a branch in `github_failure_webhook` PLUS a full-app test (TestClient against `app.main:app`, not the isolated router). Isolated-router tests miss mount/collision bugs — that was the original failure mode.
 
 ## Acceptance criteria

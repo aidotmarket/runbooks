@@ -119,7 +119,7 @@ overwrite-safe, but avoidable).
 **How to operate.3 correction (as-executed):** setting `phase_d_complete=True` does NOT
 auto-flip the ACL row — no code watches that flag. The WS9 warn→enforce flip is a
 **manual, Max-gated, unanimous-Council operator SQL step**, executed S1117 in a
-guarded transaction that re-checks the Changes and maintenance.2 preconditions (all 8 readers
+guarded transaction that re-checks the H.2 preconditions (all 8 readers
 `new_only` + `phase_d_complete=true` read from `state_entities`) in the same DB
 session and asserts exactly 1 row updated.
 
@@ -169,13 +169,13 @@ replacement), per Gate 0 §8.5 row #4. Then requires `evaluate_slo` eligible + P
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 - 8 sub-surfaces; preserved Table-B policy fields stay writable in place.
 - 12 `qo_*` events only, each ≤32 chars; no new event types for approvals/long-running (use config flags + existing events).
 - Phase D is per-sub-surface, primary-only, WS3-guarded, atomic.
 - Forward-replay direction is rollback-era legacy writes → canonical targets, BEFORE re-cutover (Gate 0 row #4).
 
-### Changes and maintenance.2 Do NOT
+### H.2 Do NOT
 - Force `ws3_dashboard_production_stable=True` without the 72h dashboard validation.
 - Flip `phase_d_complete`/ACL enforce while any reader is on `legacy`/`dual` (403-brick).
 - Add unregistered `qo_*` event types.

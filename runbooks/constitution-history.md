@@ -149,23 +149,23 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Current CORE is singular and normative; history is immutable evidence; constitutional change requires the complete current amendment gate.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Treating history as current, hashing an unverified source, reducing amendment approvals, or editing CORE through this companion is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review new version-index entries, provenance fields, canonical mirror moves, and amendment evidence formats.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Correcting a historical retrieval note is safe only when exact Git and Living State evidence supports it.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -183,7 +183,7 @@ Living State, backend Git object availability, Council voter validation, and dir
 
 No historical source defaults to current; source mismatch stops dependent work.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Current CORE wins every historical conflict. Amendment evidence must bind to exact source and proposed bytes.
 
@@ -201,7 +201,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: Historical text leaked into current instructions., expected_answers: [{kind: human_action, verb: restore, object: current CORE authority, target: operational instructions}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal allows two Council votes plus Max for amendments., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A verified new version row is added after an amendment., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Git history and an amendment summary use different wording., expected_answers: [{kind: human_action, verb: compare, object: exact current and historical bytes, target: provenance record}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Git history and an amendment summary use different wording., expected_answers: [{kind: human_action, verb: compare, object: exact current and historical bytes, target: provenance record}], weight: 0.090909091}
 ```
 
 ## Maintenance

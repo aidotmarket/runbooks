@@ -300,7 +300,7 @@ compatibility names are unchanged by this agent/build route reduction.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - `council_request` is the only public Council reviewer trigger.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
@@ -312,20 +312,20 @@ compatibility names are unchanged by this agent/build route reduction.
 - Dispatch returns a durable request ID immediately and polling never retries.
 - MP build dispatch remains separate from reviewer transport.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Adding another Council reviewer transport, Hall, wrapper, parser, retry layer, persistence step, or pre-dispatch reviewer gate is BREAKING.
 - Routing MP through the reviewer directory is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing a member CLI command, model, credential source, or directory location requires review and an end-to-end file exchange.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Correcting prose or tests to match the deployed one-file contract is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -343,7 +343,7 @@ A runtime dependency is the selected member CLI, its existing credential, and th
 
 The reviewer defaults are the member CLI commands and `/Users/max/council` root in `scripts/council_dir.py`, plus GLM's dedicated `/Users/max/koskadeux-state/agents/glm/codex-home` and its checked config template.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Max resolves any request to add behavior between the request file and response file.
 
@@ -353,7 +353,7 @@ Max resolves any request to add behavior between the request file and response f
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, Changes and maintenance.1]
+    refs: [E-01, H.1]
     scenario: An existing request file is sent to Kimi through council_request.
     expected_answers:
       - kind: tool_call
@@ -363,7 +363,7 @@ scenario_set:
     weight: 0.25
   - id: I-02
     type: operate
-    refs: [E-02, Changes and maintenance.1]
+    refs: [E-02, H.1]
     scenario: The same task text is sent separately to CC, Kimi, and GLM.
     expected_answers:
       - kind: human_action
@@ -383,7 +383,7 @@ scenario_set:
     weight: 0.25
   - id: I-04
     type: operate
-    refs: [E-05, Changes and maintenance.1]
+    refs: [E-05, H.1]
     scenario: Dispatch an MP build after the reviewer simplification.
     expected_answers:
       - kind: tool_call

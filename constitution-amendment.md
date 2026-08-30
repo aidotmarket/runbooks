@@ -184,7 +184,7 @@ error_signatures:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Every CORE.md change — including editorial — requires a unanimous Council gate (CC, Kimi, GLM; 3/3 valid verdicts) AND Max's direct approval, unless Max explicitly supersedes the Council for the exact named matter under CORE v9.13 §5. Supersession must be recorded in the Event Ledger and may never be inferred. No reduced quorum, voter substitution, or builder vote is permitted.
 - The §3 comms-invariant marker text stays verbatim; the boot-contract test enforces it.
@@ -192,24 +192,24 @@ error_signatures:
 - Total content stays under the 46,000-char boot wire budget.
 - Amendment records in the entity body are append-only; approvals are quoted verbatim.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Weakening or removing the amendment rule itself (footer or this runbook's gate steps).
 - Any edit touching the §3 marker sentence.
 - Content exceeding the wire budget.
 - Patching the entity without expected_version.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing any procedural step in this runbook (normal runbook PR review per standard §L).
 - Changing where the mirror lives or how boot sources the constitution.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Maintenance metadata refresh on this runbook.
 - Typo fixes in this runbook's prose that do not alter a step.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -227,7 +227,7 @@ Postgres (state_entities) on Railway; the koskadeux MCP server (localhost:8765) 
 
 The 46,000-char boot wire budget (koskadeux-mcp boot fit logic); KD_ALLOW_MAIN_PUSH gate on backend main pushes.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Disputed classifications escalate to Max. Emergency exception: none — there is no emergency path for constitution edits; if production is on fire, fix production, not the constitution.
 
@@ -327,7 +327,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance Changes and maintenance.2
+      - Changes and maintenance H.2
     scenario: A proposal suggests dropping the Council gate for "editorial-only" CORE changes; classify.
     expected_answers:
       - kind: classification
@@ -336,7 +336,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance Changes and maintenance.4
+      - Changes and maintenance H.4
     scenario: A typo fix in this runbook's prose that changes no step; classify.
     expected_answers:
       - kind: classification

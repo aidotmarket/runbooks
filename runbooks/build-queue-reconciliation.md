@@ -264,7 +264,7 @@ assert that behaviour deliberately
 (`tests/services/test_build_queue_reconciler.py:270` and `:280`). Note the
 inconsistency: `git_fetch_failed` and `unsupported_target_repo` do return
 `AMBIGUOUS` immediately. Code, tests and this runbook cannot all be right.
-Unresolved as of S1345. Adjudicate under Changes and maintenance.6 before relying on any
+Unresolved as of S1345. Adjudicate under H.6 before relying on any
 classification that carries an error code.
 
 **There is no classification for "nothing was observed."**
@@ -398,7 +398,7 @@ Verify pollers are running from `koskadeux_server.py` startup logs:
 
 The change-class predicates are evaluated in order; the first matching class wins.
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The proposed chunk must be the next chunk in the gate chunk plan.
 - Existing Living State chunk entries must be preserved and never rewritten.
@@ -408,27 +408,27 @@ The change-class predicates are evaluated in order; the first matching class win
 - Trigger B remains read-only and cannot emit reconciliation events.
 - Trigger D emits its audit event before any safe patch.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - A change is BREAKING if it changes a public contract without a backwards-compatible shim.
 - A change is BREAKING if it changes a data-model field type, removes a field, or adds a required field without a default.
-- A change is BREAKING if it removes or weakens any Changes and maintenance.1 invariant.
+- A change is BREAKING if it removes or weakens any H.1 invariant.
 - A change is BREAKING if it changes an authorization boundary or permits a new caller to mutate Living State.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - After BREAKING predicates fail, a new reconciliation feature on an existing public surface requires REVIEW.
 - A refactor that creates, deletes, or moves code across module boundaries requires REVIEW.
 - A change to a canonical config default, including poll cadence or supported repository scope, requires REVIEW.
 - A new runtime dependency requires REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - A bug fix within existing reconciliation semantics is SAFE.
 - A documentation update or test addition is SAFE.
-- An internal refactor within one module that preserves public signatures and every Changes and maintenance.1 invariant is SAFE.
+- An internal refactor within one module that preserves public signatures and every H.1 invariant is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -446,7 +446,7 @@ A runtime dependency is an entry in the system's runtime dependency declaration;
 
 A config default is a value shipped in canonical Koskadeux configuration, including poll cadence and supported repository scope; environment overrides and test-only values are excluded.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 If two agents classify a change differently, the more restrictive class wins. Max resolves any remaining dispute, especially one that would weaken a safe-patch invariant or expand mutation authority.
 

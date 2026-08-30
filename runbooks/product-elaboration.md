@@ -166,23 +166,23 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Marketplace, engine, and conduits retain distinct roles; the business remains non-custodial metadata, globally agent-discoverable, multilingual, and utility-priced.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Custody of raw data, optional allAI mediation, merged product identities, or companion override of CORE is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review new customer surfaces, listing schemas, conduit capabilities, branding, connected-mode behavior, or deferred-scope proposals.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Explanatory prose is safe only when it preserves every durable boundary and current decision.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -200,7 +200,7 @@ Current Business Context, product repositories, marketplace metadata, allAI, and
 
 Historical and deferred material is off current surfaces unless explicitly reapproved.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 CORE governs invariants, Business Context governs evolvable specifics, and Max resolves product-direction decisions after appropriate Council work.
 
@@ -218,7 +218,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: Deferred scope appears in website copy., expected_answers: [{kind: human_action, verb: remove, object: deferred claim, target: current customer surface}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal raises commission above five percent., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: AIM Data gains a new approved metadata review screen., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Historical product prose conflicts with current CORE., expected_answers: [{kind: human_action, verb: prefer, object: current CORE invariant, target: product decision}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Historical product prose conflicts with current CORE., expected_answers: [{kind: human_action, verb: prefer, object: current CORE invariant, target: product decision}], weight: 0.090909091}
 ```
 
 ## Maintenance

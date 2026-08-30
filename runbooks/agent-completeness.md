@@ -248,23 +248,23 @@ Use this only for an escalated GitHub incident already visible in the Needs-Max 
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 All completeness items are conjunctive; no single healthy surface substitutes for another.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing a required endpoint, typed skill, MCP tool, or monitoring declaration is BREAKING and cannot be normalized by companion prose.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to agent keys, endpoint shapes, manifest tiers, MonitoringPolicy schema, or compliance aggregation.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Examples and explanatory prose are safe when the full normative checklist remains intact.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -282,7 +282,7 @@ Agent service, internal authentication, discovery registry, and Koskadeux MCP.
 
 No requirement defaults to satisfied; missing evidence fails Gate 3 closed.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 CORE decides constitutional requirements. This companion only makes their verification route explicit.
 
@@ -300,7 +300,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: The corresponding Koskadeux request tool is missing., expected_answers: [{kind: human_action, verb: add, object: canonical request tool, target: tools/agent_request.py}], weight: 0.0625}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal removes health verification from Gate 3., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0625}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A manifest gains an additive usage example field., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0625}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Live compliance passes but source lacks a required declaration., expected_answers: [{kind: human_action, verb: fail, object: compliance review, target: conflicting evidence until resolved}], weight: 0.0625}
   - {id: I-12, type: operate, refs: [E-04], scenario: "A fresh strict-config runner still shows Codex root functions.exec, wait, request_user_input, and collaboration controls, while live scoped MCP tools/list is exactly allai_remediator_request and no nested executable or other external integration exists.", expected_answers: [{kind: classification, label: ACCEPT_ONLY_AS_NON_OPERATIONAL_HOST_SCAFFOLDING_WITH_FUNCTIONS_EXEC_RESERVED_FOR_THE_MCP_CALL}], weight: 0.0625}
   - {id: I-13, type: operate, refs: [E-05], scenario: Candidate transport code exists but deployed marker or live singleton discovery is absent., expected_answers: [{kind: classification, label: DO_NOT_ACTIVATE_OR_INFER_DEPLOYMENT}], weight: 0.0625}
   - {id: I-14, type: isolate, refs: [F-04], scenario: The LaunchAgent repeatedly exits nonzero while the queue is enabled., expected_answers: [{kind: classification, label: UNLOAD_DISPATCHER_KEEP_MODEL_TASK_PAUSED_AND_PRESERVE_QUEUE}], weight: 0.0625}

@@ -241,7 +241,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Nothing a caller touches may wait. Dispatch returns a handle before anything queues. This is a Max directive (S1488) and a hard acceptance criterion, not a preference.
 - Serialisation is scoped to real contention. Different repositories never block each other.
@@ -251,25 +251,25 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 - Combined builder stdout/stderr is streamed to a durable per-job artifact before preservation or push; no terminal path may discard it.
 - A report records whether tests were not configured, passed, failed, or unavailable. `clean_exit` is never a substitute for test evidence.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Reintroducing any caller-side wait, poll loop, lease, heartbeat or PID-liveness check on the dispatch path.
 - Returning the dispatch handle after the queue wait rather than before.
 - Collapsing per-repository sockets back to one global queue.
 - Making the ts binary name a hardcoded literal rather than `KD_TS_BIN`.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing the slot count away from 1 per repository socket. The reason the old queue used one slot was never recorded; if concurrency is enabled, the shared `~/.codex` home is the collision candidate to settle first, because the minimal bridge inherits the environment and does not seed a private `CODEX_HOME` per run (the legacy bridge did).
 - Adding a broker, daemon or queue library. The whole point of this choice is that there is none.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Changing socket directory location via `KD_TS_SOCKET_DIR`.
 - Adding read-only inspection helpers over `ts -l`.
 - Adding queue keys for new repositories.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -287,7 +287,7 @@ Homebrew formula `task-spooler` 1.0.4, binary `ts`. No broker, no daemon of ours
 
 `KD_TS_BIN=ts`, `KD_TS_SOCKET_DIR=/Users/max/koskadeux-state/ts-sockets` (0700), one slot per socket.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Queue behaviour questions are settled by reading Task Spooler's own documentation and by measurement on Titan-1, not by writing new rules. Correctness of any change to this surface is adjudicated at Gate 3 by the Council, per CORE S4. Where this runbook and `builder-controls.md` overlap, builder-controls is authoritative for what happens after the builder starts and this runbook is authoritative for how the job got there.
 
@@ -388,7 +388,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance.2
+      - H.2
     scenario: A proposed change makes the dispatch handler wait for the queue before returning its handle.
     expected_answers:
       - kind: classification
@@ -397,7 +397,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance.3
+      - H.3
     scenario: Someone proposes raising the slot count above one to run builds concurrently.
     expected_answers:
       - kind: classification

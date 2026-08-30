@@ -182,7 +182,7 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **One summary per round.** The only Max-facing output in a round is one short end-of-round summary.
 - **Exactly two carve-outs.** Hard stop; blocking question. No third category may be added without a CORE amendment.
@@ -191,27 +191,27 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
 - **The marker test guards the delivered payload.** The boot-contract assertion checks the constitution payload returned on open, not a side copy.
 - **Output-only scope.** The rule takes no position on Max's interface choices (e.g. deliberately enabling thinking visibility).
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing the single-summary rule or adding a third carve-out without a Max-approved, peer-reviewed CORE amendment.
 - Removing or weakening the boot-contract marker assertion, or pointing it at anything other than the delivered boot payload.
 - Making the elaboration (`infra:opening-prompt`) authoritative over CORE §3.
-- Changing or removing any Changes and maintenance.1 invariant.
+- Changing or removing any H.1 invariant.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the summary's required structure (the four numbered elements) or the prose exclusion list.
 - Changing the timestamp header format or the round-end marker vocabulary.
 - Adding automated linting of outgoing summaries (the NOT_BUILT Capabilities row).
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Documentation and example additions; refreshing Capabilities/Maintenance after verifications.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -229,9 +229,9 @@ None added. The discipline uses only existing surfaces (chat, `date -u`, write-l
 
 None. The rule is unconditional; there is no enforce-mode toggle.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to Changes and maintenance.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to H.1 as a clarification.
 
 ## Acceptance criteria
 
@@ -295,7 +295,7 @@ scenario_set:
     weight: 0.07692308
   - id: I-08
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A proposal adds a third carve-out ("brief progress note on tasks longer than an hour") directly to this runbook. Classify.
     expected_answers:
       - kind: classification
@@ -335,11 +335,11 @@ scenario_set:
     weight: 0.07692308
   - id: I-13
     type: evolve
-    refs: [Changes and maintenance.3]
+    refs: [H.3]
     scenario: A proposed change renames the round-end marker vocabulary from CONTINUE / DECISION / CLOSE SESSION to a three-icon scheme. Classify.
     expected_answers:
       - kind: classification
-        verdict: REVIEW — marker vocabulary is a Changes and maintenance.3 predicate, not a Changes and maintenance.1 invariant
+        verdict: REVIEW — marker vocabulary is a H.3 predicate, not a H.1 invariant
     weight: 0.07692308
 ```
 

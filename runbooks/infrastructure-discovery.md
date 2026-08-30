@@ -158,23 +158,23 @@ The registry and inward surface may identify secret names and approved retrieval
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Discovery has three routes: plain Markdown for procedures, `config:resource-registry` for infrastructure locators, and the inward machine surface. A locator is only a candidate until the execution host and the resource's native read-only surface prove existence and identity at the action boundary.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Hardcoded locators, credential-bearing URLs or secret values in discovery output, unrestricted process-environment dumps, public exposure of the inward endpoint, or companion overrides of CORE are BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to registry schema, resource identity, endpoint authentication, generator inputs, or catalog resolution.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Explanatory examples are safe when they contain no live locator or secret value.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -192,7 +192,7 @@ Living State, runbook catalog resolution, internal backend authentication, and S
 
 Unknown, unsafe, unavailable, absent, or identity-mismatched locator authority fails closed; no remembered path or agent report is a fallback.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 CORE governs safety, the registry governs current infrastructure locators, and this runbook governs the lookup workflow.
 
@@ -210,7 +210,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: Generated inward discovery data is stale., expected_answers: [{kind: human_action, verb: regenerate, object: inward discovery surface, target: current registry data}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal embeds all live repository paths in this runbook., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A registry schema adds an owner field for each resource., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: A runbook example conflicts with the current resource registry., expected_answers: [{kind: human_action, verb: prefer, object: current registry locator, target: bounded operation}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: A runbook example conflicts with the current resource registry., expected_answers: [{kind: human_action, verb: prefer, object: current registry locator, target: bounded operation}], weight: 0.090909091}
 ```
 
 ## Maintenance

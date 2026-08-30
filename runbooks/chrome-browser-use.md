@@ -247,7 +247,7 @@ Never:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Internal operations use the normal authorized operator Chrome identity; `kdbrowser` is synthetic-only.
 - Transport success and managed page-access success are separate proofs.
@@ -255,22 +255,22 @@ Never:
 - Human action is required for extension installation, enablement, reinstall, or native-host repair.
 - Recovery is not complete until an authorized operator tab returns a DOM snapshot and shows the expected signed-in identity.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that weakens identity separation, permits policy bypass, or substitutes non-browser output for DOM/visual proof is BREAKING.
 - Any change that lets an agent autonomously install or repair extension/native-host state is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - A packaged diagnostic filename, exit-code contract, embedded binary path, Browser API, managed-requirements schema, or supported lifecycle boundary changes.
 - A new failure shares these symptoms but does not fit F-01 through F-05.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Updating dated evidence or version strings after repeating the same read-only diagnostics and DOM proof is SAFE.
 - Adding an exact new error alias that routes to an existing unchanged decision row is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -288,7 +288,7 @@ Runtime dependencies are Codex Desktop, its embedded Node and app-server, the in
 
 An absent or null browser-use value means no explicit value was returned by the read interface. It is not permission and must not be rewritten or treated as a policy override.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Classify a proposed change at the highest-risk predicate it touches. Any ambiguity involving policy, identity, secrets, or visual proof remains fail closed and goes to the owner.
 

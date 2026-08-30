@@ -162,23 +162,23 @@ Registered error signatures map to the rows below: `stale_build_base` → F-01, 
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 A base is what the remote says it is at the moment of briefing, and landing is what the remote says it is at the moment of reporting. Neither may be asserted from a local checkout, a dispatcher envelope, a handoff, or a prior session's summary.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing any of the three landing tests, permitting a base SHA to be sourced from a local ref, or allowing a completion report to assert landing without a remote read is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to the dispatch brief schema, the push guardrail, squash-on-dispatch practice, and any tooling that reads or caches remote refs on the instance's behalf.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Adding further evidence, clearer output, or automation that performs these same reads is safe, provided the remote read still happens and its result is still what is reported.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -196,7 +196,7 @@ Network reachability to the git remote, and a fetch that completed before the re
 
 An unreachable remote yields no verdict. Absent evidence is reported as absent, never as landed and never as clean.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Where the remote and any record disagree, the remote wins and the record is corrected. Where the three landing tests disagree, the content test decides, because it is the only one that survives squash and rebase.
 
@@ -216,7 +216,7 @@ scenario_set:
   - {id: I-10, type: repair, refs: [G-01], scenario: A build already ran from a base that was behind the remote., expected_answers: [{kind: human_action, verb: strip, object: hunks reversing a deliberate change, target: delivered branch before merge}], weight: 0.0769230769}
   - {id: I-11, type: evolve, refs: [Changes and maintenance], scenario: A proposal drops the content test and keeps only SHA ancestry., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0769230769}
   - {id: I-12, type: evolve, refs: [Changes and maintenance], scenario: A proposal adds tooling that performs the same remote reads automatically., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0769230769}
-  - {id: I-13, type: ambiguous, refs: [Changes and maintenance.6], scenario: Ancestry says not landed while the change is visibly present on origin/main., expected_answers: [{kind: human_action, verb: decide, object: landing verdict, target: content diff as the deciding test}], weight: 0.0769230772}
+  - {id: I-13, type: ambiguous, refs: [H.6], scenario: Ancestry says not landed while the change is visibly present on origin/main., expected_answers: [{kind: human_action, verb: decide, object: landing verdict, target: content diff as the deciding test}], weight: 0.0769230772}
 ```
 
 ## Maintenance

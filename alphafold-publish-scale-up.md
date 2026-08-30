@@ -158,27 +158,27 @@ error_signatures:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - A reference listing must never cause raw data to transit ai.market; it carries only metadata and a public source url.
 - Any delivery or fulfillment value stored in the database must have a matching member in both the model enum and the response schema enum.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that removes a fulfillment or delivery enum member that existing listings or orders depend on is BREAKING.
 - Any change that makes the listings endpoint reject the documented limit of one hundred is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Any change that adds a new fulfillment or delivery enum value requires REVIEW.
 - Any change to the source-url wildcard representation for sharded datasets requires REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Editing the markdown description text of an existing listing is SAFE.
 - Adding a new organism listing using the established wildcard pattern is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -196,7 +196,7 @@ A runtime dependency is any external service required for the flow such as the p
 
 A config default is a fallback such as the listings endpoint limit cap or the single-file suffix used for the one unsharded organism.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When a proposed change touches more than one boundary class, classify it at the highest-risk class and record the reasoning in the change review.
 

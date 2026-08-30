@@ -215,7 +215,7 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The session-number allocator MUST be monotonic: a newly issued number is never less than or equal to any previously issued number, even after a registry wipe, rebuild, or restore (it re-seeds from `config:session-seq`).
 - The durable anchor `config:session-seq` only ever increases; it is never lowered.
@@ -225,26 +225,26 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
 - A stale row is auto-closed only on TWO signals (last_seen past TTL AND no recent peer-bus signal); the peer check fails open on error so a live session is never killed.
 - Schema migrations are append-only; existing column names and types are frozen, and idempotency is keyed on the live table shape, not the `schema_migrations` version row.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Making the allocator able to issue a number less than or equal to a prior number (including resetting to 1, or lowering the anchor) is BREAKING; it violates the monotonic invariant.
 - Removing or weakening the pytest production-path guard, or the collection-time env override, is BREAKING; tests would corrupt live session state.
 - Changing allocation to issue before reserving the anchor, or to fail open when Living State is unreachable, is BREAKING; it reintroduces the regression vector.
 - Removing a column from `sessions`, `session_seq`, or `schema_migrations`, or changing a column type, is BREAKING; migrations are append-only.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing the stale TTL (`SESSION_LIVE_TTL_SECONDS`) or the second-signal source for self-heal requires REVIEW; it changes when a row is considered reapable.
 - Adding a new schema migration requires REVIEW; it must be append-only, transactional, and idempotent on the live DDL.
 - Changing how `scratch` is namespaced or admitted to the `sessions` table requires REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Read-only inspection of the registry, the anchor, and the migration state is SAFE.
 - Running the migration runner with status, or applying an already-defined append-only migration, is SAFE.
 - Re-seeding the anchor upward to the true high-water mark is SAFE (the anchor only increases).
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -262,9 +262,9 @@ A runtime dependency is any external system required at run time: SQLite for `re
 
 A config default is a shipped default value: the production `registry.db` path, `SESSION_LIVE_TTL_SECONDS` of 1800, and the current schema version 7.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-When two instances classify a registry change differently, the more restrictive class wins and the dispute is recorded. Max resolves any classification dispute that touches the monotonic invariant, the test-isolation guard, or the anchor semantics; the ruling is added here as a Changes and maintenance.1 clarification.
+When two instances classify a registry change differently, the more restrictive class wins and the dispute is recorded. Max resolves any classification dispute that touches the monotonic invariant, the test-isolation guard, or the anchor semantics; the ruling is added here as a H.1 clarification.
 
 ## Acceptance criteria
 

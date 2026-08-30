@@ -233,7 +233,7 @@ Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Operating loop remains Observe -> Decide -> Act -> Verify -> (Fix | Escalate).
 - Advertised == bound == verified for every SysAdmin capability.
@@ -247,7 +247,7 @@ Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 - Escalation fingerprints are marked only after the page succeeds; failed pages must retry.
 - Secret values are sanitized from logs, audit payloads, compliance responses, exceptions, prompts, and returns.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing the singleton as the source of `/agent-compliance` or scheduler evidence.
 - Letting AgentHost or class-definition fallback report SysAdmin compliance.
@@ -255,21 +255,21 @@ Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 - Marking an escalation fingerprint before a page succeeds.
 - Returning plaintext Infisical or Railway secret values to handlers, logs, LLMs, or endpoints.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding, removing, or renaming a SysAdmin verified capability or health contract.
 - Changing a contract failure class, severity, cadence, timeout, or remediation policy.
 - Changing bind/dispatch probe inputs, output schema, or CapabilityOutput validation behavior.
 - Changing Railway project-token recovery or deployment verification procedure.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation-only clarification that preserves this runbook's invariants.
 - Adding tests for existing capability binding, monitor_unavailable, or contract failure behavior.
 - Tightening log messages while preserving searchable substrings listed in When it breaks.
 - Read-only inspection of `/agent-compliance`, logs, or provider status.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -292,7 +292,7 @@ Telegram/allAI escalation plumbing, backend settings, and the runbook router.
 `E2E_TEST_ROUTES_ENABLED` coerces false and both E2E allowlists are empty. Railway operations require
 the project-scoped token and `Project-Access-Token` authentication.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Docs-only changes are SAFE when they preserve the invariants above. Capability, contract, escalation,
 or remediation changes require review. Changes that can create silence, false P0 paging, secret
@@ -386,7 +386,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [Changes and maintenance.2 BREAKING predicates]
+    refs: [H.2 BREAKING predicates]
     scenario: "A proposed change auto-remediates monitor_unavailable as mcp_server_unhealthy."
     expected_answers:
       - kind: classification
@@ -394,7 +394,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [Changes and maintenance.3 REVIEW predicates]
+    refs: [H.3 REVIEW predicates]
     scenario: "A proposed change renames a SysAdmin health contract."
     expected_answers:
       - kind: classification

@@ -189,7 +189,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **Publishing never changes a run's outcome.** `publish` catches everything and returns a boolean the runtime ignores. A reporting failure must never fail or block a test run.
 - **Dormant by default.** With no state URL or credential the publisher is a no-op. Only the sanctioned harness runtime (via `harness-env.sh`) activates it; the credential is fetched at runtime and never at rest on disk.
@@ -198,7 +198,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 - **The manifest is exactly 30 MAX/ADDITIONS items.** `_validated_catalog` refuses anything else. The manifest is the single source of what the items are.
 - **Checked means proven; partial never counts as proven.** Coverage is only ever moved by a real mapped run. `covers` sets passed/failed, `covers_partial` sets partial, and failed outranks passed within one run. The record is never hand-edited to show green.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Making `publish` able to raise into or block the run path (removing fail-soft).
@@ -207,7 +207,7 @@ BREAKING if ANY of (first match wins):
 - Publishing by default without the state URL/credential activation (removing dormant-by-default), or placing the credential at rest on disk.
 - Marking a coverage item proven from anything other than a real mapped charter run, or counting partial as proven.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the 30-item coverage catalog (ids, groups, or what an item means).
@@ -215,14 +215,14 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Adding the ops Test page console write path (Max-entered goals) - inherits the command-surface gate.
 - Changing the redaction rules or the bounded-text limits the publisher relies on.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Wording of `docs/coverage.md`, comments, and test additions.
 - Read-only tooling that GETs and displays the record.
 - Selector/label changes on the ops page that do not add a write path (owned by ops-ai-market.md).
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -240,9 +240,9 @@ The backend state API `/api/v1/allai/state/{key}` reached with the internal API 
 
 `E2E_COVERAGE_MANIFEST_PATH` (defaults to `docs/coverage.json`), the state URL and credential env names read in `config.py`, and the module constants `RECENT_RUN_LIMIT=20` and `MAX_PAYLOAD_BYTES=65536`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything that changes what the published record contains, the coverage catalog, or the meaning of "proven" escalates to Max; the ruling is added to Changes and maintenance.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything that changes what the published record contains, the coverage catalog, or the meaning of "proven" escalates to Max; the ruling is added to H.1 as a clarification.
 
 ## Acceptance criteria
 
@@ -338,7 +338,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-09
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A change makes publish re-raise its errors so failures are visible. Classify.
     expected_answers:
       - kind: classification
@@ -346,7 +346,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-10
     type: evolve
-    refs: [Changes and maintenance.3]
+    refs: [H.3]
     scenario: A change adds a charter-level cadence field so agentic charters publish weekly and recorded replays nightly. Classify.
     expected_answers:
       - kind: classification
@@ -354,7 +354,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-11
     type: ambiguous
-    refs: [Changes and maintenance.6, F-02]
+    refs: [H.6, F-02]
     scenario: A publish failed once with a version conflict because a launchd run and a manual run wrote the record at the same instant. Defect to fix, or expected?
     expected_answers:
       - kind: classification
@@ -362,8 +362,8 @@ scenario_set:
       - kind: human_action
         verb: monitor-and-escalate
         object: optimistic-lock version conflict
-        target: next publish, escalating only persistent contention under Changes and maintenance.6
-        rationale: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under Changes and maintenance.6
+        target: next publish, escalating only persistent contention under H.6
+        rationale: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under H.6
     weight: 0.090909091
 ```
 

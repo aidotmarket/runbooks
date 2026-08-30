@@ -376,7 +376,7 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Authorization uncertainty fails closed.
 - `valid` is positive proof, not absence of a revocation signal.
@@ -391,7 +391,7 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
   customer payloads.
 - Registry presence is process-local evidence, not durable cross-process truth.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that lets a DB/registry exception continue authorization.
 - Any change that treats a missing device/session/registry record as valid.
@@ -399,7 +399,7 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
 - Removing the owner binding or cryptographic proof from registration/handshake.
 - Reusing `/api/v1/trust/ws` as an active data path.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing revocation cadence from the current 50-frame, message-driven behavior.
 - Adding durable or cross-process connection-registry state.
@@ -410,13 +410,13 @@ cryptography redesign, registration redesign, and data-plane work are outside S1
 Security changes require unanimous Council review with builder excluded and directional
 evidence bound to the reviewed deployment SHA.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation corrections that preserve mounted route names and runtime semantics.
 - Additional redacted correlation fields that do not expose credentials or payloads.
 - Focused test naming or fixture refactors that leave all three outcome assertions intact.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -441,7 +441,7 @@ Relevant defaults are `REVOCATION_CHECK_INTERVAL = 50`, a one-hour newly created
 session expiry, the heartbeat interval/timeout constants, and full-handshake reconnect.
 The current revocation helpers do not enforce `expires_at`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Classify at the highest-risk predicate touched. Any authorization-result, isolation,
 quarantine, cadence, registry, or reconnect change is at least REVIEW; fail-open or

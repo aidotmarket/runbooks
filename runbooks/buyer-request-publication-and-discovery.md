@@ -186,7 +186,7 @@ Therefore the normal rollback is G-01: switches off on the current migration-awa
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - One persisted publication decision gates every public, search, agent, promotional, and seller-matching surface.
 - Synthetic/test identities create no public, search, match, or email effect.
@@ -194,24 +194,24 @@ Therefore the normal rollback is G-01: switches off on the current migration-awa
 - A delivered seller/request channel is never re-alerted.
 - External email stays off until controlled proof and explicit authority.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - A surface publishes or matches without the authoritative eligibility decision.
 - A migration or cleanup deletes delivery/outbox evidence.
 - A retry can duplicate a completed channel or lose a failed one.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing threshold, five-seller limit, email cap, digest behavior, or relevance inspection.
 - Adding another public or agent discovery surface.
 - Enabling external seller email.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Adding read-only state/reason visibility or tests that preserve the same decision.
 - Correcting copy or runbook evidence without changing runtime policy.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -229,7 +229,7 @@ Postgres, canonical Qdrant listings collection, scheduler/Celery, notification s
 
 Matching enabled, threshold 0.75, five sellers, email disabled, three emails per rolling 24 hours.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When a request is ambiguous, keep it private and show the primary reason. When matching relevance is ambiguous, retain the match with a concrete inspection question; do not stop unrelated clean work.
 

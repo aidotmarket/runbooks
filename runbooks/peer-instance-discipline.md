@@ -366,23 +366,23 @@ Delivery semantics that are easy to get wrong, all observed in use:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. A target plan or close shape is never treated as deployed until the exact signed contract and connected schema both prove it. Legacy consultation and exit declarations are compatibility input, never evidence that an agent read a runbook or that a documentation change was useful.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Reintroducing primary and worker authority, work lanes, parent or worker session identifiers, or close ordering is BREAKING. So is permitting work to begin without both a compare-and-swap claim and a peer-bus claim, letting one instance approve or supervise the other's work, removing the acknowledgement requirement from request and alert messages, or claiming server-delivered context or transactional close while the signed deployed contract does not expose it.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review any new peer-bus message kind, any change to the dedupe tuple or to delivery semantics, any change to claim-note schema, acknowledgement handling, or drain timing, any plan-context or close-impact contract change, and any change to the Max escalation boundary.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Wording that preserves the invariants, additional scenario coverage, and narrower clarifications to shell, git, or dispatch hygiene are safe. So is automation that performs these same reads, provided the read still happens and its result is still what is acted on.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -400,7 +400,7 @@ Reachability of the gateway and the registry. Peer liveness is read from the reg
 
 Absent evidence is absent. A bus that cannot be drained, or a peer whose liveness cannot be read, yields no permission to act; it does not yield a default of "clear".
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Where a handoff and measured state disagree, measured state wins and the handoff is corrected in place. Where a send appears to have succeeded but the peer never received it, the returned message id decides, not the absence of an error.
 
@@ -429,7 +429,7 @@ scenario_set:
   - {id: I-10, type: repair, refs: [G-07], scenario: A follow-up message was dropped because it repeated an earlier tuple., expected_answers: [{kind: human_action, verb: resend, object: the message, target: a distinct ref_entity with the new id confirmed}], weight: 0.0666666667}
   - {id: I-11, type: repair, refs: [G-08], scenario: A pending acknowledgement is blocking a dispatch., expected_answers: [{kind: human_action, verb: acknowledge, object: the pending message, target: by its id before retrying the dispatch}], weight: 0.0666666667}
   - {id: I-12, type: evolve, refs: [Changes and maintenance], scenario: A proposal reintroduces close ordering between the two instances., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0666666667}
-  - {id: I-13, type: ambiguous, refs: [Changes and maintenance.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
+  - {id: I-13, type: ambiguous, refs: [H.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
   - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and the connected plan schema exposes only caller-authored runbook_consultation., expected_answers: [{kind: human_action, verb: search, object: every objective at one immutable origin/main SHA, target: exact excerpts and truthful legacy references without invented content}], weight: 0.0666666667}
   - {id: I-15, type: operate, refs: [E-10], scenario: Close exposes only legacy runbook_exit while structured impact and a scoped committed receipt are unavailable., expected_answers: [{kind: human_action, verb: declare, object: only the truthful compatibility value, target: no unrelated runbook edit or unsupported impact claim}], weight: 0.0666666662}
 ```

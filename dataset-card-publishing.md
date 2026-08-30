@@ -165,7 +165,7 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Kaggle and data.world channels are metadata-only PERIOD — no row-publishing code path exists and none may be added without a full Council gate (customer-data surface, unanimous).
 - HF sample rows publish ONLY with a seller-approved disclosure snapshot (sample_decision=approved_rows, exact version). Hard line — do not relax (Max directive + unanimous Council, S1164).
@@ -174,27 +174,27 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
 - All provider secrets live in Infisical (mirrored to Railway env); no secrets in code or chat.
 - Flipping a *_SUBMISSION_ENABLED flag in production is a Max-only action.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
-- Adds any data-row publishing capability to Kaggle or data.world channels (violates Changes and maintenance.1).
-- Publishes HF rows without an approved_rows disclosure snapshot for the exact version (violates Changes and maintenance.1).
+- Adds any data-row publishing capability to Kaggle or data.world channels (violates H.1).
+- Publishes HF rows without an approved_rows disclosure snapshot for the exact version (violates H.1).
 - Removes or weakens the metadata-only sweep of stale HF data files.
 - Changes the search_submission_jobs schema by removing a field or adding a required field without a default.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adds a new provider channel (new module or provider class on the submission surface).
 - Changes a provider API contract implementation (transport, auth scheme, endpoint shape).
 - Changes a config default in app/core/config.py for any *_SUBMISSION_* setting.
 - Adds a runtime dependency for a provider SDK.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Bugfix within existing provider semantics (e.g. correcting an error-classification branch).
 - Card template copy/wording changes that keep metadata-only content.
 - Test additions; documentation updates.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -212,9 +212,9 @@ An entry in ai-market-backend requirements.txt / pyproject [project.dependencies
 
 A value shipping in app/core/config.py. Railway env overrides and feature flags are not config defaults.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-If two agents classify a change differently, the more restrictive classification wins. Unresolvable disputes escalate to Max; the ruling is appended to Changes and maintenance.1 as a per-system clarification.
+If two agents classify a change differently, the more restrictive classification wins. Unresolvable disputes escalate to Max; the ruling is appended to H.1 as a per-system clarification.
 
 ## Acceptance criteria
 
@@ -318,7 +318,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance.2
+      - H.2
     scenario: A proposal adds seller-approved sample-row publishing to the data.world channel, mirroring the HF row branch. Classify.
     expected_answers:
       - kind: classification
@@ -327,7 +327,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance.3
+      - H.3
     scenario: A proposal changes the Kaggle auth implementation from Basic-fallback-first to Bearer-only, deleting the legacy KAGGLE_KEY path. Classify.
     expected_answers:
       - kind: classification

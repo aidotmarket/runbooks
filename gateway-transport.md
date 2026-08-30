@@ -107,7 +107,7 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Long-call heartbeats MUST route via related_request_id=ctx.request_id, or stateless sends them to the GET stream not the per-request POST stream (no liveness). Heartbeat sends are best-effort and MUST NOT abort the call.
 
@@ -115,21 +115,21 @@ Key fact: both AI instances authenticate via the SAME OAuth connector. Under sta
 - Both AI instances share one OAuth connector; response isolation MUST be structural (stateless), not session-dependent.
 - Gateway restart drops live connections; coordinate a quiet window when peers are active.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing `stateless_http=True` (reintroduces cross-talk).
 - Adding shared per-session mutable response state to ProxyFastMCP.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Forwarding upstream keepalive/progress notifications through the gateway (changes long-call delivery model).
 - Changing transport away from streamable-http.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Editing _normalize_tool_name, _remote_tools_cache TTL, retry/backoff counts.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -147,7 +147,7 @@ Upstream koskadeux_server.py on :8765; Infisical-injected MCP_BEARER_TOKEN; laun
 
 stateless_http=True; streamable_http_path="/"; httpx read timeout 660s.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Transport-layer changes affecting both instances: MP review + live two-instance verification. One-line reversible config = Charter-light (one reviewer + one round + empirical).
 

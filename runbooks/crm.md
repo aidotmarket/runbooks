@@ -37,7 +37,7 @@ This runbook replaces three archived documents (`crm-architecture.md`, `crm-pipe
 data model as "Active (production)". Those fourteen tables were deliberately deleted from
 production on 2026-07-03. An agent working from the superseded documents writes queries
 against tables that do not exist and, worse, concludes that a migration failed and tries to
-recreate them. Do not do that. See Changes and maintenance.1 Invariant 1.
+recreate them. Do not do that. See H.1 Invariant 1.
 
 **Written so it can be used without system access.** Architecture & interactions carries the complete field-level data
 dictionary and the production row counts as measured on 2026-08-09, so an agent holding only
@@ -68,7 +68,7 @@ gives the exact verification query.
 | Commercial opportunities and agreements | PLANNED | `app/domains/crm/commercial/` | `crm_opportunity` and `agreement` both 0 rows | 2026-08-09 |
 | CRM Steward daily maintenance | DEPRECATED | — | Removed at backend `5143235d`. All three checks read deleted tables and had failed silently since 2026-07-03; see When it breaks-01 |  2026-08-09 |
 | Morning briefing | SHIPPED | `app/services/crm_briefing_service_gmail.py` | 105 rows in `crm_briefing_runs`; delivery detail lives in morning-briefing.md | 2026-08-09 |
-| External CRM MCP endpoint | DEPRECATED | — | `api.ai.market/mcp/crm/mcp` returns 404 by design, see Changes and maintenance.1 Invariant 4 | 2026-08-09 |
+| External CRM MCP endpoint | DEPRECATED | — | `api.ai.market/mcp/crm/mcp` returns 404 by design, see H.1 Invariant 4 | 2026-08-09 |
 
 ## Architecture & interactions
 
@@ -586,7 +586,7 @@ ever exercised them (see When it breaks-10).
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **Invariant 1. The fourteen deleted CRM tables stay deleted.** `crm_entities`, `crm_people`, `crm_organizations`, `crm_relationships`, `crm_interactions`, `crm_playbooks`, `crm_tasks`, `crm_email_drafts`, `crm_learned_preferences`, `crm_pipeline_stages`, `crm_contact_pipeline`, `crm_pipeline_history`, `crm_referrals` and `crm_conversation_states` were dropped under an explicit Max GO and unanimous Council approval. Recreating any of them, in a migration or a fallback-create path, requires the same authority again. An agent that concludes the migration did not run is misreading a deliberate decision.
 - **Invariant 2. The party is the canonical participant.** All application reads and writes go directly through `party`, its detail tables and `crm_party_*` operations. Do not reintroduce deleted model imports, legacy routing modes or fallback branches.
@@ -596,15 +596,15 @@ ever exercised them (see When it breaks-10).
 - **Invariant 6. Retired operations stay absent from the application.** At backend `ad944bd0`, `app/` has zero deleted-model imports, zero deleted ORM operations, zero retired table-string/raw-SQL operations and zero parse errors. The ten classified name residuals are live schema/display text, not operations. The 477 references across 16 app files and 38 query sites belong only to the dated immutable baseline `ca1e6332`; they are not current state. The 13 non-deployed helpers in Architecture & interactions.1 remain unusable until retired or migrated and must never become entry points.
 - **Invariant 7. Soft delete is real.** Every read filters on a null `deleted_at`. A read that forgets this leaks tombstoned rows.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Recreating, renaming or altering the type of any column in `party`, `party_person`, `party_organization`, `party_identity` or `party_role_binding`.
 - Changing the meaning of a `party_identity` provider value, or reusing a retired provider name.
 - Changing the ownership predicate for scoped CRM reads.
 - Adding a required column without a default to any table with rows.
-- Changing or removing any invariant in Changes and maintenance.1.
+- Changing or removing any invariant in H.1.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding or removing a steward skill, or changing a skill's access level between read and write.
 - Adding a new `party_identity` provider value.
@@ -612,14 +612,14 @@ ever exercised them (see When it breaks-10).
 - Adding a new endpoint under `/api/v1/crm` or `/api/v1/accounting/crm`.
 - Any change that introduces a deleted model name, retired table string, relationship storage operation, or legacy routing mode into `app/`.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Fixing a bug inside an existing skill without changing its input or output schema.
 - Adding tests.
 - Updating this runbook.
 - Internal refactor inside a single module that preserves all public signatures.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -637,7 +637,7 @@ An entry in the backend `requirements.txt` or the `pyproject.toml` project depen
 
 A value shipping in the backend's canonical config, `app/core/config.py`. Environment overrides and feature flags are not config defaults.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 If two agents classify the same change differently, the more restrictive classification wins. Anything touching Invariant 1 or Invariant 3 escalates to Max regardless of classification, because both concern deletion authority and the money path.
 

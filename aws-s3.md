@@ -16,7 +16,7 @@ error_signatures: []
 - **owner_agent:** Vulcan-Primary
 - **escalation_contact:** Max → parent runbook `aws.md`
 - **lifecycle_ref:** Maintenance
-- **authoritative_scope:** Source of truth for S3 bucket naming/settings, lockdown baseline, lifecycle/cost policy, and the S3 STS connector role. Inherits account identity + guardrails from `aws.md` (Changes and maintenance.1 there is authoritative for non-custodial / least-privilege / confirm-first).
+- **authoritative_scope:** Source of truth for S3 bucket naming/settings, lockdown baseline, lifecycle/cost policy, and the S3 STS connector role. Inherits account identity + guardrails from `aws.md` (H.1 there is authoritative for non-custodial / least-privilege / confirm-first).
 - **linter_version:** see §K.0 (lint not yet run)
 
 ## Capabilities
@@ -32,7 +32,7 @@ error_signatures: []
 ## Architecture & interactions
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Bucket | `s3api create-bucket` (CLI, profile `aimarket`) | S3 (eu-north-1) | AIM Data node / backups / connector | Name per `aws.md` Changes and maintenance.1; one purpose per bucket. |
+| Bucket | `s3api create-bucket` (CLI, profile `aimarket`) | S3 (eu-north-1) | AIM Data node / backups / connector | Name per `aws.md` H.1; one purpose per bucket. |
 | Lockdown baseline | `put-public-access-block` + `put-bucket-ownership-controls` + (default SSE-S3) | S3 bucket config | — | Applied immediately after create. New buckets get BPA + SSE-S3 by AWS default; this makes it explicit + disables ACLs. |
 | Lifecycle policy | `put-bucket-lifecycle-configuration` | S3 bucket config | Glacier Deep Archive | Backups age cold copies to Glacier (~$0.00099/GB vs $0.023). |
 | Connector assume-role | IAM role `aimarket-connector-*` (trust + permission policy) | IAM | backend `S3Connection` (`role_arn`+`external_id`) | Node assumes role via STS w/ `ExternalId` condition; grants read-only on the one bucket. |
@@ -44,13 +44,13 @@ error_signatures: []
 | Vulcan | Create/configure/tag `aimarket-*` buckets; put/get/list/delete objects | AWS CLI (profile `aimarket`) | `aimarket-s3-svc` (S3 on `aimarket-*`) | COMPLETE |
 | Vulcan | Set lifecycle / versioning / encryption config | AWS CLI | `aimarket-s3-svc` (s3 perms-mgmt on `aimarket-*`) | COMPLETE |
 | Vulcan | Create the connector assume-role | AWS CLI | needs `iam:CreateRole`+`PutRolePolicy` (NOT in `aimarket-s3-svc`) | GAP — closes via console walk-through OR narrow IAM add-on (parent Agent capabilities) |
-| Vulcan | Delete a bucket/objects holding data | — | CONFIRM-FIRST (parent Changes and maintenance.1 #5) | N/A — never auto |
+| Vulcan | Delete a bucket/objects holding data | — | CONFIRM-FIRST (parent H.1 #5) | N/A — never auto |
 
 ## How to operate
 **E-01 — Create + lock down a bucket.** *(the canonical procedure; staging bucket created this way S720)*
 - trigger: new storage need (node or backup)
-- pre_conditions: name per `aws.md` Changes and maintenance.1; region = consuming node's region; identity verified (`aws.md` How to operate-01)
-- tool_or_endpoint / argument_sourcing (region literal, e.g. `eu-north-1`; bucket from Changes and maintenance.1):
+- pre_conditions: name per `aws.md` H.1; region = consuming node's region; identity verified (`aws.md` How to operate-01)
+- tool_or_endpoint / argument_sourcing (region literal, e.g. `eu-north-1`; bucket from H.1):
 ```
 P="--profile aimarket"; R=eu-north-1; B=aimarket-<purpose>-<env>
 aws s3api create-bucket --bucket $B --region $R --create-bucket-configuration LocationConstraint=$R $P
@@ -113,13 +113,13 @@ aws s3api put-bucket-tagging --bucket $B --tagging 'TagSet=[{Key=project,Value=a
 
 ## Repair
 **G-01** symptom_ref F-01 · component_ref Bucket · root_cause: region/LocationConstraint · repair_entry_point: `s3api create-bucket` · change_pattern: add `--create-bucket-configuration LocationConstraint=<region>` matching `--region` · rollback: delete empty mis-region bucket · integrity_check: `get-bucket-location` == intended region.
-**G-02** symptom_ref F-02 · component_ref Bucket · root_cause: global name collision · repair_entry_point: bucket name · change_pattern: append a short distinguishing suffix within Changes and maintenance.1 convention (e.g. `-eun1`) · rollback: n/a · integrity_check: create succeeds.
+**G-02** symptom_ref F-02 · component_ref Bucket · root_cause: global name collision · repair_entry_point: bucket name · change_pattern: append a short distinguishing suffix within H.1 convention (e.g. `-eun1`) · rollback: n/a · integrity_check: create succeeds.
 **G-03** symptom_ref F-03/F-04 · component_ref Connector assume-role · root_cause: trust/permission mismatch · repair_entry_point: IAM role `aimarket-connector-*` (confirm-first) · change_pattern: align trust principal + `ExternalId` with the node; ensure permission policy lists `s3:ListBucket` on bucket ARN and `s3:GetObject` on `/*` · rollback: restore prior policy version · integrity_check: node assumes role + lists bucket.
 **G-04** symptom_ref F-05 · component_ref Lockdown baseline · root_cause: BPA blocks a public statement · change_pattern: do NOT relax BPA — connector access is via STS role, never public; if a genuinely public object is needed, that is a Changes and maintenance/parent change-class REVIEW, confirm-first · integrity_check: required access works via role, BPA stays all-true.
 **G-05** symptom_ref F-06 · component_ref Bucket · root_cause: cross-region · change_pattern: create a new bucket in the node's region (E-01) and migrate objects (`aws s3 sync`); retire the old · rollback: keep old until sync verified · integrity_check: `get-bucket-location` == node region.
 
 ## Changes and maintenance
-### Changes and maintenance.1 Invariants  *(inherits parent aws.md Changes and maintenance.1; S3-specific additions)*
+### H.1 Invariants  *(inherits parent aws.md H.1; S3-specific additions)*
 1. Every bucket: **Block Public Access all-true**, **ACLs disabled (BucketOwnerEnforced)**, **SSE-S3 (AES256) at rest**.
 2. Bucket access is via **STS role assumption only** — never public, never long-lived keys handed to the node.
 3. **Naming** `aimarket-<purpose>-<env>`; **node-data and backups in separate buckets**; **region = consuming node**.
@@ -136,7 +136,7 @@ aws s3api put-bucket-tagging --bucket $B --tagging 'TagSet=[{Key=project,Value=a
 6. (F) "Reads from the bucket are slow and pricey." → F-06: region != node region.
 7. (G) "Fix the LocationConstraint error." → G-01 add `--create-bucket-configuration`.
 8. (G) "Connector AccessDenied even after assuming role." → G-03 permission policy missing `s3:GetObject` on `/*`.
-9. (H) Classify: "Make one object publicly downloadable by URL." → BREAKING/REVIEW (violates Changes and maintenance.1 #1-2; confirm-first) — NOT a casual BPA relax.
+9. (H) Classify: "Make one object publicly downloadable by URL." → BREAKING/REVIEW (violates H.1 #1-2; confirm-first) — NOT a casual BPA relax.
 10. (ambiguous) "The connector stopped reading the bucket." → acceptable first actions: check role trust/ExternalId (F-03) OR check permission policy actions (F-04) OR `get-bucket-location` vs node region (F-06). Key lists all three.
 
 *(Equal weight. Harness + MP/AG answer-key sign-off pending — see §K.)*

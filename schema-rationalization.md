@@ -237,7 +237,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Empty-only is enforced at migration execution time inside the DDL transaction after `ACCESS EXCLUSIVE` lock acquisition; classification evidence alone is never sufficient.
 - P2 and P3 are operator-controlled one-shot migrations and must not run from Railway app startup.
@@ -247,14 +247,14 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 - `referral_codes` is KEEP-ROADMAP by Max S1187; invoices, payments, purchases, refunds and the finance roadmap family are KEEP-ROADMAP by Max S1184.
 - Relation-does-not-exist errors for tables absent from Architecture & interactions quarantine_set are not S1163 quarantine misses.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Drops or quarantines a table with rows, or weakens the lock-before-count invariant.
 - Adds any app-startup path that can run P2/P3 one-shot migrations.
 - Removes a KEEP-ROADMAP or OWNED-ELSEWHERE exclusion without a fresh Max ruling and unanimous Council gate.
 - Drops a partition child independently from its parent family.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changes classifier evidence rules or classification labels.
 - Changes the P2/P3 migration target set.
@@ -262,14 +262,14 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 - Adds a runtime dependency to execute classification or migrations.
 - Changes backup-health, Council, or Max checkpoint gates.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation update preserving all invariants.
 - Adding a monitor query or log source that cannot mutate production.
 - Test additions for classifier helpers or migration constants.
 - Narrow bugfix to formatting of evidence output with no classification semantic change.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -287,7 +287,7 @@ Entries in backend runtime dependency files used by production services. Local-o
 
 Values committed in backend config files. Environment variables such as `RUN_ONE_SHOT_S1163_P2`, `RUN_ONE_SHOT_S1163_P3`, and `SCHEMA_CLASSIFICATION_MIN_WINDOW_DAYS` are operator-supplied run controls, not config defaults.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 If agents disagree on change class, the more restrictive class wins. Any dispute touching table ownership, roadmap status, or customer-data risk escalates to Max.
 
@@ -368,7 +368,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-09
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A proposal drops agent_telemetry_2026_03 but keeps the parent and other children.
     expected_answers:
       - kind: classification
@@ -385,7 +385,7 @@ scenario_set:
     weight: 0.0909090909
   - id: I-11
     type: evolve
-    refs: [Changes and maintenance.3]
+    refs: [H.3]
     scenario: A proposal changes the classifier so KEEP-ROADMAP tables require a new evidence field before being excluded from P3.
     expected_answers:
       - kind: classification

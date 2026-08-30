@@ -147,23 +147,23 @@ below. Use `state_request(action=bq_status)` for queue reads and
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Aging is computed from live approval and dispatch evidence; queue obligations cannot be erased by a new session or successor spec.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Weakening thresholds, WIP limits, repeat-incident actions, close carry, or anti-duplication obligations is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to timestamp sources, standup rendering, incident counting, priority ordering, or handoff schema.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Display and explanation improvements are safe when computed classifications and required actions are unchanged.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -181,7 +181,7 @@ Living State, accurate UTC timestamps, Build Queue dispatch status, and handoff 
 
 No missing timestamp is treated as fresh; unresolved evidence is surfaced rather than guessed.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 CORE sets the rules, live state supplies values, and Max decides explicit queue-order overrides.
 
@@ -199,7 +199,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: Duplicate successor authoring has begun., expected_answers: [{kind: human_action, verb: stop, object: duplicate spec, target: existing approved BQ}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal moves critical-stale from fourteen to thirty days., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: Standup adds a clearer age display without changing classification., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Approval timestamp is missing for an undispatched item., expected_answers: [{kind: human_action, verb: surface, object: unknown age evidence, target: queue decision}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Approval timestamp is missing for an undispatched item., expected_answers: [{kind: human_action, verb: surface, object: unknown age evidence, target: queue decision}], weight: 0.090909091}
 ```
 
 ## Maintenance

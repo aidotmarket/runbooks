@@ -286,7 +286,7 @@ deployment and the authorized linked pair.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Cache reuse requires an identical complete ordered prefix; never alter prompt meaning for cost.
 - Provider token fields, not estimated savings, prove cache creation/read.
@@ -295,24 +295,24 @@ deployment and the authorized linked pair.
   completion.
 - No synthetic provider request without explicit financial authority.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Changing prompt bytes/order, model/tool request semantics, provider, TTL,
 minimum-token behavior, customer data handling, cost enforcement, or safety
 fallbacks is breaking and requires design plus exact-artifact review.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Adding/removing a cache marker, moving the breakpoint, changing usage-field
 mapping, log/metric names, cost rates, or live acceptance evidence requires
 tests, this page, and exact-artifact review to move together.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Editorial clarification and updated point-in-time provider links/prices are safe
 only when they change no request, accounting, authority, or acceptance meaning.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -338,7 +338,7 @@ The candidate uses provider `ephemeral` caching with its default five-minute
 TTL. Cost rates remain configuration values and must follow current provider
 pricing through a separately reviewed change.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Exact deployed code and provider usage fields win over this page. Official
 Anthropic documentation wins for current TTL/minimum/pricing behavior. Any

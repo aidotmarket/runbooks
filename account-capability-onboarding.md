@@ -227,7 +227,7 @@ The capability guard sits ALONGSIDE older, narrower guards that still exist: rol
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 - **Buyer is default-on.** Every active user can buy; the buyer branch must not be gated behind readiness steps.
 - **Seller is additive and gated.** A seller endpoint that requires `active` must never be served to a user whose effective seller status is below the required status.
 - **Publishing requires an active seller, on the canonical path only.** A listing reaches the marketplace through one entry point, `POST /api/v1/vz/publish` (shared by vectorAIz and AIM Data). It asserts `active` seller capability after trust-token validation and before any listing create/update, taking identity only from the verified install binding (`vz_installs.seller_id`), never the request body. This is what enforces `no_anonymous_uploads` on the live publish path. Other/legacy publish surfaces are being REMOVED (not separately gated) under the publish-paths consolidation (`BQ-PUBLISH-PATHS-CONSOLIDATION-S1060`); `aim.py /nodes/{id}/tools/publish` is AIM-node tool registration, not a dataset publish, and is out of scope.

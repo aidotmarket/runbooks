@@ -224,7 +224,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Postgres is canonical. Entity embeddings are built from the current `state_entities.kind/key/summary/body`, not from stale entity `embed_text`.
 - No silent exclusion. A row may stop contributing to freshness only through a shipped, monitored admission decision; P2 owns that.
@@ -239,7 +239,7 @@ Production deploy sequence for S1194 P1: merge the feature branch, deploy the ba
 - Transient Postgres/Qdrant version disagreement during an active outbox flush is expected. The integrity monitor confirms only first-pass failing keys against fresh Postgres expectations and freshly fetched current points; rows now consistent, deleted, or no longer verifiable drop out. A first-pass missing-ratio breach uses the same row confirmation, an orphan breach reuses the existing orphan-count SQL, and any confirmation exception preserves the original critical page. Failing rows that become unverifiable between passes yield a degraded P3/unknown result, never healthy.
 - Any migration or code change that adds a freshness predicate or tracking column must include an explicit admission/backfill decision for pre-existing rows in the same reviewed change. The regression test must execute the legacy-row transition against Postgres; SQL-string or schema-shape assertions alone do not prove the data invariant.
 
-### Changes and maintenance.2 Change-class predicate tree
+### H.2 Change-class predicate tree
 
 BREAKING if any change reintroduces a required partial unique index or writer pause for P1 deploy, trusts entity `embed_text` for version ack, drops `qdrant_indexed_version`, weakens claimed-worker ack/fail guards, changes `source_version` payload semantics, or disables the freshness alarm.
 
@@ -247,7 +247,7 @@ REVIEW if any change changes config defaults (`EMBED_BATCH_SIZE`, `EMBED_CONCURR
 
 SAFE if the change is a focused bugfix preserving the invariants above, adds test coverage, or updates this runbook without changing runtime behavior.
 
-### Changes and maintenance.3 Boundary definitions
+### H.3 Boundary definitions
 
 `module`: backend source modules are `app/services`, `app/core`, `app/allai`, `app/models`; migrations and scripts are peer trees.
 

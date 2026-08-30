@@ -134,23 +134,23 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 There is one signed product publish route. The provisioning exception is exact-denial, signed-VZ, fresh-create, and seller/source scoped. It grants no purchase, payout, settlement, update, republish, or programmatic authority. Website unpublish is retraction-only.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Adding a product writer outside the canonical VZ route, removing trust or replay checks, widening the provisioning exception, bypassing the programmatic chokepoint, or firing publish hooks on unpublish is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to VZ claims, install or serial binding, seller readiness semantics, seller/source identity, lock scope, status transitions, publish hooks, or website management authorization.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Examples and explanatory copy are safe when they do not change route identity, authorization, capability gates, state transitions, or publish and retraction side effects.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -168,7 +168,7 @@ The route depends on PostgreSQL user, capability, install, serial, and listing s
 
 No flag widens the provisioning exception. Missing trust, replay, install, durable readiness, ownership, or identity state fails closed.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Any new writer or broader seller exception requires separate frozen scope, security review, focused tests, protected merge, deployment proof, and customer verification.
 

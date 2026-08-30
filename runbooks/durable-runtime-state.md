@@ -561,7 +561,7 @@ Live repair still requires the explicit reviewed inputs described above.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Exactly five records and one root; no broad `/var/tmp/koskadeux` relocation.
 - No source deletion, compatibility symlink, schema change, root execution,
@@ -575,7 +575,7 @@ Live repair still requires the explicit reviewed inputs described above.
   after seal only a reviewed safe prefix is allowed.
 - Rollback preserves verified post-cutover task/counter/history deltas.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Adding a sixth record, accepting a legacy override, creating an old-path
 writer/symlink, weakening root/owner/mode/liveness checks, overwriting ACTIVE,
@@ -583,19 +583,19 @@ skipping a phase/evidence reproof, starting probe/reloader before marker seal,
 or restoring a frozen snapshot over newer durable state is breaking and needs a
 new design and unanimous exact-artifact review.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Changing a fixed child name, plist order/label/program, receipt field/schema,
 transaction identity, liveness classifier, restart-history schema, first-tick
 preconditions, soak timing/checks, rollback reconciliation, or authority input
 requires code, tests, this page, and exact-artifact review to move together.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Editorial clarification is safe only when it changes no command, path,
 identity, phase, failure, evidence, authority, timing, or rollback meaning.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -621,7 +621,7 @@ peer clearance, and exact non-secret evidence identifiers.
 `KOSKADEUX_DURABLE_STATE_DIR` defaults to `/Users/max/koskadeux-state` and may
 not be empty. No per-record production override exists.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Code and binding specs win over this page. The only approved
 pre-migration exception is the exact-preimage, receipt-bound union/archive/

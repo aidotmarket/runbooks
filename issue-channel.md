@@ -225,7 +225,7 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Provider observations are the only issue-existence and resolution authority (spec §1 inv. 4); `expired` is the single non-observational state and is never treated as resolution.
 - Resolution needs a COMPLETE observation and terminal SUCCESS on EVERY bound member witness, each newer than that member's latest open failure. History-window fall-out is never evidence.
@@ -233,23 +233,23 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
 - No plaintext secret or customer data in canonical state, witnesses, snapshots, journals, logs, or corpora.
 - `dispatch_enabled: false` until rollout step 11 is executed under its own receipt.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that lets a partial observation resolve, or that resolves on absence of a failure envelope.
 - Adding an HTTP call, scope, or endpoint to any adapter.
 - Writing to the DB from `--export-corpus` or reading quarantine from it.
 - A second replica of the watcher.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Any change to `policy.yaml` values, dispatch_rules, member binding, or episode keying.
 - New provider or new resource shape (check F-01 class first).
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Test-only changes; RESOLUTION.md wording; snapshot fields that add information without removing any.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -267,7 +267,7 @@ Backend Postgres (`issue_channel` schema), Railway service `issue-channel-watche
 
 `policy.yaml`: `dispatch_enabled: false`, `resolution.expiry_enabled: true`, `resolution.expiry_ttl` 7 days.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Spec 4.1 (Amendment A3) is the contract; Council three-seat (CC, Kimi, GLM) adjudicates at Gate 3; Max adjudicates policy value changes.
 

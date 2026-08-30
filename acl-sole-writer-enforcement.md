@@ -182,7 +182,7 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - enforce_mode is the closed set {'warn','enforce'} only; adding a third mode re-architects Phase D and the SLO contract.
 - field_acl is the single authority for per-field write authorization in the single-source-of-truth reform.
@@ -191,14 +191,14 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 - ai.market non-custodial invariant is unaffected: this governs internal Living State write authorization, never customer data.
 - All DB access is via DATABASE_PUBLIC_URL with credentials from Infisical; no secrets committed.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Adds, removes, or renames a field_acl column in the published DDL contract.
 - Changes the enforce_mode allowed value set.
 - Changes the resolve_writer_role return contract (WriterIdentity shape) or the SloVerdict shape.
 - Removes the in-transaction SLO re-validation or row locking in execute_phase_d_flip.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adds a new sole_writer_role to the seed or a new identity token to resolve_writer_role.
 - Changes the specificity ordering semantics (exact>prefix>glob>NULL) in lookup.
@@ -206,13 +206,13 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 - Wires enforce_field_acl into a new call site, e.g. the state_request put/patch hook (WS9 Chunk 6 is itself a REVIEW-class change).
 - Adds a first-class CLI/MCP tool wrapper for the cutover functions (closes the Agent capabilities tool-gap).
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Adds a new How to operate operate scenario, When it breaks symptom, or test without touching the gate/flip logic.
 - Tightens a blocked_reason or audit message string.
 - Adds a read-only diagnostic query over event_ledger or field_acl.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -230,7 +230,7 @@ The koskadeux-mcp pyproject runtime dependencies; WS9 adds no new runtime depend
 
 None specific to this subsystem; the DB target is supplied at runtime via the DATABASE_PUBLIC_URL environment variable, which is not a config default.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 If two agents classify the same change differently, the more restrictive classification wins. Disputes unresolvable under the predicates escalate to Max; the ruling is appended here as a per-system clarification.
 

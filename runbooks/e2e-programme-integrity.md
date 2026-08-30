@@ -50,7 +50,7 @@ error_signatures:
 | Production runs fail closed when a service URL resolves off the production backend | SHIPPED | `src/e2e_harness/config.py` | `tests/test_runtime.py` | 2026-07-23 |
 | Guard sees charters appended straight to the runtime queue | BROKEN | `tests/test_charters.py` | — | 2026-07-23 |
 | Empty or missing runtime queue is a LOUD failure: report status `harness_error` with an `error` field, one stderr line, exit 3 — a zero-charter run can never report `passed` (T-2026-000626; the Aug 8 truncation ran green for a week) | SHIPPED | `src/e2e_harness/cli.py` | `tests/test_empty_queue.py` | 2026-08-16 |
-| Charter authoring standard (Changes and maintenance.1) enforced mechanically rather than by review judgement | PLANNED | — | n/a | — |
+| Charter authoring standard (H.1) enforced mechanically rather than by review judgement | PLANNED | — | n/a | — |
 | Stale-record and expiring-blocker mechanisms (`BQ-STALE-RECORD-AND-EXPIRING-BLOCKER-CLAIMS-S1315`) | PLANNED | — | n/a | — |
 
 ## Architecture & interactions
@@ -71,7 +71,7 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan/Mars | Run the integrity audit (How to operate-01) | `shell_request` + `state_request` | Titan-1 + Living State read | COMPLETE — run it before trusting any coverage number |
-| Vulcan/Mars | Author or amend a charter against Changes and maintenance.1 | `shell_request` edit + Council review | Titan-1 shell | COMPLETE |
+| Vulcan/Mars | Author or amend a charter against H.1 | `shell_request` edit + Council review | Titan-1 shell | COMPLETE |
 | Vulcan/Mars | Reconcile the queue against committed charters (How to operate-03) | `shell_request` | Titan-1 shell | COMPLETE — the guard cannot do this yet |
 | MP (Codex) | Build charters and guard changes | `council_request mode=build` | Council dispatch | COMPLETE — its summaries over-claim; diff-inspect at file:line every time |
 | CC / Kimi / GLM | Review charters for safety and coverage honesty when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
@@ -107,14 +107,14 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
   trigger: Author or amend a charter, before committing it
   pre_conditions:
     - the journey it claims exists in docs/coverage.json
-  tool_or_endpoint: "the Changes and maintenance.1 authoring standard, then Council review by a reviewer that is not the author"
+  tool_or_endpoint: "the H.1 authoring standard, then Council review by a reviewer that is not the author"
   argument_sourcing:
     item_ids: from docs/coverage.json
     account_id: only an id that passes production preflight
   idempotency: IDEMPOTENT
   expected_success:
     shape: 'the charter can actually perform every step it instructs; it claims covers ONLY where it exercises the whole catalog item, covers_partial otherwise; its goal hunts rather than confirms; it cannot pay, purchase, delete, edit live data or reset a password; its declared environment contract matches what it really writes'
-    verification: 'a reviewer who is not the author confirms each clause of Changes and maintenance.1 against the goal text AND against the harness code that would execute it - not against the charter description'
+    verification: 'a reviewer who is not the author confirms each clause of H.1 against the goal text AND against the harness code that would execute it - not against the charter description'
   expected_failures:
     - signature: the goal instructs an action the harness has no primitive for
       cause: the agent will IMPROVISE that step against production. This is how a charter came to guess passwords at our only enabled account (When it breaks-06)
@@ -227,7 +227,7 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 These are the authoring standard. A charter that breaches any of them must not be committed or enqueued.
 
@@ -240,7 +240,7 @@ These are the authoring standard. A charter that breaches any of them must not b
 - **A charter that can only ever fail is retired, not mapped.** Mapping a dead charter to a real item manufactures a false failure on the page Max reads.
 - **Guards are never weakened to pass.** No skip-list, no exemption, no escape hatch. If a charter cannot satisfy the guard honestly, that is a signal not to ship it.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Claiming `covers` for a journey the charter does not fully exercise, or marking any item proven from anything other than a real mapped run.
@@ -249,7 +249,7 @@ BREAKING if ANY of (first match wins):
 - Allowing a charter to attempt authentication with credentials it does not have, or to a non-allowlisted account.
 - Declaring a read-only contract for a charter that writes to production.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the 30-item catalog: ids, descriptions, or what an item means.
@@ -257,14 +257,14 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Adding a new charter, or materially rewriting an existing goal.
 - Changing which accounts a charter may use, or the production-targeting guards.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Wording and formatting of this runbook and of `docs/coverage.md`.
 - Adding tests that tighten an existing guard without exempting anything.
 - Read-only tooling that reports on coverage or run history.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -282,9 +282,9 @@ The nightly scheduler and its environment, the production backend and its prefli
 
 The account allowlist that decides which accounts a charter may use, and the production service URLs a run refuses to start without.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything that changes the meaning of a green tick, the catalog, or what a charter may do on production escalates to Max; the ruling is added to Changes and maintenance.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything that changes the meaning of a green tick, the catalog, or what a charter may do on production escalates to Max; the ruling is added to H.1 as a clarification.
 
 ## Acceptance criteria
 
@@ -369,7 +369,7 @@ scenario_set:
     weight: 0.076923077
   - id: I-08
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A change adds an exemption to the charter guard so one awkward charter can ship. Classify.
     expected_answers:
       - kind: classification
@@ -377,7 +377,7 @@ scenario_set:
     weight: 0.076923077
   - id: I-09
     type: evolve
-    refs: [Changes and maintenance.2]
+    refs: [H.2]
     scenario: A charter walks one public page on a phone-sized window and claims the whole phone-journeys item as complete. Classify.
     expected_answers:
       - kind: classification
@@ -385,7 +385,7 @@ scenario_set:
     weight: 0.076923077
   - id: I-10
     type: evolve
-    refs: [Changes and maintenance.3]
+    refs: [H.3]
     scenario: A change rewrites the goal text of an existing committed charter to explore a new part of the product. Classify.
     expected_answers:
       - kind: classification
@@ -393,7 +393,7 @@ scenario_set:
     weight: 0.076923077
   - id: I-11
     type: ambiguous
-    refs: [Changes and maintenance.6, F-07]
+    refs: [H.6, F-07]
     scenario: A charter exercises a catalog item fully on the happy path but cannot reach one error branch the description mentions. Complete claim, or partial?
     expected_answers:
       - kind: classification
@@ -401,8 +401,8 @@ scenario_set:
       - kind: human_action
         verb: default-and-escalate
         object: incomplete coverage claim
-        target: covers_partial pending Max adjudication under Changes and maintenance.6
-        rationale: default to covers_partial, because a checked item must mean the whole item was proved; if the branch is genuinely unreachable by any customer the catalog description should change instead, and that is a Max escalation under Changes and maintenance.6 rather than a judgement call at authoring time
+        target: covers_partial pending Max adjudication under H.6
+        rationale: default to covers_partial, because a checked item must mean the whole item was proved; if the branch is genuinely unreachable by any customer the catalog description should change instead, and that is a Max escalation under H.6 rather than a judgement call at authoring time
     weight: 0.076923077
   - id: I-12
     type: operate

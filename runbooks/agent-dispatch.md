@@ -108,7 +108,7 @@ Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
 - **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
 - **Kimi**: gate voter, review-only, with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `2db3201d` on koskadeux-mcp `fdf50693`.
-- **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per Changes and maintenance.2) plus Max approval.
+- **DeepSeek**: RETIRED from voting at S1321, superseding the S528 graduation. It can no longer cast a valid member vote on any gate. The dispatch surface `agent=deepseek` remains technically callable and `deepseek_server` may still be running, but nothing routes votes to it and new gate dispatches must not target it. HISTORICAL capabilities, retained for reactivation reference only: review plus spec-authoring, per-dispatch cost cap, raw-JSON-only prompts, ≤3 findings. No cold-storage record has been written yet; reinstatement follows the XAI pattern, a Council-approved roster change (BREAKING per H.2) plus Max approval.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
 - **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
 - **XAI is RETIRED** (Max go, S994).
@@ -686,32 +686,32 @@ output file was written. This is expected and is the primary fix for the old
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Dispatch mode must preserve read-only versus write-capable auth boundaries.
 - Live model frontiers, dispatch participants, timeout defaults, and retired-agent state remain authoritative in `infra:council-comms`.
 - Same-file When it breaks/Repair references use bare IDs; cross-runbook references use file-qualified IDs.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing a dispatch tool such as `council_request`, `dispatch_mp_build`, or `council_hall` is BREAKING.
 - Granting write scope to any review-only, paused, or retired dispatch backend without a Council-approved role change is BREAKING.
 - Reactivating any retired member as an active voter is BREAKING because deployed role projection and gate membership change.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new dispatch tool is REVIEW.
 - Changing the model frontier for any callable builder, reviewer, or Hall participant is REVIEW.
 - Changing default dispatch participants, review order, or Council Hall participant sets is REVIEW.
 - Replacing a backend server, CLI, or API client is REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Bumping an internal timeout is SAFE when auth scope, tool surface, and fallback ownership do not change.
 - Updating symptom prose or repair examples is SAFE when IDs and contracts remain stable.
 - Adding a new verification command to an existing repair is SAFE.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -729,7 +729,7 @@ A runtime dependency is any CLI, server, API, token, LaunchAgent, PATH entry, or
 
 A config default is any model frontier, timeout, cost cap, participant list, or retired-agent flag read from `infra:council-comms`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When two agents classify a dispatch change differently, use the more restrictive class. Max resolves changes that affect auth scope, money/security behavior, or active Council membership.
 

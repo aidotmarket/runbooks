@@ -245,21 +245,21 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Every BQ gate transition must leave auditable state on the `build:bq-*` entity.
 - Builder and reviewer provenance must remain separable.
 - Gate 4 completion requires non-builder review evidence unless Max explicitly authorizes emergency break-glass use.
 - Same-file When it breaks/Repair references use bare IDs; cross-runbook references use file-qualified IDs such as `agent-dispatch:F-04`.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing one of the four gates or collapsing Gate 3 and Gate 4 is BREAKING.
 - Removing cross-review enforcement before `state_request(action=bq_complete)` is BREAKING.
 - Granting write-mode authority to any gate voter, or restoring retired/paused voter authority without an approved roster change, is BREAKING.
 - Changing the BQ entity key shape away from `build:bq-*` is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new gate outcome such as `CONDITIONAL` is REVIEW.
 - Changing dispatch participants for a gate is REVIEW.
@@ -267,14 +267,14 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 - Increasing the per-dispatch cost cap for gate review is REVIEW.
 - Changing the verdict regex or accepted completion language is REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Clarifying gate prose is SAFE when state fields and transition rules do not change.
 - Adding another verification example to Gate 4 is SAFE.
 - Updating symptom or repair text is SAFE when IDs, component names, and gate contracts remain stable.
 - Correcting stale dates or commit pointers in Maintenance or §K is SAFE when conformance meaning does not change.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -292,7 +292,7 @@ A runtime dependency is any Living State surface, dispatch path, review transcri
 
 A config default is any Council review order, dispatch participant set, model frontier, cost cap, or bypass policy read from `infra:council-comms`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 When agents disagree on the evolve class for a gate-process change, use the more restrictive class. Max resolves changes that affect completion enforcement, emergency bypass behavior, money/security impact, or active Council membership.
 
@@ -427,7 +427,7 @@ scenario_set:
     type: evolve
     refs: [Changes and maintenance, E-01, E-04]
     scenario: |
-      id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from Changes and maintenance.5; invariants from Changes and maintenance.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before state_request(action=bq_complete). expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
+      id: H-01. trigger: A proposal changes the BQ process from four gates to three by merging Gate 3 audit and Gate 4 verification. pre_conditions: proposed flow, affected BQ entity fields, completion behavior, and cross-review impact are described. tool_or_endpoint: runbook and gate-state contract patch. argument_sourcing: current public contract from H.5; invariants from H.1; completion enforcement from Cross-Review Gate. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it removes or collapses a gate and changes the public transition contract before state_request(action=bq_complete). expected_failures: calling it REVIEW because reviewers still exist, or treating it as prose-only cleanup. next_step_success: open a Gate 1/Gate 2 change with full Council review. next_step_failure: keep the four-gate flow unchanged.
     expected_answers:
       - kind: classification
         label: BREAKING
@@ -436,7 +436,7 @@ scenario_set:
     type: evolve
     refs: [Changes and maintenance, F-01, G-01]
     scenario: |
-      id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from Architecture & interactions and How to operate-04; review predicates from Changes and maintenance.3; invariants from Changes and maintenance.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
+      id: H-02. trigger: A proposal changes cross-review concurrence so any reviewer verdict, including REQUEST_CHANGES, can unblock completion if a builder also passes. pre_conditions: proposed rule text, current approval regex, builder/reviewer provenance model, and security impact are known. tool_or_endpoint: cross_review_gate.py plus runbook policy patch. argument_sourcing: current concurrence rule from Architecture & interactions and How to operate-04; review predicates from H.3; invariants from H.1. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW at minimum because it changes accepted completion language and verdict semantics; escalate toward BREAKING if it removes non-builder approving evidence. expected_failures: treating it as SAFE wording, or accepting REQUEST_CHANGES as approval in an active BQ. next_step_success: require Council review before implementation. next_step_failure: preserve current cross-review gate behavior.
     expected_answers:
       - kind: classification
         label: REVIEW

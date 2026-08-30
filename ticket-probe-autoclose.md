@@ -179,7 +179,7 @@ error_signatures:
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Flag off (`TICKET_PROBE_RECONCILER_ENABLED` unset/false) is a FULL no-op: no fetch, no probe, no PATCH, no alarm, no lock.
 - `resolved` is terminal for auto-close: the reconciler never advances a ticket to `closed`; an operator owns resolved->closed.
@@ -189,25 +189,25 @@ error_signatures:
 - Backend probe validation MUST match the runner's assert_broken contract for every kind (drift here silently breaks a probe kind end-to-end).
 - The support-ticket PATCH path stays internal-only (403 for non-internal principals).
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing or renaming any probe-state column (probe, probe_last_state, probe_last_checked_at, probe_consecutive_not_broken, resolution_source, probe_last_canary_at, probe_rot).
 - Changing the runner's return values (broken/not_broken/unreachable) or the assert_broken shape for any kind without matching the backend validator.
 - Making the patch path externally reachable, or letting external callers set resolved_at/resolution_source/status.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing the auto-close threshold (2x not_broken), the 5-min cooldown, the 30s probe timeout, the daily canary cadence, or the 1h alarm dedup window.
 - Adding a new probe kind (must be added to BOTH backend validation and the runner in the same change).
 - Changing the advisory-lock key or DSN source.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Adding a host to TICKET_PROBE_HTTP_ALLOWLIST.
 - Attaching/removing a probe on an individual ticket.
 - Editing log/observability strings that carry no secret.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -225,7 +225,7 @@ Railway Postgres (support_ticket via backend), the advisory-lock DB (AUTHOR_DISP
 
 TICKET_PROBE_RECONCILER_ENABLED default false. On Titan-1 it is set true in koskadeux-mcp .env (S1128). TICKET_PROBE_HTTP_ALLOWLIST is unset by default (http probes require it on the backend).
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Owner agent vulcan adjudicates evolution. BREAKING changes require a spec + Council Gate-3 (reviewer!=builder) before merge and a Gate-4 controlled enable. REVIEW changes require a single-reviewer pass. SAFE changes may proceed directly and be noted here in the same session.
 

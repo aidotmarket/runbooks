@@ -60,7 +60,7 @@ error_signatures:
 | Vulcan / Mars | run cleanup adjudication pre-flight | Chunk-4 cleanup manifest (see When it breaks) | token-scoped | LIVE |
 | Reconciler | recompute eligibility + drift (sweep/backstop since S1103) | lifecycle_eligibility_handler | system | LIVE |
 | State write path | synchronous eligibility-column refresh on every build-entity write | `StateService._refresh_build_eligibility_columns` | system | LIVE (S1103, backend main 85958681; Gate-4 liveness-proven by prod probe) |
-| Dispatch wrapper | reject dispatches lacking a valid active build-queue reference | dispatch enforcement gate | system | see Changes and maintenance.1 |
+| Dispatch wrapper | reject dispatches lacking a valid active build-queue reference | dispatch enforcement gate | system | see H.1 |
 | Max | priority reorder, batch cleanup sign-off | dashboard | actor=max ledgered | LIVE |
 
 ## How to operate
@@ -155,7 +155,7 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Living State is the SOLE canonical store of development-work state. The legacy build_queue/build_queue_history tables are retired and must not be reintroduced.
 - Every lifecycle mutation routes through `_persist_with_lifecycle_invariants`; no handler writes the DB directly.
@@ -164,25 +164,25 @@ Cleanup adjudication is a **Chunk-4 pre-flight** activity that produces a draft 
 - Transitions are explicit only; no automatic promotion to live from CI/deploy/webhook signals.
 - Every dispatch through any council member or build path requires a valid active build-queue reference; dispatches without one are rejected and the rejection is logged.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Reintroducing a second canonical store for work state (e.g., resurrecting backend build_queue).
 - Allowing a completed transition without evidence on any write path.
 - Making the cleanup token reusable / non-atomic.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new lifecycle stage or work-type category (taxonomy is fixed at four for v1; expansion is config-only, Council REVIEW).
 - Changing stale thresholds away from 3/7/14 sessions.
 - Changing the atomic_write transaction boundary.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Tuning stale thresholds within config (values are config, not hardcoded).
 - Adding read-only dashboard panels or filters.
 - Backfilling business_summary / work_type tags.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -200,7 +200,7 @@ ai-market-backend `/api/v1/allai/state` (Railway Postgres). koskadeux-mcp is an 
 
 config:build-queue-freeze (freeze inactive by default); config:build-queue-tokens (no active tokens by default).
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 **Cleanup token lifecycle (AC5.5).**
 - **Issuance:** a cleanup token is created in `config:build-queue-tokens` in the `active` state, scoped to a specific cleanup operation/target (the Chunk-4 manifest it authorizes). Tokens are not general-purpose credentials.

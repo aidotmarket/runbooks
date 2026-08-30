@@ -132,29 +132,29 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Qdrant is a DERIVED index; Postgres is the source of truth. Never treat a Qdrant collection as primary data; any collection can be rebuilt (listings via POST /api/v1/search/reindex).
 - Qdrant MUST require an API key (no anonymous access). The key lives in Infisical (canonical) and is mirrored to the backend service env and the Qdrant service env.
 - The backend's key and the Qdrant service's key MUST be identical, or the backend cannot connect.
 - Rotation order is ALWAYS backend-first, Qdrant-second.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing QDRANT__SERVICE__API_KEY from the Qdrant service (re-opens the DB to the internet).
 - Setting different keys on the backend vs the Qdrant service.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing QDRANT_HOST or the public domain.
 - Adding a new Qdrant collection (must be added to the backup job — see G-02).
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Rotating the key via E-02 in a maintenance window.
 - Read-only auth checks (E-01).
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -172,7 +172,7 @@ Upstream source of truth: Postgres (listings table etc.) — Qdrant is rebuilt f
 
 Qdrant default is NO auth — this is overridden by QDRANT__SERVICE__API_KEY. Backend QDRANT_API_KEY default is None; monitor _qdrant_headers tolerates an unset key (sends keyless).
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Auth/key changes are security changes: unanimous Council + Max GO per CORE, except an emergency re-open rollback (G-01 rollback) which may be done immediately to restore service, then reviewed.
 
@@ -274,7 +274,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance Changes and maintenance.1
+      - Changes and maintenance H.1
     scenario: Confirm the invariant that Qdrant never allows anonymous access.
     expected_answers:
       - kind: tool_call
@@ -285,7 +285,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance Changes and maintenance.2
+      - Changes and maintenance H.2
     scenario: Confirm that removing QDRANT__SERVICE__API_KEY is treated as a BREAKING change.
     expected_answers:
       - kind: classification

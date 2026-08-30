@@ -137,23 +137,23 @@ These bullets are companion synthesis, not a new source of constitutional author
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Full CORE and the Boot Kernel prevail; current roster facts always come from `infra:council-comms` and the model registry.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Treat any change that makes companion prose override CORE, permits a builder to vote on its work, or replaces a required voter with an ineligible role as BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to role descriptions, dispatch modes, voter-validation fields, or the live roster key.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Spelling and examples are safe when they do not encode volatile model or membership facts.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -171,7 +171,7 @@ Living State, the model registry, and the Council dispatch gateway.
 
 No roster default exists; failure to read current authority fails dispatch closed.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 If CORE, the kernel, this companion, and live roster prose disagree, apply source precedence: CORE for stable obligations and live registry state for volatile roster values.
 
@@ -189,7 +189,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: A write-capable review result was mistakenly recorded as valid., expected_answers: [{kind: human_action, verb: replace, object: invalid vote, target: read-only eligible voter result}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal lets companion prose pin current model versions., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A role description changes while preserving CORE and live authority., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: CORE and live state appear to disagree on a Council role., expected_answers: [{kind: human_action, verb: separate, object: stable and volatile claims, target: CORE and live roster authorities}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: CORE and live state appear to disagree on a Council role., expected_answers: [{kind: human_action, verb: separate, object: stable and volatile claims, target: CORE and live roster authorities}], weight: 0.090909091}
 ```
 
 ## Maintenance

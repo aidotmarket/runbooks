@@ -216,7 +216,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Silence is the only unacceptable outcome; over-paging is fine.
 - `escalation_watchdog.ack(request)` means "the watchdog need not fail open for this request"; it never means "Telegram delivered."
@@ -231,7 +231,7 @@ Production evidence as of 2026-07-12: deployed SHA `bd1f0dd8`, `/health` returne
 
 Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C3 sustained-window gate, C4 CI failure to probed dev ticket to MP auto-fix, and C6 FOR MAX ops-console surfacing. Hard rule for C2/C3: no suppression mechanism may ever suppress the first page for an allowlisted class.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Changing, removing, or renaming any allowlisted class in `ALWAYS_PAGE_ALLOWLIST`.
 - Moving allowlist evaluation after dedupe, batch, sustained-window, allAI triage, or any future suppression mechanism.
@@ -241,7 +241,7 @@ Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C
 - Adding a second operator Telegram bot or bypassing `@allai_agent_bot`.
 - Changing payment, auth, security, payout, or webhook-signature alert routing without unanimous 4/4 Council approval.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new allowlisted class.
 - Changing watchdog timeout clamp, Redis pending key shape, retry behavior, or scheduler interval.
@@ -249,14 +249,14 @@ Remaining S1165 chunks must preserve the invariants above: C2 dedupe/coalesce, C
 - Implementing C4 CI ticketing or C6 FOR MAX surfacing.
 - Changing dead-letter record shape, dead-letter alert behavior, or manual drain process.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation-only clarification that preserves this runbook's invariants.
 - Adding tests for existing allowlist, watchdog, dead-letter, or Telegram-disabled behavior.
 - Tightening log messages while preserving the existing searchable substrings listed in When it breaks.
 - Manually inspecting Redis keys or logs without mutating production state.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -274,7 +274,7 @@ Runtime dependencies are Redis, Railway env, the ai-market-backend scheduler, th
 
 `ALLAI_ALWAYS_PAGE_ALLOWLIST_ENABLED` default true. `ALLAI_ESCALATION_WATCHDOG_ENABLED` default true. `ALLAI_ESCALATION_WATCHDOG_TIMEOUT_SECONDS` default 45 and clamps to 30-60. `TELEGRAM_BOT_USERNAME` defaults to `allai_agent_bot`.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Owner agent vulcan adjudicates documentation and SAFE changes. REVIEW changes require at least one non-builder review. BREAKING changes require a spec, Council approval, and for payment/auth/security classes unanimous 4/4 approval. Max is the only authority allowed to disable either safety flag in production, because disabling them accepts a possible silence path.
 
@@ -383,7 +383,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - Changes and maintenance.2 BREAKING predicates
+      - H.2 BREAKING predicates
     scenario: "A proposed C2 dedupe change would run before the allowlist check."
     expected_answers:
       - kind: classification
@@ -395,7 +395,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - Changes and maintenance.3 REVIEW predicates
+      - H.3 REVIEW predicates
     scenario: "A proposed C3 sustained-window threshold preserves allowlist bypass but changes the threshold."
     expected_answers:
       - kind: classification

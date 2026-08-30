@@ -168,23 +168,23 @@ The Capabilities author-dispatch-token-and-lease row and this machinery are comp
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 Gate selection is evidence-driven, dispatch fails closed, MP builds, builders do not review their work, and Gate 4 verifies production.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing a gate, reducing required valid participation, bypassing unanimous risk classes, or allowing unknown eligibility is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to token claims, lease fields, round transport, statuses, voter validation, or completion evidence.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Adding examples is safe when it does not change gate meaning, thresholds, eligibility, or authority.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -202,7 +202,7 @@ Living State, repository evidence, Council dispatch, current roster, and product
 
 Unknown evidence fails closed; no token, lease, or roster default can manufacture approval.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Apply CORE risk thresholds, approved design/spec authority, and current gate evidence; escalate only real unresolved forks to Max.
 
@@ -220,7 +220,7 @@ scenario_set:
   - {id: I-08, type: repair, refs: [G-02], scenario: A review dispatch wrote a verdict file and source changes., expected_answers: [{kind: human_action, verb: replace, object: tainted review, target: clean read-only review}], weight: 0.0909090909}
   - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal lets two of three returned votes count when one voter failed., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
   - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A signed token gains an additive audit claim., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [Changes and maintenance.6], scenario: Gate 3 rejects implementation without changing design authority., expected_answers: [{kind: classification, label: RETURN_TO_GATE_2}], weight: 0.090909091}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Gate 3 rejects implementation without changing design authority., expected_answers: [{kind: classification, label: RETURN_TO_GATE_2}], weight: 0.090909091}
 ```
 
 ## Maintenance

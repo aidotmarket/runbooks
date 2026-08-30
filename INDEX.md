@@ -434,7 +434,7 @@
 
 ## CRM
 - Path: `runbooks/crm.md`
-- Purpose: This runbook replaces three archived documents (`crm-architecture.md`, `crm-pipeline.md`, `crm-target-state.md`) that were last accurate in early July 2026. All three described a fourteen-table `crm_*` data model as "Active (production)". Those fourteen tables were deliberately deleted from production on 2026-07-03. An agent working from the superseded documents writes queries against tables that do not exist and, worse, concludes that a migration failed and tries to recreate them. Do not do that. See Changes and maintenance.1 Invariant 1.
+- Purpose: This runbook replaces three archived documents (`crm-architecture.md`, `crm-pipeline.md`, `crm-target-state.md`) that were last accurate in early July 2026. All three described a fourteen-table `crm_*` data model as "Active (production)". Those fourteen tables were deliberately deleted from production on 2026-07-03. An agent working from the superseded documents writes queries against tables that do not exist and, worse, concludes that a migration failed and tries to recreate them. Do not do that. See H.1 Invariant 1.
 - Owner: `vulcan`
 - Last verified: `2026-08-26`
 - Aliases: crm-architecture, crm-pipeline, crm-steward, crm-target-state, party-model
@@ -560,7 +560,7 @@
 
 ## E2E Video Review
 - Path: `runbooks/e2e-video-review.md`
-- Purpose: Max, S1315: "I feel like this is a mine field that can only be crossed in the moment." The browser agent runs headless and leaves only text behind. Video is being added so a human, and a video model, can see what the run actually looked like. This runbook is NOT an operating manual for a shipped system - very little of it is built. It is the DESIGN RECORD, kept in the runbooks on Max's instruction so that whoever improves this process next can see the reasoning and the rejected alternatives instead of rediscovering them. Read the Changes and maintenance.6 decision log first. It is the decision log, and it is the reason this file exists. Owner BQ `BQ-E2E-RUN-VIDEO-AND-GEMINI-REVIEW-S1315`.
+- Purpose: Max, S1315: "I feel like this is a mine field that can only be crossed in the moment." The browser agent runs headless and leaves only text behind. Video is being added so a human, and a video model, can see what the run actually looked like. This runbook is NOT an operating manual for a shipped system - very little of it is built. It is the DESIGN RECORD, kept in the runbooks on Max's instruction so that whoever improves this process next can see the reasoning and the rejected alternatives instead of rediscovering them. Read the H.6 decision log first. It is the decision log, and it is the reason this file exists. Owner BQ `BQ-E2E-RUN-VIDEO-AND-GEMINI-REVIEW-S1315`.
 - Owner: `mars`
 - Last verified: `2026-07-23`
 - Aliases: none

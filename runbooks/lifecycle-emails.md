@@ -149,7 +149,7 @@ models, schemas, migrations, or other callers.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Selection/capture commits an idempotent outbox claim before the drain makes a network call.
 - Lifecycle delivery never targets unverified, inactive, synthetic/test, or opted-out users.
@@ -157,24 +157,24 @@ models, schemas, migrations, or other callers.
 - Exact deployment and the repaired live daily selection/claim path are bound to the evidence in Overview and How to operate.
 - Drain/delivery and recipient inbox delivery remain separate from the repaired predicate and were not re-verified here.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Changing eligibility, suppression, claim uniqueness, claim-before-drain
 ordering, retry limits, unsubscribe signing, or message timing is breaking.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Any task schedule, outbox field, lifecycle preference shape, synthetic filter,
 status comparison, or production target SHA change requires focused backend
 tests, exact-artifact review, and this page to be refreshed.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 Counts-only evidence updates and editorial clarification are safe only when
 they grant no authority, change no runtime behavior, and do not broaden the
 specific path proved by the retained evidence.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -199,7 +199,7 @@ Schedules and expired hold constants are the exact values above. The
 verification-enforcement cutoff and synthetic email domain remain backend
 configuration, not values invented by this runbook.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Exact backend source and post-deploy evidence win over this page. For this
 refresh, exact deployment identity plus the operator-triggered counts bind the

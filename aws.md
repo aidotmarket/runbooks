@@ -34,7 +34,7 @@ error_signatures: []
 |---|---|---|---|---|
 | Agent identity | IAM user `svc-titan-vulcan` | IAM (users/policies); Titan `~/.aws/credentials` profile `aimarket` | Titan-1 shell (`~/Library/Python/3.13/bin/aws`) | Long-lived access key, scoped by `aimarket-s3-svc`. Vulcan acts through it via the Koskadeux shell. |
 | Credential delivery | `aws configure --profile aimarket` / Infisical | Titan `~/.aws`; Infisical (secrets.ai.market) | Titan-1 | Keys NEVER transit chat. Infisical is the canonical vault for service secrets. |
-| Object storage | S3 buckets `aimarket-*` | S3 (eu-north-1) | AIM Data node; backups → sub-runbook `aws-s3.md` | Per-purpose buckets; naming convention in Changes and maintenance.1. |
+| Object storage | S3 buckets `aimarket-*` | S3 (eu-north-1) | AIM Data node; backups → sub-runbook `aws-s3.md` | Per-purpose buckets; naming convention in H.1. |
 | Product S3 connector | backend `app/models/s3_connection.py` (`S3Connection`) | DB tables `s3_connection`, `s3_scan_job`, `s3_object_metadata` | Assumes an IAM role (`role_arn`+`external_id`): seller-side in prod, ai.market-side for the staging/dogfood node | Non-custodial: in production a seller's AWS creds never leave their node. |
 | Billing / cost | AWS Budgets + Cost Explorer | AWS billing | Telegram/email alerts (PLANNED) | Guardrail against runaway spend. |
 
@@ -44,7 +44,7 @@ error_signatures: []
 | Vulcan | S3 bucket+object ops on `aimarket-*` | AWS CLI (Titan, profile `aimarket`) | `aimarket-s3-svc`: S3 on `aimarket-*` + `CreateBucket`/`ListAllMyBuckets` + `sts:GetCallerIdentity` | COMPLETE |
 | Vulcan | Broad AWS operational actions ("just do it") | AWS CLI | AWS-managed **PowerUserAccess** + customer **aimarket-guardrail-deny** (denies Organizations/account/billing-write, IAM identity+key creation & AttachUserPolicy, CloudTrail StopLogging/DeleteTrail, KMS DisableKey/ScheduleKeyDeletion, Config/GuardDuty disable) | COMPLETE — verified S720 |
 | Vulcan | Create the connector assume-role | AWS CLI | scoped `iam:CreateRole`+`PutRolePolicy` on `aimarket-connector-*` only | GAP — closes via console walk-through OR a narrow IAM add-on policy |
-| Vulcan | Destructive / IAM / billing / out-of-footprint | — | CONFIRM-FIRST (operating agreement, Changes and maintenance.1) | N/A — never auto; always surfaced to Max |
+| Vulcan | Destructive / IAM / billing / out-of-footprint | — | CONFIRM-FIRST (operating agreement, H.1) | N/A — never auto; always surfaced to Max |
 
 **Operating agreement (the human guardrail behind "just do it").** With `aimarket-ops` attached, Vulcan auto-executes reversible, low-cost operational actions (create/configure/read S3, budgets, tagging, lifecycle rules, read-only across services). Vulcan CONFIRMS WITH MAX FIRST before: deleting buckets/objects holding data; terminating or deleting any resource holding state; any action with material recurring cost; anything touching IAM identities/policies or security/logging config (CloudTrail, KMS); or any action outside the ai.market footprint. Mirrors the §3 ASK-Max discipline in the session contract.
 
@@ -64,9 +64,9 @@ error_signatures: []
 
 **E-02 — Create a new project bucket.** (full procedure in `aws-s3.md` How to operate-01)
 - trigger: new node/backup storage need
-- pre_conditions: name follows Changes and maintenance.1 convention; region chosen = where consuming node runs
+- pre_conditions: name follows H.1 convention; region chosen = where consuming node runs
 - tool_or_endpoint: `aws s3api create-bucket --bucket aimarket-<purpose>-<env> --region <r> --create-bucket-configuration LocationConstraint=<r>`
-- argument_sourcing: name from Changes and maintenance.1; region from Changes and maintenance.1 rule
+- argument_sourcing: name from H.1; region from H.1 rule
 - idempotency: IDEMPOTENT_WITH_KEY (idempotency_key = bucket name; re-create on owned bucket → `BucketAlreadyOwnedByYou`)
 - expected_success: bucket ARN returned; then lock down per `aws-s3.md` How to operate-01
 - expected_failures: `IllegalLocationConstraint` (missing/!match LocationConstraint) → When it breaks-02; `BucketAlreadyExists` (global name taken) → When it breaks-05
@@ -86,7 +86,7 @@ error_signatures: []
 
 **E-05 — Expand agent access to operational tier (`aimarket-ops`).** *(implements Agent capabilities row 2; requires Max approval)*
 - trigger: Max approves broader delegated AWS work
-- pre_conditions: `max_approved`; guardrail (Changes and maintenance.1 confirm-first) acknowledged
+- pre_conditions: `max_approved`; guardrail (H.1 confirm-first) acknowledged
 - tool_or_endpoint: console IAM → create policy `aimarket-ops` (PowerUserAccess + deny-guardrail JSON, see Repair-05) → attach to `svc-titan-vulcan`; create a Budget alarm (E-06)
 - argument_sourcing: policy JSON from Repair-05
 - idempotency: IDEMPOTENT
@@ -108,7 +108,7 @@ error_signatures: []
 - runtime_injection: per `infisical-secrets.md`, **Railway env vars are the deploy-time injection source.** A secret in Infisical is NOT live in a service until it is ALSO set in that service's Railway variables.
 - **WIRED (S740):** these AWS vars are now set on `ai-market-backend` AND `ai-market-celery-worker` Railway services (synced from Infisical prod). Verified S740: the broker creds resolve to `…/user/ai-market-backend-sts` and successfully `assume_role` on `aimarket-connector-aimdata-staging` with the ExternalId (temp STS creds returned). Titan `~/.aws` profile `aimarket` remains the local-dogfood path. NOTE: vault `AWS_REGION=us-east-1` while buckets/roles are eu-north-1 — harmless for assume_role (region-agnostic; S3 region comes from the connection record) but confirm before relying on a default-region S3 client.
 - seller_principal: the ARN a seller (or our dogfood connector role) grants `sts:AssumeRole` to is `arn:aws:iam::948749907373:user/ai-market-backend-sts`. In AIM Data connected-mode config this is pinned via `AI_MARKET_ASSUME_ROLE_PRINCIPAL_ARN`; unset → safe default of account-root + ExternalId.
-- to_wire: read the three values from Infisical prod (token above), then `railway variables --service <svc> --set AWS_ACCESS_KEY_ID=… --set AWS_SECRET_ACCESS_KEY=… --set AWS_REGION=eu-north-1`. CONFIRM-FIRST (production credential change, Changes and maintenance.1 #5).
+- to_wire: read the three values from Infisical prod (token above), then `railway variables --service <svc> --set AWS_ACCESS_KEY_ID=… --set AWS_SECRET_ACCESS_KEY=… --set AWS_REGION=eu-north-1`. CONFIRM-FIRST (production credential change, H.1 #5).
 - idempotency: IDEMPOTENT_WITH_KEY (var name)
 - expected_success: from the service, identity resolves to `…/user/ai-market-backend-sts`; `assume_seller_role` returns short-lived creds instead of `NoCredentialsError`.
 - next_step_failure: When it breaks-03 (InvalidClientTokenId → key bad/rotated)
@@ -131,7 +131,7 @@ error_signatures: []
 **G-05** symptom_ref F-01 (broad) · component_ref Agent identity · root_cause: agent needs operational breadth · repair_entry_point: console IAM `aimarket-ops` · change_pattern: attach AWS-managed `PowerUserAccess` PLUS an explicit deny statement: `Deny` on `organizations:*`, `account:*`, `iam:CreateUser/CreateAccessKey/DeleteUser/*LoginProfile`, `aws-portal:*Modify*`, `cloudtrail:StopLogging/DeleteTrail`, `kms:DisableKey/ScheduleKeyDeletion` · rollback: detach `aimarket-ops`, leave `aimarket-s3-svc` · integrity_check: a broad op (e.g. EC2 describe) succeeds while a denied op (e.g. `iam create-user`) fails.
 
 ## Changes and maintenance
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 1. **Non-custodial.** ai.market never holds a seller's AWS credentials; in production the seller's keys never leave their node. The connector uses short-lived STS role assumption only.
 2. **Least privilege for agent identities.** No `AdministratorAccess` on any agent identity. Breadth via `PowerUserAccess` + explicit deny-guardrail (Repair-05), never wildcards on IAM/Org/billing.
 3. **Long-lived keys are managed.** Any long-lived access key is stored only in Infisical or Titan `~/.aws` (never in chat/repos), and rotated ≤ 90 days (How to operate-03).
@@ -141,7 +141,7 @@ error_signatures: []
 7. **Separation.** Node-served data and backups live in separate buckets (different lifecycle/retention/blast radius).
 8. **Region = consuming node.** A bucket's region matches where the node that reads it runs (avoid cross-region egress/latency).
 
-**Change-class tree.** BREAKING if: changes an invariant in Changes and maintenance.1; grants an agent identity IAM/Org/billing-write; removes the deny-guardrail; makes the connector custodial. REVIEW if: adds a new service to the agent's scope; creates a new long-lived identity; changes a budget threshold; adds a new bucket class. SAFE if: create/configure a bucket within convention; tagging; lifecycle rules; read-only exploration; rotating a key. Restrictive classification wins on dispute; unresolved → Max ruling appended here.
+**Change-class tree.** BREAKING if: changes an invariant in H.1; grants an agent identity IAM/Org/billing-write; removes the deny-guardrail; makes the connector custodial. REVIEW if: adds a new service to the agent's scope; creates a new long-lived identity; changes a budget threshold; adds a new bucket class. SAFE if: create/configure a bucket within convention; tagging; lifecycle rules; read-only exploration; rotating a key. Restrictive classification wins on dispute; unresolved → Max ruling appended here.
 
 ## Acceptance criteria
 **Acceptance criteria scenario set (12, equal-weight 1/12 ≈ 0.0833; sum 1.0).**
@@ -154,7 +154,7 @@ error_signatures: []
 7. (F) "AWS calls fail with InvalidClientTokenId." → F-03: key rotated/bad; reconfigure profile.
 8. (G) "Fix: agent needs to read EC2 but policy is S3-only." → G-05 path (escalate to `aimarket-ops`, confirm-first) — NOT widen `aimarket-s3-svc` with EC2.
 9. (G) "Fix the IllegalLocationConstraint." → G-02: add `--create-bucket-configuration LocationConstraint=<region>`.
-10. (H) Classify: "Attach AdministratorAccess to svc-titan-vulcan." → BREAKING (violates Changes and maintenance.1 #2).
+10. (H) Classify: "Attach AdministratorAccess to svc-titan-vulcan." → BREAKING (violates H.1 #2).
 11. (H) Classify: "Add a lifecycle rule moving old objects to Glacier." → SAFE.
 12. (ambiguous) "S3 writes started failing today." → acceptable first actions: `sts get-caller-identity` (F-03) OR check the specific AccessDenied action vs policy (F-01) OR `get-bucket-location`/`s3 ls` (F-04). Expected-answer key lists all three.
 

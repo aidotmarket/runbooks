@@ -34,7 +34,7 @@ error_signatures:
 | Verified erasure footprint: FK closure + delete-rule inventory + weak-link scan, with re-derivation queries (this runbook Architecture & interactions/How to operate-01; evidence trail in backend specs/evidence/schema-classification-s1163/) | SHIPPED | `account-teardown.md:How to operate-01 queries against pg_constraint / information_schema.columns` | Re-run live S1165 against prod; Architecture & interactions numbers are from that run | 2026-07-09 |
 | Manual operator teardown of a known-test account (ordered, single-transaction, dry-run-first) | PARTIAL | `account-teardown.md:Repair-01 operator psql procedure (no backend code path exists)` | None automated (manual procedure; mandatory dry-run SELECT phase per Repair-01) | 2026-07-09 |
 | Automated first-class teardown feature (allowlist + hard is_test flag, API-driven, unanimous-Council-gated; DORMANT until Max go-live: routes flag-gated off, token secret unset) | SHIPPED | `ai-market-backend app/e2e/teardown.py + teardown_guard.py + teardown_inventory.py; routes /api/v1/e2e/{teardown,reset,preflight} gated by E2E_TEST_ROUTES_ENABLED; migration 20260710_003 (append-only e2e_teardown_audit + extended users.is_test trigger); e2e-harness src/e2e_harness/preflight.py prod opt-in` | 41 backend tests (t1 migration + t2 unit + real-PG matrix + preflight) + 18 harness tests; Gate 3 UNANIMOUS t1/t2/t3; Gate 4 prod-verified t1/t2 (route absence, live tamper-trigger proofs); full live run pends Max go-live | 2026-07-10 |
-| Right-to-erasure for a real customer end-to-end (DB + Stripe + CRM + tokens + backup-retention handling) | PLANNED | — | n/a (intake procedure How to operate-03 exists; execution is Max-gated per Changes and maintenance.1) | 2026-07-09 |
+| Right-to-erasure for a real customer end-to-end (DB + Stripe + CRM + tokens + backup-retention handling) | PLANNED | — | n/a (intake procedure How to operate-03 exists; execution is Max-gated per H.1) | 2026-07-09 |
 
 ## Architecture & interactions
 
@@ -43,8 +43,8 @@ error_signatures:
 | users FK closure (prod Postgres) | `psql:$AUTHOR_DISPATCH_DATABASE_URL` (catalog SQL in How to operate-01; no backend entry point exists) | `public.users` + the recursive FK closure — 121 tables total incl. `users`, live-verified S1165 (was 116 at the S1163 measurement; schema grew) | every backend module writing user-linked rows | 63 distinct tables carry direct FKs to `users` (66 table×delete-rule pairs, 72 FK constraints). Delete rules by distinct table: 43 NO ACTION, 17 CASCADE, 4 SET NULL, 2 RESTRICT. A naive `DELETE FROM users` is BLOCKED by the 43 NO ACTION + 2 RESTRICT tables. |
 | Weak-link identifier tables (no FK to users) | `information_schema.columns` scan (How to operate-01 step 3) | PII-bearing with rows TODAY: `party_person` (394, emails), `crm_v2_backfill_report` (389, customer payloads), `support_ticket` (205) + `support_message` (95) (actor ids), `crm_audit_log` (65), `incident_actions` (21), `meet_notes_interactions` (14, participant emails), `gmail_tokens` (3, emails). Empty-but-armed PII holders: `accounts` (email + stripe_customer_id), `beta_signups`, `beta_feedback`, `partner_inquiries`, `gmail_drafts`, `google_tokens`, `support_email_quarantine`, `credit_deductions`, `policies`, `policy_evaluation_logs`, `journal_entries` (created_by), `api_usage` partition family (user_id), stripe-id holders (`billing_entities`, `refunds`, `reconciliation_records`, `seller_payout_entries`, `stripe_events`, `wallet_pending_topups`). | CRM Steward, support flows, Gmail/Google integrations, Stripe webhooks | CASCADE never reaches these — every teardown must scrub them explicitly by id AND email. `state_events`/`state_events_archive` `actor` values are orchestration instance names (OWNED-ELSEWHERE, out of scope). `ai_crawler_events.user_agent`, `service_registry.owner`, `agent.owner_team` reviewed S1165 as non-personal, excluded. |
 | External PII surfaces | Stripe API/dashboard; CRM tools (tool_search "crm"); Google token revocation | Stripe customer/Connect objects; `party_person` + `crm_party_*`; OAuth refresh tokens | Payments, CRM Steward | Deleting DB rows does NOT delete the Stripe customer/account or revoke Google grants; each needs its own call. |
-| Backups (WORM) | `backup-and-recovery.md:How to operate-01/How to operate-03` | S3 `postgres/ai-market/<date>/` under Object Lock | nightly Railway cron | Backups are IMMUTABLE by design: erasure from backups happens by retention expiry only. A teardown is complete for live data + future backups, never for existing WORM objects (Changes and maintenance.1). |
-| Legal-record tables | (frozen — no entry point) | `terms_acceptance`, `disclosure_snapshots` (the two RESTRICT FKs to users, deliberately) | terms enforcement gate, HF disclosure flow | RESTRICT is intentional: consent/e-sign records. Disposition on erasure is a legal/business decision — Max gate, never routine deletion (Changes and maintenance.1). |
+| Backups (WORM) | `backup-and-recovery.md:How to operate-01/How to operate-03` | S3 `postgres/ai-market/<date>/` under Object Lock | nightly Railway cron | Backups are IMMUTABLE by design: erasure from backups happens by retention expiry only. A teardown is complete for live data + future backups, never for existing WORM objects (H.1). |
+| Legal-record tables | (frozen — no entry point) | `terms_acceptance`, `disclosure_snapshots` (the two RESTRICT FKs to users, deliberately) | terms enforcement gate, HF disclosure flow | RESTRICT is intentional: consent/e-sign records. Disposition on erasure is a legal/business decision — Max gate, never routine deletion (H.1). |
 
 Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the HF-metadata-card merge added `disclosure_snapshots` among others). The footprint MOVES with every schema change — How to operate-01's queries, not this table's snapshot numbers, are the operational source of truth. `BQ-DB-SCHEMA-RATIONALIZATION-S1163` is expected to shrink it substantially (most closure tables are empty: the live business is 43 users, 33 listings, 0 purchases).
 
@@ -106,7 +106,7 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
   pre_conditions:
     - requester identity verified against the account email
     - request recorded
-  tool_or_endpoint: blocking escalation to Max with the E-01 footprint attached — no deletion before Max GO (terms_acceptance / disclosure_snapshots are legal records per Changes and maintenance.1; Stripe/financial records may carry statutory retention)
+  tool_or_endpoint: blocking escalation to Max with the E-01 footprint attached — no deletion before Max GO (terms_acceptance / disclosure_snapshots are legal records per H.1; Stripe/financial records may carry statutory retention)
   argument_sourcing:
     user_id_and_email: from the verified request
     footprint: E-01 output
@@ -173,7 +173,7 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - **Non-custodial stands:** teardown concerns metadata/PII we hold; there is never raw customer dataset content on ai.market to erase.
 - **Orchestration freeze:** `state_*`, `peer_messages`, `author_dispatch_*`, `comms_feed`, `alembic_version` are OWNED-ELSEWHERE; no teardown touches them (their `actor` fields are instance names, not customers).
@@ -181,18 +181,18 @@ Prose: the closure was 116 tables at the S1163 measurement and is 121 today (the
 - **Backups are WORM:** erasure from `aimarket-backups-prod` happens only by Object-Lock retention expiry; no teardown claims completeness over historical backups.
 - **No automated production deletes without the feature's guards:** until the S1152 teardown feature (allowlist + hard `is_test` flag) ships with unanimous Council approval, only the manual Repair-01 procedure is legitimate, and without Max only for test accounts.
 - **Single-transaction, dry-run-first:** any DB teardown runs inside one transaction with timeouts and a recorded dry-run hit list.
-- **Module deviation declaration:** this runbook documents a procedure over the ai-market-backend schema, not a source tree of its own; Changes and maintenance.5 boundary definitions apply to ai-market-backend when the future teardown feature adds code.
+- **Module deviation declaration:** this runbook documents a procedure over the ai-market-backend schema, not a source tree of its own; H.5 boundary definitions apply to ai-market-backend when the future teardown feature adds code.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Weakening either RESTRICT delete rule (`terms_acceptance`, `disclosure_snapshots`) to CASCADE or SET NULL.
 - Deleting legal-record rows as part of the standard (non-Max-ruled) flow.
 - Automating deletion of non-test accounts, or removing the allowlist / `is_test` guard from the planned feature.
 - Any teardown path touching an orchestration-owned table.
-- Changing or removing any Changes and maintenance.1 invariant.
+- Changing or removing any H.1 invariant.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Adding the automated teardown endpoint (new feature on a public surface — independently unanimous-Council class as customer-data work).
@@ -200,14 +200,14 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the weak-link scan pattern set in How to operate-01.
 - Changing the Repair-01 deletion ordering or its transaction guards.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Refreshing Architecture & interactions numbers after a How to operate-01 run (Repair-03).
 - Adding Acceptance criteria scenarios or documentation fixes.
 - Recording a completed teardown in the refresh log.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -225,9 +225,9 @@ The future teardown feature's API endpoint(s) and any MCP tool signature it regi
 
 Values shipping in ai-market-backend's canonical config. The allowlist and `is_test` semantics of the future feature are config-default class once they exist.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to Changes and maintenance.1 as a clarification. Anything touching customer data or the legal-record tables escalates to Max regardless of predicate outcome.
+The more restrictive classification wins between disagreeing agents. Disputes unresolvable under the predicates escalate to Max; the ruling is added to H.1 as a clarification. Anything touching customer data or the legal-record tables escalates to Max regardless of predicate outcome.
 
 ## Acceptance criteria
 
@@ -311,7 +311,7 @@ scenario_set:
     scenario: Proposal — change the terms_acceptance FK to CASCADE "to simplify teardown". Classification?
     expected_answers:
       - kind: classification
-        action: BREAKING (weakens the legal-record invariant Changes and maintenance.1)
+        action: BREAKING (weakens the legal-record invariant H.1)
     weight: 0.08333333
   - id: I-11
     type: evolve

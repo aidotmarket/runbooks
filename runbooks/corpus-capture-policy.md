@@ -307,7 +307,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The governing principle in Overview binds every future capture proposal: necessary to operate the market, repetition filtered, customer-data metadata first.
 - Default-DENY is the posture. A new capture class exists only through the S1299 class registry with a named owner role, a measured feedback loop, and a prune rule. No class, no capture.
@@ -322,7 +322,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Repetition is filtered at the producer, not the consumer: a filtered record writes no row at all.
 - The Event Ledger (state_events) itself remains an append-only audit record independent of capture; capture policy governs what is embedded and projected, not what is audited. Ledger retention belongs to BQ-DATABASE-CLEANUP-RETENTION-S1300.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that captures raw customer data or PII is BREAKING.
 - Any change that persists rejected content is BREAKING.
@@ -332,7 +332,7 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Any change that treats safe admission, an AI confidence, or a numerical equivalence rating as sufficient semantic trust is BREAKING.
 - Any change that lets rejected, superseded, pre-publish, or placeholder-bearing evidence enter active projection is BREAKING.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding or retiring a capture class requires REVIEW.
 - Changing admit/never event rules requires REVIEW.
@@ -341,14 +341,14 @@ The initial thresholds are Council calibration seeds, not active automation. Cap
 - Adding a producer requires REVIEW.
 - Changing trust states, equivalence scoring, hard gates, evidence independence, automated thresholds, or projection eligibility requires REVIEW.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation changes are SAFE when they do not change behavior.
 - Adding tests is SAFE when it does not change behavior.
 - Tightening a reject path is SAFE when it preserves the governing invariants.
 - Adding content-free telemetry is SAFE when it preserves the governing invariants.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -366,9 +366,9 @@ Postgres, embedding provider (swappable per CORE S6), Qdrant, and Railway.
 
 `QDRANT_ENTITY_DENYLIST_PREFIXES` is currently `infra:git-push-poller-cursor`; all S1299 and S1396 class flags default false. The S1396 Chunk C release does not change any production flag value.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
-Evaluate Changes and maintenance.2 before Changes and maintenance.3, and Changes and maintenance.3 before Changes and maintenance.4. If the documented predicates do not resolve a classification, do not infer a new policy: escalate the unresolved case to Max and record the resulting ruling before implementation.
+Evaluate H.2 before H.3, and H.3 before H.4. If the documented predicates do not resolve a classification, do not infer a new policy: escalate the unresolved case to Max and record the resulting ruling before implementation.
 
 ## Acceptance criteria
 

@@ -197,7 +197,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - The builder never reviews its own work; MP is excluded from panels on MP-built SHAs.
 - Security, auth, payments, production-data, and customer-data gates require the complete unanimous live panel; no reduced quorum, no substitute voter.
@@ -205,23 +205,23 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 - Gate status writes use the canonical vocabulary; free text is not a gate status.
 - infra:council-comms is canonical for roster, models, caps, and quirk updates; this runbook defers to it.
 
-### Changes and maintenance.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Changing the required voter set or quorum for any gate class.
 - Making any fail-closed verdict path fail-open.
 - Allowing gate status recording without a complete valid panel.
 
-### Changes and maintenance.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing per-reviewer dispatch defaults (token budgets, turn caps, cwd resolution).
 - Changing the peer-bus dedupe tuple or the claim/release protocol.
 
-### Changes and maintenance.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Adding new error signatures or isolate rows from observed incidents.
 - Tightening prompts or budgets within existing caps.
 
-### Changes and maintenance.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -239,7 +239,7 @@ koskadeux-mcp gateway, Living State, the peer bus, and the provider endpoints na
 
 Per-reviewer budgets and caps as recorded in infra:council-comms at dispatch time.
 
-### Changes and maintenance.6 Adjudication
+### H.6 Adjudication
 
 Ambiguity between this runbook and infra:council-comms resolves in favor of infra:council-comms for roster, model, and cap facts, and in favor of this runbook for collection procedure. Disputes escalate to the peer instance first, then to Max only for genuine forks.
 
@@ -350,7 +350,7 @@ scenario_set:
     type: evolve
     refs: [Changes and maintenance, E-02]
     scenario: |
-      id: H-01. trigger: a proposal lets a two-of-three panel record a security-class gate when the third voter's provider is down. pre_conditions: the proposed rule text and the affected gate classes are described. tool_or_endpoint: runbook and gate-recording contract patch. argument_sourcing: current invariants from Changes and maintenance.1; quorum rule from the security gate contract. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes the required voter set for a gate class. expected_failures: calling it operational resilience, or shipping it as a temporary exception without the amendment gate. next_step_success: route through full Council review plus Max approval. next_step_failure: keep the unanimous requirement unchanged.
+      id: H-01. trigger: a proposal lets a two-of-three panel record a security-class gate when the third voter's provider is down. pre_conditions: the proposed rule text and the affected gate classes are described. tool_or_endpoint: runbook and gate-recording contract patch. argument_sourcing: current invariants from H.1; quorum rule from the security gate contract. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes the required voter set for a gate class. expected_failures: calling it operational resilience, or shipping it as a temporary exception without the amendment gate. next_step_success: route through full Council review plus Max approval. next_step_failure: keep the unanimous requirement unchanged.
     expected_answers:
       - kind: classification
         label: BREAKING

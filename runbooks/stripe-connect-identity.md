@@ -199,7 +199,7 @@ failed verification are indistinguishable at the reader.
 
 ## Changes and maintenance
 
-### Changes and maintenance.1 Invariants
+### H.1 Invariants
 
 - Stripe is the only authority on Connect account state. Everything of ours is a cache and must be reconcilable from Stripe outward, never from our own rows outward.
 - A store with readers and no writer is a defect, not a spare column. Either give it an authority or delete it.
@@ -210,7 +210,7 @@ failed verification are indistinguishable at the reader.
 - **Final S1606 evidence.** The allow-list merged to backend `main` at `db5e2ea6e2dcdf0c70d215a23e034e696b5444c1` and deployed as `db21d9a3-e44c-4d74-9f8b-6e90b84fc81b`; the action-path compatibility repair merged at `ca1837b47bf292411295e314195486186adad44a` and deployed as `fd112e13-5eb7-4091-860f-65933a6e7e19`; the audit UUID/datetime JSON serialization repair merged at `79e62b758e3efdb9622fa016d0a2808ec11c7e33` and deployed as `e8f732d8-450f-4f09-8c67-5a28c403f206`.
 - Live isolated synthetic-seller proof on that exact final deployment returned HTTP 200 for action list/check and confirmed `aim.profile.update` succeeded: the allowed `business_name` digest changed and was restored, forbidden Stripe/KYC digests remained unchanged, and permission tier moved 1→2→1. Mutation and restoration each produced a successful audit row with a result. Final-deployment logs contained no UUID-serialization or action-path `AttributeError`; this is not a blanket error-free service-log claim. Normal seller-capability provisioning created the synthetic seller profile, and its failed and successful audit rows were retained, not deleted.
 
-### Changes and maintenance.2 Known gaps
+### H.2 Known gaps
 
 - No regression test asserts that a seller onboarded through `stripe_connect.py` ends up with a `kyc_status` in `party_identity`.
 - No test exercises `account.updated` against a seller whose `seller_profiles.stripe_connect_id` is NULL.
@@ -227,7 +227,7 @@ failed verification are indistinguishable at the reader.
 | Verified against | `aidotmarket/ai-market-backend` `origin/main` at `c98a9e7fc`; production Postgres read 2026-08-07 |
 | Updated | S1606, 2026-08-25 — recorded the final merged/deployed allow-list and isolated live proof for `BQ-PROFILE-UPDATE-MASS-ASSIGNMENT-S1604` |
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
-| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); Changes and maintenance.3 catalog debt discharged |
-| Updated | S1483, 2026-08-08, vulcan — Changes and maintenance.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); Changes and maintenance.3 catalog debt recorded |
+| Updated | S1529, 2026-08-11, mars — moved to `runbooks/` canonical path and admitted to the catalog via G-01 anchor advance (`runbooks/runbooks.md`); H.3 catalog debt discharged |
+| Updated | S1483, 2026-08-08, vulcan — H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); H.3 catalog debt recorded |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |
