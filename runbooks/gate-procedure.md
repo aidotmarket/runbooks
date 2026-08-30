@@ -26,8 +26,6 @@ error_signatures:
 | Gate 4 production verification | SHIPPED | `build:bq-*.gate4` | Customer-perspective verification | 2026-07-17 |
 | Council rounds and thresholds | SHIPPED | `infra:constitution` | Verdict-set validation | 2026-07-17 |
 | Author dispatch tokens and leases | SHIPPED | `council_request` | Binding and expiry validation | 2026-07-17 |
-| Server-selected all-corpus first-plan delivery (staged; inactive by default) | PLANNED | `koskadeux-mcp/tools/runbook_delivery.py` | `koskadeux-mcp/tests/test_runbook_first_delivery_s1413.py`, `tools/session.py:_handle_kd_session_plan`, and runbooks discovery-vector tests | 2026-08-02 |
-| Backend runbook-authority write boundary (staged rollout prerequisite) | PLANNED | `ai-market-backend/app/services/runbook_compat.py` | `ai-market-backend/tests/test_runbook_authority_write_boundary_s1413.py` plus guarded state-write and atomic-write coverage | 2026-08-02 |
 
 ## Architecture & interactions
 
@@ -41,11 +39,11 @@ error_signatures:
 | Council Rounds | `council_request` and Council Hall | Positions, debate, final verdicts | Gate records | At most three rounds; full valid panel precedes threshold evaluation. |
 | Author Binding | `dispatch_id` and `dispatch_token` | Bound dispatch id and gate lease | Author mode | UUIDv7 id, signed credential, target gate, start, expiry, and extension count are explicit. |
 
-Caller prose grants no authority in this mode. Caller-supplied `runbook_consultation`, paths, references, attestations, waivers, and `no_entry_found` text are ignored for admission and cannot block the plan, mint a server reference, prove reading, or discharge debt. The old classifier runs only after durable server-selected admission, as non-blocking telemetry, and its output is not persisted as accepted consultation. This separation is the point of the rollout: the server finds relevant material first; an agent is never asked to invent documentation evidence merely to pass a gate.
-
-Do not enable this path until both prerequisites are true: the exact reviewed `runbook-tools` package and full-SHA catalog pin are installed, and backend A1's independent `RUNBOOK_AUTHORITY_WRITE_MODE=contain|reject` boundary is deployed and verified on every protected state/event route. The default backend mode is `contain`; `reject` is the stricter diagnostic mode. The legacy rollback is explicit: restore `KOSKADEUX_RUNBOOK_DELIVERY_MODE=legacy` and restart the gateway through the normal drained restart procedure. That rollback restores the old caller-evidence gate; it does not make caller prose trustworthy.
-
-Enabled mode fails closed. Operators should search logs and returned errors by the exact codes `runbook_delivery_mode_invalid`, `runbook_library_unavailable`, `runbook_reference_key_unavailable`, `runbook_catalog_pin_unavailable`, `runbook_library_contract_invalid`, `runbook_search_failed`, `response_budget_exceeded`, `session_objective_budget_exceeded`, `session_wire_budget_exceeded`, and the sanitized fallback `runbook_first_delivery_failed`. Bundle fetch, confirmation, and replay are not exposed in this staged slice; never simulate any of them or treat possession of an opaque handle as confirmation.
+Runbook discovery is separate from the Council and build gates described here.
+Operators read the relevant Markdown directly through `INDEX.md`, `ERRORS.md`, or
+allAI search. Documentation does not grant gate authority and is not an admission
+operand. The former staged runbook-delivery and authority-boundary design was
+retired on 2026-08-30; do not reactivate it from this historical gate record.
 
 ### Normative projection — CORE §5, CCP
 

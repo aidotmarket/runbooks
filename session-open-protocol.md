@@ -21,46 +21,18 @@ The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` an
 5. Verify the DB-owned pickup source points at a real not-yet-shipped target. If stale, advance the queue before any other work.
 6. Pick up the highest-leverage work from §O.4 priority order.
 
-### O.2.1 kd_session_plan context contract
+### O.2.1 Runbook context
 
-The intended contract is server-delivered context, not caller-authored proof of
-reading. Detect the deployed contract from the exact connected tool schema and
-contract digest; do not infer rollout state from this file, a prior session, or
-response prose.
+Session open validates `INDEX.md` from the installed runbooks checkout and binds
+the exact checkout commit in the boot envelope. Read the relevant Markdown before
+planning: use `INDEX.md` for subjects and aliases, `ERRORS.md` for literal failure
+text, allAI search for full-text lookup, then open the page and exact heading.
 
-**When typed context delivery is deployed:**
-
-1. Submit the objective-bearing plan without consultation IDs. Before any plan,
-   debt, or status mutation, the server resolves one immutable runbooks
-   `origin/main` SHA and returns the typed non-success outcome
-   `RUNBOOK_CONTEXT_SELECTION_REQUIRED` with ranked bounded excerpts and an
-   honest gap ID for every objective. The instance remains PLANNING.
-2. Resubmit the unchanged plan using only the server-delivered consultation IDs
-   or gap IDs. Caller-supplied paths, excerpts, scores, coverage claims, and
-   reading attestations are not authority. The server binds each ID to this
-   session, instance, objective set, catalog SHA, and excerpt digest.
-3. A gap ID records a search miss; it does not prove that no runbook exists and
-   does not force an agent to manufacture documentation. A changed objective or
-   incomplete/truncated envelope requires a fresh selection response.
-4. Proceed only after a typed accepted result atomically records the delivery
-   receipt and moves the instance to OPERATIONAL.
-
-**Bounded legacy compatibility, while the connected schema still exposes only
-`runbook_consultation`:** resolve a freshly fetched full `origin/main` SHA in a
-trusted clean checkout and search every objective against that one snapshot as
-documented in the runbooks README. Submit exact existing `{path, section,
-covers?}` references. Use `{no_entry_found: true, subject, reason, covers?}` only
-after a recorded search miss; never invent a path, section, synthesis, or
-runbook merely to satisfy the gate. Legacy debt/waiver rows are rollout
-telemetry, not evidence that a runbook update is useful. A rejected or retried
-plan must not be treated as a documentation obligation. If the legacy gateway
-does create such a row, preserve it for migration and do not write filler to
-discharge it.
-
-In the legacy schema, `covers` contains 1-based objective numbers and every
-objective must be covered. A RunbookRef section must be an exact heading, anchor,
-or present § token. Incident synthesis, where the deployed schema still demands
-it, is explanatory telemetry only and never proof that the source was read.
+`kd_session_plan` does not require caller-authored runbook evidence. A plan is
+accepted because its ordinary planning fields are valid and the instance moves
+to OPERATIONAL, not because the caller produced a citation, attestation, waiver,
+or documentation-shaped filler. If no page covers the work, proceed truthfully
+and create or correct a page only when the operating procedure actually needs it.
 
 ## O.3 Peer open sequence
 Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.

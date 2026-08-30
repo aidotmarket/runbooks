@@ -339,7 +339,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-08-20`
 - Aliases: none
-- Error signatures: RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
+- Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
 - Status: current
 
 ## Connectivity Layer

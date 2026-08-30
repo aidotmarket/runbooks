@@ -29,10 +29,8 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Independent instance open/plan/close surface | SHIPPED | `connected kd_session_open, kd_session_plan, and kd_session_close schemas` | Exact connected-schema plus read-only gateway-health probes | 2026-07-31 |
-| Legacy caller-authored plan consultation (harmful compatibility pending retirement) | SHIPPED | `connected kd_session_plan schema; config:runbook-gate-config v3` | Exact connected schema and config read | 2026-07-31 |
-| Server-delivered objective-bound plan context (UNAVAILABLE) | PLANNED | — | No deployed lifecycle test | 2026-07-31 |
-| Legacy caller-authored close declaration (harmful compatibility pending retirement) | SHIPPED | `connected kd_session_close schema; kd_session_close_status` | Exact connected schema and read-only close-status probe | 2026-07-31 |
-| Server-measured runbook impact plus transaction-scoped committed receipt (UNAVAILABLE) | PLANNED | — | No deployed close-transaction test | 2026-07-31 |
+| Commit-bound runbook index at open | SHIPPED | boot envelope `index_ref` | Fail-closed checkout and INDEX.md validation | 2026-08-30 |
+| Direct Markdown lookup | SHIPPED | `INDEX.md`, `ERRORS.md`, allAI search | Runbook search tests plus authenticated docs proof | 2026-08-30 |
 | Peer message bus | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_send` | Manual drain verified S835 | 2026-06-16 |
 | Peer bus inbox drain | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_msg_inbox` | Manual drain verified S835 | 2026-06-16 |
 | Instance status lookup | SHIPPED | `koskadeux-mcp/tools/peer_bus.py:peer_status` | Manual status lookup verified S835 | 2026-06-16 |
@@ -44,8 +42,8 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Peer Instance | `kd_session_open(instance=vulcan or mars)` | `registry.db` instance rows, per-instance handoff | Living State, shell, git, Council dispatch | Either instance may open first, plan independently, work any item, and close independently. |
-| Plan Context Boundary | Connected `kd_session_plan` schema | Current legacy consultation input; future immutable delivery receipt | SHA-pinned runbook retrieval | Current deployment asks the caller to supply `runbook_consultation`; the server-delivered two-stage contract is PLANNED and must not be inferred from this runbook. |
-| Close Impact Boundary | Connected `kd_session_close` schema and close-status surface | Current legacy exit declaration; future server-owned evidence transaction | Repository baselines, action receipts, runbooks remote | Current deployment exposes `runbook_exit`; structured `runbook_impact` and a transaction-scoped `COMMITTED` receipt are PLANNED and UNAVAILABLE. |
+| Runbook Lookup | Boot envelope plus direct Markdown search | Installed runbooks checkout at a validated commit | `INDEX.md`, `ERRORS.md`, allAI search | Read the relevant page and heading; no caller-authored admission evidence is required. |
+| Close Boundary | Connected `kd_session_close` schema and close-status surface | Instance-scoped close transaction | Repository and handoff state | Update a runbook only when the operating procedure changed; documentation is not a close gate. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages keyed by recipient, sender, kind, and ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
 | Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; connected `council_request` enum (`ag`, `mp`, `deepseek`, `glm`, `cc`); policy target CC/Kimi/GLM voters | Policy and connected schema currently disagree because the enum omits Kimi. Treat full-roster-dependent review and promotion as UNAVAILABLE; do not claim a successful full-panel dispatch until a signed deployed contract and the connected schema both prove the required roster. |
@@ -70,33 +68,11 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 
 ### First action after `kd_session_open`
 
-Inspect the exact connected `kd_session_plan` input schema and the exact signed
-deployed-contract capability before choosing a planning path. Never infer rollout
-state from this runbook, a prior session, or success-looking response prose.
-
-- **Target branch — PLANNED and currently UNAVAILABLE.** Use this branch only
-  when a valid signed deployed contract and the connected schema both expose
-  objective-bound consultation IDs and gap IDs. The first plan attempt supplies
-  objectives but no IDs and must return the typed non-success
-  `RUNBOOK_CONTEXT_SELECTION_REQUIRED` without changing session state. Read the
-  delivered excerpts, then resubmit the unchanged plan using only those
-  server-issued IDs. A typed accepted receipt is the success signal.
-- **Deployed compatibility branch — current and harmful.** The schema verified on
-  2026-07-31 exposes caller-authored `runbook_consultation` and no consultation or
-  gap IDs; the live gate configuration is block mode. Before planning, resolve a
-  freshly fetched immutable runbooks `origin/main` SHA, search every objective
-  against that one pin, read the returned ACTIVE excerpts, and submit exact
-  existing path/section references. Use a truthful no-entry declaration only
-  after an honest recorded miss. The declaration is compatibility input, not
-  evidence that anything was read, and it must never trigger an invented path,
-  synthesis, runbook, or filler update.
-
-At close, make the same capability check. Structured server-owned
-`runbook_impact` and a transaction-scoped `COMMITTED` receipt are target behavior
-only. The current connected schema exposes legacy `runbook_exit`; provide only
-the truthful compatibility value it requires. A reason string, author name, or
-locally existing commit is not evidence of operational impact and must not cause
-an unrelated documentation edit.
+Confirm the boot envelope carries a commit-bound `INDEX.md` reference. Use
+`INDEX.md`, `ERRORS.md`, or allAI search to find the relevant page, then read the
+actual heading before planning. The caller does not submit proof-of-reading data.
+At close, correct a page only if the operating procedure changed; never create
+documentation filler to satisfy a lifecycle field.
 
 ```yaml operate
 - id: E-01
@@ -214,37 +190,35 @@ an unrelated documentation edit.
   next_step_success: Coordinate on the measured peer state.
   next_step_failure: Treat peer liveness as unknown and take no action that a live peer would not tolerate.
 - id: E-09
-  trigger: An instance has opened and must obtain relevant runbook context before its plan can become operational.
-  pre_conditions: [connected_plan_schema_inspected, exact_runbooks_origin_main_sha_resolved, objectives_known]
-  tool_or_endpoint: kd_session_plan(session_id=<session>, objectives=<objectives>, delegation_strategy=<strategy>, tool_budget=<budget>, runbook_consultation=<truthful_legacy_refs_or_recorded_misses>)
+  trigger: An instance has opened and needs the documented procedure for an objective.
+  pre_conditions: [boot_index_ref_validated, objectives_known]
+  tool_or_endpoint: search INDEX.md or ERRORS.md or allAI, then open the matching Markdown heading
   argument_sourcing:
-    schema_branch: use the current compatibility call shown here only while the connected schema lacks server-issued consultation and gap IDs
-    runbook_consultation: search every objective against one freshly fetched immutable origin/main pin; cite exact read path and section bytes, or record an honest miss without inventing content
-    target_transition: when and only when the signed deployed capability exists, follow the typed two-stage branch above instead of this legacy input
+    subject_lookup: use INDEX.md titles and aliases
+    failure_lookup: use literal text in ERRORS.md
+    full_text_lookup: use allAI search and verify the returned page and heading directly
   idempotency: IDEMPOTENT_WITH_KEY
-  idempotency_key: session_id + exact ordered objectives + catalog SHA
+  idempotency_key: runbooks commit + query
   expected_success:
-    shape: current compatibility plan is accepted only after truthful references or recorded misses cover the objectives
-    verification: confirm the typed gate state is OPERATIONAL; response prose and the caller-authored consultation are not reading evidence
-  expected_failures: [{signature: runbook_context_delivery_unavailable, cause: the connected schema has no server-issued consultation or gap IDs, or a signed capability cannot be verified}]
-  next_step_success: Drain the peer inbox with E-01, then act only on context and load-bearing facts that were actually read and verified.
-  next_step_failure: Stay in PLANNING; use G-09 and do not create a citation, attestation, or runbook merely to pass the gate.
+    shape: a real page and heading are read at the validated checkout commit, or an honest search miss is recorded in working notes
+    verification: verify load-bearing instructions against live ground truth before acting
+  expected_failures: [{signature: BOOT_KERNEL_INDEX_INVALID, cause: the installed checkout or INDEX.md cannot be validated}]
+  next_step_success: Submit the ordinary plan, drain the peer inbox with E-01, and proceed from verified facts.
+  next_step_failure: Use G-09; do not invent a page or bypass an invalid boot index.
 - id: E-10
-  trigger: An instance is ready to close and must report runbook impact without turning an unsupported declaration into evidence.
-  pre_conditions: [peer_inbox_drained, changed_repositories_measured, connected_close_schema_inspected]
-  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<measured_summary>, handoff_content=<database_handoff>, runbook_exit=<truthful_legacy_compatibility_value>)
+  trigger: An instance is ready to close after checking whether its work changed an operating procedure.
+  pre_conditions: [peer_inbox_drained, changed_repositories_measured, operating_procedure_changes_accounted_for]
+  tool_or_endpoint: kd_session_close(instance=<self>, session_id=<session>, reason=<reason>, summary=<measured_summary>, handoff_content=<database_handoff>)
   argument_sourcing:
-    schema_branch: use runbook_exit only while the exact connected schema lacks structured runbook_impact and a transaction-scoped committed receipt
-    runbook_exit: state only what is true under the legacy schema; a free-text reason or commit identifier is compatibility input and never semantic impact evidence
-    target_transition: use structured impact only after the signed deployed capability proves it and the server supplies repository, action, configuration, and deployment evidence
+    runbook_change: update the owning Markdown only when the procedure changed; otherwise make no documentation edit
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: session_id + exact close request digest
   expected_success:
-    shape: legacy close returns success for the named instance without converting unsupported prose into a documentation claim
-    verification: verify instance-scoped close state; only a future transaction-scoped COMMITTED receipt can establish target close truth
-  expected_failures: [{signature: runbook_impact_evidence_unavailable, cause: structured impact or a scoped committed receipt was assumed from a legacy schema or unscoped close-status row}]
-  next_step_success: Preserve any genuine documentation gap as a deduplicated follow-up; do not write filler after close.
-  next_step_failure: Keep the session recoverable, inspect close status, and use G-10 without inventing an impact decision.
+    shape: close succeeds for the named instance and any changed operating procedure is already documented
+    verification: verify instance-scoped close state and the exact committed documentation bytes, when changed
+  expected_failures: [{signature: stale_operating_procedure, cause: shipped behavior changed but its owning page was not corrected}]
+  next_step_success: Preserve any genuine documentation gap in the handoff; do not write filler after close.
+  next_step_failure: Keep the session recoverable, correct the actual stale procedure, and use G-10.
 ```
 
 Delivery semantics that are easy to get wrong, all observed in use:
@@ -267,8 +241,8 @@ Delivery semantics that are easy to get wrong, all observed in use:
 | F-06 | Max is asked to resolve routine execution details | Peer treated Max as dispatcher/approver instead of strategic owner | Review unresolved facts; check whether peer/status/request could answer | G-06 | CONFIRMED |
 | F-07 | A peer message was sent successfully but the peer never received it | Send matched an earlier message on sender, recipient, kind, and ref_entity, so it was silently deduped | Compare the returned message id against the previous send; an unchanged or absent new id means the row was dropped | G-07 | CONFIRMED |
 | F-08 | A dispatch is refused before any task is created | An unacknowledged peer request or alert is pending against this instance | Drain the inbox and check for rows carrying requires_ack that have no acked_at | G-08 | CONFIRMED |
-| F-09 | `runbook_context_delivery_unavailable`, or planning expects server-issued IDs that the connected schema does not expose | Target guidance was mistaken for deployed capability, the client schema is stale, or the signed contract pin is absent | Inspect the exact connected `kd_session_plan` schema and signed deployed contract; current compatibility exposes `runbook_consultation` only | G-09 | CONFIRMED |
-| F-10 | `runbook_impact_evidence_unavailable`, or close status cannot prove one scoped committed transaction | Target close semantics were inferred from prose, a legacy `runbook_exit`, or an old/unscoped pending row | Inspect the exact connected `kd_session_close` schema and instance/session-scoped status; require target fields and receipt type before claiming rollout | G-10 | CONFIRMED |
+| F-09 | `BOOT_KERNEL_INDEX_INVALID` at open | The installed runbooks checkout, commit reference, or INDEX.md is missing or invalid | Verify checkout HEAD, committed INDEX.md existence, and the boot envelope index reference | G-09 | CONFIRMED |
+| F-10 | A shipped operating procedure and its runbook disagree | The behavior changed without correcting the owning Markdown | Compare current code/config/deployment proof with the page and its last-verified date | G-10 | CONFIRMED |
 | F-11 | Instance-attributed artifacts (tickets, dispatches, request-file deletions, merges under a human author name) appear that the instance did not knowingly create | Connection-glitch turn duplication: a duplicated authentic turn of the instance's OWN session executed tool calls whose results never returned to the surviving context (Anthropic connection/capacity issues; Max-confirmed S1559, resolution event 928225b3). NOT an identity breach | BEFORE treating it as an S1346-class identity incident: compare the artifact's content, style, and timing against your own in-flight work and look for your exact intentions executed; then list recent tickets and ts-socket jobs for a twin of the fix you are about to file or dispatch | G-11 | CONFIRMED |
 
 ## Repair
@@ -340,20 +314,20 @@ Delivery semantics that are easy to get wrong, all observed in use:
   integrity_check: The inbox holds no requires_ack row without acked_at, and the retried dispatch returns a task id that is then confirmed to exist.
 - id: G-09
   symptom_ref: F-09
-  component_ref: Plan Context Boundary
-  root_cause: The server-delivered context contract is not deployed or cannot be authenticated, while the current block-mode compatibility gate still expects caller-authored consultation input.
-  repair_entry_point: exact connected kd_session_plan schema plus one freshly fetched runbooks origin/main snapshot
-  change_pattern: Remain on the legacy branch; search each objective against the same full SHA, read the returned excerpt, and cite its exact path and section or record an honest miss. Never mint a consultation ID, claim a target receipt, or write filler to discharge legacy debt.
-  rollback_procedure: Discard any caller-minted ID or unsupported citation and resubmit only grounded compatibility input.
-  integrity_check: Every submitted reference resolves at the recorded full SHA, every miss has recorded search output, and no target capability is claimed.
+  component_ref: Runbook Lookup
+  root_cause: The installed checkout cannot prove a committed INDEX.md at its current HEAD.
+  repair_entry_point: configured runbooks checkout and origin/main
+  change_pattern: Fetch the canonical repository, restore a clean committed checkout containing INDEX.md, and retry session open through the supported lifecycle.
+  rollback_procedure: Return to the previously validated committed checkout if the new corpus is incomplete.
+  integrity_check: Checkout HEAD is a full commit SHA, INDEX.md exists at that commit, and session open returns the matching index reference.
 - id: G-10
   symptom_ref: F-10
   component_ref: Close Impact Boundary
-  root_cause: Legacy close input or an unscoped status row was treated as server-measured impact or a transaction-scoped committed receipt.
-  repair_entry_point: exact connected kd_session_close schema and instance/session-scoped close-status evidence
-  change_pattern: Use only the truthful legacy compatibility value, keep unsupported impact uncertain, and preserve a genuine gap as follow-up rather than changing unrelated documentation. Do not claim target completion until the signed schema and scoped COMMITTED receipt both exist.
-  rollback_procedure: Retract the unsupported impact claim; leave the session recoverable and the documentation unchanged while evidence is missing.
-  integrity_check: The close claim matches the deployed schema and scoped state, and no reason string, author name, or local object is treated as semantic evidence.
+  root_cause: A behavior or operating configuration changed without the owning Markdown being corrected.
+  repair_entry_point: the affected runbook page and current production evidence
+  change_pattern: Correct the smallest affected passage, update last_verified only when the body was actually checked, regenerate INDEX.md and ERRORS.md, and verify the live docs bytes.
+  rollback_procedure: Revert the documentation correction if the underlying behavior proof was wrong; never restore obsolete tooling.
+  integrity_check: The page matches current code/config/deployment evidence and the generated indexes are byte-clean.
 - id: G-11
   symptom_ref: F-11
   component_ref: Peer Message Bus
@@ -368,7 +342,7 @@ Delivery semantics that are easy to get wrong, all observed in use:
 
 ### H.1 Invariants
 
-Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. A target plan or close shape is never treated as deployed until the exact signed contract and connected schema both prove it. Legacy consultation and exit declarations are compatibility input, never evidence that an agent read a runbook or that a documentation change was useful.
+Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. Read relevant runbooks directly from the validated Markdown checkout and correct only genuine operating-procedure drift.
 
 ### H.2 BREAKING predicates
 
@@ -430,8 +404,8 @@ scenario_set:
   - {id: I-11, type: repair, refs: [G-08], scenario: A pending acknowledgement is blocking a dispatch., expected_answers: [{kind: human_action, verb: acknowledge, object: the pending message, target: by its id before retrying the dispatch}], weight: 0.0666666667}
   - {id: I-12, type: evolve, refs: [Changes and maintenance], scenario: A proposal reintroduces close ordering between the two instances., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0666666667}
   - {id: I-13, type: ambiguous, refs: [H.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
-  - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and the connected plan schema exposes only caller-authored runbook_consultation., expected_answers: [{kind: human_action, verb: search, object: every objective at one immutable origin/main SHA, target: exact excerpts and truthful legacy references without invented content}], weight: 0.0666666667}
-  - {id: I-15, type: operate, refs: [E-10], scenario: Close exposes only legacy runbook_exit while structured impact and a scoped committed receipt are unavailable., expected_answers: [{kind: human_action, verb: declare, object: only the truthful compatibility value, target: no unrelated runbook edit or unsupported impact claim}], weight: 0.0666666662}
+  - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and needs a documented procedure., expected_answers: [{kind: human_action, verb: search, object: INDEX.md ERRORS.md or allAI, target: the exact page and heading at the validated checkout commit}], weight: 0.0666666667}
+  - {id: I-15, type: operate, refs: [E-10], scenario: A session is closing after changing an operating procedure., expected_answers: [{kind: human_action, verb: correct, object: the owning Markdown page, target: the exact changed procedure without filler}], weight: 0.0666666662}
 ```
 
 ## Maintenance

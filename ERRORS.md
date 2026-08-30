@@ -833,10 +833,6 @@
 
 - [Peer Instance Discipline](runbooks/peer-instance-discipline.md)
 
-## `RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED`
-
-- [Codex / MP — Council Primary Builder](codex-mp.md)
-
 ## `runner/job failure before the Publish request`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)

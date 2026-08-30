@@ -4,7 +4,6 @@ owner: vulcan
 last_verified: '2026-08-20'
 aliases: []
 error_signatures:
-- RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED
 - gateway timeout on foreground dispatch >30s
 - 'RepairExhaustedError: schema repair exhausted'
 - silent past 300s with status still running
@@ -29,7 +28,6 @@ error_signatures:
 | Spec authoring (mode=author, Gate 1) (S1147) | SHIPPED | `tools/agents.py:_handle_call_mp` | — | 2026-07-07 |
 | Concurrency mutex (one Codex CLI at a time) (S1148, MP+CC serialized cleanly) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
 | Pre-push CI verification gate + auto-revert (S1150, manifest synthesis fix 25006e5e) | SHIPPED | `ci_verification.py (CI_WORKFLOW_TEST_PATHS)` | agent-dispatch.md §Q | 2026-07-09 |
-| Runbook-refs dispatch gate (BLOCK mode) (S1150 block-mode live; resolver fix a3e71da9) | SHIPPED | `tools/runbook_ref.py:RunbookRefResolver; gate wired in tools/agents.py` | gate suite (S1146 BQ) | 2026-07-09 |
 | Progress-based stall abort (S1111) | SHIPPED | `codex_cli_bridge.py (MP_PROGRESS_WINDOW_S=900)` | — | 2026-06-01 |
 | Hard timeout backstop (env-tunable) (S1111 fix 995e1338) | SHIPPED | `.env MP_HARD_UPPER_BOUND_S=1800; envelope default in tools/agents.py:_build_mp_provider_envelope` | tests/regression/test_legacy_dispatch_unchanged.py | 2026-06-01 |
 | dispatch_mp_build convenience wrapper | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | — | 2026-06-01 |
@@ -43,7 +41,7 @@ error_signatures:
 | Codex CLI bridge | codex_cli_bridge.py:run_codex_cli | CODEX_LOCK_FILE /var/tmp/koskadeux/codex_cli.lock (fcntl) | Codex CLI binary (codex exec) | Streaming path dispatch_codex_cli_streaming is production; nonstreaming legacy retained. OS-level timeout backstop from MP_HARD_UPPER_BOUND_S; progress-stall abort at MP_PROGRESS_WINDOW_S. Legacy dispatch_codex_cli (~L899) still contains a dead hardcoded `timeout 600` wrapper — zero live callers, remove on next bridge cleanup. |
 | Codex CLI + auth | ~/.codex/config.toml | OAuth session (auth_mode: chatgpt) | OpenAI Codex service | model = "gpt-5.6-sol" (frontier-only policy; S1200 per Max directive, T-2026-000197). **The served string is `gpt-5.6-sol` — NOT `gpt-5.6`, NOT `gpt-5.6-codex`; both 400 on our ChatGPT account tier.** Two surfaces must agree: this file AND koskadeux-mcp/.env `MP_MODEL` (the bridge passes `-m MODEL` from the env explicitly). MCP servers deliberately removed from Codex config (62-tool overhead). CLI version at last verify: codex-cli 0.144.3. |
 | Structural middleware (§O) | council_dispatch_middleware/ | builder-output manifests | ci_verification.py pre-push gate, SchemaRepair | Fires only when caller passes dispatch_class=structural. Terminal state push_failed is a DESIGNED guardrail: verified commit preserved, instance reviews then merges with KD_ALLOW_MAIN_PUSH=1 (S1150). |
-| Runbook-refs gate | tools/runbook_ref.py:RunbookRefResolver | config:resource-registry (runbooks repo path); runbook_gate ledger events; config:runbook-gate-config | aidotmarket/runbooks checkout | BLOCK mode: mode=build/author REQUIRES runbook_refs (RunbookRef {path, section, synthesis} or Attestation {no_entry_found, subject, reason} — attestation creates dischargeable session debt). |
+| Runbook context | `INDEX.md`, `ERRORS.md`, allAI search | validated runbooks checkout | aidotmarket/runbooks checkout | Read relevant Markdown before dispatch; no caller-authored gate field is required. |
 | Cost/pricing surfaces | council_dispatch_middleware/cost_estimator.py; kd_finance.py | MODEL_PRICING / DEFAULT_MODEL_RATES | — | Model swaps MUST update these alongside config (see Repair-05). |
 
 ## Agent capabilities
@@ -64,21 +62,19 @@ error_signatures:
   trigger: A BQ chunk or ticket fix needs a code build in a Titan-1 repo
   pre_conditions:
     - open Koskadeux session (kd_session_open + kd_session_plan done)
-    - runbook_refs prepared (path+section must resolve in aidotmarket/runbooks; BLOCK mode)
+    - relevant runbook page and heading read directly when one covers the work
     - target repo fetched (git fetch origin main) if the dispatch pins a SHA committed via GitHub API
     - spec committed at a pinned SHA when spec-grounded (agent-dispatch.md §T — reference path@SHA, never paste long specs)
-  tool_or_endpoint: council_request(agent=mp, mode=build, task=..., cwd=<FULL macOS path>, session_id=..., runbook_refs=[...], timeout_s optional)
+  tool_or_endpoint: council_request(agent=mp, mode=build, task=..., cwd=<FULL macOS path>, session_id=..., timeout_s optional)
   argument_sourcing:
     cwd: config:resource-registry (full path — shorthand like "backend" is BROKEN, S347)
-    runbook_refs: INDEX.md or direct Markdown search; RunbookRef {path, section, synthesis}
+    runbook_context: INDEX.md, ERRORS.md, allAI search, and direct reading of the matching Markdown heading
     timeout_s: only if the build should exceed the env default; explicit per-dispatch wins over MP_HARD_UPPER_BOUND_S
   idempotency: NOT_IDEMPOTENT
   expected_success:
     shape: '{task_id, status: dispatched|running} then check_build → {status: completed, result, ...}; MP reports branch/PR/commit'
     verification: git fetch + inspect the actual diff at file:line before accepting claims (builder output verification); run stated tests if in doubt
   expected_failures:
-    - signature: 'RUNBOOK_REF_MISSING / RUNBOOK_REF_UNRESOLVED'
-      cause: missing/unresolvable runbook_refs (see When it breaks-08)
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (When it breaks-01)
   next_step_success: gated cross-review by the voter panel CC+Kimi+GLM with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
@@ -146,7 +142,6 @@ error_signatures:
 | F-05 | Dispatch fails "object/path is not available locally" on a SHA-pinned task | The pinned SHA was committed via GitHub API; local clone lacks the object | `git cat-file -t <sha>` in cwd fails | Repair-06 | CONFIRMED |
 | F-06 | READ-ONLY review modified/committed/pushed files | MP treats READ-ONLY as advisory and "helpfully" remediates (S452, observed repeatedly) | `git status` + `git log` in cwd immediately after review | Repair-07 | CONFIRMED |
 | F-07 | Second MP/CC dispatch appears hung at start | fcntl mutex serialization behind a running Codex CLI (deliberate) | `lsof /var/tmp/koskadeux/codex_cli.lock`; check_build on the other task |  | CONFIRMED |
-| F-08 | Dispatch rejected RUNBOOK_REF_MISSING or RUNBOOK_REF_UNRESOLVED (failed_check path/section) | BLOCK-mode runbook gate: refs absent, path not a file under the runbooks repo, or section heading doesn't resolve; historical: registry file-as-repo-root bug (fixed a3e71da9) | run RunbookRefResolver locally in the koskadeux venv with the same refs; grep the runbook for the exact heading | Repair-08 | CONFIRMED |
 | F-09 | Structural build ends in push_failed though everything green | DESIGNED guardrail terminal state — verified commit preserved for instance review | inspect preserved commit | Repair-09 | CONFIRMED |
 | F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | Repair-05 | CONFIRMED |
 | F-11 | MP verdict/manifest claims don't match reality (files, line numbers, test counts) | Builder messages over-claim; also spec-over-prompt: MP follows the committed spec over a diverging dispatch prompt (S530 — usually MP is RIGHT) | manual diff inspection at file:line (mandatory on every fold); compare prompt vs spec text |  | CONFIRMED |
@@ -223,14 +218,6 @@ error_signatures:
   change_pattern: 'prefix EVERY MP review with: "DO NOT git add. DO NOT git commit. DO NOT git push. DO NOT modify any file. Report only." and run git status in cwd after; if MP committed anyway, git reset/revert the remediation and keep only the verdict'
   rollback_procedure: git reset --hard to pre-review SHA (verify nothing legitimate is lost)
   integrity_check: clean git status post-review
-- id: G-08
-  symptom_ref: F-08
-  component_ref: Runbook-refs gate
-  root_cause: refs must be structured objects whose path resolves to a real file under the registered runbooks repo and whose section matches a real heading
-  repair_entry_point: dispatch arguments (runbook_refs)
-  change_pattern: 'consult INDEX.md or search the Markdown directly; pass [{path, section, synthesis}] with an exact existing heading (grep "^#" the runbook); if genuinely no entry exists, pass Attestation {no_entry_found: true, subject, reason}; never invent a reference'
-  rollback_procedure: n/a
-  integrity_check: dispatch accepted; runbook_gate ledger event outcome RESOLVED
 - id: G-09
   symptom_ref: F-09
   component_ref: Structural middleware (§O)
@@ -337,7 +324,7 @@ scenario_set:
     expected_answers:
       - kind: tool_call
         tool: council_request
-        argument_keys: [agent, mode, task, cwd, session_id, runbook_refs]
+        argument_keys: [agent, mode, task, cwd, session_id]
     weight: 0.09090909
   - id: I-02
     type: operate
@@ -371,14 +358,6 @@ scenario_set:
     expected_answers:
       - kind: classification
         action: manifest-stage wrapper failure with delivered work; recover per agent-dispatch.md §U, do not rebuild
-    weight: 0.09090909
-  - id: I-06
-    type: isolate
-    refs: [F-08]
-    scenario: Dispatch rejected RUNBOOK_REF_UNRESOLVED failed_check=section. First action?
-    expected_answers:
-      - kind: human_action
-        action: grep the cited runbook for exact headings and correct the section value
     weight: 0.09090909
   - id: I-07
     type: repair
