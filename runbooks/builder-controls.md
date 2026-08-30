@@ -1,45 +1,27 @@
 ---
-runbook_id: builder-controls
-domain: council-operations
-status: ACTIVE
+title: Builder Controls
 owner: vulcan
-system_name: builder-controls
-purpose_sentence: Indexed reference of every control on the MP/Codex builder path in koskadeux-mcp - what each control is, where it lives, what it does, why it exists, how often it has actually fired, and its status under the S1455 minimal-bridge rebuild - so a future builder knows exactly what is there and why.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The control surface between "dispatch a build" and "get a diff back": dispatch-time gates, in-flight bounds, post-build preservation and evidence capture on the MP (Codex) builder path. Anchors cite koskadeux-mcp main at the implementation SHA recorded in §J. Fire counts come from the full stored dispatch corpus in /var/tmp/koskadeux/cc_tasks (3,024 task records; 254 MP dispatches). Dispatch mechanics, model pinning and CLI quirks are codex-mp.md; Council review mechanics are agent-dispatch.md and council-gate-process.md; this runbook is the controls inventory.
-authoritative_for:
-  - topic: minimal-builder-bridge
-    section: §C. Architecture & Interactions
-  - topic: builder-controls-inventory
-    section: §E. Operate - the indexed control inventory
+last_verified: '2026-08-23'
 aliases:
-  - minimal-bridge
-  - builder-bridge
-  - mp-builder-controls
+- builder-bridge
+- minimal-bridge
+- mp-builder-controls
 error_signatures:
-  - signature: minimal_bridge_repo_unresolved
-    section: §F. Isolate
-last_verified_at: "2026-08-23"
-superseded_by: []
-supersedes: []
-linter_version: 1.0.0
+- minimal_bridge_repo_unresolved
 ---
 
 # Builder Controls
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
+This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Per-repository Task Spooler build queue | SHIPPED | `koskadeux_mcp/tsp_queue.py` + `/opt/homebrew/bin/ts` | `tests/test_tsp_queue.py`; operator procedures authoritative in runbooks/task-spooler-build-queue.md | 2026-08-14 |
-| Pre-push gate composition (12 terminal sites) | REMOVED (S1539, koskadeux-mcp merge 0695ec1c46) | deleted with the legacy wrapper | n/a - historical fire counts retained in §E | 2026-08-14 |
+| Pre-push gate composition (12 terminal sites) | REMOVED (S1539, koskadeux-mcp merge 0695ec1c46) | deleted with the legacy wrapper | n/a - historical fire counts retained in How to operate | 2026-08-14 |
 | Builder-output manifest verification | OFF the build path (S1539); module retained, fate belongs to gate-estate reduction (S1472) | `koskadeux_mcp/builder_output_verification.py` | 10 corpus fires, false-negative class | 2026-08-14 |
 | Output-envelope schema repair | OFF the build path (S1539); retained for Council reviewer interchange (CORE S7) | `council_dispatch_middleware/schema_repair.py` | 25 corpus fires, all-false-negative hit list | 2026-08-14 |
 | Minimal bridge (transport + preservation) | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | 25 focused tests, including clean exit, timeout, crash and no-change output retention | 2026-08-10 |
@@ -47,19 +29,19 @@ The YAML frontmatter above defines the §A header. This runbook exists by Max di
 | Explicit post-build test status | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Configured pass/fail and unconfigured cases covered | 2026-08-10 |
 | Binding builder secret scan | SHIPPED | `koskadeux_mcp/minimal_bridge.py:161-320` | 40 focused bridge/queue/routing tests at `2c248509`; CC/Kimi/GLM review; PR #172 merged and deployed as `8623cef6`; 9-case deployed-checkout canary proved direct and `--no-verify` denial plus exact fingerprint boundaries | 2026-08-23 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The current build path is: `dispatch_mp_build` / `council_request(mode=build)` handler in `tools/agents.py` → per-repository Task Spooler queue → `bridge_runner.py` → `minimal_bridge.dispatch()` → detached exact-base worktree → job-scoped pre-push hook and Git invocation-guard injection → Codex CLI with combined stdout/stderr streamed to `<task_id>.builder-output.log` → preserve/independent secret scan/push → report JSON with artifact pointers and explicit test status. Every ordinary builder Git push inheriting the job environment reaches the same scanner before network publication; the invocation guard prevents Git's standard `push --no-verify` hook bypass. After the child returns, the wrapper independently scans and owns its final verified push. The legacy stack is DELETED, not dormant: S1539 removed `codex_cli_bridge.py`, `codex_event_stream.py`, the legacy SQLite FIFO and the streaming path (koskadeux-mcp merge `0695ec1c46`, reviewed by CC and GLM in a Max-authorized two-member Gate 3 round, Kimi quota-exhausted that day; MP built it and did not review it). `_handle_call_mp` now forwards every MP build to the minimal bridge and refuses `mode=review` with a typed `mp_review_not_supported`. There is ONE builder path, per Max ruling S1534 ("No we have 1 path, we delete the old"). Verified serving in production 2026-08-14: the gateway booted post-merge and live dispatches ran through the minimal bridge the same day. The Task Spooler queue and its operator procedures are authoritative in `runbooks/task-spooler-build-queue.md`.
 
 Ground truth on effectiveness, measured S1455 across all 254 stored MP dispatches (97 succeeded, 154 failed, 3 running): ~90 of the 154 failures were caused by the control surface or its bookkeeping, not by the builder's code. Exactly 1 was a genuine correctness catch (CI). That measurement is why the S1455 rebuild flips the burden of proof: a control survives only on a demonstrated real catch.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 Operators (Vulcan/Mars): dispatch builds, read every control's verdict, salvage preserved work. MP (Codex): the only builder, and it may edit ANY file on this control surface including `codex_cli_bridge.py` and `tools/agents.py`. Council (CC/Kimi/GLM): owns correctness adjudication at Gate 3 - the controls below were never a substitute for review and the rebuild makes that explicit.
 
 CORRECTION, Max ruling S1488 (event 6005ec17-14e5-41f5-850e-d9b9c7eaf469, actor=max, trust_tier=human). This section previously said MP never edits `codex_cli_bridge.py` or `tools/agents.py` on a "bootstrap hazard" and that operators author every live-file edit. That rule was never Max's. It was written into this runbook by Vulcan in commit 280d701 and attributed to "decision event a03efd33", which on inspection is `a03efd33-86cb-4350-80ed-900c85960c6a`, actor=vulcan, trust_tier=system - an agent-authored record, not a human ruling. Max's verbatim S1488 ruling: "the only rule I have ever made about codex is that it cannot review its own code as a council member." That single rule stands and is already CORE S4: **the builder cannot review its own work.** A review exclusion is not an editing exclusion; the two were conflated here. MP building on this surface is governed by the same Gate 3 Council review as any other build, which is where correctness is actually adjudicated. Do not reintroduce an editing ban without a human-tier decision event.
 
-## §E. Operate - the indexed control inventory
+## How to operate
 
 Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES in the corpus / STATUS under S1455.
 
@@ -98,26 +80,26 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 - **C-23 guard_direction_evidence completion gate.** `bq_complete` path: `requires_directional_evidence` returns True on any `entity_state` other than `present`, so a failed entity FETCH fails the gate shut; the only unlock is declaring `guard_class=trust`, which non-guard builds must never do. STATUS: defect, in the S1455 removal scope.
 - **C-24 Binding secret scan.** `koskadeux_mcp/minimal_bridge.py:161-320` scans added lines with the same implementation in the builder child's job-scoped pre-push hook and in the wrapper after child return. A job-scoped Git invocation guard also rejects the standard `push --no-verify` hook bypass and Git's accepted unambiguous abbreviation behind ordinary global-option forms. It is the ONE permitted content push block. Guard, scanner, hook-input, or range errors fail closed without echoing matched content. The only exception is the reviewed tuple of `tests/fixtures/data_verification_v1/hostile_reports.json`, rule `api_token`, and added-line SHA-256 `87c422a08e94b6270fbd929bd7d72ecbd9b172782179c2e4294d2e951cf56761`; changed path, rule, or content still blocks. Fires: five S1596-S1597 wrapper blocks on that same operator-verified benign line exposed that builders had already pushed past the late wrapper scan. STATUS: KEEP and bind before network publication; `secret_scan_blocked` preserves local work. Boundary: this governs ordinary pushes inheriting the job Git environment, not a same-UID child deliberately bypassing the injected Git executable and hooks or replacing its environment; closing that larger boundary requires credential, OS-account, hosted-Git, or broader sandbox controls outside S1598.
 
-## §F. Isolate
+## When it breaks
 
 Error signature → control: `RepairExhaustedError` / `schema repair exhausted` → C-12 (verify the work at git before believing the failure). `post_build_multiple_commits` / `post_build_no_commit` → C-13. `builder_output_claim_mismatch` → C-16. `hard_timeout` → C-09 (inspect the worktree for uncommitted work). `push_failed` / `shared_branch_cas_rejected` → C-18 (commit exists locally). "BQ git-ref producer did not persist" → C-17 (work destroyed; check origin for a pushed copy first). "before-reap persistence failed" → C-20 (build likely fine; check git). `commits_created` absurdly large → C-19 (history depth, ignore). Wrong-repo build → C-08. `dispatch_git_evidence_unavailable` on a healthy repo → C-03/T-2026-000490 tooling defect, not your dispatch. `minimal_bridge_repo_unresolved` → the bridge refuses dispatch when `repo` cannot be resolved to a repository path; pass the explicit canonical `repo` key - this is fail-closed by design and safer than the deleted silent DEFAULT_CWD fallback.
 
-## §G. Repair
+## Repair
 
 The standing salvage procedure when any control reports failure: (1) never redispatch blind; (2) `git ls-remote` the expected branch - pushed work survives C-13/C-12 fires; (3) if unpushed, inspect the build worktree/clone for commits (`git log`) and uncommitted modifications (`git status`) - C-09/C-19 fires leave correct work in the tree; (4) tarball off-tree before touching anything, then commit with an honest rescue message stating it is an operator salvage, not builder output and not evidence of correctness (Mars S1454 precedent); (5) verdicts of correctness come from Council review of the actual diff, never from the wrapper's report.
 
-## §H. Evolve
+## Changes and maintenance
 
-The S1455 programme is live through the minimal bridge: fresh worktree at exact base derived from `repo`, per-dispatch identity, combined builder stdout/stderr streamed to a durable artifact, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), a job-scoped pre-push scan and `--no-verify` invocation guard before every ordinary builder push, an independent wrapper scan, fast-forward-only verified push, configured tests as a separate retained artifact with explicit status, one outcome row per dispatch, and honest report fields `{branch, head_sha, diffstat, builder_output_path, builder_output_complete, builder_output_status, builder_exit_code, tests_status, tests_output_path, duration, terminal_status, preserved, pushed, secret_scan_result}`. `builder_output_status` is `captured` only when the artifact exists; `unverified` means the operator must not treat the build as observed. No retry or supervisor is part of this design. Update this runbook's §B/§E statuses in the same change as each stage lands.
+The S1455 programme is live through the minimal bridge: fresh worktree at exact base derived from `repo`, per-dispatch identity, combined builder stdout/stderr streamed to a durable artifact, preserve on every observed exit (honoring .gitignore, secret-scan as the ONE permitted push block), a job-scoped pre-push scan and `--no-verify` invocation guard before every ordinary builder push, an independent wrapper scan, fast-forward-only verified push, configured tests as a separate retained artifact with explicit status, one outcome row per dispatch, and honest report fields `{branch, head_sha, diffstat, builder_output_path, builder_output_complete, builder_output_status, builder_exit_code, tests_status, tests_output_path, duration, terminal_status, preserved, pushed, secret_scan_result}`. `builder_output_status` is `captured` only when the artifact exists; `unverified` means the operator must not treat the build as observed. No retry or supervisor is part of this design. Update this runbook's Capabilities/How to operate statuses in the same change as each stage lands.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
-- AC-R1: every control on the live build path appears in §E with file:line anchor, purpose, corpus fire count, and S1455 status; a control found in code but absent here is a runbook defect.
+- AC-R1: every control on the live build path appears in How to operate with file:line anchor, purpose, corpus fire count, and S1455 status; a control found in code but absent here is a runbook defect.
 - AC-R2: fire counts cite their measurement (S1455 full-corpus join of /var/tmp/koskadeux/cc_tasks, 254 MP dispatches) so future counts are comparable, not vibes.
-- AC-R3: §G salvage procedure is executable by a fresh operator with no other context.
-- AC-R4: statuses in §B/§E are updated in the same change as any bridge-programme stage lands (KEEP/REMOVE claims must match the deployed tree).
+- AC-R3: Repair salvage procedure is executable by a fresh operator with no other context.
+- AC-R4: statuses in Capabilities/How to operate are updated in the same change as any bridge-programme stage lands (KEEP/REMOVE claims must match the deployed tree).
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1599
@@ -127,13 +109,7 @@ owner_agent: vulcan
 refresh_triggers:
   - any merge touching `tools/agents.py` build routing, `koskadeux_mcp/bridge_runner.py`, `koskadeux_mcp/minimal_bridge.py`, `koskadeux_mcp/tsp_queue.py`, `koskadeux_mcp/mp_dispatch_params.py`, `builder_output_verification.py`, or `structural_gate*.py`
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
 ```
 
 Created S1455 (2026-08-06) by Max directive. Current refresh includes the minimal-bridge evidence contract in Vulcan S1498; the implementation SHA is recorded in the handoff/commit that lands this change. Owner re-verifies anchors at each refresh; stale anchors are a §K conformance failure.
-
-## §K. Conformance
-
-This runbook conforms to the §A-§K standard and is registered in CATALOG.json and TOPIC-ROUTER.md in the same change that created it. Fire counts and anchors are evidence-cited, not asserted. The inventory's burden-of-proof rule mirrors the programme it documents: a control claimed here as justified must show its real catch.

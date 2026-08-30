@@ -1,3 +1,11 @@
+---
+title: ops.ai.market — Ins{ai}ts Operations Dashboard
+owner: unassigned
+last_verified: '2026-08-26'
+aliases: []
+error_signatures: []
+---
+
 # ops.ai.market — Ins{ai}ts Operations Dashboard
 
 ## What it is
@@ -75,7 +83,7 @@ deleted under an exact expected-tip lease. The archive is recovery evidence
 only; it does not add a gate, confirmation, writer, or alternate publication
 path.
 
-**Names, overviews and display metadata.** Titles, one-paragraph business explanations, explicit runbook links and the two bounded `outside_verification_open` flags come from `koskadeux-mcp/scripts/open_items_catalog.json`. Exact `branch_keys` may assign matching retained refs to named display rows; that changes grouping and presentation only, never whether a ref exists, its lifecycle evidence or stage, deletion safety, or sole-writer authority. An absent item still appears under its raw git slug, flagged "no plain name yet". Every overview renders inline under its title. Runbook links are validated against exact, non-archived `origin/main:CATALOG.json` entries; a link means the document is registered, not that its contents are verified or authoritative. Catalog failure is stated as a board gap and conservatively shows completed-looking rows instead of hiding unresolved work.
+**Names, overviews and display metadata.** Titles, one-paragraph business explanations, explicit runbook links and the two bounded `outside_verification_open` flags come from `koskadeux-mcp/scripts/open_items_catalog.json`. Exact `branch_keys` may assign matching retained refs to named display rows; that changes grouping and presentation only, never whether a ref exists, its lifecycle evidence or stage, deletion safety, or sole-writer authority. An absent item still appears under its raw git slug, flagged "no plain name yet". Every overview renders inline under its title. Runbook links should resolve to current paths in `INDEX.md`; a link helps discovery but does not replace verification of the linked procedure.
 
 **Exact branch-identity repair (S1605).** The default project key uses the earliest session stamp so deliberately staged branches stay on one programme row. If unrelated projects reuse the same session stamp, do not replace that default with a global slug split: it breaks intentional programme groupings. Add the smallest exact `branch_keys` entries for the verified collision and keep each ref's existing evidence untouched. The S1604 repair maps `dispatch-base-derivation-s1604`, `profile-update-mass-assignment-s1604` and `verified-label-website-page-s1604` to three separate rows. Verify with a producer dry run before publishing: the dispatch row must be `certified_done`, while the backend profile and frontend verified-label rows remain separate `in_progress` items. Then publish once and confirm the operator page hides the completed dispatch row while showing both unfinished rows. This is a display-identity correction, not a new gate or lifecycle rule.
 
@@ -161,7 +169,7 @@ The console is a pure frontend; every feature is "call a backend endpoint, rende
 
 Conventions worth keeping: UI data lives at `entity.body.*` after `buildQueueItemToEntity`-style mapping; lifecycle writes are version-checked (pass the `version_stamp`; handle 409 by refetching); never put the internal API key anywhere but the localStorage config the console already uses.
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
@@ -179,7 +187,7 @@ Conventions worth keeping: UI data lives at `entity.body.*` after `buildQueueIte
 
 ## Conformance
 
-This runbook predates the strict A-K standard (`specs/BQ-RUNBOOK-STANDARD.md`) and uses the narrative + tables style (same choice as `aim-data.md`). It converts to the strict skeleton when the linter + harness ship; the content above is the source of truth until then.
+Keep this narrative page aligned with the deployed dashboard and its current data sources.
 
 ---
 

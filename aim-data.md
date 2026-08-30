@@ -1,11 +1,9 @@
 ---
-system_name: aim-data
-purpose_sentence: This runbook operates and diagnoses the customer-deployed AIM Data product and its signed marketplace publishing path.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Customer installation, local data handling, signed VZ listing publication, post-publish setup, delivery, and product-specific failure isolation.
-linter_version: 1.0.0
+title: AIM Data — Local-First Data Publishing for ai.market
+owner: vulcan
+last_verified: '2026-08-23'
+aliases: []
+error_signatures: []
 ---
 
 # AIM Data — Local-First Data Publishing for ai.market
@@ -33,11 +31,9 @@ The one-liner routes through a Cloudflare Worker at `get.ai.market` that serves 
 **Customer install guide:** `docs/INSTALL.md` in the repo
 **Release runbook:** [aim-data-release-process.md](aim-data-release-process.md) — NOTE: that runbook still references the old `aidotmarket/vectoraiz` monorepo path. The codebase has been forked to its own `aidotmarket/aim-data` repo. Release runbook needs an update.
 
-## §A. Header
+## Overview
 
-The YAML frontmatter defines the current conformance header. This document remains a grandfathered discovery runbook; the header does not promote it to action authority.
-
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -46,7 +42,7 @@ The YAML frontmatter defines the current conformance header. This document remai
 | Existing-listing update gate | SHIPPED | `app/services/vz_publish_service.py` | Real-service unchanged-listing test | 2026-08-23 |
 | Post-publish purchase and payout gate | SHIPPED | `app/services/capability_service.py` | Seller post-listing setup gate suite | 2026-08-23 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -321,7 +317,7 @@ Concrete items pending follow-up builds. Each is a real customer-facing risk if 
 
 - **Qdrant removal from the AIM Data stack.** Product decision: AIM Data is not in the vector-database business; that capability belongs to vectorAIz. The Qdrant container has been removed from this runbook's architecture description. The actual `docker-compose.aim-data.yml`, any `qdrant_client` calls in `app/services/`, and the `QDRANT_HOST` / `QDRANT_PORT` env vars are pending removal in a follow-up build. Customer-facing impact: nothing breaks for current customers because Qdrant was internal to the stack; the next image build drops the container.
 
-- **~~`get.ai.market` Cloudflare Worker returns 502~~ DONE 2026-05-27.** Repointed Worker GitHub-raw constant from `aidotmarket/vectoraiz` to `aidotmarket/aim-data` after the repo split moved the installer files. Same fix added `/aim-data/windows` and `/aim-node/windows` routes that were advertised on the marketing site but had no Worker handler. Both customer install one-liners (curl-bash and PowerShell irm) now return 200. Commits `46c3806` and `a6729e5` on `aidotmarket/cf-get-worker`. See §G-01 for the repeatable Worker install-path-drift pattern.
+- **~~`get.ai.market` Cloudflare Worker returns 502~~ DONE 2026-05-27.** Repointed Worker GitHub-raw constant from `aidotmarket/vectoraiz` to `aidotmarket/aim-data` after the repo split moved the installer files. Same fix added `/aim-data/windows` and `/aim-node/windows` routes that were advertised on the marketing site but had no Worker handler. Both customer install one-liners (curl-bash and PowerShell irm) now return 200. Commits `46c3806` and `a6729e5` on `aidotmarket/cf-get-worker`. See Repair-01 for the repeatable Worker install-path-drift pattern.
 
 - **~~Installer image-name drift~~ DONE 2026-05-27.** Both `installers/aim-data/install.sh` and `install.ps1` now pre-pull `ghcr.io/aidotmarket/aim-data:latest` (multi-arch). Previous `ghcr.io/aidotmarket/vectoraiz:latest` was arm64-only — Intel Mac customers would have hit a manifest mismatch. Commit `c6665e0` on `aidotmarket/aim-data`.
 
@@ -337,7 +333,7 @@ Concrete items pending follow-up builds. Each is a real customer-facing risk if 
 
 Surfacing here so they don't get lost between sessions.
 
-- **RC#22 (CRITICAL):** ProcessWorkerManager semaphore leak in indexing path. Every customer batch-uploading past `N` files hits a deadlock. `N` defaults to `max(2, min(cores//4, 8))` so on a typical 8-core machine this is 8 files. One-liner fix: add `handle._cleanup()` in `app/services/processing_service.py:_run_indexing()` after `handle.wait()`. (Captured as F-11 in §F.)
+- **RC#22 (CRITICAL):** ProcessWorkerManager semaphore leak in indexing path. Every customer batch-uploading past `N` files hits a deadlock. `N` defaults to `max(2, min(cores//4, 8))` so on a typical 8-core machine this is 8 files. One-liner fix: add `handle._cleanup()` in `app/services/processing_service.py:_run_indexing()` after `handle.wait()`. (Captured as F-11 in When it breaks.)
 - **RC#15:** No re-queue on startup recovery. Files in `uploaded` status at restart never auto-resume; customer must manually re-trigger reprocessing. Fix in `app/main.py` lifespan after `recover_stuck_records()`.
 - **RC#16:** WorkerHandle cleanup not guaranteed; `_active_processes` list grows forever in long-running containers.
 - **RC#19:** `/api/allai/status` endpoint shows `not_configured` because it hasn't been updated to reflect the ai.market proxy mode. Cosmetic — customers think the LLM is broken when it works.
@@ -393,7 +389,7 @@ These patterns assume the customer is technical enough to read a log file. For n
 
 ### G-02 to G-15 — Per the F-table
 
-For now, the Verify and Repair columns in §F are the operational guidance. When this section is enriched in a follow-up session, each F-row gets a matching G-row with code-level entry points and rollback procedures.
+For now, the Verify and Repair columns in When it breaks are the operational guidance. When this section is enriched in a follow-up session, each F-row gets a matching G-row with code-level entry points and rollback procedures.
 
 ## Acceptance Criteria — for this runbook
 
@@ -411,20 +407,11 @@ This runbook is acceptable when:
 |-------|-------|
 | Created | 2026-05-27 |
 | Last verified end-to-end | (pending the first real customer install) |
-| Refresh trigger | Any BREAKING change per §H, any new BROKEN status in the Capability Matrix, or 90 days since last verified |
+| Refresh trigger | Any BREAKING change per Changes and maintenance, any new BROKEN status in the Capability Matrix, or 90 days since last verified |
 | Owner | Vulcan (orchestration) for content sync, Max for product decisions |
 | Escalation | Max directly |
 
 **Decision note — T-2026-000250 (2026-07-15): PARTIALLY VALID.** The registration 500 was superseded by T-2026-000256. The residual import 403 was fixed at AIM Data `e3db42b` and live-proved on RC2: both `/imports` and `/data/import` were mounted with `rw=false`, legacy sample browse succeeded, the newer path was available, and `/api/health` returned 200.
-
-## Conformance
-
-The runbook standard at `specs/BQ-RUNBOOK-STANDARD.md` defines §A through §K with prescribed agent forms. This runbook follows the conceptual coverage of those sections but uses the narrative + tables style of `aim-node.md` rather than the strict template skeleton at `templates/runbook.template.md`. Reasons:
-
-- The strict template is structured for the runbook linter and harness. Until both are wired against this file, the narrative form is more useful for a non-technical co-founder read.
-- The peer product runbook (`aim-node.md`) is also narrative + tables, and is the de facto pattern in this repo today.
-
-When the linter + harness ship, this runbook converts to the strict form. The conceptual content stays. Until then, the gaps from strict conformance are: no YAML frontmatter `linter_version` field, §E scenarios in prose rather than `yaml operate` blocks, §G patterns in prose rather than `yaml repair` blocks.
 
 ## Related
 
@@ -436,7 +423,7 @@ When the linter + harness ship, this runbook converts to the strict form. The co
 - ai.market customer-facing pages: [/aim-data](https://ai.market/aim-data), [/sell-data](https://ai.market/sell-data)
 - CORE.md product description: `docs/core/CORE.md` → "AIM-Channel — The Non-Dev Conduit" (CORE.md positions AIM-Channel as the data-seller conduit class; AIM Data is the current implementation of that role. CORE.md still describes a shared-codebase-with-vectorAIz model that is no longer accurate post-fork — flagged for CORE.md update. S996: AIM Channel is now RETIRED and superseded by AIM Data; the CORE.md pillar named "AIM-Channel" should be renamed to AIM Data via a peer-reviewed constitution edit.)
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -444,7 +431,7 @@ When the linter + harness ship, this runbook converts to the strict form. The co
 | ai.market backend | Validate and persist the listing | Canonical VZ publish route | Signed VZ JWT, Redis replay state, seller capability | COMPLETE |
 | Authorized operator | Retract a synthetic verification listing | Existing listing unpublish service | Existing operator secret-backed mechanism | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -457,7 +444,7 @@ When the linter + harness ship, this runbook converts to the strict form. The co
   expected_success: {shape: HTTP 201 with listing_id and marketplace_url, verification: open the returned listing through the isolated customer browser and confirm the seller sees the post-publish setup state when provisioning}
   expected_failures: [{signature: provisioning_existing_listing_denied, cause: the seller/source listing already exists while the seller is not active}, {signature: capability_denial_not_eligible, cause: the seller denial is not the exact provisioning readiness_gap shape}, {signature: security_services_offline, cause: Redis replay or rate-limit enforcement is unavailable}]
   next_step_success: Complete seller setup before purchase, payout, update, or republish.
-  next_step_failure: Isolate with §F and do not bypass signing, replay, capability, or browser identity controls.
+  next_step_failure: Isolate with When it breaks and do not bypass signing, replay, capability, or browser identity controls.
 - id: E-02
   trigger: An authorized operator retracts the synthetic listing created for live verification.
   pre_conditions: [exact_listing_identity_recorded, listing_is_synthetic, approved_secret_backed_operator_path_available]
@@ -470,7 +457,7 @@ When the linter + harness ship, this runbook converts to the strict form. The co
   next_step_failure: Fail closed and leave the listing identity recorded for recovery; do not delete data or bypass access controls.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -478,7 +465,7 @@ When the linter + harness ship, this runbook converts to the strict form. The co
 | F-02 | A provisioning seller can update or republish an existing listing. | The create-only guard or existing-listing check was bypassed. | Reproduce with the same seller/source and verify the service returns the original 403 before mutation, notification, version, translation, or search hooks. | G-02 | CONFIRMED |
 | F-03 | A synthetic live-verification listing remains public after retraction. | The wrong listing was targeted, unpublish failed, or de-indexing did not complete. | Verify the exact recorded listing id and seller, inspect its current status through the approved operator path, then check public discovery and the isolated browser. | G-03 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -507,25 +494,25 @@ When the linter + harness ship, this runbook converts to the strict form. The co
   integrity_check: The exact listing is unpublished and absent from public and isolated-customer discovery.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 AIM Data sends listing metadata, never raw customer data. The provisioning exception is signed-VZ, exact-denial, fresh-create, and seller/source scoped. It grants no purchase, payout, settlement, update, or republish authority.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing VZ signature, Redis replay, install binding, seller identity, active-seller controls, the existing-listing denial, or raw-data locality is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to publish JWT claims, seller readiness semantics, seller/source identity, advisory-lock scope, listing side effects, or post-publish onboarding routing.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Copy and documentation changes are safe only when they preserve the exact create-only exception and all blocked capabilities.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -543,11 +530,11 @@ Publication depends on the registered VZ install, Ed25519 key, Redis replay/rate
 
 No configuration flag widens the exception. Missing signing, replay, durable readiness, or identity state fails closed.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Any request to extend the exception beyond the exact fresh-create case is a security-control change requiring separate scope, review, focused tests, deployment proof, and customer verification.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -567,7 +554,7 @@ scenario_set:
         label: deny with the original readiness_gap response before mutation or publish side effects
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1599
@@ -577,13 +564,4 @@ owner_agent: vulcan
 refresh_triggers:
   - A signed VZ publish contract, seller readiness rule, post-publish setup flow, or AIM Data customer journey changes.
 scheduled_cadence: 3m
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```

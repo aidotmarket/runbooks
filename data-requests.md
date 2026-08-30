@@ -1,3 +1,11 @@
+---
+title: data-requests — Buyer-initiated Data Request Surface
+owner: unassigned
+last_verified: '2026-08-29'
+aliases: []
+error_signatures: []
+---
+
 # data-requests — Buyer-initiated Data Request Surface
 
 ## What it is
@@ -70,7 +78,7 @@ This is where bugs live. Every field below is a known drift hotspot. When changi
 | `regulatory_requirements` | `Optional[List[str]]` | `string[] \| undefined` | |
 | `provenance_requirements` | `Optional[str]` | `string \| undefined` | |
 
-## Known issues + history
+## When it breaks
 
 ### Resolved S574 — multi-bug data-request form failure (white-screen on submit)
 

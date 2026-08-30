@@ -1,3 +1,11 @@
+---
+title: Morning Briefing
+owner: unassigned
+last_verified: '2026-05-22'
+aliases: []
+error_signatures: []
+---
+
 # Morning Briefing
 
 ## What it does
@@ -82,7 +90,7 @@ curl -X POST "https://ai-market-backend-production.up.railway.app/api/v1/crm/adm
 
 This publishes a CRM_MANUAL_BRIEFING event that CRM Steward handles via `_handle_manual_briefing()`.
 
-## When it breaks — diagnostic checklist
+## When it breaks
 
 Check in this order:
 

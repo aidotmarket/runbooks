@@ -1,38 +1,22 @@
 ---
-runbook_id: constitution-history
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: constitution-history
-    section: §C. Architecture & Interactions
+title: Constitution History
+owner: max
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: constitution_source_drift
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: max
-last_verified_at: 2026-07-27
-system_name: constitution-history
-purpose_sentence: This companion indexes constitutional amendments and prior versions while preserving current CORE as the sole normative constitutional authority.
-owner_agent: max
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for amendment provenance, prior-version retrieval, source hashing, and historical audits; it does not authorize constitutional change.
-linter_version: 1.0.0
+- constitution_source_drift
 ---
 
 # Constitution History
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: historical delivery companion.** Current full CORE is the sole normative constitution and prevails over every historical version, commit message, amendment record, and this companion. Historical text never authorizes current behavior.
 
 **Fetch trigger:** amendment, provenance, or historical audit.
 
 **Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, version preamble and final amendment clause; §5 supplies the referenced decision rules and Max-supersession rule.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -41,7 +25,7 @@ The frontmatter is authoritative for catalog identity. **Authority: historical d
 | Prior-version retrieval | SHIPPED | `docs/core/CORE.md` | Git object retrieval by full SHA | 2026-07-17 |
 | Amendment procedure routing | SHIPPED | `constitution-amendment.md` | Gate and Max-approval evidence audit | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -91,7 +75,7 @@ The table is historical retrieval metadata derived from backend Git history. It 
 
 Use full Git SHAs for retrieval. Intermediate commits can share a version label; inspect commit chronology and exact bytes rather than inferring semantics from version numbers alone.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -99,7 +83,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 | CC, Kimi, GLM | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
 | Max | Directly approve or reject an amendment | Human decision | Final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -135,14 +119,14 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   next_step_failure: Leave current CORE unchanged.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | A dependent artifact records the wrong constitution SHA. | A moved stub, stale worktree, historical version, or non-byte-identical mirror was hashed. | Compare selected file bytes with current `infra:constitution.body.content` and record path plus digest. | G-01 | CONFIRMED |
 | F-02 | Historical prose is being used as a current rule. | Prior-version context was not separated from current authority. | Resolve current CORE, locate the historical commit, and compare exact clauses under source precedence. | G-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -163,25 +147,25 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   integrity_check: Current instructions cite current CORE and history remains clearly non-normative.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 Current CORE is singular and normative; history is immutable evidence; constitutional change requires the complete current amendment gate.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Treating history as current, hashing an unverified source, reducing amendment approvals, or editing CORE through this companion is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review new version-index entries, provenance fields, canonical mirror moves, and amendment evidence formats.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Correcting a historical retrieval note is safe only when exact Git and Living State evidence supports it.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -199,11 +183,11 @@ Living State, backend Git object availability, Council voter validation, and dir
 
 No historical source defaults to current; source mismatch stops dependent work.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Current CORE wins every historical conflict. Amendment evidence must bind to exact source and proposed bytes.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -215,12 +199,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-02], scenario: A version 7 rule is cited as current behavior., expected_answers: [{kind: classification, label: HISTORICAL_NOT_NORMATIVE}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: A companion carries a stale source SHA., expected_answers: [{kind: human_action, verb: regenerate, object: source-linked artifact, target: verified current CORE hash}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: Historical text leaked into current instructions., expected_answers: [{kind: human_action, verb: restore, object: current CORE authority, target: operational instructions}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal allows two Council votes plus Max for amendments., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A verified new version row is added after an amendment., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Git history and an amendment summary use different wording., expected_answers: [{kind: human_action, verb: compare, object: exact current and historical bytes, target: provenance record}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal allows two Council votes plus Max for amendments., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A verified new version row is added after an amendment., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Git history and an amendment summary use different wording., expected_answers: [{kind: human_action, verb: compare, object: exact current and historical bytes, target: provenance record}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1369
@@ -229,18 +213,5 @@ last_refresh_date: 2026-07-27T21:25:00Z
 owner_agent: max
 refresh_triggers: [CORE amendment or version change, canonical mirror path change, amendment procedure or Council decision-rule change]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T21:25:00Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

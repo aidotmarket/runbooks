@@ -1,20 +1,22 @@
 ---
-system_name: work-checkout
-purpose_sentence: Enforced work checkout - the queue row owns who is working on what, one item one owner, enforced at the tool boundary.
-owner_agent: mars
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Ownership claim/release semantics on Build Queue rows and trouble tickets, the assignment_query read surface, dispatch-gate enforcement, staleness, and ownership repair.
-linter_version: 1.0.0
+title: Work Checkout (Enforced Ownership)
+owner: mars
+last_verified: '2026-08-09'
+aliases: []
+error_signatures:
+- owner_conflict 409 naming another live holder
+- not_claimable naming a terminal status
+- release reports success=true released=false reason=session_owner_changed
+- invalid_assignment_query
 ---
 
 # Work Checkout (Enforced Ownership)
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214 (Max directive S1214). The queue row is the checkout: `body.lifecycle.pickup_ownership = {"instance", "session_id", "claimed_at"}`. The peer bus remains notification-only, never the record. Specs: `koskadeux-mcp/specs/BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214-GATE1.md` and `-GATE2.md`.
+Built under BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214 (Max directive S1214). The queue row is the checkout: `body.lifecycle.pickup_ownership = {"instance", "session_id", "claimed_at"}`. The peer bus remains notification-only, never the record. Specs: `koskadeux-mcp/specs/BQ-WORK-CHECKOUT-ENFORCED-OWNERSHIP-S1214-GATE1.md` and `-GATE2.md`.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -27,7 +29,7 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
 | Ownership writable only by claim/release (invalid_ownership guard) | SHIPPED | `koskadeux-mcp/tools/state.py` | GLM Gate-3 fold regression tests | 2026-07-15 |
 | Ticket ownership and session-lifecycle release (C4) | SHIPPED | `koskadeux-mcp/tools/support_ticket.py` | C4 suites (tests/tools/test_session_work_ownership_c4.py, tests/unit/test_support_ticket_ownership_c4.py, backend test_support_ticket_s811_c2.py) + live probe T-2026-000261 | 2026-07-15 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -38,7 +40,7 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
 | Staleness | `WORK_CLAIM_STALE_HOURS` env, default 24 | `claimed_at` | claim, read surface | Only ownership with NO owner activity for the whole window expires; active work never goes stale (M2). |
 | Kill switch | `PEER_CLAIM_GATE_ENABLED` in `koskadeux-mcp/scripts/launch_mcp_server.sh:7` | process env | dispatch gate | Default 1 (ON). Max decision to disable; event and revert after. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -46,7 +48,7 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
 | Max | Force-release adjudication, gate kill switch | direct instruction | Business/product owner | COMPLETE |
 | MP | Builds fixes in this domain | `dispatch_mp_build` | Per dispatch | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -66,11 +68,11 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
     verification: 'send a kind=claim peer-bus message referencing the entity; re-read shows the ownership object'
   expected_failures:
     - signature: 'owner_conflict 409 naming another live holder'
-      cause: the peer holds the item (§F-01), or a stale self-claim from a dead session (§F-02)
+      cause: the peer holds the item (When it breaks-01), or a stale self-claim from a dead session (When it breaks-02)
     - signature: 'not_claimable naming a terminal status'
       cause: M1 status precondition - the item is completed or cancelled
   next_step_success: start the work; owner activity refreshes the claim automatically (M2)
-  next_step_failure: repair per §G-02 (peer); a stale self-claim under a prior session releases normally (same-instance recovery, C4)
+  next_step_failure: repair per Repair-02 (peer); a stale self-claim under a prior session releases normally (same-instance recovery, C4)
 - id: E-02
   trigger: An instance finishes or abandons an item mid-session.
   pre_conditions:
@@ -87,7 +89,7 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
     - signature: 'release reports success=true released=false reason=session_owner_changed'
       cause: a newer session re-claimed the row between enumerate and release - benign no-op (close report buckets it as skipped)
   next_step_success: item returns to the unowned pool or leaves the queue
-  next_step_failure: re-read the entity; if ownership persists after a clean release this is a regression of T-2026-000258 - open a ticket (the historical §G-01 repair pattern still documents the manual clear)
+  next_step_failure: re-read the entity; if ownership persists after a clean release this is a regression of T-2026-000258 - open a ticket (the historical Repair-01 repair pattern still documents the manual clear)
 - id: E-03
   trigger: An audit or dashboard read needs to see peer-owned rows.
   pre_conditions:
@@ -106,18 +108,18 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
   next_step_failure: correct the arguments and re-issue
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | `owner_conflict` 409 naming the PEER instance | The peer legitimately holds the item | Read `owner` in the refusal; confirm holder instance differs from caller | §G-02 | CONFIRMED |
-| F-02 | `release` returns success but ownership persists on re-read | Regression of T-2026-000258 (root fix live since koskadeux-mcp `9bdf4e73`: release writes explicit null, merge-safe) | Re-read the entity after release; confirm the running server is on/after `9bdf4e73` | §G-01 | DEPRECATED |
-| F-03 | `invalid_ownership` refusal on put/patch touching pickup_ownership | Deliberate guard: ownership is writable only by claim/release | Reproduce with a minimal patch; the refusal names the rule | §G-01 | CONFIRMED |
-| F-04 | `peer_claim_conflict` on council_request or dispatch_mp_build | The item is live-owned by the peer | The refusal names the holder and the next unowned item | §G-02 | CONFIRMED |
-| F-05 | `caller_instance_required` on a build/review dispatch | Missing explicit caller identity at the tool boundary (M4) | Inspect the dispatch args for caller_instance | §G-03 | CONFIRMED |
-| F-06 | `author-mode dispatch rejected before MP launch` on a row the CALLER itself claimed; details show `identity_required_for_owned_row` | Pre-fix gateway: author-mode gate writes carried no instance (T-2026-000262; fixed at koskadeux-mcp `e124a764`, activates at gateway reload) | Check `transition_details` in the rejection payload (post-fix) or run `transition_to_authoring_in_flight(return_details=True)` locally; confirm the running server predates `e124a764` | §G-04 | CONFIRMED |
+| F-01 | `owner_conflict` 409 naming the PEER instance | The peer legitimately holds the item | Read `owner` in the refusal; confirm holder instance differs from caller | Repair-02 | CONFIRMED |
+| F-02 | `release` returns success but ownership persists on re-read | Regression of T-2026-000258 (root fix live since koskadeux-mcp `9bdf4e73`: release writes explicit null, merge-safe) | Re-read the entity after release; confirm the running server is on/after `9bdf4e73` | Repair-01 | DEPRECATED |
+| F-03 | `invalid_ownership` refusal on put/patch touching pickup_ownership | Deliberate guard: ownership is writable only by claim/release | Reproduce with a minimal patch; the refusal names the rule | Repair-01 | CONFIRMED |
+| F-04 | `peer_claim_conflict` on council_request or dispatch_mp_build | The item is live-owned by the peer | The refusal names the holder and the next unowned item | Repair-02 | CONFIRMED |
+| F-05 | `caller_instance_required` on a build/review dispatch | Missing explicit caller identity at the tool boundary (M4) | Inspect the dispatch args for caller_instance | Repair-03 | CONFIRMED |
+| F-06 | `author-mode dispatch rejected before MP launch` on a row the CALLER itself claimed; details show `identity_required_for_owned_row` | Pre-fix gateway: author-mode gate writes carried no instance (T-2026-000262; fixed at koskadeux-mcp `e124a764`, activates at gateway reload) | Check `transition_details` in the rejection payload (post-fix) or run `transition_to_authoring_in_flight(return_details=True)` locally; confirm the running server predates `e124a764` | Repair-04 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -154,17 +156,17 @@ The YAML frontmatter above is the §A header. Built under BQ-WORK-CHECKOUT-ENFOR
   integrity_check: author-mode dispatch succeeds on a self-claimed row; peer-owned dispatch still refuses with owner_conflict
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - **The queue row is the checkout.** Ownership lives on `body.lifecycle.pickup_ownership`, never in bus messages, handoff prose, or side entities. The peer bus is notification only.
-- **Ownership is written only by claim and release.** put/patch refuse the field (`invalid_ownership`). The §G-01 backend repair pattern (retired; historical) is the sole sanctioned bypass, only for a regression of the fixed stuck case, always with the event appended and a ticket opened.
+- **Ownership is written only by claim and release.** put/patch refuse the field (`invalid_ownership`). The Repair-01 backend repair pattern (retired; historical) is the sole sanctioned bypass, only for a regression of the fixed stuck case, always with the event appended and a ticket opened.
 - **The work is the heartbeat.** Owner activity refreshes the claim; there is no lease-renewal protocol. Only a fully silent owner past `WORK_CLAIM_STALE_HOURS` expires.
 - **No item can be hidden from everyone.** Stale owners read as unowned in the read path (M3).
 - **The gate never bricks dispatch.** Fail-open on EXCEPTION is preserved (S958 lesson); refusals are deliberate, truthful, and name the holder plus the next unowned item.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Removing the CAS from claim, or widening ownership writers beyond claim/release.
@@ -172,20 +174,20 @@ BREAKING if ANY of (first match wins):
 - Defaulting `PEER_CLAIM_GATE_ENABLED` to off, or making missing caller identity fail-open on build/review dispatches.
 - Introducing midnight-based or bus-based claim expiry.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the `WORK_CLAIM_STALE_HOURS` default or the claimable-status set.
 - Adding refusal codes or changing refusal payload shapes.
 - Adding a new ownership-bearing item kind beyond Build Queue rows and trouble tickets.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Wording changes in refusal messages; event payload additions; test additions; documentation.
 - Logging or dashboard-display changes that do not alter ownership semantics.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -203,11 +205,11 @@ The Living State backend `atomic_write` endpoint on ai-market-backend; the koska
 
 `WORK_CLAIM_STALE_HOURS` (default 24) and `PEER_CLAIM_GATE_ENABLED` (default 1) in the MCP server environment.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything weakening the one-item-one-owner guarantee or the writable-only-by-claim/release guard escalates to Max; the ruling is added to §H.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything weakening the one-item-one-owner guarantee or the writable-only-by-claim/release guard escalates to Max; the ruling is added to H.1 as a clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -281,7 +283,7 @@ scenario_set:
     scenario: 'Proposal: expire all claims at midnight to keep the queue tidy.'
     expected_answers:
       - kind: human_action
-        action: classify BREAKING - midnight/bus-based expiry is an explicit §H.2 predicate (the S958-era bug class)
+        action: classify BREAKING - midnight/bus-based expiry is an explicit H.2 predicate (the S958-era bug class)
     weight: 0.0909091
   - id: I-10
     type: ambiguous
@@ -301,7 +303,7 @@ scenario_set:
     weight: 0.0909091
 ```
 
-## §I.9 Resolving a merge conflict on a file the other side REWROTE (S1484)
+## Acceptance criteria
 
 `git checkout --ours <file>` and `--theirs <file>` operate on the WHOLE FILE, not
 on the conflicted hunk. If the other side rewrote that file, the rewrite is
@@ -337,7 +339,7 @@ regenerate anyway, and for those, regenerate rather than choose.
 A test caught this, not the operator. Runbook prose that a suite asserts on is
 worth more than prose nothing checks.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1225
@@ -349,23 +351,9 @@ refresh_triggers:
   - claim/release/staleness semantics changing
   - dispatch gate call sites changing
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-15T08:45:00Z
 first_staleness_detected_at: null
 ```
 
 Refresh log:
-- S1228 (2026-07-15): C4 shipped and live-verified. Ticket ownership at the MCP boundary (claim/refresh/release/refusal, stale-as-unowned projection), `kd_session_open` held_items, `kd_session_close` session-claim release with carry_forward_claims, T-2026-000258 root fix (explicit-null release) - koskadeux-mcp main `9bdf4e73` (Gate 3: CC APPROVE after M6/M7/M8 fold `9186ad5f`, DeepSeek APPROVE, GLM APPROVE_WITH_NITS), backend main `800c6217` (Railway deploy SUCCESS). Live probe T-2026-000261 verified claim persistence, peer refusal, same-instance new-session release, terminal release, read projection. §G-01 retired to historical; §B/§C/§E/§F/§H/§I/§J updated. Gateway handler activates on the next idle reload; the next session open should show held_items.
+- S1228 (2026-07-15): C4 shipped and live-verified. Ticket ownership at the MCP boundary (claim/refresh/release/refusal, stale-as-unowned projection), `kd_session_open` held_items, `kd_session_close` session-claim release with carry_forward_claims, T-2026-000258 root fix (explicit-null release) - koskadeux-mcp main `9bdf4e73` (Gate 3: CC APPROVE after M6/M7/M8 fold `9186ad5f`, DeepSeek APPROVE, GLM APPROVE_WITH_NITS), backend main `800c6217` (Railway deploy SUCCESS). Live probe T-2026-000261 verified claim persistence, peer refusal, same-instance new-session release, terminal release, read projection. Repair-01 retired to historical; Capabilities/Architecture & interactions/How to operate/When it breaks/Changes and maintenance/Acceptance criteria/Maintenance updated. Gateway handler activates on the next idle reload; the next session open should show held_items.
 - S1225 (2026-07-15): first authoring, against shipped C1-C3 on koskadeux-mcp main (`fee13056`, `0c8ecca4`, `6d2aadaa`, `a6e1831e`, GLM fold `9ea348a9`), the S1218/S1219 live Gate-4 collision test, and a live S1225 reproduction of the T-2026-000258 release no-op plus its ledgered repair. Discharges S1216-D1/D2.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1225 / 2026-07-15T08:45:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
-
-Router conformance is guarded by `scripts/router_drift_check.py`; the topic router must point to this filename.

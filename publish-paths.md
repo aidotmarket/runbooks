@@ -1,26 +1,22 @@
 ---
-system_name: publish-paths
-purpose_sentence: This runbook defines the canonical marketplace listing publication path, its seller-capability rules, and its safe retraction behavior.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Signed VZ listing creation and update, programmatic publication, website listing management, seller capability enforcement, and unpublish behavior.
-linter_version: 1.0.0
+title: Publish Paths Runbook
+owner: vulcan
+last_verified: '2026-08-23'
+aliases: []
+error_signatures: []
 ---
 
 # Publish Paths Runbook
 
 How a dataset becomes a marketplace listing. There is exactly one product publish route; everything else is management or a separately gated programmatic surface.
 
-## §A. Header
-
-The YAML frontmatter defines the current conformance header. This document remains a grandfathered discovery runbook; the header does not promote it to action authority.
+## Overview
 
 - **Source of truth:** `POST /api/v1/vz/publish`, `vz_publish_service.create_or_update_listing`, the seller capability service, and the deployed behavior verified by the current ticket.
 - **Listings store:** the PostgreSQL `listings` table. Products do not own separate marketplace listing stores.
 - **Related seller readiness:** `account-capability-onboarding.md`.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -30,7 +26,7 @@ The YAML frontmatter defines the current conformance header. This document remai
 | Programmatic listing actions | SHIPPED | `app/services/action_executor_service.py` | ActionExecutor active-seller chokepoint tests | 2026-08-23 |
 | Website listing management | SHIPPED | `app/routers/listings.py` | Ownership and unpublish coverage | 2026-08-23 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -45,7 +41,7 @@ When a listing is backed by a customer S3 connection, `_validate_s3_connection_p
 
 Unpublish is retraction-only: it delists and de-indexes. It must not fire translation, search-submission, or other publish-effect hooks.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -54,7 +50,7 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
 | Website seller | Manage an owned existing listing | Marketplace dashboard listing controls | Authenticated seller ownership | COMPLETE |
 | Authorized operator | Retract an exact synthetic verification listing | Existing listing unpublish service | Approved secret-backed operator mechanism | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -67,7 +63,7 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
   expected_success: {shape: HTTP 201 with listing_id and marketplace_url, verification: open the exact listing through the isolated customer browser and compare the seller and source identity}
   expected_failures: [{signature: capability_required, cause: the seller is not active and the request is not the exact permitted provisioning fresh-create case}, {signature: security_services_offline, cause: Redis replay or rate-limit enforcement is unavailable}, {signature: install_authority_denied, cause: token, install, serial, seller, or source authority does not match}]
   next_step_success: If onboarding is required, complete 2FA and Stripe setup before purchase, payout, update, or republish.
-  next_step_failure: Use §F and do not bypass signing, replay, install, capability, or browser identity controls.
+  next_step_failure: Use When it breaks and do not bypass signing, replay, install, capability, or browser identity controls.
 - id: E-02
   trigger: An active seller manages an existing listing from the marketplace website.
   pre_conditions: [seller_authenticated, listing_owned_by_seller]
@@ -90,7 +86,7 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
   next_step_failure: Fail closed without deletion or access-control bypass and preserve a recoverable identity record.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -99,7 +95,7 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
 | F-03 | A non-VZ programmatic path publishes for a non-active seller. | A new path bypasses the ActionExecutorService chokepoint or weakens its active-seller check. | Trace the request to its canonical writer and confirm the chokepoint runs before any published-state write. | G-03 | CONFIRMED |
 | F-04 | Unpublish fires publish effects or leaves the listing publicly discoverable. | The retraction path calls publish hooks, de-indexing failed, or the wrong listing identity was targeted. | Verify the exact listing id and owner, inspect hook behavior, and compare canonical status with public and isolated-browser state. | G-04 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -136,25 +132,25 @@ Unpublish is retraction-only: it delists and de-indexes. It must not fire transl
   integrity_check: Canonical status is unpublished, publish hooks did not fire, and public discovery no longer returns the exact listing.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 There is one signed product publish route. The provisioning exception is exact-denial, signed-VZ, fresh-create, and seller/source scoped. It grants no purchase, payout, settlement, update, republish, or programmatic authority. Website unpublish is retraction-only.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Adding a product writer outside the canonical VZ route, removing trust or replay checks, widening the provisioning exception, bypassing the programmatic chokepoint, or firing publish hooks on unpublish is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to VZ claims, install or serial binding, seller readiness semantics, seller/source identity, lock scope, status transitions, publish hooks, or website management authorization.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Examples and explanatory copy are safe when they do not change route identity, authorization, capability gates, state transitions, or publish and retraction side effects.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -172,11 +168,11 @@ The route depends on PostgreSQL user, capability, install, serial, and listing s
 
 No flag widens the provisioning exception. Missing trust, replay, install, durable readiness, ownership, or identity state fails closed.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Any new writer or broader seller exception requires separate frozen scope, security review, focused tests, protected merge, deployment proof, and customer verification.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -203,7 +199,7 @@ scenario_set:
         label: use the existing reversible unpublish path for the exact recorded identity and verify public absence
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1599
@@ -213,15 +209,6 @@ owner_agent: vulcan
 refresh_triggers:
   - A product publish route, seller capability rule, seller/source identity, publish effect, or unpublish contract changes.
 scheduled_cadence: 3m
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```
 
 ## Related

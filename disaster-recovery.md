@@ -1,3 +1,11 @@
+---
+title: Disaster Recovery — ai.market (what is in S3 and how to rebuild)
+owner: unassigned
+last_verified: '2026-06-08'
+aliases: []
+error_signatures: []
+---
+
 # Disaster Recovery — ai.market (what is in S3 and how to rebuild)
 
 > A copy of this file lives at `s3://aimarket-backups-prod/RESTORE-README.md` so the recovery map survives even if GitHub and Titan-1 are gone. This document is the **map**; `backup-and-recovery.md` (same repo) is the full **manual**.
@@ -32,3 +40,7 @@ You cannot read the backups without these, and they are deliberately NOT in S3 o
 A Titan-1 watchdog checks the newest object under each monitored prefix every 6h and **pages Max on Telegram** if any is missing or older than 26h, independent of Infisical. It currently covers `postgres/ai-market/`, `postgres/infisical/`, and `qdrant/`.
 
 _Last updated: 2026-06-08 (S799.w). Authoritative operational detail: `backup-and-recovery.md`._
+
+## When it breaks
+
+Follow the restore order and monitoring checks above when recovery is required.

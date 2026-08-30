@@ -1,38 +1,22 @@
 ---
-runbook_id: council-roster-quirks
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: council-roster-quirks
-    section: §C. Architecture & Interactions
+title: Council Roster and Quirks
+owner: vulcan
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: stale_roster_snapshot
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-07-27
-system_name: council-roster-quirks
-purpose_sentence: This companion routes Council dispatchers to the live roster and preserves the stable role and behavioral constraints needed before dispatch.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for Council roster roles, provider and tool lookup, dispatch-time behavioral quirks, and voter validation; current values remain in live registry state.
-linter_version: 1.0.0
+- stale_roster_snapshot
 ---
 
 # Council Roster and Quirks
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for this companion's catalog identity. **Authority: delivery companion.** Full CORE and the Boot Kernel prevail over this document in every conflict. Volatile model strings, active membership, provider details, tool mappings, and prompt quirks are authoritative only in `infra:council-comms` and the model registry.
 
 **Fetch trigger:** before Council dispatch or voter validation.
 
 **Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, sections 4 and 5. Normative extracts below name their CORE section and source SHA.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -40,7 +24,7 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 | Stable Council role constraints | SHIPPED | `docs/core/CORE.md` | Source-SHA cross-walk and strict lint | 2026-07-17 |
 | Provider and behavioral quirk lookup | SHIPPED | `infra:council-comms` | Dispatch preflight verification | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -52,9 +36,7 @@ The frontmatter is authoritative for this companion's catalog identity. **Author
 
 Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-<!-- catalog:historical -->
 > Each Council brain has different tools, behavioral defaults, and quirks. **This document names the roles; the live roster and current models live in `infra:council-comms` and the model registry — CORE does not pin model versions, because they change.** Before dispatching any Council task, check `state_get("infra:council-comms")` for the canonical reference.
-<!-- /catalog:historical -->
 
 The projection above is retained as source provenance because it uses a legacy
 tool spelling. The callable current equivalent is
@@ -80,7 +62,7 @@ Stable dispatch roles carried from CORE §§4–5:
 
 These bullets are companion synthesis, not a new source of constitutional authority.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -89,7 +71,7 @@ These bullets are companion synthesis, not a new source of constitutional author
 | CC, Kimi, GLM | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
 | AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -125,14 +107,14 @@ These bullets are companion synthesis, not a new source of constitutional author
   next_step_failure: Refresh live state and retry only with a corrected dispatch contract.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Dispatch targets a paused member or stale model. | A copied roster snapshot replaced the live registry read. | Read `infra:council-comms` and compare member, provider, model, tool, and mode with the dispatch record. | G-01 | CONFIRMED |
 | F-02 | A review result cannot count as an independent vote. | Builder identity, write access, wrong target, or model mismatch invalidated the envelope. | Inspect the recorded builder, reviewer, permissions, target SHA, and model verification. | G-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -153,25 +135,25 @@ These bullets are companion synthesis, not a new source of constitutional author
   integrity_check: Builder and reviewer differ and the result binds to the intended target SHA.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 Full CORE and the Boot Kernel prevail; current roster facts always come from `infra:council-comms` and the model registry.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Treat any change that makes companion prose override CORE, permits a builder to vote on its work, or replaces a required voter with an ineligible role as BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to role descriptions, dispatch modes, voter-validation fields, or the live roster key.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Spelling and examples are safe when they do not encode volatile model or membership facts.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -189,11 +171,11 @@ Living State, the model registry, and the Council dispatch gateway.
 
 No roster default exists; failure to read current authority fails dispatch closed.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 If CORE, the kernel, this companion, and live roster prose disagree, apply source precedence: CORE for stable obligations and live registry state for volatile roster values.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -205,12 +187,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-02], scenario: A vote cites a different target SHA from the gate record., expected_answers: [{kind: classification, label: INVALID_TARGET}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: A copied model string disagrees with the model registry., expected_answers: [{kind: human_action, verb: refresh, object: live roster, target: infra:council-comms}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: A write-capable review result was mistakenly recorded as valid., expected_answers: [{kind: human_action, verb: replace, object: invalid vote, target: read-only eligible voter result}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal lets companion prose pin current model versions., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: A role description changes while preserving CORE and live authority., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: CORE and live state appear to disagree on a Council role., expected_answers: [{kind: human_action, verb: separate, object: stable and volatile claims, target: CORE and live roster authorities}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal lets companion prose pin current model versions., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: A role description changes while preserving CORE and live authority., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: CORE and live state appear to disagree on a Council role., expected_answers: [{kind: human_action, verb: separate, object: stable and volatile claims, target: CORE and live roster authorities}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1369
@@ -222,18 +204,5 @@ refresh_triggers:
   - infra:council-comms schema or roster route changes
   - Council dispatch identity or mode validation changes
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1369 / 2026-07-27T21:45:44Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

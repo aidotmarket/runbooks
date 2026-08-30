@@ -1,3 +1,11 @@
+---
+title: Session Close Protocol
+owner: unassigned
+last_verified: '2026-07-31'
+aliases: []
+error_signatures: []
+---
+
 # Session Close Protocol
 
 ## Current equal-peer close contract
@@ -42,7 +50,6 @@ tool-and-Council contract is runtime authority. If it is absent or the connected
 schema contradicts it, stop roster-dependent work; historical Living State
 prose is not a substitute.
 
-<!-- catalog:historical -->
 ## Historical S607-S630 role-slot close record (retired)
 
 The sections below preserve the former Primary/Worker implementation and its incident
@@ -72,7 +79,7 @@ Primary and Worker run as independent boot-gate slots. The fix landed at session
 **Operational consequences:**
 - Worker may open, plan, dispatch, and close while Primary is mid-session. Primary's gate state is unaffected.
 - Primary may dispatch + commit while Worker is mid-session. Worker's gate state is unaffected.
-- Worker close path is also locally isolated (see §C.5): worker close writes `infra:session-status:{sid}:role=worker`, releases the worker slot on `infra:active-session-lock`, and SKIPS HANDOFF.md write / git ops / allai log / close-gate verification. Those are Primary-only.
+- Worker close path is also locally isolated (see Architecture & interactions.5): worker close writes `infra:session-status:{sid}:role=worker`, releases the worker slot on `infra:active-session-lock`, and SKIPS HANDOFF.md write / git ops / allai log / close-gate verification. Those are Primary-only.
 - Codex CLI dispatch routing (commit c1cbddf) routes by cwd: dispatches against `/Users/max/Projects/*` run on the laptop (Worker's host); dispatches against `/Users/max/koskadeux-mcp` stay on Titan-1 (Primary's host). Each instance dispatches against its own working repos; cross-host dispatch happens only when explicitly cwd-targeted.
 
 **What to verify after a gateway restart that loads new boot-gate code:**
@@ -170,11 +177,14 @@ If `kd_session_close` first attempt fails on branch check and retry after main c
 3. File this as a known surface; the close handler should atomically roll back transaction state on first-attempt failure (open work item).
 
 ## C.14 Related runbooks
-- `session-open-protocol.md` — non-authoritative transition and legacy open record.
+- `session-open-protocol.md` — transition and legacy open record.
 - `session-registry-recovery.md` — recovery when session registry desyncs.
 - `runbooks/peer-instance-discipline.md` — pre-close peer-bus and claim discipline checks.
 
 ## C.15 Owner
 This runbook is owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0).
 Revisions land as PRs against koskadeux-mcp main; require MP+AG review-mode approval (close-path criticality).
-<!-- /catalog:historical -->
+
+## When it breaks
+
+Use the stale-lock recurrence chain and manual close fallback above when normal close cannot complete.

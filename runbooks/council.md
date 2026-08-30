@@ -1,52 +1,26 @@
 ---
-runbook_id: council
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: council-operations
-    section: §C. Architecture & Interactions
-  - topic: council-dispatch-failure
-    section: §F. Isolate
-  - topic: council-roster-and-schema-drift
-    section: §F. Isolate
-aliases:
-  - glm-codex-transport
-  - glm-profile-isolation
-error_signatures:
-  - signature: "Error occurred during tool execution"
-    section: §F. Isolate
-  - signature: "OAuth session expired and could not be refreshed"
-    section: §F. Isolate
-  - signature: no response written after
-    section: §F. Isolate
-  - signature: is not set; source the credential first
-    section: §F. Isolate
-  - signature: Not logged in
-    section: §F. Isolate
-  - signature: required reviewer missing from the live tool schema
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
+title: Council
 owner: vulcan
-last_verified_at: 2026-08-29
-system_name: council
-purpose_sentence: CC, Kimi, and GLM exchange one request file for one response file; MP remains the separate mandatory builder.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  The complete active Council reviewer transport. council_request is a thin
-  public trigger over scripts/council_dir.py. MP build dispatch is separate.
-linter_version: 1.0.0
+last_verified: '2026-08-29'
+aliases:
+- glm-codex-transport
+- glm-profile-isolation
+error_signatures:
+- Error occurred during tool execution
+- Not logged in
+- OAuth session expired and could not be refreshed
+- is not set; source the credential first
+- no response written after
+- required reviewer missing from the live tool schema
 ---
 
 # Council
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither instance is senior to the other.
+This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -57,7 +31,7 @@ The frontmatter is authoritative. This runbook is maintained by Vulcan. Neither 
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 There is one Council reviewer path.
 
@@ -135,7 +109,7 @@ compatibility names are unchanged by this agent/build route reduction.
 | Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `dispatch_mp_build` → `tools/agents.py:_handle_dispatch_mp_build` | existing MP task stores | Minimal bridge and Codex CLI | The separately advertised build route. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -145,7 +119,7 @@ compatibility names are unchanged by this agent/build route reduction.
 | MP | Mandatory build; never a voter | Separate MP build path | Explicit build/author workspace | COMPLETE |
 | Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -173,7 +147,7 @@ compatibility names are unchanged by this agent/build route reduction.
   expected_failures:
     - {signature: status busy plus active_request_id, cause: that member already has one active request; no new request file is written}
   next_step_success: Poll the returned request_id with E-04 until completed or failed.
-  next_step_failure: Poll the active_request_id; apply §F without modifying or re-dispatching the request.
+  next_step_failure: Poll the active_request_id; apply When it breaks without modifying or re-dispatching the request.
 - id: E-03
   trigger: A request file must be sent to all three reviewers without the MCP surface.
   pre_conditions: [all_member_credentials_available, request_file_is_readable]
@@ -219,7 +193,7 @@ compatibility names are unchanged by this agent/build route reduction.
   next_step_failure: Follow MP build recovery; do not route MP through the reviewer directory.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -231,7 +205,7 @@ compatibility names are unchanged by this agent/build route reduction.
 | F-06 | Reviewer dispatch does not return `submitted` promptly, a second same-member dispatch creates another request, or `check_review` disagrees with the retained files | The pre-S1557 synchronous handler is still deployed, the member lock path drifted, the detached worker did not retain the lock, or the caller is using a stale tool schema without `check_review` | Require main, checkout, and deployed marker at `31c843b6`; require the live `council_request` action enum to contain `check_review`; submit one bounded canary, confirm immediate `request_id`, running then completed, unchanged response, and a concurrent dispatch returning busy with no new request file | G-06 | CONFIRMED |
 | F-07 | Max's Claude login changes after GLM, GLM returns `glm_*`, or GLM does not produce the matching response file | The retired Claude-based GLM route reappeared, the dedicated Codex home drifted, the provider/JSONL lifecycle failed, the response differs from the attested final message, or the request is not UTF-8 | Verify main, checkout, and deployed marker first. Run the 90-second low-effort transport canary before a full max-effort review. Across both runs confirm `~/.claude/session-env`, `~/.codex/auth.json` mtime, and the login watcher are unchanged; confirm zero auth files/symlinks under the dedicated GLM home | G-07 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -324,9 +298,9 @@ compatibility names are unchanged by this agent/build route reduction.
   integrity_check: The live agent enum, the recorded roster, and the deployed SHA all name the same members.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - `council_request` is the only public Council reviewer trigger.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
@@ -338,20 +312,20 @@ compatibility names are unchanged by this agent/build route reduction.
 - Dispatch returns a durable request ID immediately and polling never retries.
 - MP build dispatch remains separate from reviewer transport.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Adding another Council reviewer transport, Hall, wrapper, parser, retry layer, persistence step, or pre-dispatch reviewer gate is BREAKING.
 - Routing MP through the reviewer directory is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing a member CLI command, model, credential source, or directory location requires review and an end-to-end file exchange.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Correcting prose or tests to match the deployed one-file contract is SAFE.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -369,17 +343,17 @@ A runtime dependency is the selected member CLI, its existing credential, and th
 
 The reviewer defaults are the member CLI commands and `/Users/max/council` root in `scripts/council_dir.py`, plus GLM's dedicated `/Users/max/koskadeux-state/agents/glm/codex-home` and its checked config template.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Max resolves any request to add behavior between the request file and response file.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §H.1]
+    refs: [E-01, H.1]
     scenario: An existing request file is sent to Kimi through council_request.
     expected_answers:
       - kind: tool_call
@@ -389,7 +363,7 @@ scenario_set:
     weight: 0.25
   - id: I-02
     type: operate
-    refs: [E-02, §H.1]
+    refs: [E-02, H.1]
     scenario: The same task text is sent separately to CC, Kimi, and GLM.
     expected_answers:
       - kind: human_action
@@ -409,7 +383,7 @@ scenario_set:
     weight: 0.25
   - id: I-04
     type: operate
-    refs: [E-05, §H.1]
+    refs: [E-05, H.1]
     scenario: Dispatch an MP build after the reviewer simplification.
     expected_answers:
       - kind: tool_call
@@ -418,7 +392,7 @@ scenario_set:
     weight: 0.25
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1605
@@ -430,17 +404,5 @@ refresh_triggers:
   - a Council member CLI command changes
   - the Council directory or credential source changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.16666666666666666
-last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1557 / 2026-08-16T22:55:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

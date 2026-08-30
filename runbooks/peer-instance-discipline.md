@@ -1,58 +1,30 @@
 ---
-runbook_id: peer-instance-discipline
-domain: peer-coordination
-status: ACTIVE
-authoritative_for:
-  - topic: instance-peer-topology
-    section: §C. Architecture & Interactions
-  - topic: peer-bus-coordination
-    section: §E. Operate
-  - topic: session-plan-runbook-context
-    section: §E. Operate
-  - topic: session-close-runbook-impact
-    section: §E. Operate
-aliases:
-  - peer-bus
-  - peer-message-bus
-error_signatures:
-  - signature: peer_message_silently_deduped
-    section: §F. Isolate
-  - signature: duplicate_claim_on_one_item
-    section: §F. Isolate
-  - signature: unread_request_or_alert_at_dispatch
-    section: §F. Isolate
-  - signature: stale_handoff_trusted_at_open
-    section: §F. Isolate
-  - signature: over_escalation_to_max
-    section: §F. Isolate
-  - signature: runbook_context_delivery_unavailable
-    section: §F. Isolate
-  - signature: runbook_impact_evidence_unavailable
-    section: §F. Isolate
-  - signature: unrecognized_instance_attributed_artifact
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
+title: Peer Instance Discipline
 owner: mars
-last_verified_at: 2026-08-15
-system_name: peer-instance-discipline
-purpose_sentence: Peer-symmetric session lifecycle and coordination discipline for the trusted Vulcan and Mars instances, including the deployed-versus-target runbook context and close-impact boundary.
-owner_agent: mars
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Equal-authority instance behavior; verified deployed-versus-target open, plan, and close behavior; claim-before-work coordination; peer-message bus delivery semantics; boot-state verification; and escalation boundaries.
-linter_version: 1.0.0
+last_verified: '2026-08-15'
+aliases:
+- peer-bus
+- peer-message-bus
+error_signatures:
+- duplicate_claim_on_one_item
+- over_escalation_to_max
+- peer_message_silently_deduped
+- runbook_context_delivery_unavailable
+- runbook_impact_evidence_unavailable
+- stale_handoff_trusted_at_open
+- unread_request_or_alert_at_dispatch
+- unrecognized_instance_attributed_artifact
 ---
 
 <!-- Canonical source path: runbooks/peer-instance-discipline.md -->
 
 # Peer Instance Discipline
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above is the §A header. This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mars` are two cooperating instances of the same frontier model with equal authority over shell, git, dispatch, and Living State.
+This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mars` are two cooperating instances of the same frontier model with equal authority over shell, git, dispatch, and Living State.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -67,7 +39,7 @@ The YAML frontmatter above is the §A header. This runbook supersedes the retire
 | Living State CAS claim | SHIPPED | `state_request:bq_update` | Optimistic versioning exercised by BQ lifecycle | 2026-06-16 |
 | Primary/Worker lanes and close ordering | DEPRECATED | `session-open-protocol.md:O.3` | Retired by symmetric-peer model | 2026-06-16 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -82,7 +54,7 @@ The YAML frontmatter above is the §A header. This runbook supersedes the retire
 
 There are no lanes, ownership splits, primary approvals, worker audits, or close-order dependencies. Coordination is through state and the peer bus, not through assigning work to the other instance.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -94,7 +66,7 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 | DeepSeek | Retained callable backend, retired from active voting | `council_request` | Non-voter only | PARTIAL — callable backend retained; active-voter coverage intentionally retired |
 | Max | Strategic adjudication | direct instruction | Business/product owner | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ### First action after `kd_session_open`
 
@@ -283,7 +255,7 @@ Delivery semantics that are easy to get wrong, all observed in use:
 - `peer_status` is read-only and does not consume anything, so it is the safe way to check liveness at any time.
 - A pending acknowledgement is not advisory. A dispatch may be refused before a task is even created while a peer message awaits acknowledgement.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -299,7 +271,7 @@ Delivery semantics that are easy to get wrong, all observed in use:
 | F-10 | `runbook_impact_evidence_unavailable`, or close status cannot prove one scoped committed transaction | Target close semantics were inferred from prose, a legacy `runbook_exit`, or an old/unscoped pending row | Inspect the exact connected `kd_session_close` schema and instance/session-scoped status; require target fields and receipt type before claiming rollout | G-10 | CONFIRMED |
 | F-11 | Instance-attributed artifacts (tickets, dispatches, request-file deletions, merges under a human author name) appear that the instance did not knowingly create | Connection-glitch turn duplication: a duplicated authentic turn of the instance's OWN session executed tool calls whose results never returned to the surviving context (Anthropic connection/capacity issues; Max-confirmed S1559, resolution event 928225b3). NOT an identity breach | BEFORE treating it as an S1346-class identity incident: compare the artifact's content, style, and timing against your own in-flight work and look for your exact intentions executed; then list recent tickets and ts-socket jobs for a twin of the fix you are about to file or dispatch | G-11 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -392,25 +364,25 @@ Delivery semantics that are easy to get wrong, all observed in use:
   integrity_check: Every surprising artifact is either independently verified and accepted, or reverted with content-based (not provenance-based) reasoning; the resolution event closes the alarm entries. Residual systemic gap recorded on event 928225b3, identity verification cannot catch a duplicated authentic turn; dispatch/turn idempotency keys are the durable fix.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 Vulcan and Mars are peers of equal authority over shell, git, dispatch, and Living State. Neither assigns, approves, supervises, or closes for the other. Work starts only after both a successful compare-and-swap claim and a peer-bus claim message. The bus is drained at open, before dispatch, before merge, and before close. Messages of kind request and alert require acknowledgement. Max is escalated to for strategic forks and cross-instance unblocks, not for routine coordination. A target plan or close shape is never treated as deployed until the exact signed contract and connected schema both prove it. Legacy consultation and exit declarations are compatibility input, never evidence that an agent read a runbook or that a documentation change was useful.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Reintroducing primary and worker authority, work lanes, parent or worker session identifiers, or close ordering is BREAKING. So is permitting work to begin without both a compare-and-swap claim and a peer-bus claim, letting one instance approve or supervise the other's work, removing the acknowledgement requirement from request and alert messages, or claiming server-delivered context or transactional close while the signed deployed contract does not expose it.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review any new peer-bus message kind, any change to the dedupe tuple or to delivery semantics, any change to claim-note schema, acknowledgement handling, or drain timing, any plan-context or close-impact contract change, and any change to the Max escalation boundary.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Wording that preserves the invariants, additional scenario coverage, and narrower clarifications to shell, git, or dispatch hygiene are safe. So is automation that performs these same reads, provided the read still happens and its result is still what is acted on.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -428,11 +400,11 @@ Reachability of the gateway and the registry. Peer liveness is read from the reg
 
 Absent evidence is absent. A bus that cannot be drained, or a peer whose liveness cannot be read, yields no permission to act; it does not yield a default of "clear".
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Where a handoff and measured state disagree, measured state wins and the handoff is corrected in place. Where a send appears to have succeeded but the peer never received it, the returned message id decides, not the absence of an error.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -449,20 +421,20 @@ scenario_set:
         argument_values: {action: bq_update, status: in_progress, gate_status_update: false}
     weight: 0.0666666667
   - {id: I-04, type: operate, refs: [E-04], scenario: A compare-and-swap claim has just succeeded., expected_answers: [{kind: human_action, verb: send, object: claim message, target: the peer with the scope boundary stated}], weight: 0.0666666667}
-  - {id: I-05, type: evolve, refs: [§H], scenario: A proposal changes the tuple the bus dedupes on without changing the drain or acknowledgement rules., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0666666667}
+  - {id: I-05, type: evolve, refs: [Changes and maintenance], scenario: A proposal changes the tuple the bus dedupes on without changing the drain or acknowledgement rules., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0666666667}
   - {id: I-06, type: isolate, refs: [F-07], scenario: A send returned without error but the peer never mentions the message., expected_answers: [{kind: classification, label: PEER_MESSAGE_SILENTLY_DEDUPED}], weight: 0.0666666667}
   - {id: I-07, type: isolate, refs: [F-08], scenario: A dispatch is refused before any task id is created., expected_answers: [{kind: classification, label: UNREAD_REQUEST_OR_ALERT_AT_DISPATCH}], weight: 0.0666666667}
   - {id: I-08, type: isolate, refs: [F-04], scenario: A session proceeds on a handoff assertion that the state has since overtaken., expected_answers: [{kind: classification, label: STALE_HANDOFF_TRUSTED_AT_OPEN}], weight: 0.0666666667}
   - {id: I-09, type: isolate, refs: [F-01], scenario: Two instances appear to be working the same item., expected_answers: [{kind: classification, label: DUPLICATE_CLAIM_ON_ONE_ITEM}], weight: 0.0666666667}
   - {id: I-10, type: repair, refs: [G-07], scenario: A follow-up message was dropped because it repeated an earlier tuple., expected_answers: [{kind: human_action, verb: resend, object: the message, target: a distinct ref_entity with the new id confirmed}], weight: 0.0666666667}
   - {id: I-11, type: repair, refs: [G-08], scenario: A pending acknowledgement is blocking a dispatch., expected_answers: [{kind: human_action, verb: acknowledge, object: the pending message, target: by its id before retrying the dispatch}], weight: 0.0666666667}
-  - {id: I-12, type: evolve, refs: [§H], scenario: A proposal reintroduces close ordering between the two instances., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0666666667}
-  - {id: I-13, type: ambiguous, refs: [§H.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
+  - {id: I-12, type: evolve, refs: [Changes and maintenance], scenario: A proposal reintroduces close ordering between the two instances., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0666666667}
+  - {id: I-13, type: ambiguous, refs: [H.6], scenario: A handoff asserts a boundary is clear while an unread claim exists for the same entity., expected_answers: [{kind: human_action, verb: drain, object: the bus, target: before trusting the handoff, then act on measured state}], weight: 0.0666666667}
   - {id: I-14, type: operate, refs: [E-09], scenario: A session has opened and the connected plan schema exposes only caller-authored runbook_consultation., expected_answers: [{kind: human_action, verb: search, object: every objective at one immutable origin/main SHA, target: exact excerpts and truthful legacy references without invented content}], weight: 0.0666666667}
   - {id: I-15, type: operate, refs: [E-10], scenario: Close exposes only legacy runbook_exit while structured impact and a scoped committed receipt are unavailable., expected_answers: [{kind: human_action, verb: declare, object: only the truthful compatibility value, target: no unrelated runbook edit or unsupported impact claim}], weight: 0.0666666662}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1412
@@ -471,18 +443,5 @@ last_refresh_date: 2026-07-31T10:00:00Z
 owner_agent: mars
 refresh_triggers: [peer bus tool contract changes, delivery or dedupe semantics changes, session lifecycle model changes, claim or compare-and-swap semantics changes, escalation boundary changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1412 / 2026-07-31T10:00:00Z
-last_lint_result: PASS
-retrofit: true
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: {before: 2238, after: 3632, pct: 62.3}
 ```

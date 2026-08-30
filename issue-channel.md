@@ -1,57 +1,29 @@
 ---
-runbook_id: issue-channel
-domain: platform-operations
-status: DRAFT
-authoritative_for:
-  - topic: issue-channel
-    section: §C. Architecture & Interactions
-  - topic: issue-channel-resolution
-    section: §E. Operate
-  - topic: issue-channel-replay-corpus
-    section: §E. Operate
-  - topic: issue-channel-watcher-db-access
-    section: §E. Operate
-aliases:
-  - infrastructure failure channel
-  - CI health board
-  - issue channel watcher
-  - episode resolution
-  - expiry floor
-  - replay corpus
-error_signatures:
-  - signature: 'observation_complete":false'
-    section: §F. Isolate
-  - signature: nodename nor servname provided, or not known
-    section: §F. Isolate
-  - signature: no_history
-    section: §F. Isolate
-  - signature: RailwayAdapterError
-    section: §F. Isolate
-  - signature: expired_count
-    section: §F. Isolate
-  - signature: resolution.expiry_ttl
-    section: §E. Operate
-supersedes: []
-superseded_by: []
+title: Issue Channel (infrastructure failure channel)
 owner: mars
-last_verified_at: 2026-08-29
-system_name: issue-channel
-purpose_sentence: The issue channel polls GitHub, Railway and Cloudflare for infrastructure failures, records them as canonical episodes in Postgres, closes them when the provider shows a newer success, and publishes a snapshot that the session-open board renders.
-owner_agent: mars
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Operation, diagnosis, repair and evolution of the issue channel as a WORKING system: the watcher service, adapters, canonical store, episode resolution and expiry, dispatch policy in dry_run, snapshot/board publication, the replay-corpus exporter, and reaching the watcher database from Titan-1. Gate-2 EVIDENCE process (receipt environments, probes, receipt packages) is owned by issue-channel-gate2-receipts.md. Council review mechanics are owned by council-session-gate-and-fold-ops.md. Secret values are never here (Infisical project bd272d48-c5a1-4b52-9d24-12066ae4403c, env prod).
-linter_version: 1.0.0
+last_verified: '2026-08-29'
+aliases:
+- infrastructure failure channel
+- CI health board
+- issue channel watcher
+- episode resolution
+- expiry floor
+- replay corpus
+error_signatures:
+- observation_complete":false
+- nodename nor servname provided, or not known
+- no_history
+- RailwayAdapterError
+- expired_count
+- resolution.expiry_ttl
 ---
 
 # Issue Channel (infrastructure failure channel)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. Design authority: `specs/BQ-CI-HEALTH-VISIBLE-AT-SESSION-OPEN-S1511-GATE2.md` on koskadeux-mcp branch `spec/bq-ci-health-visible-at-session-open-s1511` (head `9d1427c683`, Amendment A3 approved S1635). Where this runbook and the spec differ, the spec wins; fix the runbook the same session.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -69,7 +41,7 @@ YAML frontmatter above is authoritative for the §A header fields. Design author
 | Replay-corpus exporter and offline replay | SHIPPED | `koskadeux_mcp/issue_channel/export.py` | `tests/issue_channel/test_export.py` | 2026-08-28 |
 | Live dispatch of a worker on a rule match (rollout step 11) | PLANNED | — | — | 2026-08-29 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 One Railway watcher polls three providers, sanitizes what it sees, stores canonical episodes in the backend Postgres, resolves them from provider success witnesses, and publishes a snapshot that Titan-1 mirrors into the session-open board.
 
@@ -85,19 +57,19 @@ One Railway watcher polls three providers, sanitizes what it sees, stores canoni
 | Snapshot + mirror | `snapshot.py`; Titan-1 LaunchAgent `com.koskadeux.issue-channel-poller` mirrors to `/Users/max/koskadeux-state/issue-channel/snapshot.json` | Living State `infra:open-items-board` (via `ground_truth_open_items.py --publish`) | ops.ai.market board | Snapshot carries `open_count`, `expired_count`, `episode_transitions`, per-source completeness, per-issue state. |
 | Replay corpus exporter | `scripts/issue_channel.py --export-corpus <dir>` (`export.py`) | writes `raw/<fp>.json`, `issues.json`, `MANIFEST.json` | `--replay --rules … --corpus <dir>` (`rules.py load_corpus`) | Read-only; reads canonical, source and safe-raw tables only; never quarantine; never writes the DB. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| mars / vulcan | read watcher DB from Titan-1 | `psql` via Postgres public TCP proxy (§E) | role `issue_channel_watcher` (read) | COMPLETE |
+| mars / vulcan | read watcher DB from Titan-1 | `psql` via Postgres public TCP proxy (How to operate) | role `issue_channel_watcher` (read) | COMPLETE |
 | mars / vulcan | export replay corpus, run replay | `scripts/issue_channel.py --export-corpus` / `--replay` | same DB role | COMPLETE |
 | mars / vulcan | inspect deploy status / logs | `railway deployment list -s issue-channel-watcher --json`, `railway logs -s issue-channel-watcher` | Railway CLI login (max@ai.market); in gateway fallback shells set `PATH=/opt/homebrew/bin:$PATH HOME=/Users/max` | COMPLETE |
 | mars / vulcan | change resolution/dispatch policy | edit `config/issue_channel/policy.yaml`, PR, three-seat Gate 3 | repo write via PR | COMPLETE |
 | MP (builder) | code changes | `dispatch_mp_build` on koskadeux-mcp | branch push only | COMPLETE |
-| CC / Kimi / GLM | Gate 3 review | `council_request mode=review` (§E.5 for Kimi packaging) | read | COMPLETE |
+| CC / Kimi / GLM | Gate 3 review | `council_request mode=review` (How to operate.5 for Kimi packaging) | read | COMPLETE |
 | SysAdmin | Railway/Infisical questions | `sysadmin_request` | — | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_operate.sh` (`source` it; functions ic_url, ic_status, ic_rows, ic_health, ic_export, ic_package_for_kimi) and summarised here; the `tool_or_endpoint` fields are the authoritative commands.
 
@@ -189,7 +161,7 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
   next_step_failure: Send failures back to MP on the same branch.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -206,7 +178,7 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
 | F-11 | Watcher refuses policy at load: `lease_duration_s must be >= timeout_s + 60s completion margin` | policy.yaml edited with a lease shorter than the worker timeout plus margin; fail-closed by design (PR #200) | `venv/bin/python -c "from koskadeux_mcp.issue_channel.policy import load_policy_bundle; load_policy_bundle()"` | Set lease_duration_s >= timeout_s + 60 and re-review the policy | CONFIRMED (unit test) |
 | F-12 | Board channel line shows no spend although a dispatch completed today | Snapshot older than the completion (watcher tick pending), or channel stale/unavailable (spend is suppressed on those statuses by design), or image before main 6232014ac5 | `python3 -c "import json;print(json.load(open('/Users/max/koskadeux-state/issue-channel/snapshot.json'))['snapshot'].get('dispatch_spend'))"` | Wait one watcher tick, then E-02 republish | CONFIRMED (S1636: 2 dispatches today $1.25 rendered) |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -251,9 +223,9 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
   integrity_check: snapshot generated_at newer than deploy, all sources complete, board republished
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Provider observations are the only issue-existence and resolution authority (spec §1 inv. 4); `expired` is the single non-observational state and is never treated as resolution.
 - Resolution needs a COMPLETE observation and terminal SUCCESS on EVERY bound member witness, each newer than that member's latest open failure. History-window fall-out is never evidence.
@@ -261,23 +233,23 @@ The bash for E-01/E-03/E-06 is kept verbatim in `runbooks/scripts/issue_channel_
 - No plaintext secret or customer data in canonical state, witnesses, snapshots, journals, logs, or corpora.
 - `dispatch_enabled: false` until rollout step 11 is executed under its own receipt.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that lets a partial observation resolve, or that resolves on absence of a failure envelope.
 - Adding an HTTP call, scope, or endpoint to any adapter.
 - Writing to the DB from `--export-corpus` or reading quarantine from it.
 - A second replica of the watcher.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Any change to `policy.yaml` values, dispatch_rules, member binding, or episode keying.
 - New provider or new resource shape (check F-01 class first).
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Test-only changes; RESOLUTION.md wording; snapshot fields that add information without removing any.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -295,17 +267,17 @@ Backend Postgres (`issue_channel` schema), Railway service `issue-channel-watche
 
 `policy.yaml`: `dispatch_enabled: false`, `resolution.expiry_enabled: true`, `resolution.expiry_ttl` 7 days.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Spec 4.1 (Amendment A3) is the contract; Council three-seat (CC, Kimi, GLM) adjudicates at Gate 3; Max adjudicates policy value changes.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-02, §F]
+    refs: [E-02, When it breaks]
     scenario: |
       id: E-02. trigger: main 8e37cd722b deployed at 2026-08-29 14:38:57Z with six open rows and every ai-market-backend workflow on main green. tool_or_endpoint: snapshot mirror read plus E-01 status counts. expected_success: first complete poll (14:40Z) resolved the ai-market-backend ci_failure episodes of 2026-08-27 and 2026-08-28 together, the runbooks ci_failure and both Railway deploy_failure episodes; vectoraiz ci_failure stayed open because no newer success exists on main; open_count 6 to 1. Evidence: review-packages/S1511-GATE2-RECEIPTS/a3-postfix-snapshot-20260829T144416Z.json (sha256 473f6c05...) and a3-postfix-canonical-20260829T144416Z.txt (sha256 42197f00...); Event Ledger f6ea7d2c-3d60-4182-9459-f0d11f620270. next_step_failure: isolate with F-01.
     expected_answers:
@@ -316,7 +288,7 @@ scenario_set:
     weight: 1.0
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1635
@@ -329,13 +301,4 @@ refresh_triggers:
   - first production expiry transition
   - new provider or resource shape
 scheduled_cadence: 30d
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```

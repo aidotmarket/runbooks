@@ -1,3 +1,11 @@
+---
+title: Meet Records → CRM Pipeline
+owner: unassigned
+last_verified: '2026-06-30'
+aliases: []
+error_signatures: []
+---
+
 # Meet Records → CRM Pipeline
 
 ## Status
@@ -6,9 +14,9 @@ auto-ingested and logged as `meeting` interactions against CRM contacts. Replace
 Fireflies.ai integration (S342). Party-native contacts are supported (S1078): a meeting attaches to
 any contact whether it has an old-style `crm_entity` id or only a `party_id`.
 
-> Scope note: this runbook is accurate to current reality (S1078). It predates the §A–K runbook
-> standard (`specs/BQ-RUNBOOK-STANDARD.md`); promotion to the full linter-enforced §A–K form
-> (capability matrix, §I harness scenarios, lifecycle metadata) is a tracked follow-up, not yet done.
+> Scope note: this runbook is accurate to current reality (S1078). It predates the Overview–K runbook
+> standard (`specs/BQ-RUNBOOK-STANDARD.md`); promotion to the full linter-enforced Overview–K form
+> (capability matrix, Acceptance criteria harness scenarios, lifecycle metadata) is a tracked follow-up, not yet done.
 
 ## Owner / escalation
 Owner agent: CRM Steward (interaction writes) + SysAdmin (Drive watch / GCP). Escalation: Max.
@@ -101,7 +109,7 @@ already-processed file, so DO NOT re-ingest — instead reconstruct and re-run t
 There is no dedicated reprocess endpoint/agent tool yet — building one is a reasonable future capability
 if backfills recur.
 
-## Isolate / Repair (troubleshooting)
+## When it breaks
 
 ### No interactions appearing at all
 - Drive watch channel expired or never registered: check `drive_watch_state` (channel_id, channel_expiry).
@@ -135,6 +143,6 @@ if backfills recur.
   (`CRMInteractionCreate` requires at least one target; the legacy write path requires `entity_id`).
 
 ## Related
-- Runbook router entry: `TOPIC-ROUTER.md` (Email / pipelines -> Meet records → CRM).
+- Runbook index entry: `INDEX.md`.
 - CRM target state: `crm-target-state.md`. Gmail drop pipeline: `gmail-drop-pipeline.md`.
 - Resource/secret locations: `config:resource-registry` (Living State).

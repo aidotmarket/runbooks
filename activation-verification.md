@@ -1,3 +1,11 @@
+---
+title: Activation Verification Runbook
+owner: unassigned
+last_verified: '2026-07-11'
+aliases: []
+error_signatures: []
+---
+
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for CI gates AND deploy verification after the S612 consolidation that collapsed ~8 process BQs into BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1). Per Council mandate, this file now covers BOTH pre-merge CI gates (branch protection, lint, smoke tests) and post-merge activation verification (proof-of-life checks).
 >
 > **Section layout:**
@@ -232,3 +240,7 @@ Notes:
   `post_restart_measurement`, and `delta` are the canonical top-level fields
 - `historical_cases.{session_id}` preserves the original evidence while the
   canonical top-level fields store the current normalized shape
+
+## When it breaks
+
+Use the matching per-service activation-verification recipe above when a check fails; no separate procedure is defined.

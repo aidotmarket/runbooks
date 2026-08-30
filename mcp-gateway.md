@@ -1,3 +1,11 @@
+---
+title: Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
+owner: unassigned
+last_verified: '2026-08-25'
+aliases: []
+error_signatures: []
+---
+
 # Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 
 > Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude
@@ -6,7 +14,7 @@
 > that is a different system.
 >
 > Consolidates the former `session-lifecycle.md` (now a stub pointing here). A future
-> §A–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization
+> Overview–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization
 > and autonomous-operations BQs; the central-vs-service location + final name are decided
 > there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md`
 > deliberately so that gated relocation owns the rename.
@@ -154,7 +162,6 @@ open or close must not mutate the other peer's registry row or boot-gate state. 
 handler restart because it affects both live connections, but after restart each peer
 re-opens and re-plans independently.
 
-<!-- catalog:historical -->
 ### Historical S733-S852 role-slot implementation record (retired)
 
 The material below preserves the former role-slot and ordered-close implementation as a
@@ -227,7 +234,6 @@ resolution).** The registry `sessions` table (boot-gate persistence) is correct 
 **Per-instance handoff:** `HANDOFF.primary.md` and `HANDOFF.worker.md` (in the `koskadeux-mcp`
 repo). The legacy single-file `/var/tmp/koskadeux/HANDOFF.md` scheme was retired S733 (Unit B);
 a worker boot reads `HANDOFF.worker.md` regardless of how it was written.
-<!-- /catalog:historical -->
 
 ## Infisical token & auth refresh (S760)
 
@@ -332,7 +338,6 @@ itself is degraded.
   respawn instantly after `pkill`, making `pkill` unreliable (S520).
 - **cloudflared, not Tailscale:** the Tailscale migration was attempted pre-S572 and recorded
   as done but never completed; cloudflared is the live tunnel (S688 verified).
-<!-- catalog:historical -->
 - **Two lock records (local registry + remote Living State):** historical — the lifecycle
   moved to the remote Living State lock as the single authority; the local `role_locks` table
   was left behind and is now dead/stale, slated for retirement (Unit D). Boot-gate/session
@@ -340,11 +345,9 @@ itself is degraded.
   PLANNING/OPERATIONAL.
 - **Peer model (no primary-over-worker authority):** the two slots only order close (worker
   first); both instances have equal authority over shell, git, dispatch, and Living State.
-<!-- /catalog:historical -->
 
 ## In-flight: gate-hardening reform (seam-hardening, not a rewrite)
 
-<!-- catalog:historical -->
 The ownership/status list below is a historical S731-S734 change record, not current peer
 lane assignment or current delivery status.
 
@@ -364,7 +367,6 @@ not rewrite. Units + ownership:
 **Caution:** the `session.py` fixes for Unit B are merged to `main` but are **NOT live until
 the next coordinated MCP restart** — and a restart drops both sessions, so it is coordinated
 via Max, not done unilaterally.
-<!-- /catalog:historical -->
 
 ## History
 
@@ -446,7 +448,7 @@ retired `migrate_durable_state.py --execute` interface. `inventory
 --candidate-sha <sha>` and `status` are read-only. Every mutating `migrate`,
 `cutover`, `resume`, `rollback`, or `accept` call refuses without `--reviewed-live`, exact
 reviewed code/runbooks SHAs, and non-secret authorization/peer-clearance
-evidence IDs. The full candidate-only contract is the DRAFT discovery page
+evidence IDs. The full candidate-only contract is documented in
 `runbooks/durable-runtime-state.md`; neither page authorizes live use.
 
 A controller that fences `com.koskadeux.mcp` must be independent of the MCP

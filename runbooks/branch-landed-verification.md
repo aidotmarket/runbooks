@@ -1,48 +1,29 @@
 ---
-runbook_id: branch-landed-verification
-domain: build-queue
-status: ACTIVE
-authoritative_for:
-  - topic: branch-landed-verification
-    section: §C. Architecture & Interactions
+title: Branch Landed Verification
+owner: mars
+last_verified: '2026-07-27'
 aliases: []
 error_signatures:
-  - signature: stale_build_base
-    section: §F. Isolate
-  - signature: unlanded_branch_believed_landed
-    section: §F. Isolate
-  - signature: push_failed_but_landed
-    section: §F. Isolate
-  - signature: clean_tree_read_as_current
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: mars
-last_verified_at: 2026-07-27
-system_name: branch-landed-verification
-purpose_sentence: Establish the base a build is briefed from against the remote, and establish whether a branch has actually landed, using measured evidence rather than the local checkout or a dispatcher's printed result.
-owner_agent: mars
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Pre-dispatch base selection and post-build landing verification for every repository an instance briefs, merges, or reports on.
-linter_version: 1.0.0
+- clean_tree_read_as_current
+- push_failed_but_landed
+- stale_build_base
+- unlanded_branch_believed_landed
 ---
 
 # Branch Landed Verification
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: operational procedure.** Full CORE and the Boot Kernel prevail. Repository SHAs, branch positions, and landing state come from git against the remote at the moment of use, never from this file, never from a handoff, and never from a session summary.
 
 **Fetch trigger:** any of — writing a base SHA into a build brief; merging or pushing; reporting that work has landed; reading a dispatcher result that claims a push failed; reconciling a Build Queue item against code.
 
-**Harness status, measured S1374.** The legibility harness was run against this runbook on 2026-07-27T23:09:41Z and returned INFRASTRUCTURE_FAILURE with aggregate 0.0 because `KOSKADEUX_MCP_URL` is not configured in this environment. No legibility score has been measured for this document. The §J pass rate is the pending-tooling constant, not a result.
+**Harness status, measured S1374.** The legibility harness was run against this runbook on 2026-07-27T23:09:41Z and returned INFRASTRUCTURE_FAILURE with aggregate 0.0 because `KOSKADEUX_MCP_URL` is not configured in this environment. No legibility score has been measured for this document. The Maintenance pass rate is the pending-tooling constant, not a result.
 
 **Governing CORE clauses:** §S4 (builders MUST push to main after tests pass; Council gates are the quality check) and §S16 (build status is canonical in Living State, code is canonical in Git).
 
 **Why this exists.** In S1372 a build base was written into an MP brief from local `main` at `526dd85` without checking `origin/main`, which was two commits ahead at `01250a1`. MP branched faithfully from the stale base and re-added footer legal links Max had deliberately deleted under T-2026-000279. The tree was clean and the branch was correct; the base was wrong. It self-corrected only because a later `git reset --soft origin/main` during a squash reparented the commit. That is luck, not process. This runbook is the S1371-D1 and S1371-D2 obligation.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -53,14 +34,14 @@ The frontmatter is authoritative for catalog identity. **Authority: operational 
 | Content landing test, squash and rebase safe | SHIPPED | `git diff --stat` | Post-build check | 2026-07-27 |
 | Remote branch position readback | SHIPPED | `git ls-remote` | Post-push check | 2026-07-27 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Remote reference | `git fetch origin` then `origin/main` | Remote refs in the local checkout | Every brief, merge, and report | Stale until fetched. A checkout that has not fetched has no opinion worth acting on. |
 | Working checkout | `git rev-parse HEAD` | Local refs and working tree | Base selection | Local `main` is a cached copy of a remote branch, not the remote branch. |
 | Divergence measure | `git rev-list --left-right --count origin/main...HEAD` | Derived | Base selection | Left is behind, right is ahead. Both zero is the only "in sync". |
-| Landing test | `git merge-base --is-ancestor`, `git cherry`, content diff | Derived | Completion reporting, BQ reconciliation | Three tests, different failure modes. See §E-03. |
+| Landing test | `git merge-base --is-ancestor`, `git cherry`, content diff | Derived | Completion reporting, BQ reconciliation | Three tests, different failure modes. See How to operate-03. |
 | Dispatcher result | MP or Codex build envelope | Dispatch record | Post-build verification | The envelope's push outcome is a claim, not evidence. Verify against the remote. |
 
 ### The four states a branch can be in
@@ -72,7 +53,7 @@ The frontmatter is authoritative for catalog identity. **Authority: operational 
 
 State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not an ancestor" must never be reported as "not landed" without the content check.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -81,7 +62,7 @@ State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not
 | Council reviewer | Review at the dispatched SHA only | `council_request` | Read at SHA | COMPLETE |
 | Max | Decide whether unlanded work is abandoned or landed | Human decision | Final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -116,7 +97,7 @@ State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not
   expected_failures:
     - {signature: unlanded_branch_believed_landed, cause: landing was inferred from a dispatcher envelope, a handoff line, or a session summary rather than measured against the remote}
   next_step_success: Record the SHA and which of the three tests proved it.
-  next_step_failure: Treat the work as unlanded and preserve the branch; do not re-dispatch until §E-04 is run.
+  next_step_failure: Treat the work as unlanded and preserve the branch; do not re-dispatch until How to operate-04 is run.
 - id: E-04
   trigger: A dispatcher or push reports failure.
   pre_conditions: [branch_name_known]
@@ -130,7 +111,7 @@ State 4 is why SHA-ancestry alone is not a sufficient landing test, and why "not
   next_step_failure: Only then treat the push as genuinely failed and retry.
 ```
 
-## §F. Isolate
+## When it breaks
 
 Registered error signatures map to the rows below: `stale_build_base` → F-01, `clean_tree_read_as_current` → F-02, `unlanded_branch_believed_landed` → F-03, `push_failed_but_landed` → F-04. F-05 is the squash-or-rebase corollary of F-03.
 
@@ -138,11 +119,11 @@ Registered error signatures map to the rows below: `stale_build_base` → F-01, 
 |---|---|---|---|---|---|
 | F-01 | A build faithfully re-introduces something that was deliberately removed. | The brief named a base that was behind the remote, so the removal was not in the tree the builder saw. Measured in S1372. | Compare the base SHA in the brief against `origin/main` at brief time; run `git log <base>..origin/main`. | G-01 | CONFIRMED |
 | F-02 | A checkout is reported as current while work is missing from it. | Clean tree and zero commits ahead were read as up to date; nobody measured behind. Measured in S1374 on three repositories. | `git rev-list --left-right --count origin/main...HEAD`. | G-02 | CONFIRMED |
-| F-03 | Work is reported as landed but is absent from `origin/main`. | Landing was inferred from a dispatch envelope, a handoff, or a session summary. | Run all three tests in §E-03. | G-03 | CONFIRMED |
+| F-03 | Work is reported as landed but is absent from `origin/main`. | Landing was inferred from a dispatch envelope, a handoff, or a session summary. | Run all three tests in How to operate-03. | G-03 | CONFIRMED |
 | F-04 | A dispatcher prints a push failure while the commit is on the remote. | The guardrail refusing an automated main push surfaced as `error_type=push_failed` with every gate passed. A correct build was discarded this way in S1324. | `git ls-remote origin 'refs/heads/<branch>'` before any repair action. | G-04 | CONFIRMED |
 | F-05 | SHA-ancestry says not landed but the change is visibly on `origin/main`. | The branch was squash-merged or rebased, so neither the SHA nor the patches survive. | `git diff --stat origin/main..<branch>`; empty means the content is already there. | G-03 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -179,25 +160,25 @@ Registered error signatures map to the rows below: `stale_build_base` → F-01, 
   integrity_check: No re-dispatch occurs without a remote read taken after the reported failure.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 A base is what the remote says it is at the moment of briefing, and landing is what the remote says it is at the moment of reporting. Neither may be asserted from a local checkout, a dispatcher envelope, a handoff, or a prior session's summary.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Removing any of the three landing tests, permitting a base SHA to be sourced from a local ref, or allowing a completion report to assert landing without a remote read is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review changes to the dispatch brief schema, the push guardrail, squash-on-dispatch practice, and any tooling that reads or caches remote refs on the instance's behalf.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Adding further evidence, clearer output, or automation that performs these same reads is safe, provided the remote read still happens and its result is still what is reported.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -215,11 +196,11 @@ Network reachability to the git remote, and a fetch that completed before the re
 
 An unreachable remote yields no verdict. Absent evidence is reported as absent, never as landed and never as clean.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Where the remote and any record disagree, the remote wins and the record is corrected. Where the three landing tests disagree, the content test decides, because it is the only one that survives squash and rebase.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -233,12 +214,12 @@ scenario_set:
   - {id: I-08, type: isolate, refs: [F-02], scenario: A checkout is clean and zero ahead but three commits behind the remote., expected_answers: [{kind: classification, label: CLEAN_TREE_READ_AS_CURRENT}], weight: 0.0769230769}
   - {id: I-09, type: repair, refs: [G-03], scenario: A handoff asserts that a branch landed and no SHA is given., expected_answers: [{kind: human_action, verb: withdraw, object: completion claim, target: build queue entity and handoff}], weight: 0.0769230769}
   - {id: I-10, type: repair, refs: [G-01], scenario: A build already ran from a base that was behind the remote., expected_answers: [{kind: human_action, verb: strip, object: hunks reversing a deliberate change, target: delivered branch before merge}], weight: 0.0769230769}
-  - {id: I-11, type: evolve, refs: [§H], scenario: A proposal drops the content test and keeps only SHA ancestry., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0769230769}
-  - {id: I-12, type: evolve, refs: [§H], scenario: A proposal adds tooling that performs the same remote reads automatically., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0769230769}
-  - {id: I-13, type: ambiguous, refs: [§H.6], scenario: Ancestry says not landed while the change is visibly present on origin/main., expected_answers: [{kind: human_action, verb: decide, object: landing verdict, target: content diff as the deciding test}], weight: 0.0769230772}
+  - {id: I-11, type: evolve, refs: [Changes and maintenance], scenario: A proposal drops the content test and keeps only SHA ancestry., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0769230769}
+  - {id: I-12, type: evolve, refs: [Changes and maintenance], scenario: A proposal adds tooling that performs the same remote reads automatically., expected_answers: [{kind: classification, label: SAFE}], weight: 0.0769230769}
+  - {id: I-13, type: ambiguous, refs: [H.6], scenario: Ancestry says not landed while the change is visibly present on origin/main., expected_answers: [{kind: human_action, verb: decide, object: landing verdict, target: content diff as the deciding test}], weight: 0.0769230772}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1374
@@ -247,18 +228,5 @@ last_refresh_date: 2026-07-27T23:00:00Z
 owner_agent: mars
 refresh_triggers: [dispatch brief schema changes, push guardrail behaviour changes, squash-on-dispatch practice changes, git remote access mechanism changes]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-27T23:12:01.048286Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1374 / 2026-07-27T23:00:00Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

@@ -1,4 +1,12 @@
 ---
+title: 'Runbook: Dual-Brand System — vectorAIz / AIM Channel'
+owner: unassigned
+last_verified: '2026-06-22'
+aliases: []
+error_signatures: []
+---
+
+---
 # Runbook: Dual-Brand System — vectorAIz / AIM Channel
 
 > **RETIRED (S996):** AIM Channel has been retired and replaced by **AIM Data** (de-skinned S751; standalone `aidotmarket/aim-data` repo + `ghcr.io/aidotmarket/aim-data` image). vectorAIz remains a separate, active product. This runbook is kept for historical brand-system context only — do not treat AIM Channel as a live product.
@@ -81,3 +89,7 @@ Names decided by Council Hall consensus: MP + AG unanimous, Vulcan concurred.
 - "AIM Channel" chosen for data (dynamic path feeding the marketplace)
 - Rejected: AIM Data (generic/trademark), AIM Gateway (asymmetric pairing), AIM Vault (HashiCorp collision), AIM Desktop (form factor), AIM Enclave (environment not function), AIM Bridge (weaker)
 ---
+
+## When it breaks
+
+This page does not define a separate break/fix procedure. Correct the prose if the documented operation changes.

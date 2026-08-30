@@ -1,41 +1,22 @@
-name: runbook-lint
+name: runbooks
+
 on:
   pull_request:
   push:
-    branches: [main]
-  workflow_dispatch:
-  schedule:
-    - cron: '17 6 * * *'
 
 permissions:
   contents: read
 
 jobs:
-  lint:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          # CORPUS-MANIFEST.yaml pins an inventory commit and verifies every
-          # declared blob against that tree; a depth-1 checkout cannot prove it.
-          fetch-depth: 0
       - uses: actions/setup-python@v5
-        with: {python-version: '3.11'}
-      - name: Install
-        run: pip install -e '.[dev]'
-      - name: Run repository tests
-        run: python -m pytest -q
-      # Advisory only, per Max directives S1491 and S1500. The pin ledger and
-      # generated-output drift checks are no longer gates: editing a runbook
-      # must never require bookkeeping commits, and a stale index never blocks
-      # a merge. Drift is surfaced here for whoever wants to regenerate.
-      - name: Corpus and catalog drift (advisory)
-        continue-on-error: true
+        with: {python-version: "3.11"}
+      - run: python -m pip install PyYAML
+      - run: python scripts/check.py
+      - name: Check generated indexes
         run: |
-          python -m runbook_tools.corpus_manifest || true
-          runbook-catalog check || true
-      - name: Lint runbooks (advisory)
-        continue-on-error: true
-        run: |
-          runbook-catalog select --mode lint-selection
-          runbook-lint --mode strict --format github
+          python scripts/index.py
+          git diff --exit-code -- INDEX.md ERRORS.md

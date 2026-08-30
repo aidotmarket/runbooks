@@ -1,3 +1,11 @@
+---
+title: browser-session-auth — Login Sessions That Survive Reload
+owner: unassigned
+last_verified: '2026-06-17'
+aliases: []
+error_signatures: []
+---
+
 # browser-session-auth — Login Sessions That Survive Reload
 
 ## What it is
@@ -88,3 +96,7 @@ present), never as the sign-off for the browser behavior.
 - Web app & deploy: [ai-market-frontend.md](ai-market-frontend.md)
 - Backend API / deploy: [ai-market-backend.md](ai-market-backend.md)
 - 2FA: [two-factor-auth.md](two-factor-auth.md)
+
+## When it breaks
+
+Use the Known gotchas and Diagnostic quick map above; this page does not add another procedure.

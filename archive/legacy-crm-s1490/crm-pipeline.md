@@ -1,3 +1,11 @@
+---
+title: CRM Pipeline
+owner: unassigned
+last_verified: '2026-08-09'
+aliases: []
+error_signatures: []
+---
+
 > **SUPERSEDED 2026-08-09 (S1490). DO NOT USE.**
 > Replaced by `runbooks/crm.md`. This document describes fourteen `crm_*` tables as active in
 > production. All fourteen were deleted on 2026-07-03 by migration
@@ -69,7 +77,7 @@ Runs at **07:00 UTC daily** via APScheduler (`app/core/scheduler.py:214 send_mor
 - **Stale contact detection**: 180+ days since last interaction
 - **Auto follow-up**: new contact creation triggers 7-day follow-up task
 
-## Known bugs and active fixes
+## When it breaks
 
 See `crm-target-state.md` §6 for the authoritative list. Active tracking: **BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK** (P0) covers 19 items across three tracks (Track 1 emergency data restoration DONE S499; Track 2 D01–D12 systemic fix PENDING; Track 3 C01–C07 cleanup PENDING).
 

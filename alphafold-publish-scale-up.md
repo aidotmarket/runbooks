@@ -1,20 +1,20 @@
 ---
-system_name: alphafold-reference-listings
-purpose_sentence: Publish AlphaFold model-organism proteomes to ai.market as free reference listings and keep the publish, shard-verification, and order-view paths working.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Reference-listing publish flow for public dataset proteomes including source-URL shard representation, zero-cost pricing, markdown descriptions, gsutil shard verification, and order-path enum integrity.
-linter_version: 1.0.0
+title: AlphaFold Reference Listings
+owner: vulcan
+last_verified: '2026-06-06'
+aliases: []
+error_signatures:
+- 422 unprocessable
+- AccessDeniedException 403
+- 500 internal server error
 ---
 
 # AlphaFold Reference Listings
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the authoritative §A header values for this runbook.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -25,7 +25,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
 | Order-detail reference delivery method | SHIPPED | `app/models/order.py and app/schemas/order.py DeliveryMethod` | `manual: OrderResponse reference round-trip` | 2026-06-06 |
 | Bulk publish automation | PLANNED | — | — | 2026-06-06 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -33,7 +33,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
 | Order Detail | `GET /api/v1/orders/{id}` via `app/api` order endpoint | orders table | order response serializer | Serializes delivery_method through the response enum; a missing member raises during response validation. |
 | Listing Frontend | listing detail page on `www.ai.market` | none | listings API, markdown renderer | Renders the markdown description through react-markdown with rehype-sanitize. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -42,7 +42,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
 | vulcan | verify order-view path | `Koskadeux:shell_request -> GET /api/v1/orders` | buyer-token | COMPLETE |
 | mp | add a new delivery or fulfillment enum value | `Koskadeux:council_request -> build` | repo-write | PARTIAL — needs both model and schema edits in one change |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -64,7 +64,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
     - signature: "422 unprocessable"
       cause: price floor or fulfillment type rejected because an enabling migration is missing
   next_step_success: Apply the markdown description template and confirm the detail page renders
-  next_step_failure: Escalate to §F-01 symptom isolation
+  next_step_failure: Escalate to When it breaks-01 symptom isolation
 - id: E-02
   trigger: A proteome wildcard must be confirmed to resolve to the expected number of shards before publish.
   pre_conditions:
@@ -82,7 +82,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
     - signature: "AccessDeniedException 403"
       cause: requester-pays billing project flag omitted
   next_step_success: Proceed to publish the listing with the verified wildcard
-  next_step_failure: Escalate to §F-02 symptom isolation
+  next_step_failure: Escalate to When it breaks-02 symptom isolation
 - id: E-03
   trigger: After a publish batch the marketplace must be confirmed healthy and free of duplicates.
   pre_conditions:
@@ -98,7 +98,7 @@ The YAML frontmatter above defines the authoritative §A header values for this 
     - signature: "422 unprocessable"
       cause: limit set above one hundred
   next_step_success: Record the live listing count in the publish log
-  next_step_failure: Escalate to §F-02 symptom isolation
+  next_step_failure: Escalate to When it breaks-02 symptom isolation
 - id: E-04
   trigger: The order-view path must be confirmed working for a reference listing.
   pre_conditions:
@@ -116,18 +116,18 @@ The YAML frontmatter above defines the authoritative §A header values for this 
     - signature: "500 internal server error"
       cause: a delivery or fulfillment enum value missing from the model or the response schema
   next_step_success: Record the order path as verified for reference listings
-  next_step_failure: Escalate to §F-03 symptom isolation
+  next_step_failure: Escalate to When it breaks-03 symptom isolation
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Publish rejected with a 422 or the marketplace 500s on a reference listing | a missing enabling migration or fulfillment enum member | Confirm the reference fulfillment and zero-price migrations are present on the deployed main | §G-01 | CONFIRMED |
-| F-02 | A published listing wildcard resolves to zero or the wrong number of shards | wrong tax id, missing requester-pays flag, or a malformed wildcard | Re-run the authenticated gsutil listing and compare the count against the shard table | §G-02 | CONFIRMED |
-| F-03 | Order detail returns 500 for a reference order | a delivery method value present in the database but absent from the response enum | Coerce the stored delivery method through the response schema enum and observe the validation error | §G-03 | CONFIRMED |
+| F-01 | Publish rejected with a 422 or the marketplace 500s on a reference listing | a missing enabling migration or fulfillment enum member | Confirm the reference fulfillment and zero-price migrations are present on the deployed main | Repair-01 | CONFIRMED |
+| F-02 | A published listing wildcard resolves to zero or the wrong number of shards | wrong tax id, missing requester-pays flag, or a malformed wildcard | Re-run the authenticated gsutil listing and compare the count against the shard table | Repair-02 | CONFIRMED |
+| F-03 | Order detail returns 500 for a reference order | a delivery method value present in the database but absent from the response enum | Coerce the stored delivery method through the response schema enum and observe the validation error | Repair-03 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -156,29 +156,29 @@ The YAML frontmatter above defines the authoritative §A header values for this 
   integrity_check: Coerce the stored value through the response schema and confirm the order endpoint returns two hundred.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - A reference listing must never cause raw data to transit ai.market; it carries only metadata and a public source url.
 - Any delivery or fulfillment value stored in the database must have a matching member in both the model enum and the response schema enum.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that removes a fulfillment or delivery enum member that existing listings or orders depend on is BREAKING.
 - Any change that makes the listings endpoint reject the documented limit of one hundred is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Any change that adds a new fulfillment or delivery enum value requires REVIEW.
 - Any change to the source-url wildcard representation for sharded datasets requires REVIEW.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Editing the markdown description text of an existing listing is SAFE.
 - Adding a new organism listing using the established wildcard pattern is SAFE.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -196,11 +196,11 @@ A runtime dependency is any external service required for the flow such as the p
 
 A config default is a fallback such as the listings endpoint limit cap or the single-file suffix used for the one unsharded organism.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 When a proposed change touches more than one boundary class, classify it at the highest-risk class and record the reasoning in the change review.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -291,7 +291,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal adds a brand new fulfillment value and needs classification against the evolve predicates.
     expected_answers:
       - kind: classification
@@ -299,7 +299,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal removes an existing delivery enum member that current orders depend on.
     expected_answers:
       - kind: classification
@@ -307,7 +307,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-12
     type: ambiguous
-    refs: [E-04, F-03, G-03, §H]
+    refs: [E-04, F-03, G-03, Changes and maintenance]
     scenario: A single order detail 500 might be a missing enum value or an unrelated serializer regression and needs careful classification.
     expected_answers:
       - kind: human_action
@@ -317,7 +317,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S790
@@ -329,17 +329,5 @@ refresh_triggers:
   - gate_approval
   - incident
 scheduled_cadence: 90d
-last_harness_pass_rate: 1.0
-last_harness_date: 2026-06-06T21:50:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S790 / 2026-06-06T21:50:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

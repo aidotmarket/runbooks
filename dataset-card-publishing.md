@@ -1,22 +1,24 @@
 ---
-system_name: dataset-card-publishing
-purpose_sentence: Publish metadata dataset cards for ai.market listings to HuggingFace, Kaggle, and data.world so LLM agents and buyers discover listings everywhere.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Outbound dataset-card publishing channels (HuggingFace, Kaggle, data.world) in ai-market-backend — job enqueue, card rendering, provider API contracts, URL persistence, JSON-LD sameAs. NOT the source of truth for general SEO infrastructure (Search Console, sitemaps, llms.txt — see seo-infrastructure.md) or disclosure snapshot approval flows.
-linter_version: 1.0.0
+title: Dataset-Card Publishing (HuggingFace / Kaggle / data.world)
+owner: vulcan
+last_verified: '2026-07-10'
+aliases: []
+error_signatures:
+- job status dead with 401/403 in last_error
+- job status dead with 400 in last_error (Kaggle)
+- row stays pending > 10 min
+- status dead
+- first job dead with 4xx
 ---
 
 # Dataset-Card Publishing (HuggingFace / Kaggle / data.world)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata-only by default; actual sample rows publish only to HuggingFace and only with a seller-approved disclosure snapshot.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -31,7 +33,7 @@ Every published or updated ai.market listing gets a metadata dataset card pushed
 
 Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd78d + b0562cc4). One contract subtlety beyond the ticket: Kaggle rejects duplicate TITLES with 'already in use' (not 'already exists') — the existing-dataset router matches 'already' + ('exist'|'in use') and takes the version path. First app-published version of the eolymp card verified end to end (job succeeded, card-hash match, kaggle_url + JSON-LD sameAs persisted). Note the website page embeds JSON-LD via a 1h ISR cache (frontend lib/api.ts fetchPublicListing revalidate: 3600) — API is instantly correct, the page self-heals within the hour.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -42,18 +44,18 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
 | Disclosure snapshots | `app/services/disclosure_snapshot_service.py:get_snapshot_for_hf_card` | disclosure snapshot tables | HF channel only | Returns metadata-only snapshots too; strict get_snapshot_for_hf keeps its 409 for no-row snapshots |
 | Config flags | `app/core/config.py` | HUGGINGFACE_SUBMISSION_ENABLED, KAGGLE_SUBMISSION_ENABLED, DATAWORLD_SUBMISSION_ENABLED (all default False) | Railway prod env; Infisical prod | Flipping a flag in prod is a Max-only action |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| vulcan/mars | Manually enqueue a card job | psql via /Users/max/Projects/ai-market/scripts/test-db-dsn.sh (INSERT into search_submission_jobs, see §E-02) | prod DB DSN | COMPLETE |
+| vulcan/mars | Manually enqueue a card job | psql via /Users/max/Projects/ai-market/scripts/test-db-dsn.sh (INSERT into search_submission_jobs, see How to operate-02) | prod DB DSN | COMPLETE |
 | vulcan/mars | Verify a live card / read job errors | curl or web fetch of card URL; psql SELECT on search_submission_jobs | prod DB DSN (read) | COMPLETE |
 | vulcan/mars | Check channel env vars and flags | railway variables --json (source ~/bin/railway-env.sh) | RAILWAY_API_TOKEN | COMPLETE |
 | MP (Codex) | Fix provider contract code | council_request mode=build (per CORE §4 build routing) | repo write via worktree branch | COMPLETE |
 | SysAdmin agent | Rotate provider tokens in Infisical | sysadmin_request | Infisical prod | PARTIAL — rotation runbook step exists but end-to-end rotation of KAGGLE_API_TOKEN not yet exercised; close by performing one audited rotation (pending: S1164 token traveled through chat) |
 | Max | Flip *_SUBMISSION_ENABLED flags in prod; supply new provider tokens | Railway dashboard / Infisical | owner | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -64,7 +66,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
   tool_or_endpoint: "automatic: SearchSubmissionService.handle_listing_event enqueues search_submission_jobs rows; scheduler drains ~2 min"
   argument_sourcing:
     listing_id: from the listing event payload
-    provider: one job per enabled provider flag (§C Config flags)
+    provider: one job per enabled provider flag (Architecture & interactions Config flags)
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: dedup_hour_utc + provider + listing; idle guard additionally skips updated events when disclosure_version and rendered card hash match the last succeeded job
   expected_success:
@@ -76,7 +78,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
     - signature: job status dead with 400 in last_error (Kaggle)
       cause: wrong API contract (multipart instead of blob-token JSON) — T-2026-000207
   next_step_success: none — steady state
-  next_step_failure: go to §F symptom index
+  next_step_failure: go to When it breaks symptom index
 - id: E-02
   trigger: Operator needs to (re)publish a card for one listing outside the event path
   pre_conditions:
@@ -95,15 +97,15 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
     - signature: row stays pending > 10 min
       cause: scheduler not draining — check backend deploy health on Railway
     - signature: status dead
-      cause: read last_error verbatim; route via §F
+      cause: read last_error verbatim; route via When it breaks
   next_step_success: confirm source_delivery URL and JSON-LD sameAs persisted (E-01 verification)
-  next_step_failure: §F, matching on the last_error signature
+  next_step_failure: When it breaks, matching on the last_error signature
 - id: E-03
   trigger: Bring a new provider channel live
   pre_conditions:
     - provider_token_exists
     - max_approval_for_flag_flip
-  tool_or_endpoint: "sequence: (1) store token in Infisical prod; (2) mirror to Railway backend env; (3) register in config:resource-registry secrets (state_request patch); (4) Max flips {PROVIDER}_SUBMISSION_ENABLED=true in Railway; (5) enqueue one job per §E-02; (6) live-verify the card"
+  tool_or_endpoint: "sequence: (1) store token in Infisical prod; (2) mirror to Railway backend env; (3) register in config:resource-registry secrets (state_request patch); (4) Max flips {PROVIDER}_SUBMISSION_ENABLED=true in Railway; (5) enqueue one job per How to operate-02; (6) live-verify the card"
   argument_sourcing:
     token: supplied by Max (never through chat if avoidable; rotate if it was)
     registry_key: config:resource-registry via state_request get, patch with expected_version
@@ -114,25 +116,25 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
   expected_failures:
     - signature: first job dead with 4xx
       cause: untested provider contract — verify each API step incrementally with curl BEFORE re-enqueueing (Kaggle precedent — the documented contract was wrong). Also verify the platform surface itself is alive and staying alive (data.world precedent — the whole Open Data Community was retired before our channel ever launched)
-  next_step_success: update §B row status and Last Verified; refresh §J
-  next_step_failure: disable flag, fix contract per §G-01 pattern, retry
+  next_step_success: update Capabilities row status and Last Verified; refresh Maintenance
+  next_step_failure: disable flag, fix contract per Repair-01 pattern, retry
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | No card jobs appear after listing publish/update | Provider flag unset/false in Railway prod | source ~/bin/railway-env.sh; railway variables --json, grep the *_SUBMISSION_ENABLED flag | §G-03 | CONFIRMED |
-| F-02 | Job dead with 401/403 | Token missing, rotated, or wrong auth scheme — Kaggle KGAT tokens are Bearer-only, Basic returns 401 | Read job.last_error; curl the provider auth-cheap endpoint with the prod token (Kaggle: GET api/v1 datasets list with Bearer header) | §G-03 | CONFIRMED |
-| F-03 | Kaggle job dead with 400 Bad Request on datasets/create/new | Shipped multipart contract is wrong; live API requires blob-token JSON flow (T-2026-000207) | Read last_error; reproduce with curl: multipart POST returns 400, blob-token flow returns 200 | §G-01 | CONFIRMED |
-| F-04 | Provider returned HTTP 200 but no card appears | Kaggle returns HTTP 200 with body.status=="Error" on validation failures (e.g. title > 50 chars); code trusting HTTP status marks the job succeeded | Read the stored response body / last_error; retry the create call with curl and inspect body.status and body.error | §G-01 | CONFIRMED |
-| F-05 | Card stale after a listing edit | Idle-republish guard matched: disclosure_version AND card hash equal the last succeeded job; or no updated event fired | psql: read the last succeeded job for the provider — the card hash JSON lives in that job's last_error; confirm an updated submission event exists for the edit | §G-02 | CONFIRMED |
-| F-06 | Withdrawn sample rows still visible on HF | Metadata-only republish did not run, or list_repo_files unavailable so fallback swept only data/train/test/validation folders (stray root files survive — GLM LOW) | Fetch the HF repo file list; compare against README-only expectation | §G-02 | CONFIRMED |
-| F-07 | Remote card exists but Listing.source_delivery URL / JSON-LD sameAs missing | Persist step failed after remote creation (orphan risk, GLM LOW parity finding), or the card was published manually bypassing the app (eolymp Kaggle precedent) | psql SELECT source_delivery FROM listings; fetch the live card URL to confirm it exists remotely | §G-02 | CONFIRMED |
+| F-01 | No card jobs appear after listing publish/update | Provider flag unset/false in Railway prod | source ~/bin/railway-env.sh; railway variables --json, grep the *_SUBMISSION_ENABLED flag | Repair-03 | CONFIRMED |
+| F-02 | Job dead with 401/403 | Token missing, rotated, or wrong auth scheme — Kaggle KGAT tokens are Bearer-only, Basic returns 401 | Read job.last_error; curl the provider auth-cheap endpoint with the prod token (Kaggle: GET api/v1 datasets list with Bearer header) | Repair-03 | CONFIRMED |
+| F-03 | Kaggle job dead with 400 Bad Request on datasets/create/new | Shipped multipart contract is wrong; live API requires blob-token JSON flow (T-2026-000207) | Read last_error; reproduce with curl: multipart POST returns 400, blob-token flow returns 200 | Repair-01 | CONFIRMED |
+| F-04 | Provider returned HTTP 200 but no card appears | Kaggle returns HTTP 200 with body.status=="Error" on validation failures (e.g. title > 50 chars); code trusting HTTP status marks the job succeeded | Read the stored response body / last_error; retry the create call with curl and inspect body.status and body.error | Repair-01 | CONFIRMED |
+| F-05 | Card stale after a listing edit | Idle-republish guard matched: disclosure_version AND card hash equal the last succeeded job; or no updated event fired | psql: read the last succeeded job for the provider — the card hash JSON lives in that job's last_error; confirm an updated submission event exists for the edit | Repair-02 | CONFIRMED |
+| F-06 | Withdrawn sample rows still visible on HF | Metadata-only republish did not run, or list_repo_files unavailable so fallback swept only data/train/test/validation folders (stray root files survive — GLM LOW) | Fetch the HF repo file list; compare against README-only expectation | Repair-02 | CONFIRMED |
+| F-07 | Remote card exists but Listing.source_delivery URL / JSON-LD sameAs missing | Persist step failed after remote creation (orphan risk, GLM LOW parity finding), or the card was published manually bypassing the app (eolymp Kaggle precedent) | psql SELECT source_delivery FROM listings; fetch the live card URL to confirm it exists remotely | Repair-02 | CONFIRMED |
 
-Log locations: backend logs on Railway (service ai-market-backend); job-level errors in search_submission_jobs.last_error (read it verbatim first — dev-tickets.md §F rule).
+Log locations: backend logs on Railway (service ai-market-backend); job-level errors in search_submission_jobs.last_error (read it verbatim first — dev-tickets.md When it breaks rule).
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -140,7 +142,7 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
   component_ref: Kaggle channel
   root_cause: Provider API contract drift — shipped code speaks a contract the live API rejects (Kaggle multipart vs blob-token JSON; HTTP-200-with-body-Error semantics)
   repair_entry_point: app/services/kaggle_service.py:_upsert_kaggle_dataset
-  change_pattern: Replace the transport with the live-proven flow — (1) POST /api/v1/blobs/upload Bearer JSON {type, name, contentLength} → {token, createUrl}; (2) PUT bytes to createUrl with no Kaggle auth header; (3) POST /datasets/create/new (or create/version/{owner}/{slug} for existing datasets) Bearer JSON with title hard-truncated to 50 chars and files [{token}]; treat HTTP-200 body.status=="Error" as failure surfacing body.error. Route via MP build (dev-tickets.md §C), reviewer ≠ builder, push branch, merge after review, Railway deploy, then re-enqueue per §E-02 and live-verify (Gate 4)
+  change_pattern: Replace the transport with the live-proven flow — (1) POST /api/v1/blobs/upload Bearer JSON {type, name, contentLength} → {token, createUrl}; (2) PUT bytes to createUrl with no Kaggle auth header; (3) POST /datasets/create/new (or create/version/{owner}/{slug} for existing datasets) Bearer JSON with title hard-truncated to 50 chars and files [{token}]; treat HTTP-200 body.status=="Error" as failure surfacing body.error. Route via MP build (dev-tickets.md Architecture & interactions), reviewer ≠ builder, push branch, merge after review, Railway deploy, then re-enqueue per How to operate-02 and live-verify (Gate 4)
   rollback_procedure: git revert the merge commit on ai-market-backend main and redeploy; the channel returns to its prior (broken-but-inert) state — jobs go dead, no customer data at risk
   integrity_check: Re-enqueued job for a known listing reaches succeeded; card URL fetches 200; source_delivery.{provider}_url and JSON-LD sameAs persisted; unit tests mock all transport calls including the version path and body-Error case
 - id: G-02
@@ -148,7 +150,7 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
   component_ref: Submission orchestrator
   root_cause: URL persistence runs after remote creation; a persist failure (or a manual out-of-band publish) leaves a live remote card with no local reference
   repair_entry_point: app/services/search_submission_service.py:handle_listing_event
-  change_pattern: Re-enqueue an updated-event job per §E-02 — the provider upsert path must take the existing-dataset/version branch (idempotent against a live remote card) and re-persist source_delivery URL + JSON-LD sameAs. If the provider path cannot find the existing dataset, reconcile using the remote URL recorded in the failed job's last_error
+  change_pattern: Re-enqueue an updated-event job per How to operate-02 — the provider upsert path must take the existing-dataset/version branch (idempotent against a live remote card) and re-persist source_delivery URL + JSON-LD sameAs. If the provider path cannot find the existing dataset, reconcile using the remote URL recorded in the failed job's last_error
   rollback_procedure: none needed — re-enqueue is additive; a failed reconciliation job goes dead without changing state
   integrity_check: psql shows source_delivery URL populated; listing JSON-LD sameAs contains the card URL; remote card content matches the current rendered card
 - id: G-03
@@ -156,14 +158,14 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
   component_ref: Config flags
   root_cause: Provider token absent, expired, rotated without mirroring, or used with the wrong auth scheme
   repair_entry_point: app/core/config.py
-  change_pattern: Rotate/set the token in Infisical prod FIRST (sole secret store, CORE §3), mirror to Railway backend env, update config:resource-registry secrets entry via state_request patch with expected_version; verify with a curl call using the exact auth scheme (Kaggle KGAT = Bearer only); then re-enqueue the dead job per §E-02
+  change_pattern: Rotate/set the token in Infisical prod FIRST (sole secret store, CORE §3), mirror to Railway backend env, update config:resource-registry secrets entry via state_request patch with expected_version; verify with a curl call using the exact auth scheme (Kaggle KGAT = Bearer only); then re-enqueue the dead job per How to operate-02
   rollback_procedure: restore the previous token value in Infisical + Railway from the registry rotation note
   integrity_check: curl auth probe returns 200; re-enqueued job succeeds
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Kaggle and data.world channels are metadata-only PERIOD — no row-publishing code path exists and none may be added without a full Council gate (customer-data surface, unanimous).
 - HF sample rows publish ONLY with a seller-approved disclosure snapshot (sample_decision=approved_rows, exact version). Hard line — do not relax (Max directive + unanimous Council, S1164).
@@ -172,27 +174,27 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
 - All provider secrets live in Infisical (mirrored to Railway env); no secrets in code or chat.
 - Flipping a *_SUBMISSION_ENABLED flag in production is a Max-only action.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
-- Adds any data-row publishing capability to Kaggle or data.world channels (violates §H.1).
-- Publishes HF rows without an approved_rows disclosure snapshot for the exact version (violates §H.1).
+- Adds any data-row publishing capability to Kaggle or data.world channels (violates H.1).
+- Publishes HF rows without an approved_rows disclosure snapshot for the exact version (violates H.1).
 - Removes or weakens the metadata-only sweep of stale HF data files.
 - Changes the search_submission_jobs schema by removing a field or adding a required field without a default.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adds a new provider channel (new module or provider class on the submission surface).
 - Changes a provider API contract implementation (transport, auth scheme, endpoint shape).
 - Changes a config default in app/core/config.py for any *_SUBMISSION_* setting.
 - Adds a runtime dependency for a provider SDK.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Bugfix within existing provider semantics (e.g. correcting an error-classification branch).
 - Card template copy/wording changes that keep metadata-only content.
 - Test additions; documentation updates.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -210,11 +212,11 @@ An entry in ai-market-backend requirements.txt / pyproject [project.dependencies
 
 A value shipping in app/core/config.py. Railway env overrides and feature flags are not config defaults.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
-If two agents classify a change differently, the more restrictive classification wins. Unresolvable disputes escalate to Max; the ruling is appended to §H.1 as a per-system clarification.
+If two agents classify a change differently, the more restrictive classification wins. Unresolvable disputes escalate to Max; the ruling is appended to H.1 as a per-system clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -316,7 +318,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H.2
+      - H.2
     scenario: A proposal adds seller-approved sample-row publishing to the data.world channel, mirroring the HF row branch. Classify.
     expected_answers:
       - kind: classification
@@ -325,7 +327,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H.3
+      - H.3
     scenario: A proposal changes the Kaggle auth implementation from Basic-fallback-first to Bearer-only, deleting the legacy KAGGLE_KEY path. Classify.
     expected_answers:
       - kind: classification
@@ -351,7 +353,7 @@ scenario_set:
 ```
 
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1167
@@ -359,22 +361,10 @@ last_refresh_commit: 0e49b1b9
 last_refresh_date: 2026-07-10T10:15:00Z
 owner_agent: vulcan
 refresh_triggers:
-  - T-2026-000210 data.world code removal merged (drop §B/§C data.world rows)
+  - T-2026-000210 data.world code removal merged (drop Capabilities/Architecture & interactions data.world rows)
   - any provider contract change merged
   - a new provider channel is added
   - incident touching card publishing
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-10T09:30:00Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1167 / 2026-07-10T10:15:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

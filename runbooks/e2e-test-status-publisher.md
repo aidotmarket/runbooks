@@ -1,23 +1,13 @@
 ---
-runbook_id: e2e-test-status-publisher
-domain: e2e-testing
-status: ACTIVE
-authoritative_for:
-  - topic: e2e-test-status-publisher
-    section: §C. Architecture & Interactions
-aliases: []
-error_signatures: []
-supersedes: []
-superseded_by: []
+title: E2E Test-Status Publisher
 owner: mars
-last_verified_at: 2026-07-23
-system_name: e2e-test-status-publisher
-purpose_sentence: Operate, diagnose and evolve the harness-side test-status publisher and coverage manifest - the fail-soft path that turns each e2e-harness run into the redacted, bounded coverage record at Living State key infra:e2e-test-status that the ops.ai.market Test page reads.
-owner_agent: mars
-escalation_contact: Max (any change to what the publisher writes, the coverage manifest contents, or the Test page's meaning of "proven"); either instance (Vulcan/Mars) operates this runbook
-lifecycle_ref: §J
-authoritative_scope: The harness-side status publisher in aidotmarket/e2e-harness - src/e2e_harness/status_publisher.py (TestStatusPublisher, StateTransport, publisher_from_config), the coverage manifest docs/coverage.{json,md}, the runtime call site that publishes after every run, and the publisher's dormancy / fail-soft / redaction / bounding contract. NOT authoritative for the browser_journey runner itself (e2e-browser-runner.md), the ops.ai.market Test page render surface that reads infra:e2e-test-status (ops-ai-market.md), the launchd nightly schedule and run-nightly.sh wiring beyond how it activates publishing (e2e-browser-runner.md M1 and harness-env.sh), or Council/build mechanics (agent-dispatch.md).
-linter_version: 1.0.0
+last_verified: '2026-07-23'
+aliases: []
+error_signatures:
+- entity not found (404 / null)
+- last_run banner shows a failed staging-health run
+- last_run_id did not change and a warning was logged
+- publish stops writing after the manifest edit
 ---
 
 <!-- Canonical source path: runbooks/e2e-test-status-publisher.md -->
@@ -26,9 +16,8 @@ linter_version: 1.0.0
 
 > The reporting seam of the E2E programme. A harness run already produces a report on disk and files tickets; this is the piece (c6, shipped S1314) that also writes a single redacted, bounded coverage record to Living State so Max has one honest place to see how much of the product is actually proven. The record lives at `infra:e2e-test-status`; the ops.ai.market Test page reads it read-only and renders it. The publisher is deliberately fail-soft: it never changes a run's outcome and never blocks a run, and it stays dormant unless the sanctioned harness runtime activates it. Owner BQ: `BQ-E2E-TESTING-FRAMEWORK-S1152` (c6 Test page); coverage catalog from `BQ-E2E-BROWSER-RUNNER-S1194`.
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
@@ -41,7 +30,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | `docs/coverage.json` | The canonical machine manifest: `schema_version` 1 and exactly 30 items, each `id` unique with `group` in {MAX, ADDITIONS}. `docs/coverage.md` is its human-readable twin | e2e-harness repo; path overridable via `E2E_COVERAGE_MANIFEST_PATH` (`config.py:coverage_manifest_path`) | e2e-harness |
 | ops.ai.market Test page | The read-only render surface for `infra:e2e-test-status`. NOT part of this scope; see `ops-ai-market.md` | `aidotmarket/ops-ai-market`; ops main `ec3ed2e9`, merged PR #15 (S1314) | ops-ai-market |
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -55,7 +44,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 | Charter-level publish cadence (weekly agentic, nightly recorded); Max directive e475ebc5, queued on BQ-E2E-TESTING-FRAMEWORK-S1152 | PLANNED | — | n/a | — |
 | Console for Max-entered test goals on the ops Test page (c6 v2; inherits the command-surface gate) | PLANNED | — | n/a | — |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -67,7 +56,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 Prose: after a harness run assembles its report, the runtime constructs a publisher from config and calls `publish`. If no state URL or credential is configured the publisher is a no-op (dormant). Otherwise it GETs the current record, merges this run's per-charter outcomes onto the existing per-item coverage (a charter's `covers` sets passed/failed, its `covers_partial` sets partial, and failed outranks passed within the same run), trims the recent-run ring to 20, redacts the whole body, enforces the 64 KiB ceiling, and PUT/PATCHes it back under an optimistic version lock. The ops Test page reads the resulting record and renders it; it never writes.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -78,7 +67,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 | CC / Kimi / GLM | Review publisher/manifest changes when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
 | launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run that publishes, at 02:15 local | plist + `scripts/run-nightly.sh` (sources `harness-env.sh`, which activates publishing) | Titan-1 | COMPLETE — the nightly is the routine writer of the record |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -94,11 +83,11 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
     verification: 'coverage has exactly 30 keys; every item status is one of never_run/partial/passed/failed; last_run_id matches the newest run report on disk'
   expected_failures:
     - signature: entity not found (404 / null)
-      cause: the publisher has never successfully written - either never activated or every run so far failed to publish (§F-01)
+      cause: the publisher has never successfully written - either never activated or every run so far failed to publish (When it breaks-01)
     - signature: last_run banner shows a failed staging-health run
-      cause: the decommissioned staging-health charter is running and 404ing (§F-05)
+      cause: the decommissioned staging-health charter is running and 404ing (When it breaks-05)
   next_step_success: read coverage to see what is proven; partial is not proven
-  next_step_failure: repair per §G-01 / §G-05
+  next_step_failure: repair per Repair-01 / Repair-05
 - id: E-02
   trigger: Confirm a harness run actually published (after running a charter)
   pre_conditions:
@@ -113,9 +102,9 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
     verification: 'diff the record version before and after; the new run_id is present exactly once at the head of recent_runs'
   expected_failures:
     - signature: last_run_id did not change and a warning was logged
-      cause: publishing was dormant (no state URL/credential) or the publish raised and was swallowed fail-soft (§F-01, §F-02)
+      cause: publishing was dormant (no state URL/credential) or the publish raised and was swallowed fail-soft (When it breaks-01, When it breaks-02)
   next_step_success: none - the record is current
-  next_step_failure: check activation (§F-01) then payload/manifest (§F-02, §F-03)
+  next_step_failure: check activation (When it breaks-01) then payload/manifest (When it breaks-02, When it breaks-03)
 - id: E-03
   trigger: Map a charter onto coverage items (so a run moves an item off never_run)
   pre_conditions:
@@ -129,23 +118,23 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
     verification: 'run the charter; the mapped item shows the run_id and passed/failed; an unmapped item stays never_run'
   expected_failures:
     - signature: publish stops writing after the manifest edit
-      cause: the manifest no longer validates - not 30 items, a bad group, or a duplicate id (§F-03)
+      cause: the manifest no longer validates - not 30 items, a bad group, or a duplicate id (When it breaks-03)
   next_step_success: none - coverage now tracks that journey
-  next_step_failure: repair the manifest per §G-03
+  next_step_failure: repair the manifest per Repair-03
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | `infra:e2e-test-status` is absent, or `last_run_id` never changes, and the harness log says "publishing is disabled: state URL or credential is absent" | The publisher is dormant: `publisher_from_config` built `transport=None` because `E2E_STATE_API_URL` or the internal credential was not present. The run did not go through the sanctioned env | run under `scripts/run-nightly.sh` or a shell that sourced `scripts/harness-env.sh`; re-check the log line | §G-01 | CONFIRMED |
-| F-02 | The record exists but this run did not land; the log says "publish failed; run outcome is unchanged" | Publishing raised and was swallowed fail-soft: a transport error, a version conflict, or the payload exceeded 64 KiB | read the warning; GET the record and compare version; check payload size drivers (recent_runs, coverage_catalog) | §G-02 | CONFIRMED |
-| F-03 | Publishing stopped writing right after a coverage-manifest edit | `_validated_catalog` refused the manifest: not exactly 30 items, a `group` outside {MAX, ADDITIONS}, a duplicate `id`, or `schema_version` not 1 | `python -c "import json;d=json.load(open('docs/coverage.json'));print(d['schema_version'],len(d['items']))"` — expect `1 30` | §G-03 | CONFIRMED |
-| F-04 | An item shows `never_run` even though charters have run against that journey | No charter maps that item (`covers`/`covers_partial`), or every mapped run was a `harness_error` rather than `passed`/`failed` (harness errors do not move coverage) | check the charter's `covers` list against the item id; check the run outcome status | §G-04 | CONFIRMED |
-| F-05 | The Test page last-run banner shows a failed run from `c2-staging-health-smoke` / a staging-health proof | The `charters/staging-health.json` charter targets the DECOMMISSIONED staging backend health endpoint and 404s every run, and its failure becomes the newest `recent_runs` entry | GET the record; `recent_runs[0].charter_id` is the staging-health charter with status failed | §G-05 | CONFIRMED |
-| F-06 | A value that looks like a secret or a customer identifier appears in the published record | The body was not fully redacted, or a new field was added to `build_body` after `redact_json` runs | GET the record and scan; confirm every new field is added before the `redact_json` call, not after | §G-06 | CONFIRMED |
+| F-01 | `infra:e2e-test-status` is absent, or `last_run_id` never changes, and the harness log says "publishing is disabled: state URL or credential is absent" | The publisher is dormant: `publisher_from_config` built `transport=None` because `E2E_STATE_API_URL` or the internal credential was not present. The run did not go through the sanctioned env | run under `scripts/run-nightly.sh` or a shell that sourced `scripts/harness-env.sh`; re-check the log line | Repair-01 | CONFIRMED |
+| F-02 | The record exists but this run did not land; the log says "publish failed; run outcome is unchanged" | Publishing raised and was swallowed fail-soft: a transport error, a version conflict, or the payload exceeded 64 KiB | read the warning; GET the record and compare version; check payload size drivers (recent_runs, coverage_catalog) | Repair-02 | CONFIRMED |
+| F-03 | Publishing stopped writing right after a coverage-manifest edit | `_validated_catalog` refused the manifest: not exactly 30 items, a `group` outside {MAX, ADDITIONS}, a duplicate `id`, or `schema_version` not 1 | `python -c "import json;d=json.load(open('docs/coverage.json'));print(d['schema_version'],len(d['items']))"` — expect `1 30` | Repair-03 | CONFIRMED |
+| F-04 | An item shows `never_run` even though charters have run against that journey | No charter maps that item (`covers`/`covers_partial`), or every mapped run was a `harness_error` rather than `passed`/`failed` (harness errors do not move coverage) | check the charter's `covers` list against the item id; check the run outcome status | Repair-04 | CONFIRMED |
+| F-05 | The Test page last-run banner shows a failed run from `c2-staging-health-smoke` / a staging-health proof | The `charters/staging-health.json` charter targets the DECOMMISSIONED staging backend health endpoint and 404s every run, and its failure becomes the newest `recent_runs` entry | GET the record; `recent_runs[0].charter_id` is the staging-health charter with status failed | Repair-05 | CONFIRMED |
+| F-06 | A value that looks like a secret or a customer identifier appears in the published record | The body was not fully redacted, or a new field was added to `build_body` after `redact_json` runs | GET the record and scan; confirm every new field is added before the `redact_json` call, not after | Repair-06 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -198,9 +187,9 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
   integrity_check: a test seeds a secret-shaped value into a run and asserts it does not appear in the published body
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - **Publishing never changes a run's outcome.** `publish` catches everything and returns a boolean the runtime ignores. A reporting failure must never fail or block a test run.
 - **Dormant by default.** With no state URL or credential the publisher is a no-op. Only the sanctioned harness runtime (via `harness-env.sh`) activates it; the credential is fetched at runtime and never at rest on disk.
@@ -209,7 +198,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 - **The manifest is exactly 30 MAX/ADDITIONS items.** `_validated_catalog` refuses anything else. The manifest is the single source of what the items are.
 - **Checked means proven; partial never counts as proven.** Coverage is only ever moved by a real mapped run. `covers` sets passed/failed, `covers_partial` sets partial, and failed outranks passed within one run. The record is never hand-edited to show green.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 BREAKING if ANY of (first match wins):
 - Making `publish` able to raise into or block the run path (removing fail-soft).
@@ -218,7 +207,7 @@ BREAKING if ANY of (first match wins):
 - Publishing by default without the state URL/credential activation (removing dormant-by-default), or placing the credential at rest on disk.
 - Marking a coverage item proven from anything other than a real mapped charter run, or counting partial as proven.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 REVIEW if ANY of (after BREAKING predicates fail):
 - Changing the 30-item coverage catalog (ids, groups, or what an item means).
@@ -226,14 +215,14 @@ REVIEW if ANY of (after BREAKING predicates fail):
 - Adding the ops Test page console write path (Max-entered goals) - inherits the command-surface gate.
 - Changing the redaction rules or the bounded-text limits the publisher relies on.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 SAFE otherwise:
 - Wording of `docs/coverage.md`, comments, and test additions.
 - Read-only tooling that GETs and displays the record.
 - Selector/label changes on the ops page that do not add a write path (owned by ops-ai-market.md).
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -251,11 +240,11 @@ The backend state API `/api/v1/allai/state/{key}` reached with the internal API 
 
 `E2E_COVERAGE_MANIFEST_PATH` (defaults to `docs/coverage.json`), the state URL and credential env names read in `config.py`, and the module constants `RECENT_RUN_LIMIT=20` and `MAX_PAYLOAD_BYTES=65536`.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
-The more restrictive classification wins between disagreeing agents. Anything that changes what the published record contains, the coverage catalog, or the meaning of "proven" escalates to Max; the ruling is added to §H.1 as a clarification.
+The more restrictive classification wins between disagreeing agents. Anything that changes what the published record contains, the coverage catalog, or the meaning of "proven" escalates to Max; the ruling is added to H.1 as a clarification.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -349,7 +338,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-09
     type: evolve
-    refs: [§H.2]
+    refs: [H.2]
     scenario: A change makes publish re-raise its errors so failures are visible. Classify.
     expected_answers:
       - kind: classification
@@ -357,7 +346,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-10
     type: evolve
-    refs: [§H.3]
+    refs: [H.3]
     scenario: A change adds a charter-level cadence field so agentic charters publish weekly and recorded replays nightly. Classify.
     expected_answers:
       - kind: classification
@@ -365,7 +354,7 @@ scenario_set:
     weight: 0.090909091
   - id: I-11
     type: ambiguous
-    refs: [§H.6, F-02]
+    refs: [H.6, F-02]
     scenario: A publish failed once with a version conflict because a launchd run and a manual run wrote the record at the same instant. Defect to fix, or expected?
     expected_answers:
       - kind: classification
@@ -373,12 +362,12 @@ scenario_set:
       - kind: human_action
         verb: monitor-and-escalate
         object: optimistic-lock version conflict
-        target: next publish, escalating only persistent contention under §H.6
-        rationale: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under §H.6
+        target: next publish, escalating only persistent contention under H.6
+        rationale: treat a single optimistic-lock conflict as expected transient contention that self-heals on the next publish; only if it PERSISTS is it a concurrent-writer design issue to escalate under H.6
     weight: 0.090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1315
@@ -391,20 +380,8 @@ refresh_triggers:
   - any change to the coverage manifest's 30-item catalog or what an item means
   - any change to the published record shape, redaction, or the payload/ring bounds
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: "2026-07-22T22:09:30.726062+00:00"
 ```
 
 Refresh log:
 - S1315 (2026-07-22): first authoring, against the c6 v1 publisher shipped S1314 (e2e-harness main `ed33a10`) and the live record `run-20260722T194244Z-dd2f4034` (opens honestly 0/30). Discharges the S1314 e2e Test-page / coverage-manifest / status-publisher runbook debt.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1315 / 2026-07-22T22:10:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```

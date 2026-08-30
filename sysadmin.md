@@ -1,18 +1,18 @@
 ---
-system_name: sysadmin-operating-model
-purpose_sentence: The SysAdmin agent runs the bounded Observe -> Decide -> Act -> Verify -> (Fix | Escalate) operating loop for infrastructure health, capability compliance, and typed health contracts.
-owner_agent: sysadmin
-escalation_contact: max@ai.market
-lifecycle_ref: §J
-authoritative_scope: ai-market-backend SysAdmin singleton, verified capability registry, bind and dispatch probes, typed health contracts, monitor_unavailable behavior, and operator repair guidance as of backend commit 02e3830f.
-linter_version: 1.0.0
+title: SysAdmin Operating Model (S1086)
+owner: sysadmin
+last_verified: '2026-07-12'
+aliases: []
+error_signatures:
+- 401 or 403
+- last_result missing or stale
+- Not Authorized
 ---
 
 # SysAdmin Operating Model (S1086)
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields. Source of truth is the S1086 Gate-2
 spec plus live backend code; this page is the operator map.
 
 - **BQ:** `build:bq-sysadmin-operating-model-redesign-s1086` (docs build S1097), updated for
@@ -24,7 +24,7 @@ spec plus live backend code; this page is the operator map.
 - **Status (S1165):** verified live 2026-07-12 - `HEALTHY` after backend commit `02e3830f`.
   The previous false `DEGRADED`/P0 path from a healthy Titan-1 bind probe is fixed.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -45,7 +45,7 @@ or health contract is a compliance failure. Bind probes and capability handlers 
 `CapabilityOutput` is defined in `app/allai/agents/sysadmin/agent.py:119`, and skill wrappers validate
 through that schema, for example `titan1_health` at `app/allai/agents/sysadmin/agent.py:1199`.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ the domain condition, and it is observe/escalate only; it must never enter auto-
 
 Known limitation: singleton state is process-local; multi-worker consistency is out of scope.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -88,7 +88,7 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
 | sysadmin | Self-test escalation route | `escalation_test` | Telegram relay settings through allAI | COMPLETE |
 | AgentHost SysAdmin | Receive events without probing | event-bus handler with `probe_on_startup=False` | backend runtime service identity | PARTIAL — never use registry presence as health proof |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -105,7 +105,7 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
   expected_failures:
     - signature: "401 or 403"
       cause: "missing or wrong INTERNAL_API_KEY"
-  next_step_success: "If healthy, continue normal operations; if degraded, go to §F-01."
+  next_step_success: "If healthy, continue normal operations; if degraded, go to When it breaks-01."
   next_step_failure: "Verify secret source and endpoint routing before diagnosing SysAdmin."
 - id: E-02
   trigger: "Operator needs to scope a health-contract failure."
@@ -121,7 +121,7 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
   expected_failures:
     - signature: "last_result missing or stale"
       cause: "scheduler evidence stale or contract did not run"
-  next_step_success: "Use §F-02 for monitor_unavailable or §F-03 for domain failures."
+  next_step_success: "Use When it breaks-02 for monitor_unavailable or When it breaks-03 for domain failures."
   next_step_failure: "Treat scheduler evidence freshness as the immediate fault."
 - id: E-03
   trigger: "Railway project token must be re-minted without dashboard access."
@@ -153,7 +153,7 @@ All Railway CLI commands in this operating context must be prefixed with `unset 
 After any deploy, verify the health endpoint responds. Infisical manages secrets for the `ai-market`
 project, not `ai-market-backend`, when the shipped deployment rule calls that out.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -175,7 +175,7 @@ and now flows through `_handle_contract_failure` at `app/allai/agents/sysadmin/a
 
 Do not use AgentHost registry presence as proof of SysAdmin health.
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -231,9 +231,9 @@ Do not use AgentHost registry presence as proof of SysAdmin health.
 Auto-remediation is allowlisted only, dry-run first, budgeted, and verified by the named contract.
 Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Operating loop remains Observe -> Decide -> Act -> Verify -> (Fix | Escalate).
 - Advertised == bound == verified for every SysAdmin capability.
@@ -247,7 +247,7 @@ Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 - Escalation fingerprints are marked only after the page succeeds; failed pages must retry.
 - Secret values are sanitized from logs, audit payloads, compliance responses, exceptions, prompts, and returns.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing the singleton as the source of `/agent-compliance` or scheduler evidence.
 - Letting AgentHost or class-definition fallback report SysAdmin compliance.
@@ -255,21 +255,21 @@ Off-allowlist, low-confidence, exhausted, or failed verification paths escalate.
 - Marking an escalation fingerprint before a page succeeds.
 - Returning plaintext Infisical or Railway secret values to handlers, logs, LLMs, or endpoints.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding, removing, or renaming a SysAdmin verified capability or health contract.
 - Changing a contract failure class, severity, cadence, timeout, or remediation policy.
 - Changing bind/dispatch probe inputs, output schema, or CapabilityOutput validation behavior.
 - Changing Railway project-token recovery or deployment verification procedure.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Documentation-only clarification that preserves this runbook's invariants.
 - Adding tests for existing capability binding, monitor_unavailable, or contract failure behavior.
-- Tightening log messages while preserving searchable substrings listed in §F.
+- Tightening log messages while preserving searchable substrings listed in When it breaks.
 - Read-only inspection of `/agent-compliance`, logs, or provider status.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -292,13 +292,13 @@ Telegram/allAI escalation plumbing, backend settings, and the runbook router.
 `E2E_TEST_ROUTES_ENABLED` coerces false and both E2E allowlists are empty. Railway operations require
 the project-scoped token and `Project-Access-Token` authentication.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Docs-only changes are SAFE when they preserve the invariants above. Capability, contract, escalation,
 or remediation changes require review. Changes that can create silence, false P0 paging, secret
 exposure, or unverified auto-remediation are BREAKING until proven otherwise.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -386,7 +386,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H.2 BREAKING predicates]
+    refs: [H.2 BREAKING predicates]
     scenario: "A proposed change auto-remediates monitor_unavailable as mcp_server_unhealthy."
     expected_answers:
       - kind: classification
@@ -394,7 +394,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-11
     type: evolve
-    refs: [§H.3 REVIEW predicates]
+    refs: [H.3 REVIEW predicates]
     scenario: "A proposed change renames a SysAdmin health contract."
     expected_answers:
       - kind: classification
@@ -412,7 +412,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Gate 2 design S1086 specified the verified capability registry, LOUD-DEGRADED init, typed contracts,
 remediation budgets, runbook router, and compliance endpoint behavior. Implementation reduced
@@ -437,23 +437,5 @@ refresh_triggers:
   - change to health contract failure classes, severities, cadence, or remediation policy
   - change to monitor_unavailable handling, escalation fingerprinting, or E2E armed-window coercion
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.0
-last_harness_date: "2026-07-12T00:00:00Z"
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-Source citations in this runbook were checked against ai-market-backend commit
-`02e3830f638a8aadf6ed863c82149ea2e6be1d96`, specifically
-`app/allai/agents/sysadmin/agent.py` and `app/allai/agents/sysadmin/monitors.py`. Live status was
-reported `HEALTHY` after the monitor-binding fix; the prior false `DEGRADED`/P0
-`mcp_server_unhealthy` behavior is fixed.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: "S1165 / 2026-07-12T00:00:00Z"
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
 ```

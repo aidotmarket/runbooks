@@ -1,3 +1,11 @@
+---
+title: RTK Token Optimization
+owner: unassigned
+last_verified: '2026-07-15'
+aliases: []
+error_signatures: []
+---
+
 # RTK Token Optimization
 
 CLI proxy that reduces LLM token consumption by 60-90% on common dev commands. Intercepts shell commands from Council agents (CC, AG, MP) and compresses output before it hits their context windows.
@@ -121,7 +129,7 @@ Edit `~/Library/Application Support/rtk/config.toml`:
 exclude_commands = ["curl", "some-other-command"]
 ```
 
-## Troubleshooting
+## When it breaks
 
 ### Agent not using RTK
 1. Verify hook: `rtk init --show`

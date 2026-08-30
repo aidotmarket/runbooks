@@ -1,38 +1,22 @@
 ---
-runbook_id: product-elaboration
-domain: boot-kernel
-status: ACTIVE
-authoritative_for:
-  - topic: product-elaboration
-    section: §C. Architecture & Interactions
+title: Product Elaboration
+owner: max
+last_verified: '2026-07-17'
 aliases: []
 error_signatures:
-  - signature: product_boundary_conflict
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: max
-last_verified_at: 2026-07-17
-system_name: product-elaboration
-purpose_sentence: This companion preserves detailed product narrative, surfaces, boundaries, integrations, and historical or deferred elaboration outside the boot kernel.
-owner_agent: max
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Delivery companion for product design, positioning, and customer-surface decisions across ai.market, allAI, AIM Data, and vectorAIz.
-linter_version: 1.0.0
+- product_boundary_conflict
 ---
 
 # Product Elaboration
 
-## §A. Header
+## Overview
 
-The frontmatter is authoritative for catalog identity. **Authority: delivery companion.** Full CORE and the Boot Kernel prevail. `docs/core/BUSINESS-CONTEXT.md` owns locked but evolvable product specifics; this document cannot turn deferred or historical material into a current product commitment.
 
 **Fetch trigger:** product design, positioning, or customer-surface decision.
 
 **Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 2 and 9.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -42,7 +26,7 @@ The frontmatter is authoritative for catalog identity. **Authority: delivery com
 | vectorAIz product boundary | SHIPPED | `docs/core/CORE.md` | Source-SHA cross-walk and strict lint | 2026-07-17 |
 | Deferred product decisions | SHIPPED | `docs/core/BUSINESS-CONTEXT.md` | Explicit future-scope classification | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -108,7 +92,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 > - **Language-first international:** sellers list once, in their own language; allAI makes the listing discoverable and transactable in every supported language. Buyers and sellers never need to share a language — allAI mediates meaning between them.
 > - **Revenue is utility pricing:** 5% commission on transactions. No listing fees.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -116,7 +100,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 | Council Hall | Review evolvable product decisions | Council deliberation | Decision evidence | COMPLETE |
 | Max | Approve product direction and deferred-scope return | Human decision | Final authority | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -152,14 +136,14 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   next_step_failure: Keep the material deferred and absent from active surfaces.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | A proposal blurs marketplace, engine, or conduit responsibilities. | Historical naming or feature enthusiasm displaced current CORE boundaries. | Map every proposed behavior to ai.market, allAI, AIM Data, or vectorAIz and compare with §C. | G-01 | CONFIRMED |
+| F-01 | A proposal blurs marketplace, engine, or conduit responsibilities. | Historical naming or feature enthusiasm displaced current CORE boundaries. | Map every proposed behavior to ai.market, allAI, AIM Data, or vectorAIz and compare with Architecture & interactions. | G-01 | CONFIRMED |
 | F-02 | Deferred functionality appears on a current product or marketing surface. | Historical detail was treated as active authorization. | Read current Business Context and the explicit deferred rule before inspecting surfaces. | G-02 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -180,25 +164,25 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
   integrity_check: Current surfaces contain no deferred claim and the history remains retrievable.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 Marketplace, engine, and conduits retain distinct roles; the business remains non-custodial metadata, globally agent-discoverable, multilingual, and utility-priced.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Custody of raw data, optional allAI mediation, merged product identities, or companion override of CORE is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Review new customer surfaces, listing schemas, conduit capabilities, branding, connected-mode behavior, or deferred-scope proposals.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Explanatory prose is safe only when it preserves every durable boundary and current decision.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -216,11 +200,11 @@ Current Business Context, product repositories, marketplace metadata, allAI, and
 
 Historical and deferred material is off current surfaces unless explicitly reapproved.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 CORE governs invariants, Business Context governs evolvable specifics, and Max resolves product-direction decisions after appropriate Council work.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -232,12 +216,12 @@ scenario_set:
   - {id: I-06, type: isolate, refs: [F-02], scenario: A retired AIM-Node claim appears as a current standalone product., expected_answers: [{kind: classification, label: HISTORICAL_SCOPE_LEAK}], weight: 0.0909090909}
   - {id: I-07, type: repair, refs: [G-01], scenario: A conduit was incorrectly described as the worker., expected_answers: [{kind: human_action, verb: restore, object: allAI worker boundary, target: product design}], weight: 0.0909090909}
   - {id: I-08, type: repair, refs: [G-02], scenario: Deferred scope appears in website copy., expected_answers: [{kind: human_action, verb: remove, object: deferred claim, target: current customer surface}], weight: 0.0909090909}
-  - {id: I-09, type: evolve, refs: [§H], scenario: A proposal raises commission above five percent., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
-  - {id: I-10, type: evolve, refs: [§H], scenario: AIM Data gains a new approved metadata review screen., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
-  - {id: I-11, type: ambiguous, refs: [§H.6], scenario: Historical product prose conflicts with current CORE., expected_answers: [{kind: human_action, verb: prefer, object: current CORE invariant, target: product decision}], weight: 0.090909091}
+  - {id: I-09, type: evolve, refs: [Changes and maintenance], scenario: A proposal raises commission above five percent., expected_answers: [{kind: classification, label: BREAKING}], weight: 0.0909090909}
+  - {id: I-10, type: evolve, refs: [Changes and maintenance], scenario: AIM Data gains a new approved metadata review screen., expected_answers: [{kind: classification, label: REVIEW}], weight: 0.0909090909}
+  - {id: I-11, type: ambiguous, refs: [H.6], scenario: Historical product prose conflicts with current CORE., expected_answers: [{kind: human_action, verb: prefer, object: current CORE invariant, target: product decision}], weight: 0.090909091}
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1266
@@ -246,18 +230,5 @@ last_refresh_date: 2026-07-17T22:00:00Z
 owner_agent: max
 refresh_triggers: [CORE product pillar or invariant changes, Business Context locked-decision changes, Max product or deferred-scope decision]
 scheduled_cadence: 30d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1266 / 2026-07-17T22:00:00Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: runbooks/boot-kernel-companion-crosswalk.md
-word_count_delta: null
 ```

@@ -1,29 +1,16 @@
 ---
-runbook_id: durable-runtime-state
-domain: runtime-operations
-status: DRAFT
-authoritative_for: []
+title: Durable Runtime State Relocation (S1456)
+owner: vulcan
+last_verified: '2026-08-25'
 aliases: []
 error_signatures: []
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-25
-system_name: durable-runtime-state
-purpose_sentence: Reviewed S1456 five-record durable runtime-state contract and live acceptance evidence for exact-preimage conflict adjudication, migration, cutover, resume, acceptance, and lossless rollback.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: None while DRAFT; this page records the reviewed contract and completed live evidence but does not itself authorize a future migration, launchd action, publication, cutover, or rollback.
-linter_version: 1.0.0
 ---
 
 # Durable Runtime State Relocation (S1456)
 
-## §A. Header
+## Overview
 
-This remains a **DRAFT reference document, not operating authority**. It
-describes the Gate 4 remediation accepted live at exact `koskadeux-mcp` SHA
+This page describes the Gate 4 remediation accepted live at exact `koskadeux-mcp` SHA
 `dd23191057ed2a8b2eefc3fd1de5675cedbec27b`. The locked Gate 1 design is
 `specs/BQ-DURABLE-STATE-RELOCATION-S1456-CURRENT.md` at exact SHA
 `fb1802cdca61946ea25fb28bc0dd965e29e3bcf4`; Gate 2 is
@@ -39,7 +26,7 @@ kickstart, migrate, publish, cutover, or rollback work requires fresh authority.
 No secret, record content, review content, or credential belongs in a command
 transcript or receipt.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -50,7 +37,7 @@ transcript or receipt.
 | Receipt-bound macOS cutover and rollback | SHIPPED | `koskadeux_mcp/durable_state_macos.py` | simulated launchd/crash/cutover/rollback tests plus terminal accepted forward receipt | 2026-08-25 |
 | Finite 16-point soak and same-process acceptance | SHIPPED | `koskadeux_mcp/durable_state_cutover.py` | injected private clock/scheduler tests plus 16 live checks over 902.34 seconds | 2026-08-25 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -60,7 +47,7 @@ transcript or receipt.
 | macOS adapter | `koskadeux_mcp/durable_state_macos.py` | staged and installed definitions plus sanitized evidence | Git, launchd, local health | Accepted live in S1605 under exact-artifact authority. |
 | Soak and acceptance | `koskadeux_mcp/durable_state_cutover.py`, `scripts/durable_runtime_state.py accept` | `s1456.soak.v1` result and terminal receipt | production adapter plus private injected test seam | Sixteen finite checkpoints ran in the accepting process after explicit authorization. |
 
-### §C.1 Five-record disposition
+### Architecture & interactions.1 Five-record disposition
 
 Only these five MCP-owned records move. Existing sources are retained; the
 candidate creates no compatibility symlink for any of them.
@@ -78,7 +65,7 @@ from the registry directory, Task Spooler sockets/jobs/reports/transcripts, and
 `bridge_outcomes.db` do not move. Retired Council/KD stores, stale queue files,
 and legacy artifact directories are preserved but neither migrated nor revived.
 
-### §C.2 Explicit ephemeral and out-of-scope paths
+### Architecture & interactions.2 Explicit ephemeral and out-of-scope paths
 
 | Path or family | Disposition |
 |---|---|
@@ -93,7 +80,7 @@ and legacy artifact directories are preserved but neither migrated nor revived.
 | reload/session/repository locks, PID files, sockets, logs, crash evidence, temporary worktrees and packages | Ephemeral coordination or evidence. The reload lock stays `/var/tmp/koskadeux/reload_when_idle.lock.d`. |
 | independent-service cursors such as `fireflies_last_sync.json` | Outside the MCP service boundary; the owning service must decide durability separately. |
 
-### §C.3 One-root resolver contract
+### Architecture & interactions.3 One-root resolver contract
 
 The only root variable for the five records is:
 
@@ -121,7 +108,7 @@ The probe prepends the repository root derived from its own `__file__` before
 importing the resolver, so its launchd execution from `/` with no `PYTHONPATH`
 does not depend on cwd or a repository install.
 
-### §C.4 Restart-history write and failure semantics
+### Architecture & interactions.4 Restart-history write and failure semantics
 
 The only valid record is a JSON object with exactly non-negative integer
 `count` and a list of string `timestamps`. An absent file reads as count zero
@@ -141,7 +128,7 @@ to `RUNNING`, suppresses `sys.exit(0)`, and logs only that code. On the next
 process start, whichever complete record survived is strictly revalidated.
 The count records a restart attempt before exit, not proof of relaunch.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -151,17 +138,16 @@ The count records a restart attempt before exit, not proof of relaunch.
 | Reloader | CC liveness, marker and request reader/remover | `scripts/reload_when_idle.sh` | launchd service identity | PLANNED |
 | Ground-truth publishers | deployment-marker reads | shared Python/shell resolver | local operator process | PLANNED |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 []
 ```
 
-The operate form is deliberately empty while this page is DRAFT. The exact
-candidate command surface below documents code for review; it does not grant
-an executable operation.
+No executable operation is prescribed here. The exact candidate command surface
+below documents code for review.
 
-### §E.1 Exact command contracts
+### How to operate.1 Exact command contracts
 
 Entry point: `python3 scripts/durable_runtime_state.py`. Omitting a subcommand
 selects `inventory`, so `--candidate-sha <B>` alone is read-only inventory.
@@ -210,7 +196,7 @@ definitions for A: their SHA-256 values are journaled before any move, the exact
 bytes are retained in the transaction directory, and rollback never reconstructs
 A from a Git checkout.
 
-### §E.2 Inventory, migration, and receipt schema
+### How to operate.2 Inventory, migration, and receipt schema
 
 Migration verifies a pre-existing user-owned, non-symlink durable root that is
 not group/world-writable and never chmods it. It requires zero live and zero
@@ -271,7 +257,7 @@ from transaction/orphan scanning, while every other unrecognized directory
 remains a retained sanitized orphan. Completion requires exact CC equivalence
 and matching B markers before unchanged migration may issue its normal receipt.
 
-### §E.3 Deterministic identity, ACTIVE selection, and orphans
+### How to operate.3 Deterministic identity, ACTIVE selection, and orphans
 
 Transaction root and each transaction directory are user-owned mode `0700`.
 A forward id is `s1456-<prior12>-to-<candidate12>-aNNNN`, where `NNNN` is one
@@ -305,7 +291,7 @@ orphans and never auto-selected or deleted. Terminal `accepted` or
 `ACTIVE.<transaction-id>.terminal`, fsyncs, removes ACTIVE, and fsyncs again;
 resume proves byte equality before completing an interrupted archive.
 
-### §E.4 Launchd fence, phases, and safe prefixes
+### How to operate.4 Launchd fence, phases, and safe prefixes
 
 Forward phases are:
 
@@ -380,7 +366,7 @@ writes, and evidence ambiguity fail closed. Logout/reboot simulation covers
 every pre-seal phase and each post-seal prefix and may never start an old-path
 writer.
 
-### §E.5 Forward acceptance and 16-point soak
+### How to operate.5 Forward acceptance and 16-point soak
 
 Before publication, prove exact current code/runbooks main and reviewed SHAs,
 deployed A, clean trees, gateway/MCP/handlers, peer clearance, CC quiescence,
@@ -433,7 +419,7 @@ that PID and every descendant inherits it. Any positive inherited server PID
 refuses mutation, so grandchildren cannot evade the boundary through an
 intermediate shell. Independent operator shells do not inherit the marker.
 
-### §E.6 Active and accepted rollback reconciliation
+### How to operate.6 Active and accepted rollback reconciliation
 
 Plain rollback continues the ACTIVE forward receipt with a monotonic rollback
 checkpoint. Post-acceptance rollback requires no ACTIVE, an immutable accepted
@@ -487,7 +473,7 @@ missing/changed source receipt, marker drift, duplicate consumer, ambiguous
 history, or post-acceptance record conflict fails closed and preserves all
 backups and receipts.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -499,7 +485,7 @@ backups and receipts.
 | F-06 | Rollback refuses source receipt, marker, current durable record, or old-root reconciliation. | Accepted receipt drift, later consumer, conflicting writes, or ambiguous history. | Preserve both sides, backups and receipts; compare exact hashes and transaction linkage. Never restore a frozen snapshot over newer durable state. | G-06 | CONFIRMED |
 | F-07 | Rollback stays nonterminal with the reloader fenced after a first-tick drift row or after terminal publication drift. | Local tracking moved during the guarded tick, or local/live remote publication moved before terminal proof. Immutable generation-bound evidence cannot authorize a refreshed-request retry; a no-request retry is allowed only through the same guarded no-op after publication returns to A. | Preserve the guard, evidence, request disposition, receipt, and both Git refs. Confirm the reloader is absent and do not delete or rewrite transaction evidence. | G-07 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -561,8 +547,7 @@ backups and receipts.
 ```
 
 The machine repair form records fail-closed candidate behavior for review only.
-While this discovery page lacks operating authority, neither that form nor the
-table below authorizes a live repair.
+Live repair still requires the explicit reviewed inputs described above.
 
 | ID | Symptom ref | Repair | Rollback / integrity check |
 |---|---|---|---|
@@ -574,9 +559,9 @@ table below authorizes a live repair.
 | G-06 | F-06 | Stop and preserve both copies. Resolve the unexpected conflict through a new reviewed recovery design; never bypass the reconciliation verifier. | All old/durable records, receipt area and backups remain available and no conflicting bytes were discarded. |
 | G-07 | F-07 | Stop with the reloader fenced and preserve all evidence. After both refs return to A, `not_required` may resume only through a byte-identical guarded no-op and fresh terminal proof. A completed refreshed-request checkpoint is not reused; it requires a new exact-artifact reviewed design. Never manually remove the evidence row. | No terminal receipt is written under drift. The no-request path terminalizes only after guarded A recovery; refreshed-request evidence remains intact for review. |
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Exactly five records and one root; no broad `/var/tmp/koskadeux` relocation.
 - No source deletion, compatibility symlink, schema change, root execution,
@@ -590,7 +575,7 @@ table below authorizes a live repair.
   after seal only a reviewed safe prefix is allowed.
 - Rollback preserves verified post-cutover task/counter/history deltas.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 Adding a sixth record, accepting a legacy override, creating an old-path
 writer/symlink, weakening root/owner/mode/liveness checks, overwriting ACTIVE,
@@ -598,20 +583,19 @@ skipping a phase/evidence reproof, starting probe/reloader before marker seal,
 or restoring a frozen snapshot over newer durable state is breaking and needs a
 new design and unanimous exact-artifact review.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 Changing a fixed child name, plist order/label/program, receipt field/schema,
 transaction identity, liveness classifier, restart-history schema, first-tick
 preconditions, soak timing/checks, rollback reconciliation, or authority input
-requires code, tests, this DRAFT, and exact-artifact review to move together.
+requires code, tests, this page, and exact-artifact review to move together.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 Editorial clarification is safe only when it changes no command, path,
-identity, phase, failure, evidence, authority, timing, or rollback meaning and
-the generated catalog/manifest remain exact.
+identity, phase, failure, evidence, authority, timing, or rollback meaning.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -621,7 +605,7 @@ the exact code candidate.
 
 #### public contract
 
-The public contract is the CLI surface in §E.1 plus sanitized JSON success/error
+The public contract is the CLI surface in How to operate.1 plus sanitized JSON success/error
 output. A `DurableStateError` is emitted as `{"ok": false, "error": <stable-code>}`
 on stderr with exit status 2.
 
@@ -637,30 +621,21 @@ peer clearance, and exact non-secret evidence identifiers.
 `KOSKADEUX_DURABLE_STATE_DIR` defaults to `/Users/max/koskadeux-state` and may
 not be empty. No per-record production override exists.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
-Code and binding specs win over this discovery page. The only approved
+Code and binding specs win over this page. The only approved
 pre-migration exception is the exact-preimage, receipt-bound union/archive/
-legacy-marker normalization described in §E.2. It cannot select a nearby SHA,
+legacy-marker normalization described in How to operate.2. It cannot select a nearby SHA,
 overwrite the durable marker, merge a same-path conflict, add another record,
 or weaken normal migration. Any mismatch stops before mutation; any drift after
 a prepared receipt preserves all originals and receipt evidence for reviewed
 resume or stop.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set: []
 ```
-
-The documentation candidate passes only when the new page is discovery-only in
-schema-v3 `CATALOG.json`, appears in `TOPIC-ROUTER.md`, has one pending
-grandfathered `CORPUS-MANIFEST.yaml` record, leaves the generated README ACTIVE
-inventory current and unchanged, leaves
-all 26 ACTIVE entries field-for-field unchanged, has no generated drift, passes
-focused lint/catalog/manifest tests plus the full runbooks suite, and has a
-diff limited to this page, the minimum five operator path contracts, generated
-artifacts, manifest, and the README schema/population correction.
 
 Gate 4 remediation candidate acceptance additionally requires the full
 `tests/runtime_state` suite, focused Ruff and diff checks, exact CLI/adapter
@@ -676,7 +651,7 @@ on-time checks over 902.34 monotonic seconds with stable MCP generation 28221,
 successful CC smoke `ebbfb5fe`, unchanged old-root hashes, exact marker and
 publisher agreement, and healthy MCP, probe, reloader, gateway, and handlers.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1605
@@ -744,12 +719,3 @@ runbook deletions were one atomic batch):
 
 These additional archives have the same evidence-only status and do not change
 the accepted transaction or rollback authority.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
-```

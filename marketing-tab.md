@@ -1,3 +1,11 @@
+---
+title: Marketing Tab (ops.ai.market)
+owner: unassigned
+last_verified: '2026-03-06'
+aliases: []
+error_signatures: []
+---
+
 # Marketing Tab (ops.ai.market)
 
 ## What it does

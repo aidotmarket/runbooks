@@ -1,3 +1,11 @@
+---
+title: allAI — Agent Intelligence Layer
+owner: unassigned
+last_verified: '2026-08-26'
+aliases: []
+error_signatures: []
+---
+
 # allAI — Agent Intelligence Layer
 
 ## What it is
@@ -86,7 +94,7 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 | allAI Host | `GET /api/v1/allai/agents/status` | Runtime: subscriptions, event counts |
 | Health | `GET /api/v1/internal/agent-health` | Metrics, validation failures, policies |
 
-## Troubleshooting
+## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|

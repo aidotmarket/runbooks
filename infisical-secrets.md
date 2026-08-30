@@ -1,3 +1,11 @@
+---
+title: Infisical Secrets Management
+owner: unassigned
+last_verified: '2026-08-28'
+aliases: []
+error_signatures: []
+---
+
 # Infisical Secrets Management
 
 > **Deployed**: S357 (2026-03-30)
@@ -189,7 +197,7 @@ As of S533, three Infisical secret names hold (or have held) the same Vertex Exp
 
 Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
 
-- **App-read secrets live in the Railway env, not loaded from Infisical at runtime (S942).** Infisical is wired only for the SysAdmin agent skill (`infisical_ops.py`); the FastAPI app reads secrets such as `GITHUB_WEBHOOK_SECRET` from its process env = a Railway variable on `ai-market-backend`. A value placed only in Infisical will NOT reach the app — also set the Railway variable, then redeploy. (BQ-RAILWAY-INFISICAL-SYNC manual-sync class.) See `reconciliation-github-webhook.md` §E.
+- **App-read secrets live in the Railway env, not loaded from Infisical at runtime (S942).** Infisical is wired only for the SysAdmin agent skill (`infisical_ops.py`); the FastAPI app reads secrets such as `GITHUB_WEBHOOK_SECRET` from its process env = a Railway variable on `ai-market-backend`. A value placed only in Infisical will NOT reach the app — also set the Railway variable, then redeploy. (BQ-RAILWAY-INFISICAL-SYNC manual-sync class.) See `reconciliation-github-webhook.md` How to operate.
 
 ### `INFISICAL_PROJECT_ID` on Titan-1 points at koskadeux-mcp, not the backend (S964)
 
@@ -231,3 +239,7 @@ A plain `infisical secrets delete NAME` under machine-identity auth returns `400
 | `403 TokenError "invalid signature"` on Infisical API calls | Calling **app.infisical.com** — our instance is self-hosted at **`https://secrets.ai.market`** (see header). The sysadmin token at `~/.config/infisical/sysadmin-token` is valid for the self-hosted host only. | Use `https://secrets.ai.market/api/v3/secrets/raw?...` with the workspace IDs in Quick Reference. Do not "refresh" the token; it is not expired. |
 | `v3/secrets/raw` returns 404 `Secret ... not found` for a secret you just stored | Wrong project: secrets are per-workspace (backend / frontend / koskadeux-mcp), and a secret stored via the UI lands in whichever project was selected. | Search all three workspace IDs from Quick Reference before concluding the secret is missing. |
 | GitHub API `Resource not accessible by personal access token` | Fine-grained PAT lacks that permission — expected on scope probes | Only escalate if it appears on an operation the token is documented to allow. |
+
+## When it breaks
+
+Use Emergency Recovery, Known Gotchas, and Failure signatures above when secret access or rotation fails.

@@ -1,34 +1,18 @@
 ---
-runbook_id: build-queue-reconciliation
-domain: build-queue
-status: ACTIVE
-authoritative_for:
-  - topic: build-queue-reconciliation
-    section: §C. Architecture & Interactions
+title: Build Queue Reconciliation
+owner: vulcan
+last_verified: '2026-08-26'
 aliases: []
 error_signatures:
-  - signature: unsupported_target_repo
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-26
-system_name: build-queue-reconciliation
-purpose_sentence: Build Queue reconciliation keeps Living State, Build Queue status, and git evidence aligned before more build work is dispatched.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: Reconciliation classifications, safe-patch invariants, dispatch and event triggers, audited bypass handling, bypass review, and poller cursor operations.
-linter_version: 1.0.0
+- unsupported_target_repo
 ---
 
 # Build Queue Reconciliation
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above is the summary header. §J is authoritative for refresh and harness state.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -41,7 +25,7 @@ The YAML frontmatter above is the summary header. §J is authoritative for refre
 | Weekly bypass-rate report | SHIPPED | `koskadeux-mcp/scripts/bypass_audit_report.py` | Manual report checklist and scheduled-job log signature | 2026-07-17 |
 | Target-repository backfill | SHIPPED | `koskadeux-mcp/scripts/backfill_target_repos.py` | Dry-run-before-apply procedure | 2026-07-17 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 The reconciler core reads one BQ entity from Living State, fetches Build Queue status, fetches git evidence for every `body.target_repos` repository, reads the gate chunk plan from the local spec, and classifies drift.
 
@@ -65,7 +49,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 | `AMBIGUOUS` | Evidence conflicts or a dependency failed. | Git fetch fails, Build Queue is unreachable, or evidence includes a revert. | Treat as degraded evidence; resolve the failure or inspect manually. |
 | `LS_AHEAD_SUSPECTED` | Living State records progress that git or Build Queue evidence does not confirm. | Living State lists Chunk 3 built while git and Build Queue only support Chunk 2. | Audit recent Living State writes before dispatching dependent work. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -75,7 +59,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
 | Event scheduler | Run Trigger D after new evidence | `koskadeux_server.py` pollers and callbacks | Poller cursors, reconciliation audit events, safe Living State patch | COMPLETE |
 | Max | Adjudicate unsupported ownership or an intentional unsafe bypass request | Human escalation | Final operational decision | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -99,7 +83,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
     - {signature: unsupported_target_repo, cause: body.target_repos is missing or outside the supported aidotmarket scope}
     - {signature: unsafe_or_advisory_drift, cause: classification or cleanly_extends result does not permit automatic mutation}
   next_step_success: Continue the requested build dispatch and retain its reconciliation evidence.
-  next_step_failure: Reject dispatch until the matching §F diagnosis is repaired or Max authorizes a specific audited bypass.
+  next_step_failure: Reject dispatch until the matching When it breaks diagnosis is repaired or Max authorizes a specific audited bypass.
 - id: E-02
   trigger: A session opens and needs a read-only drift report across in-progress BQs.
   pre_conditions: [session_is_opening, in_progress_BQs_can_be_listed]
@@ -125,7 +109,7 @@ The reconciler core reads one BQ entity from Living State, fetches Build Queue s
     - {signature: advisory_or_ambiguous_classification, cause: evidence does not meet the safe-patch invariant}
     - {signature: chunk_plan_unavailable, cause: gate spec or chunk sequence cannot be resolved}
   next_step_success: Record the report and continue only from the reconciled or already-consistent state.
-  next_step_failure: Follow the matching §F/§G entry and rerun after evidence is repaired.
+  next_step_failure: Follow the matching When it breaks/Repair entry and rerun after evidence is repaired.
 - id: E-04
   trigger: Build completion, a Build Queue transition, or a git push supplies new reconciliation evidence.
   pre_conditions: [event_payload_is_available, poller_or_callback_is_running, BQ_entity_can_be_resolved]
@@ -236,16 +220,16 @@ Review steps:
 
 Scheduling option: the weekly report is registered in `koskadeux_server.py` through `BackgroundScheduler` as `build_queue_bypass_audit_report`. It runs Mondays at 09:00 UTC and writes the markdown table to the server log. For a manual-only deployment, keep using the command above.
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Reconciler reports `error_code=build_queue_unreachable`, Trigger B shows an outage flag, or the poller logs `poll skipped after API outage`. | Build Queue dependency is unavailable. | Check backend health and confirm whether git evidence remains independently readable. | §G-01 | CONFIRMED |
-| F-02 | Reconciler reports `error_code=git_fetch_failed` or the git push poller logs `git push poll skipped`. | GitHub token, network, repository access, branch name, outage, or rate limit prevents evidence fetch. | Check token, connectivity, repository access, and branch; require `git fetch origin` to succeed. | §G-02 | CONFIRMED |
-| F-03 | Reconciler reports `chunk_plan_unavailable`. | `gate{N}.spec_path` is wrong, the local spec is absent, or the chunk sequence is unreadable. | Resolve the BQ gate spec path and confirm its local `specs/` file contains the chunk plan. | §G-03 | CONFIRMED |
-| F-04 | Reconciler reports `unsupported_target_repo`. | `body.target_repos` is missing or names a repository outside the supported `aidotmarket/*` scope. | Confirm repository ownership and compare the BQ target list with the repositories that contain chunk evidence. | §G-04 | CONFIRMED |
-| F-05 | Classification is `AMBIGUOUS` or `LS_AHEAD_SUSPECTED`. | Evidence conflicts, includes a later revert, or Living State contains progress that git and Build Queue do not confirm. | Compare Living State chunks, Build Queue history, all target-repository commits, and revert evidence before dispatch. | §G-05 | CONFIRMED |
-| F-06 | Trigger D has safe evidence but no patch occurs and audit emission failed. | The required audit event could not be written. | Inspect event persistence for `ls_drift_reconciled` and confirm no Living State mutation followed the failed emission. | §G-06 | CONFIRMED |
+| F-01 | Reconciler reports `error_code=build_queue_unreachable`, Trigger B shows an outage flag, or the poller logs `poll skipped after API outage`. | Build Queue dependency is unavailable. | Check backend health and confirm whether git evidence remains independently readable. | Repair-01 | CONFIRMED |
+| F-02 | Reconciler reports `error_code=git_fetch_failed` or the git push poller logs `git push poll skipped`. | GitHub token, network, repository access, branch name, outage, or rate limit prevents evidence fetch. | Check token, connectivity, repository access, and branch; require `git fetch origin` to succeed. | Repair-02 | CONFIRMED |
+| F-03 | Reconciler reports `chunk_plan_unavailable`. | `gate{N}.spec_path` is wrong, the local spec is absent, or the chunk sequence is unreadable. | Resolve the BQ gate spec path and confirm its local `specs/` file contains the chunk plan. | Repair-03 | CONFIRMED |
+| F-04 | Reconciler reports `unsupported_target_repo`. | `body.target_repos` is missing or names a repository outside the supported `aidotmarket/*` scope. | Confirm repository ownership and compare the BQ target list with the repositories that contain chunk evidence. | Repair-04 | CONFIRMED |
+| F-05 | Classification is `AMBIGUOUS` or `LS_AHEAD_SUSPECTED`. | Evidence conflicts, includes a later revert, or Living State contains progress that git and Build Queue do not confirm. | Compare Living State chunks, Build Queue history, all target-repository commits, and revert evidence before dispatch. | Repair-05 | CONFIRMED |
+| F-06 | Trigger D has safe evidence but no patch occurs and audit emission failed. | The required audit event could not be written. | Inspect event persistence for `ls_drift_reconciled` and confirm no Living State mutation followed the failed emission. | Repair-06 | CONFIRMED |
 
 ### Correction notice: F-01 and F-03 as measured in S1345
 
@@ -274,13 +258,13 @@ spec path" repair does not apply, because there is no path to correct. The
 chunk-plan half of the reconciler has been inoperative for a long time.
 
 **A dependency failure does not currently produce `AMBIGUOUS`.**
-The §C classification table above says it should. The code caps to
+The Architecture & interactions classification table above says it should. The code caps to
 `ADVISORY_GIT_AHEAD` instead (`build_queue_reconciler.py:185`), and two tests
 assert that behaviour deliberately
 (`tests/services/test_build_queue_reconciler.py:270` and `:280`). Note the
 inconsistency: `git_fetch_failed` and `unsupported_target_repo` do return
 `AMBIGUOUS` immediately. Code, tests and this runbook cannot all be right.
-Unresolved as of S1345. Adjudicate under §H.6 before relying on any
+Unresolved as of S1345. Adjudicate under H.6 before relying on any
 classification that carries an error code.
 
 **There is no classification for "nothing was observed."**
@@ -324,7 +308,7 @@ twice.
    the file and line, what was executed, and what came back. A defect reported
    without an executed reproduction is a suspicion, not a ticket.
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -410,11 +394,11 @@ Verify pollers are running from `koskadeux_server.py` startup logs:
 | GitHub outage/rate limit | `git push poll skipped` or `git push poll rate-limited` |
 | Weekly bypass report | `weekly ls_drift_bypassed report` |
 
-## §H. Evolve
+## Changes and maintenance
 
 The change-class predicates are evaluated in order; the first matching class wins.
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - The proposed chunk must be the next chunk in the gate chunk plan.
 - Existing Living State chunk entries must be preserved and never rewritten.
@@ -424,27 +408,27 @@ The change-class predicates are evaluated in order; the first matching class win
 - Trigger B remains read-only and cannot emit reconciliation events.
 - Trigger D emits its audit event before any safe patch.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - A change is BREAKING if it changes a public contract without a backwards-compatible shim.
 - A change is BREAKING if it changes a data-model field type, removes a field, or adds a required field without a default.
-- A change is BREAKING if it removes or weakens any §H.1 invariant.
+- A change is BREAKING if it removes or weakens any H.1 invariant.
 - A change is BREAKING if it changes an authorization boundary or permits a new caller to mutate Living State.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - After BREAKING predicates fail, a new reconciliation feature on an existing public surface requires REVIEW.
 - A refactor that creates, deletes, or moves code across module boundaries requires REVIEW.
 - A change to a canonical config default, including poll cadence or supported repository scope, requires REVIEW.
 - A new runtime dependency requires REVIEW.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - A bug fix within existing reconciliation semantics is SAFE.
 - A documentation update or test addition is SAFE.
-- An internal refactor within one module that preserves public signatures and every §H.1 invariant is SAFE.
+- An internal refactor within one module that preserves public signatures and every H.1 invariant is SAFE.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -462,11 +446,11 @@ A runtime dependency is an entry in the system's runtime dependency declaration;
 
 A config default is a value shipped in canonical Koskadeux configuration, including poll cadence and supported repository scope; environment overrides and test-only values are excluded.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 If two agents classify a change differently, the more restrictive class wins. Max resolves any remaining dispute, especially one that would weaken a safe-patch invariant or expand mutation authority.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -550,7 +534,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-09
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal allows automatic reconciliation to rewrite an existing Living State chunk.
     expected_answers:
       - kind: classification
@@ -558,7 +542,7 @@ scenario_set:
     weight: 0.08333333333333333
   - id: I-10
     type: evolve
-    refs: [§H]
+    refs: [Changes and maintenance]
     scenario: A proposal changes the default Build Queue poll cadence without changing public signatures.
     expected_answers:
       - kind: classification
@@ -586,7 +570,7 @@ scenario_set:
     weight: 0.08333333333333333
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1622
@@ -597,20 +581,6 @@ refresh_triggers:
   - reconciliation classification or cleanly_extends invariant changes
   - trigger, bypass, audit-event, or poller behavior changes
   - Build Queue or Living State incident
-  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.08333333333333333
-last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
-```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1345 / 2026-07-26T09:52:00Z
-last_lint_result: FAIL
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
 ```

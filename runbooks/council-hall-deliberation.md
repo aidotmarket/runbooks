@@ -1,47 +1,24 @@
 ---
-runbook_id: council-hall-deliberation
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: council-hall-deliberation
-    section: §C. Architecture & Interactions
+title: Council Hall Deliberation
+owner: vulcan
+last_verified: '2026-08-20'
 aliases: []
 error_signatures:
-  - signature: duplicate_deliberation
-    section: §E. Operate
-  - signature: participant_config_missing
-    section: §E. Operate
-  - signature: late_arriver
-    section: §E. Operate
-  - signature: open_response_schema_mismatch
-    section: §E. Operate
-  - signature: premature_cross_poll
-    section: §E. Operate
-  - signature: biased_synthesis
-    section: §E. Operate
-supersedes: []
-superseded_by: []
-owner: vulcan
-last_verified_at: 2026-08-20
-system_name: council-hall-deliberation
-purpose_sentence: Council Hall deliberation process for unbiased multi-agent assessment, synthesis, and cross-pollination across the participant set explicitly bound when each Hall starts.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Stable mechanics, reasoning, and repair patterns for the Council Hall deliberation slice. Deployed council_hall VALID_AGENTS and DEFAULT_AGENTS govern participant validation/defaulting. Current model frontiers, gate review order, cost caps, and retired-agent policy are tracked in infra:council-comms; that entity does not currently expose a canonical Hall participant-selection field.
-
-  Cross-runbook reference convention: file-qualified IDs `<file-stem>:<id>` for references outside this file, such as `agent-dispatch:F-01`. Same-file references retain bare `<id>` form.
-linter_version: 1.0.0
+- biased_synthesis
+- duplicate_deliberation
+- late_arriver
+- open_response_schema_mismatch
+- participant_config_missing
+- premature_cross_poll
 ---
 
 # Council Hall Deliberation
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above defines the §A header. This runbook documents the Council Hall deliberation pattern: independent assessment, collection/synthesis, and cross-pollination for decisions where one review pass is insufficient.
+This runbook documents the Council Hall deliberation pattern: independent assessment, collection/synthesis, and cross-pollination for decisions where one review pass is insufficient.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -53,7 +30,7 @@ The YAML frontmatter above defines the §A header. This runbook documents the Co
 | Open-ended Hall-participant deliberation dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:council_request mode=open_response` | Open-response mode covers non-review-schema deliberation prompts | 2026-04-29 |
 | Redis Streams deliberation transport | PLANNED | — | Not implemented; the orchestrating peer/operator currently coordinates dispatch and polling | 2026-04-29 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 Council Hall is a deliberation workflow, not a generic dispatch tool. It is used when independent reviews leave a strategic, architectural, process, or policy decision unresolved. The slice has three phases: Phase 1 independent assessment, Phase 2 collection and synthesis, and Phase 3 cross-pollination. Cross-pollination may iterate up to a HARD CAP of 4 rounds (Max-S726 directive). The orchestrating peer/operator produces a final decision record after those phases; if consensus has not emerged after 4 cross-poll rounds, the orchestrator STOPS and escalates the decision to Max rather than looping further.
 
@@ -65,9 +42,7 @@ For the rest of a Hall, use the participant set bound by the successful start ca
 
 S1321 supersedes the S528-era roster snapshot. For gate voting, `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` are both exactly `{cc, kimi, glm}`: DeepSeek is retired from valid gate voting, AG is paused, and MP is the builder rather than a voter. Those gate facts constrain gate review; they do not independently define a Hall's participant list.
 
-<!-- catalog:historical -->
 Historical roster snapshots only: S528 described DeepSeek as a graduated full voter, and S726 described an MP/AG/DeepSeek/CC four-voter default. Both snapshots are superseded by S1321 and must not be used to select live Hall participants.
-<!-- /catalog:historical -->
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -79,7 +54,7 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 | Consensus Summary | `koskadeux-mcp/council_hall.py:summarize` | consensus, dissent, decision pointer | Orchestrating peer/operator, Max, Living State | Classifies consensus, majority-plus-dissent, or no-consensus escalation. |
 | Open Response Dispatch | `koskadeux-mcp/tools/agents.py:council_request mode=open_response` | dispatch task records | Start-bound participant backends | Allows deliberation answers that do not fit a strict review verdict schema. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -92,7 +67,7 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 
 The capability map reports role boundaries; it is not a participant-selection source. At Hall start, pass an explicit policy-authorized `agents` list or deliberately accept the verified deployed default. After start, use only that bound set.
 
-## §E. Operate
+## How to operate
 
 > **S1582 SUPERSESSION NOTICE.** Every `council_hall(...)` tool_or_endpoint in this
 > section refers to a service that **no longer exists in the deployed tree**: the
@@ -164,7 +139,7 @@ The capability map reports role boundaries; it is not a participant-selection so
   next_step_failure: Repair via F-03 or F-06 before any cross-poll dispatch.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -175,7 +150,7 @@ The capability map reports role boundaries; it is not a participant-selection so
 | F-05 | Open-ended Hall answer fails strict review parsing | A participant was dispatched through review mode instead of `mode=open_response` | Inspect dispatch arguments and parser error; confirm prompt was deliberative rather than review-verdict shaped | G-05 | CONFIRMED |
 | F-06 | Synthesis misrepresents an agent position | The orchestrating peer/operator over-editorialized, compressed a caveat away, or merged two distinct claims | Compare synthesis bullets against raw responses and require claim-level citations | G-06 | HYPOTHESIZED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -228,9 +203,9 @@ The capability map reports role boundaries; it is not a participant-selection so
   integrity_check: Confirm each summarized claim maps to one raw response passage or is labeled as orchestrator assessment.
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Independent assessment must happen before any participant sees another participant's answer.
 - Cross-pollination must use a bundle that contains every eligible independent assessment exactly once.
@@ -240,14 +215,14 @@ The capability map reports role boundaries; it is not a participant-selection so
 - Gate voter constants are not Hall participant defaults and must not be used to reconstruct a Hall session.
 - Cross-pollination is capped at 4 rounds; persistent no-consensus after round 4 escalates to Max and does not loop further.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Removing the independent phase is BREAKING because it destroys the anti-anchoring property of the Hall.
 - Changing deployed `VALID_AGENTS`, `DEFAULT_AGENTS`, start-bound membership, or quorum semantics without a Council config review is BREAKING.
 - Enabling write-mode during Hall deliberation for a session participant is BREAKING because deliberation is read-oriented.
 - Dispatching a paused or retired member without explicit current authorization is BREAKING because role and reliability assumptions change.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adding a new agent to deployed Hall `VALID_AGENTS` or `DEFAULT_AGENTS` requires REVIEW.
 - Changing a configured Hall participant's model frontier requires REVIEW.
@@ -255,14 +230,14 @@ The capability map reports role boundaries; it is not a participant-selection so
 - Increasing the per-dispatch cost cap for deliberation requires REVIEW when it changes who may be included by default.
 - Replacing `mode=open_response` with another open-ended response contract requires REVIEW.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Editing prompt examples is SAFE when the neutral-prompt invariant and required output fields remain intact.
 - Adding a symptom row or repair pattern is SAFE when existing IDs and component names remain stable.
 - Tightening synthesis formatting is SAFE when the decision record shape does not change.
 - Increasing a timeout for the same participant set is SAFE when cost cap and quorum policy do not change.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -280,17 +255,17 @@ A runtime dependency is any agent backend, MCP gateway endpoint, Living State st
 
 A config default is a deployed `council_hall.py` participant/quorum default or a model frontier, cost cap, timeout, or retired-agent policy read from its actual owning source. Do not infer a Hall participant default from `infra:council-comms` unless that entity gains and documents such a field.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 When two agents classify a Hall change differently, use the more restrictive class. Max resolves changes that affect membership, auth scope, money/security behavior, quorum policy, or final decision authority.
 
-## §I. Scenario Set
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §D]
+    refs: [E-01, Agent capabilities]
     scenario: |
       id: E-01. trigger: A BQ architecture choice has conflicting ordinary review advice and needs unbiased Hall deliberation. pre_conditions: neutral decision question, evidence refs, branch, BQ entity, and a policy-authorized participant choice are available; no participant has seen peer answers. tool_or_endpoint: council_hall(action=start, topic=<topic>, prompt=<neutral_prompt>, agents=<explicit_participant_list>). argument_sourcing: topic from the blocking decision; neutral_prompt from shared evidence and decision dimensions; agents from an explicit choice accepted by the live tool schema, or omit only when intentionally accepting the verified deployed DEFAULT_AGENTS. idempotency: IDEMPOTENT_WITH_KEY on topic + prompt_digest + sorted(evidence_refs). expected_success: a deliberation_id with phase=independent; when the receipt or status exposes membership, it agrees with the explicit input or verified default. expected_failures: duplicate_deliberation, invalid participant id, or biased prompt. next_step_success: dispatch the identical neutral prompt only to the participant set bound at start. next_step_failure: repair participant or prompt state before any answer is collected.
     expected_answers:
@@ -302,7 +277,7 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-02
     type: operate
-    refs: [E-02, §D]
+    refs: [E-02, Agent capabilities]
     scenario: |
       id: E-02. trigger: The first start-bound Hall participant returns an independent assessment. pre_conditions: deliberation_id exists, phase=independent, the responding agent belongs to the participant set bound by the successful start call, the frozen neutral prompt was used, and the answer includes verdict, confidence, claims, objections, and content. tool_or_endpoint: council_hall(action=record_response, deliberation_id=<id>, agent=<start_bound_participant_id>, phase=independent, verdict=<approve|reject|conditional>, confidence=<high|medium|low>, key_claims=<list>, objections=<list>, content=<raw_answer>). argument_sourcing: deliberation_id from start; bound agent IDs from the explicit input or verified default and any receipt/status evidence; agent from response owner; verdict, confidence, key_claims, objections, and content from the raw answer. idempotency: IDEMPOTENT_WITH_KEY on deliberation_id + agent + phase. expected_success: that participant's response is recorded without advancing to cross-poll or exposing it to any other participant. expected_failures: duplicate response, agent absent from the bound set, missing required fields, or answer references another participant. next_step_success: continue collecting independent responses from the remaining bound participants. next_step_failure: isolate parser, membership, or phase issues before synthesis.
     expected_answers:
@@ -421,16 +396,16 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-12
     type: evolve
-    refs: [§H, §H.2, §H.3]
+    refs: [Changes and maintenance, H.2, H.3]
     scenario: |
-      id: H-01. trigger: A proposal adds another participant to deployed Hall VALID_AGENTS or DEFAULT_AGENTS. pre_conditions: current deployed constants, proposed values, quorum math, cost cap, auth scope, and gateway code patch are available. tool_or_endpoint: council_hall.py configuration patch plus runbook update. argument_sourcing: current values from the deployed source/receipt rather than Living State inference; new role from proposal; quorum and escalation effects from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because accepted/default membership and consensus math change. expected_failures: calling it SAFE because the backend already appears in a capability inventory. next_step_success: review and deploy the gateway configuration before starting a Hall with the new selection. next_step_failure: continue using the verified deployed behavior, never a roster copied from this scenario.
+      id: H-01. trigger: A proposal adds another participant to deployed Hall VALID_AGENTS or DEFAULT_AGENTS. pre_conditions: current deployed constants, proposed values, quorum math, cost cap, auth scope, and gateway code patch are available. tool_or_endpoint: council_hall.py configuration patch plus runbook update. argument_sourcing: current values from the deployed source/receipt rather than Living State inference; new role from proposal; quorum and escalation effects from Changes and maintenance invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because accepted/default membership and consensus math change. expected_failures: calling it SAFE because the backend already appears in a capability inventory. next_step_success: review and deploy the gateway configuration before starting a Hall with the new selection. next_step_failure: continue using the verified deployed behavior, never a roster copied from this scenario.
     expected_answers:
       - kind: classification
         label: BREAKING
     weight: 0.06666666666666667
   - id: I-13
     type: evolve
-    refs: [§H, §H.3]
+    refs: [Changes and maintenance, H.3]
     scenario: |
       id: H-02. trigger: A proposal changes Hall verdict values from free-form approve/reject style labels to approve, reject, and conditional. pre_conditions: current response contract, parser behavior, summarize logic, and gate concurrence expectations are known. tool_or_endpoint: council_hall response contract update plus runbook update. argument_sourcing: current output fields from E-02; summary classifications from E-04; gate expectations from council-gate-process. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the response contract changes while preserving the three-phase Hall invariant. expected_failures: treating the enum change as prompt wording only or deploying it without summary/gate interpretation. next_step_success: review parser, summary, and gate mapping before accepting conditional as a new value. next_step_failure: keep the prior verdict contract.
     expected_answers:
@@ -439,9 +414,9 @@ scenario_set:
     weight: 0.06666666666666667
   - id: I-14
     type: evolve
-    refs: [§H, §H.3, E-03]
+    refs: [Changes and maintenance, H.3, E-03]
     scenario: |
-      id: H-03. trigger: A proposal changes the cross-poll bundle from one prompt plus all independent assessments to per-agent customized bundles that omit each agent's original answer. pre_conditions: proposed bundle schema, anchoring analysis, transcript storage, and compatibility with get_cross_poll_bundle are available. tool_or_endpoint: council_hall(action=get_cross_poll_bundle) schema change. argument_sourcing: current bundle contract from E-03; proposed fields from design patch; integrity requirements from §H invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the public cross-poll contract changes and must prove it still preserves eligible assessments exactly once. expected_failures: calling it SAFE formatting or losing auditability of what each agent saw. next_step_success: require schema review and transcript tests before rollout. next_step_failure: keep the existing bundle structure.
+      id: H-03. trigger: A proposal changes the cross-poll bundle from one prompt plus all independent assessments to per-agent customized bundles that omit each agent's original answer. pre_conditions: proposed bundle schema, anchoring analysis, transcript storage, and compatibility with get_cross_poll_bundle are available. tool_or_endpoint: council_hall(action=get_cross_poll_bundle) schema change. argument_sourcing: current bundle contract from E-03; proposed fields from design patch; integrity requirements from Changes and maintenance invariants. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because the public cross-poll contract changes and must prove it still preserves eligible assessments exactly once. expected_failures: calling it SAFE formatting or losing auditability of what each agent saw. next_step_success: require schema review and transcript tests before rollout. next_step_failure: keep the existing bundle structure.
     expected_answers:
       - kind: classification
         label: REVIEW
@@ -459,7 +434,7 @@ scenario_set:
     weight: 0.06666666666666667
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Lifecycle metadata records the S1265 content-conformance refresh and registered scenario-harness pass.
 
@@ -472,31 +447,11 @@ refresh_triggers:
   - Council hall phase flow or synthesis policy changes
   - independent assessment, cross-pollination, or dissent handling changes
   - participating agent capability or availability changes
-  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: 0.2
-last_harness_date: 2026-07-18T08:36:20.840312Z
 first_staleness_detected_at: null
 ```
 
-The Council Hall scenario set is registered under `tests/fixtures/harness_scenarios/council-hall-deliberation/` and passed the S1265 conformant harness.
 
-## §K. Conformance
-
-Conformance fields for the S1265 content refresh.
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1265 / 2026-07-17T20:00:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
-
-The §K block records the strict-lint result; harness state is authoritative in §J.
-
-
-<!-- catalog:historical -->
 ## §M — S533 Operational Updates
 
 Historical S533 snapshot only. S1321 supersedes every gate roster, voter, model-frontier, and dispatch-eligibility statement in this appendix; consult each field's current owning source, and use the explicit input or verified deployed default bound by an active Hall start.
@@ -549,7 +504,6 @@ DeepSeek currently exposes exactly two models per `/v1/models`:
 So `deepseek-v4-pro` IS the canonical code-review tier today. There is no higher tier to upgrade to.
 
 **Mandate: when DeepSeek announces a new tier higher than `deepseek-v4-pro`, this section, the user memory note about Council models, and the in-code whitelist `DEEPSEEK_ALLOWED_MODELS = frozenset({"deepseek-v4-pro", "deepseek-v4-flash"})` at `koskadeux-mcp/deepseek_client.py:34` (plus the `DEEPSEEK_PRICING` table directly below it) MUST all be updated together in the same commit.** Add a line to this section linking to the new model's pricing source and a sample chat probe confirming the model name resolves at the API.
-<!-- /catalog:historical -->
 
 ## §N — S1582 Operational Update: council_hall service retired, manual procedure
 
@@ -568,7 +522,7 @@ and that run is the reference for the mapping below.
 | `council_hall(action=get_cross_poll_bundle)` | Orchestrating peer builds a faithful comparison of the Phase 1 answers, then cross-polls ONLY the disagreements: a second `open_response` round carrying the original prompt plus every Phase 1 assessment verbatim. Do not cross-poll points already converged. Bias rules of E-03 (`premature_cross_poll`, `biased_synthesis`) still apply to the hand-built bundle. |
 | Convergence/synthesis machinery | Orchestrating peer writes the synthesis; persist decision + binding constraints + open questions into the owning BQ entity, not only prose. |
 
-The §E error signatures remain meaningful as protocol violations (e.g. `premature_cross_poll`
+The How to operate error signatures remain meaningful as protocol violations (e.g. `premature_cross_poll`
 is now a mistake the orchestrating peer can make by hand); the `duplicate_deliberation` and
 `participant_config_missing` signatures referred to service state and can no longer occur
 mechanically — their intent survives as "do not run two deliberations on one question" and

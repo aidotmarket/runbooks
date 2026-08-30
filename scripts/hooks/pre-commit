@@ -1,54 +1,19 @@
 #!/bin/sh
+set -eu
 
-warning='WARNING: catalog regeneration failed; commit continues with advisory generated-index drift.'
-
-# Catalog drift is advisory: this hook must never stop a commit. Generation
-# reflects the worktree at commit time, including unstaged edits; that is
-# accepted because the generated index is advisory.
-trap 'exit 0' EXIT
-for hook_signal in \
-    HUP INT QUIT ILL TRAP ABRT EMT FPE BUS SEGV SYS PIPE ALRM TERM \
-    TSTP TTIN TTOU XCPU XFSZ VTALRM PROF USR1 USR2
-do
-    if (trap '' "$hook_signal") 2>/dev/null; then
-        trap 'printf "%s\n" "$warning" >&2; exit 0' "$hook_signal"
-    fi
-done
-# This is exhaustive for macOS signals 1-31. After handler installation, every
-# catchable signal whose default action is terminate, create a core image, or
-# stop the process is neutralized and the hook exits 0. KILL (9) and STOP (17)
-# are physically uncatchable and are the only such signals. URG (16), CONT (19),
-# CHLD (20), IO (23), WINCH (28), and INFO (29) are deliberately not trapped
-# because their default action is ignore or continue; trapping CHLD would abort
-# the hook when the generator subprocess exits. There is an unavoidable shell
-# interpreter-startup window before handlers are installed in which a fatal
-# signal still takes its default action, so this invariant does not hold from
-# process birth. Trapping TSTP means Ctrl-Z ends the hook instead of suspending
-# it during a commit, which is intended.
-
-if ! repo_root=$(git rev-parse --show-toplevel 2>/dev/null); then
-    printf '%s\n' "$warning" >&2
-    exit 0
-fi
-
-if ! cd "$repo_root"; then
-    printf '%s\n' "$warning" >&2
-    exit 0
-fi
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
 
 if command -v python3 >/dev/null 2>&1; then
-    catalog_python=python3
+    python=python3
 else
-    catalog_python=python
+    python=python
 fi
 
-if ! "$catalog_python" -m runbook_tools.catalog generate >/dev/null 2>&1; then
-    printf '%s\n' "$warning" >&2
-    exit 0
-fi
+"$python" scripts/check.py
+"$python" scripts/index.py
 
-if ! git add -- CATALOG.json TOPIC-ROUTER.md README.md >/dev/null 2>&1; then
-    printf '%s\n' "$warning" >&2
+if ! git diff --quiet -- INDEX.md ERRORS.md; then
+    printf '%s\n' 'INDEX.md or ERRORS.md was stale; review and stage the regenerated files.' >&2
+    exit 1
 fi
-
-exit 0

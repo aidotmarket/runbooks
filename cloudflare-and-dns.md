@@ -1,3 +1,11 @@
+---
+title: Cloudflare and DNS
+owner: unassigned
+last_verified: '2026-07-17'
+aliases: []
+error_signatures: []
+---
+
 # Cloudflare and DNS
 
 Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.com — DNS records, Workers, the live mcp.ai.market tunnel, and the API access patterns. Supersedes the prior `cloudflare-worker.md` (now Worker-detail subsection of this doc) and the partial Cloudflare table in `ai-market-backend/docs/core/INFRASTRUCTURE.md`.
@@ -403,3 +411,7 @@ List active Workers:
 
 ## Google Search Console domain verification (added S806)
 The `search-submission@aimarket-prod.iam.gserviceaccount.com` service account is a **verified owner** of `ai.market` (domain-level) via a `google-site-verification=` TXT record on the zone root, created through the Cloudflare API. Do not delete that TXT record — Google rechecks it periodically and removal revokes the service account's ownership, which silently kills Google sitemap/indexing submissions (the search fan-out pipeline). The SA key lives in Infisical `ai-market-backend`/prod as `GSC_SERVICE_ACCOUNT_JSON`. Registered properties: `sc-domain:ai.market`, `https://ai.market/`, `https://api.ai.market/`.
+
+## When it breaks
+
+Use the Verification quick reference and drift inventory above; no separate repair sequence is defined.

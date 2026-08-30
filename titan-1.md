@@ -1,3 +1,11 @@
+---
+title: Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
+owner: unassigned
+last_verified: '2026-07-17'
+aliases: []
+error_signatures: []
+---
+
 # Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
 
 Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
@@ -103,3 +111,7 @@ from anywhere — 530/1033 = tunnel down (cloudflared, system daemon); 502 = tun
 gateway :8767 down (check `/var/tmp/koskadeux/gateway.err`); 200 = path fine, look
 higher. Local: `curl 127.0.0.1:{8765,8767}/health`; kickstart:
 `launchctl kickstart -k gui/$(id -u)/com.koskadeux.<svc>`.
+
+## When it breaks
+
+Use the reboot-outage incident record and cold-start canary rule above for restart failures; no broader repair procedure is defined.

@@ -1,3 +1,11 @@
+---
+title: AIM Data Release Process
+owner: unassigned
+last_verified: '2026-08-14'
+aliases: []
+error_signatures: []
+---
+
 # AIM Data Release Process
 
 ## What it does

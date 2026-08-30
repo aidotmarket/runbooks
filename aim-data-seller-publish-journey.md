@@ -1,11 +1,18 @@
 ---
-system_name: aim-data-seller-publish-journey
-purpose_sentence: Operate, isolate, repair, and safely evolve the customer journey from a signed-in AIM Data install to a live ai.market listing.
-owner_agent: mars
-escalation_contact: Max for any action touching the money path or production customer accounts
-lifecycle_ref: §J
-authoritative_scope: The ordered AIM Data seller publish journey, its cross-repository handoffs, customer-visible readiness gates, verified failure signatures, and first-response procedures; broader product behavior, seller readiness policy, and the single publish-path architecture remain authoritative in their linked parent runbooks.
-linter_version: 1.0.0
+title: AIM Data Seller Publish Journey
+owner: mars
+last_verified: '2026-07-15'
+aliases: []
+error_signatures:
+- 'POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying'
+- VZ install registration auth failed (401 or 403)
+- Accept all & continue remains disabled while title and description are populated and dataset.listing_id is null
+- Metadata generation failed
+- HTTP 409 VZ install registration not available — sign in with ai.market and try publishing again
+- HTTP 403 detail.error=capability_required capability=seller
+- 'HTTP 503 Publish unavailable: security services offline'
+- Listing published, disclosure snapshot pending
+- runner/job failure before the Publish request
 ---
 
 # AIM Data Seller Publish Journey
@@ -14,9 +21,8 @@ This runbook discharges the AIM Data seller-publish journey waivers, including S
 
 This runbook does not redefine the AIM Data product (`aim-data.md`), the one-route/one-gate publishing architecture (`publish-paths.md`), or seller readiness (`account-capability-onboarding.md`). Those runbooks remain authoritative for their respective scopes.
 
-## §A. Header
+## Overview
 
-The YAML frontmatter above is authoritative for the §A header fields. §J is authoritative for lifecycle metadata.
 
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
@@ -33,7 +39,7 @@ The YAML frontmatter above is authoritative for the §A header fields. §J is au
 
 Verified source baselines for this edition: AIM Data `main` `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`; ai-market-backend `main` `dfd926ec`; runbooks `origin/main` `9e2c542`.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -46,7 +52,7 @@ Verified source baselines for this edition: AIM Data `main` `56a3371d1f806d02e1c
 | Canonical receiver enforces active seller and creates/updates the listing | SHIPPED | `ai-market-backend/app/routers/vz_publish.py:publish_listing` | `ai-market-backend/tests/test_vz_publish.py:TestPublishCapabilityGate`; S1219/S1220 | 2026-07-14 |
 | Browser journey reaches Accept all, Step 3, disclosure confirmation, and Publish | SHIPPED | `aim-data/frontend/src/pages/DatasetDetail.tsx:ListingPreparation` | kd-browser job via `127.0.0.1:8790` using the `shell_request` job-script pattern; S1219 real Chrome against build a13d9a4 | 2026-07-14 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -71,7 +77,7 @@ Journey order:
 7. ai.market enforces active-seller readiness, upserts the `listings` row, and returns `listing_id` and `marketplace_url`.
 8. AIM Data records the listing id, submits the disclosure snapshot, and the operator verifies the returned live URL.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -83,7 +89,7 @@ Journey order:
 
 Browser verification uses a job script, not ad hoc DOM driving. The script targets the signed-in AIM Data install, records the journey checkpoints, addresses the shadcn checkbox by `#ai-training-disclosure-confirmation`, and submits through the runner at `127.0.0.1:8790`. Both instances operate the job through `shell_request`; credentials stay in the approved browser profile, never in the script.
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -107,11 +113,11 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
     verification: "Read redacted AIM Data logs for 'VZ install registered with ai.market' and inspect only presence/non-empty status of serial.json.vz_install_id; T-2026-000256 live probe returned 201 for a buyer-role account on 2026-07-14"
   expected_failures:
     - signature: "POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying"
-      cause: "Resolved enum-vs-varchar role.not_in predicate regression, T-2026-000256 (§F-01)"
+      cause: "Resolved enum-vs-varchar role.not_in predicate regression, T-2026-000256 (When it breaks-01)"
     - signature: "VZ install registration auth failed (401 or 403)"
-      cause: "Missing/expired ai.market bearer token or account access denial (§F-05)"
+      cause: "Missing/expired ai.market bearer token or account access denial (When it breaks-05)"
   next_step_success: Continue to E-02; registration provisions seller identity but the publish gate still requires active readiness.
-  next_step_failure: Match the exact registration signature in §F before attempting Publish.
+  next_step_failure: Match the exact registration signature in When it breaks before attempting Publish.
 - id: E-02
   trigger: A signed-in seller has a preview-ready dataset and wants to prepare the buyer-facing listing.
   pre_conditions:
@@ -129,11 +135,11 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
     verification: "Step 3: Listing Details and Disclosure is visible; S1219 verified this in real Chrome against build a13d9a4 after Accept all"
   expected_failures:
     - signature: "Accept all & continue remains disabled while title and description are populated and dataset.listing_id is null"
-      cause: "Resolved draft-listing-id guard regression, T-2026-000251 (§F-03)"
+      cause: "Resolved draft-listing-id guard regression, T-2026-000251 (When it breaks-03)"
     - signature: "Metadata generation failed"
       cause: "Listing metadata service failure; inspect the dataset endpoint response before changing publish code"
   next_step_success: Continue to E-03.
-  next_step_failure: Isolate UI state and endpoint responses via §F-03; do not create a second marketplace listing path.
+  next_step_failure: Isolate UI state and endpoint responses via When it breaks-03; do not create a second marketplace listing path.
 - id: E-03
   trigger: The seller is on Step 3 and is ready to publish the reviewed listing.
   pre_conditions:
@@ -156,13 +162,13 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
     verification: "Open marketplace_url and confirm the title/seller; confirm AIM Data persisted dataset.listing_id; S1219 verified disclosure checked and Publish clicked in real Chrome"
   expected_failures:
     - signature: "HTTP 409 VZ install registration not available — sign in with ai.market and try publishing again"
-      cause: "Registration did not produce/persist an install id (§F-02)"
+      cause: "Registration did not produce/persist an install id (When it breaks-02)"
     - signature: "HTTP 403 detail.error=capability_required capability=seller"
-      cause: "Seller is provisioned but not active; use missing_steps (§F-04)"
+      cause: "Seller is provisioned but not active; use missing_steps (When it breaks-04)"
     - signature: "HTTP 503 Publish unavailable: security services offline"
-      cause: "Backend Redis replay/rate-limit dependency unavailable; fail-closed by design (§F-05)"
+      cause: "Backend Redis replay/rate-limit dependency unavailable; fail-closed by design (When it breaks-05)"
   next_step_success: Continue to E-04 and verify the live listing plus disclosure completion.
-  next_step_failure: Preserve the response detail and route through §F; never fall back to a website or alternate publish endpoint.
+  next_step_failure: Preserve the response detail and route through When it breaks; never fall back to a website or alternate publish endpoint.
 - id: E-04
   trigger: Publish returned a listing id and the operator must prove that the customer journey reached a live listing.
   pre_conditions:
@@ -179,28 +185,28 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
     verification: "Compare artifact listing title/id with the E-03 response and canonical listing; S1219 real-Chrome verification covered Accept all, Step 3, checkbox, and Publish"
   expected_failures:
     - signature: "Listing published, disclosure snapshot pending"
-      cause: "Publish succeeded but the follow-up disclosure snapshot did not complete (§F-06)"
+      cause: "Publish succeeded but the follow-up disclosure snapshot did not complete (When it breaks-06)"
     - signature: "runner/job failure before the Publish request"
       cause: "Harness/browser problem; isolate from product failure using e2e-browser-runner.md"
   next_step_success: Journey complete; supply the listing URL to the seller and update lifecycle evidence when this is a refresh run.
-  next_step_failure: Separate browser-runner failures from product failures; for snapshot pending use §G-05 without republishing.
+  next_step_failure: Separate browser-runner failures from product failures; for snapshot pending use Repair-05 without republishing.
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | `POST /api/v1/vz/register` returns 500 for a non-seller, with Postgres `operator does not exist: userrole <> character varying` | **RESOLVED, T-2026-000256.** `users.role` is a Postgres `userrole` enum while the ORM maps it as String; bare strings in `User.role.not_in(("seller", "admin"))` produced enum-varchar comparison operators. Backend main `dfd926ec` contains explicit `USERROLE_ENUM` casts. | Confirm deployed backend contains `app/routers/vz_publish.py` casts in both `role.not_in` literals and the role assignment; run `tests/integration/test_vz_register_role_promotion.py`; live reference is HTTP 201 for a buyer-role account on 2026-07-14. | §G-01 | CONFIRMED |
-| F-02 | AIM Data Publish returns 409 `VZ install registration not available — sign in with ai.market and try publishing again` | Registration failed or timed out, auth failed, or its success response did not persist `serial.json.vz_install_id`. In S1219 this was downstream of F-01, not an independent publish defect. | Read the immediately preceding AIM Data registration log and the `POST /api/v1/vz/register` status; inspect only whether `serial.json.vz_install_id` is present; do not expose the bearer/install token. If register was 500 with enum error, diagnose F-01 first. | §G-04 | CONFIRMED |
-| F-03 | Listing metadata is present but `Accept all & continue` stays disabled, Step 3 never unlocks, and no Publish action becomes available | **RESOLVED, T-2026-000251.** No draft listing id was ever created in this flow, but the button was guarded by `!draftListingId`; persisted listing metadata was also not surfaced on reload. AIM Data `2430bb9` removes the guard and rehydrates metadata/privacy state. | Confirm dataset is `preview_ready`, title/description are non-empty, `dataset.listing_id` is null, and the deployed `DatasetDetail.tsx` button no longer checks `draftListingId`; run `DatasetDetail.test.tsx`. S1219 real Chrome against a13d9a4 reached Accept all, Step 3, disclosure confirmation, and Publish. | §G-02 | CONFIRMED |
-| F-04 | Canonical publish returns 403 with `detail.error=capability_required`, `capability=seller`, and one or more `missing_steps` | Registration provisioned seller role, but effective seller readiness is not active. Common missing steps are `profile_name`, `company_name`, `totp_enabled`, and `stripe_payouts_live`; suspended/not-requested states also fail closed. | Read the structured 403 detail and `missing_steps`; follow `account-capability-onboarding.md`. Verify the durable `users.stripe_payouts_enabled` signal rather than inferring readiness from role or a transient Stripe response. | §G-03 | CONFIRMED |
-| F-05 | Registration/publish returns 401/403, or publish returns 503 `security services offline` | Expired/missing seller bearer for registration; invalid EdDSA publish JWT/body hash; revoked install; or Redis replay/rate-limit service unavailable. | Separate the hop: inspect AIM Data register status, then signed `/api/v1/vz/publish` status. For 503, verify backend Redis health; for auth failures, inspect token expiry/install active state without printing secrets. | §G-04 | CONFIRMED |
-| F-06 | The listing URL exists but AIM Data shows `Listing published, disclosure snapshot pending` or `Disclosure status unknown` | Canonical publish succeeded; the distinct follow-up disclosure-snapshot request failed, or ai.market accepted it but AIM Data failed to persist the local audit record. | Preserve `publishedListingId` and `retrySnapshotPayload`; open the listing URL to prove publish succeeded; inspect only the disclosure-snapshot response. Do not call Publish again. | §G-05 | CONFIRMED |
-| F-07 | A UUID dataset is `preview_ready` and its artifact exists at `/data/processed/<id>.parquet`, but the on-demand sketch or quality request reports `Dataset not found` | **FIXED IN AIM DATA MAIN, T-2026-000249; release/customer-path verification pending.** The old readiness code asked DuckDB to discover the UUID by scanning only direct files under `/data`, so it missed the canonical processed artifact. The customer effect is a missing Statistical Profile and Quality Scorecard on the Readiness tab; this is not a listing approval or publish blocker. | Read the canonical `ProcessingService` record for the UUID and confirm `record.processed_path` points to the existing processed Parquet file. Confirm the deployed sketch and quality services resolve that record instead of calling `DuckDBService.get_dataset_by_id`; then exercise both Readiness-tab panels. Do not diagnose the absence of these panels as a publish-path failure. | §G-06 | CONFIRMED |
+| F-01 | `POST /api/v1/vz/register` returns 500 for a non-seller, with Postgres `operator does not exist: userrole <> character varying` | **RESOLVED, T-2026-000256.** `users.role` is a Postgres `userrole` enum while the ORM maps it as String; bare strings in `User.role.not_in(("seller", "admin"))` produced enum-varchar comparison operators. Backend main `dfd926ec` contains explicit `USERROLE_ENUM` casts. | Confirm deployed backend contains `app/routers/vz_publish.py` casts in both `role.not_in` literals and the role assignment; run `tests/integration/test_vz_register_role_promotion.py`; live reference is HTTP 201 for a buyer-role account on 2026-07-14. | Repair-01 | CONFIRMED |
+| F-02 | AIM Data Publish returns 409 `VZ install registration not available — sign in with ai.market and try publishing again` | Registration failed or timed out, auth failed, or its success response did not persist `serial.json.vz_install_id`. In S1219 this was downstream of F-01, not an independent publish defect. | Read the immediately preceding AIM Data registration log and the `POST /api/v1/vz/register` status; inspect only whether `serial.json.vz_install_id` is present; do not expose the bearer/install token. If register was 500 with enum error, diagnose F-01 first. | Repair-04 | CONFIRMED |
+| F-03 | Listing metadata is present but `Accept all & continue` stays disabled, Step 3 never unlocks, and no Publish action becomes available | **RESOLVED, T-2026-000251.** No draft listing id was ever created in this flow, but the button was guarded by `!draftListingId`; persisted listing metadata was also not surfaced on reload. AIM Data `2430bb9` removes the guard and rehydrates metadata/privacy state. | Confirm dataset is `preview_ready`, title/description are non-empty, `dataset.listing_id` is null, and the deployed `DatasetDetail.tsx` button no longer checks `draftListingId`; run `DatasetDetail.test.tsx`. S1219 real Chrome against a13d9a4 reached Accept all, Step 3, disclosure confirmation, and Publish. | Repair-02 | CONFIRMED |
+| F-04 | Canonical publish returns 403 with `detail.error=capability_required`, `capability=seller`, and one or more `missing_steps` | Registration provisioned seller role, but effective seller readiness is not active. Common missing steps are `profile_name`, `company_name`, `totp_enabled`, and `stripe_payouts_live`; suspended/not-requested states also fail closed. | Read the structured 403 detail and `missing_steps`; follow `account-capability-onboarding.md`. Verify the durable `users.stripe_payouts_enabled` signal rather than inferring readiness from role or a transient Stripe response. | Repair-03 | CONFIRMED |
+| F-05 | Registration/publish returns 401/403, or publish returns 503 `security services offline` | Expired/missing seller bearer for registration; invalid EdDSA publish JWT/body hash; revoked install; or Redis replay/rate-limit service unavailable. | Separate the hop: inspect AIM Data register status, then signed `/api/v1/vz/publish` status. For 503, verify backend Redis health; for auth failures, inspect token expiry/install active state without printing secrets. | Repair-04 | CONFIRMED |
+| F-06 | The listing URL exists but AIM Data shows `Listing published, disclosure snapshot pending` or `Disclosure status unknown` | Canonical publish succeeded; the distinct follow-up disclosure-snapshot request failed, or ai.market accepted it but AIM Data failed to persist the local audit record. | Preserve `publishedListingId` and `retrySnapshotPayload`; open the listing URL to prove publish succeeded; inspect only the disclosure-snapshot response. Do not call Publish again. | Repair-05 | CONFIRMED |
+| F-07 | A UUID dataset is `preview_ready` and its artifact exists at `/data/processed/<id>.parquet`, but the on-demand sketch or quality request reports `Dataset not found` | **FIXED IN AIM DATA MAIN, T-2026-000249; release/customer-path verification pending.** The old readiness code asked DuckDB to discover the UUID by scanning only direct files under `/data`, so it missed the canonical processed artifact. The customer effect is a missing Statistical Profile and Quality Scorecard on the Readiness tab; this is not a listing approval or publish blocker. | Read the canonical `ProcessingService` record for the UUID and confirm `record.processed_path` points to the existing processed Parquet file. Confirm the deployed sketch and quality services resolve that record instead of calling `DuckDBService.get_dataset_by_id`; then exercise both Readiness-tab panels. Do not diagnose the absence of these panels as a publish-path failure. | Repair-06 | CONFIRMED |
 
 Read the exact first failing hop. A UI failure before `/api/marketplace/publish`, an AIM Data registration failure, a signed-receiver failure, and a post-publish disclosure failure have different owners and must not be collapsed into “publish broken.”
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -253,11 +259,11 @@ Read the exact first failing hop. A UI failure before `/api/marketplace/publish`
   integrity_check: "Code review is DeepSeek APPROVE and the full tests/test_data_readiness.py suite passed 18 tests for 56a3371d1f806d02e1c9eb7ac1bac8c1ee788303. Before resolving T-2026-000249, release that fix and verify through the customer path that a preview_ready UUID dataset loads both Statistical Profile and Quality Scorecard from its canonical processed_path."
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
 Evaluate predicates in order; the first match wins.
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - The customer begins this journey from a signed-in AIM Data install; the website never creates or publishes listings.
 - The install-registration route is exactly `POST /api/v1/vz/register`. Registration is the act of provisioning the authenticated caller as seller; it is not named `/register-install`.
@@ -270,27 +276,27 @@ Evaluate predicates in order; the first match wins.
 - A successful publish returns and locally persists the canonical listing id; a disclosure retry never republishes the listing.
 - Any operation touching the money path or a production customer account escalates to Max before mutation.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
-- Changes any §H.1 invariant.
+- Changes any H.1 invariant.
 - Adds or changes a public route/response contract without a backwards-compatible shim, including renaming `/api/v1/vz/register` or adding another publish endpoint.
 - Changes the seller/install auth boundary, weakens the active-seller gate, exports the signing key, or changes scope semantics for existing callers.
 - Removes a field, changes a field type, or adds a required field without a default in the public registration/publish/disclosure contracts or their persisted cross-repo state.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Adds a feature to the existing sign-in, registration, listing-preparation, disclosure, or publish surfaces after all BREAKING predicates fail.
-- Moves functions across the source-root module boundaries defined in §H.5 or changes more than one repository in this journey.
+- Moves functions across the source-root module boundaries defined in H.5 or changes more than one repository in this journey.
 - Changes a config default in an authoritative config file or adds a runtime dependency.
 - Changes retry/idempotency behavior, browser job checkpoints, metadata approval transitions, or registration timing without changing a public contract.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
-- Fixes a bug within existing semantics and within one module, preserving all public signatures and §H.1 invariants.
+- Fixes a bug within existing semantics and within one module, preserving all public signatures and H.1 invariants.
 - Adds tests, browser-job assertions, or documentation without changing runtime behavior.
 - Refactors within one module while preserving registration, state-transition, signing, gate, and response contracts.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -308,11 +314,11 @@ Any production dependency entry in either Python project's `requirements*.txt` o
 
 A shipped default in AIM Data `app/config.py` or ai-market-backend's canonical settings/config modules. Environment overrides, feature flags, browser job parameters, and test-only overrides are not config defaults.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
-If agents disagree, the more restrictive classification wins. Unresolved disputes, and every question involving the money path or production customer accounts, escalate to Max; record the ruling as a §H.1 clarification in the same change.
+If agents disagree, the more restrictive classification wins. Unresolved disputes, and every question involving the money path or production customer accounts, escalate to Max; record the ruling as a H.1 clarification in the same change.
 
-## §I. Acceptance Criteria
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
@@ -411,7 +417,7 @@ scenario_set:
   - id: I-09
     type: evolve
     refs:
-      - §H.2
+      - H.2
     scenario: A proposal adds POST /api/v1/aim-data/publish so AIM Data can bypass the VZ route. Classify it.
     expected_answers:
       - kind: classification
@@ -420,7 +426,7 @@ scenario_set:
   - id: I-10
     type: evolve
     refs:
-      - §H.4
+      - H.4
     scenario: A proposal adds a unit test that asserts Accept all works when listing_id is null, with no production code change. Classify it.
     expected_answers:
       - kind: classification
@@ -446,9 +452,7 @@ scenario_set:
     weight: 0.0909090909
 ```
 
-The scenario set uses equal weights (1/11 each, within linter tolerance) and passes at a weighted score of at least 0.80. The expected-answer key must receive independent MP + AG concurrence before promotion into a hidden/external harness set.
-
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1229
@@ -462,22 +466,7 @@ refresh_triggers:
   - incident or ticket in this end-to-end customer journey
   - new real-browser verification result or regression
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: 2026-07-14T19:17:29Z
 first_staleness_detected_at: null
 ```
 
-Source commits captured by this lifecycle refresh: AIM Data `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`, ai-market-backend `dfd926ec`, and runbooks base `9e2c542`. The T-2026-000249 code fix has `tests/test_data_readiness.py` 18/18 passing and DeepSeek APPROVE; release and customer-path verification of both Readiness-tab panels remain before ticket closure. §B evidence is current to 2026-07-14, so no row carries the `UNVERIFIED` overlay.
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1229 / 2026-07-15T15:45:03Z
-last_lint_result: PASS
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
-```
-
-Conformance intent: all §A–§K sections appear once and in order; §B–§D and §F use the exact prescribed columns; §E, §G, §I, §J, and §K use their single fenced YAML agent forms; §H uses the required predicate subsections and boundary definitions; every §F repair reference, §G symptom reference, and §G component reference resolves; the 11 equal weights sum to 1.0 within tolerance and meet the required distribution. This is a new runbook, not a retrofit, so trace-matrix and word-count-delta fields are null.
+Source commits captured by this lifecycle refresh: AIM Data `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`, ai-market-backend `dfd926ec`, and runbooks base `9e2c542`. The T-2026-000249 code fix has `tests/test_data_readiness.py` 18/18 passing and DeepSeek APPROVE; release and customer-path verification of both Readiness-tab panels remain before ticket closure. Capabilities evidence is current to 2026-07-14, so no row carries the `UNVERIFIED` overlay.

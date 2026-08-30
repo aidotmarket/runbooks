@@ -1,3 +1,11 @@
+---
+title: Gateway V2 Rollback
+owner: unassigned
+last_verified: '2026-06-06'
+aliases: []
+error_signatures: []
+---
+
 # Gateway V2 Rollback
 
 ## Purpose
@@ -53,3 +61,6 @@ Confirm from the customer perspective:
 - existing receipts remain readable where policy permits
 - no rollback job rewrites canonical backend records to hide the incident
 
+## When it breaks
+
+Use the Rollback Order and Trigger Conditions above when Gateway V2 must be backed out.

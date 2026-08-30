@@ -1,3 +1,11 @@
+---
+title: Daily CRM Briefing — First Real-Content Verification
+owner: Max / Vulcan next-session
+last_verified: '2026-07-31'
+aliases: []
+error_signatures: []
+---
+
 # Daily CRM Briefing — First Real-Content Verification
 **Date**: 2026-04-25 07:00 UTC (first delivery after S499 data backfill + S501/S502 Chunk A fixes)
 **Owner**: Max / Vulcan next-session
@@ -51,7 +59,7 @@ the fallback is dormant. If fallback engages today, something is wrong with S499
 Screenshot the Gmail inbox (not the full body) + paste the 3-line-summary from Railway logs into
 this file as an evidence block. This is Day 1 of the AC11 7-consecutive-day window.
 
-## Rollback path if briefing delivers wrong/empty content
+## When it breaks
 
 S499 backfill rollback is documented in Living State `body.revised_three_tracks.track_1_emergency_data_restoration.rollback_path_if_needed`. Do NOT roll back unless a subsequent bug is traced to the backfill itself.
 

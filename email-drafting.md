@@ -1,3 +1,11 @@
+---
+title: Email Drafting
+owner: unassigned
+last_verified: '2026-03-06'
+aliases: []
+error_signatures: []
+---
+
 # Email Drafting
 
 ## What it does
@@ -35,3 +43,7 @@ After drafting, log the outreach in CRM:
 ```
 crm_log_interaction(entity_id, interaction_type="email", content="...", summary="...")
 ```
+
+## When it breaks
+
+This page does not define a separate break/fix procedure. Correct the prose if the documented operation changes.

@@ -1,56 +1,39 @@
 ---
-runbook_id: chrome-browser-use
-domain: browser-operations
-status: DRAFT
-authoritative_for:
-  - topic: chrome-browser-use-recovery
-    section: §E. Operate
-  - topic: chrome-browser-use-failure-isolation
-    section: §F. Isolate
-aliases:
-  - browser-use
-  - chrome-extension-native-host
-  - chrome-native-messaging
-  - codex-desktop-chrome
-  - ops-ai-market-browser
-  - titan-1-browser-use
-  - kdbrowser-identity-boundary
-error_signatures:
-  - signature: The admin-enforced policy could not be verified
-    section: §F. Isolate
-  - signature: Cannot communicate with the ChatGPT browser extension
-    section: §F. Isolate
-  - signature: Browser service/config bridge stale or unavailable
-    section: §F. Isolate
-  - signature: Native host manifest does not exist
-    section: §F. Isolate
-  - signature: "Browser is not available: chrome"
-    section: §F. Isolate
-supersedes: []
-superseded_by: []
+title: Chrome Browser Use on Titan 1
 owner: vulcan
-last_verified_at: "2026-08-28"
-system_name: chrome-browser-use
-purpose_sentence: Diagnose and recover sanctioned Codex Desktop control of an operator's existing Chrome tabs on Titan 1 without bypassing policy or crossing browser identities.
-owner_agent: vulcan
-escalation_contact: max
-lifecycle_ref: §J
-authoritative_scope: |
-  Operator Chrome Browser Use on Titan 1, including existing authorized ops.ai.market tabs; extension and native-host transport isolation; managed-config bridge isolation; and post-recovery DOM proof. This DRAFT records verified operating evidence but is discovery-only until independently promoted.
-linter_version: 1.0.0
+last_verified: '2026-08-28'
+aliases:
+- browser-use
+- chrome-extension-native-host
+- chrome-native-messaging
+- codex-desktop-chrome
+- ops-ai-market-browser
+- titan-1-browser-use
+- kdbrowser-identity-boundary
+error_signatures:
+- The admin-enforced policy could not be verified
+- Cannot communicate with the ChatGPT browser extension
+- Browser service/config bridge stale or unavailable
+- Native host manifest does not exist
+- 'Browser is not available: chrome'
+- 'Google Chrome running: no'
+- installed false or enabled false
+- correct false
+- config_read_ok false
+- config_requirements_read_ok false
+- Exact operator tab not found
 ---
 
 # Chrome Browser Use on Titan 1
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
 This runbook covers the normal authorized operator Chrome identity used for internal operations such as `https://ops.ai.market/build-queue`. The `kdbrowser` account and its browser profile are only for isolated ai.market synthetic customer journeys. Never use a `kdbrowser` identity or profile for internal operations, and never move an internal operator tab into that identity.
 
 **Boot-time hard rule:** when `browser.user.openTabs()` succeeds and a following `claimTab` or `playwright.domSnapshot` call returns `The admin-enforced policy could not be verified`, the diagnosis is F-03: a stale or unavailable Codex Desktop Browser service/config bridge. It is not an administrator policy decision. Before proposing recovery, read live state entity `incident:codex-browser-bridge-f03`; while `T-2026-000714` remains open, carry that entity into every Vulcan handoff. On Titan 1, the host-local ai.market project bootstrap at `/Users/max/.codex/.chatgpt-projects/g-p-6a7121bd8a948191bd8fe9bd87db7224/AGENTS.md` repeats this rule so it is loaded before browser work in a fresh chat. That bootstrap is runtime project configuration, not a file tracked by the ai.market product repositories.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -62,7 +45,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Extension-backed DOM control after transport recovery | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs` | S1588 confirmed reinstall recovery; S1605 confirmed operator-window recovery and live Build Queue DOM proof | 2026-08-24 |
 | Operator and synthetic-browser identity separation | SHIPPED | `titan-1.md` | Titan 1 inventory identifies kdbrowser as the isolated browser-test account | 2026-08-24 |
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -73,7 +56,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Embedded Codex app-server | `/Applications/ChatGPT.app/Contents/Resources/codex app-server --listen stdio://` | Effective layered config and managed requirements | Codex Desktop and Browser service/config bridge | Use read-only `config/read` and `configRequirements/read`; filter output so full config is never printed. |
 | kdbrowser synthetic lane | Isolated Titan 1 account and browser runner | Separate user home, Codex state, and browser profile | Public ai.market synthetic customer journeys only | Never use for ops.ai.market or any other internal operation. |
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -83,7 +66,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Operator-session agent | Classify the managed-config bridge and prove recovery | app-server read interface plus `claimTab` and `playwright.domSnapshot` | Existing authorized operator tab or approved fresh operator-profile window | COMPLETE |
 | kdbrowser runner | Exercise isolated synthetic customer journeys | kd-browser runner | Public ai.market synthetic identity only | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -100,7 +83,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
   idempotency: IDEMPOTENT
   expected_success:
     shape: Process status plus JSON browser, extension, and manifest status.
-    verification: Apply the §F decision table in order; stop at the first failing layer.
+    verification: Apply the When it breaks decision table in order; stop at the first failing layer.
   expected_failures:
     - signature: "Google Chrome running: no"
       cause: Chrome is not running.
@@ -109,7 +92,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
     - signature: correct false
       cause: The native-host manifest is missing or does not match the packaged extension contract.
   next_step_success: If all transport checks pass, do not prescribe reinstall; continue with E-02 only when page access fails closed.
-  next_step_failure: Follow the matching §F row and §G recovery boundary.
+  next_step_failure: Follow the matching When it breaks row and Repair recovery boundary.
 
 - id: E-02
   trigger: openTabs succeeds but claimTab or playwright.domSnapshot fails with The admin-enforced policy could not be verified.
@@ -156,7 +139,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
   next_step_failure: Stop. Do not use API or curl output as substitute visual/browser proof and do not cross into kdbrowser.
 ```
 
-### §E.1 Exact read-only transport diagnostics
+### How to operate.1 Exact read-only transport diagnostics
 
 Run these commands exactly. They read process, browser inventory, selected-profile extension status, and native-host manifest status. They do not reveal extension contents, cookies, credentials, or keys.
 
@@ -172,7 +155,7 @@ codex_embedded_node=/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/no
 
 Interpret exit codes before recovery: `chrome-is-running.js --check` returns 0 when running, 1 when not running, and 2 on diagnostic error. `check-extension-installed.js` returns 0 when installed and enabled, 1 when disabled, 2 when missing, and 3 on diagnostic error. `check-native-host-manifest.js` returns 0 when correct, 1 when missing or incorrect, and 2 on diagnostic error.
 
-### §E.2 Secret-safe app-server semantic probe
+### How to operate.2 Secret-safe app-server semantic probe
 
 Run from the affected working directory. The short delays preserve the initialize handshake ordering. The `jq` projection intentionally discards the full effective config and reports only the read result and browser-use fields.
 
@@ -184,11 +167,11 @@ Run from the affected working directory. The short delays preserve the initializ
 
 Success means the direct read interfaces answered. It does not itself prove that the Browser service received fresh managed config or that DOM access works. If a requirements object contains an unfamiliar or denying value, preserve it without secrets and escalate; never edit it from this runbook.
 
-### §E.3 Post-recovery browser proof
+### How to operate.3 Post-recovery browser proof
 
 In a fresh Browser runtime when required, select Chrome explicitly with `agent.browsers.get("chrome")`. List `chrome.user.openTabs()`, choose the exact returned object for the existing authorized `https://ops.ai.market/build-queue` tab, pass that object to `chrome.user.claimTab(tab)`, and call `claimedTab.playwright.domSnapshot()`. Verify the expected signed-in operator identity from the visible DOM. Do not guess a tab ID, navigate a replacement identity, or treat curl/API output as this proof.
 
-## §F. Isolate
+## When it breaks
 
 Apply this table from A through C. `openTabs` success takes precedence over a reinstall habit: it proves the extension transport answered, so continue to C when the page-access error matches.
 
@@ -200,7 +183,7 @@ Apply this table from A through C. `openTabs` success takes precedence over a re
 | F-04 | Direct `config/read` or `configRequirements/read` fails | Embedded app-server/config source is unavailable or returned a protocol error | Preserve only the filtered E-02 error and Desktop version; do not dump config | G-04 | HYPOTHESIZED |
 | F-05 | `agent.browsers.get("chrome")` reports `Browser is not available: chrome`, while Chrome, extension and native-host diagnostics all pass | No live extension instance is answering the current Browser runtime even though installation state is healthy | Read the packaged `chrome-troubleshooting` guidance, wait two seconds and retry once. If it still fails, obtain operator approval for G-05; do not reinstall or restart unrelated services | G-05 | CONFIRMED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -249,7 +232,7 @@ Apply this table from A through C. `openTabs` success takes precedence over a re
   integrity_check: Browser documentation loads, openTabs answers, and a claimed operator-profile tab returns a DOM snapshot from https://ops.ai.market/build-queue showing the expected signed-in operator identity.
 ```
 
-### §G.1 Prohibited actions
+### Repair.1 Prohibited actions
 
 Never:
 
@@ -262,9 +245,9 @@ Never:
 - substitute AppleScript, shell browser automation, another browser family, curl, or API output for sanctioned Chrome DOM/visual proof;
 - claim that a trusted-worker-only restart, JavaScript-kernel reset, Browser-service rebuild, or same-lifecycle browser reselection repairs F-03.
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - Internal operations use the normal authorized operator Chrome identity; `kdbrowser` is synthetic-only.
 - Transport success and managed page-access success are separate proofs.
@@ -272,22 +255,22 @@ Never:
 - Human action is required for extension installation, enablement, reinstall, or native-host repair.
 - Recovery is not complete until an authorized operator tab returns a DOM snapshot and shows the expected signed-in identity.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Any change that weakens identity separation, permits policy bypass, or substitutes non-browser output for DOM/visual proof is BREAKING.
 - Any change that lets an agent autonomously install or repair extension/native-host state is BREAKING.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - A packaged diagnostic filename, exit-code contract, embedded binary path, Browser API, managed-requirements schema, or supported lifecycle boundary changes.
 - A new failure shares these symptoms but does not fit F-01 through F-05.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Updating dated evidence or version strings after repeating the same read-only diagnostics and DOM proof is SAFE.
 - Adding an exact new error alias that routes to an existing unchanged decision row is SAFE.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -305,17 +288,17 @@ Runtime dependencies are Codex Desktop, its embedded Node and app-server, the in
 
 An absent or null browser-use value means no explicit value was returned by the read interface. It is not permission and must not be rewritten or treated as a policy override.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Classify a proposed change at the highest-risk predicate it touches. Any ambiguity involving policy, identity, secrets, or visual proof remains fail closed and goes to the owner.
 
-## §I. Operational Examples
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set: []
 ```
 
-### §I.1 Recurring policy-bridge incident
+### Acceptance criteria.1 Recurring policy-bridge incident
 
 `T-2026-000714` tracks the recurring F-03 defect in Codex Desktop. When
 `browser.user.openTabs()` succeeds but the authorized operator tab fails with
@@ -346,7 +329,7 @@ The dated incident notes below are evidence for the exact recovery boundaries.
 - S1605 repeated G-05 proof, 2026-08-26: Chrome was not running while the selected Profile 1 extension was installed and enabled and the native-host manifest was correct. The already-authorized packaged `open-chrome-window.js --browser chrome` path opened the normal operator profile; after the documented two-second wait, refreshing the exact Chrome binding loaded Browser documentation and allowed a fresh tab to navigate once to `https://ops.ai.market/build-queue`. Visible DOM and screenshot proof showed the authorized operator page refreshed at 16:40 local time with 10 visible open rows, four certified-done rows hidden and zero alerts; the five former deployment-evidence warnings were absent. No Infisical access, `kdbrowser` identity, profile copy, extension change, policy change or browser-family substitution was used.
 - S1632 completed F-03 recovery proof, 2026-08-28: the exact verified Codex Desktop main process PID `41886` did not end through the normal quit path, then ended after PID-specific `SIGTERM`; no name-wide or unresolved process target was used. A normal relaunch produced new main PID `32900` with start time `2026-08-28 19:06:45 Europe/Madrid`. The fresh Chrome binding loaded Browser documentation, returned the existing authorized ops tab, and the single permitted E-03 claim/DOM attempt succeeded. After navigation of that claimed tab to `https://ops.ai.market/corpus`, visible DOM showed signed-in `max@ai.market`, connected state, the `CORPUS` navigation item, manual-approval/projection-gated policy text, capture inactive, zero needs-review/trusted/rejected/superseded items, and no pending review rows. No policy, profile, extension, manifest, allowlist, browser identity, or alternate browser was changed. This independently confirms the defect is the stale Codex Desktop Browser service/config bridge described by F-03, not an administrator policy decision.
 
-## §J. Lifecycle
+## Maintenance
 
 ```yaml lifecycle
 last_refresh_session: S1632
@@ -362,14 +345,3 @@ refresh_triggers:
   - successful_s1632_f03_recovery_proof
 scheduled_cadence: 90d
 ```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-retrofit: false
-trace_matrix_path: null
-word_count_delta: null
-```
-
-Simplicity check: this procedure adds one dedicated DRAFT runbook and only generator-owned discovery outputs required by the current corpus. It does not change runbook, Council, session, deployment, shared coordination, policy, plugin, or application machinery.

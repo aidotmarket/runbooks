@@ -1,51 +1,27 @@
 ---
-runbook_id: council-review-collection
-domain: council-operations
-status: ACTIVE
-authoritative_for:
-  - topic: council-review-collection
-    section: §C. Architecture & Interactions
-aliases:
-  - council-verdict-collection
-  - gate-recording
-error_signatures:
-  - signature: dispatch_sha_invalid
-    section: §E. Operate
-  - signature: review_preload_unresolved
-    section: §E. Operate
-  - signature: completion_truncated
-    section: §E. Operate
-  - signature: cc_verdict_parse_failure
-    section: §E. Operate
-  - signature: glm_page_path_hallucination
-    section: §E. Operate
-  - signature: gate_status_not_flipped
-    section: §E. Operate
-  - signature: peer_msg_silent_dedupe
-    section: §E. Operate
-  - signature: mp_lane_held
-    section: §E. Operate
-supersedes: []
-superseded_by: []
+title: Council Review Collection, Gate Recording, and Lane Coordination
 owner: mars
-last_verified_at: 2026-07-30
-system_name: council-review-collection
-purpose_sentence: Operating authority for collecting Council review verdicts reliably, folding mandates, recording gate results in Living State, and coordinating the shared MP builder lane between peer instances.
-owner_agent: mars
-escalation_contact: vulcan
-lifecycle_ref: §J
-authoritative_scope: |
-  The mechanics of running a review round on the live CC/Kimi/GLM panel: per-reviewer dispatch traps and their at-dispatch mitigations, verdict collection and repair, mandate folding into gate revisions, recording gate outcomes on build:bq-* entities (including the leaf-patch requirement for gateN.status), and peer-bus lane coordination for the single MP builder. NOT gate selection or the four-gate lifecycle itself; see council-gate-process.md. NOT roster composition or model pins; infra:council-comms in Living State is canonical for the live roster, models, cost caps, and per-agent activation state. NOT dispatch transport internals; see agent-dispatch.md.
-linter_version: 1.0.0
+last_verified: '2026-07-30'
+aliases:
+- council-verdict-collection
+- gate-recording
+error_signatures:
+- cc_verdict_parse_failure
+- completion_truncated
+- dispatch_sha_invalid
+- gate_status_not_flipped
+- glm_page_path_hallucination
+- mp_lane_held
+- peer_msg_silent_dedupe
+- review_preload_unresolved
 ---
 
 # Council Review Collection, Gate Recording, and Lane Coordination
 
-## §A. Header
+## Overview
 
-YAML frontmatter above is authoritative for the §A header fields.
 
-## §B. Capability Matrix
+## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
@@ -58,7 +34,7 @@ YAML frontmatter above is authoritative for the §A header fields.
 
 Backing-code paths are relative to the koskadeux-mcp repository root.
 
-## §C. Architecture & Interactions
+## Architecture & interactions
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
@@ -72,7 +48,7 @@ Backing-code paths are relative to the koskadeux-mcp repository root.
 
 Canonical live-roster reference: `state_request(action=get, key=infra:council-comms)`. Read it before any Council work in a session; this runbook does not restate roster, model pins, or cost caps.
 
-## §D. Agent Capability Map
+## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
@@ -81,7 +57,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | mp | builder only; excluded from reviewing its own work | dispatch_mp_build | build lane | COMPLETE |
 | cc, kimi, glm | review-only voters | per infra:council-comms | read-only at SHA | COMPLETE |
 
-## §E. Operate
+## How to operate
 
 ```yaml operate
 - id: E-01
@@ -155,7 +131,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   next_step_failure: resend with a varied ref_entity or kind; for the lane, wait for the peer's lane-free status and verify ground truth with git status before any redispatch, because a silent task past 300 seconds may still have delivered
 ```
 
-## §F. Isolate
+## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
@@ -166,7 +142,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | F-05 | Peer never reacted to a follow-up bus message | silent dedupe swallowed it | check peer_messages for a new row id after the send | G-05 | HYPOTHESIZED |
 | F-06 | MP dispatch refused or times out while the peer session is live | lane held by the peer, or the task silently completed | drain the bus for claims; check git status in the target repo before redispatch | G-06 | HYPOTHESIZED |
 
-## §G. Repair
+## Repair
 
 ```yaml repair
 - id: G-01
@@ -219,9 +195,9 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   integrity_check: dispatch proceeds without mp_busy and no duplicate build lands
 ```
 
-## §H. Evolve
+## Changes and maintenance
 
-### §H.1 Invariants
+### H.1 Invariants
 
 - The builder never reviews its own work; MP is excluded from panels on MP-built SHAs.
 - Security, auth, payments, production-data, and customer-data gates require the complete unanimous live panel; no reduced quorum, no substitute voter.
@@ -229,23 +205,23 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 - Gate status writes use the canonical vocabulary; free text is not a gate status.
 - infra:council-comms is canonical for roster, models, caps, and quirk updates; this runbook defers to it.
 
-### §H.2 BREAKING predicates
+### H.2 BREAKING predicates
 
 - Changing the required voter set or quorum for any gate class.
 - Making any fail-closed verdict path fail-open.
 - Allowing gate status recording without a complete valid panel.
 
-### §H.3 REVIEW predicates
+### H.3 REVIEW predicates
 
 - Changing per-reviewer dispatch defaults (token budgets, turn caps, cwd resolution).
 - Changing the peer-bus dedupe tuple or the claim/release protocol.
 
-### §H.4 SAFE predicates
+### H.4 SAFE predicates
 
 - Adding new error signatures or isolate rows from observed incidents.
 - Tightening prompts or budgets within existing caps.
 
-### §H.5 Boundary definitions
+### H.5 Boundary definitions
 
 #### module
 
@@ -263,17 +239,17 @@ koskadeux-mcp gateway, Living State, the peer bus, and the provider endpoints na
 
 Per-reviewer budgets and caps as recorded in infra:council-comms at dispatch time.
 
-### §H.6 Adjudication
+### H.6 Adjudication
 
 Ambiguity between this runbook and infra:council-comms resolves in favor of infra:council-comms for roster, model, and cap facts, and in favor of this runbook for collection procedure. Disputes escalate to the peer instance first, then to Max only for genuine forks.
 
-## §I. Scenario Set
+## Acceptance criteria
 
 ```yaml acceptance
 scenario_set:
   - id: I-01
     type: operate
-    refs: [E-01, §C]
+    refs: [E-01, Architecture & interactions]
     scenario: |
       id: E-01. trigger: Kimi review needed on an ai-market-backend SHA. pre_conditions: SHA fetched locally, exact review prompt prepared, review scoped within the cost cap. tool_or_endpoint: council_request(agent=kimi, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<backend_checkout>). argument_sourcing: task from exact gate/spec questions and changed files with read-only scope; cwd is the repo containing the SHA; review_sources does not satisfy the resolver. idempotency: IDEMPOTENT. expected_success: receipt with resolved SHA, preloaded context, complete coverage. expected_failures: dispatch_sha_invalid when cwd is omitted. next_step_success: collect the verdict and record per E-02. next_step_failure: pass cwd explicitly and re-dispatch.
     expected_answers:
@@ -372,16 +348,16 @@ scenario_set:
     weight: 0.09090909090909091
   - id: I-09
     type: evolve
-    refs: [§H, E-02]
+    refs: [Changes and maintenance, E-02]
     scenario: |
-      id: H-01. trigger: a proposal lets a two-of-three panel record a security-class gate when the third voter's provider is down. pre_conditions: the proposed rule text and the affected gate classes are described. tool_or_endpoint: runbook and gate-recording contract patch. argument_sourcing: current invariants from §H.1; quorum rule from the security gate contract. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes the required voter set for a gate class. expected_failures: calling it operational resilience, or shipping it as a temporary exception without the amendment gate. next_step_success: route through full Council review plus Max approval. next_step_failure: keep the unanimous requirement unchanged.
+      id: H-01. trigger: a proposal lets a two-of-three panel record a security-class gate when the third voter's provider is down. pre_conditions: the proposed rule text and the affected gate classes are described. tool_or_endpoint: runbook and gate-recording contract patch. argument_sourcing: current invariants from H.1; quorum rule from the security gate contract. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as BREAKING because it changes the required voter set for a gate class. expected_failures: calling it operational resilience, or shipping it as a temporary exception without the amendment gate. next_step_success: route through full Council review plus Max approval. next_step_failure: keep the unanimous requirement unchanged.
     expected_answers:
       - kind: classification
         label: BREAKING
     weight: 0.09090909090909091
   - id: I-10
     type: evolve
-    refs: [§H, E-01]
+    refs: [Changes and maintenance, E-01]
     scenario: |
       id: H-02. trigger: a proposal raises the default Kimi review token budget and turn protocol for all delta reviews. pre_conditions: the proposed defaults and the cost-cap impact are described. tool_or_endpoint: dispatch-default change in the review harness configuration. argument_sourcing: current defaults from this runbook and infra:council-comms; caps from the reviewer entries. idempotency: CHANGE_REVIEW_REQUIRED. expected_success: classify as REVIEW because it changes per-reviewer dispatch defaults without touching quorum or fail-closed behavior. expected_failures: treating it as SAFE because it is only a budget, or letting it silently raise spend past the cap. next_step_success: review the change and update this runbook plus infra:council-comms together. next_step_failure: keep current defaults.
     expected_answers:
@@ -401,7 +377,7 @@ scenario_set:
     weight: 0.09090909090909091
 ```
 
-## §J. Lifecycle
+## Maintenance
 
 Initial registration at S1408. No harness run has been executed against this scenario set yet.
 
@@ -414,21 +390,6 @@ refresh_triggers:
   - roster, model, or cap changes in infra:council-comms
   - dispatcher resolver or envelope-parser changes in koskadeux-mcp
   - peer-bus dedupe or claim protocol changes
-  - runbook-lint or runbook-harness schema changes
 scheduled_cadence: 90d
-last_harness_pass_rate: PENDING_HARNESS_TOOLING (BQ-RUNBOOK-HARNESS-COMPACT-IO)
-last_harness_date: null
 first_staleness_detected_at: null
 ```
-
-## §K. Conformance
-
-```yaml conformance
-linter_version: 1.0.0
-last_lint_run: S1408 / 2026-07-30T16:45:00Z
-last_lint_result: PASS
-trace_matrix_path: null
-word_count_delta: null
-```
-
-The §K block records the strict-lint result; harness state is authoritative in §J.

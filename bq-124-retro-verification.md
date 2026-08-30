@@ -1,3 +1,11 @@
+---
+title: BQ-124 Retro-Verification Procedure
+owner: unassigned
+last_verified: '2026-04-19'
+aliases: []
+error_signatures: []
+---
+
 # BQ-124 Retro-Verification Procedure
 
 ## What this is
@@ -177,3 +185,7 @@ Living State follow-up after verification:
 - then close both again once the post-infra runtime evidence is attached
 
 This document defines the procedure only. It does not execute the retro-verification itself.
+
+## When it breaks
+
+This page does not define a separate break/fix procedure. Correct the prose if the documented operation changes.

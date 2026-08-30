@@ -1,3 +1,11 @@
+---
+title: CRM Architecture
+owner: unassigned
+last_verified: '2026-08-09'
+aliases: []
+error_signatures: []
+---
+
 > **SUPERSEDED 2026-08-09 (S1490). DO NOT USE.**
 > Replaced by `runbooks/crm.md`. This document describes fourteen `crm_*` tables as active in
 > production. All fourteen were deleted on 2026-07-03 by migration
@@ -107,7 +115,7 @@ All under `app/services/`:
 - `delete_entity` and `delete_task` are wired with `requires_authorization=True`. The `AgentRequestFactory` HITL gate (`app/allai/agent_request_factory.py`, "HITL gate" section) hard-blocks any skill whose `_skill_meta.requires_authorization` is true: it persists a pending row in `agent_hitl_request` and returns `status=pending_hitl` without executing. Approval via `POST /api/v1/agents/ops/hitl-queue/{id}/approve` (superuser) executes the stored call; deny discards it. Regression guard: `tests/test_crm_steward_delete_skill_exposure_t219.py` (also asserts no other steward skill silently gains the gate).
 - Post-cutover dedup (T-2026-000217): `CRMEntityService.find_existing_person/organization/person_by_name` run ONLY the party-native queries; the legacy `crm_people`/`crm_organizations` SELECTs are gated behind `legacy_fallback_enabled()` (hard-False since the S1113 table drop). Steward responses key `contact_id`/`entity.id`/audit on `party_id` via `_party_id_str()`. Symptom of regression: upsert returns empty `contact_id` + output-validation failure + no row in `party_person` (an `UndefinedTable` rollback upstream).
 
-## Known issues (S500 audit — supersedes S364)
+## When it breaks
 
 ### Bugs fixed S364
 - CC contacts not getting interactions logged → fixed `aee7796`

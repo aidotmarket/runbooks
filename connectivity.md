@@ -1,3 +1,11 @@
+---
+title: Connectivity Layer
+owner: SysAdmin agent / Council instances.
+last_verified: '2026-05-31'
+aliases: []
+error_signatures: []
+---
+
 # Connectivity Layer
 
 **Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Titan-1 incl. serials + `tailscale whois`.
@@ -92,7 +100,7 @@ works only because both sit on the same LAN.
     ipconfig getifaddr en0; route -n get default       # LAN addr + uplink
     curl -s http://localhost:8767/health               # local gateway health
 
-## Known issues / follow-ups
+## When it breaks
 
 - **Duplicate tailnet node `titan-1` (100.108.49.1)** is a stale second identity of the Mac
   Studio (serial-confirmed). Remove it from the Tailscale admin console to stop the confusion
