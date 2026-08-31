@@ -15,6 +15,7 @@ EXCLUDED_ROOT_PAGES = {
     "ERRORS.md",
     "INDEX.md",
     "PLAN-runbook-simplification.md",
+    "PLAN-seller-workspace-cloud-listing-delivery.md",
     "PLAN-v5b-controlled-dispatch.md",
     "README.md",
     "task_state.md",
