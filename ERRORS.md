@@ -880,6 +880,14 @@
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
 
+## `seller_workspace_aws_connect_disabled`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `seller_workspace_disabled`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
 ## `Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL`
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
@@ -1071,6 +1079,30 @@
 ## `webhook_predicate_column_mismatch`
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
+
+## `workspace_connection_assume_role_denied`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `workspace_connection_authorization_unavailable`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `workspace_connection_binding_mismatch`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `workspace_connection_credential_unavailable`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `workspace_connection_revoked`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
+## `workspace_connection_rotation_conflict`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
 
 ## `wrong_emergency_lever`
 
