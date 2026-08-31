@@ -62,12 +62,14 @@ The buyer never receives the seller's connection authority and cannot ask the br
 
 | Resource | States | Required transitions |
 |---|---|---|
-| Cloud connection | `pending_authorization`, `verified`, `disabled`, `revoked`, `error` | Only a verified connection can select or read objects. Disconnect enters `revoked`, blocks new grants immediately, and truthfully reports any residual provider-token lifetime. |
+| Cloud connection | `pending_authorization`, `verified`, `disabled`, `revoked`, `error` | Only a verified connection can select or read objects. Disconnect enters `revoked`, blocks new grants immediately, and truthfully reports any residual provider-token lifetime. Reconnect never revives a revoked record; it creates a new pending connection and authorization ceremony. |
 | Profile job | `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired` | A lease and immutable input bind every run. Terminal states trigger cleanup. Retry creates a recorded attempt; it cannot broaden scope. |
-| Listing/disclosure | `draft`, `ready_for_review`, `approved`, `published`, `superseded`, `withdrawn` | Approval is bound to exact hashes. Any material change creates a new draft/version and invalidates prior approval. |
+| Listing/disclosure | `draft`, `ready_for_review`, `approved`, `published`, `paused`, `superseded`, `withdrawn` | Approval is bound to exact hashes. Any material change creates a new draft/version and invalidates prior approval. Pause is reversible discoverability/sale disablement of the same immutable version; withdrawal is terminal for that version. |
 | Public sample | transient candidate, approved artifact, superseded, withdrawn | Approval creates an immutable artifact. Mutation of the provider source cannot mutate it. Withdrawal removes public bytes but retains redacted audit hashes and metadata. |
 
 Illegal transitions fail closed and emit a redacted audit event.
+
+A published `workspace_connection` listing is sellable only while its referenced connection is `verified`. `disabled`, `error`, and `revoked` make it delivery-unavailable before purchase and prevent new grants; recovery requires reverification or a new connection and a new listing/source version. Existing `legacy_serial` availability continues to use its current rules.
 
 ## Contract ownership and physical placement
 
@@ -94,7 +96,7 @@ Field names below are the minimum semantic contract. W2 may choose database synt
 
 ### `CloudConnection`
 
-- `id`, `seller_id`, `provider`, `status`, and optimistic `version`.
+- `id`, `seller_id`, `provider`, `status`, rotation substate, and optimistic `version`.
 - Provider account, jurisdiction/region, allowed bucket, and allowed prefix/object ceiling.
 - `credential_ref`, credential kind, provider authorization metadata, created/verified/rotated/revoked timestamps.
 - Redacted health and last verification result; never a plaintext secret.
@@ -180,6 +182,16 @@ They return normalized errors and redacted evidence. Provider SDK objects, token
 - Preserve the current `legacy_serial` algorithm and listings unchanged. Do not derive the new ExternalId from an AIM Data serial or global application secret.
 - Rotation creates a controlled overlap/reverification window for that connection only. Disconnect blocks new assumes immediately.
 
+The W2 trust bootstrap ceremony is fixed as follows:
+
+1. An authenticated active seller creates a pending AWS connection. The backend generates the ExternalId with a CSPRNG, binds it to that seller and connection, and stores it under the same versioned envelope-encryption boundary as provider credentials.
+2. While the connection is pending, an authenticated, owner-only, `Cache-Control: no-store` ceremony response supplies the configured ai.market AWS principal, exact trust-policy JSON shape, and that connection's ExternalId. The frontend renders them as copy-only text. They are prohibited from browser persistence, URLs, analytics, logs, traces, task payloads/results, prompts, listings, samples, support screens, and buyer grants. If the ceremony cannot be recovered safely, the seller starts a new pending connection.
+3. The seller configures the role, then submits role ARN, bucket, prefix, and region to that pending connection exactly once. The backend does not accept an ExternalId from the seller and assumes only with the value already bound to that connection.
+4. Verification pins the configured ai.market principal plus seller, AWS account, role, bucket, prefix, and region. It changes the connection to `verified` and permanently closes the bootstrap response. Later operations accept only the connection ID and cannot replace those bindings.
+5. Rotation generates and ceremony-displays a new encrypted ExternalId for that connection only. The seller temporarily permits old and new values, the backend verifies the new value and atomically activates it, and the seller removes the old value. Until activation, the old value remains authoritative; after activation, the backend cannot use or redisplay it. A separate rotation substate records pending verification, old-value removal, completion, or failure. An overlap deadline fails closed rather than silently widening trust.
+
+The ExternalId is an owning-seller-visible confidential operational identifier, not a buyer secret or listing field. Two-seller, foreign/revoked-connection, ceremony replay, redaction-scan, rotation-isolation, and unchanged-`legacy_serial` tests are mandatory in W2. The exact ai.market AWS principal is deployment configuration and must be included in deployed-environment verification; it may never be inferred from seller input.
+
 ### Cloudflare R2 decision boundary
 
 R2 remains capability-off until W6 proves the exact public OAuth client, scopes, resource binding, token lifecycle, temporary credentials or presigning behavior, and revocation model with a synthetic account. No stored bucket token fallback is authorized without Max's explicit decision.
@@ -195,13 +207,14 @@ Backend configuration starts with a master `SELLER_WORKSPACE_ENABLED` and explic
 Seller routes live under `/api/v1/seller-workspace`:
 
 - `GET /capabilities`;
-- `POST|GET /connections`;
+- `POST|GET /connections`; AWS creation returns the owner-only pending trust ceremony described above;
+- `GET /connections/{id}/authorization` only while an owner-bound connection/rotation is pending, with `no-store` and audit controls;
 - `POST /connections/{id}/verify`, `/rotate`, and `/disconnect`;
 - `GET /connections/{id}/objects` with server-enforced pagination and scope;
 - `POST|GET /profile-jobs` and `POST /profile-jobs/{id}/cancel`;
 - `POST|GET|PATCH /listing-drafts`;
 - `POST /public-samples/approve` and `/public-samples/{id}/withdraw`;
-- `POST /publish`.
+- `POST /publish` and `POST /listings/{id}/pause|resume` for reversible sale/discoverability control.
 
 All mutations require an active seller capability, resource ownership, an idempotency key, and an audit event. Buyer delivery remains on the existing order/download surface and calls the dual-authority resolver internally.
 
@@ -224,9 +237,11 @@ Source text remains data. It is never concatenated into system/developer instruc
 
 ### Cross-tenant authorization
 
-Every W2-W5 test suite must use at least two sellers and foreign IDs for connection, selector, job, evidence, draft, approval, sample, listing version, order, and grant. Test list, read, update, cancel, approve, publish, rotate, disconnect, and grant. Required outcome is a uniform denial with no existence, timing, error-text, audit-detail, or pagination leak.
+Every W2-W5 test suite must use at least two sellers and foreign IDs for connection, selector, job, evidence, draft, approval, sample, listing version, order, grant, object-list cache, profile-result cache, and response memoization. Test list, read, update, cancel, approve, publish, rotate, disconnect, and grant. Required outcome is a uniform denial with no existence, timing, error-text, audit-detail, pagination, cache-key, cache-hit, or stale-response leak. Every cache key and invalidation path includes the owning seller and immutable resource version.
 
 Support/operator access is separately authorized, purpose-bound, redacted, and audited. Administrator status is not an implicit provider-credential reader.
+
+Connection creation, bootstrap retrieval, verification, and rotation have seller, source-IP/risk, and global rate/concurrency limits plus pending-connection quotas and short expiry. Repeated ceremonies cannot create an unbounded credential, database, provider-call, or audit-log workload. Rate-limit responses do not disclose whether a foreign connection exists.
 
 ### Bounded processing
 
@@ -249,6 +264,7 @@ One job runs per worker child. Each job has an isolated ephemeral directory, har
 - Table cells are inert text. Generated CSV neutralizes spreadsheet formula prefixes. Filenames are normalized and cannot contain paths or control characters.
 - Downloads set an allowlisted MIME type, safe `Content-Disposition`, `X-Content-Type-Options: nosniff`, size limits, and normalized names. Archives are rejected until an explicit safe archive contract exists.
 - Generated shell commands are built from structured argument arrays and a reviewed quoting library, with explicit shell/platform variants. Tests cover quotes, newlines, backslashes, metacharacters, command substitutions, Unicode controls, and overlong arguments. No raw provider value is interpolated into executable text.
+- A presigned GET URL is a bearer credential and can normally be replayed until provider expiry; one-time issuance by ai.market is not a claim of provider-enforced one-time use. W5 sets a short maximum TTL, redacts the complete URL from every log/trace/referrer, uses safe response-header overrides and browser cache/referrer policy, defines download-count semantics, and truthfully shows the residual replay window. Tests cover capture/replay before and after expiry.
 
 ### Credential and audit custody
 
@@ -262,8 +278,9 @@ One job runs per worker child. Each job has an isolated ephemeral directory, har
 - Transient candidate bytes use tenant/job isolation, encryption, short TTL, and backup/log exclusion.
 - Approval copies only the bounded selected artifact into immutable content-addressed public storage and records source and render hashes.
 - Provider mutation, deletion, permission loss, version drift, ETag/hash mismatch, or region change cannot alter an approved artifact. A replacement requires new evidence, disclosure, and approval.
-- Withdrawal immediately removes public reachability and new listing references. Audit retains hashes, reasons, actors, and timestamps, not withdrawn sample contents.
+- Withdrawal immediately removes origin authorization and new listing references and triggers CDN purge. It does not claim erasure of copies already downloaded or held in browser/intermediary caches. W4 freezes storage/CDN cache-control and maximum-age values, proves purge behavior, and states the residual cache window truthfully. Audit retains hashes, reasons, actors, and timestamps, not withdrawn sample contents.
 - A takedown path can block public access without needing provider authority and preserves legally required redacted evidence under a separately documented retention policy.
+- W4 evaluates storage-layer immutability/WORM for approved artifacts. Adoption must preserve the distinction between immutable retained bytes and immediate removal of public reachability; application credentials alone must not be able to overwrite an approved content address.
 
 ### Revocation and rollback
 
