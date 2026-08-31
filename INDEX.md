@@ -81,6 +81,15 @@
 - Error signatures: none
 - Status: current
 
+## ai.market Seller Workspace Cloud Listing and Delivery
+- Path: `seller-workspace-cloud-listing-delivery.md`
+- Purpose: This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
+- Owner: `vulcan`
+- Last verified: `2026-08-31`
+- Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
+- Error signatures: none
+- Status: current
+
 ## ai.market Trust Channel Control Plane Runbook
 - Path: `trust-channel.md`
 - Purpose: This runbook was source-audited against `aidotmarket/ai-market-backend` `origin/main` at `a51770aba9fe372ab3e305b4a3e3ab871b94d857` on 2026-07-13. The KMS registration and handshake sections were re-audited against production merge `447075d43c8fa2ad1a43b05754457163990adce3` on 2026-08-25. The mounted API prefix is `/api/v1`; use the routes below, even where an endpoint docstring omits `/api`.
