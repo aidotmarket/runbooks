@@ -87,7 +87,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-08-31`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
-- Error signatures: seller_workspace_disabled, seller_workspace_aws_connect_disabled, workspace_connection_authorization_unavailable, workspace_connection_binding_mismatch, workspace_connection_assume_role_denied, workspace_connection_credential_unavailable, workspace_connection_rotation_conflict, workspace_connection_revoked
+- Error signatures: seller_workspace_disabled, seller_workspace_aws_connect_disabled, workspace_connection_authorization_unavailable, workspace_connection_binding_mismatch, workspace_connection_assume_role_denied, workspace_connection_provider_outcome_unknown, workspace_connection_credential_unavailable, workspace_connection_rotation_conflict, workspace_connection_revoked
 - Status: current
 
 ## ai.market Trust Channel Control Plane Runbook

@@ -1096,6 +1096,10 @@
 
 - [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
 
+## `workspace_connection_provider_outcome_unknown`
+
+- [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
+
 ## `workspace_connection_revoked`
 
 - [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
