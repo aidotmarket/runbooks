@@ -391,8 +391,8 @@
 - Path: `runbooks/council.md`
 - Purpose: This runbook is maintained by Vulcan. Neither instance is senior to the other.
 - Owner: `vulcan`
-- Last verified: `2026-08-29`
-- Aliases: Council dispatch, review transport, glm-codex-transport, glm-profile-isolation
+- Last verified: `2026-09-01`
+- Aliases: Council dispatch, review transport, glm-codex-transport, deepseek-codex-transport, glm-profile-isolation
 - Error signatures: Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, required reviewer missing from the live tool schema
 - Status: current
 

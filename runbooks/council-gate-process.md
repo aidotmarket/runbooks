@@ -48,7 +48,7 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 | Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP author; CC, Kimi, GLM reviewers; Vulcan, Mars | MP authors the bounded implementation plan; the active gate panel reviews it before build dispatch. |
 | Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | CC, Kimi, GLM | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
 | Gate 4 Verification | `build:bq-*.gate4` | production checks, customer-perspective verification | reviewer agents, Vulcan | Confirms the shipped behavior and closes the BQ only after review evidence exists. |
-| Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `state_request(action=bq_complete)`, Living State | Requires `approved_reviewers - builders` to be non-empty. |
+| Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `state_request(action=bq_complete)`, Living State | Preserves the base completion set and requires `approved_reviewers - shadow_reviewers - builders - authors` to be non-empty. |
 | Compliance Gate | `BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION` | gate status, author-mode provenance | dispatch surfaces, BQ state | Blocks build dispatch when Gate 1 mandates are unresolved or author/review mode is ambiguous. |
 | Break Glass | `/var/tmp/koskadeux/break_glass` | local filesystem sentinel | operator, completion path | Emergency-only bypass; must be removed immediately after use. |
 
@@ -85,10 +85,10 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 | Kimi | active gate voter | shared provider read-only review loop / deployed registry-pinned Kimi Code model | bounded read-only at-SHA repository tools | COMPLETE |
 | GLM | active gate voter | shared provider read-only review loop / z-ai/glm-5.2 | bounded read-only at-SHA repository tools | COMPLETE |
 | AG | paused; explicit non-gate review only when live state permits | Gemini / Vertex | repository read | COMPLETE |
-| DeepSeek | retired from the active gate roster | retained dispatch backend | no current gate authority | COMPLETE |
+| DeepSeek | registered explicit-name shadow reviewer; not a voter | shared read-only Codex transport | observation only; no gate authority | REGISTERED |
 | Vulcan | gate orchestrator and Living State operator | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 
-MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly CC, Kimi, and GLM; Kimi replaced DeepSeek at S1319, DeepSeek is retired from voting, and AG is paused. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. `infra:council-comms` remains canonical for live membership and model strings.
+MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly CC, Kimi, and GLM; Kimi replaced DeepSeek as a voter at S1319, DeepSeek is now registered only for explicit-name shadow observation, and AG is paused. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. Cross-review completion retains every base-valid approving actor, including MP where it is neither builder nor author and the existing Vulcan/Mars paths, then subtracts only registered shadow reviewers, builders, and authors. `infra:council-comms` remains canonical for live membership and model strings.
 
 ## How to operate
 
@@ -153,12 +153,12 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
     builders: read from BQ entity builders before attempting completion
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(entity + gate4 + verification_digest + reviewer)
-  expected_success: {shape: BQ completed with Gate 4 PASS and non-builder reviewer evidence, verification: confirm `approved_reviewers - builders` is non-empty}
+  expected_success: {shape: BQ completed with Gate 4 PASS and independent reviewer evidence, verification: confirm `approved_reviewers - shadow_reviewers - builders - authors` is non-empty}
   expected_failures:
     - {signature: cross_review_block, cause: only builders supplied approval or verification}
     - {signature: break_glass_left_enabled, cause: emergency sentinel was used and not removed}
   next_step_success: Close the session handoff with entity key, commit, and verification summary.
-  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current CC/Kimi/GLM panel; AG advice, MP, and DeepSeek cannot satisfy the gate.
+  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current CC/Kimi/GLM panel; an independent base-valid MP approval can satisfy completion only when MP is neither builder nor author and cannot replace a required gate voter, while AG advice and DeepSeek cannot satisfy completion.
 - id: E-05
   trigger: A guard-class (decides-something) change reaches Gate 4 and state_request(action=bq_complete) requires directional evidence, not prose, that the guard works in the deployed direction.
   pre_conditions: [gate3_passed, merge_sha_pinned, real_gate_implementation_importable, bq_entity_live, evidence_path_writable]
@@ -183,7 +183,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Completion blocked by cross-review gate | Builder is the only approving reviewer, reviewer verdict field missing, or verdict string does not match approval regex | Compare `builders`, `reviewers`, and `gate4.<agent>_verdict`; compute `approved_reviewers - builders` manually | G-01 | CONFIRMED |
+| F-01 | Completion blocked by cross-review gate | Builder is the only approving reviewer, reviewer verdict field missing, or verdict string does not match approval regex | Compare `builders`, `authors`, `reviewers`, and `gate4.<agent>_verdict`; compute `approved_reviewers - shadow_reviewers - builders - authors` manually | G-01 | CONFIRMED |
 | F-02 | Gate 2 build dispatch blocked after Gate 1 APPROVED_WITH_MANDATES | Mandates were satisfied in prose but `gate1.status` was never patched from `APPROVED_WITH_MANDATES` to `APPROVED` | Read the BQ entity and compare Gate 1 mandate resolution notes to `gate1.status` | G-02 | CONFIRMED |
 | F-03 | Ghost entity or stale BQ state appears during promotion | Session patched a wrong key, stale entity version, or handoff referenced a superseded BQ slug | Read the target `build:bq-*` entity, recent event history, and git branch evidence before promoting | G-03 | CONFIRMED |
 | F-04 | Review-mode dispatch becomes authoring evidence | Prompt omitted read-only constraints or used builder dispatch for an audit task, triggering the authoring-distinction trap | Inspect dispatch transcript, file writes, and builder/reviewer lists for the same agent | G-04 | CONFIRMED |
@@ -200,7 +200,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   repair_entry_point: cross_review_gate.py
   change_pattern: Dispatch read-only Gate 4 verification to the current CC/Kimi/GLM panel; patch `reviewers` and `gate4.<agent>_verdict` only after verifying each returned result and preserving builder exclusion.
   rollback_procedure: Remove only the invalid reviewer field if it was patched without evidence; keep valid builder and commit records intact.
-  integrity_check: Confirm `approved_reviewers - builders` is non-empty before rerunning `state_request(action=bq_complete)`.
+  integrity_check: Confirm `approved_reviewers - shadow_reviewers - builders - authors` is non-empty before rerunning `state_request(action=bq_complete)`.
 - id: G-02
   symptom_ref: F-02
   component_ref: Compliance Gate
@@ -355,7 +355,7 @@ scenario_set:
     type: operate
     refs: [E-04, F-01, agent-dispatch:E-02]
     scenario: |
-      id: E-04. trigger: Gate 3 has passed and the BQ is ready for Gate 4 production verification plus completion. pre_conditions: gate3 passed, customer-perspective check is defined, reviewers and builders are readable, non-builder reviewer is available, and break_glass sentinel is absent. tool_or_endpoint: state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<customer_perspective_evidence>). argument_sourcing: verification from endpoint checks, UI behavior, logs, or data validation; reviewers from BQ reviewers and gate4.<agent>_verdict fields; builders from BQ builders. idempotency: IDEMPOTENT_WITH_KEY on BQ code + gate4 + verification_digest + reviewer. expected_success: BQ completes only when Gate 4 PASS evidence exists and approved_reviewers - builders is non-empty. expected_failures: only builders approved, non-builder verdict says REQUEST_CHANGES, approval wording misses the accepted regex, or break_glass remains enabled. next_step_success: close handoff with entity key, commit, verification, and reviewer summary. next_step_failure: obtain valid non-builder verification before retrying state_request(action=bq_complete).
+      id: E-04. trigger: Gate 3 has passed and the BQ is ready for Gate 4 production verification plus completion. pre_conditions: gate3 passed, customer-perspective check is defined, reviewers, builders, and authors are readable, an independent non-shadow reviewer is available, and break_glass sentinel is absent. tool_or_endpoint: state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<customer_perspective_evidence>). argument_sourcing: verification from endpoint checks, UI behavior, logs, or data validation; reviewers from BQ reviewers and gate4.<agent>_verdict fields; builders and authors from BQ provenance. idempotency: IDEMPOTENT_WITH_KEY on BQ code + gate4 + verification_digest + reviewer. expected_success: BQ completes only when Gate 4 PASS evidence exists and approved_reviewers - shadow_reviewers - builders - authors is non-empty. expected_failures: only builders or authors approved, only a registered shadow reviewer approved, an independent verdict says REQUEST_CHANGES, approval wording misses the accepted regex, or break_glass remains enabled. next_step_success: close handoff with entity key, commit, verification, and reviewer summary. next_step_failure: obtain valid independent verification before retrying state_request(action=bq_complete).
     expected_answers:
       - kind: tool_call
         tool: state_request
@@ -390,7 +390,7 @@ scenario_set:
     type: isolate
     refs: [F-01, G-01, E-04]
     scenario: |
-      id: F-01. trigger: state_request(action=bq_complete) refuses a BQ because the only non-builder Gate 4 verdict is REQUEST_CHANGES. pre_conditions: builders list, reviewers list, gate4.<agent>_verdict fields, and completion error are available. tool_or_endpoint: cross_review_gate.py evaluation or manual approved_reviewers - builders computation. argument_sourcing: builder and reviewer sets from BQ entity; approval semantics from verdict strings; failing verdict from Gate 4 field. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as a cross-review gate block because REQUEST_CHANGES is reviewer evidence but not approving evidence. expected_failures: counting a builder PASS as independent review, regex-forcing the verdict text, or using break_glass without emergency authorization. next_step_success: get a real non-builder PASS or address requested changes. next_step_failure: leave the BQ open.
+      id: F-01. trigger: state_request(action=bq_complete) refuses a BQ because the only non-builder Gate 4 verdict is REQUEST_CHANGES. pre_conditions: builders list, authors list, reviewers list, gate4.<agent>_verdict fields, and completion error are available. tool_or_endpoint: cross_review_gate.py evaluation or manual approved_reviewers - shadow_reviewers - builders - authors computation. argument_sourcing: builder, author, and reviewer sets from BQ entity; approval semantics from verdict strings; failing verdict from Gate 4 field. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as a cross-review gate block because REQUEST_CHANGES is reviewer evidence but not approving evidence. expected_failures: counting a builder or author PASS as independent review, counting a registered shadow observation as authority, regex-forcing the verdict text, or using break_glass without emergency authorization. next_step_success: get a real independent PASS or address requested changes. next_step_failure: leave the BQ open.
     expected_answers:
       - kind: human_action
         verb: compute
