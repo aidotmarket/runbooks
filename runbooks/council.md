@@ -55,8 +55,9 @@ The manual equivalent is:
     scripts/council_dir.py ask deepseek <request_file>
     scripts/council_dir.py run deepseek
 
-`ask all` and `run all` mean the three required reviewers: CC, Kimi, and GLM.
-They never include DeepSeek. Use `ask deepseek` or `run deepseek` explicitly.
+`ask all` and `run all` mean the three required reviewers, processed in the
+existing directory order: GLM, CC, then Kimi. They never include DeepSeek. Use
+`ask deepseek` or `run deepseek` explicitly.
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -75,8 +76,18 @@ change gate consensus, gate status, run status, `blocking_revisions`, build
 completion authorization, empty-range override acknowledgement, spec approval,
 `ask all`/`run all` expansion, or shared health. Its own configured state remains
 visible as `service_health.deepseek.configured`, but it is excluded from
-`health_summary`. Adding DeepSeek to any authority surface requires a separate Max
-decision.
+`health_summary`. Single-voter gate submission rejects DeepSeek before either the
+atomic backend call or the local fallback.
+
+Empty-range override acknowledgement is actor-authorized. `vulcan`, `mars`,
+`venus`, `mercury`, `jupiter`, `saturn`, and `mp` may acknowledge with no declared
+role or with `ack_role=peer`; CC, Kimi, and GLM may acknowledge with no declared
+role or with `ack_role=council`. A payload role never grants authority by itself:
+DeepSeek, an unknown actor, or an authorized actor claiming the other class is
+rejected. This actor/role binding closes a pre-existing weakness in the base
+implementation; it is not merely a DeepSeek roster filter. The final candidate
+contains no automatic promotion path for a registered reviewer. Giving DeepSeek
+authority is outside Phase 1 and requires a separate decision and code change.
 
 CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM and DeepSeek receive the self-contained request over stdin and may use read-only shell commands to inspect the pinned checkout; Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
 
@@ -327,7 +338,7 @@ compatibility names are unchanged by this agent/build route reduction.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
 - CC, Kimi, GLM, and DeepSeek all use `scripts/council_dir.py`.
-- DeepSeek is registered for explicit-name shadow dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision.
+- DeepSeek is registered for explicit-name shadow dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision; gate-voter submission rejects it before forwarding and override roles are bound to authorized actor identities.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
