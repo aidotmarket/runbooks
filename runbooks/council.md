@@ -30,7 +30,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 | Reviewer trigger | SHIPPED | `tools/agents.py` | Returns status=submitted with the two file paths immediately; exact-bytes tests | 2026-08-17 |
 | Directory exchange | SHIPPED | `scripts/council_dir.py` | One write path for MCP and CLI; detached worker per request; unit tests green at S1568 | 2026-08-17 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
-| DeepSeek reviewer seat | REGISTERED (SHADOW ONLY) | `deepseek_codex_transport.py`, `config/deepseek_codex/` | Transport, config, environment-isolation, directory-routing, roster, audit, and unchanged-quorum unit tests | 2026-09-01 |
+| DeepSeek reviewer seat | REGISTERED (EXPLICIT-NAME SHADOW ONLY) | `deepseek_codex_transport.py`, `config/deepseek_codex/` | Transport, config, environment-isolation, explicit-name directory routing, roster/audit visibility, and candidate-versus-three-voter-base non-authority tests | 2026-09-01 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | Live remote no-op dispatch plus existing minimal-bridge tests | 2026-08-26 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -55,6 +55,9 @@ The manual equivalent is:
     scripts/council_dir.py ask deepseek <request_file>
     scripts/council_dir.py run deepseek
 
+`ask all` and `run all` mean the three required reviewers: CC, Kimi, and GLM.
+They never include DeepSeek. Use `ask deepseek` or `run deepseek` explicitly.
+
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
 For a controlled baseline experiment, a non-empty `KD_COUNCIL_NO_PROTOCOL` suppresses the prefix at the request writer. The exact original bytes are then stored unchanged, and the writer emits exactly one visible stderr/log marker naming `KD_COUNCIL_NO_PROTOCOL` for each suppressed write. The marker never includes request content.
@@ -65,7 +68,15 @@ A reviewer may return `REJECT` with no build mandates when its conclusion is to 
 
 The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-DeepSeek is registered and dispatchable for Phase-1 shadow evaluation, but it is not in `REQUIRED_MEMBERS` and does not hold a gate vote. Adding DeepSeek to the required-voter set requires a separate Max decision.
+DeepSeek is registered, audited, displayed, and dispatchable by explicit name for
+Phase-1 shadow evaluation. It is outside the required-reviewer set and has no
+authority: its absence, failure, model mismatch, verdict, or mandates cannot
+change gate consensus, gate status, run status, `blocking_revisions`, build
+completion authorization, empty-range override acknowledgement, spec approval,
+`ask all`/`run all` expansion, or shared health. Its own configured state remains
+visible as `service_health.deepseek.configured`, but it is excluded from
+`health_summary`. Adding DeepSeek to any authority surface requires a separate Max
+decision.
 
 CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM and DeepSeek receive the self-contained request over stdin and may use read-only shell commands to inspect the pinned checkout; Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
 
@@ -159,13 +170,13 @@ compatibility names are unchanged by this agent/build route reduction.
   next_step_success: Poll the returned request_id with E-04 until completed or failed.
   next_step_failure: Poll the active_request_id; apply When it breaks without modifying or re-dispatching the request.
 - id: E-03
-  trigger: A request file must be sent to all four registered reviewers without the MCP surface.
-  pre_conditions: [all_member_credentials_available, request_file_is_readable]
+  trigger: A request file must be sent to all three required reviewers without the MCP surface.
+  pre_conditions: [required_member_credentials_available, request_file_is_readable]
   tool_or_endpoint: scripts/council_dir.py ask all <request_file>
   argument_sourcing:
-    request_file: one plain file; the same bytes are copied once per member
+    request_file: one plain file; the same bytes are copied once to CC, Kimi, and GLM only; use ask deepseek explicitly for a separate shadow review
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: one submitted request path per available member without waiting for responses, verification: each printed request path exists in that member's directory}
+  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for DeepSeek}
   expected_failures:
     - {signature: member unavailable, cause: that member credential or CLI is unavailable}
     - {signature: member_busy plus active request, cause: that member already has one active request; no new request file is written}
@@ -316,7 +327,7 @@ compatibility names are unchanged by this agent/build route reduction.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
 - CC, Kimi, GLM, and DeepSeek all use `scripts/council_dir.py`.
-- DeepSeek is registered but remains outside `REQUIRED_MEMBERS` until a separate Max decision.
+- DeepSeek is registered for explicit-name shadow dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
