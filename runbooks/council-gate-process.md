@@ -158,7 +158,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
     - {signature: cross_review_block, cause: only builders supplied approval or verification}
     - {signature: break_glass_left_enabled, cause: emergency sentinel was used and not removed}
   next_step_success: Close the session handoff with entity key, commit, and verification summary.
-  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current CC/Kimi/GLM panel; AG advice, MP, and DeepSeek cannot satisfy the gate.
+  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current CC/Kimi/GLM panel; an independent base-valid MP approval can satisfy completion only when MP is neither builder nor author and cannot replace a required gate voter, while AG advice and DeepSeek cannot satisfy completion.
 - id: E-05
   trigger: A guard-class (decides-something) change reaches Gate 4 and state_request(action=bq_complete) requires directional evidence, not prose, that the guard works in the deployed direction.
   pre_conditions: [gate3_passed, merge_sha_pinned, real_gate_implementation_importable, bq_entity_live, evidence_path_writable]
