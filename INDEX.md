@@ -85,7 +85,7 @@
 - Path: `seller-workspace-cloud-listing-delivery.md`
 - Purpose: This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
 - Owner: `vulcan`
-- Last verified: `2026-08-31`
+- Last verified: `2026-09-01`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
 - Error signatures: seller_workspace_disabled, seller_workspace_aws_connect_disabled, workspace_connection_authorization_unavailable, workspace_connection_binding_mismatch, workspace_connection_assume_role_denied, workspace_connection_provider_outcome_unknown, workspace_connection_credential_unavailable, workspace_connection_rotation_conflict, workspace_connection_revoked
 - Status: current
