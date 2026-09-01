@@ -339,7 +339,19 @@ One job runs per worker child. Each job has an isolated ephemeral directory, har
 
 Static review, tests, migration success, deployment identity, seller browser proof, buyer browser proof, and direct provider/network proof are independent and conjunctive. Queue labels, code presence, API output, or one successful provider cannot substitute for another proof.
 
-Each implementation candidate requires GLM and Kimi review of the same exact digest. CC is not part of this project unless Max changes the reviewer set. Every behavior change updates this runbook and any provider-specific error signatures in the same candidate.
+Each implementation candidate requires the Max-authorized reviewers to review the same exact digest. The W2 foundation candidate used GLM and Kimi, with CC excluded. For the S1648 Gate 4 issue-channel health repair only, Max explicitly changed the reviewer set to CC and GLM because Kimi was unavailable. Every behavior change updates this runbook and any provider-specific error signatures in the same candidate.
+
+## S1648 Gate 4 evidence and health repair
+
+The exact Gate 3 candidates were merged through the protected repository workflow as backend `a00195534d70357772ea46c341042a58dd47ad58`, frontend `260d37ef83f0157d8ae4fad1656a56e924a882a1`, and runbooks `af12cd3c04d6227afbebfc89752ec378aa684237`. Their reviewed candidate commits remain ancestors of those merge commits. Backend and frontend deployments succeeded with every Seller Workspace and provider flag still off. Focused post-merge verification passed 80 Seller Workspace backend tests, 55 unchanged legacy-delivery tests, 50 frontend tests, TypeScript, ESLint, and all 114 runbook checks.
+
+Production later advanced to backend main `5da8736efa183e9e9ae63c249c1cf229e3406001`, which retains the Seller Workspace merge as an ancestor. At that deployed commit, Alembic reported `s1646_payin_primary_identity` as both current and head, but `/health` was degraded because all six model-owned `issue_channel` tables were absent: `canonical_issues`, `source_records`, `safe_raw_records`, `safe_quarantine_records`, `safe_snapshot_records`, and `dispatch_intents`. The application database confirmed zero tables in that schema. Gate 4 therefore remained in progress even though the automated open-items board called the retained W2 branches certified.
+
+The authorized repair is the forward-only Alembic revision `s1648_issue_channel_repair`. It replays the exact earlier `s1511_issue_channel_queue` definition and the exact later `t2026_000727_provider_num_turns` expansion only when the schema is wholly absent. An unexpected partial schema stops deployment with a catalog-qualified diagnostic. The repair uses a five-second lock timeout, verifies all six postconditions plus `provider_num_turns`, preserves the original isolated-role ACL matrix, and is idempotent for an already-complete database. Downgrade is intentionally nondestructive because removing a repaired evidence schema could destroy queue state.
+
+Candidate verification includes a real disposable-PostgreSQL replay with ACL checks, a second idempotent upgrade, nondestructive downgrade proof, the existing issue-channel migration suites, Alembic guarded-DDL suites, single-head verification, and focused Ruff. The broader model-registry inventory test has an unrelated current-main baseline failure for five modules, including Mars-owned data-verification modules; that baseline is disclosed and excluded from this narrow repair rather than silently changed.
+
+Authorized Chrome reached Google consent and the operator approved identity transmission, but the ai.market OAuth callback returned HTTP 400 and the visible login surface reported `OAuth sign-in failed`. The authenticated connect/reconnect/rotate/disconnect journey and synthetic AWS ceremony therefore remain unproven. No public flag, capability claim, customer credential, or customer data is enabled by this repair.
 
 ## Provider references verified for W1
 
