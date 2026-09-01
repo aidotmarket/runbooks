@@ -1,11 +1,12 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-08-29'
+last_verified: '2026-09-01'
 aliases:
 - Council dispatch
 - review transport
 - glm-codex-transport
+- deepseek-codex-transport
 - glm-profile-isolation
 error_signatures:
 - Error occurred during tool execution
@@ -29,6 +30,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 | Reviewer trigger | SHIPPED | `tools/agents.py` | Returns status=submitted with the two file paths immediately; exact-bytes tests | 2026-08-17 |
 | Directory exchange | SHIPPED | `scripts/council_dir.py` | One write path for MCP and CLI; detached worker per request; unit tests green at S1568 | 2026-08-17 |
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
+| DeepSeek reviewer seat | REGISTERED (SHADOW ONLY) | `deepseek_codex_transport.py`, `config/deepseek_codex/` | Transport, config, environment-isolation, directory-routing, roster, audit, and unchanged-quorum unit tests | 2026-09-01 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | Live remote no-op dispatch plus existing minimal-bridge tests | 2026-08-26 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -37,7 +39,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 There is one Council reviewer path.
 
-1. Select `cc`, `kimi`, or `glm`.
+1. Select `cc`, `kimi`, `glm`, or `deepseek`.
 2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
 3. Return `status=submitted` with the request path and response path immediately.
 4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
@@ -48,8 +50,10 @@ The standard preamble is the complete review contract approved in S1557. It requ
 
 The manual equivalent is:
 
-    scripts/council_dir.py ask <cc|kimi|glm|all> <request_file>
-    scripts/council_dir.py run <cc|kimi|glm|all>
+    scripts/council_dir.py ask <cc|kimi|glm|deepseek|all> <request_file>
+    scripts/council_dir.py run <cc|kimi|glm|deepseek|all>
+    scripts/council_dir.py ask deepseek <request_file>
+    scripts/council_dir.py run deepseek
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -59,9 +63,11 @@ The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is 
 
 A reviewer may return `REJECT` with no build mandates when its conclusion is to stop the proposed work. The response file and its explanation remain the complete verdict; the operator must not invent a mandate to satisfy a response shape. The directory transport does not schema-validate or discard that response.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM runs on its own Codex path with a dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/` so it can never touch Max's Claude Code login (the S1566 root cause); the launcher sends the complete request file contents over stdin and Codex itself writes the one response file via `-o`. Nothing in the GLM launcher parses Codex's output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568: each of those fail-closed checks could destroy or refuse a finished review; none ever caught a bad one). The read-only fence lives in Codex's own config (`config/glm_codex/config.toml`): a `:read-only` permission profile, a deny on `~/.codex`, and the credential excluded from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all three members, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM receives the self-contained request over stdin and has no shell tool; exact review packages therefore carry their own sources and diff. The GLM sandbox is read-only and Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
+DeepSeek is registered and dispatchable for Phase-1 shadow evaluation, but it is not in `REQUIRED_MEMBERS` and does not hold a gate vote. Adding DeepSeek to the required-voter set requires a separate Max decision.
+
+CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM and DeepSeek receive the self-contained request over stdin and may use read-only shell commands to inspect the pinned checkout; Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
 
 There is no admission control (Max, S1568: nothing that can check and block work). No member lock, no busy refusal, no waiting list, broker, retry, or daemon. The only lock anywhere is CC's profile lock, which exists to stop two Claude Code processes racing one OAuth token refresh — the mechanism that historically destroyed Max's own login — and never refuses a review; it serializes CC launches. The response file is the complete durable status record across client disconnects.
 
@@ -83,6 +89,7 @@ Credentials are launcher inputs only:
   and must run without `--bare`.
 - GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
+- DeepSeek uses `DEEPSEEK_API_KEY` from Infisical project `0943f641-faee-4324-b337-0d50c276e4a9`, environment `prod`, path `/`, and dedicated homes under `/Users/max/koskadeux-state/agents/deepseek/`; no credential is stored there.
 
 Kimi retained-session finalization uses `kimi --session <id> --prompt <text>`
 under the same member sandbox and a five-step reserve. Do not add `--auto` to
@@ -107,8 +114,8 @@ compatibility names are unchanged by this agent/build route reduction.
 |---|---|---|---|---|
 | Reviewer Trigger | `tools/agents.py:_handle_council_member` and `_handle_check_council_member` | none | Directory Exchange | Submit returns `request_id` immediately; `check_review` returns running/completed/failed/not_found and unchanged completed text. |
 | Directory Exchange | `scripts/council_dir.py:submit_member` | `/Users/max/council/<member>/` and one fixed `.member.lock` | Member Launcher | One lock-before-write path for MCP and CLI; exact original-byte suffix; no queue, retry, or alternate transport. |
-| Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM CLIs | File-in/file-out. GLM request bytes are carried over stdin because its shell tool is disabled. |
-| Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM and Kimi credentials | Credential values are never written to request files. |
+| Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM, DeepSeek CLIs | File-in/file-out. GLM and DeepSeek use the shared parameterized Codex transport with provider-specific homes and config. |
+| Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM, Kimi, and DeepSeek credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `dispatch_mp_build` → `tools/agents.py:_handle_dispatch_mp_build` | existing MP task stores | Minimal bridge and Codex CLI | The separately advertised build route. |
 
 ## Agent capabilities
@@ -118,6 +125,7 @@ compatibility names are unchanged by this agent/build route reduction.
 | CC | Council review | Directory exchange | Own Council directory | COMPLETE |
 | Kimi | Council review | Directory exchange | Own Council directory | COMPLETE |
 | GLM | Council review | Directory exchange | Own Council directory | COMPLETE |
+| DeepSeek | Council shadow review; not a required voter | Shared parameterized Codex transport and directory exchange | Dedicated `HOME`/`CODEX_HOME`; Infisical-injected DeepSeek key | REGISTERED |
 | MP | Mandatory build; never a voter | Separate MP build path | Explicit build/author workspace | COMPLETE |
 | Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
 
@@ -126,10 +134,10 @@ compatibility names are unchanged by this agent/build route reduction.
 ```yaml operate
 - id: E-01
   trigger: An existing request file must be sent to one Council reviewer.
-  pre_conditions: [member_is_cc_kimi_or_glm, request_file_is_readable]
+  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, request_file_is_readable]
   tool_or_endpoint: council_request(agent=<member>, review_package_path=<request_file>)
   argument_sourcing:
-    agent: cc, kimi, or glm
+    agent: cc, kimi, glm, or deepseek
     review_package_path: the exact file to copy into the member directory
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request path exists and the call returns without waiting for the response path}
@@ -139,10 +147,10 @@ compatibility names are unchanged by this agent/build route reduction.
   next_step_failure: Poll the active_request_id; do not switch transports, add parsing, or re-dispatch.
 - id: E-02
   trigger: Plain task text must be sent to one Council reviewer.
-  pre_conditions: [member_is_cc_kimi_or_glm, task_text_is_present]
+  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, task_text_is_present]
   tool_or_endpoint: council_request(agent=<member>, task=<text>)
   argument_sourcing:
-    agent: cc, kimi, or glm
+    agent: cc, kimi, glm, or deepseek
     task: exact text to write to the request file
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request file contains the task and the call does not require the response file to exist}
@@ -151,7 +159,7 @@ compatibility names are unchanged by this agent/build route reduction.
   next_step_success: Poll the returned request_id with E-04 until completed or failed.
   next_step_failure: Poll the active_request_id; apply When it breaks without modifying or re-dispatching the request.
 - id: E-03
-  trigger: A request file must be sent to all three reviewers without the MCP surface.
+  trigger: A request file must be sent to all four registered reviewers without the MCP surface.
   pre_conditions: [all_member_credentials_available, request_file_is_readable]
   tool_or_endpoint: scripts/council_dir.py ask all <request_file>
   argument_sourcing:
@@ -165,7 +173,7 @@ compatibility names are unchanged by this agent/build route reduction.
   next_step_failure: Poll a busy member's active request; a failed member does not prevent the other members from submitting.
 - id: E-04
   trigger: A submitted Council review must be checked without creating or retrying a request.
-  pre_conditions: [member_is_cc_kimi_or_glm, request_id_was_returned_by_submit_or_busy]
+  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, request_id_was_returned_by_submit_or_busy]
   tool_or_endpoint: council_request(action=check_review, agent=<member>, request_id=<request_id>)
   argument_sourcing:
     agent: the member that owns the returned request_id
@@ -200,7 +208,7 @@ compatibility names are unchanged by this agent/build route reduction.
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | `no response written after` | CLI failure or member did not write the named file | Read the launcher's bounded output and check the exact response path | G-01 | CONFIRMED |
-| F-02 | `GLM_z_AI_API_KEY is not set` or `MOONSHOT_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
+| F-02 | `GLM_z_AI_API_KEY is not set`, `MOONSHOT_API_KEY is not set`, or `DEEPSEEK_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
 | F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review holds the profile lock | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
@@ -307,7 +315,8 @@ compatibility names are unchanged by this agent/build route reduction.
 - `council_request` is the only public Council reviewer trigger.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
-- CC, Kimi, and GLM all use `scripts/council_dir.py`.
+- CC, Kimi, GLM, and DeepSeek all use `scripts/council_dir.py`.
+- DeepSeek is registered but remains outside `REQUIRED_MEMBERS` until a separate Max decision.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
@@ -331,7 +340,7 @@ compatibility names are unchanged by this agent/build route reduction.
 
 #### module
 
-The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`; GLM's launcher implementation is `glm_codex_transport.py`.
+The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`; GLM and DeepSeek use the parameterized path in `codex_reviewer_transport.py` through their provider wrappers.
 
 #### public contract
 
@@ -343,7 +352,7 @@ A runtime dependency is the selected member CLI, its existing credential, and th
 
 #### config default
 
-The reviewer defaults are the member CLI commands and `/Users/max/council` root in `scripts/council_dir.py`, plus GLM's dedicated `/Users/max/koskadeux-state/agents/glm/codex-home` and its checked config template.
+The reviewer defaults are the member CLI commands and `/Users/max/council` root in `scripts/council_dir.py`, plus the dedicated GLM and DeepSeek homes and their checked config templates under `config/glm_codex/` and `config/deepseek_codex/`.
 
 ### H.6 Adjudication
 
@@ -366,11 +375,11 @@ scenario_set:
   - id: I-02
     type: operate
     refs: [E-02, H.1]
-    scenario: The same task text is sent separately to CC, Kimi, and GLM.
+    scenario: The same task text is sent separately to CC, Kimi, GLM, and DeepSeek.
     expected_answers:
       - kind: human_action
         verb: verify
-        object: all three reviewers use the same directory handler
+        object: all four registered reviewers use the same directory handler
         target: tools/agents.py
     weight: 0.25
   - id: I-03
