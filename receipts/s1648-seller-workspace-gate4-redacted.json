@@ -1,0 +1,161 @@
+{
+  "schema": "ai.market.gate4.redacted-receipt.v1",
+  "session_id": "S1648",
+  "entity_key": "build:bq-seller-workspace-cloud-listing-delivery-s1642",
+  "scope": "W2 Seller Workspace shell and AWS connection foundation only; controlled synthetic AWS; public flags off",
+  "redaction": "No ExternalId value, ADC JSON, access key, secret key, token, customer credential, or customer data is present.",
+  "chrome": {
+    "proof_boundary": "Normal authorized operator Chrome only; no in-app browser, kdbrowser, curl, API output, or alternate identity substituted for DOM proof.",
+    "controlled_identity": "max@ai.market",
+    "connection_id": "329ab944-d400-4e01-b65e-ce0a44139f1e",
+    "observed_sequence": [
+      "pending authorization created and owner-only setup values rendered",
+      "initial verification rendered Verified",
+      "reconnect/rotation rendered pending setup values",
+      "rotation completion rendered Verified",
+      "confirmed disconnect rendered Disconnected"
+    ],
+    "final_capture": {
+      "captured_at": "2026-09-01T18:49:16.531Z",
+      "url": "https://ai-market-frontend-verify-s1648-verify-s1648.up.railway.app/dashboard/seller-workspace",
+      "title": "ai.market - Sell data without giving it away",
+      "redacted_dom_sha256": "4b694260784e1c50dd641ff50de0b1fad724b814eeb5ecfb312ef99c29c0f565",
+      "screenshot_sha256": "02b216a8bfaa1ec03a7d2011f72037b11194d4cb1297ea742adfd1c364277146",
+      "redacted_dom_excerpt": [
+        "generic: Gate 4",
+        "button: Log out",
+        "generic: ai.market Gate 4 Synthetic",
+        "heading: Seller Workspace",
+        "region: AWS connections",
+        "heading: AWS S3 connection",
+        "generic: Disconnected",
+        "paragraph: 329ab944-d400-4e01-b65e-ce0a44139f1e"
+      ]
+    },
+    "oauth_disposition": "The earlier HTTP 400 was caused by the controlled verify-s1648 callback URI being absent from the Google OAuth client. After that exact non-public callback was added, Google sign-in succeeded. This receipt makes no public OAuth callback health claim."
+  },
+  "controlled_database": {
+    "captured_at": "2026-09-01T18:49:38Z",
+    "command": "railway ssh --service ai-market-backend-verify-s1648 --environment verify-s1648 -- psql $DATABASE_URL with exact owner-scoped SELECTs over cloud_connections, cloud_connection_credentials, and seller_workspace_audit_events; pipe-delimited, pager off",
+    "connection_result": "329ab944-d400-4e01-b65e-ce0a44139f1e|revoked|none|revoked|8|NULL|NULL|true",
+    "credential_results": [
+      "7c608443-ffc6-43d2-88e8-3dc573ceb1bb|aws_external_id|ciphertext_null=true|nonce_null=true|tag_null=true|wrapped_dek_null=true|destroyed=true|superseded=true",
+      "488588a7-c12c-45f3-84f6-44381c99a3bc|aws_external_id_rotation|ciphertext_null=true|nonce_null=true|tag_null=true|wrapped_dek_null=true|destroyed=true|superseded=false"
+    ],
+    "audit_results": [
+      "a1c2dc5b-d3a3-4edd-bc0d-cd731c35b091|connection_created|allow|pending|NULL|1|2026-09-01T18:19:16.974402Z",
+      "e1afd9c5-169e-4abd-aeb2-0ed17eeae18b|initial_verified|allow|verified|NULL|2|2026-09-01T18:19:53.408740Z",
+      "b1174766-d9a3-4e2d-8c7c-4e7f1e9afff9|rotation_started|allow|pending|NULL|3|2026-09-01T18:20:04.510390Z",
+      "3b832f99-7be2-4662-a76e-7d0bb7db368c|rotation_completed|deny|provider_failed|access_denied|4|2026-09-01T18:20:33.646217Z",
+      "40980c83-4448-4a33-a83b-9645543e57ee|authorization_retrieved|allow|retrieved|NULL|4|2026-09-01T18:21:03.806489Z",
+      "603f1f73-3263-4fad-9b4a-ccfad019f7be|rotation_completed|deny|provider_failed|access_denied|5|2026-09-01T18:21:13.295598Z",
+      "10261d6d-2dfe-47bc-9ecb-316e5b20a151|authorization_retrieved|allow|retrieved|NULL|5|2026-09-01T18:22:05.141614Z",
+      "3a25251b-6500-4dc4-a75e-4b35132b93b7|rotation_completed|deny|provider_failed|access_denied|6|2026-09-01T18:22:05.929948Z",
+      "6af3dbe7-e666-4fa0-a81a-c776ef072e01|authorization_retrieved|allow|retrieved|NULL|6|2026-09-01T18:23:06.860341Z",
+      "7a25c210-6c98-4a40-887e-8d8e021ac384|rotation_completed|allow|activated|NULL|7|2026-09-01T18:24:57.544231Z",
+      "8b0d6625-5d0b-4e07-9833-883c18123814|connection_disconnected|allow|revoked|NULL|8|2026-09-01T18:27:05.083813Z"
+    ],
+    "raw_external_id_occurrences": 0
+  },
+  "aws_cleanup": {
+    "captured_at": "2026-09-01T18:50:02Z",
+    "identity": "arn:aws:iam::948749907373:user/svc-titan-vulcan",
+    "commands": [
+      "aws iam get-role --profile aimarket --role-name aim-data-gate4-test-seller --query Role.AssumeRolePolicyDocument --output json | jq -S . | shasum -a 256",
+      "jq -S . work/s1648-original-aws-trust-policy.json | shasum -a 256",
+      "aws iam get-role-policy --profile aimarket --role-name aim-data-gate4-test-seller --policy-name aim-data-gate4-test-seller-inline --query PolicyDocument --output json | jq -S . | shasum -a 256",
+      "jq -S . work/s1648-original-aws-inline-policy.json | shasum -a 256",
+      "aws s3api list-objects-v2 --profile aimarket --bucket aim-data-gate4-test-948749907373 --prefix gate4/test/test.csv --query length(Contents || []) --output text",
+      "aws s3api head-object --profile aimarket --bucket aim-data-gate4-test-948749907373 --key gate4/test/test.csv",
+      "aws s3api head-object --profile aimarket --bucket aim-data-gate4-test-948749907373 --key test.csv --query {ContentLength:ContentLength,ServerSideEncryption:ServerSideEncryption} --output json"
+    ],
+    "trust_live_sha256": "593cb2f514844130dfe8cf78e0b48dfd2b50ee24e313a6a1168e9e81ce1d12c0",
+    "trust_saved_original_sha256": "593cb2f514844130dfe8cf78e0b48dfd2b50ee24e313a6a1168e9e81ce1d12c0",
+    "inline_live_sha256": "237f3ce63afabd3646600f8618574b6aa3a0c1bc3bdbb029fe6943b0c891c497",
+    "inline_saved_original_sha256": "237f3ce63afabd3646600f8618574b6aa3a0c1bc3bdbb029fe6943b0c891c497",
+    "temporary_prefix_object_count": 0,
+    "temporary_object_head_exit": 254,
+    "temporary_object_head_result": "HTTP 404 Not Found",
+    "bucket_versioning_status": "not enabled; list-object-versions returned no versions or delete markers for the temporary key",
+    "original_root_object": {
+      "content_length": 37,
+      "server_side_encryption": "AES256"
+    }
+  },
+  "railway_and_health": {
+    "captured_at": "2026-09-01T18:50:32Z",
+    "commands": [
+      "railway status --json | jq exact environment/service deployment identity projection",
+      "railway variable list --service ai-market-backend-verify-s1648 --environment verify-s1648 --json | jq boolean cleanup projection",
+      "railway ssh --service ai-market-backend-verify-s1648 --environment verify-s1648 -- test ! -e /tmp/gcp-adc-s1648.json",
+      "curl -fsS https://ai-market-backend-verify-s1648-verify-s1648.up.railway.app/health | jq bounded health projection",
+      "curl -fsS https://api.ai.market/health | jq bounded health projection",
+      "curl -fsS -o /dev/null -w %{http_code} https://www.ai.market/"
+    ],
+    "controlled_deployments": [
+      "ai-market-backend-verify-s1648|f88e1364-86a4-41d0-b4f9-6b9869a263ff|SUCCESS|50fdb680a5b89265a7e668223bfa1b8728c6c4e9|sha256:9ee74e96cd83deb452e1510e5263bfbca0128eb8ab37dec629d0e96ed1f989f8",
+      "ai-market-frontend-verify-s1648|c9c18e78-b2cf-400c-bb91-2c6877af32eb|SUCCESS|750f26ad4160782b84b8aad3917d51ef4b6c6569|sha256:ee073e2a29dd11e7d8fe07e35a10012addfd1ff8c69f6e730e8a864c3ffdbc20"
+    ],
+    "production_deployments": [
+      "ai-market-backend|ba7f01a8-ed90-4e29-b910-0b7c4aaefa57|SUCCESS|50fdb680a5b89265a7e668223bfa1b8728c6c4e9|sha256:95a394173a528011f8bb82ae5e667c4b5b948ac3fd95ddd0b0c49eb368c6f692",
+      "ai-market-frontend|83e55f53-8558-472a-94f8-e522967eb087|SUCCESS|750f26ad4160782b84b8aad3917d51ef4b6c6569|sha256:c0f5bd5b486f18c2396fea89c7aacfcf48e3fad8252cfd75e69e7ca9fb9fa1ee"
+    ],
+    "controlled_cleanup": {
+      "principal_restored": true,
+      "temporary_adc_file_absent": true,
+      "temporary_adc_variable_absent": true,
+      "google_application_credentials_absent": true,
+      "kms_location_absent": true,
+      "kms_keyring_absent": true,
+      "kms_encryption_key_absent": true,
+      "kms_platform_key_absent": true
+    },
+    "controlled_health": "healthy|alembic_current=s1648_issue_channel_repair|alembic_head=s1648_issue_channel_repair|alembic_drift=false|schema_drift=false|model_schema_drift=false|schema_missing_table_count=0",
+    "production_health": "healthy|alembic_current=s1648_issue_channel_repair|alembic_head=s1648_issue_channel_repair|alembic_drift=false|schema_drift=false|model_schema_drift=false|schema_missing_table_count=0",
+    "public_frontend_http": 200
+  },
+  "production_flags_and_legacy": {
+    "captured_at": "2026-09-01T18:50:45Z",
+    "command": "railway run --service ai-market-backend --environment production -- work/verify-venv/bin/python work/verify_prod_s1648.py | jq bounded feature_flags, legacy_serial_contract, audit_redaction, and W2 row-count projection",
+    "feature_flags": {
+      "SELLER_WORKSPACE_ENABLED": false,
+      "SELLER_WORKSPACE_AWS_CONNECT_ENABLED": false,
+      "SELLER_WORKSPACE_AWS_PROFILE_ENABLED": false,
+      "SELLER_WORKSPACE_AWS_PUBLISH_ENABLED": false,
+      "SELLER_WORKSPACE_AWS_DELIVERY_ENABLED": false,
+      "SELLER_WORKSPACE_R2_CONNECT_ENABLED": false,
+      "SELLER_WORKSPACE_R2_PROFILE_ENABLED": false,
+      "SELLER_WORKSPACE_R2_PUBLISH_ENABLED": false,
+      "SELLER_WORKSPACE_R2_DELIVERY_ENABLED": false
+    },
+    "legacy_serial_contract": {
+      "legacy_serial_named": true,
+      "legacy_serial_id_bound": true
+    },
+    "append_only_trigger_count": 2,
+    "production_w2_row_counts": {
+      "cloud_connection_credentials": 0,
+      "cloud_connections": 0,
+      "delivery_authorities": 0,
+      "seller_workspace_audit_events": 0
+    }
+  },
+  "tests": {
+    "started_at": "2026-09-01T18:51:03Z",
+    "completed_at": "2026-09-01T18:51:29Z",
+    "command": "SERIAL_TOKEN_SECRET=synthetic-s1648-test-only-secret /Users/max/Projects/ai-market/ai-market-backend/.venv/bin/pytest -q --disable-warnings tests/test_s1647_seller_workspace_b1.py tests/test_s1647_seller_workspace_b2a.py tests/test_s1647_seller_workspace_b2b.py tests/test_s1647_seller_workspace_postgres.py tests/test_delivery_endpoints.py tests/test_delivery_guarantees.py tests/test_delivery_service.py tests/test_delivery_webhook_integration.py tests/test_serial_serial_id_contract.py tests/test_serial_service.py tests/test_source_delivery.py",
+    "result": "152 passed, 57 deselected, 69 warnings in 20.93s",
+    "idempotency_tests_in_selection": [
+      "test_unknown_initial_provider_outcome_preserves_state_key_and_success_replay",
+      "test_unknown_rotation_outcome_preserves_pending_state_key_and_success_replay"
+    ]
+  },
+  "ancestry": {
+    "commands": [
+      "git -C work/g4-backend-main merge-base --is-ancestor 8847556cea0498e087bc109d9fc2922abb3d74d6 50fdb680a5b89265a7e668223bfa1b8728c6c4e9",
+      "git -C work/g4-frontend-main merge-base --is-ancestor 26f51fcc473f3bf42b122ac3a9af9b353e4dfc48 750f26ad4160782b84b8aad3917d51ef4b6c6569",
+      "git -C work/g4-runbooks-main merge-base --is-ancestor cae132cdccd9eabe892c3c3be7a32a5ab0231a74 HEAD"
+    ],
+    "exit_codes": [0, 0, 0]
+  }
+}
