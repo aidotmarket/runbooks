@@ -659,7 +659,7 @@
 
 ## Issue Channel
 - Path: `issue-channel.md`
-- Purpose: The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, and Cloudflare (the Council-provider consumption source is merged but NOT yet scheduled anywhere — see the deployment note under Council provider consumption), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
+- Purpose: The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption (DeepSeek balance; see Council provider consumption for limits), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 - Owner: `mars`
 - Last verified: `2026-08-30`
 - Aliases: infrastructure failure channel, CI health board, issue channel watcher, issue channel poller
