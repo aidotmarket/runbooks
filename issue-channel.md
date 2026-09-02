@@ -363,7 +363,7 @@ In `aidotmarket/koskadeux-mcp`, the watcher and local poller live in:
 
 Focused watcher coverage is under `tests/issue_channel/`, especially `test_github_adapter.py`, `test_railway_adapter.py`, `test_cloudflare_adapter.py`, `test_resolution.py`, `test_admission_db.py`, `test_dispatch_context.py`, `test_workers.py`, `test_triage_report.py`, `test_escalate.py`, `test_poller.py`, `test_breaker.py`, and `test_cloud_singleton_service_definition.py`. Board rendering is covered by `tests/test_open_items_channel_segment.py`; support-tool behavior by `tests/unit/test_support_ticket_tool.py`.
 
-For a safe update, use an MP build on a fresh branch, run the focused tests independently, and send the exact candidate through full CC, Kimi, and GLM review. If a backend contract changes, deploy backend-first. Then obtain live provider, database, Railway, snapshot, and eligible-ticket proof. Update `last_verified` only after that proof.
+For a safe update, use an MP build on a fresh branch, run the focused tests independently, and send the exact candidate through full CC, GLM, and DeepSeek review. If a backend contract changes, deploy backend-first. Then obtain live provider, database, Railway, snapshot, and eligible-ticket proof. Update `last_verified` only after that proof.
 
 ## When it breaks
 

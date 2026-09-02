@@ -30,7 +30,7 @@ error_signatures:
 |---|---|---|---|---|
 | Live Roster | `state_request(action=get, key=infra:council-comms)` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
-| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, Kimi, GLM voters; retained AG/DeepSeek backends | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused and DeepSeek is retired; neither supplies an active gate vote. |
+| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, GLM, DeepSeek voters; Kimi comparison; retained AG backend | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused; Kimi supplies comparison only. |
 
 ### Normative projection — CORE §4
 
@@ -47,15 +47,15 @@ separate current gateway tool.
 
 Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> The gate voter panel is exactly **CC, Kimi, GLM** — three voters. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
+> The gate voter panel is exactly **CC, GLM, DeepSeek** — three voters. Kimi is an explicit-name, non-voting comparison seat. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
 
 > Vulcan and Mars are two cooperating frontier-model instances (current model strings live in the registry, not here), **peers of equal authority** over shell, git, dispatch, and Living State.
 
 Stable dispatch roles carried from CORE §§4–5:
 
 - MP is the mandatory builder and cannot vote on its own work.
-- CC, Kimi, and GLM are the gate voters; a valid gate requires the policy-defined complete panel.
-- DeepSeek is retired from the active gate roster; its technically callable dispatch path does not confer voting authority.
+- CC, GLM, and DeepSeek are the gate voters; a valid gate requires the policy-defined complete panel.
+- Kimi is registered for explicit-name comparison only; its technically callable dispatch path does not confer voting authority.
 - AG is not assumed active. Consult live state before any explicit AG review.
 - Vulcan and Mars orchestrate and synthesize as peers; neither is a gate voter.
 - Max is final authority, not a Council voter.
@@ -68,7 +68,8 @@ These bullets are companion synthesis, not a new source of constitutional author
 |---|---|---|---|---|
 | Vulcan or Mars | Resolve roster before dispatch | `state_request action=get` | Living State read | COMPLETE |
 | MP | Build approved work | `council_request agent=mp` | Repository write per dispatch | COMPLETE |
-| CC, Kimi, GLM | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
+| CC, GLM, DeepSeek | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
+| Kimi | Compare by explicit name | `council_request agent=kimi` | Read-only, non-voting | COMPLETE |
 | AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
 
 ## How to operate

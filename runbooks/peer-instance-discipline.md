@@ -44,7 +44,7 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Close Boundary | Connected `kd_session_close` schema and close-status surface | Instance-scoped close transaction | Repository and handoff state | Update a runbook only when the operating procedure changed; documentation is not a close gate. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages keyed by recipient, sender, kind, and ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
-| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; connected `council_request` enum (`ag`, `mp`, `deepseek`, `glm`, `cc`); policy target CC/Kimi/GLM voters | Policy and connected schema currently disagree because the enum omits Kimi. Treat full-roster-dependent review and promotion as UNAVAILABLE; do not claim a successful full-panel dispatch until a signed deployed contract and the connected schema both prove the required roster. |
+| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; CC/GLM/DeepSeek required voters; Kimi explicit-name comparison | Validate the connected schema against `council_reviewers.py`; any missing required voter keeps review and promotion unavailable. |
 | Git/Shell Surface | shell plus git CLI | local worktree, `origin/main`, branches | target repos | Either peer may inspect, commit, merge, and push within the same authority boundaries. |
 | Max Escalation | direct user thread | strategic decision record, BQ notes | Max | Used only for strategic forks or cross-instance unblocks agents cannot resolve. |
 
@@ -54,12 +54,12 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="vulcan")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | PARTIAL — lifecycle authority is available; full-roster-dependent work is unavailable during the policy/schema mismatch |
-| Mars | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="mars")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | PARTIAL — lifecycle authority is available; full-roster-dependent work is unavailable during the policy/schema mismatch |
+| Vulcan | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="vulcan")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | COMPLETE — gate work still fails closed unless all required voter paths are available |
+| Mars | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="mars")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | COMPLETE — gate work still fails closed unless all required voter paths are available |
 | MP | Mandatory delegated builder; never a vote on its own work | `council_request(mode=build)`, `dispatch_mp_build` | Build scope | COMPLETE |
-| CC/Kimi/GLM | Policy-target independent active gate voters | `council_request(mode=review)` | Read-only review at the exact SHA | GAP — connected `council_request` omits Kimi, so the required full panel is not currently callable and roster-dependent work is UNAVAILABLE |
+| CC/GLM/DeepSeek | Independent active gate voters | `council_request(mode=review)` | Read-only review at the exact SHA | COMPLETE — all three are required; any missing voter fails closed |
 | AG | Paused from the active panel; advisory only when current state explicitly permits | `council_request(mode=review)` | Non-gate read-only advice | PARTIAL — callable advisory path retained; active-panel coverage intentionally absent |
-| DeepSeek | Retained callable backend, retired from active voting | `council_request` | Non-voter only | PARTIAL — callable backend retained; active-voter coverage intentionally retired |
+| Kimi | Explicit-name comparison reviewer | `council_request(agent=kimi, mode=review)` | Read-only, non-voting | COMPLETE — never supplies gate coverage |
 | Max | Strategic adjudication | direct instruction | Business/product owner | COMPLETE |
 
 ## How to operate

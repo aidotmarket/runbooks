@@ -31,8 +31,8 @@ deployment like any other deliverable. Do not create filler when no procedure
 changed. Session-close success is the typed close result for the named instance;
 response prose or a local handoff file is not a substitute.
 
-The intended current roles are MP as builder/non-voter, CC + Kimi + GLM as
-voters, AG paused, and DeepSeek retired. The exact signed deployed
+The intended current roles are MP as builder/non-voter, CC + GLM + DeepSeek as
+voters (S1651), Kimi as the non-voting comparison seat, and AG paused. The exact signed deployed
 tool-and-Council contract is runtime authority. If it is absent or the connected
 schema contradicts it, stop roster-dependent work; historical Living State
 prose is not a substitute.

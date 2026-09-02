@@ -40,7 +40,7 @@ The `agents` argument on `council_hall(action=start, ...)` selects Hall particip
 
 For the rest of a Hall, use the participant set bound by the successful start call. Read it from the returned/status state when that surface exposes it; otherwise retain the exact explicit input or verified deployed default with the deliberation record. Never reconstruct membership from examples, old session notes, or gate-voter constants.
 
-S1321 supersedes the S528-era roster snapshot. For gate voting, `REQUIRED_MEMBERS` and `VALID_MEMBER_IDS` are both exactly `{cc, kimi, glm}`: DeepSeek is retired from valid gate voting, AG is paused, and MP is the builder rather than a voter. Those gate facts constrain gate review; they do not independently define a Hall's participant list.
+S1651 supersedes the S1321 roster snapshot. For gate voting, `REQUIRED_MEMBERS` is exactly `{cc, glm, deepseek}`; `VALID_MEMBER_IDS` also registers Kimi for explicit-name comparison. Kimi is not a voter, AG is paused, and MP is the builder rather than a voter. Those gate facts constrain gate review; they do not independently define a Hall's participant list.
 
 Historical roster snapshots only: S528 described DeepSeek as a graduated full voter, and S726 described an MP/AG/DeepSeek/CC four-voter default. Both snapshots are superseded by S1321 and must not be used to select live Hall participants.
 
@@ -60,10 +60,11 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 |---|---|---|---|---|
 | Start-bound participant | Independent assessment and cross-poll response when selected by explicit `agents` or the verified deployed default | Backend selected through `council_request` | Read-oriented Hall evidence scope | COMPLETE |
 | Hall orchestrator | Neutral prompt construction, participant binding, synthesis, escalation | MCP tools and Living State | Gateway, Living State, evidence repositories | COMPLETE |
-| Current gate-voter panel | Gate review outside Hall deliberation for the S1321 `{cc, kimi, glm}` panel | Current voter backend from `infra:council-comms` | Read-only gate evidence scope | COMPLETE |
+| Current gate-voter panel | Gate review outside Hall deliberation for the S1651 `{cc, glm, deepseek}` panel | Current voter backend from `infra:council-comms` | Read-only gate evidence scope | COMPLETE |
 | MP | Mandatory builder; not a gate voter | Builder backend from `infra:council-comms` | Repository write only through authorized build flow | COMPLETE |
 | AG | Paused; no current gate-voting authority | Paused backend metadata in `infra:council-comms` | None for current gates | COMPLETE |
-| DeepSeek | Retired from valid gate voting | Retained historical backend metadata | None for current gates | COMPLETE |
+| DeepSeek | Required gate voter under S1651 | Bounded read-only Codex transport | Required for current gates | COMPLETE |
+| Kimi | Explicit-name comparison reviewer | Shared provider read-only path | None for current gates | COMPLETE |
 
 The capability map reports role boundaries; it is not a participant-selection source. At Hall start, pass an explicit policy-authorized `agents` list or deliberately accept the verified deployed default. After start, use only that bound set.
 
@@ -517,7 +518,7 @@ and that run is the reference for the mapping below.
 | Retired automation | Manual equivalent (verified S1581) |
 |---|---|
 | `council_hall(action=start, ...)` | Write ONE frozen neutral prompt (background, proposal, decision dimensions, requested structure; no roles assigned). Freeze it before any dispatch; every participant gets the identical text. |
-| Phase 1 dispatch | `council_request(agent=<cc\|kimi\|glm>, mode=open_response, task=<frozen prompt>)`, one call per participant, none shown another's answer. E-02 unchanged. |
+| Phase 1 dispatch | `council_request(agent=<cc\|glm\|deepseek>, mode=open_response, task=<frozen prompt>)`, one call per governed voter participant, none shown another's answer. Use Kimi only when explicitly selected as a non-voting comparison participant. E-02 unchanged. |
 | `council_hall(action=record_response, ...)` | Keep each returned response file (`/Users/max/council/<member>/response-*.md`) unmodified; reference the paths in the owning ticket or BQ entity so the record is durable. |
 | `council_hall(action=get_cross_poll_bundle)` | Orchestrating peer builds a faithful comparison of the Phase 1 answers, then cross-polls ONLY the disagreements: a second `open_response` round carrying the original prompt plus every Phase 1 assessment verbatim. Do not cross-poll points already converged. Bias rules of E-03 (`premature_cross_poll`, `biased_synthesis`) still apply to the hand-built bundle. |
 | Convergence/synthesis machinery | Orchestrating peer writes the synthesis; persist decision + binding constraints + open questions into the owning BQ entity, not only prose. |
@@ -526,7 +527,7 @@ The How to operate error signatures remain meaningful as protocol violations (e.
 is now a mistake the orchestrating peer can make by hand); the `duplicate_deliberation` and
 `participant_config_missing` signatures referred to service state and can no longer occur
 mechanically — their intent survives as "do not run two deliberations on one question" and
-"dispatch only the exact governed roster CC/Kimi/GLM".
+"dispatch only the exact governed voter roster CC/GLM/DeepSeek; Kimi is comparison-only".
 
 If deliberation volume ever justifies re-automating this, that is a new Gate 1 design item,
 not a restoration of the deleted code.

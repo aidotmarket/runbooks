@@ -74,7 +74,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 | Vulcan / Mars | Dispatch a build | `dispatch_mp_build` (enqueues via tsp_queue, returns a handle) | operator | COMPLETE |
 | Vulcan / Mars | Inspect, unblock or clear the queue | `ts -l`, `ts -c`, `ts -r`, `ts -K` per How to operate | operator | COMPLETE |
 | MP (Codex) | Build, including on this control surface (Max ruling S1488 event `6005ec17`: Codex may edit any builder control file; its only rule is that it cannot review its own work as a Council member, CORE S4) | minimal bridge | builder | COMPLETE |
-| Council (CC/Kimi/GLM) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
+| Council (CC/GLM/DeepSeek voters; Kimi comparison) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
 
 ## How to operate
 

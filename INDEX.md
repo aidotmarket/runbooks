@@ -47,7 +47,7 @@
 
 ## Agent Dispatch
 - Path: `runbooks/agent-dispatch.md`
-- Purpose: **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole authority for CC, Kimi, and GLM dispatch. All reviewer-wrapper, exact-SHA, package-validation, turn-budget, retry, parser, verdict-persistence, and Council Hall instructions below are historical and must not be executed. The only active reviewer path is `council_request` as a thin trigger over `scripts/council_dir.py`: one request file in, one response file out. This runbook remains authoritative only for the separate MP build path and general non-reviewer dispatch operations.
+- Purpose: **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole authority for CC, GLM, and DeepSeek voter dispatch and explicit-name Kimi comparison dispatch. All reviewer-wrapper, exact-SHA, package-validation, turn-budget, retry, parser, verdict-persistence, and Council Hall instructions below are historical and must not be executed. The only active reviewer path is `council_request` as a thin trigger over `scripts/council_dir.py`: one request file in, one response file out. This runbook remains authoritative only for the separate MP build path and general non-reviewer dispatch operations.
 - Owner: `vulcan`
 - Last verified: `2026-08-25`
 - Aliases: none
@@ -344,7 +344,7 @@
 
 ## Codex / MP — Council Primary Builder
 - Path: `codex-mp.md`
-- Purpose: **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. Since the S1213 roster change (CORE 9.8) MP is NOT a gate voter — the gate panel is CC/Kimi/GLM — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path (S1213/CORE 9.8 supersedes the S1148 MP-vs-CC build split for code work; CC's role is gate voting via its read-only review path). MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+- Purpose: **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
 - Last verified: `2026-08-30`
 - Aliases: none
@@ -362,7 +362,7 @@
 
 ## Constitution Amendment — changing CORE.md
 - Path: `constitution-amendment.md`
-- Purpose: **The rule (CORE footer, v9.13; Max directives S1242 and S1370; voter roster updated S1319):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
+- Purpose: **The rule (CORE v9.16; voter roster updated S1651):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, GLM, DeepSeek — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Kimi is an explicit-name, non-voting comparison seat. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 - Owner: `mars`
 - Last verified: `2026-07-28`
 - Aliases: none

@@ -47,7 +47,7 @@ Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
 Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, Kimi, GLM — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval, unless Max explicitly supersedes the Council under §5; either instance may then apply the approved change. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
+> This document is the canonical agent constitution for ai.market. It holds invariants only. Amendments require a unanimous Council gate (CC, GLM, DeepSeek — 3/3 valid verdicts, per §5 decision rules) AND Max's direct approval, unless Max explicitly supersedes the Council under §5; either instance may then apply the approved change. Kimi is a non-voting comparison seat. Procedure: `aidotmarket/runbooks` → `constitution-amendment.md`.
 
 ### Version index
 
@@ -55,6 +55,7 @@ The table is historical retrieval metadata derived from backend Git history. It 
 
 | Version | Git commit | Date | Historical change summary |
 |---|---|---|---|
+| 9.16 | pending — applied by vulcan S1651 (see `infra:constitution.body.core_amendment_s1651`) | 2026-09-02 | Gate voter panel changed from CC, Kimi, GLM to CC, GLM, DeepSeek; Kimi non-voting comparison seat. Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: Event Ledger ddb93d96-d06d-42fd-899f-157918581df4. |
 | 9.13 | `6a90b4981bfcfec98530adacf68105ce8e23ed64` | 2026-07-27 | Explicit, matter-specific Max supersession may stand in place of Council approval and must be recorded in the Event Ledger. |
 | 9.12 | `ac3390cfc2a0d1e8b87a44ead61de8ac34ef5805` | 2026-07-24 | Gate voter panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM. |
 | 9.11 | `6851a671a7adb0a7511162b0c5bd1939cb274162` | 2026-07-16 | Unanimous Council gate plus Max direct approval required for amendments. |
@@ -80,7 +81,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan or Mars | Audit current and prior constitutional sources | Living State and Git read | Read | COMPLETE |
-| CC, Kimi, GLM | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
+| CC, GLM, DeepSeek (since v9.16) | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
 | Max | Directly approve or reject an amendment | Human decision | Final authority | COMPLETE |
 
 ## How to operate
@@ -110,7 +111,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   trigger: A proposed constitutional semantic change needs authorization.
   pre_conditions: [exact_diff_written, rationale_written, current_source_hash_known]
   tool_or_endpoint: constitution-amendment.md procedure
-  argument_sourcing: {standard_authority: require valid CC Kimi and GLM verdicts plus Max direct approval, supersession_authority: accept only Max's explicit exact-matter Council supersession with Event Ledger record, diff: bind all evidence to exact bytes}
+  argument_sourcing: {standard_authority: require valid CC, GLM and DeepSeek verdicts (the current voter panel, v9.16) plus Max direct approval, supersession_authority: accept only Max's explicit exact-matter Council supersession with Event Ledger record, diff: bind all evidence to exact bytes}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(current_sha + proposed_diff + standard_verdict_set_or_supersession_event + max_authority)
   expected_success: {shape: authorized exact amendment with complete provenance, verification: validate either 3 of 3 verdicts plus direct Max approval or an exact explicit Max supersession and Event Ledger record before apply}
