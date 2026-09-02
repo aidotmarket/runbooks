@@ -40,7 +40,7 @@ This amendment supersedes only the prior onboarding amendment's use of general *
 - A no-card paid-start attempt returns the fixed just-in-time setup state with zero persisted acknowledgement, start claim, verification identity, PaymentIntent, charge, or scan.
 - After readiness changes to `ready`, retrying the same paid action proceeds once through the existing idempotent lifecycle.
 - Direct or ineligible access remains fail-closed and exposes no Stripe identifiers or provider error details.
-- Frontend and service tests cover `setup_required`, `setup_pending`, `blocked`, `ready`, retry, and unchanged captured-result behavior.
+- Frontend and service tests cover the fresh `setup_required` path, `ready` retry, claimed-start recovery, malformed readiness rejection, and unchanged captured-result behavior. The typed `setup_pending` and `blocked` UI branches remain fail-closed in source.
 
 ## 5. Release and rollback
 
