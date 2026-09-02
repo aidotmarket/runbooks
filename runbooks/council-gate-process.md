@@ -222,7 +222,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   component_ref: Compliance Gate
   root_cause: Author-mode and review-mode provenance were mixed, so the same agent may count as builder and reviewer.
   repair_entry_point: BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION
-  change_pattern: Discard the tainted review as completion evidence, preserve it as build context if useful, and redispatch strict read-only review to the required current CC/GLM/DeepSeek voter; MP, AG, and DeepSeek cannot replace that voter.
+  change_pattern: Discard the tainted review as completion evidence, preserve it as build context if useful, and redispatch strict read-only review to the required current CC/GLM/DeepSeek voter; MP, AG, and Kimi (comparison-only) cannot replace that voter.
   rollback_procedure: Remove the tainted reviewer verdict from gate evidence while keeping the builder record.
   integrity_check: Verify no files changed during the replacement review dispatch.
 - id: G-05

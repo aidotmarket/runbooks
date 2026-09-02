@@ -76,7 +76,7 @@ context and the 10% of sessions exceeding 40 steps consumed 46% of all tokens
   dispatch environment.
 - Live-verified S1626 (2026-08-27): Max enabled a small Kimi balance, and a live
   open_response dispatch under the new defaults completed clean (response file
-  written, no quota 403). Three-seat CC+Kimi+GLM panel RESTORED as of S1626,
+  written, no quota 403). Three-seat CC+Kimi+GLM panel RESTORED as of S1626 (panel is CC+GLM+DeepSeek since S1651; Kimi comparison-only),
   discharging the temporary two-seat CC+GLM authority from Max Event-Ledger
   decisions `a5de3120` and `a85f6b63`. Balance is small: keep review prompts
   tight and reserve `KD_KIMI_*` heavy-round overrides for constitutional or

@@ -111,7 +111,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
   trigger: A proposed constitutional semantic change needs authorization.
   pre_conditions: [exact_diff_written, rationale_written, current_source_hash_known]
   tool_or_endpoint: constitution-amendment.md procedure
-  argument_sourcing: {standard_authority: require valid CC Kimi and GLM verdicts plus Max direct approval, supersession_authority: accept only Max's explicit exact-matter Council supersession with Event Ledger record, diff: bind all evidence to exact bytes}
+  argument_sourcing: {standard_authority: require valid CC, GLM and DeepSeek verdicts (the current voter panel, v9.16) plus Max direct approval, supersession_authority: accept only Max's explicit exact-matter Council supersession with Event Ledger record, diff: bind all evidence to exact bytes}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(current_sha + proposed_diff + standard_verdict_set_or_supersession_event + max_authority)
   expected_success: {shape: authorized exact amendment with complete provenance, verification: validate either 3 of 3 verdicts plus direct Max approval or an exact explicit Max supersession and Event Ledger record before apply}
