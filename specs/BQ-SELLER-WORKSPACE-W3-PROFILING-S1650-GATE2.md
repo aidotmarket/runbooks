@@ -1,0 +1,389 @@
+# BQ-SELLER-WORKSPACE-W3-PROFILING-S1650 Gate 2 implementation specification
+
+**Status:** Gate 2 candidate for independent review. **Implementation dispatch is forbidden until independent CC, GLM, and DeepSeek reviews all approve this exact file digest.** No earlier Gate 1 vote, earlier digest, reviewer substitute, wrapper status, or partial panel transfers to this candidate.
+
+**Build Queue entity:** `build:bq-seller-workspace-w3-profiling-s1650`
+
+**Expected branch:** `spec/bq-seller-workspace-w3-profiling-s1650`
+
+**Exact approved Gate 1 base:** commit `d65c11cbf1bccb8f5a98cb07b0f69983bdfe7b4b`, file `specs/BQ-SELLER-WORKSPACE-W3-PROFILING-S1650-GATE1.md`, SHA-256 `4ff20a4fd80038d572d22db599e3ca7aa9e8fed745bd5ef3efe793ec18d0aa9b`.
+
+**Scope:** implementation instructions only. This document authorizes no code dispatch, merge, deployment, AWS/provider mutation, customer credential/data access, feature enablement, public capability claim, W4, W5, R2, AIM Data runtime import, publication, delivery, or `legacy_serial` change. All fixtures, identities, buckets, objects, VPCs, accounts, and browser journeys used by later proof are synthetic and explicitly authorized for that proof.
+
+## 1. Read-only baseline and binding conflict rule
+
+This Gate 2 candidate was written from the approved Gate 1 base above and read-only inspection of canonical ai-market backend `origin/main` at `31efd4c607ace06319bbbbc697834584952f7ed9`. If implementation begins later, the builder must rebase these named integration points onto then-current `origin/main` without changing the Gate 1 contract. Any architectural conflict returns to Gate 2 review; it is not resolved in code.
+
+The canonical W2 integration points are exact:
+
+- `app/api/v1/router.py` already includes `app.api.v1.endpoints.seller_workspace.router`; do not add a second router or prefix.
+- `app/api/v1/endpoints/seller_workspace.py` owns `/api/v1/seller-workspace`, `SellerWorkspaceNoStoreRoute`, `require_active_seller`, `require_idempotency_key`, `_seller_context`, `_raise_safe_http`, and dependency construction.
+- `app/core/seller_workspace_config.py` owns the nine default-off Seller Workspace flags and `capability_payload`. Its `AWS_CONNECT_IMPLEMENTED=True` is W2-only; profile is currently hard-coded `implemented=False`.
+- `app/models/seller_workspace.py` owns `CloudConnection`, encrypted `CloudConnectionCredential`, append-only `SellerWorkspaceAuditEvent`, and the unchanged `DeliveryAuthority`/`legacy_serial_id` contract.
+- `app/schemas/seller_workspace.py` owns strict `extra="forbid"` HTTP schemas.
+- `app/services/seller_workspace_connection.py` owns owner-scoped repositories, idempotency, ExternalId custody, and `BotoAWSConnectionVerifier._verify_sync`. That verifier currently grants `s3:GetObject` and calls `head_object`; W3 readiness must replace only that proof with bounded list-only proof.
+- `app/services/seller_workspace_audit.py` owns the closed audit allowlists and canonical scope hashes.
+- `app/services/seller_workspace_encryption.py` is the existing versioned application envelope boundary and must also encrypt source-key ARNs, selector object identities, runtime references, and task ARNs with record-specific AAD.
+- `alembic/versions/20260831_001_s1647_seller_workspace_w2.py` is the W2 parent schema; canonical Alembic currently has the single head `s1648_issue_channel_repair`.
+- `tests/test_s1647_seller_workspace_b1.py`, `tests/test_s1647_seller_workspace_b2a.py`, `tests/test_s1647_seller_workspace_b2b.py`, and `tests/test_s1647_seller_workspace_postgres.py` are the W2 safety suite and remain unchanged.
+- `app/core/celery_app.py` already uses JSON-only Celery, late acknowledgement, worker-lost rejection, prefetch 1, and explicit Kombu queues. `railway.worker.json` is the shared worker and must not receive W3 tasks.
+
+There is no Seller Workspace CloudFormation, ECS, Lambda, ECR-runtime, profile queue, or W3 worker artifact on this canonical backend main. W2 returns a trust-policy document from `SellerWorkspaceConnectionService._build_authorization`; it does not deploy seller infrastructure. The new IaC below is therefore a concrete new artifact, not a claimed existing abstraction.
+
+## 2. Exact implementation file manifest
+
+The later builder changes exactly these existing backend files:
+
+| File | Required change |
+| --- | --- |
+| `app/core/seller_workspace_config.py` | Add `AWS_PROFILE_IMPLEMENTED=True` only after every file in this specification exists; add fail-closed profile dependency checks while preserving every environment default as false. |
+| `app/models/seller_workspace.py` | Add the W3 enums and ORM models in section 4; do not change `DeliveryAuthority`, `DeliveryAuthorityKind`, `legacy_serial_id`, or existing W2 constraints. |
+| `app/schemas/seller_workspace.py` | Add the exact W3 request/response and closed evidence/allAI schemas in sections 5 and 8 with `extra="forbid"`. |
+| `app/services/seller_workspace_connection.py` | Change `BotoAWSConnectionVerifier._verify_sync` to list-only proof; add no profiling behavior to the W2 lifecycle service. |
+| `app/services/seller_workspace_audit.py` | Extend only the operation/purpose/snapshot allowlists for the safe fields in section 10. |
+| `app/api/v1/endpoints/seller_workspace.py` | Add the owner-scoped routes in section 5 using the existing dependencies, error mapper, idempotency key, and no-store route class. |
+| `app/core/celery_app.py` | Include `app.tasks.seller_workspace_profile`, declare only `seller_workspace_profile_control`, and add the two bounded sweeps in section 9. |
+| `requirements.txt` | No parser dependency. The web/control image already has boto3; PyArrow and streaming parser dependencies belong only in the seller task lock file. |
+
+The later builder creates exactly these backend/control files:
+
+- `alembic/versions/20260902_001_s1650_seller_workspace_w3.py`, revision `s1650_seller_workspace_w3`, down revision `s1648_issue_channel_repair`;
+- `app/services/seller_workspace_profile.py` for repository transactions, receipts, authorization, state transitions, leases, quotas, and evidence commit;
+- `app/services/seller_workspace_profile_aws.py` for list-only discovery, STS session-policy construction, canonical verifier/broker envelopes, alias invocation, and response validation;
+- `app/tasks/seller_workspace_profile.py` for control-task claim/reconcile/cancel/expiry/cleanup only;
+- `app/core/seller_workspace_profile_metrics.py` for low-cardinality allowlisted metrics only; and
+- `railway.profile-worker.json` for the dedicated control worker.
+
+The later builder creates exactly these seller-account IaC/runtime files:
+
+- `infra/seller_workspace_profile/template.yaml`;
+- `infra/seller_workspace_profile/common/contracts.py`;
+- `infra/seller_workspace_profile/broker/handler.py`;
+- `infra/seller_workspace_profile/verifier/handler.py`;
+- `seller_workspace_profile_runtime/Dockerfile`;
+- `seller_workspace_profile_runtime/requirements.lock` with exact hashes;
+- `seller_workspace_profile_runtime/profile_task/__init__.py`;
+- `seller_workspace_profile_runtime/profile_task/main.py`;
+- `seller_workspace_profile_runtime/profile_task/contracts.py`;
+- `seller_workspace_profile_runtime/profile_task/canonical.py`;
+- `seller_workspace_profile_runtime/profile_task/limits.py`;
+- `seller_workspace_profile_runtime/profile_task/supervisor.py`;
+- `seller_workspace_profile_runtime/profile_task/parsers/csv_parser.py`;
+- `seller_workspace_profile_runtime/profile_task/parsers/json_parser.py`; and
+- `seller_workspace_profile_runtime/profile_task/parsers/parquet_parser.py`.
+
+The runtime image is built by `.github/workflows/seller-workspace-profile-runtime.yml` from only `seller_workspace_profile_runtime/**` plus the closed contracts copied during the build. The workflow produces an SBOM, vulnerability report, image manifest, and immutable `sha256:` digest. It must not deploy a stack, update an alias, change a flag, or push a mutable execution tag. `infra/seller_workspace_profile/template.yaml` accepts that exact digest as a parameter.
+
+No frontend file is in W3. No AIM Data repository or package is changed or imported.
+
+## 3. Seller-account execution identity and exact IaC
+
+One seller-deployed stack is bound one-to-one to one verified `CloudConnection`. ai.market may render the acknowledged template and verify it, but may never call CloudFormation create/update/delete. The seller deploys it under the seller's own AWS identity.
+
+`infra/seller_workspace_profile/template.yaml` contains these exact resources and no long-lived compute:
+
+1. `AWS::EC2::VPC` with DNS support and hostnames enabled, IPv4 only, primary CIDR `10.203.0.0/24`.
+2. `AWS::EC2::VPCCidrBlock` adding exactly `10.203.1.0/24`. No parameter may override either CIDR. This deliberate two-CIDR layout is the required live multi-CIDR proof surface.
+3. Two private `/26` task subnets in distinct available AZs, one from each VPC CIDR, with isolated route tables. There is no default route, NAT gateway, internet gateway, egress-only gateway, peering, transit-gateway attachment, VPN, Direct Connect, or IPv6 association.
+4. One task security group with no ingress. Egress is TCP 443 only to the interface-endpoint security group and the regional S3 managed prefix list, plus UDP/TCP 53 only to the VPC resolver. The endpoint security group accepts TCP 443 only from the task group.
+5. Interface endpoints with private DNS for `ecr.api`, `ecr.dkr`, `logs`, `secretsmanager`, and `kms`, in both task subnets; one S3 gateway endpoint on both route tables. No other endpoint is allowed.
+6. One control bucket with block-public-access, TLS-only bucket policy, SSE-KMS, versioning/replication/Object Lock/inventory/access logging disabled, incomplete multipart abort after one day, and expiry after one day. Its only object shapes are `requests/<connection-id>/<job-id>/<attempt>/request.json` and `results/<connection-id>/<job-id>/<attempt>/evidence.json`.
+7. One customer-managed symmetric regional KMS key for the control bucket and Fargate ephemeral storage, with the exact broker/task/S3/Fargate and verifier read-only statements approved in Gate 1.
+8. One Secrets Manager secret containing the seller-owned field-token HMAC key; only the task role can retrieve its value.
+9. One ECS cluster whose `Configuration.ManagedStorageConfiguration.FargateEphemeralStorageKmsKeyId` is the control-key ARN, and one Fargate task definition pinned by image digest, Linux platform `1.4.0`, `awsvpc`, `1024` CPU units, `4096` MiB memory, `20` GiB ephemeral storage, read-only root filesystem, non-root UID/GID `65532`, no privilege/capability/host namespace/device, and `StopTimeout=30`.
+10. Separate connection-control, verifier, broker, task, and task-execution roles. No role combines two identities. The existing connection role ARN is a parameter and is not replaced.
+11. One broker Lambda and one verifier Lambda, each with a published immutable version and alias. Aliases, package hashes, code-signing config, environment, runtime, architecture, timeout, memory, role, and resource policy are verifier-bound. Neither Lambda is VPC-attached.
+12. One task log group and one ECS-event audit log group, both metadata-only with seven-day retention; one EventBridge ECS task-state rule targeting only the audit group.
+13. One DNS Firewall allow domain list, one `*` block list, one rule group, allow priority `100`, block priority `200`, and one association at priority `101` with `MutationProtection=ENABLED`. The allow rule uses `ALLOW` and `INSPECT_REDIRECTION_DOMAIN`; the block rule uses `BLOCK`, `NODATA`, and no override domain. CloudFormation relies on AWS's default fail-closed behavior, and the verifier additionally requires live `FirewallFailOpen=DISABLED` before every launch.
+
+The S3 gateway endpoint policy contains only the verified source bucket/prefix, the two exact control-object shapes, and `s3:GetObject` for `arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*`. Interface endpoint policies name the exact roles and required read/write actions. No endpoint policy contains `Principal: "*"` without simultaneous exact role, action, and resource/condition restriction.
+
+### 3.1 Complete AWS autodefined multi-CIDR VPC inventory
+
+The verifier must not reject all Resolver rules blindly and must not bless a vague `SYSTEM` class. It builds and compares a complete inventory for the exact stack VPC.
+
+It calls `DescribeVpcs(VpcIds=[exact])`, `DescribeVpcAttribute` for DNS support/hostnames, `GetResolverConfig(ResourceId=exact)`, and fully paginated `ListResolverRuleAssociations(Filters=[VPCId=exact])`. Every returned association is rechecked for the exact VPC and resolved with `GetResolverRule`. Pagination is capped at 20 pages and 1,000 total records; a next token after either cap fails closed. Both CIDR associations must be `associated`; any third CIDR, IPv6 CIDR, pending/disassociating/failed association, peering/TGW/private-hosted-zone contribution, or DNS-attribute drift fails.
+
+The expected AWS-owned set is the normalized trailing-dot domain/type multiset below:
+
+- `.` as `RECURSIVE`;
+- outside `us-east-1`: `${AWS::Region}.compute.internal.` and `${AWS::Region}.compute.${AWS::URLSuffix}.` as `FORWARD`;
+- in `us-east-1` only: `ec2.internal.`, `compute-1.internal.`, and `compute-1.amazonaws.com.` as `FORWARD`;
+- `10.in-addr.arpa.`, every `16.172.in-addr.arpa.` through `31.172.in-addr.arpa.`, `168.192.in-addr.arpa.`, and `254.169.254.169.in-addr.arpa.` as `SYSTEM`;
+- exactly `0.203.10.in-addr.arpa.` for `10.203.0.0/24` and `1.203.10.in-addr.arpa.` for `10.203.1.0/24` as `SYSTEM`, proving both VPC CIDRs were inventoried;
+- `localhost.`, `localdomain.`, `127.in-addr.arpa.`, `1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.`, and `0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.` as `SYSTEM`.
+
+For each member, the verifier requires the exact type above, association and rule `Status=COMPLETE`, no `ResolverEndpointId`, `ShareStatus=NOT_SHARED`, `OwnerId="Route 53 Resolver"`, and ARN namespace `arn:${partition}:route53resolver:${region}::autodefined-rule/`. A seller-created `SYSTEM`, `FORWARD`, `DELEGATE`, or `RECURSIVE` rule never qualifies. The fixed normalized projection contains domain, type, owner, endpoint absence, share status, and service ARN class but excludes volatile IDs; its RFC 8785 SHA-256 is `resolver_control_hash`.
+
+`GetResolverConfig.AutodefinedReverse` must be `ENABLED`. The verifier separately requires zero outbound endpoints from fully paginated `ListResolverEndpoints(Direction=OUTBOUND, HostVPCId=exact)`, zero Route 53 Profile associations from fully paginated `ListProfileAssociations(ResourceId=exact VPC ID)`, zero private hosted-zone associations from fully paginated `route53:ListHostedZonesByVPC(VPCId=exact,VPCRegion=exact)`, and no extra direct rule association. The verifier role therefore includes that one Route 53 read in addition to the Gate 1 Resolver/Profile reads. Missing IAM permission, service omission, malformed owner/ARN, duplicate domain/type, unexpected or missing inventory member, nonterminal state, truncation, or unexhausted token makes the runtime ineligible. Raw rule IDs, endpoint IDs, Profile details, CIDRs, and domains do not cross to ai.market; only `resolver_control_hash` and an allowlisted mismatch code do.
+
+The task DNS allowlist is separate from this service inventory. It contains only exact source/control S3 names, regional ECR API/Docker/layer names, exact Logs/Secrets Manager/KMS endpoint names, VPC endpoint DNS names, and every approved CNAME/DNAME target. Wildcard allow entries and ai.market/allAI names are forbidden.
+
+## 4. Persistent models and state machines
+
+`app/models/seller_workspace.py` adds these exact model classes/tables:
+
+| Model | Table | Required contents |
+| --- | --- | --- |
+| `ProfileSourceKMSKeySet` | `seller_workspace_profile_source_kms_key_sets` | owner/connection, immutable version, zero-to-eight envelope-encrypted canonical ARNs, set hash, account, region, current/superseded time |
+| `ProfileRuntimeVerificationNonce` | `seller_workspace_profile_runtime_verification_nonces` | owner/connection/runtime, nonce hash only, status, issued/expiry/terminal time, receipt hash |
+| `ProfileRuntimeCostEstimate` | `seller_workspace_profile_runtime_cost_estimates` | all standing units, model/table/currency versions, low/high amount, receipt hash, expiry, consumption |
+| `ProfileRuntime` | `seller_workspace_profile_runtimes` | owner/connection, status/version, encrypted broker/verifier/stack refs, all immutable hashes, source-key version/hash, estimate acknowledgement, verified/disabled time |
+| `CloudObjectSelector` | `cloud_object_selectors` | owner/connection/runtime, immutable ordered encrypted identities and version/ETag/size bindings, selector/input hashes |
+| `ProfileCostEstimate` | `seller_workspace_profile_cost_estimates` | owner/runtime/selector, all marginal units, high/low amount, receipt hash, expiry, consumed job |
+| `ProfileJob` | `seller_workspace_profile_jobs` | owner bindings, state/version, attempt, immutable input, parser/image/schema versions, phase/absolute deadlines, lease, counters, safe failure, evidence, idempotency |
+| `ProfileAttempt` | `seller_workspace_profile_attempts` | owner/job, attempt, deterministic ECS token hash, encrypted task ARN/hash, provider state, usage, terminal/cleanup times |
+| `SellerWorkspaceListingEvidence` | `seller_workspace_listing_evidence` | owner/job/attempt, canonical semantic/attestation JSON, three hashes, expiry/deletion time |
+
+`SellerWorkspaceAuditEvent` gains nullable `profile_job_id` plus `(profile_job_id, seller_id) -> (ProfileJob.id, ProfileJob.seller_id)` and an index. No W2 column is rewritten.
+
+Runtime status is `draft -> authorized -> verified -> disabled`; only a new exact verification can move `authorized -> verified`, and drift/cancel/operator rollback only moves `verified -> disabled`. A disabled version never reactivates; a new immutable runtime version is required.
+
+Job states are exactly:
+
+`queued -> starting -> running -> validating_result -> succeeded`
+
+with `queued -> cancelled`, any nonterminal state to `failed|expired`, and `starting|running|validating_result -> cancel_requested -> cancelled|failed|expired`. Only `succeeded|failed|cancelled|expired` are terminal. The database check constraint names the complete set. A compare-and-swap update always includes `(id, seller_id, version, state, current_attempt)`; zero rows means a stale no-op, never a forced transition.
+
+Nonce states are `pending -> consumed|rejected|expired`. Standing and marginal receipts are immutable and single-use. A source-key submission identical to the current canonical set is a no-op; A-to-B-to-A creates three versions even when the first and third set hashes match.
+
+All tables have same-seller composite foreign keys. Hash fields are lowercase 64-character hex; image digests are `sha256:` plus 64 lowercase hex. JSON columns have explicit canonical byte ceilings. Unique constraints cover owner/idempotency/operation, job/attempt, deterministic token hash, one evidence row per successful attempt, one job per consumed marginal receipt, one authorization per standing receipt, and the nonce tuple from Gate 1.
+
+## 5. API, authorization, caching, and isolation contracts
+
+All routes use the existing router and `require_active_seller`. Every mutation uses the existing `Idempotency-Key` dependency plus immutable request hash. Every lookup includes `seller_id`; foreign and absent IDs produce the same `404` body. Conflict is `409`, stale optimistic version is `409`, disabled/unready dependency is `503`, invalid closed input is `422`, quota/spend rejection is `429`, and provider ambiguity is a redacted `503` safe code. Every response, including error paths, has `Cache-Control: no-store, private`, `Pragma: no-cache`, and no ETag. CDN/shared-cache middleware must not cache the prefix.
+
+The exact new routes are those approved in Gate 1:
+
+- `PUT /connections/{connection_id}/profile-runtime/source-kms-keys`;
+- `POST /connections/{connection_id}/profile-runtime/estimates`;
+- `POST /connections/{connection_id}/profile-runtime/authorize`;
+- `POST /connections/{connection_id}/profile-runtime/verify`;
+- `GET /connections/{connection_id}/objects`;
+- `POST /cloud-object-selectors`;
+- `POST /profile-jobs/estimates`;
+- `POST /profile-jobs`;
+- `GET /profile-jobs`;
+- `GET /profile-jobs/{job_id}`;
+- `POST /profile-jobs/{job_id}/cancel`; and
+- `GET /profile-evidence/{evidence_id}`.
+
+Request/response fields are the closed Gate 1 fields. All Pydantic models use `extra="forbid"`, bounded lists/strings/integers, strict UUIDs, strict RFC3339 UTC, and enums. Mutations also require `expected_version` where a mutable runtime/job exists. List cursors are opaque AEAD tokens bound to seller, connection, prefix, mode, page size, snapshot window, and expiry; maximum page sizes are 100 objects and 50 jobs.
+
+The W2 correction in `BotoAWSConnectionVerifier._verify_sync` removes the entire `ReadExactVerificationPrefix` statement and `head_object`. Its session policy permits only `s3:ListBucket` with `StringLike s3:prefix=[bounded_prefix, bounded_prefix + "*"]`; proof is a `ListObjectsV2(MaxKeys=1)` response with a returned key inside the normalized non-root prefix. Version discovery separately requests only `s3:ListBucketVersions`. The W3 AWS adapter never owns an S3 object client method.
+
+Two-seller isolation is mandatory at database, service, broker-envelope, encrypted-AAD, idempotency, cursor, Redis/Celery, and HTTP-cache layers. Seller A and Seller B may use identical connection/job/idempotency UUID text in hostile fixtures; seller B must see neither existence, state, evidence, cursor validity, receipt usability, field-token equality, task identity, nor cached response from seller A. Redis keys are HMAC-scoped with seller ID and purpose, never raw IDs; Celery messages contain only job ID, seller-ID hash, lease epoch, and operation. They contain no selector, ARN, receipt payload, evidence, or source detail.
+
+## 6. Broker/task identity, permissions, and envelopes
+
+The connection-control session can invoke only exact published broker/verifier aliases and list the exact source prefix. It has no source object action, ECS, IAM, KMS, Secrets Manager, Logs, or second-assume-role authority. Session duration remains 900 seconds.
+
+The broker can create/read/delete only the exact request/result keys described in Gate 1, run/tag/describe/stop only the exact task definition and cluster, and pass only the exact task/task-execution roles. `RunTask` has no command, CPU, memory, role, network, image, storage, or arbitrary environment override. The only two overrides are broker-derived `W3_REQUEST_KEY` and `W3_REQUEST_SHA256`. Every `DescribeTasks` identity call includes `include=["TAGS"]`.
+
+The task role alone can read selected source objects, its exact request, the HMAC secret, and write its exact result. It cannot list the source bucket, read another source binding, read any result, overwrite a request, call ECS, assume a role, or reach ai.market/allAI. The execution role can pull only the approved digest and write metadata-only logs. The verifier is read-only and cannot read any object or secret value, launch/stop/tag a task, pass a role, decrypt data, or mutate infrastructure.
+
+Verifier and broker use the exact closed Gate 1 envelopes `seller_workspace_profile_runtime_verify.v1` and `seller_workspace_profile_broker_request.v1`. `infra/seller_workspace_profile/common/contracts.py`, backend schemas, Lambda handlers, and task schemas share byte-for-byte golden JSON fixtures but no runtime Python import crosses the image/Lambda/backend boundary. Each package validates its own Pydantic/JSON Schema copy and the workflow compares schema SHA-256 values.
+
+ECS `clientToken` is lowercase SHA-256 over canonical version, cluster-ARN hash, seller, connection, job, attempt, and input hash. Request keys are deterministic. `start` creates with `If-None-Match:*`; `reconcile_start` exact-key reads and validates an existing request. A changed byte, checksum, media type, KMS key, tag, selector, source-key set, runtime, attempt, or expiry fails terminally.
+
+## 7. Deterministic formats and hard numeric ceilings
+
+Only uncompressed CSV/TSV, uncompressed JSON/JSONL, and Parquet are accepted. ZIP, TAR, GZIP, 7z, RAR, XLS/XLSX, databases, images, documents, symlinks, sparse/container formats, URLs, external page/index references, and encrypted Parquet fail before parser work. Therefore archive-member ceiling is **0**, nested-archive ceiling is **0**, and external-reference ceiling is **0**.
+
+The task base is CPython `3.11.11-slim-bookworm` pinned by OCI digest in the reviewed Dockerfile. `requirements.lock` pins `boto3==1.42.91`, `botocore==1.42.91`, `pydantic==2.13.2`, and `pyarrow==23.0.1` with platform wheel hashes; CSV and JSON use only the Python standard library. No pandas, DuckDB, fsspec, URL filesystem, plugin, or parser extension is installed.
+
+All ceilings are server, request, broker, and task enforced:
+
+| Resource | Ceiling |
+| --- | ---: |
+| objects/job | 10 |
+| declared size/object | 100 GiB |
+| source bytes read | 64 MiB/object; 256 MiB/job |
+| rows parsed | 100,000/object; 250,000/job |
+| columns/leaves | 512/object |
+| emitted field records | 256/job and 90,112 canonical bytes |
+| non-field result | 32,768 canonical bytes |
+| final result | 131,072 UTF-8 bytes |
+| CSV/JSON scalar | 65,536 bytes |
+| CSV row/JSON record | 1,048,576 bytes |
+| JSON and structural nesting | 32 |
+| Parquet footer | 16 MiB |
+| Parquet row groups opened | 8/object |
+| decompressed bytes | 128 MiB/object; 512 MiB/job |
+| decompression ratio | 100:1 |
+| parser children | 1; total processes 8 |
+| open files | 64 |
+| temporary bytes | 1 GiB |
+| child address space | 3 GiB; task memory 4 GiB |
+| CPU | 540 CPU seconds; task allocation 1 vCPU |
+| task wall time | 600 seconds |
+| infrastructure retries | 1; maximum attempts 2 |
+| connection/seller/global running | 1 / 2 / 20 |
+| queued jobs/seller | 4 |
+| jobs/seller | 20/day; 100/rolling 30 days |
+
+CSV parsing is streaming and byte-prefix bounded. Dialect detection uses only the first 64 KiB, a fixed candidate order `comma, tab, semicolon, pipe`, and deterministic tie-break. Encoding order is BOM, strict UTF-8, UTF-16LE, UTF-16BE, then Latin-1; no locale participates. Headers/values are discarded after local token/class/count updates. Formula prefixes are counted but never evaluated.
+
+JSON rejects duplicate keys, NaN/Infinity, malformed UTF, overlong number/scalar/record, and depth over 32. JSONL processes records in byte order. Array/object traversal is insertion order from input bytes; emitted fields are sorted by structural position. Huge integers are classified without float conversion.
+
+Parquet reads the bounded footer first, rejects external/encrypted metadata, opens at most eight row groups in index order, and accepts only codecs supported by the exact locked PyArrow build. It never emits statistics, key-value metadata, `created_by`, Arrow metadata, bloom bytes, page/index content, or field names. Codec output is charged to both decompressed-byte and 100:1 limits.
+
+Canonicalization is RFC 8785 UTF-8. Object order is immutable selector order; field order is structural-position order; enum arrays are deduplicated and unsigned-UTF-8 sorted. Golden input produces identical `semantic_evidence` bytes and `semantic_hash` across job IDs, attempts, timestamps, region, CPU/memory observations, and wall duration.
+
+The child process applies `RLIMIT_AS=3 GiB`, `RLIMIT_CPU=540`, `RLIMIT_FSIZE=1 GiB`, `RLIMIT_NOFILE=64`, and `RLIMIT_NPROC=8`; the supervisor uses a new process group, no shell, and kills the group on cancellation, SIGTERM, resource fault, or deadline. Temporary data is mode `0700` under one attempt directory on encrypted ephemeral storage and is removed before exit; task destruction is the crash boundary.
+
+### 7.1 Provider-spend ceilings
+
+All amounts are decimal USD in integer millionths; float money is forbidden. A stale or missing regional price table fails closed.
+
+- standing estimate high: at most **USD 125.00 per runtime per 30 days**;
+- marginal estimate high: at most **USD 2.00 per job including the one retry**;
+- acknowledged marginal high sums: at most **USD 20.00 per seller/day**, **USD 100.00 per seller/rolling 30 days**, and **USD 400.00 globally/day**;
+- allAI/model/provider spend in W3: **USD 0.00** because W3 makes no allAI/provider call;
+- unacknowledged, expired, replayed, differently bound, or over-cap receipts cannot authorize a template or launch.
+
+The standing receipt includes every endpoint AZ-hour/byte, key/secret month, verifier Lambda, KMS and Resolver/Profile read, DNS Firewall custom-domain, EventBridge, S3 storage, and log-retention unit. The marginal receipt includes both attempts' maximum Fargate one-minute/per-second allocation, broker Lambda, S3/KMS/secret/EventBridge/DNS-query/log/endpoint/cross-AZ units. Provider invoice lag cannot be a hard stop, so admission reserves the full acknowledged high estimate transactionally before launch and releases unused modeled amount only after terminal attestation.
+
+## 8. Exact value-free boundary and dormant allAI input contract
+
+The only result allowed from seller AWS into ai.market is the Gate 1 `seller_workspace_profile_result.v1`, canonical JSON, maximum 131,072 bytes. The allowed top-level keys are exactly `schema_version`, `semantic_evidence`, `semantic_hash`, `runtime_attestation`, `attestation_hash`, and `result_integrity_hash`. The nested fields, enum values, limits, usage counters, and hash relationships are exactly section 9 of Gate 1; no implementation may add a convenience field.
+
+Object records contain only opaque `oNNNN` ordinal, size, binding kind, format enum/closed format metadata, row count plus `exact|estimate|lower_bound`, positional field records, and warning codes. Field records contain only structural position, 64-hex HMAC field token plus key version, physical-type enum, nullable flag, non-null/null counts, distinct/length bands, PII enums/confidence bands, and quality enums.
+
+Bucket, key, filename, extension, account, role, ARN, URL, timestamp, source checksum, header, JSON/Parquet name, value, value hash, sample, min/max, quantile, regex match, snippet, parser message/stderr, provider body, task ARN, credential, and field-token key are forbidden. Whole source objects, whole ranges, whole rows, and whole task output are never persisted in ai.market, Redis, Celery, logs, traces, audit, or evidence. Selector identities, source-key ARNs, runtime refs, and task ARN are separately envelope-encrypted; they are not evidence.
+
+The builder defines `SellerWorkspaceProfileAllAIInputV1` in `app/schemas/seller_workspace.py` solely as a dormant boundary contract for later authorization. W3 has no code path that invokes allAI. Its exact keys are:
+
+```json
+{
+  "schema_version": "seller_workspace_profile_allai_input.v1",
+  "semantic_hash": "64-lowercase-hex",
+  "evidence_schema_version": "seller_workspace_profile_semantics.v1",
+  "parser_version": "closed-safe-token",
+  "field_token_key_version": "closed-safe-token",
+  "limits": {},
+  "observed": {},
+  "objects": [],
+  "findings": {},
+  "trust": {"source":"seller_account_scan","content":"value_free_untrusted_metadata"}
+}
+```
+
+`limits`, `observed`, `objects`, and `findings` reuse only the semantic allowlist above. Maximum canonical input is 96 KiB, 10 objects, 256 field records, depth 8. Every string is a fixed enum, a safe token matching `^[a-z0-9][a-z0-9_.:-]{0,127}$`, `o[0-9]{4}`, `f[0-9]{4}(\.f[0-9]{4}){0,31}`, or 64 lowercase hex. There is no free-text slot.
+
+The pure function `build_allai_profile_input(evidence)` in `app/services/seller_workspace_profile.py` may run only after broker schema/hash validation, database re-read of immutable canonical evidence, and a deterministic recursive allowlist scan. The scan rejects unknown keys, wrong types/ranges, Unicode controls, noncanonical bytes, free text, source identifiers, credential patterns, URLs, markup, tool-call syntax, and any seeded hostile marker. It serializes and reparses through `SellerWorkspaceProfileAllAIInputV1`. In W3 the function is exercised only by tests and has zero imports/calls from routes, Celery tasks, allAI services, LLM gateways, or agents. Any later dispatch is W4 scope and requires new approval.
+
+## 9. Lease, idempotency, cancellation, timeout, death, and cleanup
+
+`ProfileJob` contains nullable `lease_owner`, `lease_epoch`, and `lease_expires_at`. Claim is one PostgreSQL transaction using database time and `SELECT ... FOR UPDATE SKIP LOCKED`; it sets a random 128-bit owner hash, increments epoch, and leases for 60 seconds. The worker renews every 20 seconds. Every provider action and state write includes the current epoch and requires at least 10 seconds remaining. An expired worker cannot renew or act; redelivery may claim only after expiry.
+
+`app.tasks.seller_workspace_profile.run_job(job_id, seller_hash, lease_epoch)` is `acks_late=True`, `reject_on_worker_lost=True`, `ignore_result=True`, time limit 1,200 seconds, soft limit 1,170 seconds, queue `seller_workspace_profile_control`. It loads all sensitive state from PostgreSQL after claim. Celery arguments/results never contain raw state.
+
+`railway.profile-worker.json` uses the canonical backend `Dockerfile` and exact command `celery -A app.core.celery_app worker --loglevel=info --concurrency=4 --prefetch-multiplier=1 -Q seller_workspace_profile_control`, one replica, restart on failure. The shared `railway.worker.json` remains unchanged.
+
+The phase maxima are queue 5 minutes, start 3, run 10, validate/commit 2, with one absolute 20-minute deadline and 30-second physical stop grace inside it. Beat enqueues `seller_workspace-profile-reconcile` every 20 seconds and `seller_workspace-profile-expire-cleanup` every 60 seconds onto the dedicated queue. Sweep pages are 100 rows and stop after 10 pages/run.
+
+Idempotent create locks seller quota/spend rows, verifies the current receipt, reserves concurrency/spend, writes job/audit/outbox state, and commits before enqueue. Same owner/key/request hash returns the original safe response; changed hash is `409`. Start ambiguity uses `reconcile_start` with the same request and deterministic ECS token. Attempt 2 is forbidden while attempt 1 start is unresolved and is allowed only once for the Gate 1 infrastructure classes.
+
+Cancellation locks the job. Queued becomes terminal immediately. Live states become `cancel_requested`, revoke further validation, and send exact broker cancel under the current task binding. A successful evidence transaction and cancellation/expiry race have one database winner: success is valid only if its transaction locks a still-`validating_result` row before cancellation/expiry commits. Late output is deleted and recorded only as a safe stale-result code.
+
+Worker death leaves the task/provider state unchanged, late acknowledgement requeues, and the next lease owner reconciles the existing request/task. Broker/transport ambiguity never becomes access denial. At every terminal outcome the controller observes or stops the exact task, deletes request and result, exact-prefix lists with `MaxKeys=2` to prove absence, records cleanup times/hashes, releases concurrency/spend reservation, and clears the lease. The one-day bucket lifecycle is a backstop, not cleanup proof.
+
+## 10. Observability, redaction, and retention
+
+`app/core/seller_workspace_profile_metrics.py` exposes only counters/histograms labeled by fixed provider `aws`, format enum, state, attempt `1|2`, and safe failure code. Metrics include jobs/attempts/transitions, phase seconds, bytes/rows/fields bands, cancellations/timeouts/reconciliations, cleanup success/failure, lease steals, schema rejections, spend-reservation high amount, and redaction-canary detections. Seller, connection, job, object, bucket, key, ARN, field token, receipt, and exception text are prohibited labels.
+
+Application logs are structured allowlist events emitted by W3 code, never interpolation of request/provider/parser objects or exceptions. Allowed keys are event code, state, attempt, safe failure code, duration/quantity bands, runtime-version hash prefix, and correlation ID. `exc_info`, exception string/repr, boto response, Celery args, selector, evidence JSON, request/result bytes, and task stderr are forbidden. OpenTelemetry spans use only the same allowlist; HTTP/Celery instrumentation hooks suppress request/response bodies and task arguments for the W3 route/queue.
+
+`seller_workspace_audit.py` adds explicit operations for key-set registration, standing estimate/acknowledgement, runtime verify/disable, selector create, marginal estimate, job create/cancel/transition/cleanup/evidence expiry. Snapshots contain only IDs owned by the response, state/version/replayed, hashes, decision, safe code, and bounded counters. Scope is hashed before persistence. Raw AWS errors map at the adapter boundary to enumerated codes.
+
+Hostile fixtures seed unique markers resembling AWS keys, bearer tokens, URLs, emails, prompts, JSON tool calls, HTML/Markdown, ANSI/control sequences, CSV formulas, SQL, shell, traceparent, bucket/key/ARN, headers, JSON keys, Parquet names/metadata, values, min/max, and exception text. Tests scan PostgreSQL JSON/text, unencrypted bytea projections, Redis/Celery messages/results, captured logs, trace exporter payloads, audit, evidence, HTTP, and the dormant allAI envelope for every marker.
+
+Failed/cancelled/expired rows retain only redacted state/hashes/counters for 30 days. Successful evidence payload expires at 30 days; W3 cannot create a longer W4 reference. Expiry nulls/deletes payload and retains immutable hash/deletion proof. Task/audit log groups expire after seven days. No W3 Resolver query logging, VPC Flow Logs, bucket access log, inventory, replication, backup, or Object Lock resource is created.
+
+## 11. Migration, rollback, and capability truth
+
+`20260902_001_s1650_seller_workspace_w3.py` creates the nine tables and one nullable audit FK/index in dependency order. It sets `lock_timeout='5s'`, creates no W3 rows, updates no W2 row, and does not inspect or touch listing/order/delivery/serial data. Upgrade is tested on empty and realistic W2-populated PostgreSQL.
+
+Downgrade first queries every W3 table. If any W3 row exists it raises a reviewed `RuntimeError` and leaves the additive schema inert. Only an empty W3 estate may drop the audit FK/column and W3 tables in reverse order. Rollback with data is flags-off plus code rollback, never destructive downgrade.
+
+All nine flags remain false by default and in every deployment configuration:
+
+- `SELLER_WORKSPACE_ENABLED=false`;
+- `SELLER_WORKSPACE_AWS_CONNECT_ENABLED=false`;
+- `SELLER_WORKSPACE_AWS_PROFILE_ENABLED=false`;
+- AWS publish/delivery false; and
+- all four R2 flags false.
+
+`capability_payload` continues to report profile `not_implemented` until the full reviewed implementation is present. After implementation, it reports profile available only if master/connect/profile flags are explicitly true, W2 and W3 implementation markers are true, principal/KMS configuration is valid, the dedicated worker heartbeat is fresh, price table is current, and the exact connection/runtime is verified. A table, route, stack, image, environment typo, or partial deployment never creates capability truth. This Gate 2 work does not enable any flag.
+
+Rollback order is profile flag off, refuse/terminally cancel new/queued jobs, stop/reconcile live tasks, prove control-object cleanup, retain allowed audit/evidence, roll back web/control worker, leave schema inert, and let the seller decide whether to delete its stack. W2 connection status/ExternalId, AIM Data, publication/delivery, and `legacy_serial` remain untouched.
+
+## 12. Focused test and hostile-fixture matrix
+
+The implementation adds these exact test files:
+
+- `tests/test_s1650_profile_contracts.py` — strict HTTP/envelope/evidence/allAI schemas, canonical hashes, size ceilings, no-store errors, capability off;
+- `tests/test_s1650_profile_authorization.py` — two sellers, foreign/absent equivalence, cursor/idempotency/cache/token isolation, list-only W2 correction;
+- `tests/test_s1650_profile_lifecycle.py` — every transition, lease steal/expiry, redelivery, both start crash windows, retry, cancel/success/expiry races, worker death, task death, cleanup;
+- `tests/test_s1650_profile_postgres.py` — real PostgreSQL migration, constraints, composite ownership, append-only audit, empty/nonempty downgrade;
+- `tests/test_s1650_profile_aws.py` — STS policies, closed envelopes, IAM simulation fixtures, broker/verifier positive/negative calls, complete multi-CIDR autodefined inventory and pagination;
+- `tests/test_s1650_profile_iac.py` — `cfn-lint`, parsed exact resources/policies/routes/endpoints/DNS rules/roles/task settings and prohibited-resource absence;
+- `tests/test_s1650_profile_observability.py` — metric cardinality and canary absence in logs/traces/Redis/Celery/database/audit/HTTP/allAI;
+- `seller_workspace_profile_runtime/tests/test_csv.py`, `test_json.py`, `test_parquet.py`, `test_supervisor.py`, and `test_golden_evidence.py`; and
+- `tests/fixtures/seller_workspace_profile/` containing only generated synthetic benign, boundary, bomb, malformed, and hostile files plus expected canonical JSON/hashes.
+
+The matrix includes zero/one/ten/eleven objects; every byte/row/field/result boundary at `limit-1`, `limit`, and `limit+1`; 0/8/9 source KMS keys; current/version selectors; ETag/version drift; every CSV encoding/dialect/quote/multiline/ragged/header case; duplicate JSON keys, deep nesting, huge number, malformed JSONL; each locked Parquet codec, bad footer/page metadata, encrypted/external metadata; decompression/allocation bombs; unsupported archives with one and nested members; resource/CPU/wall kills; deterministic repeats; and every hostile marker above.
+
+AWS fixtures cover both exact `/24` CIDRs, every reserved/internal/localhost/root autodefined domain, missing/extra/duplicate/malformed/wrong-owner/wrong-namespace/nonterminal/shared/endpoint-bearing rules, disabled reverse rules, third/partial CIDR, IPv6, private hosted zone, peering/TGW contribution, outbound endpoint, Profile association, pagination omission, and API denial. Live proof must pin the service-observed local/system `RuleType`; tests then reject any drift.
+
+Focused commands, run from the backend `.venv`, are:
+
+```text
+pytest -q tests/test_s1650_profile_contracts.py tests/test_s1650_profile_authorization.py tests/test_s1650_profile_lifecycle.py tests/test_s1650_profile_postgres.py tests/test_s1650_profile_aws.py tests/test_s1650_profile_iac.py tests/test_s1650_profile_observability.py seller_workspace_profile_runtime/tests
+pytest -q tests/test_s1647_seller_workspace_b1.py tests/test_s1647_seller_workspace_b2a.py tests/test_s1647_seller_workspace_b2b.py tests/test_s1647_seller_workspace_postgres.py
+pytest -q tests/test_delivery_endpoints.py tests/test_delivery_guarantees.py tests/test_delivery_service.py tests/test_delivery_webhook_integration.py tests/test_serial_serial_id_contract.py tests/test_serial_service.py tests/test_source_delivery.py
+alembic heads
+cfn-lint infra/seller_workspace_profile/template.yaml
+docker build --no-cache -f seller_workspace_profile_runtime/Dockerfile seller_workspace_profile_runtime
+```
+
+Dependency/import scans fail on any AIM Data module/package/database/install identity/serial/tunnel/broker client/container dependency and on PyArrow/parser imports in the web/control image.
+
+## 13. Exact Gate 3 and Gate 4 proof
+
+Gate 3 requires one immutable candidate containing all files above, exact base and diff, clean build, single Alembic head, all focused commands passing, image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, and unchanged Gate 1 digest. Static review, tests, image scan, migration, IaC review, and legacy tests are separate evidence. Independent CC, GLM, and DeepSeek must review the exact Gate 3 commit; the builder is excluded.
+
+Gate 4 requires the exact reviewed backend/control-worker/image/template identities deployed with every production Seller Workspace flag still false, plus a separately authorized synthetic harness. It uses two synthetic seller identities and two seller-owned synthetic stacks/bucket prefixes, never customer credentials/data. Evidence is one immutable redacted receipt binding:
+
+1. deployed Git/image/Lambda/template/task-definition/alias/worker identities and healthy schema head;
+2. production capability off before and after, with no public claim or public route availability;
+3. normal authorized Chrome proof that the production seller surface exposes no W3 capability while flags are off;
+4. controlled synthetic runtime proof of list-only ai.market authority and task-only source reads for CSV, JSON, and Parquet golden/hostile fixtures;
+5. complete live two-CIDR autodefined Resolver inventory matching section 3.1, DNS Firewall fail closed, exact allow/redirection success, arbitrary/encoded/ai.market/allAI/unapproved redirect DNS `NODATA`, and no network connection;
+6. IAM simulation plus live denied calls for source body/attributes by ai.market/verifier/broker, foreign source/control objects, request overwrite, result read, ECS override/list, role pass, secret/KMS misuse, infrastructure mutation, and cross-seller access;
+7. two-seller HTTP/database/cursor/Redis/Celery/cache/field-token/evidence isolation with identical hostile IDs and markers;
+8. start reconciliation at both crash windows, one task identity, cancellation in every live phase, 3/10/2/20-minute timeouts, worker/task SIGKILL, one permitted retry, late-result rejection, and terminal cleanup;
+9. exact standing/marginal receipt recomputation and every object/byte/row/column/archive/compression/nesting/CPU/memory/wall/retry/concurrency/spend ceiling;
+10. canonical semantic hashes stable across attempts/runtime telemetry and all three integrity hashes independently recomputed;
+11. zero whole-object persistence and zero hostile/raw marker in database, Redis/Celery, logs, traces, audit, evidence, HTTP, or allAI; and
+12. unchanged W2 lifecycle and complete unchanged `legacy_serial` selection.
+
+The synthetic harness may create temporary CloudTrail data selectors, Resolver query logging, and VPC Flow Logs only under separate Gate 4 authorization and budget, with synthetic-only sources and bounded retention; it deletes them and proves deletion. None becomes product IaC. CloudFormation success, an ECS `STOPPED` event, a route response, a queue label, or a merged/deployed status substitutes for none of the other proofs.
+
+## 14. Strict exclusions and dispatch gate
+
+This specification changes no Gate 1 text and preserves its non-custodial architecture. It adds no frontend, listing draft, publication, sample, order, delivery authority, R2, W4/W5, AIM Data runtime, public endpoint claim, customer account, customer credential, customer data, or `legacy_serial` behavior. It authorizes no AWS, Railway, ECR, Lambda, ECS, Route 53, KMS, S3, provider, database, or feature-flag mutation now.
+
+The next permitted action after this candidate is review only. **No MP/build agent, implementation worker, deployment workflow, AWS/provider operation, migration, image build intended for release, or code change may be dispatched until CC, GLM, and DeepSeek independently approve this exact Gate 2 file SHA-256 and that unanimous approval is recorded against `build:bq-seller-workspace-w3-profiling-s1650`.** Any edit after review creates a new digest and requires a fresh complete panel.
+
+## 15. Primary technical references
+
+- AWS autodefined Resolver inventory: <https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-overview-forward-vpc-to-network-autodefined-rules.html>
+- Resolver rule associations and types: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_ListResolverRuleAssociations.html>
+- Resolver configuration: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_GetResolverConfig.html>
+- Route 53 Profile associations: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53profiles_ListProfileAssociations.html>
+- DNS Firewall VPC fail mode: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_GetFirewallConfig.html>
+- Fargate ephemeral-storage KMS: <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-create-storage-key.html>
+- ECS `RunTask` idempotency: <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ECS_Idempotency.html>
+- ECR private endpoints and regional layer bucket: <https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html>
