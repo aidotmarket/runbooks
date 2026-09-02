@@ -20,7 +20,7 @@ This amendment supersedes only the prior onboarding amendment's use of general *
 4. Only when the seller selects **Accept maximum hold and start paid verification** does AIM Data check the authenticated seller's ordinary pay-in readiness.
 5. If readiness is `ready`, the existing manual-capture authorization and scan-spec lifecycle proceeds unchanged.
 6. If readiness is `setup_required` or `setup_pending`, no acknowledgement is persisted, no start claim is taken, no verification epoch or PaymentIntent is created, and no scan begins. AIM Data explains that a card is needed only for this paid verification and opens the existing ai.market Stripe-hosted setup in a new top-level browser context.
-7. If readiness is `blocked` or invalid, the paid action fails closed with fixed support copy and no payment or scan effect.
+7. If readiness is `blocked`, the paid action fails closed with fixed support copy and no payment or scan effect. If the readiness contract is invalid, the action fails closed with a fixed generic invalid-response error and no payment or scan effect.
 8. After Stripe-hosted setup succeeds, the seller returns to AIM Data and explicitly selects the paid start action again. The readiness check must return `ready` before authorization can begin.
 
 ## 3. Unchanged financial and security contract
