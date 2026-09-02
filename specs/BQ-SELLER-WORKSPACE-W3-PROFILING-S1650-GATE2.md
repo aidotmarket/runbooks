@@ -14,6 +14,8 @@
 
 This Gate 2 candidate was written from the approved Gate 1 base above and read-only inspection of canonical ai-market backend `origin/main` at `31efd4c607ace06319bbbbc697834584952f7ed9`. If implementation begins later, the builder must rebase these named integration points onto then-current `origin/main` without changing the Gate 1 contract. Any architectural conflict returns to Gate 2 review; it is not resolved in code.
 
+Round-2 review of candidate commit `062cc66e54d989ae7d205901e3b6a6020cccd747`, file SHA-256 `ffd048afc4a9c520a069811012bab61002544a6bf9f89dbc5e118fedfb0fd82d`, returned CC and GLM `APPROVE_WITH_NITS` and DeepSeek `REQUEST_CHANGES`, recorded in Panel Event Ledger event `db7bf298-5441-412d-bc76-1c4980cfd80e`. This round-3 correction removes the unapproved verifier calls and their associated requirements and folds the nonblocking buildability nits. No round-2 verdict transfers to this digest.
+
 The canonical W2 integration points are exact:
 
 - `app/api/v1/router.py` already includes `app.api.v1.endpoints.seller_workspace.router`; do not add a second router or prefix.
@@ -68,6 +70,7 @@ The later builder creates exactly these seller-account IaC, packaging, and runti
 - `infra/seller_workspace_profile/verifier/__init__.py` as a side-effect-free package marker;
 - `infra/seller_workspace_profile/verifier/handler.py` for closed verifier-envelope validation, complete read-only stack/network/identity/Resolver/topology inventory, exact five-key resolver hash, and hash-only receipt;
 - `infra/seller_workspace_profile/verifier/requirements.lock` with exact hashes;
+- `infra/seller_workspace_profile/requirements-cfn-lint.lock` for the isolated `cfn-lint==1.50.1` Gate 3 tool environment, with every direct and transitive distribution pinned and SHA-256-hashed and no backend/runtime import path;
 - `seller_workspace_profile_runtime/Dockerfile` for the digest-pinned CPython image, hash-locked production dependencies, non-root/read-only execution, and fixed entrypoint;
 - `seller_workspace_profile_runtime/.dockerignore` closing the image build context to the runtime package and explicitly copied contract artifact;
 - `seller_workspace_profile_runtime/requirements.lock` with exact production hashes for the pinned boto3, botocore, Pydantic, and PyArrow surface only;
@@ -85,7 +88,7 @@ The later builder creates exactly these seller-account IaC, packaging, and runti
 
 The later builder creates exactly this build workflow:
 
-- `.github/workflows/seller-workspace-profile-runtime.yml` to verify both Lambda locks, create the two deterministic ZIP packages through the packaging script, compare backend/Lambda/task schema SHA-256 values, build the runtime from only the closed Docker context, and emit the evidence artifacts below without deploying or mutating anything.
+- `.github/workflows/seller-workspace-profile-runtime.yml` to verify both Lambda locks, bootstrap the dedicated hash-locked `cfn-lint==1.50.1` tool in a CI temporary directory and run it, create the two deterministic ZIP packages through the packaging script, compare backend/Lambda/task schema SHA-256 values, build the runtime from only the closed Docker context, and emit the evidence artifacts below without deploying or mutating anything.
 
 The later builder creates exactly these tests and committed fixture definitions:
 
@@ -93,7 +96,7 @@ The later builder creates exactly these tests and committed fixture definitions:
 - `tests/test_s1650_profile_authorization.py` for two-seller ownership, foreign/absent equivalence, cursor/idempotency/cache/token isolation, record-specific encryption AAD, and list-only W2 correction;
 - `tests/test_s1650_profile_lifecycle.py` for every state/lease/death/retry/cancel/timeout/reconciliation/cleanup path;
 - `tests/test_s1650_profile_postgres.py` for real PostgreSQL migration, constraints, composite ownership, append-only audit, immutable safe-field retention, and empty/nonempty downgrade;
-- `tests/test_s1650_profile_aws.py` for STS policies, closed envelopes, IAM fixtures, broker/verifier calls, explicit peering/TGW absence, and complete multi-CIDR autodefined inventory;
+- `tests/test_s1650_profile_aws.py` for STS policies, closed envelopes, IAM fixtures, broker/verifier calls, and complete multi-CIDR autodefined inventory using only the approved Gate 1 verifier API set;
 - `tests/test_s1650_profile_iac.py` for parsed exact resources, policies, routes, endpoints, DNS rules, roles, task settings, packaging inputs, and prohibited-resource absence;
 - `tests/test_s1650_profile_observability.py` for metric cardinality, the exact audit allowlist, forbidden-field rejection, and canary absence across every W3 sink;
 - `seller_workspace_profile_runtime/tests/test_csv.py` for every CSV/TSV format, boundary, hostile-input, and deterministic-output case;
@@ -104,7 +107,7 @@ The later builder creates exactly these tests and committed fixture definitions:
 - `tests/fixtures/seller_workspace_profile/generate.py` for deterministic in-test creation of all synthetic benign, boundary, bomb, malformed, and hostile bytes; and
 - `tests/fixtures/seller_workspace_profile/expected.json` for the closed fixture case list plus expected canonical JSON and hashes.
 
-`requirements.txt`, the four W2 safety tests, `railway.worker.json`, and every delivery/serial/`legacy_serial` file remain byte-for-byte unchanged and therefore are not manifest change paths. The backend/web/control environment must contain no PyArrow or parser-only dependency.
+`requirements.txt`, `requirements-dev.txt`, the four W2 safety tests, `railway.worker.json`, and every delivery/serial/`legacy_serial` file remain byte-for-byte unchanged and therefore are not manifest change paths. The dedicated `requirements-cfn-lint.lock` is tooling-only and is never installed into the backend/web/control or runtime environments. The backend/web/control environment must contain no PyArrow or parser-only dependency.
 
 The workflow outputs, outside the repository diff, are exactly: broker ZIP, verifier ZIP, package/schema digest manifest, OCI image manifest with immutable `sha256:` digest, SPDX JSON SBOM, and vulnerability report. Gate 3 binds each artifact digest to the implementation commit. The template entry above accepts only the exact Lambda package hashes and image digest as parameters. The workflow must not deploy a stack, update an alias, change a flag, push a mutable execution tag, or publish a capability.
 
@@ -118,7 +121,7 @@ One seller-deployed stack is bound one-to-one to one verified `CloudConnection`.
 
 1. `AWS::EC2::VPC` with DNS support and hostnames enabled, IPv4 only, primary CIDR `10.203.0.0/24`.
 2. `AWS::EC2::VPCCidrBlock` adding exactly `10.203.1.0/24`. No parameter may override either CIDR. This deliberate two-CIDR layout is the required live multi-CIDR proof surface.
-3. Two private `/26` task subnets in distinct available AZs, one from each VPC CIDR, with isolated route tables. There is no default route, NAT gateway, internet gateway, egress-only gateway, peering, transit-gateway attachment, VPN, Direct Connect, or IPv6 association.
+3. Two private `/26` task subnets in distinct available AZs, one from each VPC CIDR, with isolated route tables. There is no default route, NAT gateway, internet gateway, egress-only gateway, VPN, Direct Connect, IPv6 association, or connectivity resource outside this closed stack resource set.
 4. One task security group with no ingress. Egress is TCP 443 only to the interface-endpoint security group and the regional S3 managed prefix list, plus UDP/TCP 53 only to the VPC resolver. The endpoint security group accepts TCP 443 only from the task group.
 5. Interface endpoints with private DNS for `ecr.api`, `ecr.dkr`, `logs`, `secretsmanager`, and `kms`, in both task subnets; one S3 gateway endpoint on both route tables. No other endpoint is allowed.
 6. One control bucket with block-public-access, TLS-only bucket policy, SSE-KMS, versioning/replication/Object Lock/inventory/access logging disabled, incomplete multipart abort after one day, and expiry after one day. Its only object shapes are `requests/<connection-id>/<job-id>/<attempt>/request.json` and `results/<connection-id>/<job-id>/<attempt>/evidence.json`.
@@ -136,7 +139,7 @@ The S3 gateway endpoint policy contains only the verified source bucket/prefix, 
 
 The verifier must not reject all Resolver rules blindly and must not bless a vague `SYSTEM` class. It builds and compares a complete inventory for the exact stack VPC.
 
-It calls `DescribeVpcs(VpcIds=[exact])`, `DescribeVpcAttribute` for DNS support/hostnames, `GetResolverConfig(ResourceId=exact)`, and fully paginated `ListResolverRuleAssociations(Filters=[VPCId=exact])`. Every returned association is rechecked for the exact VPC and resolved with `GetResolverRule`. Pagination is capped at 20 pages and 1,000 total records; a next token after either cap fails closed. Both CIDR associations must be `associated`; any third CIDR, IPv6 CIDR, pending/disassociating/failed CIDR association, or DNS-attribute drift fails. A directly associated private hosted zone is not rejected merely because it exists; its Resolver effects are accepted only through the closed rule predicate below.
+It calls `DescribeVpcs(VpcIds=[exact])`, `DescribeVpcAttribute` for DNS support/hostnames, and fully paginated `ListResolverRuleAssociations(Filters=[VPCId=exact])`. Every returned association is rechecked for the exact VPC and resolved with `GetResolverRule`. Pagination is capped at 20 pages and 1,000 total records. This is a deliberate W3 control-plane inventory guardrail, not an AWS service-limit claim: an inventory that exceeds either bound, or exposes a next token after either bound, fails closed. Both CIDR associations must be `associated`; any third CIDR, IPv6 CIDR, pending/disassociating/failed CIDR association, or DNS-attribute drift fails. A directly associated private hosted zone is not rejected merely because it exists; its Resolver effects are accepted only through the closed rule predicate below.
 
 The verifier constructs a canonical, sorted seller-local inventory containing every returned association/rule and separately requires the following deterministic trailing-dot domains:
 
@@ -145,11 +148,11 @@ The verifier constructs a canonical, sorted seller-local inventory containing ev
 
 For every inventory member, the verifier requires association and rule `Status=COMPLETE`, no `ResolverEndpointId`, `ShareStatus=NOT_SHARED`, `OwnerId="Route 53 Resolver"`, and ARN namespace `arn:${partition}:route53resolver:${region}::autodefined-rule/rslvr-autodefined-rr-<safe-suffix>`. It does not use `RuleType` as an ownership or safety predicate. A seller-created `SYSTEM`, `FORWARD`, `DELEGATE`, or `RECURSIVE` rule never qualifies; an additional rule qualifies only under the same closed AWS-owned autodefined identity. Both CIDR-specific reverse domains must be present somewhere in the authenticated complete inventory, proving both VPC CIDRs were inventoried.
 
-`GetResolverConfig.AutodefinedReverse` must be `ENABLED`. The verifier separately requires zero outbound endpoints from fully paginated `ListResolverEndpoints(Direction=OUTBOUND, HostVPCId=exact)` and zero Route 53 Profile associations from fully paginated `ListProfileAssociations(ResourceId=exact VPC ID)`. It also performs two independently testable topology checks: fully paginated `DescribeVpcPeeringConnections` calls filtered once by exact requester VPC and once by exact accepter VPC, with the union deduplicated and every returned side revalidated against the exact VPC; and fully paginated `DescribeTransitGatewayVpcAttachments(Filters=[{Name=resource-id,Values=[exact VPC ID]}])`, with every returned resource ID revalidated. Any peering connection or transit-gateway VPC attachment returned for the exact VPC, in any state, makes the runtime ineligible. Omitted permission, filter drift, truncation, an unexhausted token, or a returned record that cannot be revalidated also fails closed.
+The verifier separately requires zero outbound endpoints from fully paginated `ListResolverEndpoints(Direction=OUTBOUND, HostVPCId=exact)` and zero Route 53 Profile associations from fully paginated `ListProfileAssociations(ResourceId=exact VPC ID)`. Omitted permission for one of these approved Gate 1 calls, filter drift, truncation, an unexhausted token, or a returned record that cannot be revalidated fails closed.
 
-A directly associated private hosted zone may contribute only associations/rules that independently pass the complete AWS-owned autodefined owner, ARN namespace, `COMPLETE` status, `NOT_SHARED`, and no-`ResolverEndpointId` inventory predicate above. Any non-autodefined, endpoint-bearing, shared, malformed, foreign-owner, or nonterminal association fails. An allowed private hosted zone can alter seller-local answers but does not create the separately prohibited peering, transit-gateway, outbound-forwarding, or Profile path; the exact S3 endpoint policy, task egress, and TLS resource identity remain authoritative. Missing IAM permission, service omission, duplicate association/rule ID, missing required CIDR reverse domain, or incomplete inventory makes the runtime ineligible.
+A directly associated private hosted zone may contribute only associations/rules that independently pass the complete AWS-owned autodefined owner, ARN namespace, `COMPLETE` status, `NOT_SHARED`, and no-`ResolverEndpointId` inventory predicate above. Any non-autodefined, endpoint-bearing, shared, malformed, foreign-owner, or nonterminal association fails. An allowed private hosted zone can alter seller-local answers, but the approved zero-outbound-endpoint and zero-Profile-association checks plus the exact S3 endpoint policy, task egress, DNS Firewall fail-closed state, and TLS resource identity remain authoritative. Missing IAM permission for an approved Gate 1 inventory call, service omission, duplicate association/rule ID, missing required CIDR reverse domain, or incomplete inventory makes the runtime ineligible.
 
-The complete variable inventory remains only in seller-account verifier memory and the separately authorized synthetic Gate 4 harness. It does not enter the stable receipt. The `resolver_control_hash` preimage and canonical semantics are byte-identical to the approved Gate 1 five-key projection: `{non_autodefined_rule_associations:0, endpoint_bearing_rule_associations:0, outbound_endpoints:0, profile_associations:0, pagination_complete:true}`. No sixth or seventh key is permitted. Presence of both required CIDR-specific reverse rules, complete AWS service-owned inventory, zero peering/TGW topology, and all other eligibility predicates above are fail-closed acceptance preconditions only and do not enter `resolver_control_hash`. Allowed AWS autodefined rule enumeration, names, domains, VPC-CIDR-dependent reverse rules, raw rule IDs/types, endpoint IDs, Profile details, CIDRs, and any VPC-specific inventory hash do not cross to ai.market.
+The complete variable inventory remains only in seller-account verifier memory and the separately authorized synthetic Gate 4 harness. It does not enter the stable receipt. The `resolver_control_hash` preimage and canonical semantics are byte-identical to the approved Gate 1 five-key projection: `{non_autodefined_rule_associations:0, endpoint_bearing_rule_associations:0, outbound_endpoints:0, profile_associations:0, pagination_complete:true}`. No sixth or seventh key is permitted. Presence of both required CIDR-specific reverse rules, complete AWS service-owned inventory, and all other approved eligibility predicates above are fail-closed acceptance preconditions only and do not enter `resolver_control_hash`. Allowed AWS autodefined rule enumeration, names, domains, VPC-CIDR-dependent reverse rules, raw rule IDs/types, endpoint IDs, Profile details, CIDRs, and any VPC-specific inventory hash do not cross to ai.market.
 
 The task DNS allowlist is separate from this service inventory. It contains only exact source/control S3 names, regional ECR API/Docker/layer names, exact Logs/Secrets Manager/KMS endpoint names, VPC endpoint DNS names, and every approved CNAME/DNAME target. Wildcard allow entries and ai.market/allAI names are forbidden.
 
@@ -214,7 +217,7 @@ The connection-control session can invoke only exact published broker/verifier a
 
 The broker can create/read/delete only the exact request/result keys described in Gate 1, run/tag/describe/stop only the exact task definition and cluster, and pass only the exact task/task-execution roles. `RunTask` has no command, CPU, memory, role, network, image, storage, or arbitrary environment override. The only two overrides are broker-derived `W3_REQUEST_KEY` and `W3_REQUEST_SHA256`. Every `DescribeTasks` identity call includes `include=["TAGS"]`.
 
-The task role alone can read selected source objects, its exact request, the HMAC secret, and write its exact result. It cannot list the source bucket, read another source binding, read any result, overwrite a request, call ECS, assume a role, or reach ai.market/allAI. The execution role can pull only the approved digest and write metadata-only logs. The verifier is read-only and cannot read any object or secret value, launch/stop/tag a task, pass a role, decrypt data, or mutate infrastructure.
+The task role alone can read selected source objects, its exact request, the HMAC secret, and write its exact result. It cannot list the source bucket, read another source binding, read any result, overwrite a request, call ECS, assume a role, or reach ai.market/allAI. The execution role can pull only the approved digest and write metadata-only logs. The verifier is read-only and cannot read any object or secret value, launch/stop/tag a task, pass a role, decrypt data, or mutate infrastructure. Its allow actions and implementation calls must be contained exactly within the approved Gate 1 Section 6.3 verifier set; no additional API action or permission may be added by Gate 3.
 
 Verifier and broker use the exact closed Gate 1 envelopes `seller_workspace_profile_runtime_verify.v1` and `seller_workspace_profile_broker_request.v1`. `infra/seller_workspace_profile/common/contracts.py`, backend schemas, Lambda handlers, and task schemas share byte-for-byte golden JSON fixtures but no runtime Python import crosses the image/Lambda/backend boundary. Each package validates its own Pydantic/JSON Schema copy and the workflow compares schema SHA-256 values.
 
@@ -268,7 +271,7 @@ The child process applies `RLIMIT_AS=3 GiB`, `RLIMIT_CPU=540`, `RLIMIT_FSIZE=1 G
 
 ### 7.1 Provider-spend ceilings
 
-All amounts are decimal USD in integer millionths; float money is forbidden. A stale or missing regional price table fails closed.
+All amounts are decimal USD in integer millionths; float money is forbidden. A stale or missing regional price table fails closed. The absolute ceilings below are conservative Gate 2 numeric guardrails implementing approved Gate 1 Decision D2=A. Gate 1 froze the bounded-range/cost-acknowledgement decision, not these dollar values; the values remain subject to the mandatory Gate 3 regional price-model recomputation below.
 
 - standing estimate high: at most **USD 125.00 per runtime per 30 days**;
 - marginal estimate high: at most **USD 2.00 per job including the one retry**;
@@ -276,7 +279,7 @@ All amounts are decimal USD in integer millionths; float money is forbidden. A s
 - allAI/model/provider spend in W3: **USD 0.00** because W3 makes no allAI/provider call;
 - unacknowledged, expired, replayed, differently bound, or over-cap receipts cannot authorize a template or launch.
 
-The standing receipt includes every endpoint AZ-hour/byte, key/secret month, verifier Lambda, KMS and Resolver/Profile read, DNS Firewall custom-domain, EventBridge, S3 storage, and log-retention unit. The marginal receipt includes both attempts' maximum Fargate one-minute/per-second allocation, broker Lambda, S3/KMS/secret/EventBridge/DNS-query/log/endpoint/cross-AZ units. Provider invoice lag cannot be a hard stop, so admission reserves the full acknowledged high estimate transactionally before launch and releases unused modeled amount only after terminal attestation.
+The standing receipt includes every endpoint AZ-hour/byte, key/secret month, verifier Lambda, KMS key/policy read, approved Resolver rule-association/rule and outbound-endpoint inventory read, Route 53 Profile-association inventory read, DNS Firewall configuration/rule/domain/association read, DNS Firewall custom-domain, EventBridge, S3 storage, and log-retention unit. It includes no unit for an API removed by this correction. The marginal receipt includes both attempts' maximum Fargate one-minute/per-second allocation, broker Lambda, S3/KMS/secret/EventBridge/DNS-query/log/endpoint/cross-AZ units. Provider invoice lag cannot be a hard stop, so admission reserves the full acknowledged high estimate transactionally before launch and releases unused modeled amount only after terminal attestation.
 
 The absolute caps above remain binding maxima, but their enforcement is not accepted for launch at Gate 3 until the candidate pins the applicable regional price-table and estimate-model versions and independently recomputes the worst-case standing and two-attempt marginal envelopes for every supported region/AZ/endpoint placement. Gate 3 must prove each modeled envelope fits its cap, each unit is present exactly once, stale/missing prices fail closed, integer-millionth rounding is conservative, and seller/global rolling reservations enforce the stated windows transactionally. A failed recomputation returns to Gate 2; it must not be handled by omitting a cost unit, silently changing a cap, or enabling launch.
 
@@ -360,15 +363,15 @@ The implementation adds these exact test files:
 - `tests/test_s1650_profile_authorization.py` — two sellers, foreign/absent equivalence, cursor/idempotency/cache/token isolation, record-specific encryption AAD, list-only W2 correction;
 - `tests/test_s1650_profile_lifecycle.py` — every transition, lease steal/expiry, redelivery, both start crash windows, retry, cancel/success/expiry races, worker death, task death, cleanup;
 - `tests/test_s1650_profile_postgres.py` — real PostgreSQL migration, constraints, composite ownership, exact append-only audit operations/safe snapshots, empty/nonempty downgrade;
-- `tests/test_s1650_profile_aws.py` — STS policies, closed envelopes, IAM simulation fixtures, broker/verifier positive/negative calls, complete multi-CIDR autodefined inventory, explicit peering/TGW absence, and pagination;
-- `tests/test_s1650_profile_iac.py` — `cfn-lint`, parsed exact resources/policies/routes/endpoints/DNS rules/roles/task settings and prohibited-resource absence;
+- `tests/test_s1650_profile_aws.py` — STS policies, closed envelopes, IAM simulation fixtures, broker/verifier positive/negative calls, complete multi-CIDR autodefined inventory, exact Gate 1 verifier action-set closure, and pagination;
+- `tests/test_s1650_profile_iac.py` — isolated hash-locked `cfn-lint==1.50.1`, parsed exact resources/policies/routes/endpoints/DNS rules/roles/task settings and prohibited-resource absence;
 - `tests/test_s1650_profile_observability.py` — metric cardinality, audit allowlist/forbidden-field rejection, canary absence in logs/traces/Redis/Celery/database/audit/HTTP, and zero allAI/LLM path;
 - `seller_workspace_profile_runtime/tests/test_csv.py`, `test_json.py`, `test_parquet.py`, `test_supervisor.py`, and `test_golden_evidence.py`; and
 - `tests/fixtures/seller_workspace_profile/generate.py` and `tests/fixtures/seller_workspace_profile/expected.json`, which generate only temporary synthetic benign, boundary, bomb, malformed, and hostile files and bind their expected canonical JSON/hashes. No customer-derived or opaque binary fixture is committed.
 
 The matrix includes zero/one/ten/eleven objects; every byte/row/field/result boundary at `limit-1`, `limit`, and `limit+1`; 0/8/9 source KMS keys; current/version selectors; ETag/version drift; every CSV encoding/dialect/quote/multiline/ragged/header case; duplicate JSON keys, deep nesting, huge number, malformed JSONL; each locked Parquet codec, bad footer/page metadata, encrypted/external metadata; decompression/allocation bombs; unsupported archives with one and nested members; resource/CPU/wall kills; deterministic repeats; and every hostile marker above.
 
-AWS fixtures cover both exact `/24` CIDRs and required reverse domains; zero, one and many additional AWS-owned autodefined rules of varying service-observed `RuleType`; missing/duplicate/malformed/wrong-owner/wrong-namespace/nonterminal/shared/endpoint-bearing rules; disabled reverse rules; third/partial CIDR; IPv6; allowed private-hosted-zone-added service rules; private-hosted-zone-added non-autodefined/endpoint-bearing/shared/malformed/foreign-owner/nonterminal rules; requester-side peering, accepter-side peering, and TGW attachment as three separate failures; outbound endpoint; Profile association; pagination omission; and API denial. Tests prove `RuleType` drift alone cannot admit or reject a rule, an allowed PHZ contribution passes, each peering/TGW check fails independently, and any identity, endpoint, status, pagination, or required-multi-CIDR mismatch fails closed. Golden tests assert the exact five-key Gate 1 resolver-control preimage and hash; required reverse-rule presence and complete service-owned inventory affect eligibility only and never add hash fields.
+AWS fixtures cover both exact `/24` CIDRs and required reverse domains; zero, one and many additional AWS-owned autodefined rules of varying service-observed `RuleType`; missing/duplicate/malformed/wrong-owner/wrong-namespace/nonterminal/shared/endpoint-bearing rules; missing required reverse-domain membership; third/partial CIDR; IPv6; allowed private-hosted-zone-added service rules; private-hosted-zone-added non-autodefined/endpoint-bearing/shared/malformed/foreign-owner/nonterminal rules; outbound endpoint; Profile association; pagination omission or overflow beyond the deliberate 20-page/1,000-record W3 guardrail; API denial; and any verifier call or IAM action outside the exact approved Gate 1 set. Tests prove `RuleType` drift alone cannot admit or reject a rule, an allowed PHZ contribution passes only under the closed rule predicate, and any identity, endpoint, status, pagination, required-multi-CIDR, or action-set mismatch fails closed. Golden tests assert the exact five-key Gate 1 resolver-control preimage and hash; required reverse-rule presence and complete service-owned inventory affect eligibility only and never add hash fields.
 
 Backend/control focused commands, run from the backend `.venv` that intentionally contains no PyArrow or parser-only dependency, are:
 
@@ -377,25 +380,41 @@ Backend/control focused commands, run from the backend `.venv` that intentionall
 .venv/bin/python -m pytest -q tests/test_s1647_seller_workspace_b1.py tests/test_s1647_seller_workspace_b2a.py tests/test_s1647_seller_workspace_b2b.py tests/test_s1647_seller_workspace_postgres.py
 .venv/bin/python -m pytest -q tests/test_delivery_endpoints.py tests/test_delivery_guarantees.py tests/test_delivery_service.py tests/test_delivery_webhook_integration.py tests/test_serial_serial_id_contract.py tests/test_serial_service.py tests/test_source_delivery.py
 .venv/bin/alembic heads
-.venv/bin/cfn-lint infra/seller_workspace_profile/template.yaml
 .venv/bin/python infra/seller_workspace_profile/package.py --check
 ```
 
-Runtime parser tests run in a separate disposable environment created from the runtime locks, never from the backend environment:
+Gate 3 bootstraps and runs the linter in a disposable CI temporary directory, never in the backend environment. `infra/seller_workspace_profile/requirements-cfn-lint.lock` must contain `cfn-lint==1.50.1` and every transitive distribution with exact SHA-256 hashes; floating requirements, unhashed downloads, `pipx`, a developer `.venv`, and backend dependency-file edits fail the build. Cleanup is mandatory on success and failure:
 
 ```text
-python3.11 -m venv .venv-s1650-profile-runtime
-.venv-s1650-profile-runtime/bin/python -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements.lock
-.venv-s1650-profile-runtime/bin/python -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements-test.lock
-.venv-s1650-profile-runtime/bin/python -m pytest -q seller_workspace_profile_runtime/tests
+S1650_CFN_LINT_VENV="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/s1650-cfn-lint.XXXXXX")"
+trap 'rm -rf -- "${S1650_CFN_LINT_VENV:?}"' EXIT
+python3.11 -m venv "$S1650_CFN_LINT_VENV"
+"$S1650_CFN_LINT_VENV/bin/python" -m pip install --require-hashes -r infra/seller_workspace_profile/requirements-cfn-lint.lock
+"$S1650_CFN_LINT_VENV/bin/cfn-lint" --version
+"$S1650_CFN_LINT_VENV/bin/cfn-lint" infra/seller_workspace_profile/template.yaml
+rm -rf -- "${S1650_CFN_LINT_VENV:?}"
+trap - EXIT
+```
+
+Runtime parser tests run in a separate disposable CI temporary environment created from the runtime locks, never inside the repository checkout or backend environment. Cleanup is mandatory on success and failure:
+
+```text
+S1650_RUNTIME_TEST_VENV="$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/s1650-profile-runtime.XXXXXX")"
+trap 'rm -rf -- "${S1650_RUNTIME_TEST_VENV:?}"' EXIT
+python3.11 -m venv "$S1650_RUNTIME_TEST_VENV"
+"$S1650_RUNTIME_TEST_VENV/bin/python" -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements.lock
+"$S1650_RUNTIME_TEST_VENV/bin/python" -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements-test.lock
+"$S1650_RUNTIME_TEST_VENV/bin/python" -m pytest -q seller_workspace_profile_runtime/tests
 docker build --no-cache -f seller_workspace_profile_runtime/Dockerfile seller_workspace_profile_runtime
+rm -rf -- "${S1650_RUNTIME_TEST_VENV:?}"
+trap - EXIT
 ```
 
 Dependency/import scans fail on any AIM Data module/package/database/install identity/serial/tunnel/broker client/container dependency, on PyArrow/parser imports in the backend web/control image, and on any W3 allAI/LLM schema, builder, gateway, task, route, import, or call. The separate runtime environment proves the exact locked PyArrow parser surface without claiming or requiring PyArrow in the backend `.venv`.
 
 ## 13. Exact Gate 3 and Gate 4 proof
 
-Gate 3 requires one immutable candidate whose changed-path set equals the closed Section 2 manifest exactly, with no unlisted path and no missing row. The path-set evidence must classify the workflow-produced broker ZIP, verifier ZIP, package/schema digest manifest, OCI manifest/digest, SBOM, and vulnerability report as generated evidence rather than repository diff paths, and must prove `requirements.txt`, the named W2/legacy tests, `railway.worker.json`, Gate 1, and every delivery/serial/`legacy_serial` file unchanged. The candidate also requires exact base and diff, clean build, single Alembic head, all backend and separately locked runtime focused commands passing, package/image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, and unchanged Gate 1 digest.
+Gate 3 requires one immutable candidate whose changed-path set equals the closed Section 2 manifest exactly, with no unlisted path and no missing row. The path-set evidence must classify the workflow-produced broker ZIP, verifier ZIP, package/schema digest manifest, OCI manifest/digest, SBOM, and vulnerability report as generated evidence rather than repository diff paths, and must prove `requirements.txt`, `requirements-dev.txt`, the named W2/legacy tests, `railway.worker.json`, Gate 1, and every delivery/serial/`legacy_serial` file unchanged. The candidate also requires exact base and diff, clean build, single Alembic head, all backend and separately locked runtime focused commands passing, the Section 12 isolated hash-locked `cfn-lint==1.50.1` bootstrap and lint command passing, package/image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, unchanged Gate 1 digest, and proof that verifier calls and IAM permissions contain no action outside the exact Gate 1 Section 6.3 set.
 
 Before launch enforcement can be accepted, Gate 3 must also pin the regional price-table and estimate-model versions and supply the Section 7.1 worst-case recomputation showing every absolute USD cap is conservative for each supported region/AZ/endpoint placement and the full two-attempt envelope. Static review, manifest closure, backend tests, runtime tests, package checks, image scan, migration, IaC review, price-model validation, and legacy tests are separate evidence. Independent CC, GLM, and DeepSeek must review the exact Gate 3 commit; the builder is excluded.
 
@@ -426,7 +445,6 @@ The next permitted action after this candidate is review only. **No MP/build age
 
 - AWS autodefined Resolver inventory: <https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-overview-forward-vpc-to-network-autodefined-rules.html>
 - Resolver rule associations and types: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_ListResolverRuleAssociations.html>
-- Resolver configuration: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_GetResolverConfig.html>
 - Route 53 Profile associations: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53profiles_ListProfileAssociations.html>
 - DNS Firewall VPC fail mode: <https://docs.aws.amazon.com/Route53/latest/APIReference/API_route53resolver_GetFirewallConfig.html>
 - Fargate ephemeral-storage KMS: <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/fargate-create-storage-key.html>
