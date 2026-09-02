@@ -24,7 +24,7 @@ error_signatures:
 
 ## What it does
 
-The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, and Cloudflare, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
+The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption, sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 
 Provider observations are the sole authority for whether an issue exists and whether it is resolved. A partial, unavailable, untrusted, or unordered observation never resolves an episode. Absence from a lookback window, expiry, timeout, and worker text are not success witnesses.
 
@@ -88,7 +88,21 @@ The central backend `update_support_ticket` operation owns lifecycle timestamps.
 
 Snapshot `mode` is the actual dispatch-rule mode. `collection_mode` and `default_action` remain `record_only`. `action_counts` reports the current bounded watcher pass and separates support mutation attempts from admitted worker dispatches; it is not a historical total. `dispatch_spend` remains the separate admission and measured-spend view.
 
-The `github`, `railway`, and `cloudflare` entries under `sources` are independent provider-health observations. Diagnose each provider's `status`, `observation_complete`, resources, and error independently; one provider's result does not summarize or erase another provider's state.
+The `github`, `railway`, `cloudflare`, and `council_providers` entries under `sources` are independent provider-health observations. Diagnose each provider's `status`, `observation_complete`, resources, and error independently; one provider's result does not summarize or erase another provider's state.
+
+### Council provider consumption
+
+`sources.council_providers` is enabled and remains under the catch-all `default_action: record_only`; it has no dispatch rule. Each poll reads DeepSeek's authenticated balance with a timeout of at most 10 seconds, scans only the newest seven days of bounded Kimi launcher logs, records that the repository has no documented read-only GLM coding-plan usage endpoint, and counts MP timeout reports modified in the last 24 hours. It emits `provider_balance` and, when warranted, `provider_exhaustion_projected` for DeepSeek; `provider_usage` and `provider_quota_exhausted` for Kimi; `provider_usage_unavailable` for GLM; and `builder_timeout_count` for MP. A failed subject check emits `provider_check_failed` rather than aborting the other checks.
+
+DeepSeek balance history uses the channel's existing safe raw storage and loads at most the configured `sample_limit` from the last seven days. Burn rate is `(oldest USD balance - newest USD balance) / elapsed days`. `provider_exhaustion_projected` appears when projected days to zero is below `warn_days` (default 7) or current balance is below `warn_usd` (default USD 10). Kimi has no remaining-quota API on the current plan, so do not infer a projection from token totals.
+
+Read the latest values from the mirrored snapshot:
+
+```sh
+jq '.snapshot.issues[] | select(.source.provider == "council_providers") | {kind,subject,payload,first_seen,last_seen}' /Users/max/koskadeux-state/issue-channel/snapshot.json
+```
+
+For an authorized offline export, run `scripts/issue_channel.py --export-corpus <directory>`, select `council_providers` rows in `issues.json`, then follow each `raw_ref`; its safe `projection` contains the same observation payload. Neither surface contains the DeepSeek credential.
 
 `sources.watcher` is different: it is a synthetic watcher-control failure marker, written fail-closed for current policy, table, meter, or admission-control failures. A later completed normal control-plane cycle removes only that exact stale synthetic marker. A current control failure preserves it. Partial or unavailable provider entries remain visible and must still be diagnosed separately; removal of `sources.watcher` does not make an unhealthy provider healthy.
 
@@ -100,7 +114,7 @@ Refer to credentials and identities by name only. Never paste or log their value
 
 - `ISSUE_CHANNEL_POLLER_KEY` authenticates the outbound local poller to the queue API.
 - `INTERNAL_API_KEY` authenticates watcher calls to the internal support API.
-- Provider inputs include `ISSUE_CHANNEL_GITHUB_TOKEN`, `RAILWAY_API_TOKEN`, `ISSUE_CHANNEL_CLOUDFLARE_TOKEN`, and `CLOUDFLARE_ACCOUNT_ID`.
+- Provider inputs include `ISSUE_CHANNEL_GITHUB_TOKEN`, `RAILWAY_API_TOKEN`, `ISSUE_CHANNEL_CLOUDFLARE_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and the launcher-injected `DEEPSEEK_API_KEY`.
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
 - Poller database access uses its dedicated database role `issue_channel_poller`.
 
@@ -122,7 +136,7 @@ gh workflow list --repo aidotmarket/ai-market-backend --all
 gh run list --repo aidotmarket/ai-market-backend --branch main --limit 30
 ```
 
-Read the safe local mirror. A healthy normal cycle is fresh, agrees with database status counts, has provider keys `github`, `railway`, and `cloudflare` with each provider `status` equal to `ok` and `observation_complete` equal to `true`, and has no synthetic `watcher` marker. If `sources.watcher` is present, diagnose that control marker separately from the provider entries:
+Read the safe local mirror. A healthy normal cycle is fresh, agrees with database status counts, has provider keys `github`, `railway`, `cloudflare`, and `council_providers` with each provider `status` equal to `ok` and `observation_complete` equal to `true`, and has no synthetic `watcher` marker. If `sources.watcher` is present, diagnose that control marker separately from the provider entries:
 
 ```sh
 jq '{generated_at,mode:.snapshot.mode,collection_mode:.snapshot.collection_mode,default_action:.snapshot.default_action,action_counts:.snapshot.action_counts,open_count:.snapshot.open_count,expired_count:.snapshot.expired_count,source_keys:(.snapshot.sources|keys),sources:(.snapshot.sources|map_values({status,observation_complete,last_attempt,error_class,detail_code})),dispatch_spend:.snapshot.dispatch_spend,breaker:.snapshot.breaker}' /Users/max/koskadeux-state/issue-channel/snapshot.json
