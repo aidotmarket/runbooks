@@ -55,6 +55,7 @@ The table is historical retrieval metadata derived from backend Git history. It 
 
 | Version | Git commit | Date | Historical change summary |
 |---|---|---|---|
+| 9.16 | pending — applied by vulcan S1651 (see `infra:constitution.body.core_amendment_s1651`) | 2026-09-02 | Gate voter panel changed from CC, Kimi, GLM to CC, GLM, DeepSeek; Kimi non-voting comparison seat. Max supersession, Event Ledger b66ecf84. |
 | 9.13 | `6a90b4981bfcfec98530adacf68105ce8e23ed64` | 2026-07-27 | Explicit, matter-specific Max supersession may stand in place of Council approval and must be recorded in the Event Ledger. |
 | 9.12 | `ac3390cfc2a0d1e8b87a44ead61de8ac34ef5805` | 2026-07-24 | Gate voter panel changed from CC, DeepSeek, GLM to CC, Kimi, GLM. |
 | 9.11 | `6851a671a7adb0a7511162b0c5bd1939cb274162` | 2026-07-16 | Unanimous Council gate plus Max direct approval required for amendments. |
