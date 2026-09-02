@@ -1,6 +1,6 @@
 # BQ-SELLER-WORKSPACE-W3-PROFILING-S1650 Gate 1 architecture specification
 
-**Status:** Gate 1 candidate. Build remains blocked until the two Max decisions in section 18 are recorded and the required Gate 1 review approves the resulting exact digest.
+**Status:** Gate 1 candidate. Max selected D1=A and D2=A in authenticated directive event `127c8533-5f58-4b87-a8fe-3a81469d64a1`. Build remains blocked until the required Gate 1 review approves this exact resulting digest.
 
 **Build Queue entity:** `build:bq-seller-workspace-w3-profiling-s1650`
 
@@ -17,7 +17,7 @@ This candidate was authored against:
 - canonical `docs/core/CORE.md` version 9.15, SHA-256 `385042239afac7c54cadefca6be2107e67cb3da2c442be63fdb9fd6b0bdc11e5`;
 - AIM Data `f5e92c80a93c159989340d7c45018e2dcea55f53`, inspected only to identify reusable algorithms, unsafe runtime assumptions, and the exclusion boundary.
 
-Round-1 review was performed on candidate `78a2b8e3e317d69207ec092b5156c6e63c831509`, file SHA-256 `e71fa0cea113dcf366152f25838576c668234085ada9b9055691cc448cd901d7`. This revision folds the complete CC response `/Users/max/council/cc/response-20260902-015302-385335.md` and GLM response `/Users/max/council/glm/response-20260902-015303-186203.md`. It does not resolve D1 or D2, authorize implementation, or reuse either verdict for this new digest.
+Round-1 review was performed on candidate `78a2b8e3e317d69207ec092b5156c6e63c831509`, file SHA-256 `e71fa0cea113dcf366152f25838576c668234085ada9b9055691cc448cd901d7`. This revision folds the complete CC response `/Users/max/council/cc/response-20260902-015302-385335.md` and GLM response `/Users/max/council/glm/response-20260902-015303-186203.md`. It also records Max's D1=A and D2=A choices from event `127c8533-5f58-4b87-a8fe-3a81469d64a1`; it does not authorize implementation or reuse either earlier verdict for this new digest.
 
 CORE 9.15 says both that ai.market is metadata-only/non-custodial and that raw customer data must not touch ai.market. The W1 runbook instead describes a backend-deployed isolated worker reading bounded source ranges. Isolation and bounded reads reduce exposure but do not change custody: raw bytes would enter an ai.market process. W3 therefore replaces that W1 execution placement with seller-account execution. It does not change the W2 connection lifecycle, W1 product outcome, or any delivery authority.
 
@@ -356,7 +356,7 @@ The parser package may port a small deterministic AIM Data algorithm or fixture 
 
 ## 11. Cost controls
 
-Fargate and S3/KMS/Logs charges accrue in the seller AWS account. That commercial fact is a Max decision in section 18, not something the builder may hide in copy.
+Fargate and S3/KMS/Logs charges accrue in the seller AWS account. Max selected D2=A: the seller pays those bounded AWS-native profiling costs. Before execution, the seller must receive a versioned cost estimate and explicitly acknowledge it. W3 introduces no ai.market listing fee, subsidy, credit programme, or alternative funding design.
 
 Technical controls are binding regardless of that decision:
 
@@ -499,29 +499,19 @@ W3 may pass Gate 3 only when the exact candidate proves all of the following:
 
 Gate 4 additionally requires the complete live synthetic evidence in section 14 on the exact reviewed/deployed identities. Customer data or a customer account is never acceptable test material.
 
-## 18. Genuine Max product decisions
+## 18. Recorded Max product decisions
 
-These are product choices, not engineering facts. No builder or reviewer may infer them.
+Max recorded both choices through authenticated directive event `127c8533-5f58-4b87-a8fe-3a81469d64a1`. No builder or reviewer may reinterpret or broaden them.
 
 ### D1 — May exact source field names leave the seller account?
 
-This candidate's privacy-max baseline returns only seller-owned, connection/key-version-scoped field tokens, positions, types, counts/bands, and classifications. Exact CSV headers, JSON keys, and Parquet field names are source bytes and do not leave. That is the strongest reading of CORE and preserves a clean custody claim, but it gives a later W4 listing assistant less useful schema language.
-
-Max must choose:
-
-- **A (recommended):** keep exact names inside the seller account for W3; W4 may later request a separate, explicit seller-approved disclosure contract; or
-- **B:** treat exact schema names as approved non-sensitive metadata in W3, requiring a new bounded schema, seller confirmation, redaction rules, and revised acceptance evidence before build.
+**Decision: A.** Exact CSV headers, JSON keys, Parquet field names, and all other source field names remain inside the seller's AWS account. ai.market may receive only the bounded connection/key-version-scoped tokens, positions, types, counts/bands, classifications, and other approved value-free metadata defined by this specification. Any later W4 disclosure contract requires separate explicit authorization.
 
 ### D2 — Is seller-paid AWS execution the intended commercial experience?
 
-Seller-account execution necessarily places Fargate, S3, KMS, ECR/network-endpoint, and log charges on the seller's AWS bill. W3 can bound and disclose them, but cannot silently decide who should pay or how that promise is described.
+**Decision: A.** The seller pays the bounded AWS-native profiling costs. Before execution, W3 shows a versioned cost estimate and requires explicit seller acknowledgement. W3 introduces no ai.market listing fee, subsidy, credit programme, or alternative funding design.
 
-Max must choose:
-
-- **A (recommended):** seller pays its AWS-native profiling cost, with explicit pre-run estimate/acknowledgement and no ai.market listing fee; or
-- **B:** ai.market subsidizes profiling, which requires a different funding/credit design but must not move raw execution into ai.market.
-
-Until D1 and D2 are recorded, Gate 1 may be reviewed for architecture but Gate 2/build dispatch remains blocked.
+D1 and D2 are resolved only for this W3 Gate 1 candidate. Gate 2 and build dispatch remain blocked until the complete CC/Kimi/GLM panel independently approves the exact resulting digest.
 
 ## 19. Source references
 
