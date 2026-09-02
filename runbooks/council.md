@@ -129,6 +129,8 @@ Credentials are launcher inputs only:
 - Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
 - DeepSeek uses `DEEPSEEK_API_KEY` from Infisical project `0943f641-faee-4324-b337-0d50c276e4a9`, environment `prod`, path `/`, and dedicated homes under `/Users/max/koskadeux-state/agents/deepseek/`; no credential is stored there.
 
+Council consumption is observed by the record-only `council_providers` source in the existing S1511 issue channel. It reads the launcher-injected DeepSeek balance, derives a seven-day USD burn rate from retained channel samples, summarizes Kimi launcher usage and explicit weekly-limit failures, records GLM usage as unavailable because no documented read-only coding-plan endpoint exists, and counts MP timeouts over 24 hours. Defaults warn below USD 10 or below seven projected days. Read the safe payloads from the issue-channel snapshot/export as described in `issue-channel.md`; never print or copy a provider credential.
+
 Kimi retained-session finalization uses `kimi --session <id> --prompt <text>`
 under the same member sandbox and a five-step reserve. Do not add `--auto` to
 that prompt-mode command: Kimi CLI 0.32.0 rejects `--auto` plus `--prompt`
