@@ -1,6 +1,6 @@
 # BQ-SELLER-WORKSPACE-W3-PROFILING-S1650 Gate 1 architecture specification
 
-**Status:** Gate 1 candidate. Max selected D1=A and D2=A in authenticated directive event `127c8533-5f58-4b87-a8fe-3a81469d64a1`. Build remains blocked until the required Gate 1 review approves this exact resulting digest.
+**Status:** Gate 1 corrective candidate. Max selected D1=A and D2=A in authenticated directive event `127c8533-5f58-4b87-a8fe-3a81469d64a1` and authorized CC/GLM/DeepSeek for this review in event `b756003d-6d8c-4835-8c36-dc53a6f97ce1`. Build remains blocked until that required panel approves this exact resulting digest.
 
 **Build Queue entity:** `build:bq-seller-workspace-w3-profiling-s1650`
 
@@ -18,6 +18,8 @@ This candidate was authored against:
 - AIM Data `f5e92c80a93c159989340d7c45018e2dcea55f53`, inspected only to identify reusable algorithms, unsafe runtime assumptions, and the exclusion boundary.
 
 Round-1 review was performed on candidate `78a2b8e3e317d69207ec092b5156c6e63c831509`, file SHA-256 `e71fa0cea113dcf366152f25838576c668234085ada9b9055691cc448cd901d7`. This revision folds the complete CC response `/Users/max/council/cc/response-20260902-015302-385335.md` and GLM response `/Users/max/council/glm/response-20260902-015303-186203.md`. It also records Max's D1=A and D2=A choices from event `127c8533-5f58-4b87-a8fe-3a81469d64a1`; it does not authorize implementation or reuse either earlier verdict for this new digest.
+
+Round-3 review of candidate `5253fe8d8ac055ff2b60e181b0d9b3bd9bc902da`, file SHA-256 `b162dc8bdd828347030abd14d68715eda79005f92d64ad7b9add44891ab3c8e2`, returned CC `APPROVE_WITH_NITS`, GLM `REQUEST_CHANGES`, and DeepSeek `APPROVE_WITH_NITS`, recorded in event `9efa5779-34d7-447c-81a5-9c23ac2a19a1`. This corrective revision folds those exact findings. No earlier verdict carries forward to this digest.
 
 CORE 9.15 says both that ai.market is metadata-only/non-custodial and that raw customer data must not touch ai.market. The W1 runbook instead describes a backend-deployed isolated worker reading bounded source ranges. Isolation and bounded reads reduce exposure but do not change custody: raw bytes would enter an ai.market process. W3 therefore replaces that W1 execution placement with seller-account execution. It does not change the W2 connection lifecycle, W1 product outcome, or any delivery authority.
 
@@ -81,12 +83,13 @@ Failure of any conjunct makes AWS profiling unavailable. There is no central-rea
 
 ## 5. Seller-account AWS topology
 
-The later W3 implementation supplies a versioned CloudFormation template for the seller to inspect and deploy. One stack/runtime is bound one-to-one to one `CloudConnection`; roles and source-prefix permissions are not shared across connections. W3 product code may verify the stack but may not create, update, or delete it. The seller passes the already pinned connection-role name and explicitly removes its old object-read policy as part of the upgrade. The stack contains exactly:
+The later W3 implementation supplies a versioned CloudFormation template for the seller to inspect and deploy. One stack/runtime is bound one-to-one to one `CloudConnection`; roles and source-prefix permissions are not shared across connections. W3 product code may verify the stack through the read-only verifier below but may not create, update, or delete it. The seller passes the already pinned connection-role name and explicitly removes its old object-read policy as part of the upgrade. The stack contains exactly:
 
 - one broker Lambda function and immutable published alias;
+- one runtime-verifier Lambda function and immutable published alias, with a distinct read-only execution role and no task-launch, role-pass, source-object, secret-value, or mutation authority;
 - one ECS cluster for standalone Fargate tasks, Linux platform `1.4.0` or later;
 - one task definition pinned to an immutable image digest, fixed entrypoint, `1 vCPU`, `4 GiB` memory, `20 GiB` ephemeral storage, read-only root filesystem, non-root user, no privileged mode, no added Linux capabilities, and `stopTimeout=30` seconds;
-- distinct broker, task, and task-execution IAM roles plus a template parameter that binds the existing cross-account connection-control role;
+- distinct verifier, broker, task, and task-execution IAM roles plus a template parameter that binds the existing cross-account connection-control role;
 - one seller-owned control bucket with separate `requests/` and `results/` prefixes, public access blocked, TLS required, SSE-KMS, versioning disabled, replication disabled, backup excluded, incomplete multipart uploads aborted after one day, and object expiry after one day. Before launch the broker writes one canonical request object with `If-None-Match: *`, checksum, JSON media type, SSE-KMS key ID, and connection/job/attempt/runtime tags. An existing key or metadata mismatch fails closed; neither broker nor task may replace it;
 - one customer-managed KMS key for the control bucket and Fargate ephemeral storage, with grants limited by the stack resources;
 - private subnets, a no-ingress task security group, and only the endpoints needed to launch and run the task. The S3 gateway endpoint policy is an explicit allowlist for: the verified source bucket and objects under its exact connection prefix; the control bucket and only `requests/<connection-id>/.../request.json` plus `results/<connection-id>/.../evidence.json`; and read-only `s3:GetObject` on the mandatory regional ECR layer objects `arn:${AWS::Partition}:s3:::prod-${AWS::Region}-starport-layer-bucket/*`. Source/control bucket resources are additionally restricted to the verified seller account. ECR API, ECR Docker, CloudWatch Logs, Secrets Manager, and required KMS use private interface endpoints;
@@ -96,7 +99,7 @@ The later W3 implementation supplies a versioned CloudFormation template for the
 
 The image is pulled from the approved ai.market release ECR repository under a cross-account repository policy and by digest. A mutable tag is never an execution identity. The broker refuses a task definition revision whose image digest, task role, execution role, CPU, memory, storage, command, network mode, logging configuration, or read-only settings differ from the verified runtime record.
 
-The request object, not a container command or selector-valued environment variable, is the immutable task input. `RunTask` may supply exactly two broker-derived bootstrap environment values: `W3_REQUEST_KEY` (the canonical key constructed from the validated connection/job/attempt) and `W3_REQUEST_SHA256` (the checksum of the create-only request object). The broker never copies an ai.market-provided override map and rejects every other container, command, environment, role, image, resource, or network override. The fixed entrypoint retrieves only that key, verifies checksum, media type, KMS key, tags, schema, input hash, selector scope, expiry, and its broker-set ECS task tags before reading source data. The request contains the validated envelope and selector; it is not an audit-only artifact. A mismatch stops before any source read or result write.
+The request object, not a container command or selector-valued environment variable, is the immutable task input. `RunTask` may supply exactly two broker-derived bootstrap environment values: `W3_REQUEST_KEY` (the canonical key constructed from the validated connection/job/attempt) and `W3_REQUEST_SHA256` (the checksum of the create-only request object). The broker never copies an ai.market-provided override map and rejects every other container, command, environment, role, image, resource, or network override. The fixed entrypoint retrieves only that key and verifies checksum, media type, KMS key, request-object tags, schema, input hash, selector scope, and expiry before reading source data. The task does not call ECS or inspect ECS task tags. Before accepting a result, the broker uses its existing `ecs:DescribeTasks` authority to verify the exact task ARN, task-definition revision, image digest, network attachments, and broker-set task tags against the immutable request. The request contains the validated envelope and selector; it is not an audit-only artifact. A mismatch stops before any source read or result acceptance.
 
 The endpoint policy has no wildcard seller-bucket resource and no catch-all S3 statement. Its implicit deny is verified for every other source prefix, control key, seller bucket, regional/non-regional ECR layer bucket, S3 access point, and public S3 endpoint. Removing the regional ECR layer-bucket entry must make a private digest pull fail, while the complete allowlist must permit the exact digest pull without NAT or an internet-gateway route.
 
@@ -110,11 +113,11 @@ No role may combine two rows below.
 
 For a W3-ready connection this is the existing immutable `CloudConnection.role_arn`, still trusted only for the configured ai.market AWS principal with the existing random per-connection ExternalId. The seller replaces its permissions during the explicit profile-runtime upgrade; the role ARN and ExternalId do not silently change. Its permission policy contains only:
 
-- `lambda:InvokeFunction` on the exact published broker alias ARN;
+- `lambda:InvokeFunction` on only the exact published verifier and broker alias ARNs;
 - `s3:ListBucket` on the exact source bucket with the exact non-root connection prefix; and
 - `s3:ListBucketVersions` on the same bucket/prefix only when versioned selector discovery is enabled.
 
-It has no object-ARN permission, including `s3:GetObject`, `s3:GetObjectVersion`, or any range-read equivalent; no `ecs:*`, `iam:*`, `kms:*`, `secretsmanager:*`, `logs:*`, second `sts:AssumeRole`, wildcard resource, or unqualified Lambda-version permission. The ai.market session duration is at most 900 seconds. W2 verification and object discovery use bounded `ListObjectsV2`/`ListObjectVersions` results only and call neither `HeadObject` nor `GetObjectAttributes`. For a general-purpose bucket, AWS authorizes `HeadObject` and unversioned `GetObjectAttributes` with `s3:GetObject`; `GetObjectAttributes` with `versionId` uses `s3:GetObjectVersion`. There are no `s3:GetObjectAttributes` or `s3:GetObjectVersionAttributes` IAM policy actions. Both valid permissions remain absent, and negative tests issue the unversioned and versioned attribute API calls independently.
+It has no object-ARN permission, including `s3:GetObject`, `s3:GetObjectVersion`, `s3:GetObjectAttributes`, `s3:GetObjectVersionAttributes`, or any range-read equivalent; no `ecs:*`, `iam:*`, `kms:*`, `secretsmanager:*`, `logs:*`, second `sts:AssumeRole`, wildcard resource, or unqualified Lambda-version permission. The ai.market session duration is at most 900 seconds. W2 verification and object discovery use bounded `ListObjectsV2`/`ListObjectVersions` results only and call neither `HeadObject` nor `GetObjectAttributes`. AWS requires `s3:GetObject` plus `s3:GetObjectAttributes` for an unversioned attributes call, and `s3:GetObjectVersion` plus `s3:GetObjectVersionAttributes` when `versionId` is supplied. All four actions remain absent, and negative tests issue the body, head, unversioned-attributes, and versioned-attributes calls independently.
 
 ### 6.2 Broker Lambda execution role
 
@@ -124,35 +127,42 @@ The broker role has only:
 - `ecs:DescribeTasks` and `ecs:StopTask` for tasks on that cluster carrying the exact seller/connection/job tags;
 - `iam:PassRole` for the exact task role and exact task-execution role, conditioned on `iam:PassedToService=ecs-tasks.amazonaws.com`;
 - `s3:PutObject` plus `s3:PutObjectTagging` only for `requests/<connection-id>/<job-id>/<attempt>/request.json`. The broker must use `If-None-Match: *`, the canonical request media type, SHA-256 checksum, exact control KMS key, and connection/job/attempt/runtime tags; IAM/bucket-policy conditions enforce the supported KMS-key and request-tag conditions, while the broker and task validate the checksum/media type;
-- `s3:GetObject` plus `s3:GetObjectTagging` only for `results/<connection-id>/<job-id>/<attempt>/evidence.json` (`s3:GetObject` also authorizes the result `GetObjectAttributes` call), and `s3:DeleteObject` only for those exact request and result key shapes after terminal acknowledgement;
+- `s3:GetObject` plus `s3:GetObjectTagging` only for `results/<connection-id>/<job-id>/<attempt>/evidence.json`, and `s3:DeleteObject` only for those exact request and result key shapes after terminal acknowledgement. The broker validates result size and checksum from the bounded `GetObject` response and never calls `GetObjectAttributes`;
+- `s3:ListBucket` on the control bucket only with `s3:prefix` equal to the exact terminal attempt directory `requests/<connection-id>/<job-id>/<attempt>/` or `results/<connection-id>/<job-id>/<attempt>/` and `s3:max-keys<=2`, used only after deletion to prove both expected keys absent. Every sibling, parent, wildcard, or cross-connection prefix is denied;
 - `kms:GenerateDataKey` for the create-only request and `kms:Decrypt` for result validation, only on the control key with `kms:ViaService` fixed to regional S3 and `kms:EncryptionContext:aws:s3:arn` restricted to the exact control-bucket request/result prefixes; and
 - metadata-only log writes to the exact log group.
 
-The broker has no source-bucket permission and cannot accept task command, arbitrary environment, role, image, subnet, security-group, CPU, memory, or storage overrides from ai.market. It constructs the fixed runtime values from the verified stack record and the two bootstrap values from the validated envelope. It cannot put a result, overwrite a request, list the control bucket, or read a request body after creation.
+The broker has no source-bucket permission and cannot accept task command, arbitrary environment, role, image, subnet, security-group, CPU, memory, or storage overrides from ai.market. It constructs the fixed runtime values from the verified stack record and the two bootstrap values from the validated envelope. It cannot put a result, overwrite a request, read a request body after creation, or list any control-bucket prefix except the exact terminal attempt prefixes for post-delete absence proof.
 
-### 6.3 Task execution role
+### 6.3 Runtime-verifier Lambda execution role
+
+The verifier accepts only the operation-specific envelope in section 7 and reads only configuration belonging to the exact tagged stack/runtime. It has `cloudformation:DescribeStacks`, `cloudformation:GetTemplate`, and `cloudformation:ListStackResources` for the exact stack; Lambda configuration/alias/policy reads for the broker and verifier; IAM role and policy-document reads for the five exact roles (connection-control, verifier, broker, task, and task-execution) and their attached policies; `ecs:DescribeTaskDefinition` for the pinned revision; ECR image-description reads for the approved repository/digest; KMS key-description/policy reads for the control key; control-bucket public-access, policy, encryption, lifecycle, versioning, replication, and Object Lock configuration reads; EventBridge rule/target and CloudWatch log-group configuration reads for the exact stack resources; and the EC2 describe calls required for the stack's exact VPC, subnet, route-table, security-group, and endpoint IDs. AWS describe APIs that do not support resource ARNs use `Resource: *`, but the closed verifier code accepts only the connection role and IDs bound to the exact connection or found in the exact `ListStackResources` result, and emits no raw policy, source key, credential, or secret value.
+
+The verifier has explicit denies for every mutation, `iam:PassRole`, `ecs:RunTask|StopTask|ExecuteCommand`, STS role chaining, `s3:GetObject*`, `s3:ListBucket` on the source bucket, `kms:Decrypt|GenerateDataKey`, `secretsmanager:GetSecretValue`, and any resource not tagged/bound to the one runtime. It returns only a closed `seller_workspace_profile_runtime_verification.v1` receipt containing the expected/observed runtime version, stack/template/broker/task-definition/image/role/policy/network/control-resource hashes, verification timestamp, safe mismatch codes, and receipt hash. Raw policies, ARNs not already stored for the owning connection, subnet/routes, bucket names, and source-prefix identities do not cross to ai.market.
+
+### 6.4 Task execution role
 
 The execution role has `ecr:GetAuthorizationToken` on `*` only because ECR does not support a repository resource for that action; `ecr:BatchCheckLayerAvailability`, `ecr:GetDownloadUrlForLayer`, and `ecr:BatchGetImage` are restricted to the one approved release repository. It may create/write only the exact metadata log stream. It has no source bucket, control-bucket data, KMS decrypt for source objects, Secrets Manager field-token key, ECS control, IAM, or STS permission.
 
-### 6.4 Profile task role
+### 6.5 Profile task role
 
 The task role is scoped to one verified connection and has only:
 
 - `s3:ListBucket` on the exact source bucket with the exact non-root connection prefix condition;
-- `s3:GetObject` on that exact source prefix, authorizing unversioned body and `GetObjectAttributes` calls, and, when versioned selectors are used, `s3:GetObjectVersion`, authorizing both versioned body and `GetObjectAttributes(versionId=...)` calls;
+- `s3:GetObject` on that exact source prefix and, only when versioned selectors are used, `s3:GetObjectVersion`; the task never calls `HeadObject` or `GetObjectAttributes`, and the dedicated attribute actions remain absent;
 - `kms:Decrypt` only for explicitly registered seller KMS keys needed by selected source objects, restricted through S3 and the expected encryption context;
 - `secretsmanager:GetSecretValue` on the single field-token key;
-- `s3:GetObject` plus `s3:GetObjectTagging` on the control-bucket request key shape `requests/<connection-id>/<job-id>/<attempt>/request.json` (`s3:GetObject` also authorizes its unversioned attributes call), with no `ListBucket`, version, sibling-connection, or result-read grant;
+- `s3:GetObject` plus `s3:GetObjectTagging` on the control-bucket request key shape `requests/<connection-id>/<job-id>/<attempt>/request.json`, with no `ListBucket`, version, sibling-connection, result-read, or object-attributes grant;
 - `kms:Decrypt` on the control key for request retrieval, restricted by `kms:ViaService` and the request-key encryption context;
 - `s3:PutObject` plus `s3:PutObjectTagging` on the matching exact result-key shape `results/<connection-id>/<job-id>/<attempt>/evidence.json`. The client must send the configured SSE-KMS key ID, evidence media type, SHA-256 checksum, and exact connection/job/attempt/runtime tags in the same request; IAM/bucket-policy conditions enforce the supported KMS-key and request-tag conditions, and the broker validates all four classes before acceptance; and
 - `kms:GenerateDataKey` on the control key for the tagged SSE-KMS result upload, restricted through regional S3 and to the matching result-key encryption context; and
 - no other action.
 
-The task role has explicit denies for other buckets, request writes, result-key reads, object deletion, ACL changes, untagged or wrongly encrypted writes, multipart upload/copy, network/infrastructure APIs, `sts:AssumeRole`, and secrets other than the token key. IAM limits source access to the verified connection prefix and control access to the connection-fixed request/result key shapes; the broker-derived bootstrap key, create-only request checksum/tags, and immutable selector narrow one task to its exact job/attempt and at most ten exact versioned source objects. The task never lists the control bucket and rejects any request whose path components, tags, body identity, input hash, or ECS task tags disagree.
+The task role has explicit denies for other buckets, request writes, result-key reads, object deletion, ACL changes, untagged or wrongly encrypted writes, multipart upload/copy, network/infrastructure APIs, `sts:AssumeRole`, and secrets other than the token key. IAM limits source access to the verified connection prefix and control access to the connection-fixed request/result key shapes; the broker-derived bootstrap key, create-only request checksum/tags, and immutable selector narrow one task to its exact job/attempt and at most ten exact versioned source objects. The task never lists the control bucket and rejects any request whose path components, request-object tags, body identity, input hash, or selector scope disagree. ECS task identity and tags are validated only by the broker before result acceptance.
 
-The control-bucket policy admits only the broker and task statements above over TLS and explicitly denies wrong/missing control-key encryption, required tag keys/values, ACLs, and every principal outside the stack. The control KMS key policy mirrors the exact broker/task principals, operations, regional-S3 `ViaService`, and encryption-context boundaries; it has no wildcard application principal or standing grant. IAM simulation proves the connection-fixed resource boundaries, while fixed-task negative calls prove the selector and broker-bootstrap narrowing within that connection. The positive test must exercise the same `PutObject` request that carries tags and therefore requires both `s3:PutObject` and `s3:PutObjectTagging`.
+The control-bucket object-access statements admit only the broker and task operations above over TLS. Separate configuration-read statements admit the verifier only for the bucket-level configuration APIs in section 6.3 and confer no object or list permission. The policy explicitly denies wrong/missing control-key encryption, required tag keys/values, ACLs, and every principal outside the stack. The control KMS key policy mirrors the exact broker/task principals, operations, regional-S3 `ViaService`, and encryption-context boundaries; it has no wildcard application principal or standing grant. IAM simulation proves the connection-fixed resource boundaries, while fixed-task negative calls prove the selector and broker-bootstrap narrowing within that connection. The positive test must exercise the same `PutObject` request that carries tags and therefore requires both `s3:PutObject` and `s3:PutObjectTagging`.
 
-### 6.5 W2 permission correction required before W3 activation
+### 6.6 W2 permission correction required before W3 activation
 
 The present W2 verifier uses `HeadObject`, whose session policy includes `s3:GetObject`. A connection cannot become W3-ready while that centrally assumable role retains source-body read authority. The W3 build must add a profile-runtime upgrade ceremony that creates and verifies the split roles above, replaces the existing connection-role policy with section 6.1, and changes W2 verification to bounded `ListObjectsV2`/`ListObjectVersions` proof without any object-read permission. Existing W2 connections remain verified for W2 and remain profile-unavailable until the seller explicitly upgrades. No automatic IAM change, role-ARN change, ExternalId change, or silent policy replacement is allowed.
 
@@ -162,18 +172,23 @@ All routes remain under `/api/v1/seller-workspace`, require the active seller ca
 
 | Method and path | W3 contract |
 | --- | --- |
-| `POST /connections/{connection_id}/profile-runtime/verify` | Verify the exact broker alias, stack ID/version, region, role split, task definition digest, network controls, and no-source-read broker probe. Store only redacted runtime identifiers/hashes. It never creates or changes AWS resources. |
-| `POST /profile-jobs` | Accept one verified connection/runtime and an immutable selector of 1–10 exact objects under the connection prefix. Freeze versions/ETags, quotas, parser/image/schema versions, create `queued`, and enqueue control work. |
+| `POST /connections/{connection_id}/profile-runtime/verify` | Invoke only the immutable runtime-verifier alias with the closed verification envelope below. Verify the exact stack/template, broker/verifier aliases, role/policy split, task-definition and image digests, control-resource settings, private subnets/routes/security group/endpoints, and absence of source-read or mutation authority. Persist only the closed hashed verification receipt. It never creates or changes AWS resources. |
+| `GET /connections/{connection_id}/objects` | Owner-only bounded `ListObjectsV2`/`ListObjectVersions` discovery. Require `prefix` within the connection's non-root prefix, `version_mode=current|versions`, `limit<=100`, and an opaque server-bound cursor. Return only owner-visible key, version/ETag, size, last-modified, and extension-only format candidate; never read a body or expose another seller's existence. |
+| `POST /cloud-object-selectors` | Accept 1–10 exact object bindings returned by discovery for one verified connection. Re-list and atomically freeze encrypted key identities, version/ETag, size, discovery cursor/version mode, ordered selector hash, and selector version. Reject missing, changed, foreign, root-prefix, duplicate, or body-dependent input. The immutable selector ID is owner-only. |
+| `POST /profile-jobs/estimates` | Accept one verified runtime, immutable selector ID, and quota profile. Persist and return a short-lived immutable cost-estimate receipt binding seller, connection, runtime, selector hash, region, fixed task allocation, quotas, retry assumption, regional price-table version, estimate-model version, currency, bounded low/high estimate, disclosed timestamp, and expiry. No job or task is created. |
+| `POST /profile-jobs` | Accept one verified connection/runtime, immutable selector ID, quota profile, current estimate-receipt ID, and explicit `cost_acknowledged=true`. In one transaction verify every binding, persist acknowledgement actor/time and receipt hash, freeze parser/image/schema versions, create `queued`, and enqueue control work. A stale, replayed, differently bound, or unacknowledged estimate fails closed. |
 | `GET /profile-jobs` | List only the owning seller's jobs with bounded pagination and allowlisted state/runtime/created-before filters. Return the same safe summary fields as the single-job route and no selector object identities, provider errors, or evidence payload. |
 | `GET /profile-jobs/{job_id}` | Return owner-visible state, bounded progress counters, safe failure code, evidence reference when successful, and no provider raw error or source content. |
 | `POST /profile-jobs/{job_id}/cancel` | Move a queued job directly to `cancelled`, or record `cancel_requested` and invoke broker stop for a live task. A completed result wins only if it committed before the cancel transaction. |
 | `GET /profile-evidence/{evidence_id}` | Return the normalized evidence schema in section 9 only to the owning seller. It is not public and is not sent to allAI in W3. |
 
-Object discovery/selection may return owner-only object identity metadata already permitted by the connection (`key`, version/ETag, size, last-modified, format candidate). It must not read a body. Object identifiers are confidential operational metadata: they are encrypted or access-controlled like connection scope, excluded from profile evidence/allAI/logs, and never exposed to another seller or buyer.
+Discovery pagination is stable only for the connection, prefix, version mode, and snapshot window encoded into the opaque cursor. A cursor cannot widen the prefix or change modes. `current` returns the current version/ETag; `versions` requires the separately enabled `ListBucketVersions` permission and returns explicit version IDs without delete markers. Empty, foreign, deleted, changed, or truncated results reveal no cross-seller information. Object identifiers are confidential operational metadata: they are encrypted or access-controlled like connection scope, excluded from profile evidence/allAI/logs, and never exposed to another seller or buyer.
 
 There is no seller retry or expiry mutation route. The single permitted infrastructure retry is an internal state transition under section 8 and never accepts changed input; expiry is a deadline-driven terminal transition. `GET /profile-jobs` and `GET /profile-jobs/{job_id}` expose those safe states, while an expired evidence ID is uniformly absent after payload deletion. Contract tests must exercise those semantics rather than inventing retry/expiry endpoints.
 
-Every cross-account broker call carries a canonical JSON envelope with exactly: `schema_version`, `operation`, `seller_id`, `connection_id`, `runtime_version`, `job_id`, `attempt`, `input_hash`, `selector`, `quota_profile`, `parser_version`, `image_digest`, `evidence_schema_version`, `issued_at`, and `expires_at`. The seller, connection, runtime, job, attempt, selector, limits, and digests are immutable. The broker rejects unknown fields, expiry, clock skew over 60 seconds, replayed start, an input-hash mismatch, a selector outside the verified prefix, and any runtime identity drift.
+The runtime-verification call carries the closed canonical envelope `seller_workspace_profile_runtime_verify.v1` with exactly: `schema_version`, `operation=verify_runtime`, `seller_id`, `connection_id`, `expected_runtime_version`, `expected_stack_id_hash`, `expected_template_digest`, `expected_broker_alias_arn_hash`, `expected_verifier_alias_arn_hash`, `expected_task_definition_arn_hash`, `expected_image_digest`, `nonce`, `issued_at`, and `expires_at`. It has no job, selector, quota, parser, or result fields. The verifier rejects unknown fields, expiry, clock skew over 60 seconds, nonce replay, a resource outside the exact tagged stack, or any expected/observed mismatch and returns only the receipt defined in section 6.3.
+
+Every broker start/poll/cancel call instead carries `seller_workspace_profile_broker_request.v1` with exactly: `schema_version`, `operation=start|poll|cancel`, `seller_id`, `connection_id`, `runtime_version`, `job_id`, `attempt`, `input_hash`, `selector`, `quota_profile`, `parser_version`, `image_digest`, `evidence_schema_version`, `cost_estimate_receipt_hash`, `cost_acknowledgement_event_id`, `price_table_version`, `estimate_model_version`, `currency`, `issued_at`, and `expires_at`. Fields not applicable to `poll|cancel` remain present and must match the persisted immutable start request. The seller, connection, runtime, job, attempt, selector, limits, estimate/acknowledgement, and digests are immutable. The broker rejects unknown fields, expiry, clock skew over 60 seconds, replayed start, an input-hash mismatch, a selector outside the verified prefix, stale/mismatched cost authority, and any runtime identity drift.
 
 ## 8. Job lifecycle, leases, retries, and concurrency
 
@@ -184,9 +199,9 @@ The durable states are:
 and terminal alternatives:
 
 - `queued -> cancelled`;
-- `starting|running -> cancel_requested -> cancelled`;
+- `starting|running|validating_result -> cancel_requested -> cancelled`;
 - `queued|starting|running|validating_result -> failed`;
-- `queued|starting|running -> expired` when its hard deadline passes.
+- `queued|starting|running|validating_result -> expired` when its hard deadline passes.
 
 Only `succeeded`, `failed`, `cancelled`, and `expired` are terminal. Illegal transitions fail closed and append a redacted audit event. A job input never changes. A retry creates `attempt + 1` under the same job and input hash; it is allowed once, only for launch capacity, transient AWS control-plane, Spot-interruption-equivalent, or broker transport failures before a valid result commits. Parser rejection, quota exhaustion, schema rejection, permission denial, digest drift, or suspected raw-output leakage is not retried automatically.
 
@@ -195,13 +210,15 @@ The ai.market profile-control worker uses the existing Redis/Celery substrate on
 Timing is exact:
 
 - queue wait: 5 minutes maximum;
-- task start: 5 minutes maximum after broker acceptance;
+- task start: 3 minutes maximum after broker acceptance;
 - task wall time: 10 minutes maximum;
 - result validation/commit: 2 minutes maximum;
 - total job deadline: 20 minutes;
 - task stop grace: 30 seconds;
 - broker request/result artifacts: delete immediately after terminal acknowledgement, with one-day lifecycle as fail-safe;
 - at most one running job per connection, two running jobs per seller, four queued jobs per seller, and twenty running jobs globally in ai.market control state.
+
+The 20-minute absolute deadline is authoritative and the phase maxima sum to it: five minutes queued, three minutes starting, ten minutes running, and two minutes validating. Every phase records its own deadline capped by the remaining absolute time. Cancellation or expiry during validation prevents commit unless the successful evidence transaction committed first; a later validator, cancel, expiry, or task result becomes a stale no-op with a redacted audit event. No nonterminal state may survive the absolute deadline.
 
 Concurrency is enforced transactionally before launch and rechecked by the broker. Reconciliation may reduce observed capacity after crashes; it may never launch beyond a reserved slot. Provider ambiguity stays `starting` or `running` until reconciled and is never rewritten as a definitive denial.
 
@@ -366,12 +383,12 @@ Technical controls are binding regardless of that decision:
 - 10-minute task and 20-minute job deadlines;
 - one automatic infrastructure retry maximum;
 - seller/connection/global concurrency and daily/monthly quotas of 20 jobs per seller per day and 100 per seller per rolling 30 days;
-- before start, the seller sees selected object count, maximum bytes read, task size, maximum runtime, possible retry count, and an estimated AWS-cost range computed from a versioned regional price table;
+- before start, `POST /profile-jobs/estimates` creates the immutable receipt defined in section 7. The seller sees selected object count, maximum bytes read, task size, maximum runtime, possible retry count, currency, and bounded AWS-cost range; `POST /profile-jobs` requires explicit acknowledgement of that exact current receipt;
 - the runtime attestation records billable duration, exact CPU/memory/ephemeral-storage allocation, semantic byte counters, immutable regional price-table version, estimate-model version, and currency so the disclosed task-cost estimate is exactly recomputable without changing the semantic hash;
 - every resource is tagged `ai-market:seller-workspace=w3`, connection hash, job ID, attempt, and runtime version without seller email or source names; and
 - optional seller-owned AWS Budget alarms may notify or deny later launches, but AWS Budgets is not treated as an instantaneous hard stop. The broker and ai.market quotas are the launch boundary.
 
-A stale/missing price table makes profiling unavailable; it never silently estimates zero. No listing fee, ai.market infrastructure surcharge, or billing integration is introduced by W3.
+A stale/missing price table makes profiling unavailable; it never silently estimates zero. An estimate expires after 15 minutes and is single-use for one job creation. A selector, runtime, region, quota, task allocation, retry assumption, price-table version, estimate-model version, currency, or bounded-range change requires a new estimate and acknowledgement. No listing fee, ai.market infrastructure surcharge, or billing integration is introduced by W3.
 
 ## 12. Cleanup and retention
 
@@ -380,7 +397,7 @@ On success, failure, cancellation, expiry, parser crash, broker timeout, worker 
 1. stop or observe termination of the exact task;
 2. prevent a late result from committing after a terminal attempt;
 3. delete the attempt request and result objects after terminal acknowledgement;
-4. verify the expected keys are absent; and
+4. use the broker's exact-attempt, maximum-two-key prefix listing to prove both expected keys absent without reading a request body; and
 5. retain only redacted audit/provenance and the allowed evidence record.
 
 Fargate destruction removes task memory and ephemeral storage. The one-day S3 lifecycle is a recovery backstop, not proof of immediate cleanup. Control-bucket versioning, replication, Object Lock, inventory exports, access logging with object names, and backup are disabled by the W3 stack so deletion does not create retained copies. CloudWatch task logs contain only allowlisted lifecycle fields and expire after seven days. CloudTrail and VPC Flow Logs remain seller-controlled AWS audit evidence under the seller's policy; they must not include request/result bodies.
@@ -393,34 +410,36 @@ One additive Alembic revision creates:
 
 - `seller_workspace_profile_runtimes`: seller/connection ownership, AWS region, status, optimistic version, encrypted or redacted broker/runtime references, verified task/image/network/role hashes, token-key version, verified/disabled timestamps;
 - `cloud_object_selectors`: seller/connection ownership, immutable selector version, encrypted object identities, version/ETag/size bindings, selector hash, created timestamp;
-- `seller_workspace_profile_jobs`: seller, connection, runtime, selector, state, attempt, input hash, quota profile, parser/image/evidence versions, task ARN hash, deadlines, counters, safe failure code, evidence reference, idempotency key, timestamps;
+- `seller_workspace_profile_cost_estimates`: seller, connection, runtime and selector ownership, selector hash, region, task allocation, quota profile, retry assumption, regional price-table and estimate-model versions, currency, bounded low/high estimate, immutable receipt hash, disclosed/expiry timestamps, and optional consumed job ID. The receipt is append-only and single-use;
+- `seller_workspace_profile_jobs`: seller, connection, runtime, selector, cost-estimate receipt, acknowledgement actor/time/event and receipt hash, state, attempt, input hash, quota profile, parser/image/evidence versions, task ARN hash, phase/absolute deadlines, counters, safe failure code, evidence reference, idempotency key, timestamps;
 - `seller_workspace_listing_evidence`: seller/job ownership, schema versions, canonical semantic and runtime-attestation JSON payloads, semantic/attestation/result-integrity hashes, expiry and deletion timestamps; and
 - nullable `profile_job_id` plus owner-preserving composite foreign key/index on `seller_workspace_audit_events`.
 
-Database checks enforce state enums, positive versions/attempts/limits, terminal timestamps, payload size, hash shapes, unique seller/idempotency operation, one evidence row per successful attempt, and same-seller composite foreign keys. Audit update/delete triggers remain append-only. Selector and successful evidence payloads are immutable; a new source or parser version creates a new selector/job/evidence row.
+Database checks enforce state enums, positive versions/attempts/limits, terminal timestamps, phase deadlines not exceeding the absolute deadline, payload size, hash shapes, unique seller/idempotency operation, one job per consumed estimate receipt, one evidence row per successful attempt, and same-seller composite foreign keys. Audit update/delete triggers remain append-only. Selector, estimate, acknowledgement, and successful evidence payloads are immutable; a new source, estimate binding, or parser version creates a new selector/estimate/job/evidence row.
 
 The migration inserts no W3 rows, rewrites no W2 row, changes no existing connection status, and touches no `serials`, listing, order, delivery, or `legacy_serial` column/constraint. Downgrade is permitted only before any W3 row exists; otherwise rollback leaves the additive tables inert and flags off rather than destroying audit/evidence.
 
 ## 14. Audit and Gate 4 evidence contract
 
-Each lifecycle action appends an ai.market audit event containing actor kind/ID, seller, connection, runtime, job, attempt, operation, prior/new state, input/selector/semantic/attestation/result-integrity hashes, resource version, quota profile, parser/image/task-definition digests, decision, safe outcome/failure code, and redacted evidence reference. It never contains source identifiers outside the owner-only selector store, task credentials, raw AWS errors, source content, field names, values, result-object bytes, or the field-token key.
+Each lifecycle action appends an ai.market audit event containing actor kind/ID, seller, connection, runtime, selector, estimate receipt, job, attempt, operation, prior/new state, input/selector/estimate-receipt/semantic/attestation/result-integrity hashes, cost-acknowledgement actor/time/event, resource version, quota profile, price-table/estimate-model versions, currency, parser/image/task-definition digests, decision, safe outcome/failure code, and redacted evidence reference. It never contains source identifiers outside the owner-only selector store, task credentials, raw AWS errors, source content, field names, values, result-object bytes, or the field-token key.
 
 Gate 4 is conjunctive and must produce one redacted immutable receipt binding:
 
 - exact backend and seller-runtime source commits, built artifacts, image digest, task-definition revision, CloudFormation template digest, and deployed identities;
 - default-off master/AWS-profile flags and truthful capability response before and after proof;
 - synthetic seller/account/connection/runtime/job IDs and timestamps;
-- CloudTrail evidence that ai.market assumed only the broker-invoke role and invoked only the exact broker alias;
+- CloudTrail evidence that ai.market assumed only the connection-control role and invoked only the exact verifier or broker alias required by the requested operation;
+- verifier receipt and IAM evidence proving the operation-specific verifier read every required exact-stack configuration, returned only closed hashes/mismatch codes, and could not launch/stop a task, pass a role, mutate infrastructure, read a source/control object, decrypt data, or retrieve a secret value;
 - IAM simulation and live positive evidence that the task retrieved only its broker-created request with the exact checksum/KMS key/tags, then uploaded only its exact SSE-KMS result with `PutObject` plus `PutObjectTagging` and the required control-key data-key operations; the broker must validate and delete both artifacts;
-- IAM-policy and negative-call evidence that the ai.market connection-control and broker roles lack `s3:GetObject` and `s3:GetObjectVersion` and therefore cannot call source `GetObject`, `HeadObject`, unversioned `GetObjectAttributes`, or `GetObjectAttributes(versionId=...)`; that the task could not read an unselected source object or version, any result, another request/connection, or use wrong/missing tags, checksum, content type, or KMS key; and that request overwrite, result read/delete, control-bucket list, ACL, multipart/copy, and every non-allowlisted action were denied;
-- `RunTask`/`DescribeTasks` evidence that only the fixed request-key/checksum bootstrap pair differed from the task definition, both matched the create-only request, and attempted command, selector-valued environment, role, image, resource, or network overrides failed before launch;
+- IAM-policy and negative-call evidence that the ai.market connection-control, verifier, and broker roles lack `s3:GetObject`, `s3:GetObjectVersion`, `s3:GetObjectAttributes`, and `s3:GetObjectVersionAttributes` on the source and therefore cannot call source `GetObject`, `HeadObject`, unversioned `GetObjectAttributes`, or `GetObjectAttributes(versionId=...)`; that the task could not read an unselected source object or version, any result, another request/connection, or use wrong/missing tags, checksum, content type, or KMS key; and that request overwrite, result read/delete, out-of-attempt control-bucket listing, ACL, multipart/copy, and every non-allowlisted action were denied;
+- `RunTask`/`DescribeTasks` evidence that only the fixed request-key/checksum bootstrap pair differed from the task definition, both matched the create-only request, broker-side task identity/tags matched before result acceptance, and attempted command, selector-valued environment, role, image, resource, or network overrides failed before launch;
 - ECS task/event evidence for cluster, task ARN, image digest, CPU/memory/storage, private ENI, no public IP, start/stop reason, and task destruction;
 - endpoint-policy, route, and VPC Flow Log evidence that the private task pulled the exact image through the regional `prod-${AWS::Region}-starport-layer-bucket`, reached only the verified source and control bucket resources, and could not reach any other S3 bucket/key, public S3 endpoint, NAT, internet gateway, ai.market, or allAI destination;
-- source-read byte counts, request/result checksum/size/media-type/KMS/tag/schema validation, stable semantic hash plus separately recomputed attestation/result-integrity hashes, and exact request/result cleanup timestamps;
+- source-read byte counts, request/result checksum/size/media-type/KMS/tag/schema validation, stable semantic hash plus separately recomputed attestation/result-integrity hashes, exact request/result cleanup timestamps, and bounded exact-attempt absence-list results after deletion;
 - canary scans proving raw source rows/cells/names and seeded injection strings are absent from ai.market database, Redis/Celery payloads/results, logs, traces, errors, audit, evidence, and allAI;
 - success plus parser error, quota, cancellation, timeout, worker-death, task-kill, stale-result, role-drift, image-drift, and cleanup paths;
 - unchanged W2 connection management and unchanged legacy fulfillment evidence; and
-- seller-visible pre-run cost disclosure plus recomputable actual task usage.
+- immutable seller-visible estimate receipt, exact acknowledgement actor/time/event and launch binding, plus recomputable actual task usage.
 
 Static review, tests, migration success, AWS stack identity, IAM denial, network proof, cleanup proof, browser journey, and `legacy_serial` proof are independent. No queue label, route response, CloudFormation success, ECS success, or provider log substitutes for another item.
 
@@ -453,10 +472,13 @@ Rollback never disables or rotates a verified W2 connection, rewrites a listing 
 
 - capability remains default-off and dependency-aware;
 - two sellers plus foreign connection/runtime/selector/job/evidence IDs for runtime verify, create, owner-scoped list, read, cancel, and evidence read, with uniform non-enumerating denial; the internal retry and scheduler-driven expiry are tested through job GET/list state and do not have mutation endpoints;
+- discovery and selector contracts cover owner-scoped prefix confinement, `current|versions` modes, opaque cursor binding, 100-item pagination, explicit version/ETag freezing, re-list drift, delete markers, duplicate/missing objects, and uniform foreign/absent denial without any body read;
+- runtime verification covers the operation-specific envelope, nonce replay/expiry, exact stack-resource membership, every required configuration read, closed receipt hashes/mismatch codes, and explicit denial of every verifier mutation, task-launch, role-pass, source/control-object read, decrypt/data-key, and secret-value action;
 - immutable envelope, idempotency replay/conflict, optimistic version, stale attempt, late result, and terminal-transition tests;
 - exact broker alias/external-ID verification and rejection of mutable versions or runtime drift;
-- IAM simulation and live synthetic calls for the exact request-read/result-write success path and every forbidden action, including absent `s3:GetObject`/`s3:GetObjectVersion` grants plus denied source `GetObject`, `HeadObject`, unversioned `GetObjectAttributes`, and `GetObjectAttributes(versionId=...)` API calls by ai.market/broker roles; task access to an unselected object/version, sibling request/result/connection, or control-bucket list; request overwrite; result read/delete; missing/wrong KMS key, checksum, content type, or tags; and all non-allowlisted S3 actions;
+- IAM simulation and live synthetic calls for the exact request-read/result-write success path and every forbidden action, including absent `s3:GetObject`, `s3:GetObjectVersion`, `s3:GetObjectAttributes`, and `s3:GetObjectVersionAttributes` grants plus denied source `GetObject`, `HeadObject`, unversioned `GetObjectAttributes`, and `GetObjectAttributes(versionId=...)` API calls by ai.market/verifier/broker roles; task access to an unselected object/version, sibling request/result/connection, or control-bucket list; request overwrite; result read/delete; out-of-attempt absence-list prefixes; missing/wrong KMS key, checksum, content type, or tags; and all non-allowlisted S3 actions;
 - only the broker-derived request-key/checksum bootstrap pair is accepted; command, selector-valued/arbitrary environment, role, image, resource, and network overrides fail before launch;
+- broker-side `DescribeTasks` validates the exact task ARN, revision, image, network attachments, and task tags before accepting a result; the task role and task network have no ECS API path;
 - redaction scans across HTTP errors, structured logs, traces, Celery payloads/results, audit, database JSON, and result validation errors.
 
 ### 16.2 Parsers and hostile inputs
@@ -467,10 +489,12 @@ Tests prove names/keys/values/min/max/quantiles/samples never appear; field toke
 
 ### 16.3 Lifecycle, cleanup, and cost
 
-- success, deterministic parser failure, quota exhaustion, cancellation before launch/during run/during validation, 5-minute start timeout, 10-minute task timeout, broker ambiguity, Celery worker death, task SIGTERM/SIGKILL, and one permitted infrastructure retry;
+- success, deterministic parser failure, quota exhaustion, cancellation before launch/during run/during validation, 3-minute start timeout, 10-minute task timeout, 2-minute validation timeout, 20-minute absolute deadline, broker ambiguity, Celery worker death, task SIGTERM/SIGKILL, and one permitted infrastructure retry;
+- property-based transitions prove phase deadlines never exceed the absolute deadline, no nonterminal state survives it, and commit-versus-cancel/expiry races during validation have one transactional winner;
 - concurrency and 20/day, 100/30-day quotas under races;
-- task/request/result cleanup on every terminal path and one-day lifecycle backstop;
+- task/request/result cleanup on every terminal path, exact-attempt list proof before/after deletion, denial of sibling/parent/wildcard prefixes, and one-day lifecycle backstop;
 - fixed CPU/memory/storage and no override, price-table staleness, exact estimate recomputation from `price_table_version`, estimate-model version, currency, billable duration, allocation, and semantic byte counters, retry maximum, usage reconciliation, and tag completeness;
+- estimate/acknowledgement tests cover exact selector/runtime/region/quota/allocation/retry/version/currency binding, 15-minute expiry, single use, actor/time/event persistence, replay, stale table, selector change, and launch denial without a current exact receipt;
 - task ENI/private route/VPC endpoint tests that positively pull the exact digest through the required regional ECR layer bucket and reach the exact source/control resources, plus negative attempts against every other S3 bucket/key, public S3, internet, ai.market, and allAI; and
 - request/result length, duplicate-key, checksum, media-type, KMS, tags, schema, unknown-field, counter, provenance, semantic/attestation/result-integrity hash, field-budget, and raw-string rejection before ai.market persistence.
 
@@ -511,7 +535,7 @@ Max recorded both choices through authenticated directive event `127c8533-5f58-4
 
 **Decision: A.** The seller pays the bounded AWS-native profiling costs. Before execution, W3 shows a versioned cost estimate and requires explicit seller acknowledgement. W3 introduces no ai.market listing fee, subsidy, credit programme, or alternative funding design.
 
-D1 and D2 are resolved only for this W3 Gate 1 candidate. Gate 2 and build dispatch remain blocked until the complete CC/Kimi/GLM panel independently approves the exact resulting digest.
+D1 and D2 are resolved only for this W3 Gate 1 candidate. Gate 2 and build dispatch remain blocked until the complete CC/GLM/DeepSeek panel authorized by event `b756003d-6d8c-4835-8c36-dc53a6f97ce1` independently approves the exact resulting digest.
 
 ## 19. Source references
 
