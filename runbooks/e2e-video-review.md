@@ -66,7 +66,7 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
 | Vulcan/Mars | Read the decision log before changing anything here | this runbook H.7 | none | COMPLETE |
 | Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Titan-1 | PARTIAL — cannot be settled until a real recording exists |
 | Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<kimi\|glm>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in H.6; current calls use the deployed role/schema projection |
-| Kimi / GLM | Attack a proposed question set or gate outside a binding gate vote | `council_request mode=open_response` | Council dispatch | COMPLETE — use separate prompts and preserve both receipts; DeepSeek is retired from active voting |
+| Kimi | Compare a proposed question set or gate outside a binding gate vote | `council_request agent=kimi mode=open_response` | Council dispatch | COMPLETE — preserve the comparison receipt separately; CC/GLM/DeepSeek remain the voter panel |
 | CC | Review built code | `council_request mode=review` | Council dispatch | COMPLETE — note CC supports review mode only, not open_response |
 | Gemini | Analyse a recording and return findings | Vertex, existing Council connection | Google Cloud project | PLANNED |
 

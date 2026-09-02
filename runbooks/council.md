@@ -69,13 +69,15 @@ A reviewer may return `REJECT` with no build mandates when its conclusion is to 
 
 The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-Roster since S1651 (CORE v9.16, Max supersession recorded in the Event Ledger):
+Roster since S1651 (CORE v9.16):
 the required gate voters are exactly CC, GLM, and DeepSeek. Kimi is the
 registered non-voting comparison seat for the remainder of its paid credit:
 dispatched by explicit name when its quota is active, its findings compared and
 recorded, never a vote. The shadow-seat mechanics below were built in S1649 for
 DeepSeek and now apply unchanged to Kimi. The canonical roster is
 `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER`, `SHADOW_REVIEWERS`).
+
+Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: Event Ledger ddb93d96-d06d-42fd-899f-157918581df4 (2026-09-02, verbatim: "I am superseding the Council to install DeepSeek as a gate voter in place of Kimi").
 
 The shadow reviewer is registered, audited, displayed, and dispatchable by explicit
 name only. It is outside the required-reviewer set and has no
@@ -98,8 +100,8 @@ with `ack_role` absent, `peer`, or `council`; these already-authorized identitie
 retain the exact base behavior regardless of which valid role they declare. A
 payload role never grants authority by itself: Kimi and unknown actors are
 rejected regardless of their declared role. There is no automatic promotion path
-for a registered reviewer; DeepSeek's promotion happened by Max's decision S1651
-(Event Ledger 1f6c9580, supersession b66ecf84) and a code change on
+for a registered reviewer; DeepSeek's placement happened by Max's direct
+instruction S1651 (Event Ledger decision 1f6c9580) and a code change on
 `council_reviewers.py`. The next seat change is the same one-line change plus a
 CORE amendment.
 
@@ -201,7 +203,7 @@ compatibility names are unchanged by this agent/build route reduction.
   argument_sourcing:
     request_file: one plain file; the same bytes are copied once to CC, GLM, and DeepSeek only; use ask kimi explicitly for a separate comparison review
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for DeepSeek}
+  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for Kimi}
   expected_failures:
     - {signature: member unavailable, cause: that member credential or CLI is unavailable}
     - {signature: member_busy plus active request, cause: that member already has one active request; no new request file is written}
@@ -352,7 +354,7 @@ compatibility names are unchanged by this agent/build route reduction.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
 - CC, Kimi, GLM, and DeepSeek all use `scripts/council_dir.py`.
-- DeepSeek is registered for explicit-name shadow dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision; batch observations use a separate non-blocking audit field, gate-voter submission rejects it before forwarding, and authorized override identities keep their base acknowledgement regardless of declared valid role.
+- Kimi is registered for explicit-name comparison dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision; batch observations use a separate non-blocking `shadow_observations` audit field, gate-voter submission rejects it before forwarding, and authorized override identities keep their base acknowledgement regardless of declared valid role.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.

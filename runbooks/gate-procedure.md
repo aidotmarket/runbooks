@@ -51,7 +51,7 @@ Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
 > CCP is the **full-ceremony gate flow, reserved for expensive-to-reverse work** (schema, auth, money, customer data) per the Charter's risk sizing. Low-risk reversible internal work does not run the full CCP — it gets one reviewer, one round.
 
-> **Voters:** CC, Kimi, GLM — exactly three. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work.
+> **Voters:** CC, GLM, DeepSeek — exactly three under S1651. Kimi is an explicit-name, non-voting comparison seat. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work.
 
 > - **Round 1 (Positions):** voters evaluate independently, full position, each sees only the spec.
 > - **Round 2 (Debate):** voters see Round 1 positions; react, challenge, concede, or hold.
@@ -59,7 +59,7 @@ Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 > - **Synthesis:** the orchestrating instance synthesizes, flags disagreements, presents to Max. Unresolved splits go to Max.
 > - **Hard limit:** 3 rounds.
 
-> **Decision rules:** majority (2/3) for standard items, and only after all three voters return valid verdicts (3/3 valid participation); unanimous (3/3) REQUIRED for security, auth, money flows, production data, and customer data; missing, failed, malformed, or model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter; any voter CRITICAL veto halts and escalates to Max; mandatory dissent record; Kimi guaranteed a seat on every code review (conflicts surface to Max).
+> **Decision rules:** majority (2/3) for standard items, and only after all three voters return valid verdicts (3/3 valid participation); unanimous (3/3) REQUIRED for security, auth, money flows, production data, and customer data; missing, failed, malformed, or model-mismatched voters fail the gate closed — no builder substitution, no reduced quorum, no fallback voter; any voter CRITICAL veto halts and escalates to Max; mandatory dissent record. Kimi comparison cannot change or complete the gate.
 
 > **Max supersession.** Max supersedes the Council. When Max explicitly states that he is superseding it, his statement stands in place of the Council's approval for the matter he names, including the amendment gate in CORE's closing clause. The statement must name what is being superseded and be recorded in the Event Ledger. No agent may infer supersession.
 
@@ -70,7 +70,7 @@ Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 > - **Gate 1 (Design):** architecture review. APPROVED → build. APPROVED_WITH_MANDATES → Gate 2. REJECT → redesign.
 > - **Gate 2 (Spec):** verify mandates addressed. APPROVED → build unblocked. REJECT → fix spec.
 > - **Build:** MP executes — the mandatory builder for both instances. Compliance gate blocks dispatch if Gate 2 not passed.
-> - **Gate 3 (Audit):** post-build review by the gate voter panel (CC, Kimi, GLM; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
+> - **Gate 3 (Audit):** post-build review by the gate voter panel (CC, GLM, DeepSeek; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
 > - **Gate 4 (Production Verification):** deployed and verified working. Nothing is done until Gate 4 passes. Cross-review required (reviewer ≠ builder).
 
 ### Selection and eligibility
@@ -95,7 +95,8 @@ The Capabilities author-dispatch-token-and-lease row and this machinery are comp
 |---|---|---|---|---|
 | Vulcan or Mars | Select gate and orchestrate rounds | State and Council tools | Gate state and dispatch | COMPLETE |
 | MP | Build approved chunks | `council_request mode=build` | Repository write | COMPLETE |
-| CC, Kimi, GLM | Review and vote independently | `council_request mode=review` | Read-only | COMPLETE |
+| CC, GLM, DeepSeek | Review and vote independently | `council_request mode=review` | Read-only | COMPLETE |
+| Kimi | Explicit-name comparison review | `council_request agent=kimi mode=review` | Read-only, non-voting | COMPLETE |
 | Max | Decide genuine forks and approve constitutional changes | Human decision | Final authority | COMPLETE |
 
 ## How to operate
@@ -126,7 +127,7 @@ The Capabilities author-dispatch-token-and-lease row and this machinery are comp
 - id: E-03
   trigger: A committed chunk needs independent audit then production verification.
   pre_conditions: [commit_known, builder_recorded, gate2_approved]
-  tool_or_endpoint: council_request(agent=<cc|kimi|glm>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<sha>) once for each active voter, then state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<production_evidence>)
+  tool_or_endpoint: council_request(agent=<cc|glm|deepseek>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<sha>) once for each active voter, then state_request(action=bq_complete, bq_code=<code>, summary=<summary>, gate=4, evidence_links=<links>, session_id=<session>, verification=<production_evidence>); agent=kimi is optional comparison-only
   argument_sourcing: {agent: exact deployed voter projection with no substitutions, audit_prompt: bind Gate 3 to commit and approved specs, repo: repository containing the full commit SHA, code: BQ entity, summary: measured completion result, links: immutable Gate 3 and Gate 4 evidence, session: active registered session, production_evidence: customer-perspective verification}
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(bq + commit + gate3_verdicts + gate4_evidence)

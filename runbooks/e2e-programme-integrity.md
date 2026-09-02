@@ -74,7 +74,7 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
 | Vulcan/Mars | Author or amend a charter against H.1 | `shell_request` edit + Council review | Titan-1 shell | COMPLETE |
 | Vulcan/Mars | Reconcile the queue against committed charters (How to operate-03) | `shell_request` | Titan-1 shell | COMPLETE — the guard cannot do this yet |
 | MP (Codex) | Build charters and guard changes | `council_request mode=build` | Council dispatch | COMPLETE — its summaries over-claim; diff-inspect at file:line every time |
-| CC / Kimi / GLM | Review charters for safety and coverage honesty when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
+| CC / GLM / DeepSeek | Review charters for safety and coverage honesty when gate review is required | `council_request(agent=<cc\|glm\|deepseek>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — Kimi may be dispatched explicitly for non-voting comparison |
 | launchd nightly | Execute the queue and publish | plist + `scripts/run-nightly.sh` | Titan-1 | COMPLETE |
 
 ## How to operate

@@ -64,7 +64,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 | Vulcan/Mars | Run a harness charter that then publishes | `shell_request` on Titan-1: `e2e-harness run` under the sanctioned env | Titan-1 shell | COMPLETE |
 | Vulcan/Mars | Edit the coverage manifest and map a charter | `shell_request` edit `docs/coverage.json` (+`.md`), then Council review | Titan-1 shell + Council dispatch | COMPLETE |
 | MP (Codex) | Build publisher/manifest changes | `council_request mode=build` against a dedicated worktree | Council dispatch | COMPLETE — diff-inspect at file:line; commit messages over-claim |
-| CC / Kimi / GLM | Review publisher/manifest changes when gate review is required | `council_request(agent=<cc\|kimi\|glm>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — use only the deployed voter projection; DeepSeek is retired from active voting |
+| CC / GLM / DeepSeek | Review publisher/manifest changes when gate review is required | `council_request(agent=<cc\|glm\|deepseek>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — Kimi may be dispatched explicitly for non-voting comparison |
 | launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run that publishes, at 02:15 local | plist + `scripts/run-nightly.sh` (sources `harness-env.sh`, which activates publishing) | Titan-1 | COMPLETE — the nightly is the routine writer of the record |
 
 ## How to operate
