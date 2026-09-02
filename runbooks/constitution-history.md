@@ -81,7 +81,7 @@ Use full Git SHAs for retrieval. Intermediate commits can share a version label;
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan or Mars | Audit current and prior constitutional sources | Living State and Git read | Read | COMPLETE |
-| CC, Kimi, GLM | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
+| CC, GLM, DeepSeek (since v9.16) | Supply amendment-gate verdicts | Council review | Read-only | COMPLETE |
 | Max | Directly approve or reject an amendment | Human decision | Final authority | COMPLETE |
 
 ## How to operate

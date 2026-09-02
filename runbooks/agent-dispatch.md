@@ -553,7 +553,7 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
 - id: G-09
   symptom_ref: F-09
   component_ref: MP/Council review middleware
-  root_cause: HISTORICAL — the former GLM/DeepSeek inline path silently truncated evidence at 40,000 characters (T-2026-000364). The deployed GLM path at fdf50693 replaced it with bounded exact-SHA repository reads; DeepSeek is retired.
+  root_cause: HISTORICAL — the former GLM/DeepSeek inline path silently truncated evidence at 40,000 characters (T-2026-000364). The deployed GLM path at fdf50693 replaced it with bounded exact-SHA repository reads; DeepSeek was retired at the time and has been a gate voter again since S1651.
   repair_entry_point: provider_readonly_review.py and the GLM review dispatch handler
   change_pattern: For current GLM reviews, pin dispatch_sha and require full changed-file coverage through read_file_at_sha/list_dir_at_sha/grep_at_sha/git_show before accepting the strict verdict. Treat any historical truncated GLM or DeepSeek verdict as unproven and re-run GLM on the exact immutable commit when current evidence is needed.
   rollback_procedure: None; verdicts are additive, so discard the uncovered verdict and re-run scoped.
@@ -1101,7 +1101,7 @@ Historical fallback behavior did not break dispatch:
   continues.
 
 Manual diff inlining belonged to that former path and must not be used as
-current gate evidence. Current Kimi and GLM voters use only the bounded
+current gate evidence. Current GLM and DeepSeek voters (and Kimi, comparison-only) use only the bounded
 exact-SHA four-tool loop; CC uses its pinned read-only review path.
 
 Design references:

@@ -118,7 +118,7 @@ expose final stream usage, or the log sink may be unavailable.
 |---|---|---|---|---|
 | Vulcan | Verify Git ancestry, deployment identity, existing logs/metrics, and runbook pins | Git plus read-only infrastructure/browser surfaces | read-only unless separately reviewed | COMPLETE |
 | SysAdmin | Read deployment status and existing sanitized logs/metrics | `sysadmin_request` read-only | no traffic, secrets, restart, or config change | PARTIAL — raw log lines unavailable through the current API surface |
-| Council | Review exact code/runbook artifacts | CC/Kimi/GLM exact-artifact review | reviewer-only | PARTIAL — backend review complete; refreshed runbook review pending |
+| Council | Review exact code/runbook artifacts | CC/GLM/DeepSeek exact-artifact review | reviewer-only | PARTIAL — backend review complete; refreshed runbook review pending |
 | Human operator | Authorize a paid two-request proof when organic evidence is unavailable | explicit financial authority | narrowly bounded model/path/request count | COMPLETE |
 
 ## How to operate
