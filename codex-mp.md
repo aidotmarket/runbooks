@@ -77,7 +77,7 @@ error_signatures:
   expected_failures:
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (When it breaks-01)
-  next_step_success: gated cross-review by the voter panel CC+Kimi+GLM with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
+  next_step_success: gated cross-review by the voter panel CC+GLM+DeepSeek (Kimi comparison-only) with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult When it breaks symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required

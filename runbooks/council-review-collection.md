@@ -55,7 +55,7 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | mars | dispatch reviews, collect verdicts, record gates, coordinate lane | council_request, state_request, peer_msg tools | full operator | COMPLETE |
 | vulcan | same as mars (symmetric peer) | same | full operator | COMPLETE |
 | mp | builder only; excluded from reviewing its own work | dispatch_mp_build | build lane | COMPLETE |
-| cc, kimi, glm | review-only voters | per infra:council-comms | read-only at SHA | COMPLETE |
+| cc, glm, deepseek (kimi comparison-only, no vote) | review-only voters | per infra:council-comms | read-only at SHA | COMPLETE |
 
 ## How to operate
 

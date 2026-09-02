@@ -137,4 +137,4 @@ Test downgrade ownership at the revision or smallest contiguous slice changed by
 
 ## S.9 Owner
 This runbook is owned by **BQ-PROCESS-BUILD-QUEUE-INTEGRITY-S612** (P1, delegated section).
-Revisions to this page land in `aidotmarket/runbooks`; database implementation lands in `aidotmarket/ai-market-backend`. Payment- or customer-data-adjacent migration changes require the complete CC/Kimi/GLM Council review before merge or deployment.
+Revisions to this page land in `aidotmarket/runbooks`; database implementation lands in `aidotmarket/ai-market-backend`. Payment- or customer-data-adjacent migration changes require the complete CC/GLM/DeepSeek Council review before merge or deployment.

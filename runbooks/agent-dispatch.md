@@ -1179,8 +1179,8 @@ Design authority:
 ## §S Review Verdict Persistence
 
 Review-mode dispatches can persist returned verdict text in the handler after the
-provider result is available. Current gate-voter reviewer keys are `cc`, `kimi`,
-and `glm`; the retained non-gate/backend keys are `ag`, `mp`, and `ds`
+provider result is available. Current gate-voter reviewer keys are `cc`, `glm`,
+and `deepseek` (S1651); `kimi` is the non-voting comparison seat; the retained non-gate/backend keys are `ag`, `mp`, and `ds`
 (`agent=deepseek` maps to `ds`). The handler writes to the target branch, not
 from inside the review sandbox.
 
@@ -1197,7 +1197,7 @@ Dispatch contract:
 - Verdict filenames are `verdicts/<bq_slug>/r<round>/<reviewer>.md`. Reviewer
   keys supported by the deployed handler are `cc`, `kimi`, `glm`, `ag`, `mp`,
   and `ds`; `agent=deepseek` maps to `ds`. If round is absent, the handler writes
-  under `r1`. Only `cc`, `kimi`, and `glm` are current gate voters.
+  under `r1`. Only `cc`, `glm`, and `deepseek` are current gate voters (S1651); `kimi` is comparison-only.
 
 Failure modes:
 
