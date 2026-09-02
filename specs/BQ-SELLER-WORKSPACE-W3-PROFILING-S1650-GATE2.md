@@ -32,18 +32,20 @@ There is no Seller Workspace CloudFormation, ECS, Lambda, ECR-runtime, profile q
 
 ## 2. Exact implementation file manifest
 
-The later builder changes exactly these existing backend files:
+This section is the closed, exhaustive repository path manifest for the later implementation. Every change path has exactly one table or bullet entry, every entry has a binding requirement, and no later section may imply another create, modify, rename, or delete path. Gate 3 must compare the exact changed-path set to this manifest and fail on any missing or extra path. Generated build evidence is explicitly separated below because it is not a repository path.
+
+The later builder modifies exactly these existing backend files:
 
 | File | Required change |
 | --- | --- |
-| `app/core/seller_workspace_config.py` | Add `AWS_PROFILE_IMPLEMENTED=True` only after every file in this specification exists; add fail-closed profile dependency checks while preserving every environment default as false. |
+| `app/core/seller_workspace_config.py` | Add `AWS_PROFILE_IMPLEMENTED=True` only after the manifest path-set check, contracts, migration, packaging, and focused tests all pass; add fail-closed profile dependency checks while preserving every environment default as false. |
 | `app/models/seller_workspace.py` | Add the W3 enums and ORM models in section 4; do not change `DeliveryAuthority`, `DeliveryAuthorityKind`, `legacy_serial_id`, or existing W2 constraints. |
-| `app/schemas/seller_workspace.py` | Add the exact W3 request/response and closed evidence/allAI schemas in sections 5 and 8 with `extra="forbid"`. |
+| `app/schemas/seller_workspace.py` | Add the exact W3 request/response, broker/verifier, task-output, and closed evidence schemas in sections 5 and 8 with `extra="forbid"`; add no allAI/LLM input schema. |
 | `app/services/seller_workspace_connection.py` | Change `BotoAWSConnectionVerifier._verify_sync` to list-only proof; add no profiling behavior to the W2 lifecycle service. |
-| `app/services/seller_workspace_audit.py` | Extend only the operation/purpose/snapshot allowlists for the safe fields in section 10. |
+| `app/services/seller_workspace_encryption.py` | Reuse the existing versioned envelope primitive and add record-specific AAD purposes for source-key ARNs, selector object identities, runtime references, and task ARNs; do not change existing W2 ciphertext/AAD semantics. |
+| `app/services/seller_workspace_audit.py` | Extend only the exact append-only operation/purpose/snapshot allowlists in section 10 and reject every non-allowlisted field. |
 | `app/api/v1/endpoints/seller_workspace.py` | Add the owner-scoped routes in section 5 using the existing dependencies, error mapper, idempotency key, and no-store route class. |
 | `app/core/celery_app.py` | Include `app.tasks.seller_workspace_profile`, declare only `seller_workspace_profile_control`, and add the two bounded sweeps in section 9. |
-| `requirements.txt` | No parser dependency. The web/control image already has boto3; PyArrow and streaming parser dependencies belong only in the seller task lock file. |
 
 The later builder creates exactly these backend/control files:
 
@@ -54,25 +56,57 @@ The later builder creates exactly these backend/control files:
 - `app/core/seller_workspace_profile_metrics.py` for low-cardinality allowlisted metrics only; and
 - `railway.profile-worker.json` for the dedicated control worker.
 
-The later builder creates exactly these seller-account IaC/runtime files:
+The later builder creates exactly these seller-account IaC, packaging, and runtime files:
 
-- `infra/seller_workspace_profile/template.yaml`;
-- `infra/seller_workspace_profile/common/contracts.py`;
-- `infra/seller_workspace_profile/broker/handler.py`;
-- `infra/seller_workspace_profile/verifier/handler.py`;
-- `seller_workspace_profile_runtime/Dockerfile`;
-- `seller_workspace_profile_runtime/requirements.lock` with exact hashes;
-- `seller_workspace_profile_runtime/profile_task/__init__.py`;
-- `seller_workspace_profile_runtime/profile_task/main.py`;
-- `seller_workspace_profile_runtime/profile_task/contracts.py`;
-- `seller_workspace_profile_runtime/profile_task/canonical.py`;
-- `seller_workspace_profile_runtime/profile_task/limits.py`;
-- `seller_workspace_profile_runtime/profile_task/supervisor.py`;
-- `seller_workspace_profile_runtime/profile_task/parsers/csv_parser.py`;
-- `seller_workspace_profile_runtime/profile_task/parsers/json_parser.py`; and
-- `seller_workspace_profile_runtime/profile_task/parsers/parquet_parser.py`.
+- `infra/seller_workspace_profile/template.yaml` for the exact Section 3 resources, roles, policies, parameters, immutable package/image identities, and prohibited-resource absence;
+- `infra/seller_workspace_profile/package.py` for deterministic broker/verifier ZIP creation, normalized file order/timestamps/modes, dependency hash checking, and the package/schema manifest;
+- `infra/seller_workspace_profile/common/__init__.py` as a side-effect-free package marker exposing no runtime behavior;
+- `infra/seller_workspace_profile/common/contracts.py` for the exact closed verifier/broker/task-output/result schemas and canonical projections copied into each isolated package;
+- `infra/seller_workspace_profile/broker/__init__.py` as a side-effect-free package marker;
+- `infra/seller_workspace_profile/broker/handler.py` for closed broker-envelope validation, deterministic request/start/reconcile/poll/cancel, result validation, attestation, and cleanup;
+- `infra/seller_workspace_profile/broker/requirements.lock` with exact hashes;
+- `infra/seller_workspace_profile/verifier/__init__.py` as a side-effect-free package marker;
+- `infra/seller_workspace_profile/verifier/handler.py` for closed verifier-envelope validation, complete read-only stack/network/identity/Resolver/topology inventory, exact five-key resolver hash, and hash-only receipt;
+- `infra/seller_workspace_profile/verifier/requirements.lock` with exact hashes;
+- `seller_workspace_profile_runtime/Dockerfile` for the digest-pinned CPython image, hash-locked production dependencies, non-root/read-only execution, and fixed entrypoint;
+- `seller_workspace_profile_runtime/.dockerignore` closing the image build context to the runtime package and explicitly copied contract artifact;
+- `seller_workspace_profile_runtime/requirements.lock` with exact production hashes for the pinned boto3, botocore, Pydantic, and PyArrow surface only;
+- `seller_workspace_profile_runtime/requirements-test.lock` with exact hashes for the dedicated parser test environment only;
+- `seller_workspace_profile_runtime/profile_task/__init__.py` as a side-effect-free package marker;
+- `seller_workspace_profile_runtime/profile_task/main.py` for exact bootstrap-key/checksum retrieval, request validation, bounded parse orchestration, result upload, and stable safe exits;
+- `seller_workspace_profile_runtime/profile_task/contracts.py` for the task-local closed request/output/evidence schemas and schema-digest assertion;
+- `seller_workspace_profile_runtime/profile_task/canonical.py` for RFC 8785 canonical bytes and all Gate 1 hash preimages;
+- `seller_workspace_profile_runtime/profile_task/limits.py` for the unchanged Section 7 numeric ceilings and limit accounting;
+- `seller_workspace_profile_runtime/profile_task/supervisor.py` for child-process isolation, resource limits, signal/cancel handling, and cleanup;
+- `seller_workspace_profile_runtime/profile_task/parsers/__init__.py` for a closed CSV/TSV, JSON/JSONL, and Parquet parser registry with no dynamic import;
+- `seller_workspace_profile_runtime/profile_task/parsers/csv_parser.py` for the deterministic bounded CSV/TSV behavior in Section 7;
+- `seller_workspace_profile_runtime/profile_task/parsers/json_parser.py` for the deterministic bounded JSON/JSONL behavior in Section 7; and
+- `seller_workspace_profile_runtime/profile_task/parsers/parquet_parser.py` for the deterministic bounded locked-PyArrow Parquet behavior in Section 7.
 
-The runtime image is built by `.github/workflows/seller-workspace-profile-runtime.yml` from only `seller_workspace_profile_runtime/**` plus the closed contracts copied during the build. The workflow produces an SBOM, vulnerability report, image manifest, and immutable `sha256:` digest. It must not deploy a stack, update an alias, change a flag, or push a mutable execution tag. `infra/seller_workspace_profile/template.yaml` accepts that exact digest as a parameter.
+The later builder creates exactly this build workflow:
+
+- `.github/workflows/seller-workspace-profile-runtime.yml` to verify both Lambda locks, create the two deterministic ZIP packages through the packaging script, compare backend/Lambda/task schema SHA-256 values, build the runtime from only the closed Docker context, and emit the evidence artifacts below without deploying or mutating anything.
+
+The later builder creates exactly these tests and committed fixture definitions:
+
+- `tests/test_s1650_profile_contracts.py` for strict HTTP, verifier/broker/task-output/evidence schemas, canonical hashes, size ceilings, default-off capability, and the absence of any W3 allAI/LLM schema or call path;
+- `tests/test_s1650_profile_authorization.py` for two-seller ownership, foreign/absent equivalence, cursor/idempotency/cache/token isolation, record-specific encryption AAD, and list-only W2 correction;
+- `tests/test_s1650_profile_lifecycle.py` for every state/lease/death/retry/cancel/timeout/reconciliation/cleanup path;
+- `tests/test_s1650_profile_postgres.py` for real PostgreSQL migration, constraints, composite ownership, append-only audit, immutable safe-field retention, and empty/nonempty downgrade;
+- `tests/test_s1650_profile_aws.py` for STS policies, closed envelopes, IAM fixtures, broker/verifier calls, explicit peering/TGW absence, and complete multi-CIDR autodefined inventory;
+- `tests/test_s1650_profile_iac.py` for parsed exact resources, policies, routes, endpoints, DNS rules, roles, task settings, packaging inputs, and prohibited-resource absence;
+- `tests/test_s1650_profile_observability.py` for metric cardinality, the exact audit allowlist, forbidden-field rejection, and canary absence across every W3 sink;
+- `seller_workspace_profile_runtime/tests/test_csv.py` for every CSV/TSV format, boundary, hostile-input, and deterministic-output case;
+- `seller_workspace_profile_runtime/tests/test_json.py` for every JSON/JSONL format, boundary, hostile-input, and deterministic-output case;
+- `seller_workspace_profile_runtime/tests/test_parquet.py` for every locked codec, footer/row-group limit, hostile metadata, and deterministic-output case;
+- `seller_workspace_profile_runtime/tests/test_supervisor.py` for every resource, timeout, cancellation, signal, process-group, temporary-byte, and cleanup boundary;
+- `seller_workspace_profile_runtime/tests/test_golden_evidence.py` for canonical semantic bytes/hashes, field-token scope, size budgets, and volatile-attestation separation;
+- `tests/fixtures/seller_workspace_profile/generate.py` for deterministic in-test creation of all synthetic benign, boundary, bomb, malformed, and hostile bytes; and
+- `tests/fixtures/seller_workspace_profile/expected.json` for the closed fixture case list plus expected canonical JSON and hashes.
+
+`requirements.txt`, the four W2 safety tests, `railway.worker.json`, and every delivery/serial/`legacy_serial` file remain byte-for-byte unchanged and therefore are not manifest change paths. The backend/web/control environment must contain no PyArrow or parser-only dependency.
+
+The workflow outputs, outside the repository diff, are exactly: broker ZIP, verifier ZIP, package/schema digest manifest, OCI image manifest with immutable `sha256:` digest, SPDX JSON SBOM, and vulnerability report. Gate 3 binds each artifact digest to the implementation commit. The template entry above accepts only the exact Lambda package hashes and image digest as parameters. The workflow must not deploy a stack, update an alias, change a flag, push a mutable execution tag, or publish a capability.
 
 No frontend file is in W3. No AIM Data repository or package is changed or imported.
 
@@ -102,7 +136,7 @@ The S3 gateway endpoint policy contains only the verified source bucket/prefix, 
 
 The verifier must not reject all Resolver rules blindly and must not bless a vague `SYSTEM` class. It builds and compares a complete inventory for the exact stack VPC.
 
-It calls `DescribeVpcs(VpcIds=[exact])`, `DescribeVpcAttribute` for DNS support/hostnames, `GetResolverConfig(ResourceId=exact)`, and fully paginated `ListResolverRuleAssociations(Filters=[VPCId=exact])`. Every returned association is rechecked for the exact VPC and resolved with `GetResolverRule`. Pagination is capped at 20 pages and 1,000 total records; a next token after either cap fails closed. Both CIDR associations must be `associated`; any third CIDR, IPv6 CIDR, pending/disassociating/failed association, peering/TGW/private-hosted-zone contribution, or DNS-attribute drift fails.
+It calls `DescribeVpcs(VpcIds=[exact])`, `DescribeVpcAttribute` for DNS support/hostnames, `GetResolverConfig(ResourceId=exact)`, and fully paginated `ListResolverRuleAssociations(Filters=[VPCId=exact])`. Every returned association is rechecked for the exact VPC and resolved with `GetResolverRule`. Pagination is capped at 20 pages and 1,000 total records; a next token after either cap fails closed. Both CIDR associations must be `associated`; any third CIDR, IPv6 CIDR, pending/disassociating/failed CIDR association, or DNS-attribute drift fails. A directly associated private hosted zone is not rejected merely because it exists; its Resolver effects are accepted only through the closed rule predicate below.
 
 The verifier constructs a canonical, sorted seller-local inventory containing every returned association/rule and separately requires the following deterministic trailing-dot domains:
 
@@ -111,9 +145,11 @@ The verifier constructs a canonical, sorted seller-local inventory containing ev
 
 For every inventory member, the verifier requires association and rule `Status=COMPLETE`, no `ResolverEndpointId`, `ShareStatus=NOT_SHARED`, `OwnerId="Route 53 Resolver"`, and ARN namespace `arn:${partition}:route53resolver:${region}::autodefined-rule/rslvr-autodefined-rr-<safe-suffix>`. It does not use `RuleType` as an ownership or safety predicate. A seller-created `SYSTEM`, `FORWARD`, `DELEGATE`, or `RECURSIVE` rule never qualifies; an additional rule qualifies only under the same closed AWS-owned autodefined identity. Both CIDR-specific reverse domains must be present somewhere in the authenticated complete inventory, proving both VPC CIDRs were inventoried.
 
-`GetResolverConfig.AutodefinedReverse` must be `ENABLED`. The verifier separately requires zero outbound endpoints from fully paginated `ListResolverEndpoints(Direction=OUTBOUND, HostVPCId=exact)`, zero Route 53 Profile associations from fully paginated `ListProfileAssociations(ResourceId=exact VPC ID)`, and zero association outside the authenticated AWS-owned autodefined identity. Directly associated private hosted zones may add AWS-owned autodefined rules and alter seller-local answers; they do not create a forwarding path, and the exact S3 endpoint policy, task egress and TLS resource identity remain authoritative. Missing IAM permission, service omission, malformed owner/ARN, duplicate association/rule ID, missing required CIDR reverse domain, nonterminal state, truncation, or unexhausted token makes the runtime ineligible.
+`GetResolverConfig.AutodefinedReverse` must be `ENABLED`. The verifier separately requires zero outbound endpoints from fully paginated `ListResolverEndpoints(Direction=OUTBOUND, HostVPCId=exact)` and zero Route 53 Profile associations from fully paginated `ListProfileAssociations(ResourceId=exact VPC ID)`. It also performs two independently testable topology checks: fully paginated `DescribeVpcPeeringConnections` calls filtered once by exact requester VPC and once by exact accepter VPC, with the union deduplicated and every returned side revalidated against the exact VPC; and fully paginated `DescribeTransitGatewayVpcAttachments(Filters=[{Name=resource-id,Values=[exact VPC ID]}])`, with every returned resource ID revalidated. Any peering connection or transit-gateway VPC attachment returned for the exact VPC, in any state, makes the runtime ineligible. Omitted permission, filter drift, truncation, an unexhausted token, or a returned record that cannot be revalidated also fails closed.
 
-The complete variable inventory remains only in seller-account verifier memory and the separately authorized synthetic Gate 4 harness. It does not enter the stable receipt. `resolver_control_hash` covers only the fixed value-free projection `{non_autodefined_rule_associations:0, endpoint_bearing_rule_associations:0, outbound_endpoints:0, profile_associations:0, required_multi_cidr_reverse_rules_missing:0, service_owned_inventory_complete:true, pagination_complete:true}`. Raw rule IDs, types, names, endpoint IDs, Profile details, CIDRs, domains, and the VPC-specific inventory hash do not cross to ai.market.
+A directly associated private hosted zone may contribute only associations/rules that independently pass the complete AWS-owned autodefined owner, ARN namespace, `COMPLETE` status, `NOT_SHARED`, and no-`ResolverEndpointId` inventory predicate above. Any non-autodefined, endpoint-bearing, shared, malformed, foreign-owner, or nonterminal association fails. An allowed private hosted zone can alter seller-local answers but does not create the separately prohibited peering, transit-gateway, outbound-forwarding, or Profile path; the exact S3 endpoint policy, task egress, and TLS resource identity remain authoritative. Missing IAM permission, service omission, duplicate association/rule ID, missing required CIDR reverse domain, or incomplete inventory makes the runtime ineligible.
+
+The complete variable inventory remains only in seller-account verifier memory and the separately authorized synthetic Gate 4 harness. It does not enter the stable receipt. The `resolver_control_hash` preimage and canonical semantics are byte-identical to the approved Gate 1 five-key projection: `{non_autodefined_rule_associations:0, endpoint_bearing_rule_associations:0, outbound_endpoints:0, profile_associations:0, pagination_complete:true}`. No sixth or seventh key is permitted. Presence of both required CIDR-specific reverse rules, complete AWS service-owned inventory, zero peering/TGW topology, and all other eligibility predicates above are fail-closed acceptance preconditions only and do not enter `resolver_control_hash`. Allowed AWS autodefined rule enumeration, names, domains, VPC-CIDR-dependent reverse rules, raw rule IDs/types, endpoint IDs, Profile details, CIDRs, and any VPC-specific inventory hash do not cross to ai.market.
 
 The task DNS allowlist is separate from this service inventory. It contains only exact source/control S3 names, regional ECR API/Docker/layer names, exact Logs/Secrets Manager/KMS endpoint names, VPC endpoint DNS names, and every approved CNAME/DNAME target. Wildcard allow entries and ai.market/allAI names are forbidden.
 
@@ -188,7 +224,7 @@ ECS `clientToken` is lowercase SHA-256 over canonical version, cluster-ARN hash,
 
 Only uncompressed CSV/TSV, uncompressed JSON/JSONL, and Parquet are accepted. ZIP, TAR, GZIP, 7z, RAR, XLS/XLSX, databases, images, documents, symlinks, sparse/container formats, URLs, external page/index references, and encrypted Parquet fail before parser work. Therefore archive-member ceiling is **0**, nested-archive ceiling is **0**, and external-reference ceiling is **0**.
 
-The task base is CPython `3.11.11-slim-bookworm` pinned by OCI digest in the reviewed Dockerfile. `requirements.lock` pins `boto3==1.42.91`, `botocore==1.42.91`, `pydantic==2.13.2`, and `pyarrow==23.0.1` with platform wheel hashes; CSV and JSON use only the Python standard library. No pandas, DuckDB, fsspec, URL filesystem, plugin, or parser extension is installed.
+The task base is CPython `3.11.11-slim-bookworm` pinned by OCI digest in the reviewed Dockerfile. The runtime production lock pins `boto3==1.42.91`, `botocore==1.42.91`, `pydantic==2.13.2`, and `pyarrow==23.0.1` with platform wheel hashes; CSV and JSON use only the Python standard library. No pandas, DuckDB, fsspec, URL filesystem, plugin, or parser extension is installed.
 
 All ceilings are server, request, broker, and task enforced:
 
@@ -242,7 +278,9 @@ All amounts are decimal USD in integer millionths; float money is forbidden. A s
 
 The standing receipt includes every endpoint AZ-hour/byte, key/secret month, verifier Lambda, KMS and Resolver/Profile read, DNS Firewall custom-domain, EventBridge, S3 storage, and log-retention unit. The marginal receipt includes both attempts' maximum Fargate one-minute/per-second allocation, broker Lambda, S3/KMS/secret/EventBridge/DNS-query/log/endpoint/cross-AZ units. Provider invoice lag cannot be a hard stop, so admission reserves the full acknowledged high estimate transactionally before launch and releases unused modeled amount only after terminal attestation.
 
-## 8. Exact value-free boundary and dormant allAI input contract
+The absolute caps above remain binding maxima, but their enforcement is not accepted for launch at Gate 3 until the candidate pins the applicable regional price-table and estimate-model versions and independently recomputes the worst-case standing and two-attempt marginal envelopes for every supported region/AZ/endpoint placement. Gate 3 must prove each modeled envelope fits its cap, each unit is present exactly once, stale/missing prices fail closed, integer-millionth rounding is conservative, and seller/global rolling reservations enforce the stated windows transactionally. A failed recomputation returns to Gate 2; it must not be handled by omitting a cost unit, silently changing a cap, or enabling launch.
+
+## 8. Exact value-free evidence boundary; allAI input deferred to W4
 
 The only result allowed from seller AWS into ai.market is the Gate 1 `seller_workspace_profile_result.v1`, canonical JSON, maximum 131,072 bytes. The allowed top-level keys are exactly `schema_version`, `semantic_evidence`, `semantic_hash`, `runtime_attestation`, `attestation_hash`, and `result_integrity_hash`. The nested fields, enum values, limits, usage counters, and hash relationships are exactly section 9 of Gate 1; no implementation may add a convenience field.
 
@@ -250,26 +288,9 @@ Object records contain only opaque `oNNNN` ordinal, size, binding kind, format e
 
 Bucket, key, filename, extension, account, role, ARN, URL, timestamp, source checksum, header, JSON/Parquet name, value, value hash, sample, min/max, quantile, regex match, snippet, parser message/stderr, provider body, task ARN, credential, and field-token key are forbidden. Whole source objects, whole ranges, whole rows, and whole task output are never persisted in ai.market, Redis, Celery, logs, traces, audit, or evidence. Selector identities, source-key ARNs, runtime refs, and task ARN are separately envelope-encrypted; they are not evidence.
 
-The builder defines `SellerWorkspaceProfileAllAIInputV1` in `app/schemas/seller_workspace.py` solely as a dormant boundary contract for later authorization. W3 has no code path that invokes allAI. Its exact keys are:
+W3 retains only the value-free `seller_workspace_profile_result.v1` evidence contract above. `SellerWorkspaceProfileAllAIInputV1`, `seller_workspace_profile_allai_input.v1`, `build_allai_profile_input`, and any equivalent allAI/LLM adapter, schema, serializer, prompt, gateway, task, route, or agent integration are explicitly deferred to W4. They must not exist in the W3 implementation. W4 may define a consumer only under its own approved specification and may not infer authorization from W3 evidence availability.
 
-```json
-{
-  "schema_version": "seller_workspace_profile_allai_input.v1",
-  "semantic_hash": "64-lowercase-hex",
-  "evidence_schema_version": "seller_workspace_profile_semantics.v1",
-  "parser_version": "closed-safe-token",
-  "field_token_key_version": "closed-safe-token",
-  "limits": {},
-  "observed": {},
-  "objects": [],
-  "findings": {},
-  "trust": {"source":"seller_account_scan","content":"value_free_untrusted_metadata"}
-}
-```
-
-`limits`, `observed`, `objects`, and `findings` reuse only the semantic allowlist above. Maximum canonical input is 96 KiB, 10 objects, 256 field records, depth 8. Every string is a fixed enum, a safe token matching `^[a-z0-9][a-z0-9_.:-]{0,127}$`, `o[0-9]{4}`, `f[0-9]{4}(\.f[0-9]{4}){0,31}`, or 64 lowercase hex. There is no free-text slot.
-
-The pure function `build_allai_profile_input(evidence)` in `app/services/seller_workspace_profile.py` may run only after broker schema/hash validation, database re-read of immutable canonical evidence, and a deterministic recursive allowlist scan. The scan rejects unknown keys, wrong types/ranges, Unicode controls, noncanonical bytes, free text, source identifiers, credential patterns, URLs, markup, tool-call syntax, and any seeded hostile marker. It serializes and reparses through `SellerWorkspaceProfileAllAIInputV1`. In W3 the function is exercised only by tests and has zero imports/calls from routes, Celery tasks, allAI services, LLM gateways, or agents. Any later dispatch is W4 scope and requires new approval.
+W3 tests use AST/import/call-graph and dependency scans plus hostile-marker canaries to prove zero imports or calls from W3 routes, services, Celery tasks, Lambda handlers, runtime code, allAI services, LLM gateways, or agents. This absence check does not create a dormant allAI envelope or call path.
 
 ## 9. Lease, idempotency, cancellation, timeout, death, and cleanup
 
@@ -293,9 +314,23 @@ Worker death leaves the task/provider state unchanged, late acknowledgement requ
 
 Application logs are structured allowlist events emitted by W3 code, never interpolation of request/provider/parser objects or exceptions. Allowed keys are event code, state, attempt, safe failure code, duration/quantity bands, runtime-version hash prefix, and correlation ID. `exc_info`, exception string/repr, boto response, Celery args, selector, evidence JSON, request/result bytes, and task stderr are forbidden. OpenTelemetry spans use only the same allowlist; HTTP/Celery instrumentation hooks suppress request/response bodies and task arguments for the W3 route/queue.
 
-`seller_workspace_audit.py` adds explicit operations for key-set registration, standing estimate/acknowledgement, runtime verify/disable, selector create, marginal estimate, job create/cancel/transition/cleanup/evidence expiry. Snapshots contain only IDs owned by the response, state/version/replayed, hashes, decision, safe code, and bounded counters. Scope is hashed before persistence. Raw AWS errors map at the adapter boundary to enumerated codes.
+`seller_workspace_audit.py` adds exactly these W3 operations to the append-only operation allowlist: `profile_source_key_set_registered`, `profile_source_key_set_unchanged`, `profile_runtime_standing_estimate_created`, `profile_runtime_standing_cost_acknowledged`, `profile_runtime_authorized`, `profile_runtime_verification_requested`, `profile_runtime_verified`, `profile_runtime_verification_rejected`, `profile_runtime_disabled`, `profile_selector_created`, `profile_marginal_estimate_created`, `profile_job_cost_acknowledged`, `profile_job_created`, `profile_job_transitioned`, `profile_job_start_reconciled`, `profile_job_retry_created`, `profile_job_cancel_requested`, `profile_job_cancelled`, `profile_job_failed`, `profile_job_expired`, `profile_attempt_cleanup_recorded`, `profile_evidence_committed`, and `profile_evidence_expired`. No generic or free-form operation is allowed.
 
-Hostile fixtures seed unique markers resembling AWS keys, bearer tokens, URLs, emails, prompts, JSON tool calls, HTML/Markdown, ANSI/control sequences, CSV formulas, SQL, shell, traceparent, bucket/key/ARN, headers, JSON keys, Parquet names/metadata, values, min/max, and exception text. Tests scan PostgreSQL JSON/text, unencrypted bytea projections, Redis/Celery messages/results, captured logs, trace exporter payloads, audit, evidence, HTTP, and the dormant allAI envelope for every marker.
+Each W3 audit row uses the existing append-only insert path and may contain only the following exact snapshot keys, omitting inapplicable keys rather than inserting ad hoc null fields:
+
+- lifecycle authorization and actor: `actor_kind`, `actor_id`, `operation`, `decision`, `safe_outcome`, `safe_failure_code`;
+- ownership and immutable binding: `seller_id`, `connection_id`, `runtime_id`, `runtime_version`, `runtime_authorization_id`, `job_id`, `attempt`, `selector_id`, `selector_version`, `source_key_set_version`, `quota_profile`;
+- standing and marginal cost authority: `standing_estimate_receipt_id`, `standing_estimate_receipt_hash`, `marginal_estimate_receipt_id`, `marginal_estimate_receipt_hash`, `cost_acknowledgement_actor_kind`, `cost_acknowledgement_actor_id`, `cost_acknowledged_at`, `cost_acknowledgement_event_id`;
+- lifecycle state and versions: `prior_state`, `new_state`, `resource_version`, `replayed`, `price_table_version`, `estimate_model_version`, `currency`;
+- safe integrity and runtime bindings: `source_key_set_hash`, `input_hash`, `selector_hash`, `estimate_receipt_hash`, `runtime_verification_receipt_hash`, `semantic_hash`, `attestation_hash`, `result_integrity_hash`, `request_sha256`, `task_arn_hash`, `ecs_client_token_hash`, `template_digest`, `broker_alias_arn_hash`, `verifier_alias_arn_hash`, `task_definition_digest`, `image_digest`, `network_hash`, `dns_firewall_hash`, `resolver_control_hash`, `cleanup_proof_hash`;
+- parser/image/task provenance: `parser_version`, `evidence_schema_version`, `field_token_key_version`, `task_definition_version`; and
+- bounded result reference and counters: `evidence_ref`, `objects_completed`, `source_bytes_read`, `decompressed_bytes`, `rows_examined`, `field_records_emitted`, `attempt_count`.
+
+Those names are the complete W3 snapshot allowlist; nested arbitrary maps and additional keys fail before persistence. The audit service validates safe enum/token/hash/version/UUID/RFC3339/integer shapes, same-seller ownership, and applicable receipt/acknowledgement bindings before insert. Scope is hashed before persistence. Raw AWS errors map at the adapter boundary to enumerated codes.
+
+Append-only tests cover every operation and every allowlisted key, both standing and marginal acknowledgement actor/time/event bindings, prior/new state, seller/connection/runtime/job/attempt/selector ownership, all safe hashes/versions and parser/image/task-definition provenance, decision/outcome, evidence reference, replay, and bounded counters. They prove an update or delete is rejected and that every unknown key is rejected. Golden redaction tests continue to forbid raw source identifiers or values, source-key ARNs, selector object identities, AWS response bodies, request/result bytes, full task ARNs or ECS tokens, credentials/secrets, exception strings/reprs/tracebacks, parser stderr, URLs, emails, prompts, markup/tool syntax, and all other free text.
+
+Hostile fixtures seed unique markers resembling AWS keys, bearer tokens, URLs, emails, prompts, JSON tool calls, HTML/Markdown, ANSI/control sequences, CSV formulas, SQL, shell, traceparent, bucket/key/ARN, headers, JSON keys, Parquet names/metadata, values, min/max, and exception text. Tests scan PostgreSQL JSON/text, unencrypted bytea projections, Redis/Celery messages/results, captured logs, trace exporter payloads, audit, evidence, and HTTP for every marker, and separately prove that W3 has no allAI/LLM envelope or call path.
 
 Failed/cancelled/expired rows retain only redacted state/hashes/counters for 30 days. Successful evidence payload expires at 30 days; W3 cannot create a longer W4 reference. Expiry nulls/deletes payload and retains immutable hash/deletion proof. Task/audit log groups expire after seven days. No W3 Resolver query logging, VPC Flow Logs, bucket access log, inventory, replication, backup, or Object Lock resource is created.
 
@@ -321,36 +356,48 @@ Rollback order is profile flag off, refuse/terminally cancel new/queued jobs, st
 
 The implementation adds these exact test files:
 
-- `tests/test_s1650_profile_contracts.py` — strict HTTP/envelope/evidence/allAI schemas, canonical hashes, size ceilings, no-store errors, capability off;
-- `tests/test_s1650_profile_authorization.py` — two sellers, foreign/absent equivalence, cursor/idempotency/cache/token isolation, list-only W2 correction;
+- `tests/test_s1650_profile_contracts.py` — strict HTTP/verifier/broker/task-output/evidence schemas, canonical hashes, size ceilings, no-store errors, capability off, and no W3 allAI/LLM schema or call path;
+- `tests/test_s1650_profile_authorization.py` — two sellers, foreign/absent equivalence, cursor/idempotency/cache/token isolation, record-specific encryption AAD, list-only W2 correction;
 - `tests/test_s1650_profile_lifecycle.py` — every transition, lease steal/expiry, redelivery, both start crash windows, retry, cancel/success/expiry races, worker death, task death, cleanup;
-- `tests/test_s1650_profile_postgres.py` — real PostgreSQL migration, constraints, composite ownership, append-only audit, empty/nonempty downgrade;
-- `tests/test_s1650_profile_aws.py` — STS policies, closed envelopes, IAM simulation fixtures, broker/verifier positive/negative calls, complete multi-CIDR autodefined inventory and pagination;
+- `tests/test_s1650_profile_postgres.py` — real PostgreSQL migration, constraints, composite ownership, exact append-only audit operations/safe snapshots, empty/nonempty downgrade;
+- `tests/test_s1650_profile_aws.py` — STS policies, closed envelopes, IAM simulation fixtures, broker/verifier positive/negative calls, complete multi-CIDR autodefined inventory, explicit peering/TGW absence, and pagination;
 - `tests/test_s1650_profile_iac.py` — `cfn-lint`, parsed exact resources/policies/routes/endpoints/DNS rules/roles/task settings and prohibited-resource absence;
-- `tests/test_s1650_profile_observability.py` — metric cardinality and canary absence in logs/traces/Redis/Celery/database/audit/HTTP/allAI;
+- `tests/test_s1650_profile_observability.py` — metric cardinality, audit allowlist/forbidden-field rejection, canary absence in logs/traces/Redis/Celery/database/audit/HTTP, and zero allAI/LLM path;
 - `seller_workspace_profile_runtime/tests/test_csv.py`, `test_json.py`, `test_parquet.py`, `test_supervisor.py`, and `test_golden_evidence.py`; and
-- `tests/fixtures/seller_workspace_profile/` containing only generated synthetic benign, boundary, bomb, malformed, and hostile files plus expected canonical JSON/hashes.
+- `tests/fixtures/seller_workspace_profile/generate.py` and `tests/fixtures/seller_workspace_profile/expected.json`, which generate only temporary synthetic benign, boundary, bomb, malformed, and hostile files and bind their expected canonical JSON/hashes. No customer-derived or opaque binary fixture is committed.
 
 The matrix includes zero/one/ten/eleven objects; every byte/row/field/result boundary at `limit-1`, `limit`, and `limit+1`; 0/8/9 source KMS keys; current/version selectors; ETag/version drift; every CSV encoding/dialect/quote/multiline/ragged/header case; duplicate JSON keys, deep nesting, huge number, malformed JSONL; each locked Parquet codec, bad footer/page metadata, encrypted/external metadata; decompression/allocation bombs; unsupported archives with one and nested members; resource/CPU/wall kills; deterministic repeats; and every hostile marker above.
 
-AWS fixtures cover both exact `/24` CIDRs and required reverse domains; zero, one and many additional AWS-owned autodefined rules of varying service-observed `RuleType`; missing/duplicate/malformed/wrong-owner/wrong-namespace/nonterminal/shared/endpoint-bearing rules; disabled reverse rules; third/partial CIDR; IPv6; private-hosted-zone-added service rules; peering/TGW contribution; outbound endpoint; Profile association; pagination omission; and API denial. Tests prove `RuleType` drift alone cannot admit or reject a rule, while any identity, endpoint, status, pagination or required-multi-CIDR mismatch fails closed.
+AWS fixtures cover both exact `/24` CIDRs and required reverse domains; zero, one and many additional AWS-owned autodefined rules of varying service-observed `RuleType`; missing/duplicate/malformed/wrong-owner/wrong-namespace/nonterminal/shared/endpoint-bearing rules; disabled reverse rules; third/partial CIDR; IPv6; allowed private-hosted-zone-added service rules; private-hosted-zone-added non-autodefined/endpoint-bearing/shared/malformed/foreign-owner/nonterminal rules; requester-side peering, accepter-side peering, and TGW attachment as three separate failures; outbound endpoint; Profile association; pagination omission; and API denial. Tests prove `RuleType` drift alone cannot admit or reject a rule, an allowed PHZ contribution passes, each peering/TGW check fails independently, and any identity, endpoint, status, pagination, or required-multi-CIDR mismatch fails closed. Golden tests assert the exact five-key Gate 1 resolver-control preimage and hash; required reverse-rule presence and complete service-owned inventory affect eligibility only and never add hash fields.
 
-Focused commands, run from the backend `.venv`, are:
+Backend/control focused commands, run from the backend `.venv` that intentionally contains no PyArrow or parser-only dependency, are:
 
 ```text
-pytest -q tests/test_s1650_profile_contracts.py tests/test_s1650_profile_authorization.py tests/test_s1650_profile_lifecycle.py tests/test_s1650_profile_postgres.py tests/test_s1650_profile_aws.py tests/test_s1650_profile_iac.py tests/test_s1650_profile_observability.py seller_workspace_profile_runtime/tests
-pytest -q tests/test_s1647_seller_workspace_b1.py tests/test_s1647_seller_workspace_b2a.py tests/test_s1647_seller_workspace_b2b.py tests/test_s1647_seller_workspace_postgres.py
-pytest -q tests/test_delivery_endpoints.py tests/test_delivery_guarantees.py tests/test_delivery_service.py tests/test_delivery_webhook_integration.py tests/test_serial_serial_id_contract.py tests/test_serial_service.py tests/test_source_delivery.py
-alembic heads
-cfn-lint infra/seller_workspace_profile/template.yaml
+.venv/bin/python -m pytest -q tests/test_s1650_profile_contracts.py tests/test_s1650_profile_authorization.py tests/test_s1650_profile_lifecycle.py tests/test_s1650_profile_postgres.py tests/test_s1650_profile_aws.py tests/test_s1650_profile_iac.py tests/test_s1650_profile_observability.py
+.venv/bin/python -m pytest -q tests/test_s1647_seller_workspace_b1.py tests/test_s1647_seller_workspace_b2a.py tests/test_s1647_seller_workspace_b2b.py tests/test_s1647_seller_workspace_postgres.py
+.venv/bin/python -m pytest -q tests/test_delivery_endpoints.py tests/test_delivery_guarantees.py tests/test_delivery_service.py tests/test_delivery_webhook_integration.py tests/test_serial_serial_id_contract.py tests/test_serial_service.py tests/test_source_delivery.py
+.venv/bin/alembic heads
+.venv/bin/cfn-lint infra/seller_workspace_profile/template.yaml
+.venv/bin/python infra/seller_workspace_profile/package.py --check
+```
+
+Runtime parser tests run in a separate disposable environment created from the runtime locks, never from the backend environment:
+
+```text
+python3.11 -m venv .venv-s1650-profile-runtime
+.venv-s1650-profile-runtime/bin/python -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements.lock
+.venv-s1650-profile-runtime/bin/python -m pip install --require-hashes -r seller_workspace_profile_runtime/requirements-test.lock
+.venv-s1650-profile-runtime/bin/python -m pytest -q seller_workspace_profile_runtime/tests
 docker build --no-cache -f seller_workspace_profile_runtime/Dockerfile seller_workspace_profile_runtime
 ```
 
-Dependency/import scans fail on any AIM Data module/package/database/install identity/serial/tunnel/broker client/container dependency and on PyArrow/parser imports in the web/control image.
+Dependency/import scans fail on any AIM Data module/package/database/install identity/serial/tunnel/broker client/container dependency, on PyArrow/parser imports in the backend web/control image, and on any W3 allAI/LLM schema, builder, gateway, task, route, import, or call. The separate runtime environment proves the exact locked PyArrow parser surface without claiming or requiring PyArrow in the backend `.venv`.
 
 ## 13. Exact Gate 3 and Gate 4 proof
 
-Gate 3 requires one immutable candidate containing all files above, exact base and diff, clean build, single Alembic head, all focused commands passing, image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, and unchanged Gate 1 digest. Static review, tests, image scan, migration, IaC review, and legacy tests are separate evidence. Independent CC, GLM, and DeepSeek must review the exact Gate 3 commit; the builder is excluded.
+Gate 3 requires one immutable candidate whose changed-path set equals the closed Section 2 manifest exactly, with no unlisted path and no missing row. The path-set evidence must classify the workflow-produced broker ZIP, verifier ZIP, package/schema digest manifest, OCI manifest/digest, SBOM, and vulnerability report as generated evidence rather than repository diff paths, and must prove `requirements.txt`, the named W2/legacy tests, `railway.worker.json`, Gate 1, and every delivery/serial/`legacy_serial` file unchanged. The candidate also requires exact base and diff, clean build, single Alembic head, all backend and separately locked runtime focused commands passing, package/image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, and unchanged Gate 1 digest.
+
+Before launch enforcement can be accepted, Gate 3 must also pin the regional price-table and estimate-model versions and supply the Section 7.1 worst-case recomputation showing every absolute USD cap is conservative for each supported region/AZ/endpoint placement and the full two-attempt envelope. Static review, manifest closure, backend tests, runtime tests, package checks, image scan, migration, IaC review, price-model validation, and legacy tests are separate evidence. Independent CC, GLM, and DeepSeek must review the exact Gate 3 commit; the builder is excluded.
 
 Gate 4 requires the exact reviewed backend/control-worker/image/template identities deployed with every production Seller Workspace flag still false, plus a separately authorized synthetic harness. It uses two synthetic seller identities and two seller-owned synthetic stacks/bucket prefixes, never customer credentials/data. Evidence is one immutable redacted receipt binding:
 
