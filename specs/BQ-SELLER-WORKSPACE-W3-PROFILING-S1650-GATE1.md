@@ -17,6 +17,8 @@ This candidate was authored against:
 - canonical `docs/core/CORE.md` version 9.15, SHA-256 `385042239afac7c54cadefca6be2107e67cb3da2c442be63fdb9fd6b0bdc11e5`;
 - AIM Data `f5e92c80a93c159989340d7c45018e2dcea55f53`, inspected only to identify reusable algorithms, unsafe runtime assumptions, and the exclusion boundary.
 
+Round-1 review was performed on candidate `78a2b8e3e317d69207ec092b5156c6e63c831509`, file SHA-256 `e71fa0cea113dcf366152f25838576c668234085ada9b9055691cc448cd901d7`. This revision folds the complete CC response `/Users/max/council/cc/response-20260902-015302-385335.md` and GLM response `/Users/max/council/glm/response-20260902-015303-186203.md`. It does not resolve D1 or D2, authorize implementation, or reuse either verdict for this new digest.
+
 CORE 9.15 says both that ai.market is metadata-only/non-custodial and that raw customer data must not touch ai.market. The W1 runbook instead describes a backend-deployed isolated worker reading bounded source ranges. Isolation and bounded reads reduce exposure but do not change custody: raw bytes would enter an ai.market process. W3 therefore replaces that W1 execution placement with seller-account execution. It does not change the W2 connection lifecycle, W1 product outcome, or any delivery authority.
 
 The relevant backend baseline has:
@@ -70,7 +72,7 @@ The invariant is conjunctive:
 1. only the task role can read source object bodies;
 2. that role is trusted only by `ecs-tasks.amazonaws.com`, never by the ai.market principal or broker role;
 3. the task has no public IP, NAT route, internet gateway route, ai.market callback, or arbitrary network egress;
-4. its only data write is the exact per-attempt result key in the seller control bucket;
+4. its only control-bucket read is the broker-created, checksum-bound request for its exact connection/job/attempt, and its only data write is that attempt's exact result key;
 5. the result schema excludes source-derived strings and raw values and is capped at 131,072 UTF-8 bytes;
 6. the broker rejects before returning any result whose length, checksum, media type, schema, field allowlist, counters, or provenance do not match;
 7. ai.market has only the exact broker invocation plus prefix-bounded S3 list permission needed for W2 discovery, and has no source object-read, ECS, IAM, KMS, or Secrets Manager permission.
@@ -85,14 +87,18 @@ The later W3 implementation supplies a versioned CloudFormation template for the
 - one ECS cluster for standalone Fargate tasks, Linux platform `1.4.0` or later;
 - one task definition pinned to an immutable image digest, fixed entrypoint, `1 vCPU`, `4 GiB` memory, `20 GiB` ephemeral storage, read-only root filesystem, non-root user, no privileged mode, no added Linux capabilities, and `stopTimeout=30` seconds;
 - distinct broker, task, and task-execution IAM roles plus a template parameter that binds the existing cross-account connection-control role;
-- one seller-owned control bucket with separate `requests/` and `results/` prefixes, public access blocked, TLS required, SSE-KMS, versioning disabled, replication disabled, backup excluded, incomplete multipart uploads aborted after one day, and object expiry after one day;
+- one seller-owned control bucket with separate `requests/` and `results/` prefixes, public access blocked, TLS required, SSE-KMS, versioning disabled, replication disabled, backup excluded, incomplete multipart uploads aborted after one day, and object expiry after one day. Before launch the broker writes one canonical request object with `If-None-Match: *`, checksum, JSON media type, SSE-KMS key ID, and connection/job/attempt/runtime tags. An existing key or metadata mismatch fails closed; neither broker nor task may replace it;
 - one customer-managed KMS key for the control bucket and Fargate ephemeral storage, with grants limited by the stack resources;
-- private subnets, a no-ingress task security group, an S3 gateway endpoint with bucket-restricted endpoint policy, and only the ECR, ECR Docker, CloudWatch Logs, Secrets Manager, and required KMS interface endpoints needed to launch the task;
+- private subnets, a no-ingress task security group, and only the endpoints needed to launch and run the task. The S3 gateway endpoint policy is an explicit allowlist for: the verified source bucket and objects under its exact connection prefix; the control bucket and only `requests/<connection-id>/.../request.json` plus `results/<connection-id>/.../evidence.json`; and the mandatory regional ECR layer bucket `arn:${Partition}:s3:::prod-${Region}-starport-layer-bucket` plus its objects, read-only. Source/control bucket resources are additionally restricted to the verified seller account. ECR API, ECR Docker, CloudWatch Logs, Secrets Manager, and required KMS use private interface endpoints;
 - no public IP, NAT gateway, internet gateway route, load balancer, inbound listener, ECS Exec, service discovery, EFS, EBS, shell endpoint, or long-lived ECS service;
 - one metadata-only CloudWatch log group with seven-day retention and one EventBridge rule for task-state events; and
 - one seller-owned HMAC key in Secrets Manager used only inside the task to create stable, non-reversible field tokens. The key value never leaves the seller account.
 
 The image is pulled from the approved ai.market release ECR repository under a cross-account repository policy and by digest. A mutable tag is never an execution identity. The broker refuses a task definition revision whose image digest, task role, execution role, CPU, memory, storage, command, network mode, logging configuration, or read-only settings differ from the verified runtime record.
+
+The request object, not a container command or selector-valued environment variable, is the immutable task input. `RunTask` may supply exactly two broker-derived bootstrap environment values: `W3_REQUEST_KEY` (the canonical key constructed from the validated connection/job/attempt) and `W3_REQUEST_SHA256` (the checksum of the create-only request object). The broker never copies an ai.market-provided override map and rejects every other container, command, environment, role, image, resource, or network override. The fixed entrypoint retrieves only that key, verifies checksum, media type, KMS key, tags, schema, input hash, selector scope, expiry, and its broker-set ECS task tags before reading source data. The request contains the validated envelope and selector; it is not an audit-only artifact. A mismatch stops before any source read or result write.
+
+The endpoint policy has no wildcard seller-bucket resource and no catch-all S3 statement. Its implicit deny is verified for every other source prefix, control key, seller bucket, regional/non-regional ECR layer bucket, S3 access point, and public S3 endpoint. Removing the regional ECR layer-bucket entry must make a private digest pull fail, while the complete allowlist must permit the exact digest pull without NAT or an internet-gateway route.
 
 AWS documents the underlying primitives used here: Fargate tasks use `awsvpc` task ENIs; task roles and task-execution roles are distinct; platform 1.4.0 provides encrypted ephemeral storage and supports a customer-managed KMS key; and task state changes expose the image digest. These are platform facts, not completion evidence. W3 must still prove the exact deployed stack.
 
@@ -108,20 +114,21 @@ For a W3-ready connection this is the existing immutable `CloudConnection.role_a
 - `s3:ListBucket` on the exact source bucket with the exact non-root connection prefix; and
 - `s3:ListBucketVersions` on the same bucket/prefix only when versioned selector discovery is enabled.
 
-It has no object-ARN permission, including `s3:GetObject`, `s3:GetObjectVersion`, `s3:GetObjectAttributes`, or any range-read equivalent; no `ecs:*`, `iam:*`, `kms:*`, `secretsmanager:*`, `logs:*`, second `sts:AssumeRole`, wildcard resource, or unqualified Lambda-version permission. The ai.market session duration is at most 900 seconds. W2 verification and object discovery use bounded `ListObjectsV2`/`ListObjectVersions` results only; they do not call `HeadObject` or `GetObjectAttributes`, because AWS authorizes both object-body and attribute retrieval through `s3:GetObject`/`s3:GetObjectVersion`.
+It has no object-ARN permission, including `s3:GetObject`, `s3:GetObjectVersion`, `s3:GetObjectAttributes`, `s3:GetObjectVersionAttributes`, or any range-read equivalent; no `ecs:*`, `iam:*`, `kms:*`, `secretsmanager:*`, `logs:*`, second `sts:AssumeRole`, wildcard resource, or unqualified Lambda-version permission. The ai.market session duration is at most 900 seconds. W2 verification and object discovery use bounded `ListObjectsV2`/`ListObjectVersions` results only and call neither `HeadObject` nor `GetObjectAttributes`. `HeadObject` requires `s3:GetObject`, or `s3:GetObjectVersion` for a specified version; the attributes API has separate `s3:GetObjectAttributes` and version-specific `s3:GetObjectVersionAttributes` permissions. All four remain absent and are tested independently.
 
 ### 6.2 Broker Lambda execution role
 
 The broker role has only:
 
-- `ecs:RunTask` for the exact task-definition family/revision on the exact cluster, with Fargate launch type and required request tags;
+- `ecs:RunTask` for the exact task-definition family/revision on the exact cluster, with Fargate launch type, required task tags, and only the two broker-derived request bootstrap values in section 5;
 - `ecs:DescribeTasks` and `ecs:StopTask` for tasks on that cluster carrying the exact seller/connection/job tags;
 - `iam:PassRole` for the exact task role and exact task-execution role, conditioned on `iam:PassedToService=ecs-tasks.amazonaws.com`;
-- `s3:PutObject`, `s3:GetObject`, `s3:GetObjectAttributes`, and `s3:DeleteObject` only for `requests/<connection-id>/<job-id>/<attempt>/request.json` and `results/<connection-id>/<job-id>/<attempt>/evidence.json` in the control bucket;
-- the minimum KMS encrypt/decrypt/data-key permissions for that bucket with `kms:ViaService` and encryption-context restrictions; and
+- `s3:PutObject` plus `s3:PutObjectTagging` only for `requests/<connection-id>/<job-id>/<attempt>/request.json`, with bucket-policy conditions requiring `If-None-Match: *`, the canonical request media type, SHA-256 checksum, the exact control KMS key, and connection/job/attempt/runtime tags;
+- `s3:GetObject`, `s3:GetObjectAttributes`, and `s3:GetObjectTagging` only for `results/<connection-id>/<job-id>/<attempt>/evidence.json`, and `s3:DeleteObject` only for those exact request and result key shapes after terminal acknowledgement;
+- `kms:Encrypt` and `kms:GenerateDataKey` for the create-only request, and `kms:Decrypt` for result validation, only on the control key with `kms:ViaService` fixed to regional S3 and `kms:EncryptionContext:aws:s3:arn` restricted to the exact control-bucket request/result prefixes; and
 - metadata-only log writes to the exact log group.
 
-The broker has no source-bucket permission and cannot accept task command, environment, role, image, subnet, security-group, CPU, memory, or storage overrides from ai.market. It constructs those values from the verified stack record.
+The broker has no source-bucket permission and cannot accept task command, arbitrary environment, role, image, subnet, security-group, CPU, memory, or storage overrides from ai.market. It constructs the fixed runtime values from the verified stack record and the two bootstrap values from the validated envelope. It cannot put a result, overwrite a request, list the control bucket, or read a request body after creation.
 
 ### 6.3 Task execution role
 
@@ -132,13 +139,16 @@ The execution role has `ecr:GetAuthorizationToken` on `*` only because ECR does 
 The task role is scoped to one verified connection and has only:
 
 - `s3:ListBucket` on the exact source bucket with the exact non-root connection prefix condition;
-- `s3:GetObjectAttributes`, `s3:GetObject`, and, when versioned selectors are used, `s3:GetObjectVersion` on that exact prefix;
+- `s3:GetObjectAttributes` and `s3:GetObject` on that exact source prefix and, when versioned selectors are used, `s3:GetObjectVersionAttributes` plus `s3:GetObjectVersion`;
 - `kms:Decrypt` only for explicitly registered seller KMS keys needed by selected source objects, restricted through S3 and the expected encryption context;
 - `secretsmanager:GetSecretValue` on the single field-token key;
-- `s3:PutObject` on the exact attempt result key, requiring the configured KMS key, JSON content type, checksum, and job/attempt tags; and
+- `s3:GetObject`, `s3:GetObjectAttributes`, and `s3:GetObjectTagging` on the control-bucket request key shape `requests/<connection-id>/<job-id>/<attempt>/request.json`, with no `ListBucket`, version, sibling-connection, or result-read grant;
+- `kms:Decrypt` on the control key for request retrieval, restricted by `kms:ViaService` and the request-key encryption context;
+- `s3:PutObject` plus `s3:PutObjectTagging` on the matching exact result-key shape `results/<connection-id>/<job-id>/<attempt>/evidence.json`, with conditions requiring the configured SSE-KMS key ID, evidence media type, SHA-256 checksum, and exact connection/job/attempt/runtime tags in the same request; and
+- `kms:Encrypt`, `kms:GenerateDataKey`, and `kms:Decrypt` on the control key for the tagged SSE-KMS result upload, restricted through regional S3 and to the matching result-key encryption context; and
 - no other action.
 
-The task role has explicit denies for other buckets, result-key reads, object deletion, ACL changes, multipart copy, network/infrastructure APIs, `sts:AssumeRole`, and secrets other than the token key. IAM limits source access to the verified connection prefix; the immutable job selector narrows it further to at most ten exact versioned objects.
+The task role has explicit denies for other buckets, request writes, result-key reads, object deletion, ACL changes, untagged or wrongly encrypted writes, multipart upload/copy, network/infrastructure APIs, `sts:AssumeRole`, and secrets other than the token key. IAM limits source access to the verified connection prefix and control access to the connection-fixed request/result key shapes; the broker-derived bootstrap key, create-only request checksum/tags, and immutable selector narrow one task to its exact job/attempt and at most ten exact versioned source objects. The task never lists the control bucket and rejects any request whose path components, tags, body identity, input hash, or ECS task tags disagree.
 
 ### 6.5 W2 permission correction required before W3 activation
 
