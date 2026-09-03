@@ -855,6 +855,15 @@
 - Error signatures: none
 - Status: current
 
+## S1656 Money Path Test Environment
+- Path: `money-path-test-environment.md`
+- Purpose: This page operates the disposable, test-only environment that exercises the S1590 money path without using production customer data, production Stripe mode, a Railway database or cache, or a production application deployment. It describes the real implementation at `aidotmarket/money-path-test-environment` Chunk C main `64e57f23b0e83fefc02e7ea15d651a5dad5e8a7a` plus Chunk D candidate `6d9b434ab42faff1218eb59c78e171dd58d5cc64`; it does not claim that the candidate has passed its later Council review or AC1-AC12 release-evidence run.
+- Owner: `vulcan`
+- Last verified: `2026-09-03`
+- Aliases: BQ-MONEY-PATH-TEST-ENV-S1656, S1656 money path, money-path-test-environment, ai-market-money-path-s1656
+- Error signatures: live Stripe secret-key prefix refused before network access, live Stripe publishable-key prefix refused before network access, Stripe test key does not belong to the pinned platform Account, FRONTEND_URL must equal http://localhost:13000, source checkout is dirty, source checkout differs from the recorded SHA, seller-01 effective seller capability is not active, Stripe redelivery must record duplicate without another finalization, backend did not record Stripe provider redelivery as duplicate, parsed and normalised production snapshots differ, reset target lacks the exact S1656 ownership label, deployment marker observed; seed refused, immutable mint-policy validation failed, Cloudflare targets remain or absence is unproved, pinned host-network browser-runner cannot reach all localhost origins
+- Status: current
+
 ## Schema Migration Runbook
 - Path: `schema-migration.md`
 - Purpose: Alembic-based database schema migration procedures across ai-market-backend, koskadeux-mcp (Living State database), and any other service with versioned schema. Owned by **BQ-PROCESS-BUILD-QUEUE-INTEGRITY-S612** (P1, delegated migration-discipline section). Filed S612 per DS mandate that the runbook set was missing dedicated schema-migration coverage.

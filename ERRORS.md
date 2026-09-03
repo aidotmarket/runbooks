@@ -84,6 +84,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `backend did not record Stripe provider redelivery as duplicate`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `backend qdrant calls 401 after rotation`
 
 - [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
@@ -172,6 +176,10 @@
 
 - [Branch Landed Verification](runbooks/branch-landed-verification.md)
 
+## `Cloudflare targets remain or absence is unproved`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `Codex FIFO unavailable`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
@@ -251,6 +259,10 @@
 ## `deployed_sha_stale`
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
+
+## `deployment marker observed; seed refused`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `Device ID already registered to another user`
 
@@ -400,6 +412,10 @@
 
 - [Account Teardown & User-Data Erasure](account-teardown.md)
 
+## `FRONTEND_URL must equal http://localhost:13000`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `gate1_status_trap`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
@@ -471,6 +487,10 @@
 ## `HTTP 503 Publish unavailable: security services offline`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `immutable mint-policy validation failed`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `incomplete_agent_surface`
 
@@ -555,6 +575,14 @@
 ## `Listing published, disclosure snapshot pending`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `live Stripe publishable-key prefix refused before network access`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `live Stripe secret-key prefix refused before network access`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `malformed_output`
 
@@ -692,6 +720,10 @@
 
 - [Work Checkout (Enforced Ownership)](work-checkout.md)
 
+## `parsed and normalised production snapshots differ`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `participant_config_missing`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
@@ -707,6 +739,10 @@
 ## `pending or dead_letter rows deleted`
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
+
+## `pinned host-network browser-runner cannot reach all localhost origins`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `pipeline stages feature is not yet fully set up`
 
@@ -832,6 +868,10 @@
 
 - [Council](runbooks/council.md)
 
+## `reset target lacks the exact S1656 ownership label`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `residual weak-link rows`
 
 - [Account Teardown & User-Data Erasure](account-teardown.md)
@@ -876,6 +916,10 @@
 
 - [Infrastructure Discovery](runbooks/infrastructure-discovery.md)
 
+## `seller-01 effective seller capability is not active`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `seller_profiles_connect_id_never_written`
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
@@ -895,6 +939,14 @@
 ## `silent past 300s with status still running`
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
+
+## `source checkout differs from the recorded SHA`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `source checkout is dirty`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `stale/critical lag`
 
@@ -947,6 +999,14 @@
 ## `strict_verdict_invalid`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `Stripe redelivery must record duplicate without another finalization`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `Stripe test key does not belong to the pinned platform Account`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `stripe_connect_user_update_zero_rows`
 
