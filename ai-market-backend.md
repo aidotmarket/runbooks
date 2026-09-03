@@ -27,11 +27,18 @@ Python 3.11, FastAPI, SQLAlchemy (async), Alembic, PostgreSQL, Redis, Qdrant (ve
 
 Railway auto-deploys from `main`. On startup, runs `alembic upgrade head` before the app starts.
 
+**Railway CLI targeting (S1654/S1655):** the repo checkout at `/Users/max/Projects/ai-market/ai-market-backend` is linked to the `verify-s1648` environment, not production. Every Railway command against production must pass `-e production -s ai-market-backend` explicitly; a bare `railway variables` or `railway deployment list` silently answers for the wrong environment. Postgres reads use `-e production -s Postgres` (see the connect snippet under "Customer data").
+
 **Verify deploy:**
 ```sh
-railway deployment list   # confirm SUCCESS
+railway deployment list -e production -s ai-market-backend   # confirm SUCCESS
+railway variables -e production -s ai-market-backend --json   # config evidence; never echo values into a package, export keys only
 curl -s https://api.ai.market/health
 ```
+
+**Flag flips redeploy:** `railway variables -e production -s ai-market-backend --set NAME=value` triggers a full redeploy (~3 min). Poll `deployment list` until the newest row is SUCCESS before probing.
+
+**Running the test suite locally:** use the repo venv interpreter, not system python: `/Users/max/Projects/ai-market/ai-market-backend/.venv/bin/python -m pytest <paths>`. System python lacks the backend dependency set.
 
 **If deploy fails:** Check Railway build logs. Common issues: migration errors (see Alembic section), import errors, missing env vars.
 
