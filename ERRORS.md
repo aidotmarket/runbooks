@@ -212,6 +212,10 @@
 
 - [Constitution History](runbooks/constitution-history.md)
 
+## `container/network/volume target <id> lacks the exact S1656 ownership label`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `continuing to improvise after reporting the stop`
 
 - [Max Reporting — the End-of-Round Summary Discipline](max-reporting.md)
@@ -867,10 +871,6 @@
 ## `required reviewer missing from the live tool schema`
 
 - [Council](runbooks/council.md)
-
-## `reset target lacks the exact S1656 ownership label`
-
-- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `residual weak-link rows`
 

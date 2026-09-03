@@ -1,6 +1,6 @@
 ---
 title: S1656 Money Path Test Environment
-owner: vulcan
+owner: mars
 last_verified: '2026-09-03'
 aliases:
   - BQ-MONEY-PATH-TEST-ENV-S1656
@@ -18,7 +18,7 @@ error_signatures:
   - Stripe redelivery must record duplicate without another finalization
   - backend did not record Stripe provider redelivery as duplicate
   - parsed and normalised production snapshots differ
-  - reset target lacks the exact S1656 ownership label
+  - 'container/network/volume target <id> lacks the exact S1656 ownership label'
   - deployment marker observed; seed refused
   - immutable mint-policy validation failed
   - Cloudflare targets remain or absence is unproved
@@ -27,7 +27,7 @@ error_signatures:
 
 # S1656 Money Path Test Environment
 
-This page operates the disposable, test-only environment that exercises the S1590 money path without using production customer data, production Stripe mode, a Railway database or cache, or a production application deployment. It describes the real implementation at `aidotmarket/money-path-test-environment` Chunk C main `64e57f23b0e83fefc02e7ea15d651a5dad5e8a7a` plus Chunk D candidate `6d9b434ab42faff1218eb59c78e171dd58d5cc64`; it does not claim that the candidate has passed its later Council review or AC1-AC12 release-evidence run.
+This page operates the disposable, test-only environment that exercises the S1590 money path without using production customer data, production Stripe mode, a Railway database or cache, or a production application deployment. It describes exactly `aidotmarket/money-path-test-environment@6d9b434ab42faff1218eb59c78e171dd58d5cc64`; the product source and image identities come from that environment's `versions.env`. It does not claim that the environment commit has passed its later Council review or AC1-AC12 release-evidence run.
 
 ## A. Purpose and safety boundary
 
@@ -136,7 +136,7 @@ The credential responsibilities are deliberately separate:
 | --- | --- | --- | --- |
 | `CLOUDFLARE_TUNNEL_TOKEN` | `test-env`; `cloudflared` container only | Connect the existing tunnel | Policy reads, route/DNS management, token lifecycle |
 | `CLOUDFLARE_S1656_TEARDOWN_API_TOKEN` | `test-env`; host lifecycle only | Read, remove, and prove absence of only the exact S1656 route and DNS record | Token mint/read/revoke, container injection, unrelated Cloudflare objects |
-| `CLOUDFLARE_ADMIN_API_TOKEN` | project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`; isolated admin subprocess only | Permission-group discovery, teardown-token mint, token re-read, revocation, post-revocation proof; if the narrow token is already inactive/missing, read-only route/DNS absence proof | Route or DNS mutation |
+| `CLOUDFLARE_ADMIN_API_TOKEN` | project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`; isolated host lifecycle or verify-snapshot subprocess only | Permission-group discovery, teardown-token mint, token re-read, revocation, post-revocation proof; verify-time read-only Cloudflare production snapshot; if the narrow token is already inactive/missing, read-only exact-route and exact-hostname DNS absence proof | Route or DNS mutation, container injection, or any unrelated Cloudflare object |
 
 The teardown token has exactly `Cloudflare Tunnel Write` on account `d5346d3e0f8f344c5f4915aaca689adf` and `DNS Write` on zone `f82ac6762af544d71e8ad5eb3d7fca0c`. Mint requests an expiry 23 hours 59 minutes ahead and rejects any provider result exceeding 24 hours after issue. Its token value exists only in Infisical; the immutable record stores the token ID, canonical returned policies, policy hash, times, and allowed targets without the value.
 
@@ -144,9 +144,9 @@ The teardown token has exactly `Cloudflare Tunnel Write` on account `d5346d3e0f8
 
 ## E. Boot and lifecycle
 
-Honest host prerequisites are Docker with Docker Compose, `git`, `curl`, `python3`, `dig`, the Infisical CLI, network access to GitHub/GHCR/Stripe/Infisical/Cloudflare, and an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host.
+Honest host prerequisites are Docker with Docker Compose, `git`, `curl`, `python3`, `dig`, the Infisical CLI, network access to GitHub, GHCR, Docker Hub (`docker.io`), `mcr.microsoft.com`, Stripe, Infisical, and Cloudflare, an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`, an authorized GitHub SSH credential for the three private `git@github.com:aidotmarket/{ai-market-backend,ai-market-frontend,aim-data}.git` remotes cloned by `./bin/up`, and GHCR pull authorization when the pinned private image requires it. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host. Spec AC1's "only Docker and Infisical" wording is narrower than these real command and credential prerequisites and is to be reconciled by specification amendment A2 (S1656).
 
-Before minting, the teardown evidence root must already exist, be owned by the operator, be outside the checkout, and have mode `0700`:
+Before `./bin/down`, the teardown evidence root must exist, be owned by the operator, be outside the checkout, and have mode `0700`:
 
 ```sh
 mkdir -p /Users/max/koskadeux-state/s1656/teardown-evidence
@@ -205,7 +205,7 @@ The Connect Express idempotency key is fixed for seller-01. The ordinary pay-in 
 12. Return to AIM Data, start paid verification, wait for the signed scan/report lifecycle and manual-capture epoch, prove the final PaymentIntent and charge are test-mode and captured, and publish the findings.
 13. Capture the same normalized production snapshot again and require structural equality after volatile fields are removed.
 
-The runner allows navigation only to the three localhost origins and Stripe-hosted test pages. Any request to `host.docker.internal`, a production ai.market frontend/API, or another origin fails the journey.
+At `aidotmarket/money-path-test-environment@6d9b434ab42faff1218eb59c78e171dd58d5cc64:browser/s1590-money-path.spec.ts:206-218`, the runner observes every request, classifies any `localhost` or `127.0.0.1` hostname as local and the `stripe.com`/`stripe.network` roots and subdomains as Stripe, records the method and origin for `host.docker.internal` and every non-local/non-Stripe request, and records every navigation origin. It does not block navigation or restrict local traffic to the three configured origins or ports; later assertions fail the journey if the recorded forbidden-request list is non-empty. A passing journey's `browser-evidence.json` proves no production navigation through its complete recorded `navigation_origins`, which must contain no production origin; that list must also exclude the returned `marketplace_url` origin and `production_marketplace_url_never_navigated` must be `true`.
 
 ## H. Evidence and redaction
 
@@ -215,10 +215,12 @@ Evidence is independent only when the referenced files exist and can be read wit
 | --- | --- | --- |
 | Mint policy | `/Users/max/koskadeux-state/s1656/mint-policy/<token-id>.json` | Mode `0444`; token ID, issue/expiry, complete API-returned policies, SHA-256, exact allowed targets; no token value |
 | Acceptance | `/Users/max/koskadeux-state/s1656/acceptance-evidence/<UTC-run-stamp>/` | Mode `0700` directory containing `production-before.json`, `browser-evidence.json`, `production-after.json`, and `summary.json`, each mode `0400` |
-| Teardown | `/Users/max/koskadeux-state/s1656/teardown-evidence/<UTC-run-stamp>/` | Mode `0700` directory containing provider responses/statuses, tunnel/DNS absence proofs, token read/revocation/post-revocation proof, `authoritative-dns-absence.txt`, and `summary.json`; terminal runs also contain Infisical delete/absence proof |
+| Teardown | `/Users/max/koskadeux-state/s1656/teardown-evidence/<UTC-run-stamp>/` | Mode `0700` directory containing the applicable active-token or already-revoked evidence variant below, `authoritative-dns-absence.txt`, and `summary.json`; terminal runs also contain Infisical delete/absence proof |
 | Runtime identity | `.runtime/aim-data-image-digest.json`, `.runtime/image-digests.json` | Exact source SHA and image-digest bindings; supporting identity only |
 
-The acceptance summary must say `acceptance: passed`, `from_clean_seed: true`, and carry the three exact source SHAs. The teardown summary must say route, DNS, authoritative DNS, and token revocation are true; `infisical_test_env_absent` is true only for `down --terminal`.
+On the active-token path, teardown evidence contains the token read and verification, route/DNS before state and removal or already-absent responses, control-plane and authoritative absence proofs, token revocation response, and post-revocation inactive/not-found proof. On the already-revoked path, it instead contains `token-already-revoked.*`, `tunnel-route-admin-absence.*`, and `dns-admin-absence.*` plus authoritative DNS absence; the admin credential performs only those absence reads and no route/DNS mutation.
+
+The acceptance summary must say `acceptance: passed`, `from_clean_seed: true`, and carry the three exact source SHAs. The teardown summary must say route, DNS, authoritative DNS, and token revocation are true and must distinguish `teardown_token_already_revoked`; `infisical_test_env_absent` is true only for `down --terminal`.
 
 Never store token or key values, raw emails, passwords, TOTP seeds or codes, raw `acct_` identifiers, card data, Checkout URLs, Stripe object IDs, webhook bodies or signatures, billing data, raw customer/source rows, or provider responses containing a token. The browser runner hashes provider identifiers into opaque evidence references. Local UUIDs, run IDs, timestamps, HTTP statuses, booleans, exact source/image SHAs, and redacted screenshots are allowed.
 
@@ -267,7 +269,7 @@ If the 24-hour window expires before teardown, run `./bin/mint-teardown-token`. 
 
 ## K. Maintenance and change control
 
-Vulcan owns this operator page. Product owners own the pinned backend, frontend, and AIM Data code; the environment repository owns lifecycle, seed, runner, and evidence behavior. Refresh this page when any pinned source SHA, image digest, port/origin, Compose topology, fixture contract, secret name, token permission, provider identifier, lifecycle command, evidence schema/path, browser version, or failure signature changes, and after any incident or accepted Council mandate.
+Mars owns S1656, this operator page, and the money-path test environment. Product owners own the pinned backend, frontend, and AIM Data code. Refresh this page when any pinned source SHA, image digest, port/origin, Compose topology, fixture contract, secret name, token permission, provider identifier, lifecycle command, evidence schema/path, browser version, or failure signature changes, and after any incident or accepted Council mandate.
 
 Every behavioral change requires a newly pinned environment commit, focused tests, current Council review under the active roster, and a fresh external acceptance run. A tag, merge, unit suite, Compose health, or tunnel health alone is not approval. Never reuse reviewer votes from another SHA. Keep the S1656 scope frozen: no S1590 spec edit, production feature-default change, runbook-tooling change, alternate tunnel/listener, additional fixture, or adjacent improvement belongs here.
 
