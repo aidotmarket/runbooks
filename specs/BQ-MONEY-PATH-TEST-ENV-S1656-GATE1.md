@@ -292,7 +292,7 @@ The implementation is incomplete until the same reviewed runbooks change adds ro
 
 The §I table must have at least these rows: live-key prefix refusal; platform-account mismatch; frontend origin rejected; source SHA mismatch; occupied port; migration failure; Redis unavailable; seller not active with exact missing steps; VZ signature/replay failure; AIM Data still targeting production; payment setup URL still targeting production; tunnel down; webhook signature failure; webhook synthetically suppressed; duplicate not deduped; readiness stuck pending; manual authorization not `requires_capture`; capture failure; reset target-label mismatch; and any production marker observed.
 
-Run `scripts/index.py` so the page is registered in generated `INDEX.md` and its error signatures in `ERRORS.md`. `TOPIC-ROUTER.md` does not exist at the source baseline; to honor S1656, the runbooks chunk creates it as a small static, non-enforcing lookup page and registers `money path`, `Stripe test mode`, `S1590 browser proof`, `AIM Data paid verification`, `test webhook`, and `S1656` to `money-path-test-environment.md`. It carries the same lightweight frontmatter and troubleshooting heading required of root pages. It does not add a schema, checker, generator, authority tier, or second index.
+Run `scripts/index.py` so the page is registered in generated `INDEX.md` and its error signatures in `ERRORS.md`. `TOPIC-ROUTER.md` does not exist at the source baseline and is NOT created; the S1656 brief's reference to it is superseded by the generated `INDEX.md`/`ERRORS.md` pair, which is the current registration mechanism.
 
 ## 10. Non-goals
 
@@ -381,7 +381,6 @@ Each chunk is one MP dispatch and one commit. A dispatch names the exact reposit
 **Files:**
 
 - `money-path-test-environment.md` (new)
-- `TOPIC-ROUTER.md` (new)
 - `INDEX.md`
 - `ERRORS.md`
 
@@ -412,7 +411,7 @@ CORE S3 payments review requires unanimity. CC, GLM, and DeepSeek must each appr
 
 ## 13. Open questions and stop conditions
 
-1. `TOPIC-ROUTER.md` is absent from current `origin/main`. This specification interprets Max's direct S1656 requirement as authority to create the small static page described in section 9. If Max instead meant the current `INDEX.md`/`ERRORS.md` pair, remove `TOPIC-ROUTER.md` only through a reviewed spec amendment.
+1. Resolved by Mars (S1656): `TOPIC-ROUTER.md` is absent from `origin/main` and is not created; registration is `INDEX.md`/`ERRORS.md` via `scripts/index.py` only.
 2. The exact `BACKEND_RC_SHA`, `FRONTEND_RC_SHA`, and `AIM_DATA_RC_SHA` are implementation outputs. No current baseline may be substituted because the required backend and AIM Data changes do not exist there.
 3. The hostname `s1656-money-path-webhook.ai.market`, the Stripe test-mode platform account, the test webhook endpoint, and the Infisical `test-env` environment must be created by an authorized operator after Gate 1. If any cannot be created with test-only scope, stop. Do not fall back to production, reuse the mixed `prod` secret environment, or silently switch to Stripe CLI.
 4. If Stripe cannot return `payouts_enabled=true` for a test-mode Express account using its supported test process, stop and bring back provider evidence. Do not substitute a Standard or live account and do not set the durable payout projection by hand.
