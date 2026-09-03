@@ -13,11 +13,11 @@ error_signatures:
   - Stripe test key does not belong to the pinned platform Account
   - FRONTEND_URL must equal http://localhost:13000
   - source checkout is dirty
-  - source checkout differs from the recorded SHA
+  - checkout differs from the recorded SHA
   - seller-01 effective seller capability is not active
   - Stripe redelivery must record duplicate without another finalization
   - backend did not record Stripe provider redelivery as duplicate
-  - parsed and normalised production snapshots differ
+  - 'AC12 failed: parsed and normalised production snapshots differ after volatile fields were removed'
   - 'container/network/volume target <id> lacks the exact S1656 ownership label'
   - deployment marker observed; seed refused
   - immutable mint-policy validation failed
@@ -135,7 +135,7 @@ The credential responsibilities are deliberately separate:
 | Credential | Stored/injected from | Allowed work | Explicitly forbidden |
 | --- | --- | --- | --- |
 | `CLOUDFLARE_TUNNEL_TOKEN` | `test-env`; `cloudflared` container only | Connect the existing tunnel | Policy reads, route/DNS management, token lifecycle |
-| `CLOUDFLARE_S1656_TEARDOWN_API_TOKEN` | `test-env`; host lifecycle only | Read, remove, and prove absence of only the exact S1656 route and DNS record | Token mint/read/revoke, container injection, unrelated Cloudflare objects |
+| `CLOUDFLARE_S1656_TEARDOWN_API_TOKEN` | `test-env`; host lifecycle only | Read, remove, and prove absence of only the exact S1656 route and DNS record | Management mint, token-record read and revoke (self-verification via `GET /user/tokens/verify` is permitted and recorded as `teardown-token-verify.json`), container injection, unrelated Cloudflare objects |
 | `CLOUDFLARE_ADMIN_API_TOKEN` | project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`; isolated host lifecycle or verify-snapshot subprocess only | Permission-group discovery, teardown-token mint, token re-read, revocation, post-revocation proof; verify-time read-only Cloudflare production snapshot; if the narrow token is already inactive/missing, read-only exact-route and exact-hostname DNS absence proof | Route or DNS mutation, container injection, or any unrelated Cloudflare object |
 
 The teardown token has exactly `Cloudflare Tunnel Write` on account `d5346d3e0f8f344c5f4915aaca689adf` and `DNS Write` on zone `f82ac6762af544d71e8ad5eb3d7fca0c`. Mint requests an expiry 23 hours 59 minutes ahead and rejects any provider result exceeding 24 hours after issue. Its token value exists only in Infisical; the immutable record stores the token ID, canonical returned policies, policy hash, times, and allowed targets without the value.
@@ -144,7 +144,7 @@ The teardown token has exactly `Cloudflare Tunnel Write` on account `d5346d3e0f8
 
 ## E. Boot and lifecycle
 
-Honest host prerequisites are Docker with Docker Compose, `git`, `curl`, `python3`, `dig`, the Infisical CLI, network access to GitHub, GHCR, Docker Hub (`docker.io`), `mcr.microsoft.com`, Stripe, Infisical, and Cloudflare, an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`, an authorized GitHub SSH credential for the three private `git@github.com:aidotmarket/{ai-market-backend,ai-market-frontend,aim-data}.git` remotes cloned by `./bin/up`, and GHCR pull authorization when the pinned private image requires it. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host. Spec AC1's "only Docker and Infisical" wording is narrower than these real command and credential prerequisites and is to be reconciled by specification amendment A2 (S1656).
+Honest host prerequisites are Docker with Docker Compose, `git`, `curl`, `python3`, `dig`, the Infisical CLI, the Docker buildx CLI plugin (`bin/preflight` uses `docker buildx imagetools`), network access to GitHub, GHCR, Docker Hub (`docker.io`), `mcr.microsoft.com`, `registry.npmjs.org` (frontend and runner `npm ci`), the PyPI and Debian package repositories (pinned backend image build), Stripe, Infisical, Cloudflare, Railway's GraphQL endpoint and the public `ai.market` endpoints (verify-time production no-effect reads), and the authoritative DNS servers `dig` queries, an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`, an authorized GitHub SSH credential for the three private `git@github.com:aidotmarket/{ai-market-backend,ai-market-frontend,aim-data}.git` remotes cloned by `./bin/up`, and GHCR pull authorization when the pinned private image requires it. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host. Spec AC1's "only Docker and Infisical" wording is narrower than these real command and credential prerequisites and is to be reconciled by specification amendment A2 (S1656).
 
 Before `./bin/down`, the teardown evidence root must exist, be owned by the operator, be outside the checkout, and have mode `0700`:
 

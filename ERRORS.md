@@ -48,6 +48,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `AC12 failed: parsed and normalised production snapshots differ after volatile fields were removed`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `Accept all & continue remains disabled while title and description are populated and dataset.listing_id is null`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
@@ -167,6 +171,10 @@
 ## `cc_verdict_parse_failure`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
+
+## `checkout differs from the recorded SHA`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `chunk_scope_gap`
 
@@ -724,10 +732,6 @@
 
 - [Work Checkout (Enforced Ownership)](work-checkout.md)
 
-## `parsed and normalised production snapshots differ`
-
-- [S1656 Money Path Test Environment](money-path-test-environment.md)
-
 ## `participant_config_missing`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
@@ -939,10 +943,6 @@
 ## `silent past 300s with status still running`
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
-
-## `source checkout differs from the recorded SHA`
-
-- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `source checkout is dirty`
 
