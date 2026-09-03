@@ -14,7 +14,7 @@
 
 This Gate 2 candidate was written from the approved Gate 1 base above and read-only inspection of canonical ai-market backend `origin/main` at `31efd4c607ace06319bbbbc697834584952f7ed9`. If implementation begins later, the builder must rebase these named integration points onto then-current `origin/main` without changing the Gate 1 contract. Any architectural conflict returns to Gate 2 review; it is not resolved in code.
 
-Round-2 review of candidate commit `062cc66e54d989ae7d205901e3b6a6020cccd747`, file SHA-256 `ffd048afc4a9c520a069811012bab61002544a6bf9f89dbc5e118fedfb0fd82d`, returned CC and GLM `APPROVE_WITH_NITS` and DeepSeek `REQUEST_CHANGES`, recorded in Panel Event Ledger event `db7bf298-5441-412d-bc76-1c4980cfd80e`. The round-3 candidate at commit `397dd312b11ddb5d6063743048ba014c23fe880a`, file SHA-256 `761c5ba0fc84ec682fd5919c055916b28f7737a2e39c5e2c22c005a241d512da`, removed the unapproved verifier calls and folded the nonblocking buildability nits. Implementation-blocker Event `997aa75b-210a-4390-ba9a-451433cc575e` then established that its unchanged-W2-test rule contradicted the mandatory list-only verifier correction and that its audit ORM mapping was incompatible with the actual pre-W3 W2/`s1647` test fixture. The round-4 candidate at commit `23e82ce4e7125f2825d6f2f011d724d24325bd2c`, file SHA-256 `12911b2a41421297ac4264ecf62ead3d62189e06989fb57d057a7f8b6d9981be`, received unanimous approval recorded in Panel Event Ledger event `e59581f1-452f-4442-a6ba-5b9ed19fb48a`. Implementation-blocker Event `8daeb52a-b059-4d42-b0f7-48278ac00a44` then established that round 4's backend package-inventory requirement contradicts the unchanged backend dependency baseline. The preserved backend implementation commit is `a3f8a0437080ccc69222b1020aa7c702ce1c08a7` from original base `229689c821022b2fe8f8901f7ca32eca6f685fcf`; this specification correction does not implement, rebase, dispatch, merge, or discard it. The round-5 correction at commit `010c55606e6b50ee1395c2eeb83684180c05459b`, file SHA-256 `c2c66cc7fa690c85450ebd1ce6aa47a0a49cb1aef859dbd94f6c9d46cd8b2da6`, resolved only that consistency defect and folded the round-4 nonblocking precision nits. Ground-truth blocker Event `b286221f-86f9-40a0-a904-8b49d4c328af` then established that round 5 simultaneously requires `AWS_PROFILE_IMPLEMENTED=True` and implemented-but-not-ready capability semantics while freezing the existing W2 capability test's profile expectation at `not_implemented`; with all flags true but reviewed W3 dependencies absent, that contradiction makes the mandatory W2 suite fail with 79 passed and one failed. The round-6 correction at commit `135e4f992297989d17d4803df01ee3277b15354b` permitted only the profile-stage expectation change needed to bind the specified `dependencies_unready` result and retained every prior correction. Ground-truth Event `a7fa4fea-d481-4a9c-b40d-482e70f0366f` plus implementation-blocker Event `4ed4f638-7d46-4857-882b-343a4a7713a2` then established that the spec-pinned `python:3.11.11-slim-bookworm` runtime fails the unchanged Grype `--fail-on high` gate with 19 critical and 116 high findings. The probed newer official `3.11.16-slim-bookworm`, `3.13.14-slim-trixie`, and distroless Python 3.11 images also fail, while public Chainguard Python 3.11 tags are unavailable. The round-7 correction at commit `2bef3d193c451c1804edbc95ba9ab26b6b9d4a7c` permits and requires only the exact digest-pinned Chainguard Python 3.14.7 multi-stage runtime and its self-consistent build/test/security proof specified below; it changes no lock, manifest path, application behavior, limit, schema, migration, flag, W2 carve-out, or forbidden action. Round 7 was not reviewed. Its pre-round-7 workflow-pinned Grype image `sha256:3d13cbaf7d2b865391fde8087e23662dd0f70f860f0e236b04047c78b7b25f53` crashes while hydrating the current vulnerability database and cannot supply Gate 3 evidence, while round 7's host `grype` command leaves scanner identity and invocation unpinned. This round-8 correction changes only that scanner identity and invocation as specified below. No prior verdict carries to round 8.
+Round-2 review of candidate commit `062cc66e54d989ae7d205901e3b6a6020cccd747`, file SHA-256 `ffd048afc4a9c520a069811012bab61002544a6bf9f89dbc5e118fedfb0fd82d`, returned CC and GLM `APPROVE_WITH_NITS` and DeepSeek `REQUEST_CHANGES`, recorded in Panel Event Ledger event `db7bf298-5441-412d-bc76-1c4980cfd80e`. The round-3 candidate at commit `397dd312b11ddb5d6063743048ba014c23fe880a`, file SHA-256 `761c5ba0fc84ec682fd5919c055916b28f7737a2e39c5e2c22c005a241d512da`, removed the unapproved verifier calls and folded the nonblocking buildability nits. Implementation-blocker Event `997aa75b-210a-4390-ba9a-451433cc575e` then established that its unchanged-W2-test rule contradicted the mandatory list-only verifier correction and that its audit ORM mapping was incompatible with the actual pre-W3 W2/`s1647` test fixture. The round-4 candidate at commit `23e82ce4e7125f2825d6f2f011d724d24325bd2c`, file SHA-256 `12911b2a41421297ac4264ecf62ead3d62189e06989fb57d057a7f8b6d9981be`, received unanimous approval recorded in Panel Event Ledger event `e59581f1-452f-4442-a6ba-5b9ed19fb48a`. Implementation-blocker Event `8daeb52a-b059-4d42-b0f7-48278ac00a44` then established that round 4's backend package-inventory requirement contradicts the unchanged backend dependency baseline. The preserved backend implementation commit is `a3f8a0437080ccc69222b1020aa7c702ce1c08a7` from original base `229689c821022b2fe8f8901f7ca32eca6f685fcf`; this specification correction does not implement, rebase, dispatch, merge, or discard it. The round-5 correction at commit `010c55606e6b50ee1395c2eeb83684180c05459b`, file SHA-256 `c2c66cc7fa690c85450ebd1ce6aa47a0a49cb1aef859dbd94f6c9d46cd8b2da6`, resolved only that consistency defect and folded the round-4 nonblocking precision nits. Ground-truth blocker Event `b286221f-86f9-40a0-a904-8b49d4c328af` then established that round 5 simultaneously requires `AWS_PROFILE_IMPLEMENTED=True` and implemented-but-not-ready capability semantics while freezing the existing W2 capability test's profile expectation at `not_implemented`; with all flags true but reviewed W3 dependencies absent, that contradiction makes the mandatory W2 suite fail with 79 passed and one failed. The round-6 correction at commit `135e4f992297989d17d4803df01ee3277b15354b` permitted only the profile-stage expectation change needed to bind the specified `dependencies_unready` result and retained every prior correction. Ground-truth Event `a7fa4fea-d481-4a9c-b40d-482e70f0366f` plus implementation-blocker Event `4ed4f638-7d46-4857-882b-343a4a7713a2` then established that the spec-pinned `python:3.11.11-slim-bookworm` runtime fails the unchanged Grype `--fail-on high` gate with 19 critical and 116 high findings. The probed newer official `3.11.16-slim-bookworm`, `3.13.14-slim-trixie`, and distroless Python 3.11 images also fail, while public Chainguard Python 3.11 tags are unavailable. The round-7 correction at commit `2bef3d193c451c1804edbc95ba9ab26b6b9d4a7c` permits and requires only the exact digest-pinned Chainguard Python 3.14.7 multi-stage runtime and its self-consistent build/test/security proof specified below; it changes no lock, manifest path, application behavior, limit, schema, migration, flag, W2 carve-out, or forbidden action. Round 7 was not reviewed. Its pre-round-7 workflow-pinned Grype image `sha256:3d13cbaf7d2b865391fde8087e23662dd0f70f860f0e236b04047c78b7b25f53` crashes while hydrating the current vulnerability database and cannot supply Gate 3 evidence, while round 7's host `grype` command leaves scanner identity and invocation unpinned. The round-8 correction at commit `f2bf84cd1e0505cdd83ec8a531f3f3a1c4afaef4`, file SHA-256 `6924b92a2f90b434df843b91a39705357e014f4581a85319693a41fe9975654e`, changed only that scanner identity and invocation. Its full panel returned CC and DeepSeek `APPROVE_WITH_NITS` and GLM `REQUEST_CHANGES`, recorded in Panel Event Ledger event `262b92f7-5d8c-44c4-b583-1847c199e1ec`, because `M1-SHELL-PROOF-FAIL-OPEN` treated every nonzero Docker result as shell absence and inspected only `/bin/sh`. This round-9 correction replaces only that fail-open probe with the closed-set, exact-image filesystem inventory and negative controls specified below. No prior verdict carries to round 9.
 
 The canonical W2 integration points are exact:
 
@@ -425,15 +425,90 @@ docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-
 S1650_BOOTSTRAP_EXIT="$?"
 set -e
 test "$S1650_BOOTSTRAP_EXIT" -eq 50
-set +e
-docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65532:65532 --entrypoint /bin/sh "$S1650_RUNTIME_IMAGE_ID" -c true
-S1650_SHELL_EXIT="$?"
-set -e
-test "$S1650_SHELL_EXIT" -ne 0
-S1650_GRYPE_IMAGE="anchore/grype@sha256:8a93fc48da96bd6ec5981279d099b69de11541dc68fdf222fb9161f8ff284af7"
 S1650_EVIDENCE_DIR="${RUNNER_TEMP}/s1650-gate3-evidence"
-S1650_GRYPE_REPORT="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-grype.json"
+S1650_SHELL_INVENTORY="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-shell-inventory.json"
+S1650_SHELL_NEGATIVE_CONTROL="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-shell-inventory-negative-control.json"
+S1650_DOCKER_FAILURE_OUTPUT="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-shell-inventory-unexpected-docker.json"
+S1650_DOCKER_FAILURE_RECEIPT="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-shell-inventory-unexpected-docker-receipt.json"
+S1650_SHELL_PATHS_JSON='["/bin/sh","/bin/bash","/bin/ash","/bin/dash","/bin/zsh","/usr/bin/sh","/usr/bin/bash","/usr/bin/ash","/usr/bin/dash","/usr/bin/zsh","/usr/local/bin/bash","/busybox/sh"]'
+S1650_SHELL_ASSERTION='
+  length == 1 and
+  (.[0] |
+    type == "object" and
+    keys == ["image_id", "inventory", "schema"] and
+    .schema == "seller_workspace_profile_shell_inventory.v1" and
+    .image_id == $image_id and
+    (.inventory | type == "array") and
+    ([.inventory[].path] == $shell_paths) and
+    all(.inventory[];
+      type == "object" and
+      keys == ["path", "present"] and
+      (.path | type == "string") and
+      (.present | type == "boolean") and
+      (.present == false)
+    )
+  )'
 mkdir -p "$S1650_EVIDENCE_DIR"
+s1650_collect_shell_inventory() {
+  local image_id="$1"
+  local output="$2"
+  local temporary="${output}.tmp"
+  if docker run --rm --pull never --network none --read-only --cap-drop ALL --security-opt no-new-privileges:true --user 65532:65532 --entrypoint python "$image_id" -c '
+import json
+import os
+import sys
+
+image_id = sys.argv[1]
+paths = json.loads(sys.argv[2])
+if not isinstance(paths, list) or not paths or len(paths) != len(set(paths)) or any(not isinstance(path, str) or not path.startswith("/") for path in paths):
+    raise ValueError("invalid closed shell path set")
+
+def is_present(path):
+    try:
+        os.lstat(path)
+    except FileNotFoundError:
+        return False
+    except OSError as error:
+        raise RuntimeError(f"inventory error for {path}: errno={error.errno}") from error
+    return True
+
+inventory = [{"path": path, "present": is_present(path)} for path in paths]
+print(json.dumps({"schema": "seller_workspace_profile_shell_inventory.v1", "image_id": image_id, "inventory": inventory}, sort_keys=True, separators=(",", ":")))
+' "$image_id" "$S1650_SHELL_PATHS_JSON" > "$temporary"; then
+    mv -- "$temporary" "$output"
+  else
+    rm -f -- "$temporary" "$output"
+    return 125
+  fi
+}
+s1650_assert_no_shells() {
+  local image_id="$1"
+  local output="$2"
+  s1650_collect_shell_inventory "$image_id" "$output" || return "$?"
+  jq -e -s --arg image_id "$image_id" --argjson shell_paths "$S1650_SHELL_PATHS_JSON" "$S1650_SHELL_ASSERTION" "$output"
+}
+s1650_assert_no_shells "$S1650_RUNTIME_IMAGE_ID" "$S1650_SHELL_INVENTORY"
+jq '(.inventory[] | select(.path == "/bin/sh") | .present) = true' "$S1650_SHELL_INVENTORY" > "$S1650_SHELL_NEGATIVE_CONTROL"
+jq -e '[.inventory[] | select(.path == "/bin/sh" and .present == true)] | length == 1' "$S1650_SHELL_NEGATIVE_CONTROL"
+if jq -e -s --arg image_id "$S1650_RUNTIME_IMAGE_ID" --argjson shell_paths "$S1650_SHELL_PATHS_JSON" "$S1650_SHELL_ASSERTION" "$S1650_SHELL_NEGATIVE_CONTROL"; then
+  echo "shell-presence negative control unexpectedly passed" >&2
+  exit 1
+else
+  S1650_SHELL_NEGATIVE_EXIT="$?"
+fi
+test "$S1650_SHELL_NEGATIVE_EXIT" -eq 1
+S1650_IMPOSSIBLE_IMAGE_ID="sha256:0000000000000000000000000000000000000000000000000000000000000000"
+if s1650_assert_no_shells "$S1650_IMPOSSIBLE_IMAGE_ID" "$S1650_DOCKER_FAILURE_OUTPUT"; then
+  echo "unexpected-Docker-failure negative control unexpectedly passed" >&2
+  exit 1
+else
+  S1650_DOCKER_FAILURE_EXIT="$?"
+fi
+test "$S1650_DOCKER_FAILURE_EXIT" -eq 125
+test ! -e "$S1650_DOCKER_FAILURE_OUTPUT"
+jq -n --arg schema "seller_workspace_profile_shell_inventory_docker_failure.v1" --arg image_id "$S1650_IMPOSSIBLE_IMAGE_ID" --argjson exit_code "$S1650_DOCKER_FAILURE_EXIT" '{schema: $schema, image_id: $image_id, inventory_emitted: false, workflow_exit_code: $exit_code}' > "$S1650_DOCKER_FAILURE_RECEIPT"
+S1650_GRYPE_IMAGE="anchore/grype@sha256:8a93fc48da96bd6ec5981279d099b69de11541dc68fdf222fb9161f8ff284af7"
+S1650_GRYPE_REPORT="${S1650_EVIDENCE_DIR}/seller-workspace-profile-runtime-grype.json"
 docker run --rm \
   --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
   --mount "type=bind,src=${S1650_EVIDENCE_DIR},dst=/evidence" \
@@ -442,13 +517,15 @@ docker run --rm \
 jq -e '[.matches[] | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical")] | length == 0' "$S1650_GRYPE_REPORT"
 ```
 
+The no-shell proof invokes the `python` interpreter fixed by the final image's entrypoint and inventories the exact `S1650_RUNTIME_IMAGE_ID`; it never invokes a shell in the image. Only Docker exit `0` permits the temporary JSON to become the inventory artifact, and the slurped JSON assertion then requires exactly one well-formed object, the exact image ID, the exact ordered closed path set, boolean presence values, and absence at every path. Any Docker CLI, daemon, OCI-runtime, resource, security-option, interpreter, JSON, output-shape, filesystem-permission, or other inventory error returns nonzero and fails the workflow; it is never interpreted as shell absence. Gate 3 must retain the positive inventory, the `/bin/sh`-presence simulation for which the absence assertion exits exactly `1`, and the impossible-local-image/`--pull never` receipt proving the same workflow returns `125` and emits no inventory on an unexpected Docker failure.
+
 The scanner must hydrate its current/default vulnerability database with no database pin, database cache mount, cached stale database, update disablement, alternate update source, or fallback-to-success. The image gate permits no ignore list, vulnerability baseline, `--only-fixed` option, scan-scope reduction, severity reduction, threshold weakening, or equivalent waiver. A missing/stale scan database, hydration failure, pull failure, malformed report, absent architecture or manifest digest, dependency/version mismatch, unexpected bootstrap exit, shell presence, or nonzero HIGH/CRITICAL count fails closed. Scanner-compatibility evidence records that exact scanner digest successfully scanned exact local image identity `sha256:94f5b36eaf4755121e327fed705d45c34781b0420c7a21b09eae02a60854bc77` with zero HIGH and zero CRITICAL findings. That record establishes scanner compatibility only; it is not Gate 2 approval and does not substitute for the fresh `linux/amd64` Gate 3 candidate scan. The Grype JSON report and immutable production manifest digest are emitted as Gate 3 evidence; neither the verified pre-authoring probes nor an `arm64` build substitutes for this fresh `linux/amd64` candidate proof.
 
 Dependency/import scans fail on any AIM Data module/package/database/install identity/serial/tunnel/broker client/container dependency and on any W3 allAI/LLM schema, builder, gateway, task, route, import, or call. They also fail if any W3 backend/web/control module, schema, route, task, service, or test imports, invokes, dynamically loads, or relies on PyArrow or the parser runtime, or if W3 adds a backend dependency. These scans prove W3 non-use and non-reliance; they do not require changing or proving the baseline backend package inventory. The pre-existing transitive `pyarrow==23.0.1` installation required by unchanged `datasets` is baseline-only and is neither used nor claimed by W3. The separately locked runtime is the only W3 PyArrow/parser execution surface and proves the exact locked parser surface independently.
 
 ## 13. Exact Gate 3 and Gate 4 proof
 
-Gate 3 requires one immutable candidate whose changed-path set equals the closed **55-path** Section 2 manifest exactly, with no unlisted path and no missing row. The path-set evidence must classify the workflow-produced broker ZIP, verifier ZIP, package/schema digest manifest, OCI manifest/digest, SBOM, and vulnerability report as generated evidence rather than repository diff paths. It must prove `requirements.txt`, `requirements-dev.txt`, both runtime lock files, W2 b1, b2a, and PostgreSQL safety tests, `railway.worker.json`, Gate 1, and every delivery/serial/`legacy_serial` file byte-for-byte unchanged; it must separately prove that W2 b2b changes only the named verifier-policy test and the named capability test's AWS profile-stage expectation, with every other byte and assertion in both tests and every unrelated b2b test byte-for-byte unchanged. Dependency/import evidence must prove the Section 12 no-W3-import/invocation/dynamic-load/reliance boundary without treating the unchanged backend package inventory as a W3 assertion. The candidate also requires exact base and diff, clean build, single Alembic head, all Python 3.11 backend focused commands and all 26 exact-builder Python 3.14.7 runtime tests passing, the Section 12 isolated Python 3.11 hash-locked `cfn-lint==1.50.1` bootstrap and lint command passing, an unweakened repository secret scan passing, exact builder/runtime index identities and `linux/amd64` production manifest digest, final-image dependency import/version proof, expected safe bootstrap exit `50` under every specified container restriction, no-shell proof, the exact digest-pinned Docker Grype `0.118.0` `--fail-on high` scan with a current/default schema-6 database and zero HIGH and zero CRITICAL findings, package/image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, unchanged Gate 1 digest, and proof that verifier calls and IAM permissions contain no action outside the exact Gate 1 Section 6.3 set. None of these requirements permits an ignore list, baseline, database pin, cached stale database, `--only-fixed`, scope or severity reduction, threshold weakening, fallback-to-success, or any other scan waiver.
+Gate 3 requires one immutable candidate whose changed-path set equals the closed **55-path** Section 2 manifest exactly, with no unlisted path and no missing row. The path-set evidence must classify the workflow-produced broker ZIP, verifier ZIP, package/schema digest manifest, OCI manifest/digest, SBOM, vulnerability report, shell inventory, shell-presence negative-control inventory, and unexpected-Docker-failure receipt as generated evidence rather than repository diff paths. It must prove `requirements.txt`, `requirements-dev.txt`, both runtime lock files, W2 b1, b2a, and PostgreSQL safety tests, `railway.worker.json`, Gate 1, and every delivery/serial/`legacy_serial` file byte-for-byte unchanged; it must separately prove that W2 b2b changes only the named verifier-policy test and the named capability test's AWS profile-stage expectation, with every other byte and assertion in both tests and every unrelated b2b test byte-for-byte unchanged. Dependency/import evidence must prove the Section 12 no-W3-import/invocation/dynamic-load/reliance boundary without treating the unchanged backend package inventory as a W3 assertion. The candidate also requires exact base and diff, clean build, single Alembic head, all Python 3.11 backend focused commands and all 26 exact-builder Python 3.14.7 runtime tests passing, the Section 12 isolated Python 3.11 hash-locked `cfn-lint==1.50.1` bootstrap and lint command passing, an unweakened repository secret scan passing, exact builder/runtime index identities and `linux/amd64` production manifest digest, final-image dependency import/version proof, expected safe bootstrap exit `50` under every specified container restriction, the machine-readable exact-image shell inventory and exact closed-set absence assertion, the shell-presence and unexpected-Docker-failure negative controls, the exact digest-pinned Docker Grype `0.118.0` `--fail-on high` scan with a current/default schema-6 database and zero HIGH and zero CRITICAL findings, package/image/SBOM/vulnerability identities, CloudFormation digest, schema digests, default-off configuration proof, unchanged Gate 1 digest, and proof that verifier calls and IAM permissions contain no action outside the exact Gate 1 Section 6.3 set. None of these requirements permits an ignore list, baseline, database pin, cached stale database, `--only-fixed`, scope or severity reduction, threshold weakening, fallback-to-success, or any other scan waiver.
 
 Before launch enforcement can be accepted, Gate 3 must also pin the regional price-table and estimate-model versions and supply the Section 7.1 worst-case recomputation showing every absolute USD cap is conservative for each supported region/AZ/endpoint placement and the full two-attempt envelope. Static review, manifest closure, backend tests, runtime tests, package checks, image scan, migration, IaC review, price-model validation, and legacy tests are separate evidence. Independent CC, GLM, and DeepSeek must review the exact Gate 3 commit; the builder is excluded.
 
