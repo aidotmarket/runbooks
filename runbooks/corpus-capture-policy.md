@@ -35,7 +35,7 @@ error_signatures:
 | Entity churn-prefix denylist | PARTIAL | `app/services/state_service.py` | `tests/test_qdrant_producer_coalescing_s1194.py` | 2026-07-30 |
 | Entity default-DENY admission at producers | SHIPPED | `app/services/state_service.py` | `tests/test_state_corpus_disposition.py` | 2026-08-21 |
 | Corpus control plane (six classes) | SHIPPED | `app/services/corpus_admission_service.py` | `tests/test_corpus_admission.py` | 2026-08-21 |
-| Structure-fingerprint moat capture (S1396) | PARTIAL | `app/services/metadata_corpus_capture.py` | `tests/test_s1396_chunk_c.py` | 2026-08-22 |
+| Structure-fingerprint moat capture (S1396) | PARTIAL (pilot capture on since 2026-09-07) | `app/services/metadata_corpus_capture.py` | `tests/test_s1396_chunk_c.py` | 2026-09-07 |
 | S1396 semantic trust ledger and Corpus console | SHIPPED | `app/services/corpus_trust_service.py` | `tests/test_s1396_corpus_trust.py`, authorized Chrome DOM proof | 2026-08-28 |
 | Outbox done-row retention sweep | PLANNED | — | — | 2026-07-30 |
 | Embedding cost/volume attribution alarm | PLANNED | — | — | 2026-07-30 |
@@ -71,6 +71,9 @@ Only these six classes exist; everything else is denied by default at the produc
 6. **curated_ai_output** - human-curated AI synthesis with source references and model provenance, down-weighted at 0.20 and experiment-gated.
 
 ### Architecture & interactions.3 What we KEEP - the moat capture (S1396, foundation and default-off producers live)
+
+**Pilot activation (Max option A, S1657, 2026-09-07).** `CORPUS_METADATA_GENERATION_INTERACTION_ENABLED=true` and `CORPUS_CORRECTION_DELTA_ENABLED=true` in production (Railway deployment `e298c26a-26ad-40e6-aa6c-6787efd28a6a`), with `CORPUS_SHADOW_PILOT_LISTING_IDS` set to the 34 listings published at that moment and `CORPUS_SHADOW_PILOT_MAX_ROWS=5000`. Equivalence edges (Chunk D) and the coverage reconciler (Chunk E) are not built and stay off. Review the Corpus console after one week; removing the listing allowlist so new listings are captured is a separate, Council-reviewed change.
+
 
 Per metadata-generation interaction: the structure fingerprint of the customer source (schema shape, never content), the metadata allAI generated for it, the seller's corrections to that metadata, and persisted equivalence mappings between differently-labeled listings that describe the same kind of data. This is the compounding classification-and-matching asset Max defined as the long-term moat on 2026-07-29.
 
