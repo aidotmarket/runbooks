@@ -393,6 +393,12 @@ scenario_set:
     weight: 0.0909090909
 ```
 
+## Deferred column drops
+
+| Table.columns | Origin | Decision | Precondition before any drop |
+|---|---|---|---|
+| `seller_profiles` ten Stripe/KYC columns (`stripe_account_id`, `stripe_onboarding_complete`, `stripe_charges_enabled`, `stripe_payouts_enabled`, `stripe_account_created_at`, `stripe_connect_id`, `stripe_connect_status`, `payout_enabled`, `kyc_status`, `kyc_verified_at`) plus recreate of `mcp_safe.seller_profiles` view | T-2026-000565 chunk C2-E, spec `specs/t-2026-000565-gate2.md` (ai-market-backend `archive/s1605/t565/gate2-amendment-a1-r4`) | Max decision S1664, event `17eaf618`: ticket closed as delivered, drop handed to this process | Fresh case-sensitive inventory across `app/` for all ten identifiers, raw `seller_profiles` SQL, `SELECT *`, ORM mappings, schemas, serializers and dynamic update maps, every hit classified; any surviving direct consumer blocks the drop. Canonical store is `party_identity` (see `runbooks/stripe-connect-identity.md`). Unanimous Council gate per CORE S3. |
+
 ## Maintenance
 
 ```yaml lifecycle
