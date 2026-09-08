@@ -49,10 +49,9 @@ Local `GET /api/auth/aim-market/bootstrap` returns `enabled`, `reason`, `csrf_no
 ```sh
 rtk proxy railway deployment list -e production -s ai-market-backend
 rtk proxy .venv/bin/python scripts/provision_aim_data_oauth.py --dry-run
-rtk proxy .venv/bin/python scripts/provision_aim_data_oauth.py --dry-run --activate
 ```
 
-The CLI verifies exact immutable fields and migration ownership, never adopts a conflicting row. `created` means absent/would create on dry-run, `unchanged` means matching provisioned row; neither alone proves active. With `--activate`, `unchanged` means already active, `activated` means would activate on dry-run. `--dry-run --activate` on a missing row reports `conflict` because dry-run does not insert it; use the plain dry-run result to distinguish absence. Other `conflict` results exit 2: stop and investigate schema/provenance; do not overwrite it. A narrow DB check is `SELECT client_id,is_active FROM oauth_clients WHERE client_id='aim_data_desktop_v1';`; it complements, not replaces, the trust/provenance check. For authorized repair only, `rtk proxy .venv/bin/python scripts/provision_aim_data_oauth.py --apply` provisions, and `rtk proxy .venv/bin/python scripts/provision_aim_data_oauth.py --apply --activate` commits activation. Normal installation uses the active seed migration, with no manual activation step. `--activate` requires the defaults-flip backend revision; it does not exist at the historical backend pin in §I. Recheck public status and deployment identity afterward.
+The CLI verifies exact immutable fields and migration ownership, never adopts a conflicting row. `created` means absent/would create on dry-run, `unchanged` means matching provisioned row; neither alone proves active. `conflict` results exit 2: stop and investigate schema/provenance; do not overwrite it. A narrow DB check is `SELECT client_id,is_active FROM oauth_clients WHERE client_id='aim_data_desktop_v1';`; it complements, not replaces, the trust/provenance check. For authorized repair only, `rtk proxy .venv/bin/python scripts/provision_aim_data_oauth.py --apply` provisions. The CLI remains dry-run/`--apply` provisioning only; activation is performed by migration `s1665_aim_data_oauth_activate`, with no manual CLI activation step. Recheck public status and deployment identity afterward.
 
 **Switch off, backend first:**
 
@@ -61,9 +60,9 @@ rtk proxy railway variables -e production -s ai-market-backend --set AIM_DATA_OA
 rtk proxy railway deployment list -e production -s ai-market-backend
 ```
 
-Wait for the new deployment to succeed and status to report `enabled:false`. Set website build variable `NEXT_PUBLIC_AIM_DATA_OAUTH_ENABLED=false`, rebuild and redeploy the frontend; a runtime variable change alone cannot change the compiled UI. Clear the tab's `aim_data_authorization_request` continuation metadata. Set `AIM_DATA_OAUTH_ENABLED=false` in the customer Compose `.env`, then run `rtk docker compose -f docker-compose.aim-data.yml up -d --force-recreate app`. This restarts process-local attempts; clear invalidated OAuth tokens/mode through local logout. Do not remove data volumes.
+Wait for the new deployment to succeed and status to report `enabled:false`. Set website build variable `NEXT_PUBLIC_AIM_DATA_OAUTH_ENABLED` to the literal `false` (case-insensitive after the fold; `0`/`off` are also accepted), rebuild and redeploy the frontend; a runtime variable change alone cannot change the compiled UI. Clear the tab's `aim_data_authorization_request` continuation metadata. Backend and AIM Data `AIM_DATA_OAUTH_ENABLED` flags use Pydantic bool parsing. Set `AIM_DATA_OAUTH_ENABLED=false` in the customer Compose `.env`, then run `rtk docker compose -f docker-compose.aim-data.yml up -d --force-recreate app`. This restarts process-local attempts; clear invalidated OAuth tokens/mode through local logout. Do not remove data volumes.
 
-**Revoke reserved refresh families and pending work:** after backend off and old instances drained, an authorized DB operator runs this transaction against the confirmed production DB. It mirrors `revoke_grant` for only the reserved client; no public bulk-revoke endpoint is shipped. Capture counts only, never token/session row contents.
+**`disable_and_revoke` — revoke reserved refresh families and pending work:** after backend off and old instances drained, an authorized DB operator runs this transaction against the confirmed production DB. It mirrors `revoke_grant` for only the reserved client; no public bulk-revoke endpoint is shipped. Capture counts only, never token/session row contents.
 
 ```sql
 BEGIN;
@@ -113,6 +112,8 @@ Keep the corrected customer password adapter: it captures the named upstream ref
 
 Browser localStorage retains account tokens/auth mode; the local serial file retains the marketplace access token and install state. `app/services/serial_store.py` writes `/data/serial.json` atomically with mode **0600**. Owner-only permissions are not encryption: browser script compromise, host/file access or copied backups can expose credentials. No provider secret or PKCE verifier belongs in persistent storage. Avoid callback URL/query screenshots, request bodies, cookies and credential-bearing logs/exports. Pending local attempts expire after 600s; completed credentials have a 60s one-use window, with periodic cleanup. Check permissions without printing file contents.
 
+**Observability:** with the feature on, `OAuthLogFilter` suppresses uvicorn access-log lines containing `/oauth/authorize` or `/oauth/token`. This also covers existing M2M `client_secret_post` traffic. Source: backend candidate `5fe6486e524beda59577100025e4b7e942b29982`, [app/services/aim_data_oauth_service.py:488–498](https://github.com/aidotmarket/ai-market-backend/blob/5fe6486e524beda59577100025e4b7e942b29982/app/services/aim_data_oauth_service.py#L488-L498).
+
 ## I. Source and proof links
 
 Historical merged contract pins below predate the default-on directive; they prove paths/behavior, not the new defaults or live acceptance. Backend provisioning helper is **root `aim_data_oauth_provision.py`**, not `app/services/aim_data_oauth_provision.py`.
@@ -150,6 +151,11 @@ Unit tests and Gate 3 references do not close these rows. AC11 requires the auth
 | B website | Build flag false, rebuild/redeploy (or previous reviewed frontend after A off); clear continuation metadata. Existing website login stays. |
 | C customer | Local flag false, recreate app/expire attempts and clear invalidated OAuth tokens/mode. Retain corrected password/2FA adapter and volumes; provider-only outage guidance applies. |
 | D docs/runner/notes | Revert only erroneous content/charter/runner/notes; retain historical proof and outage guidance. No account resets, volume deletion or listing reversal. |
+
+**Residual access after env-only rollback (Council defaults-on review, DeepSeek, 2026-09-08):**
+
+- Pending authorization transactions live for up to **600 s**. `GET /api/v1/oauth/authorize/requests/{request_id}` still serves metadata (`request`, `client_name`, `scope`, `expires_at`, `csrf_nonce`) for a valid transaction with its binding cookie because `metadata()` is not flag-gated. No authorization code or token can be minted while the backend flag is off. Run the `disable_and_revoke` procedure in §D to expire pending transactions immediately.
+- Already-issued access tokens remain valid until expiry (**30 minutes** by default; record the configured lifetime as in §D). Refresh is refused once the backend flag is off.
 
 ## K. Open items
 
