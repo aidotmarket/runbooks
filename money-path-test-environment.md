@@ -80,11 +80,13 @@ The proxy preserves the raw request body and `Stripe-Signature`, limits the body
 
 | Product/runtime | Pinned identity |
 | --- | --- |
-| ai-market-backend | `267f68fd7582453d95f504bc612d18570852e287` |
-| ai-market-frontend | `c845f50f1df02bd97bfc5e8f9011c78511da6699` |
-| AIM Data source | `3bb318440d71b79162ef6a9ae625f1c8e30ca609` |
-| AIM Data image | `v1.22.8-rc.1@sha256:74c3b233fd288b5ec8bc9ce37de2f43ae1ee833bad757e70015f894f45c8c7bd` |
-| Browser runner | Playwright `1.61.0`, Chromium revision `1228`, browser `149.0.7827.55` |
+| ai-market-backend | `1c96b257c34938ea547be1eb818d5e902ff49f56` |
+| ai-market-frontend | `943429b586fa4acd55f81f23ded5005cbcf841e1` |
+| AIM Data source | `3ca95783e133337f6f64ee3efa04835a8c0f9611` |
+| AIM Data image | `v1.23.1@sha256:b783f7cb6c6f48871ce5b08f3ab9b5ff52f3576ae9198330e6d50042692ec083` (stable release tags are accepted; the digest is mandatory) |
+| Browser runner | Playwright `1.61.0`, Chromium revision `1228`, browser `149.0.7827.0` |
+
+Each repin is a reviewed environment PR (precedent PR #3/#9, DeepSeek review) plus an amendment A2 item in `specs/BQ-MONEY-PATH-TEST-ENV-S1656-GATE1.md` naming the new environment head; `./bin/verify --from-clean-seed` refuses to write evidence unless `S1656_SPEC_A2_SHA` points at a runbooks commit whose A2 text names the exact environment `HEAD` (`bin/verify:34-49`). Last clean-seed evidence on the pins above: 2026-09-08, environment head `24d884f1`, A2 commit `dbc65504`, bundle `20260908T215737Z` (AC1-AC12 passed; device contract reported an active trust session for seller-01).
 
 `./bin/up` prepares managed clones under `.state/sources/{backend,frontend,aim-data}` from the exact GitHub remotes, requires clean working trees, fetches the exact 40-character SHAs (shallow, depth 1) and checks them out detached. `./bin/preflight` refuses short SHAs, branches, dirty trees, wrong remotes, tag/SHA disagreement, image-digest disagreement, or browser package/revision drift. Do not repair a pin failure by moving a tag, selecting `main`, editing a managed checkout, or substituting another image.
 
