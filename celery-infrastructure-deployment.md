@@ -479,3 +479,5 @@ Verify repeated scheduled task completion in the same worker process; a first
 successful task or worker readiness alone cannot establish this correction.
 The actual failure logs and correction proof are in seller-scheduler-implementation-
 continuation/outputs. Production and existing peer environments remain unchanged.
+
+S1685 final disposition: CC/GLM/DeepSeek APPROVE_WITH_NITS, no HIGH/MEDIUM findings, for exact c3a28af26bc093aec11375c702d70d8cf5124067. Intrinsic worker/web refusal and actual isolated scheduled publication, retry/recovery, profile-loop reuse and broker-only Beat proof passed. PR354 integrated by exact fast-forward into held seller PR342. This supersedes the S1684 pending implementation statement above, without clearing production exclusion, schema transition, topology, ACL/KMS, R2 or enabled-release gates. All new S1685 containers stopped cleanly with artifacts retained.

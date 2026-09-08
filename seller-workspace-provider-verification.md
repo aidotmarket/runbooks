@@ -434,7 +434,7 @@ and a bounded Qdrant failure with retained retry count/deadline and next-due
 recovery. Beat emitted nothing during a65second stop and resumed without duplicate
 seller IDs in the observed window. Only then was its prefix removed; the exact
 configured final command repeated the real pause/resume/retry/search proof.
-Independent exact-code review remains pending.
+CC, GLM and DeepSeek all APPROVE_WITH_NITS for exact c3a28af26bc093aec11375c702d70d8cf5124067, with no HIGH/MEDIUM findings. PR354 merged by exact fast-forward into held seller PR342 at that SHA; main remains 1c96b257c34938ea547be1eb818d5e902ff49f56. The 4,571-file review seal is 7babbd6503469a805096207394586983e77e3f822e03ca953528feb181653172. Original reports and their coverage limits are preserved. Advisory loop-helper coupling/deprecation and wrapper coverage nits do not require changes for this integration.
 All three unchanged seller/profile schedule entries are explicitly allowlisted
 in this harness. This is not complete production schedule or topology proof.
 
@@ -445,7 +445,7 @@ UPDATE grant in the synthetic role, separately corrected only in that fixture.
 The readable-shape admission check is not write-privilege certification.
 
 Evidence and all limitations: seller-scheduler-implementation-continuation/outputs.
-New local PG16, Redis and Qdrant resources preserve old previews and peer state.
+All new S1685 runtime containers are stopped, retaining data, images and networks. No protected serving checkout was advanced. A post-seal check found old preview listeners4346/4347 and PIDs3276/2477 absent;4344/4345/59941 retained original PIDs. Cause is unverified; S1685 issued no stop/restart to those host processes. Do not claim final listener equality or restart expired fixtures. See SELLER-POST-SEAL-PRESERVATION.md separately from the immutable review input.
 Provider/identity/key wrapping/credential placeholders/embeddings are synthetic.
 Owner migration rehearsal is a separate no-op at the already-full schema, after
 old local processes stopped; it is not a production schema transition or proof
