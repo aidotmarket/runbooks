@@ -15,6 +15,8 @@ error_signatures: []
 
 ## Operating rule: check runbooks first
 
+**Always check for a relevant runbook. If none exists, create one. If it is inaccurate, update it.**
+
 Before advising on secret names, project/environment selection, access, verification or rotation, search the runbooks and read this document and the relevant provider/service runbook. For credential operations, also read [local-secops.md](local-secops.md). Use current evidence to resolve outdated or conflicting instructions; do not invent project names or assume a password manager is the secret store.
 
 ## Source of Truth & Propagation (READ FIRST)
