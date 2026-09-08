@@ -280,3 +280,16 @@ call or payment occurred. Exact-image corrected evidence and review disposition
 will supersede this preparation note below. Full R2, production ACL/KMS, semantic
 backup/PITR/purchased-rights recovery, rolling fleet, accepted demand targets and
 authorized enabled release remain open.
+
+S1680 exact candidate b3f68a18a727ff8d4f8aac8ba3e397df89b88be5, draft PR353:
+30publication/search/rollback tests and18OAuth route tests pass. The16lint
+diagnostics match the seller base exactly; lint is not clean. The final rebuilt
+ARM image matches all inspected source/config files. Its full restored schema
+accepts actual source save, draft, review, approval and publication under the
+non-owner prototype role; actual Qdrant/public search transitions1/0/1 and drains
+the outbox each time, with both embedding methods now supplied synthetically.
+Actual shared billing under the same role restores20starter cents, preserves
+1000paid cents and refuses failed-request replay with Workspace off. Raw failures,
+commands, evidence and scope are retained in seller-r2-release-integration-
+continuation/outputs. Review remains pending; no integration into PR342, main or
+production is claimed for this new candidate.
