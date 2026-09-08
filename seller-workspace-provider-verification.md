@@ -11,7 +11,7 @@ error_signatures:
 
 Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
 
-## Folder selection acceptance (September 8 requirement; delivery scale still pending)
+## Folder selection acceptance (September 8 requirement; synthetic delivery verified)
 
 Max reported that the first customer had 22,000 files in one folder. Treat 22,000 files as a required acceptance case, not a maximum. Sellers must be able to combine individual files and complete folders, including subfolders, then confirm the exact file count and total size before saving. Deduplicate overlapping choices. Counting uses object metadata only; it does not read file contents or invoke profiling or Allai.
 
@@ -27,7 +27,7 @@ A PostgreSQL service test saved and reloaded all 22,000 nested synthetic file id
 
 Normal Chrome tabs1702607580 and1702607583 at http://127.0.0.1:4341 verified counting progress with save disabled, then 22,000 files totaling 21.5 MB (22,528,000 exact bytes), explicit confirmation, actual encrypted source-service save, and a fresh page reload retaining every file. Selected and review previews render 50 filenames per page. The exact saved synthetic Regional Retail Sales listing ($30.00, Research use, no public sample) was reviewed, explicitly approved and published via actual services in an isolated PostgreSQL database, listing7c64a154-3aa7-42fb-9517-471b62d3311d. Allai stayed visible. Discovery/provider, authentication and KMS are local synthetic seams; no 22,000-object cloud fixture or production publication occurred. Frontend focused tests: 44 passed; TypeScript validation passed.
 
-Large-folder buyer delivery remains unproven end to end. The delivery work below removes the repeated full-source and growing-map work; actual HTTP-limit and browser/cloud proof is still required before declaring the acceptance case complete. Existing real AWS browser transfer evidence covers only the two selected fixture files.
+The synthetic 22,000-file acceptance case now includes complete native Chrome delivery through the actual HTTP service, PostgreSQL and Redis, as recorded below. Real-cloud bulk transfer remains unverified; existing real AWS browser transfer evidence covers only the two selected fixture files.
 
 ### September 8 large-folder delivery implementation
 
@@ -68,8 +68,8 @@ A bounded ListBuckets(Prefix=aimarket-e2e-, MaxBuckets=20) returned no buckets a
 ## Next required evidence
 
 1. Resolve the Cloudflare token endpoint's supported server-client access, then repeat a fresh one-use authorization attempt within existing consent scope. Verify token audience/expiry/refresh, bucket binding, revocation and the approved direct-delivery authority before enabling R2.
-2. Complete the dedicated synthetic AWS fixture under Max’s September 8 authorization, then verify exact-prefix read restrictions and browser CORS. This authorization covers the prepared bucket, read role, and three tiny synthetic files only.
-3. Verify the full Chrome seller-to-buyer transfer against that fixture. Unit tests and catalog metadata do not substitute for provider or browser proof.
+2. Preserve the completed dedicated AWS fixture, exact-prefix restrictions, browser CORS and two-file native Chrome transfers recorded below. Its authorization covers the prepared bucket, read role and three tiny synthetic files only.
+3. Complete the remaining integrated candidate, search worker, independent review and authorized release evidence. The completed synthetic 22,000-file native Chrome transfer does not establish real-cloud bulk transfer or production readiness.
 
 Keep AWS/R2 product flags off until release evidence and authorization are complete. Never expose credentials or signed URLs in runbooks, support messages or test outputs.
 
@@ -93,3 +93,11 @@ The actual connection service reached verified for synthetic connection b330c744
 The harness identity can read public-access settings but cannot inspect encryption/versioning/ownership/CORS through CLI. Normal Chrome independently confirmed versioning Enabled, SSE-S3 encryption, Bucket owner enforced ownership, all public access blocked, and the exact configured GET/If-Match/ETag CORS rules. These console checks do not require expanding the harness policy.
 
 An isolated local preview used real source validation, review, approval, publication, download-session and per-file delivery services with a synthetic unpaid test order and real AWS storage. HTTP smoke verified both exact file hashes and the expected Access-Control-Allow-Origin through actual signed S3 links, consuming one bundle allowance. This is provider/service evidence, not browser-transfer proof. Normal Chrome rendered the actual buyer download component at http://127.0.0.1:4330/buyer-live.html; automated folder-picker handling returned cancellation. Max subsequently selected /Users/max/Downloads/vectoraiz-test-data in normal Chrome. Two resulting ai-market-* directories each contain both selected CSV files with exact SHA-256 matches. Download records show one allowance per two-file bundle: one earlier HTTP smoke plus two browser transfers. The later observed cancellation message is not proof of a partial transfer; the saved files and grant records establish both full transfers. Local test login/KMS/configuration and stub foreign-key tables remain explicit test seams; no production flags, payments, credentials or database were changed.
+
+## September 8 current-candidate acceptance (S1667)
+
+Separate local Celery Beat and worker processes used the unmodified60-second seller-listing-search schedule, a dedicated Redis59942, disposable PostgreSQL and dedicated Qdrant1.15.5 at59943. Actual publication queued an ID-only outbox row; Beat dispatched it, the worker wrote the public search point and actual marketplace search returned the listing. Pausing immediately hid the listing through PostgreSQL filtering before remote deletion. The next scheduled run removed the point. Resume queued and restored it on the following run. The worker committed and cleared each outbox row. Public index payloads excluded the private brief and filenames. The initial fixture lacked PostgreSQL pg_trgm; adding the already-required extension to the disposable fixture corrected that test setup. The full repeat passed in132.94seconds. Embeddings were synthetic and all services were local; this is not production-worker or semantic-quality proof. Receipt: /Users/max/Documents/Codex/2026-09-08/seller-workspace-completion-after-22k/outputs/SELLER-SEARCH-WORKER-RESULT.json.
+
+Normal Chrome tab1702607604 at4345 walked the current seller code against a fresh4344PostgreSQL-backed preview. Allai returned suggestions through the actual accounting endpoint; explicit acceptance saved the description and reload restored it. Whole-folder selection deduplicated the existing choice, confirmed four files and31,992,000bytes, then saved. The exact review showed those files privately and the accepted description/price/license publicly. Explicit no-sample and four confirmations preceded approval, then explicit publication created one listing. Pause and resume persisted with two visibility audits. The ledger recorded one completed request,28starter cents reserved,2charged, unused hold returned, and paid balance unchanged at0.23focused assistant/accounting/search/management regressions also passed. Identity/capabilities/discovery/provider metadata/model/KMS and unused foreign-key targets remain synthetic seams. No customer credit, model spend or production mutation occurred. Receipt: /Users/max/Documents/Codex/2026-09-08/seller-workspace-completion-after-22k/outputs/SELLER-INTEGRATED-BROWSER-RESULT.json.
+
+The new4344/4345preview must be preserved independently of earlier evidence environments. This closes local current-candidate acceptance gaps; Cloudflare authority, full-scope independent review and concrete authorized enabled-release proof remain outstanding. Final released-on-by-default acceptance is not current authorization to change production flags.
