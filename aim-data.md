@@ -60,7 +60,7 @@ What AIM Data does today, by feature, with status and the code that backs it. `B
 |---------|--------|--------------|-----------------|
 | Install via one-liner from get.ai.market | **BROKEN** | `installers/aim-data/install.sh`, CF Worker | Yes — currently returns 502; customers cannot install via the advertised path |
 | Install via manual compose | SHIPPED | `docker-compose.aim-data.yml` + `docs/INSTALL.md` | Yes — works; 7 env vars to set |
-| Sign in with ai.market account | SHIPPED | `app/auth/`, `app/routers/auth.py` | Yes — sign in (or create) with an ai.market account at `localhost:8080/login`; no separate AIM Data account |
+| Sign in with ai.market account | SHIPPED; OAuth live proof pending | `app/routers/aim_market_oauth.py`, `app/routers/auth.py` | Primary **Sign in with ai.market** button, default on; password/2FA fallback. See [OAuth runbook](aim-data-sign-in-with-ai-market.md). |
 | Serial + bootstrap-token activation | SHIPPED | `app/services/activation_manager.py` | Silent at first boot, no UI prompt |
 | Local data profiling | SHIPPED | `app/services/profiling/` | Surfaces in the listing draft |
 | Local PII scanning (tri-state signal) | SHIPPED | `app/services/pii_scanner.py` | Yes — `passed` / `flagged` / `not run` per ai.market/aim-data trust signals |
@@ -175,7 +175,9 @@ The end-to-end flow from "seller signs up on ai.market" to "buyer's purchase pay
 
 ### First sign-in (ai.market account)
 
-AIM Data has **no local admin account** — that concept belongs to vectorAIz, the standalone tool AIM Data was forked from at the 2026-05-28 split. AIM Data authenticates **only** against ai.market. The seller opens `http://localhost:8080`, lands on the sign-in screen ("Sign in with your ai.market account"), and signs in with an existing ai.market account or uses "Create one at ai.market" to register. There is no separate AIM Data account and no install-side admin-creation or password-reset screen — account and password management live entirely at ai.market.
+AIM Data has **no local admin account** — that concept belongs to vectorAIz, the standalone tool AIM Data was forked from at the 2026-05-28 split. AIM Data authenticates **only** against ai.market. The seller opens the installer’s numeric `http://127.0.0.1:<published-port>` URL, lands on the sign-in screen ("Sign in with your ai.market account"), and signs in with an existing ai.market account or uses "Create one at ai.market" to register. There is no separate AIM Data account and no install-side admin-creation or password-reset screen — account and password management live entirely at ai.market.
+
+For the primary **Sign in with ai.market** button, exact local-origin requirements, fallback and rollback, see [Sign in with ai.market](aim-data-sign-in-with-ai-market.md).
 
 ### Serial activation
 

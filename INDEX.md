@@ -126,6 +126,15 @@
 - Error signatures: none
 - Status: current
 
+## AIM Data — Sign in with ai.market
+- Path: `aim-data-sign-in-with-ai-market.md`
+- Purpose: Operate and troubleshoot AIM Data account sign-in: customer installation, operator readiness, fallback, revocation and rollback. Source contracts are verified; Gate 4 live proofs remain pending.
+- Owner: `vulcan`
+- Last verified: `2026-09-08`
+- Aliases: aim data oauth, sign in with ai.market, aim_data_desktop_v1, AIM_DATA_OAUTH_ENABLED
+- Error signatures: client_disabled, unauthorized_client, loopback_origin_required, invalid_request, invalid_grant, address already in use, origin_mismatch, csrf_failed, backend_unsupported, backend_unavailable
+- Status: current
+
 ## AIM Node Release Process
 - Path: `aim-node-release-process.md`
 - Purpose: Builds and publishes new AIM Node versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds, and runs smoke tests.

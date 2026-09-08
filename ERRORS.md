@@ -64,6 +64,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `address already in use`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
 ## `alerts unavailable`
 
 - [Alerts at session open (S1529)](runbooks/alerts-at-open.md)
@@ -95,6 +99,14 @@
 ## `backend qdrant calls 401 after rotation`
 
 - [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
+
+## `backend_unavailable`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
+## `backend_unsupported`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
 ## `background build(s) running/queued; deferring`
 
@@ -184,6 +196,10 @@
 
 - [Branch Landed Verification](runbooks/branch-landed-verification.md)
 
+## `client_disabled`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
 ## `Cloudflare targets remain or absence is unproved`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -247,6 +263,10 @@
 ## `CRYPTO_SCHEME_MISMATCH`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
+
+## `csrf_failed`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
 ## `cutover_admission_unknown`
 
@@ -532,6 +552,14 @@
 
 - [Work Checkout (Enforced Ownership)](work-checkout.md)
 
+## `invalid_grant`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
+## `invalid_request`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
 ## `is an operator-controlled one-shot migration`
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
@@ -595,6 +623,10 @@
 ## `live Stripe secret-key prefix refused before network access`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `loopback_origin_required`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
 ## `malformed_output`
 
@@ -719,6 +751,10 @@
 ## `operator does not exist: userstatus = character varying`
 
 - [Lifecycle Emails](runbooks/lifecycle-emails.md)
+
+## `origin_mismatch`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
 ## `outcome_unknown`
 
@@ -1083,6 +1119,10 @@
 ## `unauth returns 200`
 
 - [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
+
+## `unauthorized_client`
+
+- [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
 ## `UndefinedTable`
 
