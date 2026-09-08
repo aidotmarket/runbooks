@@ -1,7 +1,7 @@
 ---
 title: Celery Infrastructure Deployment
 owner: unassigned
-last_verified: '2026-04-19'
+last_verified: '2026-09-08'
 aliases: []
 error_signatures: []
 ---
@@ -10,7 +10,7 @@ error_signatures: []
 
 ## What it does
 
-Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 
 - Web service: FastAPI via `uvicorn`, with HTTP healthcheck on `/health`
 - Worker service: Celery worker consuming `default`, `scheduled`, `emails`, and `vectoraiz`
@@ -30,7 +30,49 @@ Scope reference:
 
 ## Architecture
 
-All three services build from the same backend image. Railway differentiates process role by `deploy.startCommand`, not by separate images.
+### September 8 effective fleet check (S1682)
+
+Read-only Railway inventory and SSH agree that web, worker and Beat run backend
+`1c96b257c34938ea547be1eb818d5e902ff49f56`, not seller candidate
+`b3f68a18a727ff8d4f8aac8ba3e397df89b88be5`. Active deployment IDs are
+`2357f6b8-5771-4725-93e8-f86c8499d752` (web),
+`25cf4705-d2fe-408f-bd1f-30f92f7b2b1a` (worker), and
+`4d3a99e5-0b21-4920-a192-935ec965f3c5` (Beat). Each has one replica; web is in
+us-west2 and worker/Beat in us-east4-eqdc4a. The three image digests differ.
+The process commands match the existing commands below; web runs one Uvicorn
+worker. Worker and Beat effective healthcheckPath are null; web uses /health.
+No explicit pre-deploy command, overlap duration or draining duration is recorded
+in these manifests. Null settings do not establish the platform's effective
+defaults or a safe migration/rolling-release sequence.
+
+Public /health reports healthy, no schema/model drift, and scheduler_mode
+apscheduler. An existing Redis worker heartbeat was fresh on read. These checks
+do not certify all scheduled tasks or exclude duplicate scheduling; in-process
+APScheduler and Celery scheduling coexist and require release-specific analysis.
+No task was dispatched and no production SQL or customer data was read.
+
+Beat has REDIS_URL but no DATABASE_URL. This matches the scheduler-only posture
+documented below. The seller candidate's railway.beat.json adds
+`python -m app.core.seller_schema_readiness` before Celery; that probe requires
+DATABASE_URL even with Workspace off. Running the exact reviewed local ARM image
+`sha256:7b6cf73a4c706dfc4d46e3c7497dbe1fe4856238086ee396579fa43ba8d61228`
+with that command, a synthetic SECRET_KEY, no DATABASE_URL and network disabled
+refused startup with exit1 before Beat. The deployment is therefore NOT ready to
+use the seller candidate with unchanged Beat configuration. Do not remove the
+shared billing migration floor, grant production access, or change provider
+configuration merely to make the probe pass. Resolve scheduler admission and
+its intended database authority as a separately reviewed release change, then
+prove the actual release configuration. Production settings remain unchanged.
+
+Evidence and exact commands: seller-r2-release-next-continuation/outputs,
+SELLER-EFFECTIVE-FLEET-INVENTORY.json, SELLER-RUNTIME-*.json,
+SELLER-HEARTBEAT-*.json, SELLER-BEAT-REFUSAL-*.json and SELLER-PUBLIC-HEALTH.json.
+The first runtime inspector checked the wrong optional author-variable name
+DATABASE_URL_AUTHOR; that field is not evidence about AUTHOR_DISPATCH_DATABASE_URL.
+The heartbeat inspector checks the latter name correctly on the worker only.
+No production role/ACL or KMS certification is implied.
+
+All three services build from the same backend Dockerfile. Railway differentiates process role by `deploy.startCommand`; verify each resulting image independently.
 
 ```text
 Git push to aidotmarket/ai-market-backend main

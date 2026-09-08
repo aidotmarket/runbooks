@@ -308,9 +308,9 @@
 
 ## Celery Infrastructure Deployment
 - Path: `celery-infrastructure-deployment.md`
-- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 - Owner: `unassigned`
-- Last verified: `2026-04-19`
+- Last verified: `2026-09-08`
 - Aliases: none
 - Error signatures: none
 - Status: current

@@ -301,3 +301,34 @@ CC, GLM and DeepSeek each returned APPROVE_WITH_NITS on exact b3f68a18a727ff8d4f
 The exact reviewed candidate was fast-forwarded into remote codex/seller-listing-drafts; PR342 head now b3f68a18. Main remains 1c96b257c34938ea547be1eb818d5e902ff49f56. Protected local serving branches were not advanced. First push using raw SHA was rejected by the local ref-format guard; the normal named branch push succeeded without bypass. PR353 was marked ready before integration; its GitHub state is separately recorded, not inferred from branch ancestry.
 
 This completes only the reviewed main/seller integration and full-schema publication correction. Full R2 and enabled release objective remains INCOMPLETE. Original full-release review mandates and authorization boundaries remain in force. Next owner must use a fresh session only after authoritative S1680 CLOSED verification.
+
+## S1682 effective fleet and Beat release incompatibility
+
+The exact S1680/S1679/S1678/S1674 sealed indexes and all13,268 indexed file hashes
+match; the345-file S1680 final supplement also matches. PR353 remains merged,
+PR342 draft/open at b3f68a18a727ff8d4f8aac8ba3e397df89b88be5 against main1c96b257.
+Read-only Railway inventory and actual process inspection establish that all
+three production services still run main1c96b257, with separate image digests,
+one replica each, direct Celery worker/Beat commands and one Uvicorn web worker.
+Worker/Beat effective manifests have no HTTP health path; web uses /health.
+Public health is healthy/no drift but reports apscheduler. An existing worker
+heartbeat is fresh; complete task topology and duplicate-scheduling absence are
+not certified. See celery-infrastructure-deployment.md for exact deployment IDs.
+
+A concrete release incompatibility is now proven: live Beat has no DATABASE_URL,
+while the reviewed seller command requires one for the read-only schema probe.
+The exact final S1680 image with the committed Beat command, synthetic SECRET_KEY,
+no DATABASE_URL and network disabled exits1 before starting Beat. This preserves
+the guard correctly but cannot serve the unchanged production Beat configuration.
+No source, provider configuration, credentials, production deployment, migration
+or flag changed. Resolve scheduler admission/authority under independent review
+and the existing release-authorization boundary; do not silently grant Beat an
+application or schema-owner credential, or weaken the shared billing floor.
+
+The sole new local container seller-beat-no-dsn-s1682 is stopped, exit1,
+OOMKilled=false, retained with its logs. Runtime metadata is read-only and
+contains credential-presence booleans only. The first inspector used the wrong
+optional author-variable name; its false value is not an author-DSN finding.
+No old preview, database, container or Chrome tab was changed. Full R2, enabled
+journey, semantic backup/rights recovery, production ACL/KMS and rolling release
+remain incomplete. Evidence is in seller-r2-release-next-continuation/outputs.
