@@ -69,7 +69,7 @@ A bounded ListBuckets(Prefix=aimarket-e2e-, MaxBuckets=20) returned no buckets a
 
 1. Resolve the Cloudflare token endpoint's supported server-client access, then repeat a fresh one-use authorization attempt within existing consent scope. Verify token audience/expiry/refresh, bucket binding, revocation and the approved direct-delivery authority before enabling R2.
 2. Preserve the completed dedicated AWS fixture, exact-prefix restrictions, browser CORS and two-file native Chrome transfers recorded below. Its authorization covers the prepared bucket, read role and three tiny synthetic files only.
-3. Complete the remaining integrated candidate, search worker, independent review and authorized release evidence. The completed synthetic 22,000-file native Chrome transfer does not establish real-cloud bulk transfer or production readiness.
+3. Preserve the completed S1667 local integrated-candidate and search-worker evidence below. Complete independent review, remaining R2 implementation and authorized release-environment evidence. The completed synthetic 22,000-file native Chrome transfer does not establish real-cloud bulk transfer or production readiness.
 
 Keep AWS/R2 product flags off until release evidence and authorization are complete. Never expose credentials or signed URLs in runbooks, support messages or test outputs.
 
