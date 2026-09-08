@@ -364,7 +364,8 @@ of pre-index legacy writers. No application source or release configuration chan
 
 Failure truth: first harness import lacked /app in its path; corrected only the
 harness. Full-database fingerprint initially used the application role and was
-correctly denied issue_channel; corrected to the local owner for comparison only,
+correctly denied issue_channel; corrected to the local PostgreSQL cluster superuser
+for comparison only,
 leaving all purchase-service runs restricted. The first chunk mutation probe named
 a nonexistent ciphertext column; corrected to its real envelope column, then the
 immutable trigger refused. The local scope and raw evidence are in
@@ -377,3 +378,39 @@ independently reviewed equivalent release-ordering design is implemented and
 proved. Seller search is a Beat task on vectoraiz; APScheduler has unrelated jobs
 that a blanket celery-mode switch would remove. Full topology/duplicate absence,
 actual scheduled seller search, R2 and authorized enabled release remain open.
+
+
+## S1684 recovery review and scheduler design milestone
+
+CC, GLM and DeepSeek accepted the bounded S1683 recovery evidence, preserving
+its synthetic scope and all original-expression, production ACL/KMS, PITR and
+full rolling-fleet limitations. Controller rehashing checked 13,786 inherited
+index entries (including repeats), with no mismatches. The fingerprint comparison
+used the local PostgreSQL cluster superuser; purchase services stayed restricted.
+
+The revised scheduler design received APPROVE_WITH_NITS from all three seats.
+Exact design SHA256: cff8d34177f4363cde87cde236409a7338409487f81e57c6276080c723ce5728.
+It requires parent worker_init application-DSN admission before consumption and
+web application-DSN admission at the start of lifespan before side effects. All
+current seller workers load app.core.celery_app; prove normal, direct and profile
+commands. Ordinary exceptions must not become continued startup. Keep the normal
+worker prefix and prove actual process refusal, preserved queued messages, and
+web nonzero exit with HTTP and socket evidence. Workspace-off is no bypass.
+
+Keep the committed Beat probe until intrinsic checks and isolated refusal proof
+pass. Test the scheduler-only command as a declared isolated invocation override:
+celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule.
+Prove actual due-task, Redis, worker, SQL outbox, Qdrant and search behavior, with
+pause/resume/retry and no duplicate after Beat restart; Beat has no DB authority
+or connection attempt. Only then remove the Beat probe prefix in configuration,
+repeat exact configured proof and obtain independent exact-code review before
+integration. Separate owner migration precedes web/worker admission.
+
+No application/config change or runtime execution occurred in S1684. Static
+22-Beat/25-APScheduler registration counts are not effective topology proof.
+R2, accepted capacity targets, production exclusion/ACL/KMS and authorized enabled
+release remain open. GLM round2 disclosed non-RTK inspection commands, contrary to
+the request; CC did not independently hash the design. Reports remain unchanged,
+with controller integrity evidence and coverage limitations retained separately
+in seller-scheduler-review-fleet-continuation/outputs. No duplicate review dispatch
+was used to erase these limitations.

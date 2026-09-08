@@ -451,3 +451,16 @@ References backend implementation at `464398c`, `f1e9665`, `b539d8f`, and `e908c
 ## When it breaks
 
 Use the On-Call Playbook and Verification Checks above when the deployed Celery topology fails.
+
+
+## S1684 seller admission design disposition
+
+All three focused reviewers approved the revised design with nits; see the S1684
+section of seller-workspace-provider-verification.md and the immutable design
+SHA256 cff8d34177f4363cde87cde236409a7338409487f81e57c6276080c723ce5728.
+Parent worker_init and beginning-of-lifespan application-role checks must be
+implemented and proved before replacing the seller Beat probe. Beat remains
+scheduler-only without database authority. Existing normal worker prefix stays.
+The staged isolated command override is not a production command change. Actual
+scheduled-path, refusal and exact-code review remain open; static inventory is
+not full fleet or duplicate-absence certification. No deployment is authorized.
