@@ -42,6 +42,10 @@ curl -s https://api.ai.market/health
 
 **If deploy fails:** Check Railway build logs. Common issues: migration errors (see Alembic section), import errors, missing env vars.
 
+### AIM Data OAuth (reserved public client)
+
+`aim_data_desktop_v1` supplies the default-on **Sign in with ai.market** flow. See the [OAuth runbook](aim-data-sign-in-with-ai-market.md) for status, active-seed verification, PKCE/loopback contracts and scoped revocation. `AIM_DATA_OAUTH_ENABLED` is a rollback lever: set to false to switch off; existing access tokens can outlive the switch.
+
 ## Key directories
 
 | Path | Purpose |
