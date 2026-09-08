@@ -481,3 +481,42 @@ The actual failure logs and correction proof are in seller-scheduler-implementat
 continuation/outputs. Production and existing peer environments remain unchanged.
 
 S1685 final disposition: CC/GLM/DeepSeek APPROVE_WITH_NITS, no HIGH/MEDIUM findings, for exact c3a28af26bc093aec11375c702d70d8cf5124067. Intrinsic worker/web refusal and actual isolated scheduled publication, retry/recovery, profile-loop reuse and broker-only Beat proof passed. PR354 integrated by exact fast-forward into held seller PR342. This supersedes the S1684 pending implementation statement above, without clearing production exclusion, schema transition, topology, ACL/KMS, R2 or enabled-release gates. All new S1685 containers stopped cleanly with artifacts retained.
+
+## S1686 live scheduling overlap and queue coverage
+
+Read-only September 8 verification at23:42–23:46UTC confirms the same three
+production deployments at1c96b257. All24inspected source hashes match main.
+Web has30persisted APScheduler job IDs:25core,1reconciliation and4settlement/
+payout registrations added by lifespan. All30resolve to exact source; do not
+describe the earlier25core count as the whole scheduler. Source registration
+files are unchanged on held sellerc3a28af. Persistence alone is not successful
+execution proof; no persisted job pickle or customer payload was deserialized.
+
+Server-filtered logs show both periodic owners active for inquiry reminders,
+order auto-confirmations and Buyer Request publication: each scheduler records
+3hourly reminder/confirmation events and90publication events in the3hour window.
+Web records execution starts; Beat records due emissions. This proves scheduling
+overlap, not duplicate business effects or successful worker completion. Existing
+idempotency is not waived. Public health remains healthy/apscheduler/no drift.
+
+Metadata-only LLEN at23:46:17UTC reports25,402messages in translations and30,999
+in seller_workspace_profile_control; the observed worker consumes neither.
+The10-service production inventory has one Celery worker and no profile or
+translation worker. Other external consumers are unverified. Do not purge these
+queues, read customer payloads, expand worker queues or start consumers as a
+health check: accumulated jobs may invoke providers/models or customer effects.
+Existing ordinary queues were empty in this sample; that is not task-success
+or backlog-safety proof. No queue or runtime configuration was changed.
+
+A proposed correction removes only the three overlapping Beat registrations,
+retaining their callable tasks and all web jobs. It is NOT reviewed/implemented.
+Keep SCHEDULER_MODE unchanged; a blanket switch would omit other web-only work,
+including settlement/payout. Require narrow design review, persisted Beat-entry
+restart proof, complete isolated registration coverage and exact-code review.
+Production old-producer/in-flight exclusion remains separately authorized.
+Evidence and proposal: seller-r2-release-after-scheduler/outputs,
+SELLER-TOPOLOGY-RESULT.md and SELLER-SCHEDULER-OWNERSHIP-PROPOSAL.md.
+
+One metadata SSH attempt failed to connect; one identical read-only retry passed.
+No service restart or access change was used. R2, writeACL/KMS, schema transition,
+accepted capacity and enabled customer journey remain open.

@@ -451,3 +451,22 @@ Owner migration rehearsal is a separate no-op at the already-full schema, after
 old local processes stopped; it is not a production schema transition or proof
 of actual incompatible-production-consumer exclusion. Full R2, production ACL/KMS,
 accepted capacity targets and authorized enabled release remain incomplete.
+
+## S1686 complete scheduler registration and live overlap finding
+
+The production web's30persisted APScheduler IDs resolve to25core jobs,
+1reconciliation job and4lifespan settlement/payout jobs. Live filtered logs prove
+overlapping APScheduler execution starts and Beat emissions for reminders,
+auto-confirmations and Buyer Request publication. No duplicate business effect
+is inferred. All24inspected live source hashes match unchanged main1c96b257;
+held sellerc3a28af is not deployed. This advances topology diagnosis, not full
+duplicate-exclusion certification. See celery-infrastructure-deployment.md.
+
+Metadata-only queue counts show25,402translations and30,999profile-control
+messages outside the observed worker's queues. No consumer was started and no
+message inspected/removed. Any backlog handling needs distinct consumer,
+provider/model and customer-data authority; optional profiling does not justify
+incidentally enabling that work. A three-Beat-entry removal proposal preserves
+all30web jobs and remains unreviewed/unimplemented. Exact evidence/proposal is
+in seller-r2-release-after-scheduler/outputs. The support request is still unsent;
+R2 authority, release ACL/KMS/schema/capacity and enabled journey remain open.
