@@ -332,3 +332,48 @@ optional author-variable name; its false value is not an author-DSN finding.
 No old preview, database, container or Chrome tab was changed. Full R2, enabled
 journey, semantic backup/rights recovery, production ACL/KMS and rolling release
 remain incomplete. Evidence is in seller-r2-release-next-continuation/outputs.
+
+
+## S1683 synthetic schema and purchased-rights restore milestone
+
+Two NEW internal-only PostgreSQL16 clusters were used; all older databases and
+previews were preserved. The source was initialized from the retained S1678
+synthetic full-schema dump, then exact b3f68a18 application services created a
+new encrypted source, draft, reviewed approval, publication and synthetic order.
+The non-owner prototype role issued one bundle allowance and one encrypted grant.
+Provider signing, identity, credential retrieval and local key wrapping were
+synthetic; no provider, real payment, model or production KMS was called.
+
+A fresh custom-format dump restored into the second cluster with ownership and
+ACL statements included. All326non-version table data fingerprints and version
+rows matched before subsequent tests. Full schema-only dumps matched after
+removing ONLY PostgreSQL random psql restrict/unrestrict nonce lines: no SQL,
+ACL, ownership, constraint, trigger, expression or comment normalization. The
+four explicitly created local role definitions/policy booleans matched; this is
+not production-role or cluster-wide globals certification. It establishes this
+new source-to-restored fixture equality, not the original S1678 source's unresolved
+expression differences, PITR, live backup freshness or cloud KMS recovery.
+
+Actual restored delivery replayed the exact same grant/session with zero provider
+calls, one allowance consumed and two remaining. Revocation then refused further
+access. Restored grant/chunk UPDATE attempts hit the real immutable triggers.
+Concurrent separate d9ef6d29 and b3f68a18 image processes on the new source database
+replayed the same stored grant without remint or another allowance. This is one
+real mixed-version service path, not a rolling web/worker/Beat fleet or acceptance
+of pre-index legacy writers. No application source or release configuration changed.
+
+Failure truth: first harness import lacked /app in its path; corrected only the
+harness. Full-database fingerprint initially used the application role and was
+correctly denied issue_channel; corrected to the local owner for comparison only,
+leaving all purchase-service runs restricted. The first chunk mutation probe named
+a nonexistent ciphertext column; corrected to its real envelope column, then the
+immutable trigger refused. The local scope and raw evidence are in
+seller-recovery-release-continuation/outputs. New evidence is not independently
+reviewed and does not clear the original full-release Council mandates.
+
+A concrete scheduler-only admission proposal is saved separately as
+SELLER-SCHEDULER-DESIGN.md. It leaves the current Beat probe in place until an
+independently reviewed equivalent release-ordering design is implemented and
+proved. Seller search is a Beat task on vectoraiz; APScheduler has unrelated jobs
+that a blanket celery-mode switch would remove. Full topology/duplicate absence,
+actual scheduled seller search, R2 and authorized enabled release remain open.
