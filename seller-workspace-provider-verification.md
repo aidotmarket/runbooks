@@ -11,6 +11,24 @@ error_signatures:
 
 Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
 
+## Folder selection acceptance (September 8 requirement; delivery scale still pending)
+
+Max reported that the first customer had 22,000 files in one folder. Treat 22,000 files as a required acceptance case, not a maximum. Sellers must be able to combine individual files and complete folders, including subfolders, then confirm the exact file count and total size before saving. Deduplicate overlapping choices. Counting uses object metadata only; it does not read file contents or invoke profiling or Allai.
+
+Show progress while enumerating and a concise summary with a paged file preview. Confirmation remains unavailable until enumeration completes. A failed page, access failure, or explicit capacity boundary must never become a silently accepted partial selection. Changing the selection invalidates confirmation. Persist the confirmed object identities as the immutable source snapshot; later additions to the folder require a new selection and confirmation.
+
+Required evidence includes a synthetic 22,000-file nested folder, overlapping file/folder choices, exact count and byte total, later-page failure, responsive browser rendering, save/reload, approval/publication and complete buyer delivery. Measure provider calls, request sizes and runtime through those stages. Passing a small folder test or increasing a schema limit is insufficient. Current two-file AWS proof does not establish this capacity. Use local synthetic fixtures first; the existing AWS authorization covers only the three tiny fixture objects, not a new 22,000-object provider fixture.
+
+### September 8 large-folder development evidence
+
+Source manifests now have explicit 50,000-file and 64 MB metadata bounds. Folder enumeration reports metadata count/size progress, deduplicates identical overlaps, rejects changed duplicates and incomplete pages, and waits 60 seconds after a pre-discovery HTTP429 before retrying the same cursor (at most three retries). Unknown network/provider outcomes are not retried with a potentially consumed cursor. The source-only endpoint accepts up to 1,000 metadata rows; profiling retains its 100-row page boundary. Large source validation uses a common-folder metadata scan with exact key/version/ETag/size comparison, at most 1,000 provider pages; it never silently accepts unchecked files. This is not yet a durable background scan: leaving the page stops further enumeration.
+
+A PostgreSQL service test saved and reloaded all 22,000 nested synthetic file identities, counted exactly 242,011,000 bytes and made 22 metadata-list calls. Later-page changed/missing/out-of-scope records, repeated cursors and provider failure leave no saved source or save audit. Source/approval/publication/delivery regression tests: 67 passed; adapter/source discovery tests: 31 passed, including the 1,000-row HTTP response and unchanged profiling page boundary.
+
+Normal Chrome tabs1702607580 and1702607583 at http://127.0.0.1:4341 verified counting progress with save disabled, then 22,000 files totaling 21.5 MB (22,528,000 exact bytes), explicit confirmation, actual encrypted source-service save, and a fresh page reload retaining every file. Selected and review previews render 50 filenames per page. The exact saved synthetic Regional Retail Sales listing ($30.00, Research use, no public sample) was reviewed, explicitly approved and published via actual services in an isolated PostgreSQL database, listing7c64a154-3aa7-42fb-9517-471b62d3311d. Allai stayed visible. Discovery/provider, authentication and KMS are local synthetic seams; no 22,000-object cloud fixture or production publication occurred. Frontend focused tests: 44 passed; TypeScript validation passed.
+
+Large-folder buyer delivery remains unproven. In particular, the current per-file path reopens the entire encrypted source and rewrites the growing JSON grant map; normalize/index this storage and measure complete delivery at 22,000 files before declaring the acceptance case complete. Existing real AWS browser transfer evidence covers only the two selected fixture files.
+
 ## Cloudflare OAuth
 
 The private development client is db7c0057a307855bb73914fb58723ad8, in account d5346d3e0f8f344c5f4915aaca689adf. Max approved creation and subsequently approved the exact account-level read scopes workers-r2.read and workers-r2-bucket-item.read. Do not ask again for that same consent. Normal Chrome completed consent and redirected to the exact local callback with a code.
