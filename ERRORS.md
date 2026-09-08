@@ -480,6 +480,10 @@
 
 - [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
 
+## `HTTP 403 / Cloudflare error 1010 at oauth2/token`
+
+- [Seller Workspace provider verification](seller-workspace-provider-verification.md)
+
 ## `HTTP 403 detail.error=capability_required capability=seller`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)

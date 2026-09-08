@@ -891,6 +891,15 @@
 - Error signatures: none
 - Status: current
 
+## Seller Workspace provider verification
+- Path: `seller-workspace-provider-verification.md`
+- Purpose: Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
+- Owner: `unassigned`
+- Last verified: `2026-09-08`
+- Aliases: none
+- Error signatures: HTTP 403 / Cloudflare error 1010 at oauth2/token
+- Status: current
+
 ## SEO Infrastructure Runbook
 - Path: `seo-infrastructure.md`
 - Purpose: Internal infrastructure for search engine indexing and AI crawler discovery.
