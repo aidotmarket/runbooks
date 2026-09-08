@@ -464,3 +464,18 @@ scheduler-only without database authority. Existing normal worker prefix stays.
 The staged isolated command override is not a production command change. Actual
 scheduled-path, refusal and exact-code review remain open; static inventory is
 not full fleet or duplicate-absence certification. No deployment is authorized.
+
+
+## S1685 isolated profile task loop correction
+
+Repeated actual profile reconcile/expire_cleanup deliveries in the new isolated
+prefork worker failed with `Event loop is closed`, even after correcting the
+synthetic role's missing UPDATE grant. The tasks called asyncio.run for each
+delivery while AsyncSessionLocal retained pooled connections bound to the prior
+loop. The isolated correction reuses the existing version_notification_service
+run_async helper, as seller search already does, for all three profile wrappers.
+It preserves task names, queues, concurrency, feature checks and task bodies.
+Verify repeated scheduled task completion in the same worker process; a first
+successful task or worker readiness alone cannot establish this correction.
+The actual failure logs and correction proof are in seller-scheduler-implementation-
+continuation/outputs. Production and existing peer environments remain unchanged.

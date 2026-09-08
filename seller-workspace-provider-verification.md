@@ -414,3 +414,40 @@ the request; CC did not independently hash the design. Reports remain unchanged,
 with controller integrity evidence and coverage limitations retained separately
 in seller-scheduler-review-fleet-continuation/outputs. No duplicate review dispatch
 was used to erase these limitations.
+
+
+## S1685 intrinsic admission and actual scheduled-path proof
+
+Candidate c3a28af26bc093aec11375c702d70d8cf5124067 adds parent worker_init and
+beginning-of-lifespan web checks using the existing bounded application-role
+probe. Normal worker prefix remains; direct and profile workers are covered.
+Absent database, head-stamped missing tables and denied SELECT produce nonzero
+refusal, including Workspace-off/SKIP_SERVICES. A working owner DSN cannot replace
+application permission. Real scheduled message bytes/IDs survived nine refused
+worker starts. Negative web proof includes HTTP attempts and socket observations;
+positive restricted-role startup returned healthy HTTP and stopped cleanly while
+retaining existing optional KMS/column-check/seed warnings.
+
+The original retained Beat command stayed guarded through isolated actual
+scheduled publication/search, SQL-immediate pause hiding, due deletion, resume,
+and a bounded Qdrant failure with retained retry count/deadline and next-due
+recovery. Beat emitted nothing during a65second stop and resumed without duplicate
+seller IDs in the observed window. Only then was its prefix removed; the exact
+configured final command repeated the real pause/resume/retry/search proof.
+Independent exact-code review remains pending.
+All three unchanged seller/profile schedule entries are explicitly allowlisted
+in this harness. This is not complete production schedule or topology proof.
+
+Repeated profile tasks exposed a real closed-event-loop error. The candidate
+reuses the existing run_async helper for the three profile wrappers; repeated
+actual prefork deliveries then passed. An earlier cleanup failure was a missing
+UPDATE grant in the synthetic role, separately corrected only in that fixture.
+The readable-shape admission check is not write-privilege certification.
+
+Evidence and all limitations: seller-scheduler-implementation-continuation/outputs.
+New local PG16, Redis and Qdrant resources preserve old previews and peer state.
+Provider/identity/key wrapping/credential placeholders/embeddings are synthetic.
+Owner migration rehearsal is a separate no-op at the already-full schema, after
+old local processes stopped; it is not a production schema transition or proof
+of actual incompatible-production-consumer exclusion. Full R2, production ACL/KMS,
+accepted capacity targets and authorized enabled release remain incomplete.
