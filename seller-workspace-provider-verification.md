@@ -41,3 +41,9 @@ Keep AWS/R2 product flags off until release evidence and authorization are compl
 - Empty Infisical lookup: verify explicit project, environment, path and exact name; exit code zero is insufficient.
 - AWS identity differs from E2E_AWS_ACCOUNT_ID: stop before bucket access and reconcile the intended account.
 - No buckets under the configured test prefix: prepare an authorized synthetic fixture; do not broaden discovery or substitute customer storage.
+
+## Prepared AWS fixture (not provisioned)
+
+Backend e2e/seller_workspace_aws_fixture.json defines one private SSE-S3 versioned bucket aimarket-e2e-seller-workspace-157263244532 and role aimarket-e2e-seller-workspace-read, conditional on test account157263244532 and us-east-1. The role trusts only the verified aimarket-e2e-harness user with the exact synthetic connection ExternalId. It may list/read only the e2e/seller-workspace/ prefix (plus bucket location); it has no write/delete permission. Browser GET/If-Match CORS is limited to the current two local preview origins and https://ai.market. The retained bucket has no automatic deletion.
+
+Provisioning, IAM/trust changes and three sub-1KB synthetic fixture writes require Max approval. Local JSON/scope checks passed; no AWS resource creation or live template validation has occurred. Do not change the shared cleanup fixture configuration until ownership and the intended teardown scope are separately established.
