@@ -293,3 +293,11 @@ Actual shared billing under the same role restores20starter cents, preserves
 commands, evidence and scope are retained in seller-r2-release-integration-
 continuation/outputs. Review remains pending; no integration into PR342, main or
 production is claimed for this new candidate.
+
+## Final narrow integration disposition — S1680
+
+CC, GLM and DeepSeek each returned APPROVE_WITH_NITS on exact b3f68a18a727ff8d4f8aac8ba3e397df89b88be5; no HIGH/MEDIUM or required code change. Original reports are retained verbatim in outputs. Future merge schema fingerprint/allowlist, existing ORM consistency and baseline lint/tests are advisory, not silently cleared. All 3,256 sealed files still match.
+
+The exact reviewed candidate was fast-forwarded into remote codex/seller-listing-drafts; PR342 head now b3f68a18. Main remains 1c96b257c34938ea547be1eb818d5e902ff49f56. Protected local serving branches were not advanced. First push using raw SHA was rejected by the local ref-format guard; the normal named branch push succeeded without bypass. PR353 was marked ready before integration; its GitHub state is separately recorded, not inferred from branch ancestry.
+
+This completes only the reviewed main/seller integration and full-schema publication correction. Full R2 and enabled release objective remains INCOMPLETE. Original full-release review mandates and authorization boundaries remain in force. Next owner must use a fresh session only after authoritative S1680 CLOSED verification.
