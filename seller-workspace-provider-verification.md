@@ -243,3 +243,40 @@ The unchanged Docker HEALTHCHECK still probes web port8000 in these Celery conta
 S1679 final independent review: CC, GLM and DeepSeek all APPROVE_WITH_NITS for exact0e0a8e315b8fbbf96a3baf362c1312d676d63e40, no HIGH/MEDIUM finding.3,149sealed files, index3f274962c6fab688c7276961fd7d38e3c210180b2be8856f47e7b6a4405f3d3a. Original reports and bundle remain unchanged. Separate annotations retain SELECT-only/per-statement-timeout/diagnostic/test-portability nits. Post-review controller evidence reproduces the full base-to-head diff exactly (SHA256968112774077853f18cf0854fc5e9450d236de116dba96dd143a505b7df20b03) and captures exact fresh targeted-Ruff/commit-range-diffcheck argv, outputs and exit0. These new provenance checks are not retroactive reviewer execution. Full release/R2/health/type-trigger-write-ACL/backup/KMS/search/rolling gates remain open.
 
 The unanimously reviewed PR352 correction was integrated by exact fast-forward into seller PR342: seller-listing-drafts now0e0a8e315b8fbbf96a3baf362c1312d676d63e40. No protected preview-serving checkout was advanced. This updates the earlier draft/base references above, not production/main. All19S1679containers are stopped, with data/images/internal network retained. Full seller objective remains incomplete.
+
+
+## S1680 isolated main integration and full-schema publication
+
+The isolated release merge preserves seller0e0a8e315 and main1c96b257 (including
+Mars T779), tree59b1524a3067c84b898e0ea5fd3e7a1005656e0c. No protected preview or
+main branch was advanced. Existing main fulfillment-listener/notification tests
+retain six baseline failures; the seller rollback test also incorrectly treated
+the graph-only S1678 merge as a destructive revision. The corrected test uses
+Alembic graph identity, verifies merge reversal/reapplication preserves history,
+and retains every destructive-revision refusal and shared billing floor.
+
+A separate full-schema PostgreSQL restore exposed an actual publication failure:
+listings.schema_info is NOT NULL in 000_initial, whereas the ORM allows null.
+Publication now explicitly stores an empty metadata object there. This exposes
+no raw field names, file content or public sample and needs no migration or
+existing-row rewrite. Focused regression applies the real constraint before
+publication/replay. No retrospective approval is implied.
+
+The exact merge image reached HTTP healthy with no model/schema drift and ran
+Uvicorn as PID1. A stop with a60-second allowance exited0 in4.86seconds with
+application-shutdown-complete logs and OOMKilled=false. SKIP_SERVICES=1, a local
+owner DSN and synthetic full-schema restore remain explicit seams. Early Docker
+checks failed while startup was incomplete; successful HTTP checks followed.
+This is not effective Railway health/fleet or production-role certification.
+
+An overlay rehearsal then exercised actual encrypted source save, draft, review,
+approval, publication and ID-only search drain under a local non-owner role with
+prototype public SELECT and named write grants. Local Qdrant indexed, removed
+and restored the offer; SQL hid the paused offer before vector deletion. The
+first query used fallback because its synthetic embedding stub lacked embed_query;
+this is retained as a fixture limitation. Provider metadata, connection/credential
+placeholders, key wrapping and embeddings are synthetic; no provider/KMS/model
+call or payment occurred. Exact-image corrected evidence and review disposition
+will supersede this preparation note below. Full R2, production ACL/KMS, semantic
+backup/PITR/purchased-rights recovery, rolling fleet, accepted demand targets and
+authorized enabled release remain open.
