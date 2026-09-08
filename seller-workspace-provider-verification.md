@@ -105,7 +105,7 @@ The new4344/4345preview must be preserved independently of earlier evidence envi
 
 ## September 8 review corrections (S1669)
 
-The original CC technical review returned APPROVE_WITH_NITS; DeepSeek returned APPROVE_WITH_MANDATES. These are static assessments of the original snapshots, not release certification or approval of later folds. GLM's original detached request remains pending; do not duplicate or interrupt it.
+The original CC technical review returned APPROVE_WITH_NITS; DeepSeek returned APPROVE_WITH_MANDATES. These are static assessments of the original snapshots, not release certification or approval of later folds. GLM's original detached request subsequently returned REQUEST_CHANGES; preserve all three responses and review the final updated heads only after folding validated findings.
 
 CC's expired starter-credit finding reproduced in actual PostgreSQL: request-conflict, another in-flight request and rate-limit refusal each rolled back an expired hold refund. The correction commits that refund before those three refusals. It preserves credit/request locking, request identity, the two-minute expiry, the existing rate limit and starter-only accounting. No periodic sweeper, paid-credit fallback or model spend is added.
 
@@ -116,3 +116,8 @@ CC's proposed cross-buyer first-download race is not supported by source: the se
 ### R2 authority documentation check (S1669)
 
 Cloudflare's current [OAuth integration documentation](https://developers.cloudflare.com/fundamentals/oauth/integrate-with-cloudflare/) confirms the existing token and revocation endpoints. Its [temporary-credentials API](https://developers.cloudflare.com/api/resources/r2/subresources/temporary_credentials/methods/create/) requires a parentAccessKeyId in addition to bearer authorization, bucket, permission and TTL. The [R2 token documentation](https://developers.cloudflare.com/r2/api/tokens/) derives S3 credentials from a created API token's ID and value. These pages do not establish that this application's approved OAuth read scopes can supply that parent identity or mint equivalent direct-delivery authority. This is an unresolved provider contract, not proof that OAuth cannot support it. Do not substitute the OAuth client ID for a parent access-key ID or infer API-token creation permission from read consent. Resolve supported exchange access and this authority contract before implementing/enabling R2 delivery. No extra scopes, stored-token fallback or provider mutation is authorized.
+
+
+### GLM release findings still open (S1669)
+
+Current source confirms that the inherited agent dataset detail/evaluation service can accept published Workspace listings yet substitute Single User, zero bytes, CSV defaults, seller verification and fixed quality/completeness metrics. Workspace agent/MCP/public projections must preserve exact approved terms and immutable size/count; unsupported sample/evaluation must fail closed. Also outstanding: bounded server-side source review paging at the50K/64MBbound; crash-hold expiry before unrelated shared API-credit consumption (the S1669 refusal correction does not solve this); a preserved-record post-publication rollback procedure/rehearsal; and a new frozen review bundle with exact reproducible commands, historical raw receipts and a finite reviewer budget. GLM treats these as requested changes. None is release-approved or completed by the two S1669 corrections. The full unchanged report and next priorities are retained in the S1669 task outputs.
