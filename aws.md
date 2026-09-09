@@ -2,13 +2,18 @@
 title: AWS Account — ai.market
 owner: Vulcan-Primary
 last_verified: '2026-05-31'
-aliases: []
+aliases:
+  - AWS test account 157263244532
+  - aimarket-sandbox
+  - aim-sandbox-cli
+  - S1681 test S3
+  - aimarket-connector-s1681-test
 error_signatures: []
 ---
 
 # AWS Account — ai.market
 
-> Parent runbook for ai.market's AWS account. Per-service detail lives in sub-runbooks: **[aws-s3.md](./aws-s3.md)**.
+> Parent runbook for ai.market's production AWS account and the isolated S1681 test account `157263244532` (profile `aimarket-sandbox`). Per-service detail lives in sub-runbooks: **[aws-s3.md](./aws-s3.md)**.
 
 ## Overview
 - **system_name:** AWS Account — ai.market (`948749907373`)
@@ -168,3 +173,64 @@ error_signatures: []
 - **refresh_triggers:** new IAM identity/policy change; new bucket class; access-tier change; incident; scheduled cadence
 - **scheduled_cadence:** 90 days
 - **first_staleness_detected_at:** null
+
+## S1681 test account 157263244532
+
+### A. Purpose and authority
+
+This entry records the isolated delivery-test resources provisioned in S1708 and amended in S1709. Max owns the account and the $50/month authorization; Mars owns fixture lifecycle and evidence. Source: `/Users/max/koskadeux-state/s1681/aws/PROVISIONING-RECORD-S1708.md`, including its S1709 amendment, read 2026-09-09, plus the dispatcher's final scope attestation. Production account `948749907373` and profile `aimarket` above are not S1681 targets. The historical production verification date remains unchanged.
+
+### B. Resource inventory
+
+| Resource | Exact test target and controls |
+| --- | --- |
+| Account/operator | `157263244532`; profile `aimarket-sandbox`; IAM user `aim-sandbox-cli` |
+| Bucket | `aimarket-s1681-money-path-test-157263244532`, `eu-north-1`; all BPA true, BucketOwnerEnforced, SSE-S3 AES256, TLS-only policy; versioning not enabled |
+| Lifecycle | Expire `s1681/` objects after seven days; abort incomplete multipart after one day |
+| Fixture | One unchanged CSV per run at `s1681/fixtures/<run-stamp>/synthetic-listing.csv`; run journal owns exact key/hash/length |
+| Role | `arn:aws:iam::157263244532:role/aimarket-connector-s1681-test` |
+| Budget | `aimarket-monthly-guardrail`, $50/month, 50/80/100% alerts to Max |
+
+### C. Trust and data path
+
+The role trusts `arn:aws:iam::157263244532:root` restricted by BOTH `aws:PrincipalArn=arn:aws:iam::157263244532:user/svc-s1681-broker` and per-run `sts:ExternalId`. It permits ListBucket with prefix `s1681/*` and GetObject/GetObjectVersion under `s1681/*`. Seller-side seed uploads the fixture; the backend broker assumes the read-only role; AIM Data/buyer GET directly from S3. No raw-byte proxy through ai.market.
+
+G9 replaces the old static ExternalId assumption: activation creates a new serial on clean reset, the product derives a new ExternalId, and the seed updates only that condition on the exact fixture role before real broker verification. Preserve principal/action/other trust fields and read back equality. Reset/teardown do not restore old trust. The stale S1708 vault value is not an input to force on the product (`money-path-test-environment@e2028111:seed/host-seed.py:245–277`; `seed/s3-fixture.py:91–124`).
+
+### D. Identities and credentials
+
+| Identity | Exact authority |
+| --- | --- |
+| `aim-sandbox-cli` | Operator profile; provisioning record reports AdministratorAccess. This is a disclosed test-account exception to the production least-privilege model above, not permission for unscoped operations. Never inject this profile into the harness. |
+| `svc-s1681-broker` | `sts:AssumeRole` on exactly the fixture role; no direct bucket access |
+| `svc-s1681-seed` | PutObject/GetObject/DeleteObject/GetObjectVersion/DeleteObjectVersion and `s3:AbortMultipartUpload` on `s1681/*`; ListBucket/ListBucketVersions with prefix `s1681/*`; `iam:GetRole` and `iam:UpdateAssumeRolePolicy` on exactly the fixture role; `sts:GetCallerIdentity` |
+
+Service keys live only in Infisical `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), `test-env`, path `/`, with no Railway sync. Keys are `S1681_S3_ACCOUNT_ID`, `S1681_S3_BUCKET`, `S1681_S3_ROLE_ARN`, `S1681_S3_REGION`, `S1681_S3_PREFIX` (= `s1681/fixtures/`), `S1681_S3_BROKER_ACCESS_KEY_ID`, `S1681_S3_BROKER_SECRET_ACCESS_KEY`, `S1681_S3_SEED_ACCESS_KEY_ID` and `S1681_S3_SEED_SECRET_ACCESS_KEY`. `S1681_S3_EXTERNAL_ID` is now per-run output; the run journal keeps its hash, never its value. Serial issuance/activation uses `S1681_SELLER01_SERIAL`, transient `S1681_SELLER01_SERIAL_BOOTSTRAP_TOKEN`, captured `S1681_SELLER01_SERIAL_INSTALL_TOKEN`, and a `SERIAL_TOKEN_SECRET` distinct from production. See [money-path activation](money-path-test-environment.md#s1681-s3-ownership-activation-and-spend). No credential value belongs in this page, logs or Git.
+
+### E. Operate
+
+Before an authorized test-account operation, run `rtk proxy aws sts get-caller-identity --profile aimarket-sandbox` and require account `157263244532`, user `aim-sandbox-cli`. Harness credentials are injected separately from `test-env`; this identity check is not a fallback for missing service keys. Require AWS CLI v2 (`rtk proxy aws --version`); v1 is refused for conditional uploads. Use the pinned environment's supported `bin/seed` activation/trust/verification flow under its shared lock, following the money-path runbook. No AWS mutation or credential operation is performed by this documentation PR.
+
+### F. Isolate failures
+
+For STS refusal, privately compare the exact broker principal, role and product-derived ExternalId; a reset requires the new G9 update. For upload/version cleanup refusal, verify seed identity and exact `s1681/*` action/prefix before retry. Wrong account, endpoint override, broker/seed credential equality or unexpected object blocks the run. The parent `## When it breaks` applies to generic AWS failures; S1681-specific repair is in [money-path troubleshooting](money-path-test-environment.md#when-it-breaks), including WAF User-Agent and CLI-v1 failures.
+
+### G. Recover and clean
+
+Pending purchase/settlement returns exit 2 and blocks reset/up/seed/down. Preserve the active run until the real transfer is proven. After settlement, the lifecycle cleans only the journalled run object, versions and delete markers, verifies absence, then removes owned local state. Unexpected keys stop cleanup. Seven-day expiry is a backstop, not immediate deletion proof. Bucket, IAM users/role and budget remain after environment teardown; deleting them requires its own authorized operation. Do not broaden IAM, remove ExternalId, patch SQL or remove the shared lock to recover.
+
+### H. Cost and change bounds
+
+Keep one committed synthetic fixture per run, enforce scoped cleanup, and stop new runs at the $50 monthly AWS ceiling. Budget alerts do not automatically stop spend. This budget does not cover A2's KMS/Vertex use; the required finite Vertex ceiling must be recorded before execution. Key rotation follows the existing Infisical/local-secops runbooks with secret values suppressed. No new identity, bucket, region, wildcard trust, versioning change or budget expansion is authorized here.
+
+### I. Acceptance evidence
+
+S1708 records broker assume-role success with ExternalId, refusal without it, direct broker bucket-list refusal, seed put/head(AES256)/delete success under the fixture prefix and outside-prefix refusal. These are provisioning receipts, not DL1–DL12 proof. Each connected run must prove its new serial binding, trust readback, actual broker verification, exact bytes, genuine 48-hour settlement and cleanup with redacted receipts at `/Users/max/koskadeux-state/s1656/acceptance-evidence` (0700).
+
+### J. Registration and references
+
+Subject aliases in this page's frontmatter register the test account/profile/role through `scripts/index.py`. The delivery runbook owns symptom-specific error signatures; avoid duplicate signatures here. Specs: S1681 §9/G9/Chunk D release record and S1656 A2 item 14. Historical production entries above remain production-only.
+
+### K. Maintenance
+
+Test-entry source verification: S1709, 2026-09-09. Refresh after any account, role policy/trust, credential name, bucket control, prefix, budget or lifecycle change. Mars maintains this entry with the AWS owner. Connected proof, stable AIM Data promotion and launchd activation remain later execution steps.

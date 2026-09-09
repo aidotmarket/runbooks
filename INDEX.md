@@ -218,10 +218,10 @@
 
 ## AWS Account — ai.market
 - Path: `aws.md`
-- Purpose: Parent runbook for ai.market's AWS account. Per-service detail lives in sub-runbooks: **aws-s3.md**.
+- Purpose: Parent runbook for ai.market's production AWS account and the isolated S1681 test account `157263244532` (profile `aimarket-sandbox`). Per-service detail lives in sub-runbooks: **aws-s3.md**.
 - Owner: `Vulcan-Primary`
 - Last verified: `2026-05-31`
-- Aliases: none
+- Aliases: AWS test account 157263244532, aimarket-sandbox, aim-sandbox-cli, S1681 test S3, aimarket-connector-s1681-test
 - Error signatures: none
 - Status: current
 
@@ -866,11 +866,11 @@
 
 ## S1656 Money Path Test Environment
 - Path: `money-path-test-environment.md`
-- Purpose: This page operates the disposable, test-only environment that exercises the S1590 money path without using production customer data, production Stripe mode, a Railway database or cache, or a production application deployment. It describes exactly `aidotmarket/money-path-test-environment@6d9b434ab42faff1218eb59c78e171dd58d5cc64`; the product source and image identities come from that environment's `versions.env`. It does not claim that the environment commit has passed its later Council review or AC1-AC12 release-evidence run.
+- Purpose: This page operates the disposable S1656/S1681 money-path environment at `aidotmarket/money-path-test-environment@e2028111f66d2b95d0c361d2c888b549b16520f8`: paid verification, buyer purchase, direct S3 delivery and genuine test Connect settlement. Source references written `environment:file:line` below all refer to that immutable commit, read with `git show`; the permanent checkout must be clean at that head before execution. S1709 is a documentation/source verification date, not a connected acceptance result.
 - Owner: `mars`
-- Last verified: `2026-09-03`
-- Aliases: BQ-MONEY-PATH-TEST-ENV-S1656, S1656 money path, money-path-test-environment, ai-market-money-path-s1656
-- Error signatures: live Stripe secret-key prefix refused before network access, live Stripe publishable-key prefix refused before network access, Stripe test key does not belong to the pinned platform Account, FRONTEND_URL must equal http://localhost:13000, source checkout is dirty, checkout differs from the recorded SHA, seller-01 effective seller capability is not active, Stripe redelivery must record duplicate without another finalization, backend did not record Stripe provider redelivery as duplicate, AC12 failed: parsed and normalised production snapshots differ after volatile fields were removed, container/network/volume target <id> lacks the exact S1656 ownership label, deployment marker observed; seed refused, immutable mint-policy validation failed, Cloudflare targets remain or absence is unproved, pinned host-network browser-runner cannot reach all localhost origins
+- Last verified: `2026-09-09`
+- Aliases: BQ-MONEY-PATH-TEST-ENV-S1656, BQ-MONEY-PATH-DELIVERY-LEG-S1681, S1681 delivery and settlement, S1656 money path, money-path-test-environment, ai-market-money-path-s1656
+- Error signatures: spec final head differs, spec product identity differs, AWS CLI v2 is required for conditional S3 uploads, offline retry refused, missing or conflicting pin, s1681: pending-settlement; environment mutation refused, live Stripe secret-key prefix refused before network access, live Stripe publishable-key prefix refused before network access, Stripe test key does not belong to the pinned platform Account, FRONTEND_URL must equal http://localhost:13000, source checkout is dirty, checkout differs from the recorded SHA, seller-01 effective seller capability is not active, Stripe redelivery must record duplicate without another finalization, backend did not record Stripe provider redelivery as duplicate, AC12 failed: parsed and normalised production snapshots differ after volatile fields were removed, container/network/volume target <id> lacks the exact S1656 ownership label, deployment marker observed; seed refused, immutable mint-policy validation failed, Cloudflare targets remain or absence is unproved, pinned host-network browser-runner cannot reach all localhost origins
 - Status: current
 
 ## Schema Migration Runbook
