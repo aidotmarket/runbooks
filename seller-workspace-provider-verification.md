@@ -544,3 +544,52 @@ Production remains gated on actual scheduler liveness/jobs and observable failur
 old-producer exclusion, queued/in-flight accounting and rollback. HTTP200/mode-only
 health and previously tolerated overlap do not prove safety. Profile/translation
 backlogs remain untouched, with external consumer coverage unverified.
+
+
+## S1692 shared-owner defaults and application permissions preparation
+
+Bounded pg_catalog-only reads through BOTH production web and normal-worker
+APPLICATION DSNs on unchanged main1c96b257 inspected ten named shared tables,
+their owner and that owner's global/public default ACLs. No author DSN, customer
+rows, application imports, migration, grant, task, provider or KMS operation.
+Both transactions enforced read-only, bounded timeouts and rollback. S1691's
+nine missing seller tables were not rechecked; their admission gate remains open.
+
+All ten shared tables report application SELECT/INSERT/UPDATE/DELETE. api_credits
+has RLS enabled (not forced); policies and actual write behavior remain untested.
+Each connection reports NOINHERIT, no membership/inherited privilege in the one
+observed shared-table owner and no superuser/CREATEDB/CREATEROLE/BYPASSRLS. These
+facts do not remove direct grants or certify complete application authority.
+
+IF that observed owner creates new public tables under the inspected defaults,
+the application receives SELECT/INSERT/UPDATE/DELETE plus TRUNCATE/REFERENCES/
+TRIGGER/MAINTAIN. Sequence SELECT/UPDATE/USAGE, function EXECUTE and type USAGE are
+also available. The actual future migration creator is unverified; owner aliases
+are local to each receipt. No grant change or future seller ACL certification is
+claimed. Default privileges depend on the actual creating role, not inherited
+owner membership; current grants on existing tables are separate evidence.
+
+The held approval/publication/file-grant/source-chunk immutability triggers cover
+row UPDATE/DELETE, not TRUNCATE. PostgreSQL TRUNCATE does not fire DELETE triggers.
+Thus the observed conditional TRUNCATE authority requires explicit release review
+and denial proof before relying on those guards for application-role preservation.
+No destructive statement was attempted. Do not blanket-revoke shared defaults,
+grant app DDL, disable guards or change functions to SECURITY DEFINER as a shortcut.
+
+Migration002 installs invoker guards on ALL updates of listings, listing_versions
+and delivery_authorities; they SELECT seller_listing_publications even for general
+writers. Migration004 adds a visibility-trigger publication lookup and outbox
+upsert. Publication INSERT also reads approvals/connections/listings/versions/
+authorities; session INSERT reads orders/publications. Permission and consumer
+coverage must include those indirect reads/writes and shared billing with Workspace
+off. SELECT FOR UPDATE needs UPDATE privilege as well as SELECT, even on rows
+whose business fields remain immutable. No Beat DB credential is justified.
+
+Source-bound requirements, ordering and exact redacted receipts are in
+seller-release-permissions-continuation/outputs/SELLER-RELEASE-PERMISSIONS.md and
+SELLER-PERMISSIONS-*.json. The source-search leads are not an exhaustive consumer
+inventory. Actual creator/RLS, unwanted-permission denial, all-consumer exclusion,
+owner migration, KMS/recovery/rolling fleet and both-provider enabled journey stay
+open. The S1691 note and this supplement are unreviewed preparation, not previously
+reviewed held docs. No application source, migration, grant or production setting
+changed. R2/support/demand and all original full-release boundaries remain open.
