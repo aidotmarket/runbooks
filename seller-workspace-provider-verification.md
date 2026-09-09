@@ -11,6 +11,50 @@ error_signatures:
 
 Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
 
+## S1691 production catalog preflight — seller migration not applied
+
+At September 9 01:23 UTC, bounded catalog-only checks through the existing web
+and normal-worker application DSNs independently found all nine seller release
+relations absent from `public`: `seller_assistant_requests`,
+`seller_listing_drafts`, `seller_listing_sources`, `seller_listing_approvals`,
+`seller_listing_publications`, `seller_download_sessions`,
+`seller_download_file_grants`, `seller_approved_source_chunks` and
+`seller_listing_search_outbox`. These are the eight mapped tables and SQL outbox
+required by held backend `3e473b9972c5704a3b2874829310cf23b801f5e7` admission.
+The check used `pg_catalog`, not privilege-filtered `information_schema`, and
+read no application rows. Both transactions reported read-only and rolled back.
+No application module, migration, worker task, provider or KMS operation ran.
+
+Both observed application roles have public USAGE but no public CREATE,
+superuser, CREATEDB, CREATEROLE or BYPASSRLS privilege. The web environment has
+an author DSN; the worker environment does not. Only presence booleans were
+recorded; the author DSN was not used. Absence of the nine relations means their
+write ACLs, types, constraints and triggers cannot yet be certified. This check
+does not inspect future default privileges or certify every external consumer.
+
+The inspected processes still run production main
+`1c96b257c34938ea547be1eb818d5e902ff49f56`, at web deployment
+`2357f6b8-5771-4725-93e8-f86c8499d752` and worker deployment
+`25cf4705-d2fe-408f-bd1f-30f92f7b2b1a`. Railway also retains Beat deployment
+`4d3a99e5-0b21-4920-a192-935ec965f3c5` at the same main. Public health is
+healthy/apscheduler with no reported drift for that deployed model set. This
+does not establish readiness for the different held seller model set.
+
+Before an authorized rollout, apply and verify the reviewed schema through the
+separate owner migration path, with incompatible writers excluded. Verify the
+actual application-role read/write permissions and integrity objects before
+admitting each compatible web/worker. Never grant application DDL, give Beat a
+database credential, or bypass admission to resolve this finding. The assistant
+table remains an unconditional billing floor even when Workspace is disabled.
+No production migration, grant, deployment or flag change was authorized here.
+
+Exact queries, redacted results, identities and inherited seal verification:
+`seller-aws-r2-release-continuation/outputs/SELLER-CATALOG-*.json` and
+`SELLER-OPEN-VERIFICATION.json`. The S1690 scheduler approvals and held integration
+remain accepted. R2 authority/implementation, enabled release, production KMS,
+recovery/rolling fleet, scheduler liveness/alerting and accepted capacity remain
+open. The existing support-send and launch-demand questions remain pending.
+
 ## Folder selection acceptance (September 8 requirement; synthetic delivery verified)
 
 Max reported that the first customer had 22,000 files in one folder. Treat 22,000 files as a required acceptance case, not a maximum. Sellers must be able to combine individual files and complete folders, including subfolders, then confirm the exact file count and total size before saving. Deduplicate overlapping choices. Counting uses object metadata only; it does not read file contents or invoke profiling or Allai.
