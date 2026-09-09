@@ -110,7 +110,7 @@ The dedicated application-secret boundary is Infisical project `bd272d48-c5a1-4b
 infisical run --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=test-env -- <command>
 ```
 
-The core `test-env` secret names are (the A2 KMS/Vertex additions below also apply):
+The authoritative core `test-env` secret contract is `e2028111:README.md:97-126`; `MCP_API_KEY_SECRET` is required for device key minting (`e2028111:bin/preflight:148-155`). The core names and S1681 additions are listed below (the A2 KMS/Vertex additions below also apply):
 
 ```text
 STRIPE_TEST_SECRET_KEY
@@ -118,6 +118,7 @@ STRIPE_TEST_PUBLISHABLE_KEY
 STRIPE_TEST_WEBHOOK_SECRET
 STRIPE_PAYIN_PLATFORM_ACCOUNT_ID
 SECRET_KEY
+MCP_API_KEY_SECRET
 SERIAL_TOKEN_SECRET
 S1656_SELLER01_AIM_API_KEY
 S1681_SELLER01_SERIAL
@@ -188,7 +189,7 @@ The supported seed flow is serial issuance → device activation → install-tok
 
 ## E. Boot and lifecycle
 
-Honest host prerequisites are Docker with Docker Compose, AWS CLI v2 (`environment:bin/preflight:39–48` refuses v1 because uploads are conditional), `git`, `curl`, `python3`, `dig`, the Infisical CLI, the Docker buildx CLI plugin (`bin/preflight` uses `docker buildx imagetools`), network access to GitHub, GHCR, Docker Hub (`docker.io`), `mcr.microsoft.com`, `registry.npmjs.org` (frontend and runner `npm ci`), the PyPI and Debian package repositories (pinned backend image build), Stripe, Infisical, Cloudflare, Railway's GraphQL endpoint and the public `ai.market` endpoints (verify-time production no-effect reads), and the authoritative DNS servers `dig` queries, an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`, an authorized GitHub SSH credential for the three private `git@github.com:aidotmarket/{ai-market-backend,ai-market-frontend,aim-data}.git` remotes cloned by `./bin/up`, and GHCR pull authorization when the pinned private image requires it. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host. Spec AC1's "only Docker and Infisical" wording is narrower than these real command and credential prerequisites and is to be reconciled by specification amendment A2 (S1656).
+Honest host prerequisites are Docker with Docker Compose, AWS CLI v2 (`environment:bin/preflight:39–48` refuses v1 because uploads are conditional) and AWS S3 / IAM / STS endpoint reachability from Titan-1 for fixture validation, upload, G9 trust update, broker verification and cleanup, `git`, `curl`, `python3`, `dig`, the Infisical CLI, the Docker buildx CLI plugin (`bin/preflight` uses `docker buildx imagetools`), network access to GitHub, GHCR, Docker Hub (`docker.io`), `mcr.microsoft.com`, `registry.npmjs.org` (frontend and runner `npm ci`), the PyPI and Debian package repositories (pinned backend image build), Stripe, Infisical, Cloudflare, Railway's GraphQL endpoint and the public `ai.market` endpoints (verify-time production no-effect reads), and the authoritative DNS servers `dig` queries, an authorized Infisical machine identity at `~/.config/infisical/sysadmin-token`, an authorized GitHub SSH credential for the three private `git@github.com:aidotmarket/{ai-market-backend,ai-market-frontend,aim-data}.git` remotes cloned by `./bin/up`, and GHCR pull authorization when the pinned private image requires it. Node, Playwright, and Chromium are supplied by the pinned runner container and must not be taken from the host. Spec AC1's "only Docker and Infisical" wording is narrower than these real command and credential prerequisites and is to be reconciled by specification amendment A2 (S1656).
 
 Before `./bin/down`, the teardown evidence root must exist, be owned by the operator, be outside the checkout, and have mode `0700`:
 
@@ -247,7 +248,7 @@ The Connect Custom idempotency key is fixed for seller-01. The ordinary pay-in p
 12. Return to AIM Data, start paid verification, wait for the signed scan/report lifecycle and manual-capture epoch, prove the final PaymentIntent and charge are test-mode and captured, and publish the findings.
 13. Capture the same normalized production snapshot again and require structural equality after volatile fields are removed.
 
-At `aidotmarket/money-path-test-environment@6d9b434ab42faff1218eb59c78e171dd58d5cc64:browser/s1590-money-path.spec.ts:207-219`, the runner observes every request, classifies any `localhost` or `127.0.0.1` hostname as local and the `stripe.com`/`stripe.network` roots and subdomains as Stripe, records the method and origin for `host.docker.internal` and every non-local/non-Stripe request, and records every navigation origin. It does not block navigation or restrict local traffic to the three configured origins or ports; later assertions fail the journey if the recorded forbidden-request list is non-empty. A passing journey's `browser-evidence.json` proves no production navigation through its complete recorded `navigation_origins`, which must contain no production origin; that list must also exclude the returned `marketplace_url` origin and `production_marketplace_url_never_navigated` must be `true`.
+At `e2028111:browser/s1590-money-path.spec.ts:220-241`, the runner observes every request, classifies any `localhost` or `127.0.0.1` hostname as local, and classifies the roots and subdomains of `stripe.com`, `stripe.network`, `stripecdn.com`, `hcaptcha.com`, `apple.com` and `cdn-apple.com` as the Stripe-hosted surface. It records the method and origin as forbidden for `host.docker.internal`, explicitly for `ai.market` and all its subdomains, and for every other non-local/non-Stripe-hosted request; it also records every navigation origin. This is observation followed by refusal through the final assertion that the forbidden-request list is empty, not request interception; local traffic is not restricted to the three configured origins or ports. A passing journey's `browser-evidence.json` proves no production navigation through its complete recorded `navigation_origins`, which must contain no production origin; that list must also exclude the returned `marketplace_url` origin and `production_marketplace_url_never_navigated` must be `true`.
 
 ### S1681 purchase, delivery, replay and Option A settlement
 
@@ -362,7 +363,68 @@ If the 24-hour window expires before teardown, run `./bin/mint-teardown-token`. 
 
 `environment:bin/verify:128–130` refuses an existing offline directory; there is no automatic rename. First inspect `active-run.json`, both phase receipt hashes, test Order/Transaction/Transfer state and device ownership. If any purchase or settlement is pending or uncertain, preserve everything and resolve it through the existing settlement path; do not move the checkpoint or clear its state.
 
-For a failed offline attempt that is proven to have no pending money and whose online checkpoint remains settled, the operator must hold the same nonblocking exclusive flock on `/Users/max/koskadeux-state/s1656/environment.lock` throughout inspection and quarantine. Under that lock, manually move only the exact run's failed `offline/` directory to a unique sibling quarantine name, preserving ownership, modes, contents and hashes; record the reason and original/destination paths in restricted operator evidence. Never overwrite a prior quarantine, delete receipts, rename another run or modify checkpoint/receipt contents. Release the lock, then use the normal pinned `verify --from-clean-seed` resume. `check-settlement --lock` only accepts commands under the environment's `bin/`; it is not a general shell/quarantine command (`environment:bin/check-settlement:139–141`). If the safe checkpoint cannot be established, stop for owner recovery rather than forcing reset.
+For a failed offline attempt proven to have no pending money and whose online checkpoint remains settled, use the recipe below on Titan-1. It takes the environment's same non-blocking exclusive lock (`e2028111:bin/check-settlement:16-18,101-184`), respecting `S1656_ACCEPTANCE_EVIDENCE_DIR` if set; the default lock is `/Users/max/koskadeux-state/s1656/environment.lock`. Lock denial means another owner is active: do not retry until it exits, unlink the lock or kill the owner. `check-settlement --lock` accepts only commands under `bin/`, so this uses Python's identical `fcntl.flock` semantics directly.
+
+While the command holds the lock and waits at its prompt, repeat the inspection above: verify both phase receipt hashes, test Order/Transaction/Transfer state and device ownership, confirm the failed directory belongs to the active run and contains no purchase checkpoint, and establish no pending or uncertain money. Enter a redacted reason only when all checks pass; otherwise interrupt the command and stop for owner recovery. The recipe checks the settled online checkpoint and directory ownership/mode, refuses symlinks and any offline purchase/settlement receipt, renames only to `offline.failed-<UTC stamp>` without overwriting a quarantine, preserves the directory tree's ownership/modes/contents/hashes by same-parent rename, and appends the reason and paths to the run's restricted `operator.log`.
+
+```sh
+rtk proxy python3 - <<'QUARANTINE'
+import datetime as dt, fcntl, json, os, re, stat
+from pathlib import Path
+os.umask(0o077)
+root = Path(os.environ.get("S1656_ACCEPTANCE_EVIDENCE_DIR", "/Users/max/koskadeux-state/s1656/acceptance-evidence"))
+fd = os.open(root.parent / "environment.lock", os.O_RDWR | os.O_NOFOLLOW)
+try:
+    if os.fstat(fd).st_uid != os.getuid():
+        raise SystemExit("lock owner differs; stop")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("another owner active; do not retry until it exits")
+    def owned(path):
+        info = path.lstat()
+        if stat.S_ISLNK(info.st_mode) or info.st_uid != os.getuid():
+            raise SystemExit("symlink or foreign owner; stop")
+        return info
+    owned(root); owned(root / "active-run.json")
+    checkpoint = json.loads((root / "active-run.json").read_text())
+    if (checkpoint.get("schema") != "ai.market/s1681-run/v1"
+            or checkpoint.get("phase") != "online" or checkpoint.get("state") != "settled"
+            or not re.fullmatch(r"[0-9]{8}T[0-9]{6}Z", checkpoint.get("run", ""))):
+        raise SystemExit("safe online checkpoint absent; stop")
+    run = root / checkpoint["run"]
+    owned(run)
+    source = run / "offline"
+    before = owned(source)
+    if not stat.S_ISDIR(before.st_mode) or stat.S_IMODE(before.st_mode) != 0o700:
+        raise SystemExit("offline directory/mode differs; stop")
+    for entry in source.rglob("*"):
+        owned(entry)
+        if entry.name in {"active-run.json", "purchase-confirmation.json", "settlement-check.json"}:
+            raise SystemExit("offline purchase/settlement checkpoint present; stop")
+    with open("/dev/tty", "r") as tty:
+        print("Complete all inspection checks under this lock; enter redacted quarantine reason (blank refuses): ", end="", flush=True)
+        reason = tty.readline().strip()
+    if not reason:
+        raise SystemExit("inspection not confirmed; stop")
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    target = run / ("offline.failed-" + stamp)
+    if os.path.lexists(target):
+        raise SystemExit("quarantine already exists; stop")
+    logfd = os.open(run / "operator.log", os.O_WRONLY | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(logfd, "a") as log:
+        info = os.fstat(log.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
+            raise SystemExit("operator log ownership/mode differs; stop")
+        source.rename(target)
+        log.write(json.dumps(dict(at=stamp, action="offline quarantine", source=str(source), destination=str(target), reason=reason)) + "\n")
+        log.flush(); os.fsync(log.fileno())
+finally:
+    os.close(fd)
+QUARANTINE
+```
+
+Command exit (including refusal or interruption) releases the lock. Never delete receipts or modify checkpoint/receipt contents. After successful quarantine, use the normal pinned `verify --from-clean-seed` resume; if inspection or logging fails, preserve the evidence and stop for owner recovery rather than forcing reset.
 
 ## K. Maintenance and change control
 
