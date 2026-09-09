@@ -590,3 +590,35 @@ through minute5/minute10 uses actual complete due selection. This is a schedule-
 equivalent old image, not an assertion of production image-byte identity. New
 synthetic broker receipts remain distinct from worker/business execution. The
 three retired tasks cannot be inferred safe to consume from the real backlog.
+
+## S1689 isolated due execution and listening proof
+
+Unchanged candidate3e473b9972c5704a3b2874829310cf23b801f5e7 and exact image
+16c63dada4938c3c4cf88ab8dc05e883ff1619592c851c7b31b1eaf4b9d27f4e pass
+the remaining local due execution chain. All1,307shipped source/spec hashes match.
+NEW internal PostgreSQL/Redis/Qdrant resources use a hash-verified synthetic dump,
+a separate owner migration step, then the unchanged admitted normal-worker command
+and default,scheduled,emails,vectoraiz queues. No profile consumer was started.
+
+Configured Beat uses real60second ticks with a disclosed fixture-only selection
+of exact heartbeat/seller-search entries. Full inventory/retirement is the separate
+S1688proof. All8published IDs match worker completion IDs:4heartbeats and4seller
+tasks (index,pause removal,durable retry,recovery). Qdrant outage retains the outbox
+row with attempts1/30second delay; no early retry occurs. The next actual Beat tick
+after recovery indexes and deletes it. No direct drain or retry-clock acceleration.
+Restricted SQL/public-search/Qdrant counts are1,0,1. Actual anonymous GET/POST search
+over listening localHTTP returns200/exact listing/no fallback. Provider/KMS and
+embeddings/tokenizer are synthetic; no real AWS/R2/model/payment operation is proven.
+
+Three supplemental actual-lifespan cases cover unpaused target wrappers, same-store
+restart and scheduler-start failure with listeningHTTP. Healthy cases register30IDs
+and execute each of the3retained wrappers once, calling11synthetic underlying service
+methods. Due times are fixture-controlled; all other jobs are postponed. The failure
+leaves26pending jobs/no owner whileHTTP remains200healthy. Server auto-lifespan is
+disabled inside the once-manually-entered actual lifespan. This is bounded dispatch
+proof, not normal production startup, all30business effects or a deployed alert.
+
+All prior fixtures remain retained; new owned containers are stopped after proof.
+Exact-code review and held integration remain pending at this record. Production
+owner/liveness/alert,old-producer/inflight/rollback and full AWS+R2 release gates are
+unchanged. Evidence: seller-scheduler-execution-proof/outputs/SELLER-EXECUTION-RESULT.md.
