@@ -470,3 +470,33 @@ incidentally enabling that work. A three-Beat-entry removal proposal preserves
 all30web jobs and remains unreviewed/unimplemented. Exact evidence/proposal is
 in seller-r2-release-after-scheduler/outputs. The support request is still unsent;
 R2 authority, release ACL/KMS/schema/capacity and enabled journey remain open.
+
+
+## S1687 reviewed narrow ownership design
+
+CC APPROVE_WITH_NITS; GLM and DeepSeek APPROVE_WITH_MANDATES permit new isolated
+implementation of only the three overlapping Beat-entry removals. No application
+source changed and no exact-code/integration/production approval exists. Preserve
+all30web jobs, callable tasks, other Beat entries, queues, singleton Beat and S1685.
+The accepted proof plan is seller-scheduler-ownership-continuation/outputs/
+SELLER-PROOF-PLAN-REFINEMENT.md; original reports and annotations are separate.
+
+Exact retained image d55c95a5 contains Celery5.6.3. A new network-none/read-only
+container inspected PersistentScheduler merge/sync; a separate synthetic shelve
+probe reopened20held-base entries with only the3proposed keys omitted and retained
+exactly17. This is base-framework proof, not actual configured Beat, broker emission
+or candidate proof. First probe failed on Python path; new-container retry passed.
+No old fixture changed. No production schedule-store deletion is justified.
+
+Before held-branch integration require actual lifecycle30-ID registration plus
+conditional, persisted, reconciliation/settlement and startup-failure cases; exact
+image restart from the19-entry production-main seed (plus conditional entries),
+removed-key due boundaries/no emissions, retained seller-search emissions and a
+second restart; actual due seller publication/search/pause/retry; exact-code review.
+SCHEDULER_MODE=celery or SKIP_SERVICES=1 leaves the3workflows ownerless after this
+change. APScheduler failures retry on the next tick rather than periodic Celery's
+60-second retry cushion. No new mode/retry/fail-fast behavior belongs to this slice.
+Production remains gated on actual scheduler liveness/jobs and observable failure,
+old-producer exclusion, queued/in-flight accounting and rollback. HTTP200/mode-only
+health and previously tolerated overlap do not prove safety. Profile/translation
+backlogs remain untouched, with external consumer coverage unverified.
