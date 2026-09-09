@@ -88,6 +88,10 @@
 
 - [Council Gate Process](runbooks/council-gate-process.md)
 
+## `AWS CLI v2 is required for conditional S3 uploads`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `B disconnects with A`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
@@ -656,6 +660,10 @@
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
 
+## `missing or conflicting pin`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `missing_design_artifact`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
@@ -727,6 +735,10 @@
 ## `observation_complete":false`
 
 - [Issue Channel](issue-channel.md)
+
+## `offline retry refused`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `ok false with error_code`
 
@@ -944,6 +956,10 @@
 
 - [E2E Programme Integrity](runbooks/e2e-programme-integrity.md)
 
+## `s1681: pending-settlement; environment mutation refused`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `schema_validation_failure`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
@@ -981,6 +997,14 @@
 - [Codex / MP — Council Primary Builder](codex-mp.md)
 
 ## `source checkout is dirty`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `spec final head differs`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `spec product identity differs`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
