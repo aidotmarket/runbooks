@@ -1,7 +1,7 @@
 ---
 title: Celery Infrastructure Deployment
 owner: unassigned
-last_verified: '2026-04-19'
+last_verified: '2026-09-08'
 aliases: []
 error_signatures: []
 ---
@@ -10,7 +10,7 @@ error_signatures: []
 
 ## What it does
 
-Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 
 - Web service: FastAPI via `uvicorn`, with HTTP healthcheck on `/health`
 - Worker service: Celery worker consuming `default`, `scheduled`, `emails`, and `vectoraiz`
@@ -30,7 +30,49 @@ Scope reference:
 
 ## Architecture
 
-All three services build from the same backend image. Railway differentiates process role by `deploy.startCommand`, not by separate images.
+### September 8 effective fleet check (S1682)
+
+Read-only Railway inventory and SSH agree that web, worker and Beat run backend
+`1c96b257c34938ea547be1eb818d5e902ff49f56`, not seller candidate
+`b3f68a18a727ff8d4f8aac8ba3e397df89b88be5`. Active deployment IDs are
+`2357f6b8-5771-4725-93e8-f86c8499d752` (web),
+`25cf4705-d2fe-408f-bd1f-30f92f7b2b1a` (worker), and
+`4d3a99e5-0b21-4920-a192-935ec965f3c5` (Beat). Each has one replica; web is in
+us-west2 and worker/Beat in us-east4-eqdc4a. The three image digests differ.
+The process commands match the existing commands below; web runs one Uvicorn
+worker. Worker and Beat effective healthcheckPath are null; web uses /health.
+No explicit pre-deploy command, overlap duration or draining duration is recorded
+in these manifests. Null settings do not establish the platform's effective
+defaults or a safe migration/rolling-release sequence.
+
+Public /health reports healthy, no schema/model drift, and scheduler_mode
+apscheduler. An existing Redis worker heartbeat was fresh on read. These checks
+do not certify all scheduled tasks or exclude duplicate scheduling; in-process
+APScheduler and Celery scheduling coexist and require release-specific analysis.
+No task was dispatched and no production SQL or customer data was read.
+
+Beat has REDIS_URL but no DATABASE_URL. This matches the scheduler-only posture
+documented below. The seller candidate's railway.beat.json adds
+`python -m app.core.seller_schema_readiness` before Celery; that probe requires
+DATABASE_URL even with Workspace off. Running the exact reviewed local ARM image
+`sha256:7b6cf73a4c706dfc4d46e3c7497dbe1fe4856238086ee396579fa43ba8d61228`
+with that command, a synthetic SECRET_KEY, no DATABASE_URL and network disabled
+refused startup with exit1 before Beat. The deployment is therefore NOT ready to
+use the seller candidate with unchanged Beat configuration. Do not remove the
+shared billing migration floor, grant production access, or change provider
+configuration merely to make the probe pass. Resolve scheduler admission and
+its intended database authority as a separately reviewed release change, then
+prove the actual release configuration. Production settings remain unchanged.
+
+Evidence and exact commands: seller-r2-release-next-continuation/outputs,
+SELLER-EFFECTIVE-FLEET-INVENTORY.json, SELLER-RUNTIME-*.json,
+SELLER-HEARTBEAT-*.json, SELLER-BEAT-REFUSAL-*.json and SELLER-PUBLIC-HEALTH.json.
+The first runtime inspector checked the wrong optional author-variable name
+DATABASE_URL_AUTHOR; that field is not evidence about AUTHOR_DISPATCH_DATABASE_URL.
+The heartbeat inspector checks the latter name correctly on the worker only.
+No production role/ACL or KMS certification is implied.
+
+All three services build from the same backend Dockerfile. Railway differentiates process role by `deploy.startCommand`; verify each resulting image independently.
 
 ```text
 Git push to aidotmarket/ai-market-backend main
@@ -409,3 +451,174 @@ References backend implementation at `464398c`, `f1e9665`, `b539d8f`, and `e908c
 ## When it breaks
 
 Use the On-Call Playbook and Verification Checks above when the deployed Celery topology fails.
+
+
+## S1684 seller admission design disposition
+
+All three focused reviewers approved the revised design with nits; see the S1684
+section of seller-workspace-provider-verification.md and the immutable design
+SHA256 cff8d34177f4363cde87cde236409a7338409487f81e57c6276080c723ce5728.
+Parent worker_init and beginning-of-lifespan application-role checks must be
+implemented and proved before replacing the seller Beat probe. Beat remains
+scheduler-only without database authority. Existing normal worker prefix stays.
+The staged isolated command override is not a production command change. Actual
+scheduled-path, refusal and exact-code review remain open; static inventory is
+not full fleet or duplicate-absence certification. No deployment is authorized.
+
+
+## S1685 isolated profile task loop correction
+
+Repeated actual profile reconcile/expire_cleanup deliveries in the new isolated
+prefork worker failed with `Event loop is closed`, even after correcting the
+synthetic role's missing UPDATE grant. The tasks called asyncio.run for each
+delivery while AsyncSessionLocal retained pooled connections bound to the prior
+loop. The isolated correction reuses the existing version_notification_service
+run_async helper, as seller search already does, for all three profile wrappers.
+It preserves task names, queues, concurrency, feature checks and task bodies.
+Verify repeated scheduled task completion in the same worker process; a first
+successful task or worker readiness alone cannot establish this correction.
+The actual failure logs and correction proof are in seller-scheduler-implementation-
+continuation/outputs. Production and existing peer environments remain unchanged.
+
+S1685 final disposition: CC/GLM/DeepSeek APPROVE_WITH_NITS, no HIGH/MEDIUM findings, for exact c3a28af26bc093aec11375c702d70d8cf5124067. Intrinsic worker/web refusal and actual isolated scheduled publication, retry/recovery, profile-loop reuse and broker-only Beat proof passed. PR354 integrated by exact fast-forward into held seller PR342. This supersedes the S1684 pending implementation statement above, without clearing production exclusion, schema transition, topology, ACL/KMS, R2 or enabled-release gates. All new S1685 containers stopped cleanly with artifacts retained.
+
+## S1686 live scheduling overlap and queue coverage
+
+Read-only September 8 verification at23:42–23:46UTC confirms the same three
+production deployments at1c96b257. All24inspected source hashes match main.
+Web has30persisted APScheduler job IDs:25core,1reconciliation and4settlement/
+payout registrations added by lifespan. All30resolve to exact source; do not
+describe the earlier25core count as the whole scheduler. Source registration
+files are unchanged on held sellerc3a28af. Persistence alone is not successful
+execution proof; no persisted job pickle or customer payload was deserialized.
+
+Server-filtered logs show both periodic owners active for inquiry reminders,
+order auto-confirmations and Buyer Request publication: each scheduler records
+3hourly reminder/confirmation events and90publication events in the3hour window.
+Web records execution starts; Beat records due emissions. This proves scheduling
+overlap, not duplicate business effects or successful worker completion. Existing
+idempotency is not waived. Public health remains healthy/apscheduler/no drift.
+
+Metadata-only LLEN at23:46:17UTC reports25,402messages in translations and30,999
+in seller_workspace_profile_control; the observed worker consumes neither.
+The10-service production inventory has one Celery worker and no profile or
+translation worker. Other external consumers are unverified. Do not purge these
+queues, read customer payloads, expand worker queues or start consumers as a
+health check: accumulated jobs may invoke providers/models or customer effects.
+Existing ordinary queues were empty in this sample; that is not task-success
+or backlog-safety proof. No queue or runtime configuration was changed.
+
+A proposed correction removes only the three overlapping Beat registrations,
+retaining their callable tasks and all web jobs. It is NOT reviewed/implemented.
+Keep SCHEDULER_MODE unchanged; a blanket switch would omit other web-only work,
+including settlement/payout. Require narrow design review, persisted Beat-entry
+restart proof, complete isolated registration coverage and exact-code review.
+Production old-producer/in-flight exclusion remains separately authorized.
+Evidence and proposal: seller-r2-release-after-scheduler/outputs,
+SELLER-TOPOLOGY-RESULT.md and SELLER-SCHEDULER-OWNERSHIP-PROPOSAL.md.
+
+One metadata SSH attempt failed to connect; one identical read-only retry passed.
+No service restart or access change was used. R2, writeACL/KMS, schema transition,
+accepted capacity and enabled customer journey remain open.
+
+
+## S1687 reviewed narrow ownership design
+
+CC APPROVE_WITH_NITS; GLM and DeepSeek APPROVE_WITH_MANDATES permit new isolated
+implementation of only the three overlapping Beat-entry removals. No application
+source changed and no exact-code/integration/production approval exists. Preserve
+all30web jobs, callable tasks, other Beat entries, queues, singleton Beat and S1685.
+The accepted proof plan is seller-scheduler-ownership-continuation/outputs/
+SELLER-PROOF-PLAN-REFINEMENT.md; original reports and annotations are separate.
+
+Exact retained image d55c95a5 contains Celery5.6.3. A new network-none/read-only
+container inspected PersistentScheduler merge/sync; a separate synthetic shelve
+probe reopened20held-base entries with only the3proposed keys omitted and retained
+exactly17. This is base-framework proof, not actual configured Beat, broker emission
+or candidate proof. First probe failed on Python path; new-container retry passed.
+No old fixture changed. No production schedule-store deletion is justified.
+
+Before held-branch integration require actual lifecycle30-ID registration plus
+conditional, persisted, reconciliation/settlement and startup-failure cases; exact
+image restart from the19-entry production-main seed (plus conditional entries),
+removed-key due boundaries/no emissions, retained seller-search emissions and a
+second restart; actual due seller publication/search/pause/retry; exact-code review.
+SCHEDULER_MODE=celery or SKIP_SERVICES=1 leaves the3workflows ownerless after this
+change. APScheduler failures retry on the next tick rather than periodic Celery's
+60-second retry cushion. No new mode/retry/fail-fast behavior belongs to this slice.
+Production remains gated on actual scheduler liveness/jobs and observable failure,
+old-producer exclusion, queued/in-flight accounting and rollback. HTTP200/mode-only
+health and previously tolerated overlap do not prove safety. Profile/translation
+backlogs remain untouched, with external consumer coverage unverified.
+
+
+## S1688 isolated ownership implementation and registration proof
+
+Candidate 3e473b9972c5704a3b2874829310cf23b801f5e7 removes only the three
+overlapping Beat entries and adds ownership comments plus historical-spec notes.
+Callable tasks/retries, all web registrations, other Beat entries, queues, singleton
+Beat and S1685 remain unchanged. The candidate is isolated, not integrated or
+released. The final image's 1,307 app/migration/startup-script/spec files match source.
+
+Actual lifespan with real APScheduler and a new Redis store passed 15 registration
+cases. Baseline and restart contain all30IDs. Existing optional briefing/watchdog/
+reconciliation jobs remain persisted when later disabled; a fresh store omits each
+conditional job. Reconciliation adds its job before attempting the startup event;
+event failure leaves that job registered. Failure on the second settlement add
+leaves only the reaper (27totaljobs). Scheduler start failure leaves26pending jobs
+and no running scheduler/settlement; briefing exception leaves5pending jobs. Redis
+construction failure/timeout falls back to memory. Tolerated startup timeout,
+celery mode and SKIP_SERVICES all serve synthetic HTTP200 with no running owner.
+
+These are registration/persistence/failure observations, not business execution:
+the fixture starts APScheduler paused and stubs provider, tokenizer, database,
+agent and health dependencies explicitly. HTTP200/healthy/mode-only health is not
+liveness proof. Reminders/confirmations now recover at the next hourly web tick,
+without periodic Beat's60-second retry cushion; callable retries are unchanged.
+Production requires actual running jobs and an operator-visible failure signal.
+Exact-image due Beat restart/emission proof and admitted-worker SQL/outbox/search/
+pause/retry proof remain separately recorded gates, followed by exact-code Council
+approval before held-branch integration. No production authority is conferred.
+Evidence: seller-scheduler-ownership-implementation/outputs/runtime-evidence.
+
+Final-image Beat persistence proof also passed: exact production-main schedule
+seed (19unconditional entries, plus conditional Gmail/archive cases) on the same
+Celery5.6.3 dependency image; configured old/new starts against one new persistent
+path;125seconds with no removed emissions, retained heartbeat/search emission,
+retained scheduling history and second restart. A separate controlled clock run
+through minute5/minute10 uses actual complete due selection. This is a schedule-
+equivalent old image, not an assertion of production image-byte identity. New
+synthetic broker receipts remain distinct from worker/business execution. The
+three retired tasks cannot be inferred safe to consume from the real backlog.
+
+## S1689 isolated due execution and listening proof
+
+Unchanged candidate3e473b9972c5704a3b2874829310cf23b801f5e7 and exact image
+16c63dada4938c3c4cf88ab8dc05e883ff1619592c851c7b31b1eaf4b9d27f4e pass
+the remaining local due execution chain. All1,307shipped source/spec hashes match.
+NEW internal PostgreSQL/Redis/Qdrant resources use a hash-verified synthetic dump,
+a separate owner migration step, then the unchanged admitted normal-worker command
+and default,scheduled,emails,vectoraiz queues. No profile consumer was started.
+
+Configured Beat uses real60second ticks with a disclosed fixture-only selection
+of exact heartbeat/seller-search entries. Full inventory/retirement is the separate
+S1688proof. All8published IDs match worker completion IDs:4heartbeats and4seller
+tasks (index,pause removal,durable retry,recovery). Qdrant outage retains the outbox
+row with attempts1/30second delay; no early retry occurs. The next actual Beat tick
+after recovery indexes and deletes it. No direct drain or retry-clock acceleration.
+Restricted SQL/public-search/Qdrant counts are1,0,1. Actual anonymous GET/POST search
+over listening localHTTP returns200/exact listing/no fallback. Provider/KMS and
+embeddings/tokenizer are synthetic; no real AWS/R2/model/payment operation is proven.
+
+Three supplemental actual-lifespan cases cover unpaused target wrappers, same-store
+restart and scheduler-start failure with listeningHTTP. Healthy cases register30IDs
+and execute each of the3retained wrappers once, calling11synthetic underlying service
+methods. Due times are fixture-controlled; all other jobs are postponed. The failure
+leaves26pending jobs/no owner whileHTTP remains200healthy. Server auto-lifespan is
+disabled inside the once-manually-entered actual lifespan. This is bounded dispatch
+proof, not normal production startup, all30business effects or a deployed alert.
+
+All prior fixtures remain retained; new owned containers are stopped after proof.
+Exact-code review and held integration remain pending at this record. Production
+owner/liveness/alert,old-producer/inflight/rollback and full AWS+R2 release gates are
+unchanged. Evidence: seller-scheduler-execution-proof/outputs/SELLER-EXECUTION-RESULT.md.

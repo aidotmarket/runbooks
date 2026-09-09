@@ -21,21 +21,23 @@ error_signatures:
 
 # ai.market Seller Workspace Cloud Listing and Delivery
 
-This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
+This records the W1 architecture for browser-only sellers whose data is already in a supported cloud, with the September 8 product decisions below superseding its earlier mandatory profiling and sample steps. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
+
+Current seller contract (September 8, reconciled in S1668): selection and listing do not require profiling. The implemented publication path requires an explicit no-public-sample decision; it creates no sample artifact and grants no public custody of source bytes. All sample-artifact records, custody exceptions, retention rules and sample-specific acceptance tests below are retained historical design for a future separately approved sample feature, not prerequisites for this seller release. Profiling rules apply only when that optional feature is separately authorized. The current development evidence, unimplemented R2 stages and release boundaries are recorded in [seller-workspace-provider-verification.md](seller-workspace-provider-verification.md). Final release must be enabled by default under Max's direction; historical default-off W2 evidence is not current release acceptance or deployment permission.
 
 The two products provide equivalent marketplace outcomes through stable contracts. They do not share a runtime, Docker deployment, local database, filesystem, installation identity, or user interface.
 
-Status: W2 foundation merged and deployed, default-off, with the S1648 Gate 4 evidence satisfied in an explicitly controlled non-public environment. AWS connect is the only implemented W2 stage. The master and every provider-stage flag remain off, so this document makes no public capability claim. W3 profiling, W5 delivery, Cloudflare R2, and any AIM Data runtime integration remain out of scope and unavailable. Existing `legacy_serial` behavior is unchanged, and the workspace feature remains off.
+Historical W2 status: foundation merged and deployed, default-off, with S1648 Gate 4 evidence satisfied in an explicitly controlled non-public environment. AWS connect was the only implemented W2 stage. Those observations do not describe the later seller drafts, Allai, source selection, review, approval, publication and direct-delivery candidate or claim it is released. R2 remains unimplemented. Existing `legacy_serial` behavior is preserved.
 
 ## Decisions frozen by W1
 
 1. The browser experience lives in the existing ai.market Seller Workspace.
 2. `ai-market-frontend` owns browser presentation. `ai-market-backend` owns durable state, authorization, provider adapters, orchestration, publication, entitlement, audit, and revocation.
-3. Profiling runs from the backend repository as a separately deployed, isolated worker on a dedicated queue. It does not run in the web process and does not import the AIM Data runtime.
+3. Optional profiling, when separately authorized, runs from the backend repository as a separately deployed, isolated worker on a dedicated queue. It does not run in the web process, import the AIM Data runtime, or block file/folder selection and publication without profiling.
 4. Cloud-provider authority is held only in encrypted server-side references. It is never placed in listing JSON, prompts, URLs, logs, analytics, browser storage, public samples, or buyer grants.
 5. New browser sellers use a `workspace_connection` delivery authority and a random, server-stored, per-connection AWS ExternalId. Existing listings keep `legacy_serial` unchanged.
-6. allAI receives normalized bounded evidence, not provider credentials, broker authority, or unbounded source content. It may propose; the seller approves the exact first public listing and sample.
-7. Before approval, sample bytes are transient. Approval creates only a bounded, immutable, content-addressed public artifact. The full dataset is never persistently copied into or proxied through ai.market.
+6. allAI receives normalized bounded evidence, not provider credentials, broker authority, or unbounded source content. It may propose; the seller accepts suggestions and approves the exact first public listing with an explicit no-public-sample decision.
+7. Current approval creates no public sample artifact. The full dataset is never persistently copied into or proxied through ai.market. The original sample-artifact design below is historical and requires separate approval before implementation or custody.
 8. Normal purchased bytes flow directly from the seller's cloud to the entitled buyer. ai.market authorizes the grant but does not proxy the dataset.
 9. Provider capabilities are exposed by one backend-owned capability response. The frontend and allAI must not make independent support claims.
 10. W2 may implement only the AWS connection foundation described here. R2 implementation remains blocked on the W6 OAuth and authority spike.
@@ -48,10 +50,10 @@ Status: W2 foundation merged and deployed, default-off, with the S1648 Gate 4 ev
 2. The seller chooses a provider and completes its one-time authorization ceremony.
 3. The backend verifies the delegation and creates an owner-bound connection.
 4. The seller selects a bucket and immutable object scope: prefix, explicit objects, or manifest.
-5. An isolated job reads only bounded ranges and produces normalized evidence.
+5. Source selection saves exact file identities and sizes without reading source bytes. Optional, separately authorized profiling may produce bounded evidence; it is not a listing prerequisite.
 6. allAI proposes a simple listing. The seller may optionally use advanced presentation controls.
-7. The seller selects a public sample and reviews the exact inert render.
-8. The seller confirms a hash-bound listing, sample artifact, price, license, ownership, and privacy declaration.
+7. The seller reviews the exact inert render and explicitly chooses no public sample.
+8. The seller confirms the hash-bound listing and source selection, no-sample decision, price, license, ownership, privacy and public-disclosure statements.
 9. The backend publishes an immutable listing/disclosure/source version.
 10. The seller may supersede, pause, withdraw, reconnect, rotate, or disconnect from the browser.
 
@@ -74,7 +76,7 @@ The buyer never receives the seller's connection authority and cannot ask the br
 | Cloud connection | `pending_authorization`, `expired`, `verified`, `disabled`, `revoked`, `error` | Only a verified connection can select or read objects. An initial pending connection whose authorization deadline passes enters the single terminal `expired` state: it cannot verify or be disconnected into another cause, its authorization material is unavailable, and recovery creates a new pending connection. Otherwise, disconnect enters `revoked`, blocks new use immediately, and truthfully reports any residual provider-token lifetime. A revoked record is never revived. |
 | Profile job | `queued`, `running`, `succeeded`, `failed`, `cancelled`, `expired` | A lease and immutable input bind every run. Terminal states trigger cleanup. Retry creates a recorded attempt; it cannot broaden scope. |
 | Listing/disclosure | `draft`, `ready_for_review`, `approved`, `published`, `paused`, `superseded`, `withdrawn` | Approval is bound to exact hashes. Any material change creates a new draft/version and invalidates prior approval. Pause is reversible discoverability/sale disablement of the same immutable version; withdrawal is terminal for that version. |
-| Public sample | transient candidate, approved artifact, superseded, withdrawn | Approval creates an immutable artifact. Mutation of the provider source cannot mutate it. Withdrawal removes public bytes but retains redacted audit hashes and metadata. |
+| Public sample (historical future feature; not implemented) | transient candidate, approved artifact, superseded, withdrawn | These transitions require separate feature approval. Current no-sample publication creates no artifact. |
 
 Illegal transitions fail closed and emit a redacted audit event.
 
@@ -140,6 +142,8 @@ The existing global `SECRET_KEY`-derived Fernet helper is not sufficient for new
 
 ### `PublicSampleArtifact`
 
+Historical future-feature record only. Current no-sample approval does not create this record or authorize the custody exception described below.
+
 - Seller/listing/disclosure version, provider/account/connection, bucket/key, provider version or ETag, byte range, source size and hash.
 - Approved content hash, artifact size, media type, encoding, parser/render versions, render hash, approval time, withdrawal time, and immutable storage reference.
 - The approved bytes are the sole public-custody exception. Withdrawal removes their public reachability; audit preserves hashes and metadata only.
@@ -148,7 +152,7 @@ The existing global `SECRET_KEY`-derived Fernet helper is not sufficient for new
 
 - Seller-owned draft/version, evidence version, source selector, proposed and seller-edited fields, presentation settings, and validation findings.
 - Clear attribution of source-derived facts, deterministic computations, allAI proposals, and seller assertions.
-- Approval records the exact listing payload hash, exact render hash, public sample hash, disclosure version, price, license, ownership/privacy assertions, actor, and time.
+- Approval records the exact listing payload hash, exact render hash, source binding, explicit no-sample decision, disclosure version, price, license, ownership/privacy assertions, actor, and time. The earlier public sample hash is a historical future-feature field, not required by current no-sample approval.
 
 ### `DeliveryAuthority` and `ProviderDeliveryGrant`
 
@@ -289,6 +293,8 @@ One job runs per worker child. Each job has an isolated ephemeral directory, har
 - Rotation is independently testable. Loss of the master-key service fails closed and leaves existing provider credentials unreadable, not bypassed.
 
 ### Public sample retention and mutation
+
+Historical future-feature rules only; the current no-sample release creates no public sample storage and requires none of these sample-specific actions. Any future sample feature requires separate approval before these rules can authorize implementation.
 
 - Transient candidate bytes use tenant/job isolation, encryption, short TTL, and backup/log exclusion.
 - Approval copies only the bounded selected artifact into immutable content-addressed public storage and records source and render hashes.

@@ -83,7 +83,7 @@
 
 ## ai.market Seller Workspace Cloud Listing and Delivery
 - Path: `seller-workspace-cloud-listing-delivery.md`
-- Purpose: This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
+- Purpose: This records the W1 architecture for browser-only sellers whose data is already in a supported cloud, with the September 8 product decisions below superseding its earlier mandatory profiling and sample steps. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
 - Owner: `vulcan`
 - Last verified: `2026-09-01`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
@@ -317,9 +317,9 @@
 
 ## Celery Infrastructure Deployment
 - Path: `celery-infrastructure-deployment.md`
-- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 - Owner: `unassigned`
-- Last verified: `2026-04-19`
+- Last verified: `2026-09-08`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -898,6 +898,15 @@
 - Last verified: `2026-04-01`
 - Aliases: none
 - Error signatures: none
+- Status: current
+
+## Seller Workspace provider verification
+- Path: `seller-workspace-provider-verification.md`
+- Purpose: Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
+- Owner: `unassigned`
+- Last verified: `2026-09-08`
+- Aliases: none
+- Error signatures: HTTP 403 / Cloudflare error 1010 at oauth2/token
 - Status: current
 
 ## SEO Infrastructure Runbook
