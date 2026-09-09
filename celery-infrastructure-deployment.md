@@ -550,3 +550,43 @@ Production remains gated on actual scheduler liveness/jobs and observable failur
 old-producer exclusion, queued/in-flight accounting and rollback. HTTP200/mode-only
 health and previously tolerated overlap do not prove safety. Profile/translation
 backlogs remain untouched, with external consumer coverage unverified.
+
+
+## S1688 isolated ownership implementation and registration proof
+
+Candidate 3e473b9972c5704a3b2874829310cf23b801f5e7 removes only the three
+overlapping Beat entries and adds ownership comments plus historical-spec notes.
+Callable tasks/retries, all web registrations, other Beat entries, queues, singleton
+Beat and S1685 remain unchanged. The candidate is isolated, not integrated or
+released. The final image's 1,307 app/migration/startup-script/spec files match source.
+
+Actual lifespan with real APScheduler and a new Redis store passed 15 registration
+cases. Baseline and restart contain all30IDs. Existing optional briefing/watchdog/
+reconciliation jobs remain persisted when later disabled; a fresh store omits each
+conditional job. Reconciliation adds its job before attempting the startup event;
+event failure leaves that job registered. Failure on the second settlement add
+leaves only the reaper (27totaljobs). Scheduler start failure leaves26pending jobs
+and no running scheduler/settlement; briefing exception leaves5pending jobs. Redis
+construction failure/timeout falls back to memory. Tolerated startup timeout,
+celery mode and SKIP_SERVICES all serve synthetic HTTP200 with no running owner.
+
+These are registration/persistence/failure observations, not business execution:
+the fixture starts APScheduler paused and stubs provider, tokenizer, database,
+agent and health dependencies explicitly. HTTP200/healthy/mode-only health is not
+liveness proof. Reminders/confirmations now recover at the next hourly web tick,
+without periodic Beat's60-second retry cushion; callable retries are unchanged.
+Production requires actual running jobs and an operator-visible failure signal.
+Exact-image due Beat restart/emission proof and admitted-worker SQL/outbox/search/
+pause/retry proof remain separately recorded gates, followed by exact-code Council
+approval before held-branch integration. No production authority is conferred.
+Evidence: seller-scheduler-ownership-implementation/outputs/runtime-evidence.
+
+Final-image Beat persistence proof also passed: exact production-main schedule
+seed (19unconditional entries, plus conditional Gmail/archive cases) on the same
+Celery5.6.3 dependency image; configured old/new starts against one new persistent
+path;125seconds with no removed emissions, retained heartbeat/search emission,
+retained scheduling history and second restart. A separate controlled clock run
+through minute5/minute10 uses actual complete due selection. This is a schedule-
+equivalent old image, not an assertion of production image-byte identity. New
+synthetic broker receipts remain distinct from worker/business execution. The
+three retired tasks cannot be inferred safe to consume from the real backlog.
