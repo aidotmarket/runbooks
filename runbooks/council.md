@@ -32,6 +32,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
 | DeepSeek reviewer seat | REQUIRED GATE VOTER (Max decision S1651, CORE v9.16) | `deepseek_codex_transport.py`, `config/deepseek_codex/` | Transport, config, environment-isolation, explicit-name directory routing, roster/audit visibility, and candidate-versus-three-voter-base non-authority tests | 2026-09-01 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | Live remote no-op dispatch plus existing minimal-bridge tests | 2026-08-26 |
+| Retired CC build wrappers physically removed | MERGED; DEPLOYMENT PENDING | `tools/agents.py` at koskadeux-mcp PR #217 / `5a3b02290d225d2c3bed38aeac09f0ae2d47df45` | 187 focused tests passed; identical branch/main failure sets | 2026-09-09 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
 
@@ -149,6 +150,15 @@ MP is not a reviewer. The private `council_request agent=mp mode=build|author`
 path continues through the same minimal MP build system for existing callers;
 it is not a second advertised build tool. Registered raw state and shell
 compatibility names are unchanged by this agent/build route reduction.
+
+S1707 removed the now-unregistered `_handle_call_claude_code` and
+`_handle_dispatch_build` compatibility wrappers and their wrapper-only timeout
+tests in koskadeux-mcp PR #217 at `5a3b02290d225d2c3bed38aeac09f0ae2d47df45`.
+This is a physical deletion only; it does not change the two-name public contract,
+reviewer directory transport, MP dispatch, or build-management subactions. At the
+time of this note the merge is not yet deployed: the live marker remains
+`f52fa25534a00addd15c006f78fbb6b8eaed55fc`, and deployment plus fresh authorized
+Chrome proof remain required before the cleanup can be called live.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
