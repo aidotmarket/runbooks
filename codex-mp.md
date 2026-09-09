@@ -263,7 +263,7 @@ error_signatures:
   symptom_ref: F-17
   component_ref: Codex CLI + auth
   root_cause: 'Codex usage quota on the ChatGPT account is exhausted; the CLI refuses new work until the stated reset date'
-  repair_entry_point: 'Max restores the quota (plan change or reset) - outside instance authority'
+  repair_entry_point: 'Max restores the quota at https://chatgpt.com/codex/settings/usage (plan change or reset) - outside instance authority'
   change_pattern: '1) Stop dispatching MP immediately; every further dispatch burns nothing but produces nothing. 2) Tell Max in the end-of-round summary with the exact reset date from the error string. 3) Do NOT hand-author code builds to route around it - MP remains the mandatory builder (CORE S4). 4) After Max confirms restoration, run one trivial smoke dispatch before redispatching real work.'
   rollback_procedure: n/a
   integrity_check: 'smoke dispatch reaches a terminal status with no usage-limit string in its builder-output log'
