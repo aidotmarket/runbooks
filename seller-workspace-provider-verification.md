@@ -593,3 +593,41 @@ owner migration, KMS/recovery/rolling fleet and both-provider enabled journey st
 open. The S1691 note and this supplement are unreviewed preparation, not previously
 reviewed held docs. No application source, migration, grant or production setting
 changed. R2/support/demand and all original full-release boundaries remain open.
+
+
+## S1693 policy context and configured migration identity
+
+Read-only metadata queries through both production application connections found
+one applicable permissive ALL-command api_credits policy. USING and WITH CHECK
+both call finance_entity_scope(entity_id). Its complete function body exactly
+matches the held financial migration (SHA256
+52258ac2370a05bfca0052c528c5987b720169d1cdc2711b1115c25e795dd2f9): it returns TRUE
+when app.current_entity_id is absent/empty. Fresh diagnostic connections have
+that setting absent/empty and active RLS. RLS enabled is therefore not tenant-
+filtering proof. No policy function, application row or customer request was
+executed; request/pool context and external consumers remain unverified. No
+policy change is proposed by this observation.
+
+The web's existing author DSN was used only for a separate bounded read-only
+catalog connection, not Alembic. Its current role equals session role, differs
+from the app, owns all ten named shared tables in its connection, has public
+CREATE and current_schema public. Direct in-memory comparison establishes that
+its role name equals the app-observed api_credits owner name. No role name, DSN,
+credential or server address was emitted. The worker has no author connection.
+
+The first combined target check returned FALSE. The separate follow-up finds
+equal database names/server ports but different server addresses and different
+DSN hosts/ports. Different routes are possible; same physical cluster is NOT
+certified, nor is a wrong-database incident established. Do not change credentials
+or endpoints to force equality. Bind target cluster/creator/release configuration
+before migration; current login and source helper selection are not future
+execution proof. S1691 absence and S1692 defaults were not rerun.
+
+A scoped proposal and positive/negative proof plan are retained in
+seller-release-permission-review-continuation/outputs/
+SELLER-PERMISSION-REVIEW-PREPARATION.md. Prefer reviewed per-object narrowing of
+unwanted rights on the nine new seller tables before admission, preserving shared
+defaults/consumers, locks, invoker guards and the billing floor. This is not final
+GRANT SQL or execution authority. No production/source/migration/grant/flag,
+provider, customer-data, payment or model-credit operation occurred. Both previous
+notes and this addition need independent review; all full-release gates remain.
