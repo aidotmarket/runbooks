@@ -428,6 +428,10 @@
 
 - [Council Gate Process](runbooks/council-gate-process.md)
 
+## `FAILED_VOIDED`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
 ## `fallback_waiting_resolution`
 
 - [Issue Channel](issue-channel.md)
@@ -656,6 +660,10 @@
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
+## `mint-teardown-token: a previous unexpired teardown-token record exists`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
 ## `missing / malformed / model-mismatched verdict`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
@@ -828,6 +836,10 @@
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
 
+## `POST /api/v1/serials/{serial}/s3-connections/verification-artifact`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
 ## `POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
@@ -871,6 +883,10 @@
 ## `queued row with idle slot`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
+
+## `rate_limit_exceeded`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
 
 ## `Reauthentication failed`
 
@@ -956,9 +972,17 @@
 
 - [E2E Programme Integrity](runbooks/e2e-programme-integrity.md)
 
+## `S1681 refusal: independent observation or device operation`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
 ## `s1681: pending-settlement; environment mutation refused`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `S3 version scan failed after assume-role propagation retries`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
 
 ## `schema_validation_failure`
 
@@ -971,6 +995,10 @@
 ## `secret_disclosure`
 
 - [Infrastructure Discovery](runbooks/infrastructure-discovery.md)
+
+## `seed: host handoff failed (details suppressed); check seed revocation result`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
 
 ## `seller-01 effective seller capability is not active`
 
@@ -1187,6 +1215,14 @@
 ## `verdict.ready is False with non-empty blocked_reasons`
 
 - [ACL Sole-Writer Enforcement (WS9)](acl-sole-writer-enforcement.md)
+
+## `verification_artifact_ambiguous`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
+## `verification_artifact_unavailable`
+
+- [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
 
 ## `version_conflict on the patch`
 
