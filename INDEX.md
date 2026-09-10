@@ -747,6 +747,15 @@
 - Error signatures: none
 - Status: current
 
+## Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route
+- Path: `money-path-proof-loop.md`
+- Purpose: This page is the operating procedure behind BQ-MONEY-PATH-DELIVERY-LEG-S1681: how one clean-seed run of the S1656 environment is executed, how each of the failures found on 2026-09-09/10 was diagnosed, how a fix is taken from root cause to a repinned environment without losing the audit trail, and the exact contract of the backend route added by S1681 Amendment G14. `money-path-test-environment.md` (aliases `S1656 money path`) is the reference for topology, secrets, seed contract and evidence; read it first. This page is the loop that sits on top of it. Source references are `repo:file:line` at the pinned identities in §A and must be re-verified with `git show` before relying on them, because every fold moves lines.
+- Owner: `mars`
+- Last verified: `2026-09-10`
+- Aliases: money-path proof loop, clean-seed proof loop, verify --from-clean-seed, verification-artifact route, G14 route, S1681 G14, repin-and-record
+- Error signatures: seed: host handoff failed (details suppressed); check seed revocation result, S1681 refusal: independent observation or device operation, S3 version scan failed after assume-role propagation retries, verification_artifact_unavailable, verification_artifact_ambiguous, POST /api/v1/serials/{serial}/s3-connections/verification-artifact, FAILED_VOIDED, rate_limit_exceeded, mint-teardown-token: a previous unexpired teardown-token record exists
+- Status: current
+
 ## Morning Briefing
 - Path: `morning-briefing.md`
 - Purpose: Sends a daily CRM briefing email to max@ai.market at 08:00 CET (07:00 UTC). Contains overdue tasks, pending tasks, recent activity, and action links per contact.
