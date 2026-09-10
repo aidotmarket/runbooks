@@ -65,6 +65,8 @@ The log tells you the phase; it almost never tells you the error. Work from the 
 | `real S3 broker verification failed` | Seed, verify loop (120 s) | Trust document, `role_arn` or ExternalId is actually wrong; do not reissue the serial, inspect read-only (`aws iam get-role` through the seed identity). |
 | `ParamValidation: Invalid JSON received` from aws-cli | Seed, G9 | Environment predates PR #13. |
 
+Hosted Stripe pages: when the browser stops on a hosted Checkout or setup page with a URL-free error, do not guess at locators — copy the leg's steps into a scratch `.mjs` inside the browser-runner (`docker cp … :/work/diag.mjs`, run with `docker compose … exec -T -w /work -e E2E_SYNTHETIC_BUYER_01_EMAIL -e E2E_SYNTHETIC_BUYER_01_PASSWORD browser-runner node /work/diag.mjs` under the Infisical test-env), log each step with URLs redacted, stop before Pay, and delete the script. Run 10 was diagnosed that way in five minutes. Stale `created` orders it leaves behind are cleared by the next clean seed.
+
 ## D. Reproducing the evidence SQL by hand
 
 `bin/check-settlement` `delivery_snapshot()` (`:218–284`) runs two read-only SQL blocks through `docker compose exec` and needs the Infisical test-env for compose interpolation, so a bare `python3` fails with `required variable … is missing`. Extract the SQL from the function and run it under the same env `bin/verify` uses:
