@@ -62,8 +62,20 @@ cleanup records at 16:40:21 UTC. Both connections are revoked, active and
 pending credential references are clear and retained encrypted credential
 material is zero. Both actual backend and worker flags were verified paused at 16:45 UTC, with
 all four reviewed pins and a fresh heartbeat. Core AWS/R2 flags remain enabled.
-Original-resource restoration is in progress; exact task definitions A15/B9
-remain in provider deletion. Current receipts:
+Original templates match the saved baselines. Direct checks confirm functions,
+networks, endpoints, control buckets, secrets, execution roles, event rules and
+logs absent, with clusters inactive. Original encryption keys remain enabled
+with empty grant lists. Both source buckets were removed and original source
+trust restored after fresh proof that all runtime consumers were absent and
+both connections revoked. This source cleanup did not alter stack roles or
+outstanding deletion requests.
+
+Original execution permissions were restored at 16:54 UTC, with exact template
+equality and terminal update events for both policy resources. Temporary local
+authorization copies were removed; 59 JSON receipts were audited with no
+unredacted sensitive fields. Runtime stack cleanup completion and exact task
+definitions A15/B9 are still pending in AWS. All failed cleanup events remain
+recorded; original permissions were not broadened to hide them. Current receipts:
 `outputs/profile-result-wire-run-s1712/`.
 
 ## Result-transport correction and previous bootstrap batch
