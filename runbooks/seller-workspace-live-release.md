@@ -17,6 +17,69 @@ AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have
 
 ## Verified checkpoint
 
+The approved gateway-proof window began at 13:40:15 UTC with a $30 cumulative
+ceiling, two logical jobs, four total attempts and two temporary installations.
+The start cutoff was 15:40:15 UTC, with cleanup and temporary-permission
+expiry set to 16:40:15 UTC. Both fresh runtimes passed the actual installed verifier and
+exact gateway-policy readback. Both ECS containers successfully pulled and
+started the pinned image, then exited with code 50. Actual task overrides
+omitted `W3_CONTROL_BUCKET`, which the entrypoint requires before client setup.
+Jobs `574b0591-ca75-41ea-a9ea-643dd263f088` and
+`eb36a352-68a4-4fb5-bc00-625a0e4af7c9` are cancelled after one attempt each,
+with no profiling evidence. Both logical jobs are consumed; unused attempt
+slots do not authorize another logical job. Profiling admission was disabled;
+actual backend/worker reads confirmed it false at 14:22 UTC.
+
+[Backend PR391](https://github.com/aidotmarket/ai-market-backend/pull/391),
+candidate `c9d091525ff6007fa8a349fea153356401532d2e`, supplies the configured
+control bucket and adds one private ephemeral scratch mount for the parsers.
+The scratch defect was reproduced locally under the prior read-only image;
+the live tasks failed before reaching that stage. The correction retains the
+read-only application root, UID/GID 65532, dropped capabilities and resource
+limits. The verifier checks the exact volume/mount and refuses alternate
+task-definition execution overrides. Local checks passed: 150 focused tests,
+template validation, and six synthetic files twice through the real entrypoint
+and isolated parser subprocesses. The image test asserts matching semantic
+hashes, secret/injection exclusion, read-only root, scratch mode 0700 and
+cleanup. Only AWS I/O is mocked. Both final CI workflows passed, including
+the actual production-image execution check. CC, GLM and DeepSeek each returned `APPROVE_WITH_NITS`, with no HIGH/MEDIUM
+source findings. Merge `1eb127f53003a522e09e588e78acccaa8b06c68d` has the
+exact accepted tree. The separately built release image passed a scan with no
+high/critical findings, source/configuration binding and full parser execution.
+Both signed packages match the reviewed unsigned packages. At 14:52 UTC all
+four production services were `SUCCESS` at the accepted merge. Direct backend
+and profiling-worker reads confirmed all four artifact pins, readiness if
+enabled, a fresh scheduled heartbeat and profiling admission false. Core
+AWS/R2 backend flags remain enabled. Public health and schema checks passed.
+This is a verified rollout, not a successful live profiling result.
+
+The published image digest is
+`sha256:1eb51f22b220e89993606882c55daa38ee0b3545498cdd4c9f25c39a2d1896af`;
+canonical template digest is
+`7d8404f2cbec7f94ee215df5fbd03028dcfdd6975305e516c8bf8f1b2a5508c8`;
+signed broker SHA-256 is
+`94bcd91cabbbf41a476191d14321da25b8023d58bf5439970c684cf914ecf3fb`;
+signed verifier SHA-256 is
+`133c9a6f10c5edacc443479448b386ee4f9716daf7e1986d3a384238e4f7a210`.
+Keep the future real AWS volume-format/ownership and successful-result gates.
+A read-only pre-deployment database check found zero active profiling jobs,
+so no start/reconcile attempt crossed the broker version change.
+
+Both original runtime stacks/templates are restored and `UPDATE_COMPLETE`.
+Source buckets and the temporary source policy are removed; original source
+trust is restored. Connections are revoked, retained application credential
+material is zero, and local authorization copies are cleared. Runtime
+networks, functions, secrets and logs are absent; clusters are inactive.
+At 14:21:15 UTC the execution-permission stack was `UPDATE_COMPLETE` and its
+template exactly matched the original. Exact task definitions
+`s1653-w3-a-profile:13` and `s1653-w3-b-profile:7` were both confirmed absent
+at 14:40:34 UTC, with the exact provider error and request IDs retained.
+Both execution-policy update events completed. Cleanup is complete; the final
+receipt is `outputs/profile-gateway-run-s1712/SELLER-PROFILE-FINAL-CLEANUP-S1712.json`.
+No new logical job or spending allowance is implied.
+
+### Previous image-layer failure and gateway correction
+
 The next approved S1712 window began at 11:52:07 UTC with a $25 cumulative
 ceiling, two logical jobs, four total attempts and two installations; cleanup
 and temporary permissions expire at 14:52:07 UTC. Both fresh runtimes passed
@@ -145,6 +208,18 @@ The retained paid-download receipt records one $25 AWS purchase and one $25 R2 p
 Evidence lives in the S1707 and S1712 output directories named in the current `infra:handoff:instance=vulcan` and `infra:seller-workspace-release-s1712` records. Use the bounded primary status/checkpoint/compatibility files there, followed by the exact receipt needed. Historical entries are evidence, not renewed authority.
 
 ## When it breaks
+
+After artifact-pin updates, verify both the running commit and all four pins.
+During PR391, Infisical's native sync queued backend redeployments from the
+previous commit while the merged revision was building. Correct stored values
+did not establish the running identity. Once the four backend variables were
+read back and profiling remained false, the operator submitted one
+`serviceInstanceDeployV2(serviceId, environmentId, commitSha)` for the exact
+accepted merge in the existing production service. Keep its returned deployment
+ID; inspect the same request after a timeout rather than submitting another.
+Require successful deployment plus direct running-version/pin readback before
+claiming the rollout is complete. Never substitute a deployment of an unrelated
+service or a restart that retains old environment values.
 
 1. Check the exact application job and attempt, deployed backend/worker revision and immutable runtime authorization. A verifier pass proves admission checks; it does not prove that ECS pulled or ran the container.
 2. For `CannotPullContainerError`, inspect the exact failed hostname, owned DNS allow list and ECR endpoint's private-DNS state. Preserve the exact-host allow list and block-all rule. Do not add a registry wildcard or broaden provider authority to hide a failure.
