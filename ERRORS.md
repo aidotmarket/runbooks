@@ -868,6 +868,10 @@
 
 - [E2E Browser Runner](e2e-browser-runner.md)
 
+## `profile_result_invalid`
+
+- [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
+
 ## `progress_guard_timeout`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)

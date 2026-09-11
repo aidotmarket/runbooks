@@ -915,7 +915,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-09-11`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
-- Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded
+- Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
 - Status: current
 
 ## SEO Infrastructure Runbook
