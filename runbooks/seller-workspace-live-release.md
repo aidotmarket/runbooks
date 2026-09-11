@@ -69,8 +69,10 @@ and key grants were empty. Both stacks are `UPDATE_COMPLETE`. Synthetic source
 buckets are deleted, the original source-role trust restored, the temporary
 policy removed, and local authorization copies removed/redacted. Original
 execution permissions await AWS console reauthentication; the exact restore
-change set is prepared and verified. Deletion of task metadata
-`s1653-w3-a-profile:12` and `s1653-w3-b-profile:6` remains pending.
+change set is prepared and verified. Direct reads at 13:10:29 UTC confirm task
+definitions `s1653-w3-a-profile:12` and `s1653-w3-b-profile:6` are both absent
+(`Unable to describe task definition.`), with provider request IDs retained.
+Only the original execution permission restoration remains for cleanup.
 Current-run receipts are isolated under
 `outputs/profile-dns-run-s1712/`; do not confuse them with the earlier receipts.
 
