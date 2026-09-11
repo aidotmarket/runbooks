@@ -17,6 +17,47 @@ AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have
 
 ## Verified checkpoint
 
+The approved gateway-proof window began at 13:40:15 UTC with a $30 cumulative
+ceiling, two logical jobs, four total attempts and two temporary installations.
+The start cutoff was 15:40:15 UTC, with cleanup and temporary-permission
+expiry set to 16:40:15 UTC. Both fresh runtimes passed the actual installed verifier and
+exact gateway-policy readback. Both ECS containers successfully pulled and
+started the pinned image, then exited with code 50. Actual task overrides
+omitted `W3_CONTROL_BUCKET`, which the entrypoint requires before client setup.
+Jobs `574b0591-ca75-41ea-a9ea-643dd263f088` and
+`eb36a352-68a4-4fb5-bc00-625a0e4af7c9` are cancelled after one attempt each,
+with no profiling evidence. Both logical jobs are consumed; unused attempt
+slots do not authorize another logical job. Profiling admission was disabled;
+actual backend/worker reads confirmed it false at 14:22 UTC.
+
+[Backend PR391](https://github.com/aidotmarket/ai-market-backend/pull/391),
+candidate `c9d091525ff6007fa8a349fea153356401532d2e`, supplies the configured
+control bucket and adds one private ephemeral scratch mount for the parsers.
+The scratch defect was reproduced locally under the prior read-only image;
+the live tasks failed before reaching that stage. The correction retains the
+read-only application root, UID/GID 65532, dropped capabilities and resource
+limits. The verifier checks the exact volume/mount and refuses alternate
+task-definition execution overrides. Local checks passed: 150 focused tests,
+template validation, and six synthetic files twice through the real entrypoint
+and isolated parser subprocesses. The image test asserts matching semantic
+hashes, secret/injection exclusion, read-only root, scratch mode 0700 and
+cleanup. Only AWS I/O is mocked. Both final CI workflows passed, including
+the actual production-image execution check. CC/GLM/DeepSeek review is pending;
+this candidate is not deployed and does not prove live profiling.
+
+Both original runtime stacks/templates are restored and `UPDATE_COMPLETE`.
+Source buckets and the temporary source policy are removed; original source
+trust is restored. Connections are revoked, retained application credential
+material is zero, and local authorization copies are cleared. Runtime
+networks, functions, secrets and logs are absent; clusters are inactive.
+At 14:21:15 UTC the execution-permission stack was `UPDATE_COMPLETE` and its
+template exactly matched the original. Exact task definitions
+`s1653-w3-a-profile:13` and `s1653-w3-b-profile:7` still reported
+`DELETE_IN_PROGRESS` at 14:20 UTC, so complete cleanup is not yet claimed.
+Current receipts are isolated under `outputs/profile-gateway-run-s1712/`.
+
+### Previous image-layer failure and gateway correction
+
 The next approved S1712 window began at 11:52:07 UTC with a $25 cumulative
 ceiling, two logical jobs, four total attempts and two installations; cleanup
 and temporary permissions expire at 14:52:07 UTC. Both fresh runtimes passed
