@@ -68,11 +68,15 @@ networks/endpoints/functions/secrets/logs were absent, clusters were inactive,
 and key grants were empty. Both stacks are `UPDATE_COMPLETE`. Synthetic source
 buckets are deleted, the original source-role trust restored, the temporary
 policy removed, and local authorization copies removed/redacted. Original
-execution permissions await AWS console reauthentication; the exact restore
-change set is prepared and verified. Direct reads at 13:10:29 UTC confirm task
+execution permissions were restored through the exact prepared change set after
+AWS console reauthentication. At 13:32:02 UTC the stack was `UPDATE_COMPLETE`
+and its template exactly matched the original. Both policy resource update
+events completed successfully. Direct IAM readback was unavailable to the CLI
+identity (`iam:GetPolicy` denied); the retained evidence is the exact template
+and terminal CloudFormation resource events. Direct reads at 13:10:29 UTC confirm task
 definitions `s1653-w3-a-profile:12` and `s1653-w3-b-profile:6` are both absent
 (`Unable to describe task definition.`), with provider request IDs retained.
-Only the original execution permission restoration remains for cleanup.
+Cleanup is complete. No new logical job or spending allowance is implied.
 Current-run receipts are isolated under
 `outputs/profile-dns-run-s1712/`; do not confuse them with the earlier receipts.
 
