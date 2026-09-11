@@ -17,6 +17,65 @@ AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have
 
 ## Verified checkpoint
 
+The next approved S1712 window began at 11:52:07 UTC with a $25 cumulative
+ceiling, two logical jobs, four total attempts and two installations; cleanup
+and temporary permissions expire at 14:52:07 UTC. Both fresh runtimes passed
+the real application verifier. Jobs `09ce800b-f941-45aa-84bf-c2de73fc63e6` and
+`3e57f00a-bbed-4001-a87a-76f46db46131` reached ECS at 12:12 UTC, recognized
+the pinned image digest, and failed before startup with an image-layer HTTP
+error. AWS truncated the stopped reason; the exact HTTP status is unknown.
+Both jobs are cancelled after one attempt each, with zero counters and no
+evidence output. Both connections are revoked and retain no credential
+material. Actual backend and worker admission is false; core AWS/R2 backend
+flags remain true. The two-job allowance is consumed.
+
+The live gateway policies restricted image-layer requests to the task execution
+role and used role Principals for source/control. AWS documents an exact-role
+`aws:PrincipalArn` condition for S3 gateway role restrictions and a read-only
+regional ECR layer-bucket statement with `Principal: '*'`.
+[Backend PR390](https://github.com/aidotmarket/ai-market-backend/pull/390),
+candidate `59f389ee51a5bd8fcc7c7df2710c3e43b476a859`, corrects those three
+statements and the matching verifier. The final fold addresses CC's required
+singleton-condition normalization and the matching GLM/DeepSeek notes; it
+accepts only equivalent scalar/list `ArnEquals.aws:PrincipalArn` forms and
+retains rejection of broader or malformed conditions. All 137 focused tests
+pass; cfn-lint passed on the identical template. Final CC and DeepSeek returned
+`APPROVE_WITH_NITS`; GLM returned `APPROVE`. CC independently reproduced all
+137 tests; all three reproduced the 18 narrow gateway cases. GLM/DeepSeek's
+full-suite sandbox limitations are disclosed in their responses. Both final
+CI workflows passed. Merge `dee543e436cc3c5e81f39d1721e45dcfb98b9244` has
+exactly the accepted tree. The signed verifier contents match the unsigned
+reviewed package. This is a documented-policy correction, not a successful
+live profiling result.
+
+PR390 raw template SHA-256 is
+`9d667651d4298db3ad3ffd291e0d7762899a7b4b9dabb02191c80d75dfb77f62`;
+canonical template digest is
+`8c31a2e81e2c57f5273ebc1f6c400dfbfc3b7d7019e3dcdd139e3ed3c3707a10`;
+signed verifier SHA-256 is
+`a6f9ea20d3100e4752fb0fc6325ef41fe3b28e0c0b6be413ad246fd2483c1776`.
+Broker and runtime image pins are unchanged. The two changed pins have been
+applied through Infisical and explicitly to the dedicated worker. Direct reads
+at 12:56 UTC show both running services at the merge with all four artifact
+pins matching, fresh scheduled heartbeat, readiness if enabled and profiling
+admission false. Core AWS/R2 backend flags remain true. At 12:58:50 UTC all
+four services report successful deployments at the exact merge. Public health
+is healthy with no schema drift. Deployment acceptance does not establish a
+successful image pull or profiling result.
+
+At 12:45 UTC both original templates and keys were restored, all runtime
+networks/endpoints/functions/secrets/logs were absent, clusters were inactive,
+and key grants were empty. Both stacks are `UPDATE_COMPLETE`. Synthetic source
+buckets are deleted, the original source-role trust restored, the temporary
+policy removed, and local authorization copies removed/redacted. Original
+execution permissions await AWS console reauthentication; the exact restore
+change set is prepared and verified. Deletion of task metadata
+`s1653-w3-a-profile:12` and `s1653-w3-b-profile:6` remains pending.
+Current-run receipts are isolated under
+`outputs/profile-dns-run-s1712/`; do not confuse them with the earlier receipts.
+
+### Previous DNS failure and correction
+
 The approved S1712 window began at 10:32:48 UTC with a $20 cumulative ceiling,
 two logical jobs, four total attempts and two temporary installations. Both
 fresh connections and installed runtimes passed the real application verifier.
@@ -93,6 +152,13 @@ Evidence lives in the S1707 and S1712 output directories named in the current `i
    `INSPECT_REDIRECTION_DOMAIN` and the resource-scoped S3 endpoint/IAM policies.
    AWS requires subsequent chain names to be allowed in
    [DNS Firewall rule settings](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall-rule-settings.html).
+   Once DNS works, inspect the actual S3 gateway policy for a layer HTTP error.
+   [AWS's ECR example](https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html)
+   scopes `s3:GetObject` to `prod-<region>-starport-layer-bucket/*` with
+   `Principal: '*'`. Preserve source/control exact roles using
+   [the documented ArnEquals aws:PrincipalArn condition](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html).
+   A gateway policy does not replace IAM or bucket policies. Do not widen source
+   access or live-edit an immutable authorized installation to repair a failure.
 3. For heartbeat starvation, distinguish the actual lease owner from duplicate/deferred deliveries. The owner continues polling; an unowned delivery returns so reconciliation and heartbeat work can run. Preserve the existing lease and scheduling rules.
 4. Obtain exact source review under [Council](council.md), resolve required findings and check CI. Merge with the expected candidate head; verify the merged source and combined changes. Preserve peer worktrees and deployments.
 5. A changed verifier/template requires newly signed, versioned artifacts and fresh immutable runtime authorizations. Verify package contents, signatures and hashes before applying only the changed canonical configuration. Keep the unchanged broker and runtime image pinned.
