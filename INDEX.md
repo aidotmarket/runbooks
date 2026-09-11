@@ -83,9 +83,9 @@
 
 ## ai.market Seller Workspace Cloud Listing and Delivery
 - Path: `seller-workspace-cloud-listing-delivery.md`
-- Purpose: Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling remains incomplete and its admission is paused. The W1/W2 implementation-status statements below are historical, not current availability. See live release operations for exact evidence, current limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
+- Purpose: Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling has now passed through the normal production application; its admission is paused after test cleanup. Exact task-definition deletion acknowledgements and joint AIM Data compatibility remain open. The W1/W2 implementation-status statements below are historical, not current availability. Use the operator guide for diagnosis, support, upgrades and safe continuation, and live release operations for dated evidence, limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
 - Owner: `vulcan`
-- Last verified: `2026-09-01`
+- Last verified: `2026-09-11`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
 - Error signatures: seller_workspace_disabled, seller_workspace_aws_connect_disabled, workspace_connection_authorization_unavailable, workspace_connection_binding_mismatch, workspace_connection_assume_role_denied, workspace_connection_provider_outcome_unknown, workspace_connection_credential_unavailable, workspace_connection_rotation_conflict, workspace_connection_revoked
 - Status: current
@@ -916,6 +916,15 @@
 - Last verified: `2026-09-11`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
 - Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
+- Status: current
+
+## Seller Workspace operator guide
+- Path: `runbooks/seller-workspace-operator-guide.md`
+- Purpose: This is the continuing operator guide for diagnosis, support, controlled upgrades and recovery. Read it together with the dated live release record. That record preserves individual failures and receipts; this guide explains the system and the procedure. The architecture contract contains frozen security requirements and historical W1/W2 scope, which must not be mistaken for current availability.
+- Owner: `vulcan`
+- Last verified: `2026-09-11`
+- Aliases: Seller Workspace diagnosis support and upgrades, Seller AWS and R2 operating procedure
+- Error signatures: stale_version, DELETE_IN_PROGRESS
 - Status: current
 
 ## SEO Infrastructure Runbook

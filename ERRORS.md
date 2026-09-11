@@ -292,6 +292,10 @@
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
 
+## `DELETE_IN_PROGRESS`
+
+- [Seller Workspace operator guide](runbooks/seller-workspace-operator-guide.md)
+
 ## `delivery_cycle_failed`
 
 - [Buyer Request Publication and Discovery](runbooks/buyer-request-publication-and-discovery.md)
@@ -1071,6 +1075,10 @@
 ## `stale_task_state`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `stale_version`
+
+- [Seller Workspace operator guide](runbooks/seller-workspace-operator-guide.md)
 
 ## `StateRequestError 404 field_acl_row_not_found`
 
