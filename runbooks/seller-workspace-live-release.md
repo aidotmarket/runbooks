@@ -58,9 +58,12 @@ material retained: zero. Runtime networks, endpoints, DNS controls, functions,
 control buckets, secrets, logs and task-execution roles were absent; control-key
 grants were empty and the original keys remained enabled. Both bootstrap
 stacks were `UPDATE_COMPLETE`. Task definitions `s1653-w3-a-profile:11` and
-`s1653-w3-b-profile:5` remained `DELETE_IN_PROGRESS` at 11:20 UTC; these inactive
-metadata records are not running tasks. Keep that final cleanup item open until
-the direct deletion-status receipt confirms absence.
+`s1653-w3-b-profile:5` subsequently finished deletion. Direct reads at 11:41 UTC
+confirmed both exact ARNs absent (`Unable to describe task definition.`), with
+provider request IDs retained in `SELLER-PROFILE-DEFINITION-ABSENCE-S1712.json`.
+The failed S1712 run's cleanup is complete. Successful profiling and the joint
+live compatibility proof remain open; cleanup does not renew the consumed
+two-job allowance.
 
 ### Previous deployment checkpoint
 
