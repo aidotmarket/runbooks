@@ -83,7 +83,7 @@
 
 ## ai.market Seller Workspace Cloud Listing and Delivery
 - Path: `seller-workspace-cloud-listing-delivery.md`
-- Purpose: Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling has now passed through the normal production application; its admission is paused after test cleanup. Exact task-definition deletion acknowledgements and joint AIM Data compatibility remain open. The W1/W2 implementation-status statements below are historical, not current availability. Use the operator guide for diagnosis, support, upgrades and safe continuation, and live release operations for dated evidence, limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
+- Purpose: Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling has now passed through the normal production application; its admission is paused after test cleanup. Test cleanup is now fully verified; joint AIM Data compatibility remains open. The W1/W2 implementation-status statements below are historical, not current availability. Use the operator guide for diagnosis, support, upgrades and safe continuation, and live release operations for dated evidence, limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
 - Owner: `vulcan`
 - Last verified: `2026-09-11`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
@@ -911,7 +911,7 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Full release completion still requires cleanup and joint AIM Data compatibility confirmation. Profiling admission is paused for test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
+- Purpose: AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Test cleanup is fully verified. Full release completion still requires joint AIM Data compatibility confirmation. Profiling admission remains paused after test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
 - Owner: `vulcan`
 - Last verified: `2026-09-11`
 - Aliases: Seller Workspace production release, AWS profiling cleanup

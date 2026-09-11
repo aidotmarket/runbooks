@@ -14,9 +14,30 @@ error_signatures:
 
 # Seller Workspace live release operations
 
-AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Full release completion still requires cleanup and joint AIM Data compatibility confirmation. Profiling admission is paused for test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
+AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Test cleanup is fully verified. Full release completion still requires joint AIM Data compatibility confirmation. Profiling admission remains paused after test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
 For architecture, normal operations, exact API sequencing, diagnosis, safe teardown, upgrades and future-instance handoff, use the [Seller Workspace operator guide](seller-workspace-operator-guide.md). The dated batches below preserve historical authority and failure evidence; the current $100 cumulative authority supersedes older incremental allowances.
+
+## Final cleanup confirmation
+
+At 17:25:20 UTC AWS returned the exact expected not-found response for task
+definitions `s1653-w3-a-profile:15` and `s1653-w3-b-profile:9`. Request IDs are
+`03d326c6-a73e-468d-a78c-b57645c05e0f` and
+`b5db4161-befd-4da6-9521-74db99c49fe3`. No deletion was resubmitted.
+Combined with the previously verified physical, application, template,
+permission and local-secret cleanup, the profiling batch is fully cleaned.
+The final receipt is
+`outputs/profile-result-wire-run-s1712/SELLER-PROFILE-FINAL-CLEANUP-S1712.json`.
+The pending-deletion observations below remain dated history.
+
+Mars confirmed the interoperability overlay scope in message 4057.
+Environment PR30 merged; PR27 is now rebased to
+`ce9506ca02d1b1c29a5045215567d18d688a481b`, candidate
+`42ee957715431e2500fa1073849b149592d6cea0`. Six tests and CFN lint passed,
+protected baseline paths remain unchanged, and CC/GLM/DeepSeek exact-candidate
+Gate 3 review was dispatched. This changes no running environment. The joint
+live proof still requires accepted review and Mars's announced post-settlement
+window; the earliest stated time is September 14 at 01:30 Madrid.
 
 ## Current authorized profiling batch
 
