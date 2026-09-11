@@ -14,9 +14,59 @@ error_signatures:
 
 # Seller Workspace live release operations
 
-AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Full release completion still requires successful actual AWS profiling and joint AIM Data compatibility confirmation. Profiling admission is paused; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
+AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Full release completion still requires cleanup and joint AIM Data compatibility confirmation. Profiling admission is paused for test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
-## Current result-transport correction
+## Current authorized profiling batch
+
+At 16:20:20 UTC the user explicitly approved up to **$100 for this project**
+and asked to stop repeated approval pauses. This supersedes the incremental
+profiling allowances below. Continue scoped profiling batches and corrections
+within that cumulative cap without requesting another two-job or $5 allowance.
+Retain bounded lifetimes and exact cleanup evidence for each batch.
+
+The current result-wire batch uses two fresh verified application connections,
+two temporary installations and an operating limit of two logical jobs/four
+attempts. Its start cutoff is 18:20:20 UTC and cleanup/temporary permission
+expiry is 19:20:20 UTC. These are batch controls, not renewed spend-approval
+gates. The conservative cloud allocation is $34.8369454546; reserving the earlier
+$50 purchases gives a project total of $84.8369454546, within the cap. Delayed
+regional usage is not a final bill and credits are not extra headroom.
+The standing application estimate covers 30 days; installations in this batch
+must be removed within three hours. No additional purchases, refunds, payouts
+or peer environment changes are part of this batch.
+
+At 16:31 UTC the backend and dedicated worker both had profiling enabled,
+matching PR393 image/template/verifier/broker pins and a fresh scheduled
+heartbeat. Both sources passed normal application verification. Both exact installations passed their installed verifiers, reviewed storage
+policies and scratch/image checks. Normal scheduled jobs
+`98c2ff63-74e7-4d2b-9d84-a67bd926a8b7` and
+`66d0b846-0176-462e-a9d4-82844950f650` succeeded on their first attempts at
+16:40 UTC. The application committed evidence
+`1a032af5-a4f6-4f18-b6ea-5babad4184ce` and
+`9dde318e-e3f1-4d64-8f86-8508f94f2b7e`; normal authenticated evidence GETs returned
+200 for both. All semantic, attestation and result-integrity hashes matched,
+as did the job, attempt and image bindings.
+
+Each result contains six objects across CSV, TSV, JSON, JSONL and Parquet,
+1,333 source bytes, 517 decompressed bytes, 12 rows and 12 fields, with no
+truncation. Aggregate semantics are equal after removing only each source's
+selector hash and each runtime's field tokens. This proves two successful
+scoped connections for the same seller; it does not claim cross-seller proof
+or identical-authority repeatability. A request pairing connection A with
+runtime B returned 409 and did not create a selector. The generic error text
+was “Idempotency key cannot be reused”; source validation rejects the mismatched
+connection/runtime binding before insertion.
+
+Both tasks stopped with exit code zero. The application completed both attempt
+cleanup records at 16:40:21 UTC. Both connections are revoked, active and
+pending credential references are clear and retained encrypted credential
+material is zero. Both actual backend and worker flags were verified paused at 16:45 UTC, with
+all four reviewed pins and a fresh heartbeat. Core AWS/R2 flags remain enabled.
+Original-resource restoration is in progress; exact task definitions A15/B9
+remain in provider deletion. Current receipts:
+`outputs/profile-result-wire-run-s1712/`.
+
+## Result-transport correction and previous bootstrap batch
 
 The next approved window began at 15:08:53 UTC with a $35 cumulative cap,
 two logical jobs, four attempts and two temporary installations. Both fresh
@@ -57,19 +107,18 @@ At 16:00 UTC all four production services were healthy at the exact merge.
 Direct backend and profile-worker reads confirmed all four artifact pins, a
 fresh revision-bound scheduled heartbeat, readiness if enabled and admission
 false. Core AWS/R2 backend flags remain enabled. All main CI workflows and
-public health/schema checks passed. Successful live application acceptance
-still requires a fresh bounded allowance.
+public health/schema checks passed. Successful live application acceptance remains required; the later $100
+project authorization above covers the fresh scoped batch.
 
 The original runtime stacks and execution permissions are restored with exact
 template equality and terminal stack status. Temporary sources, source access,
 functions, networks, secrets and logs are removed. Connections are revoked,
 retained credentials are zero and local authorization copies are cleared.
 Original control keys remain enabled with no grants. Exact task definitions
-`s1653-w3-a-profile:14` and `s1653-w3-b-profile:8` remain in deletion progress;
-cleanup is not yet complete. AWS documents that task-definition deletion can
-take [up to one hour after a task stops](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-definition-state.html).
-Retain the submitted deletion handles and verify exact absence; do not repeat
-deletes or broaden permissions because of this asynchronous delay. Receipts are under
+`s1653-w3-a-profile:14` and `s1653-w3-b-profile:8` were verified absent at
+16:20:20 UTC with exact provider responses and request IDs. Cleanup for this
+previous bootstrap batch is complete. Receipts, including the final cleanup
+record, are under
 `outputs/profile-bootstrap-run-s1712/`.
 
 ## Previous bootstrap correction and gateway checkpoint
@@ -306,9 +355,9 @@ AWS explicitly requires subdomains to be included separately in a DNS Firewall l
 
 ## Bounded live proof and cleanup
 
-The September 11 08:46:43 UTC allowance was $15 cumulative, two logical jobs, four attempts and two temporary installations. Both logical jobs were consumed, with pre-start failures and zero output. It does not authorize another job. Prepare the concrete reviewed corrections and fresh usage/budget evidence before requesting an appropriate new bounded allowance. Preserve completed purchase proofs.
+The September 11 08:46:43 UTC allowance was $15 cumulative, two logical jobs, four attempts and two temporary installations. Both logical jobs were consumed, with pre-start failures and zero output. That historical allowance did not authorize another job. The later $100 project authorization now governs further scoped profiling. Refresh usage and retained reservations before each batch, and preserve completed purchase proofs.
 
-After any new allowance, freeze its exact start cutoff, cleanup deadline, job/attempt limits and temporary permission expiry. Use fresh real application connections and authorizations, approved synthetic sources and the ordinary scheduled worker/broker/task path. Record actual evidence results and isolation checks. Installation, local tests, signed packages and failed starts are separate from successful profiling.
+For each batch within the current authorized cap, record its exact start cutoff, cleanup deadline, operating job/attempt limits and temporary permission expiry. Use fresh real application connections and authorizations, approved synthetic sources and the ordinary scheduled worker/broker/task path. Record actual evidence results and isolation checks. Installation, local tests, signed packages and failed starts are separate from successful profiling.
 
 Restore only the exact owned test resources and original permissions. Preserve pre-existing stacks, roles and keys. Disable mutation protection only on the owned DNS association during authorized teardown, remove that association before its network, wait for terminal CloudFormation status and then inspect the actual remaining resources. Revoke only positively identified test grants; remove temporary sources and credential material.
 
