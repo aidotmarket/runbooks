@@ -52,9 +52,11 @@ material is zero, and local authorization copies are cleared. Runtime
 networks, functions, secrets and logs are absent; clusters are inactive.
 At 14:21:15 UTC the execution-permission stack was `UPDATE_COMPLETE` and its
 template exactly matched the original. Exact task definitions
-`s1653-w3-a-profile:13` and `s1653-w3-b-profile:7` still reported
-`DELETE_IN_PROGRESS` at 14:20 UTC, so complete cleanup is not yet claimed.
-Current receipts are isolated under `outputs/profile-gateway-run-s1712/`.
+`s1653-w3-a-profile:13` and `s1653-w3-b-profile:7` were both confirmed absent
+at 14:40:34 UTC, with the exact provider error and request IDs retained.
+Both execution-policy update events completed. Cleanup is complete; the final
+receipt is `outputs/profile-gateway-run-s1712/SELLER-PROFILE-FINAL-CLEANUP-S1712.json`.
+No new logical job or spending allowance is implied.
 
 ### Previous image-layer failure and gateway correction
 
