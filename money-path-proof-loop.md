@@ -1,7 +1,7 @@
 ---
 title: Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route
 owner: mars
-last_verified: '2026-09-10'
+last_verified: '2026-09-11'
 aliases:
   - money-path proof loop
   - clean-seed proof loop
@@ -71,16 +71,9 @@ Stripe blocks: any code that runs inside the backend container against the Strip
 
 ## D. Reproducing the evidence SQL by hand
 
-`bin/check-settlement` `delivery_snapshot()` (`:218–284`) runs two read-only SQL blocks through `docker compose exec` and needs the Infisical test-env for compose interpolation, so a bare `python3` fails with `required variable … is missing`. Extract the SQL from the function and run it under the same env `bin/verify` uses:
+Since environment PR #33 (`6c953f0e1152c1dee21d3fd80302e42a11972d1b`, S1656 A2 item 34 / S1681 G14.20), `bin/check-settlement` `delivery_snapshot()` performs fresh read-only observations without Compose interpolation. With `POSTGRES_PASSWORD` present the backend query uses host `psql` at `127.0.0.1:15432`; otherwise it resolves `postgres` and uses direct `docker exec -i`. AIM Data always uses direct `docker exec -i` to `aim-data-postgres`. Both lookups use exact `com.docker.compose.project=ai-market-money-path-s1656` and `com.docker.compose.service=<svc>` labels and reject missing or multiple matches. SQL still uses `psql -X -qAt -v ON_ERROR_STOP=1 -U <user> -d <db>` with the existing read-only transaction blocks. Backend duplicate evidence reads `docker logs` from a freshly resolved backend ID, retaining stdout and stderr for aggregate counts; cross-stream chronological order is not guaranteed.
 
-```
-cd /Users/max/Projects/ai-market/money-path-test-environment-s1656
-export INFISICAL_TOKEN=$(tr -d '\r\n' < $HOME/.config/infisical/sysadmin-token)
-env INFISICAL_API_URL=https://secrets.ai.market infisical run \
-  --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=test-env -- python3 /tmp/snap.py
-```
-
-where `/tmp/snap.py` extracts `sql`/`aim_sql` with a regex from `bin/check-settlement` and pipes each to `docker compose --env-file versions.env -f compose.yaml -f compose.aim-data.override.yaml exec -T <postgres|aim-data-postgres> psql -X -qAt -v ON_ERROR_STOP=1 -U <user> -d <db>`, printing `returncode`, `stderr` and the first bytes of `stdout`. A non-zero return with `relation … does not exist` is a schema drift between the evidence SQL and the product (run 8: `s3_connections` vs the real `s3_connection`). AIM Data tables at v1.23.3: `s3_connection`, `s3_object_metadata`, `s3_scan_job`, `dataset_records`, `fulfillment_log`. Backend tables the evidence reads: `users, orders, transactions, order_events, transaction_events, listings, listing_versions, devices, trust_sessions, trust_outbound_messages, pending_fulfillments, stripe_events, party_identity`. Delete the scratch script afterwards; it contains no secrets but keep the habit.
+For a read-only diagnostic on the current clean checkout, `rtk proxy python3 -c 'import runpy; d=runpy.run_path("bin/check-settlement")["delivery_snapshot"](); print("orders", len(d["orders"]), "events", len(d["events"]))'` needs no secret injection because the no-password path runs psql inside the two owned database containers. Do not print the full snapshot. Missing containers or SQL/schema errors refuse; inspect the exact SQL from the pinned function and database schema privately. Never put Compose or a snapshot cache back into the one-second polling path.
 
 ## E. The `verification-artifact` route (S1681 Amendment G14)
 
