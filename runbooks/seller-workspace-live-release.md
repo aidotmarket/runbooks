@@ -73,9 +73,11 @@ outstanding deletion requests.
 Original execution permissions were restored at 16:54 UTC, with exact template
 equality and terminal update events for both policy resources. Temporary local
 authorization copies were removed; 59 JSON receipts were audited with no
-unredacted sensitive fields. Runtime stack cleanup completion and exact task
-definitions A15/B9 are still pending in AWS. All failed cleanup events remain
-recorded; original permissions were not broadened to hide them. Current receipts:
+unredacted sensitive fields. Both original runtime stacks reached `UPDATE_COMPLETE` at 16:57 UTC with
+exact baseline templates and directly verified resource absence. Only exact
+task-definition records A15/B9 remain in AWS deletion progress. All failed
+cleanup events remain recorded; original permissions were not broadened to
+hide them. Current receipts:
 `outputs/profile-result-wire-run-s1712/`.
 
 ## Result-transport correction and previous bootstrap batch
