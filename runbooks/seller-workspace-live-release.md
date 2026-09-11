@@ -16,6 +16,8 @@ error_signatures:
 
 AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Full release completion still requires cleanup and joint AIM Data compatibility confirmation. Profiling admission is paused for test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
+For architecture, normal operations, exact API sequencing, diagnosis, safe teardown, upgrades and future-instance handoff, use the [Seller Workspace operator guide](seller-workspace-operator-guide.md). The dated batches below preserve historical authority and failure evidence; the current $100 cumulative authority supersedes older incremental allowances.
+
 ## Current authorized profiling batch
 
 At 16:20:20 UTC the user explicitly approved up to **$100 for this project**
