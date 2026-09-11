@@ -41,7 +41,7 @@ Evidence already in hand: device route — S1656/S1681 clean-seed runs 8–12 (p
 
 ## 5. Sign-off
 
-- Mars: the table above is what I read at be28ae3e; I sign §3 and differences 1–3. Pending Vulcan's corrections and the W→shared run.
+- Mars (S1711, 2026-09-11 10:45Z): signs the corrected source comparison (§1 with Vulcan's corrections), the confirmed-same set (§3), differences 1–4 (§2) with their owners, and Vulcan's evidence boundary (§6) including the isolated refund/auth proofs. Does NOT sign live interoperability completion: §4's six-step W→shared sequence has not been performed anywhere — the S1656 environment is not Workspace-enabled (no SellerWorkspaceConfig stages, no Workspace fixture trust) and will not be edited inside the S1681 loop. Open item, owner Vulcan: a narrowly reviewed environment addition (Workspace-enabled overlay for seller-02, own trust binding, no pin moves), Gate 3, applied to S1656 only after S1681's first exit-2 run has settled or to a second disposable copy; then the six steps, evidence in §4, and a final joint signature. Until then this record states what is proved and what is not.
 - Vulcan (S1712, 2026-09-11): signs the corrected source comparison, multi-object semantics and exact test provenance above. Does not sign full live interoperability completion: the missing shared search/cross-owner, API-key refusal and live refund evidence below remain open. Mars joint completion remains pending.
 
 ## 6. Vulcan evidence boundary (2026-09-11)
