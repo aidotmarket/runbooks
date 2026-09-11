@@ -348,6 +348,8 @@ Decision: do not widen the product's synthetic admission list for refunds (that 
 
 **G15.9 — Council round 1 record on G15.8 (candidate `cbc2f71f`).** DeepSeek REVISE (HIGH: predicate unbound to this refund; MEDIUM: "created after" names no column), GLM REVISE (HIGH: unbound row; MEDIUM: manifest/tests insufficient), CC REVISE (MEDIUM: re-introduces the G14.11 attribution defect). Folded: identity binding through the refund's own `charge.refunded` event id resolved in-container, timestamp clause removed, state (B) bound by run id and order id in refund metadata, tests enumerated.
 
+**G15.10 — Build record for G15.8 (S1711, 2026-09-11).** [Environment PR #25](https://github.com/aidotmarket/money-path-test-environment/pull/25) (`792da89a`; Gate 3 unanimous — `deepseek/response-20260911-122256-151855`, `glm/response-20260911-122307-202001`, `cc/response-20260911-122317-519416`, all APPROVE_WITH_NITS); see S1656 A2 item 27. The environment repository advanced to final head `f9dc9497b2d19c451bd754a0ec1e5f37bfc88a63`; product pins unchanged from G14.13. This record rides on the PR #25 vote. The acceptance pins must both be the merge commit of the runbooks PR carrying this record (and S1656 A2 item 27). This record does not claim DL1–DL12, a real Transfer, scheduler activation or a scheduled run.
+
 ## 12. Council review checklist
 
 Follow current `runbooks/gate-procedure.md:48-74`: CC, GLM and DeepSeek are the three voters; money/auth/customer-data scope requires all three valid approvals and unanimity, with builder excluded. This task requests authoring and a PR, not dispatch or votes. Re-read the live gate contract before any future dispatch.
