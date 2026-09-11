@@ -17,6 +17,53 @@ AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have
 
 ## Verified checkpoint
 
+The approved S1712 window began at 10:32:48 UTC with a $20 cumulative ceiling,
+two logical jobs, four total attempts and two temporary installations. Both
+fresh connections and installed runtimes passed the real application verifier.
+Each job selected six small synthetic objects and reached ECS through the
+scheduled worker. Both failed before container startup because DNS resolution
+of the already-allowed S3 image-layer hostname followed a blocked regional
+CNAME target. One attempt each, zero objects/bytes/rows and no evidence output.
+Both jobs were cancelled and both connections revoked. The two-job allowance
+is consumed; the unused attempt slots do not authorize another logical job.
+
+[Backend PR389](https://github.com/aidotmarket/ai-market-backend/pull/389)
+adds the exact region-derived `s3-r-w.<region>.amazonaws.com.` target to the
+template and verifier. Candidate `26029e8320fdfd0e47b6149db3dcf50ec23c3fbd`
+received CC, GLM and DeepSeek acceptance with only non-blocking nits. All 120
+focused checks and cfn-lint passed; CC independently reproduced all 120, and
+both CI workflows passed. Merge `fa75b5cfcfc5a7fa24a19ab3ce9300b0f5b45e20`
+has exactly the candidate tree. At 11:21 UTC all four Railway services reported
+successful deployments at that merge. Direct backend/profile-worker reads
+confirmed all four artifact pins, a fresh scheduled heartbeat and profiling
+admission false. Public health was healthy without schema drift; core AWS/R2
+backend flags remained true. Source approval and this deployment are not
+successful profiling proof.
+
+The new raw YAML SHA-256 is
+`d834278315a10c0d7faf74d61ffe4a5704dd0436da7e8b0f5885cfd4e795e68a`;
+canonical template digest is
+`e930719112e2a0cb6a2ba8b8740dc1515a6f7b2bdacac191077b6436a5b24ecd`.
+The canonical digest hashes the canonical JSON encoding of the YAML
+`TemplateBody` string, matching the verifier's `digest` function; it is not
+the raw file hash. The newly signed verifier SHA-256 is
+`a8c936054a91ebe6d1264758195dd1f6ae1ce62c72f623597b1ebbd1cb498b9e`.
+Broker and runtime image identities are unchanged.
+
+At 11:12 UTC the original execution-role template was restored and
+`UPDATE_COMPLETE`, confirmed through the signed-in AWS console and direct
+readback. Both source buckets were deleted, original source-role trust
+restored and the temporary policy removed. Actual application credential
+material retained: zero. Runtime networks, endpoints, DNS controls, functions,
+control buckets, secrets, logs and task-execution roles were absent; control-key
+grants were empty and the original keys remained enabled. Both bootstrap
+stacks were `UPDATE_COMPLETE`. Task definitions `s1653-w3-a-profile:11` and
+`s1653-w3-b-profile:5` remained `DELETE_IN_PROGRESS` at 11:20 UTC; these inactive
+metadata records are not running tasks. Keep that final cleanup item open until
+the direct deletion-status receipt confirms absence.
+
+### Previous deployment checkpoint
+
 At 2026-09-11 10:15 UTC, backend, ordinary worker, Beat and dedicated profile worker all reported successful deployments of `408f242e0a02306ff625725bfb43d1722b027638`. Public health was healthy with no schema drift. The backend and profile worker had a fresh revision-bound heartbeat and matching reviewed image, template, verifier and broker pins. Profiling admission was false on both. All core AWS/R2 backend flags were true.
 
 [Backend PR388](https://github.com/aidotmarket/ai-market-backend/pull/388) releases a duplicate or deferred delivery's worker slot when it owns no lease. Candidate `19e23710ea063711c00469daa976bc77d89e43fc` received CC, GLM and DeepSeek approval; its merged tree is identical. A read-only check of the running profile worker confirmed the reviewed task-source hash, the 20-second reconcile and 60-second cleanup schedules, application database role `ai_market_app`, no author/owner database DSN and an empty control queue. This is runtime verification of the correction, not a successful cloud profiling run.
@@ -33,6 +80,16 @@ Evidence lives in the S1707 and S1712 output directories named in the current `i
 
 1. Check the exact application job and attempt, deployed backend/worker revision and immutable runtime authorization. A verifier pass proves admission checks; it does not prove that ECS pulled or ran the container.
 2. For `CannotPullContainerError`, inspect the exact failed hostname, owned DNS allow list and ECR endpoint's private-DNS state. Preserve the exact-host allow list and block-all rule. Do not add a registry wildcard or broaden provider authority to hide a failure.
+   Inspect the complete DNS redirection chain as well as the first name.
+   S1712's layer-bucket name was already allowed; public DNS in both supported
+   regions resolved it through `s3-r-w.<region>.amazonaws.com`, which was
+   missing. The actual source and control bucket names used the same target.
+   These are dated public observations, not an in-VPC proof or an AWS promise
+   that routing names never change. Before a fresh paid proof, inspect current
+   chains; stop for review if another target appears. Preserve
+   `INSPECT_REDIRECTION_DOMAIN` and the resource-scoped S3 endpoint/IAM policies.
+   AWS requires subsequent chain names to be allowed in
+   [DNS Firewall rule settings](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall-rule-settings.html).
 3. For heartbeat starvation, distinguish the actual lease owner from duplicate/deferred deliveries. The owner continues polling; an unowned delivery returns so reconciliation and heartbeat work can run. Preserve the existing lease and scheduling rules.
 4. Obtain exact source review under [Council](council.md), resolve required findings and check CI. Merge with the expected candidate head; verify the merged source and combined changes. Preserve peer worktrees and deployments.
 5. A changed verifier/template requires newly signed, versioned artifacts and fresh immutable runtime authorizations. Verify package contents, signatures and hashes before applying only the changed canonical configuration. Keep the unchanged broker and runtime image pinned.
@@ -47,6 +104,14 @@ The September 11 08:46:43 UTC allowance was $15 cumulative, two logical jobs, fo
 After any new allowance, freeze its exact start cutoff, cleanup deadline, job/attempt limits and temporary permission expiry. Use fresh real application connections and authorizations, approved synthetic sources and the ordinary scheduled worker/broker/task path. Record actual evidence results and isolation checks. Installation, local tests, signed packages and failed starts are separate from successful profiling.
 
 Restore only the exact owned test resources and original permissions. Preserve pre-existing stacks, roles and keys. Disable mutation protection only on the owned DNS association during authorized teardown, remove that association before its network, wait for terminal CloudFormation status and then inspect the actual remaining resources. Revoke only positively identified test grants; remove temporary sources and credential material.
+
+The retained execution role can report cleanup permission failures even after
+an owned DNS association was removed directly. S1712 also found that its
+task-definition deregistration path lacked permission. Preserve these events;
+do not broaden that role to obtain a clean label. Use already-authorized
+operator cleanup for the exact task definitions read from current stack
+outputs, then verify actual absence separately from terminal stack status.
+Do not infer task-definition family names from an older receipt.
 
 At 10:14 UTC both original bootstrap templates and keys were restored; functions, VPCs, endpoints and DNS resources were absent; clusters were inactive. Both former task definitions `s1653-w3-a-w3-profile:10` and `s1653-w3-b-w3-profile:4` were confirmed absent. This supersedes the earlier deletion-in-progress observation. The S1712 previous-run cleanup receipt preserves the direct inspection.
 
