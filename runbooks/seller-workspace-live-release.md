@@ -9,13 +9,70 @@ error_signatures:
   - CannotPullContainerError
   - runtime_image_identity_mismatch
   - worker_step_limit_exceeded
+  - profile_result_invalid
 ---
 
 # Seller Workspace live release operations
 
 AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Full release completion still requires successful actual AWS profiling and joint AIM Data compatibility confirmation. Profiling admission is paused; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
-## Verified checkpoint
+## Current result-transport correction
+
+The next approved window began at 15:08:53 UTC with a $35 cumulative cap,
+two logical jobs, four attempts and two temporary installations. Both fresh
+installations passed the installed verifier and exact scratch-volume checks.
+Both scheduled jobs reached the real broker and ECS task, parsed six synthetic
+files and wrote cloud results before exiting zero. Each result records 1,333
+source bytes, 517 decompressed bytes, 12 rows and 12 fields. The two results
+have equal normalized aggregate semantics; their authority and field-token
+bindings differ, so this is not identical-authority repeatability proof.
+
+The backend rejected both results before committing application evidence:
+strict UUID validation rejected the JSON job-ID string, and the broker emitted
+a prefixed image digest where the attestation requires 64 hexadecimal digits.
+Jobs `48a88016-3f3b-4d8d-8951-eb5b689a218e` and
+`e3afbc4b-a213-48c1-93b1-6e593531f3f9` are cancelled after one attempt each.
+Both logical jobs and installations are consumed; unused attempt capacity
+does not authorize another job. Profiling admission is false on backend and
+profile worker. The start cutoff was 17:08:53 UTC and cleanup/permission expiry
+18:08:53 UTC. No purchases, refunds, payouts or peer environment changes were
+part of this run.
+
+[Backend PR393](https://github.com/aidotmarket/ai-market-backend/pull/393)
+accepts only canonical JSON UUIDs, normalizes the digest to the existing
+verifier/backend convention, and adds the integrity-bound completed-file count
+to usage. The field named `task_definition_digest` retains its existing image
+digest convention; it does not claim a hash of task-definition JSON.
+Candidate `6c0e93cbf805b48a7b0c4e589deda6c880378784` passed 159 focused tests;
+CC and GLM independently reproduced that result. CC, GLM and DeepSeek approved
+with nonblocking notes. All three CI workflows passed, the CI tree equals the
+candidate, and both deterministic packages equal the CI artifacts. Merge
+`012159b93330ef54951ccd035534d3299f742063` has the exact accepted tree and
+preserves Mars PR392. The image, template and verifier are unchanged.
+
+The new signed broker SHA-256 is
+`b9bbcb53c6050744bf6d632afa7e0fab8abae616a45752abd0801839b5d76a2e`.
+Its versioned signed package contents match the reviewed unsigned package.
+At 16:00 UTC all four production services were healthy at the exact merge.
+Direct backend and profile-worker reads confirmed all four artifact pins, a
+fresh revision-bound scheduled heartbeat, readiness if enabled and admission
+false. Core AWS/R2 backend flags remain enabled. All main CI workflows and
+public health/schema checks passed. Successful live application acceptance
+still requires a fresh bounded allowance.
+
+The original runtime stacks and execution permissions are restored with exact
+template equality and terminal stack status. Temporary sources, source access,
+functions, networks, secrets and logs are removed. Connections are revoked,
+retained credentials are zero and local authorization copies are cleared.
+Original control keys remain enabled with no grants. Exact task definitions
+`s1653-w3-a-profile:14` and `s1653-w3-b-profile:8` remain in deletion progress;
+cleanup is not yet complete. AWS documents that task-definition deletion can
+take [up to one hour after a task stops](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-definition-state.html).
+Retain the submitted deletion handles and verify exact absence; do not repeat
+deletes or broaden permissions because of this asynchronous delay. Receipts are under
+`outputs/profile-bootstrap-run-s1712/`.
+
+## Previous bootstrap correction and gateway checkpoint
 
 The approved gateway-proof window began at 13:40:15 UTC with a $30 cumulative
 ceiling, two logical jobs, four total attempts and two temporary installations.
@@ -242,7 +299,7 @@ service or a restart that retains old environment values.
    access or live-edit an immutable authorized installation to repair a failure.
 3. For heartbeat starvation, distinguish the actual lease owner from duplicate/deferred deliveries. The owner continues polling; an unowned delivery returns so reconciliation and heartbeat work can run. Preserve the existing lease and scheduling rules.
 4. Obtain exact source review under [Council](council.md), resolve required findings and check CI. Merge with the expected candidate head; verify the merged source and combined changes. Preserve peer worktrees and deployments.
-5. A changed verifier/template requires newly signed, versioned artifacts and fresh immutable runtime authorizations. Verify package contents, signatures and hashes before applying only the changed canonical configuration. Keep the unchanged broker and runtime image pinned.
+5. Any changed broker or verifier requires a newly signed, versioned package and fresh immutable runtime authorizations. A template change also requires a new exact template digest. Verify package contents, signatures, hashes and CI source identity before applying only the changed canonical configuration. Preserve every unchanged artifact pin and prove no active jobs cross the change.
 6. Follow [Infisical](../infisical-secrets.md) and [Local SecOps](../local-secops.md); never print values. Check actual backend and dedicated-worker propagation, deployment identities and scheduled heartbeat before reopening profiling admission.
 
 AWS explicitly requires subdomains to be included separately in a DNS Firewall list. See the note after step 20 in [AWS's DNS Firewall example](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resolver-dns-firewall-getting-started.html). The retained incident receipt also confirms that both ECR Docker endpoints had private DNS enabled; live success with the correction still requires a new authorized run.
