@@ -184,6 +184,10 @@
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
+## `CannotPullContainerError`
+
+- [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
+
 ## `cc_verdict_parse_failure`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
@@ -972,6 +976,10 @@
 
 - [E2E Programme Integrity](runbooks/e2e-programme-integrity.md)
 
+## `runtime_image_identity_mismatch`
+
+- [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
+
 ## `S1681 refusal: independent observation or device operation`
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
@@ -1239,6 +1247,10 @@
 ## `webhook_predicate_column_mismatch`
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
+
+## `worker_step_limit_exceeded`
+
+- [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
 
 ## `workspace_connection_assume_role_denied`
 

@@ -83,7 +83,7 @@
 
 ## ai.market Seller Workspace Cloud Listing and Delivery
 - Path: `seller-workspace-cloud-listing-delivery.md`
-- Purpose: This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
+- Purpose: Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling remains incomplete and its admission is paused. The W1/W2 implementation-status statements below are historical, not current availability. See live release operations for exact evidence, current limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
 - Owner: `vulcan`
 - Last verified: `2026-09-01`
 - Aliases: Seller Workspace, browser-only cloud seller, cloud listing, workspace_connection
@@ -907,6 +907,15 @@
 - Last verified: `2026-04-01`
 - Aliases: none
 - Error signatures: none
+- Status: current
+
+## Seller Workspace live release operations
+- Path: `runbooks/seller-workspace-live-release.md`
+- Purpose: AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Full release completion still requires successful actual AWS profiling and joint AIM Data compatibility confirmation. Profiling admission is paused; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
+- Owner: `vulcan`
+- Last verified: `2026-09-11`
+- Aliases: Seller Workspace production release, AWS profiling cleanup
+- Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded
 - Status: current
 
 ## SEO Infrastructure Runbook

@@ -21,6 +21,8 @@ error_signatures:
 
 # ai.market Seller Workspace Cloud Listing and Delivery
 
+> Current production status (2026-09-11, S1712): AWS S3 and Cloudflare R2 connection, selection, allAI-assisted approval/publication and real paid browser downloads have been exercised in production. AWS profiling remains incomplete and its admission is paused. The W1/W2 implementation-status statements below are historical, not current availability. See [live release operations](runbooks/seller-workspace-live-release.md) for exact evidence, current limits and remaining checks. The frozen architecture and security invariants below still apply unless superseded by a later approved implementation.
+
 This is the frozen W1 architecture and contract for browser-only sellers whose data is already in a supported cloud. It is a clean-sheet ai.market capability, not Hosted AIM Data. Installed AIM Data remains the path for local directories, private networks, and sellers who require processing in their own infrastructure.
 
 The two products provide equivalent marketplace outcomes through stable contracts. They do not share a runtime, Docker deployment, local database, filesystem, installation identity, or user interface.
