@@ -42,8 +42,28 @@ template validation, and six synthetic files twice through the real entrypoint
 and isolated parser subprocesses. The image test asserts matching semantic
 hashes, secret/injection exclusion, read-only root, scratch mode 0700 and
 cleanup. Only AWS I/O is mocked. Both final CI workflows passed, including
-the actual production-image execution check. CC/GLM/DeepSeek review is pending;
-this candidate is not deployed and does not prove live profiling.
+the actual production-image execution check. CC, GLM and DeepSeek each returned `APPROVE_WITH_NITS`, with no HIGH/MEDIUM
+source findings. Merge `1eb127f53003a522e09e588e78acccaa8b06c68d` has the
+exact accepted tree. The separately built release image passed a scan with no
+high/critical findings, source/configuration binding and full parser execution.
+Both signed packages match the reviewed unsigned packages. At 14:52 UTC all
+four production services were `SUCCESS` at the accepted merge. Direct backend
+and profiling-worker reads confirmed all four artifact pins, readiness if
+enabled, a fresh scheduled heartbeat and profiling admission false. Core
+AWS/R2 backend flags remain enabled. Public health and schema checks passed.
+This is a verified rollout, not a successful live profiling result.
+
+The published image digest is
+`sha256:1eb51f22b220e89993606882c55daa38ee0b3545498cdd4c9f25c39a2d1896af`;
+canonical template digest is
+`7d8404f2cbec7f94ee215df5fbd03028dcfdd6975305e516c8bf8f1b2a5508c8`;
+signed broker SHA-256 is
+`94bcd91cabbbf41a476191d14321da25b8023d58bf5439970c684cf914ecf3fb`;
+signed verifier SHA-256 is
+`133c9a6f10c5edacc443479448b386ee4f9716daf7e1986d3a384238e4f7a210`.
+Keep the future real AWS volume-format/ownership and successful-result gates.
+A read-only pre-deployment database check found zero active profiling jobs,
+so no start/reconcile attempt crossed the broker version change.
 
 Both original runtime stacks/templates are restored and `UPDATE_COMPLETE`.
 Source buckets and the temporary source policy are removed; original source
@@ -188,6 +208,18 @@ The retained paid-download receipt records one $25 AWS purchase and one $25 R2 p
 Evidence lives in the S1707 and S1712 output directories named in the current `infra:handoff:instance=vulcan` and `infra:seller-workspace-release-s1712` records. Use the bounded primary status/checkpoint/compatibility files there, followed by the exact receipt needed. Historical entries are evidence, not renewed authority.
 
 ## When it breaks
+
+After artifact-pin updates, verify both the running commit and all four pins.
+During PR391, Infisical's native sync queued backend redeployments from the
+previous commit while the merged revision was building. Correct stored values
+did not establish the running identity. Once the four backend variables were
+read back and profiling remained false, the operator submitted one
+`serviceInstanceDeployV2(serviceId, environmentId, commitSha)` for the exact
+accepted merge in the existing production service. Keep its returned deployment
+ID; inspect the same request after a timeout rather than submitting another.
+Require successful deployment plus direct running-version/pin readback before
+claiming the rollout is complete. Never substitute a deployment of an unrelated
+service or a restart that retains old environment values.
 
 1. Check the exact application job and attempt, deployed backend/worker revision and immutable runtime authorization. A verifier pass proves admission checks; it does not prove that ECS pulled or ran the container.
 2. For `CannotPullContainerError`, inspect the exact failed hostname, owned DNS allow list and ECR endpoint's private-DNS state. Preserve the exact-host allow list and block-all rule. Do not add a registry wildcard or broaden provider authority to hide a failure.
