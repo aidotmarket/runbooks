@@ -1,12 +1,14 @@
 ---
 title: Builder Controls
 owner: vulcan
-last_verified: '2026-08-23'
+last_verified: '2026-09-12'
 aliases:
 - builder-bridge
 - minimal-bridge
 - mp-builder-controls
-error_signatures: []
+error_signatures:
+- minimal bridge secret scan error
+- pre-push supplied no ref records
 ---
 
 # Builder Controls
@@ -27,6 +29,7 @@ This runbook exists by Max directive (S1455): a reference for future builders on
 | Durable builder transcript | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Per-job artifact path, byte count and completeness asserted across terminal paths | 2026-08-10 |
 | Explicit post-build test status | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | Configured pass/fail and unconfigured cases covered | 2026-08-10 |
 | Binding builder secret scan | SHIPPED | `koskadeux_mcp/minimal_bridge.py:161-320` | 40 focused bridge/queue/routing tests at `2c248509`; CC/Kimi/GLM review; PR #172 merged and deployed as `8623cef6`; 9-case deployed-checkout canary proved direct and `--no-verify` denial plus exact fingerprint boundaries | 2026-08-23 |
+| Empty-ref up-to-date push handling | CONFIRMED DEFECT; separate correction in progress, not shipped | `koskadeux_mcp/minimal_bridge.py:194-232` at `d21321590d5e968fdd6ae47037a1cbeef56e2ea6` | Existing parser failure reproduced; actual-hook/local-bare-remote regression belongs to Mars4263 correction and has not been accepted here | 2026-09-12 |
 
 ## Architecture & interactions
 
@@ -79,9 +82,25 @@ Each entry: WHAT it is / WHERE it lives / WHAT it does / WHY it exists / FIRES i
 - **C-23 guard_direction_evidence completion gate.** `bq_complete` path: `requires_directional_evidence` returns True on any `entity_state` other than `present`, so a failed entity FETCH fails the gate shut; the only unlock is declaring `guard_class=trust`, which non-guard builds must never do. STATUS: defect, in the S1455 removal scope.
 - **C-24 Binding secret scan.** `koskadeux_mcp/minimal_bridge.py:161-320` scans added lines with the same implementation in the builder child's job-scoped pre-push hook and in the wrapper after child return. A job-scoped Git invocation guard also rejects the standard `push --no-verify` hook bypass and Git's accepted unambiguous abbreviation behind ordinary global-option forms. It is the ONE permitted content push block. Guard, scanner, hook-input, or range errors fail closed without echoing matched content. The only exception is the reviewed tuple of `tests/fixtures/data_verification_v1/hostile_reports.json`, rule `api_token`, and added-line SHA-256 `87c422a08e94b6270fbd929bd7d72ecbd9b172782179c2e4294d2e951cf56761`; changed path, rule, or content still blocks. Fires: five S1596-S1597 wrapper blocks on that same operator-verified benign line exposed that builders had already pushed past the late wrapper scan. STATUS: KEEP and bind before network publication; `secret_scan_blocked` preserves local work. Boundary: this governs ordinary pushes inheriting the job Git environment, not a same-UID child deliberately bypassing the injected Git executable and hooks or replacing its environment; closing that larger boundary requires credential, OS-account, hosted-Git, or broader sandbox controls outside S1598.
 
+## C-24 empty-ref defect: diagnosis and pending correction
+
+**Unshipped checkpoint, September12:** Mars4263 owns the separate two-file correction in `koskadeux_mcp/minimal_bridge.py` and `tests/test_minimal_bridge.py`, based on `d21321590d5e968fdd6ae47037a1cbeef56e2ea6`. This page does not say the fix is merged, deployed or accepted. Keep the active Seller product candidate4812055 unchanged during its independent review. Vulcan owns this documentation update only.
+
+An ordinary push whose exact local commit is already on the target remote can reach the injected pre-push hook with zero input records. Git supplies ref-update records, and its transport omits refs that are already up to date. See the [Git hook contract](https://git-scm.com/docs/githooks#_pre_push) and [Git transport implementation](https://github.com/git/git/blob/master/transport.c) (`pre_push_hook_feed_stdin` / `run_pre_push_hook`, read September12).
+
+At the observed bridge source, `_scan_pre_push_records` validates the job base SHA, then rejects an empty `records.splitlines()` at199–200. `_pre_push_hook_main` turns that exception into the generic `minimal bridge secret scan error` and exit1. The MP241 retained normal-push receipt records that failure; a separate timestamped remote read confirms the product commit was already canonical. This is not a detected secret and does not mean the existing remote commit was lost. [Exact assessment and source hashes](evidence/builder-controls-s1712/SELLER-BRIDGE-NOOP-ASSESSMENT-S1712.txt) and [read-only parser reproduction](evidence/builder-controls-s1712/SELLER-BRIDGE-NOOP-PURE-PROBE-S1712.json) retain the evidence.
+
+The bounded intended correction is success with no findings for **exactly zero input records after valid base validation**. Nonempty blank/whitespace records, wrong field counts, invalid SHAs/refs and scanner/range failures remain sanitized refusals. Do not strip arbitrary whitespace into success or catch all errors as a no-op. Preserve actual per-ref added-line scans, deletion handling, new-branch range selection, the exact fingerprint allowlist, the wrapper's independent scan and the Git no-verify guard. No second scanner, alternate push path, queue change or global hook mutation is part of this correction.
+
+Acceptance must exercise the actual hook entrypoint, not only a parser mock: valid-base empty input succeeds silently; malformed/base/range cases fail without echoing input; a real isolated local bare-remote push followed by an unchanged repeat succeeds without changing the remote; a subsequent secret-bearing update is still rejected before publication. Keep the existing direct-secret, no-verify and exact path/rule/fingerprint tests. Record actual case counts and exact source/merge identity only when provided and independently verified. The parser reproduction linked here is not that integration proof.
+
+Before marking this row shipped, bind the separately reviewed candidate and unanimous CC/GLM/DeepSeek disposition, merge identity, actual deployed source/checkpoint and permitted deployment/canary evidence. Preserve active peer builds and reviewer processes. A source edit, successful hook unit test or healthy shared service alone is not deployment proof.
+
 ## When it breaks
 
 Error signature → control: `RepairExhaustedError` / `schema repair exhausted` → C-12 (verify the work at git before believing the failure). `post_build_multiple_commits` / `post_build_no_commit` → C-13. `builder_output_claim_mismatch` → C-16. `hard_timeout` → C-09 (inspect the worktree for uncommitted work). `push_failed` / `shared_branch_cas_rejected` → C-18 (commit exists locally). "BQ git-ref producer did not persist" → C-17 (work destroyed; check origin for a pushed copy first). "before-reap persistence failed" → C-20 (build likely fine; check git). `commits_created` absurdly large → C-19 (history depth, ignore). Wrong-repo build → C-08. `dispatch_git_evidence_unavailable` on a healthy repo → C-03/T-2026-000490 tooling defect, not your dispatch. `minimal_bridge_repo_unresolved` → the bridge refuses dispatch when `repo` cannot be resolved to a repository path; pass the explicit canonical `repo` key - this is fail-closed by design and safer than the deleted silent DEFAULT_CWD fallback.
+
+For `minimal bridge secret scan error` after an up-to-date push, first preserve the actual exit status and transcript, then compare local HEAD with a fresh `git ls-remote` of the exact expected branch. If they are equal, no source upload is pending. Do not redispatch, create an empty commit, rename the branch, force-push or bypass hooks merely to obtain a success label. If they differ, inspect the actual scanner/range failure; this no-op diagnosis does not cover every generic scan error. Redact secret values and retain only source/rule/line identifiers from scanner findings.
 
 ## Repair
 

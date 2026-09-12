@@ -292,9 +292,9 @@
 - Path: `runbooks/builder-controls.md`
 - Purpose: This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
 - Owner: `vulcan`
-- Last verified: `2026-08-23`
+- Last verified: `2026-09-12`
 - Aliases: builder-bridge, minimal-bridge, mp-builder-controls
-- Error signatures: none
+- Error signatures: minimal bridge secret scan error, pre-push supplied no ref records
 - Status: current
 
 ## Buyer Request Publication and Discovery

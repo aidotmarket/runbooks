@@ -680,6 +680,10 @@
 
 - [Session Registry Recovery](session-registry-recovery.md)
 
+## `minimal bridge secret scan error`
+
+- [Builder Controls](runbooks/builder-controls.md)
+
 ## `minimal_bridge_base_unresolved`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
@@ -887,6 +891,10 @@
 ## `POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `pre-push supplied no ref records`
+
+- [Builder Controls](runbooks/builder-controls.md)
 
 ## `preflight refusal (404, 403, 401, non-200, allowed=false, timeout)`
 
