@@ -1,0 +1,37 @@
+{
+  "observed_at": "2026-09-12T07:55:01.303805+00:00",
+  "candidate_receipt": "/Users/max/koskadeux-state/s1656/s1714-empty-push-candidate.json",
+  "receipt_sha256": "fa7fa2ac8d64b607e69f9ce514e2d4de6ba80f1e91485e38aa8fd492d8a7fe21",
+  "base": "d21321590d5e968fdd6ae47037a1cbeef56e2ea6",
+  "candidate": "501df3347ddea5b17155cb7b4e941f98b46bf6ac",
+  "clean": true,
+  "source_hashes": {
+    "koskadeux_mcp/minimal_bridge.py": "6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d",
+    "tests/test_minimal_bridge.py": "0563b7fe678d1c2f30f3b0bd82a21c6ce41b619e0e9e0747851f01b4ec943b1f"
+  },
+  "changed_files": 2,
+  "retained_tests_verified": 65,
+  "failed": 0,
+  "skipped": 0,
+  "log_sha256": "673b50834b8e76e7b97c7650cf53ecdcde7faecdb3539ea9e1927f9d9c5f1359",
+  "junit_sha256": "5825734bf8beeebd9d287b3e0595c41f0a0da3ce6443b9b15f08abe1d4b64105",
+  "new_regression_nodes": [
+    "test_pre_push_empty_input_succeeds_without_scan[40]",
+    "test_pre_push_empty_input_succeeds_without_scan[64]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[bad-sha-]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-\\n]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-   ]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-malformed private-input]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-HEAD bad-sha refs/heads/test bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-HEAD bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb refs/heads/test bad-sha]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-invalid-ref bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb refs/heads/test cccccccccccccccccccccccccccccccccccccccc]",
+    "test_pre_push_nonempty_errors_still_refuse_without_echo[aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-HEAD bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb invalid-ref cccccccccccccccccccccccccccccccccccccccc]",
+    "test_pre_push_scan_exception_still_refuses_without_echo",
+    "test_hook_allows_repeated_push_then_blocks_secret_update"
+  ],
+  "source_review": "Complete two-file diff read. Only zero-row case returns[] after valid base; all per-record validation/scanning remains. Actual installed-hook local clean/repeated/secret-block flow present.",
+  "pre_fix_execution": "3failed9passed owner receipt; terminal output not independently retrieved. Existing pure parser reproduction independently confirms original empty rejection.",
+  "tests_rerun": false,
+  "code_or_runtime_mutated": false,
+  "review_status": "bounded independent source/evidence read; separate full panel and deployment pending"
+}

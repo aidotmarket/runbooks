@@ -1,0 +1,29 @@
+# Empty-ref correction: activation source trace
+
+Read-only verification, 2026-09-12, Vulcan S1712. This records source behavior and proposed evidence requirements; no serving checkout, queue, process or hook was changed.
+
+Mars4269 proposed activation without restarting the shared gateway. Independent source inspection supports that bounded approach, subject to the actual dispatch checkout and absence of active builders being verified at cutover.
+
+## Exact source and load path
+
+Candidate `501df3347ddea5b17155cb7b4e941f98b46bf6ac` is in `/Users/max/Projects/ai-market/koskadeux-mcp-s1714-empty-push`. The existing `/Users/max/koskadeux-mcp` checkout was clean during this read. Its dispatcher and runner files match the candidate byte for byte:
+
+| File | SHA256 | Relevant behavior |
+|---|---|---|
+| `tools/agents.py` | `af42a9646334a8b84c1b2925664a4a36d13330820f898d7b15fa1ea39edc5715` | Lines 2182–2186 enqueue `sys.executable`, the absolute repository-relative `bridge_runner.py`, and the job specification. |
+| `koskadeux_mcp/bridge_runner.py` | `bb9eb3424ff764e0302b213751ea5d0e23124a8bc8aefe771f39ba28bdeefa0a` | Lines 53–56 derive the runner's own repository root and import `minimal_bridge` in the fresh job process. |
+| Existing `koskadeux_mcp/minimal_bridge.py` | `2366749787613424221b82f71d826d7e8666b8341df8ccc891c4742c5bc98450` | Still the defective version during this read. |
+| Candidate `koskadeux_mcp/minimal_bridge.py` | `6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d` | Changes only valid-base zero-record handling. Complete diff and 65 retained passes are bound in the candidate verification receipt. |
+
+`_builder_git_env`, lines 285–290, writes the job-local hook to execute a fresh interpreter on the absolute resolved `minimal_bridge.__file__` with the fixed worktree and base SHA. Lines 300–305 similarly create the independent Git invocation guard. This is not a module hot reload inside the gateway. A later hook invocation reads the file then present at that absolute path, which is why an active builder must not straddle the source transition.
+
+## Conditions and proof before marking shipped
+
+1. Finish the separate exact CC/GLM/DeepSeek review. Keep the Seller product candidate and peer reviewer processes untouched.
+2. Verify the actual gateway dispatch path and interpreter resolve to the intended serving checkout. The two matching on-disk files alone do not prove which source a running gateway has loaded.
+3. Have the queue owner establish a bounded cutover with no active builder using the old source. Preserve queued specifications and worktrees. Do not infer inactivity solely from MP241 being terminal or kill a peer process to obtain it.
+4. Bind the approved candidate to the merge and exact serving checkout, retaining clean status, source hashes and the previous identity. No unrelated dispatcher or queue change is justified by this correction.
+5. In a fresh process from that verified serving checkout and interpreter, use the actual installed hook in an isolated local bare-remote canary. Prove clean initial publication, successful identical repeat with unchanged remote SHA, and refusal of a secret-bearing update with the remote still unchanged. Preserve malformed/base/scanner-error and no-verify protections through the reviewed regression evidence and any owner-required deployment canary.
+6. Retain the exact commands, exit results, source/interpreter identities, remote before/after SHAs and sanitized canary evidence. Update Builder Controls from unshipped only after this evidence and the separate review/merge identity are bound.
+
+The existing shared-service health or a passing candidate test suite is not this activation proof. This source trace does not itself authorize or perform a new build, queue mutation, gateway restart or deployment. Mars remains the sole correction and activation owner. Draft PR178 at `742b908b80b6dbce71100d14e479f795878edcbc` is kept stable while its evidence is bound into review.

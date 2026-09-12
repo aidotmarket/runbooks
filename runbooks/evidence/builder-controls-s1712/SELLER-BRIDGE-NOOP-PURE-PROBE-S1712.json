@@ -1,0 +1,35 @@
+{
+  "observed_at": "2026-09-12T07:45:20.327513+00:00",
+  "source_path": "/Users/max/koskadeux-mcp/koskadeux_mcp/minimal_bridge.py",
+  "source_sha256": "2366749787613424221b82f71d826d7e8666b8341df8ccc891c4742c5bc98450",
+  "method": "Exact AST-extracted existing function and OID constant; dependency sentinel would record scan calls. No module import, Git action or product/harness edit.",
+  "cases": [
+    {
+      "case": "empty",
+      "error_type": "RuntimeError",
+      "error": "pre-push supplied no ref records"
+    },
+    {
+      "case": "invalid_base_empty",
+      "error_type": "RuntimeError",
+      "error": "invalid job base SHA"
+    },
+    {
+      "case": "blank_line",
+      "error_type": "RuntimeError",
+      "error": "malformed pre-push ref record"
+    },
+    {
+      "case": "whitespace",
+      "error_type": "RuntimeError",
+      "error": "malformed pre-push ref record"
+    },
+    {
+      "case": "malformed",
+      "error_type": "RuntimeError",
+      "error": "malformed pre-push ref record"
+    }
+  ],
+  "scan_calls": [],
+  "readonly": true
+}

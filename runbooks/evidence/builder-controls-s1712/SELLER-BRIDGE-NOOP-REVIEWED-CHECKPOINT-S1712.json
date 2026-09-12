@@ -1,0 +1,59 @@
+{
+  "at": "2026-09-12T08:22:08.169737+00:00",
+  "candidate": "501df3347ddea5b17155cb7b4e941f98b46bf6ac",
+  "base": "d21321590d5e968fdd6ae47037a1cbeef56e2ea6",
+  "reviews": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-095940-914940.md",
+      "sha256": "14191211e0fb27bb32c4f030b5e44290e47cf71005e04e96f7427aec736a00bc",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-095941-308794.md",
+      "sha256": "d24e84fce0c56fe122f07a1fb4a46851435940d01f24960b6317ff14e5f95e3d",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-101441-278837.md",
+      "sha256": "4997234fd7fec7a7fbddf5cae24e7e7da2b24a466b9ce9210e6ab6566c026c09",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    }
+  },
+  "unanimous_artifact_review": true,
+  "retained_candidate_passes": 65,
+  "vulcan_reran_tests": false,
+  "reviewer_execution_limits": {
+    "cc": "59 bridge passes; combined63passes2TaskSpooler environment failures",
+    "deepseek": "retained hash-matched evidence; writable temporary directory unavailable",
+    "glm": "retained hash-matched evidence; pytest failed before collection because writable temporary directory unavailable"
+  },
+  "red_proof": {
+    "receipt": "/Users/max/koskadeux-state/s1656/s1714-empty-push-base-proof.json",
+    "sha256": "6976e6853fdc900acca1d465239c95445a9aa48808f87678b2af21577a541975",
+    "independently_verified": true,
+    "base_implementation_plus_candidate_test_payload": true,
+    "passed": 9,
+    "failed": 3,
+    "expected_failures": [
+      "empty input40",
+      "empty input64",
+      "actual repeated local push"
+    ],
+    "log_and_xml_hashes_verified": true
+  },
+  "activation": {
+    "owner": "Mars S1714",
+    "status": "deployed and independently verified",
+    "merge": "22a0deac6903414dce2f232d842d3588127ec9fa",
+    "serving_checkout_head": "22a0deac6903414dce2f232d842d3588127ec9fa",
+    "serving_source_sha256": "6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d",
+    "active_builder_absence_receipt": "SELLER-BRIDGE-NOOP-OWNER-ACTIVATION-S1714.json, owner-observed eight queues empty",
+    "fresh_process_canary": "SELLER-BRIDGE-NOOP-SERVING-CANARY-S1714.json",
+    "shipped": true,
+    "verification": "SELLER-BRIDGE-NOOP-ACTIVATION-VERIFICATION-S1712.json",
+    "actual_gateway_restart": true
+  }
+}
