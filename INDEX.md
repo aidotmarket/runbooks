@@ -909,6 +909,15 @@
 - Error signatures: Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL, status=PRELIMINARY or reason=stats_reset_changed, is an operator-controlled one-shot migration, empty-only quarantine invariant failed, external dependencies on quarantine tables, quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0, relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table, relation 'orders' does not exist or crm_* does not exist, empty-only drop invariant failed, view or dependency blocker
 - Status: current
 
+## Seller paired settlement conclusion and recovery
+- Path: `runbooks/seller-paired-settlement-conclusion.md`
+- Purpose: Source checkpoint: environment `6b473e3006b4c87716fbe2e96a712181acd2011c`, independently reviewed in Mars4243/Vulcan4244 after the prior2b517 slice. This explains implemented source, not an accepted or executed live run. Original-acceptance binding finding4239 is corrected at this exact source: purchase-time original hash, named criteria and pinned source/payment checks are enforced before cleanup, phase advancement and conclusion. Read the current Seller Workspace operator guide, failed TEST refund recovery and owner checkpoint before using any dated identity here.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Paired online offline settlement resume, Seller settlement archive and cleanup diagnosis
+- Error signatures: original acceptance differs from purchase-time receipt, archived original acceptance differs from purchase-time receipt, original acceptance criteria or pinned source differs
+- Status: current
+
 ## Seller production payment cutover
 - Path: `runbooks/seller-production-payment-cutover.md`
 - Purpose: Prepared September12,2026 for Mars4120. Read-only preflight; no production deployment, configuration, stop, restart, cancellation, queue or database mutation was performed. This is the release-specific supplement to the Seller Workspace operator guide. It must be incorporated into the accepted payment Gate2 and final deployment record.
