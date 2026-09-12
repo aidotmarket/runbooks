@@ -1,0 +1,17 @@
+{
+  "receipt": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/fresh-merchant-20260912T113658Z-1267fd81/receipt.json",
+  "sha256": "0d24f124455e75e37fa36da62ac8589930caa8b67ece1898741b1346269d4976",
+  "script": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/verify-fresh-merchant-s1712.py",
+  "script_sha256": "5a306a386cc9a04bb650424eab73e8fc55bf4b990b78397bf1e039c37f5fb0c9",
+  "status": "PASS_TWO_FRESH_DYNAMIC_MERCHANT_IDS_AND_OWNED_CLEANUP",
+  "migration_hashes": 321,
+  "command_logs_rehashed": 17,
+  "owned_containers_independently_absent": true,
+  "no_named_or_anonymous_volumes": true,
+  "merchant_ids": [
+    "796936d5-26ca-4ccc-a344-d81f614f5a72",
+    "3dfb4e31-5534-4c9f-97ed-60d17a5c135b"
+  ],
+  "source": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "limits": "Fresh migration/identity proof only. No provider/paid lifecycle/production/protected run operations; harness fix not yet reviewed."
+}

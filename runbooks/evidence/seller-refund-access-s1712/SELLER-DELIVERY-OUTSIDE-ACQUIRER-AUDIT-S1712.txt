@@ -1,0 +1,50 @@
+# DeliveryService bounded outside-acquirer audit — S1712
+
+Frozen backend: 4812055d08f91664fba373ab1a1406fe35dd66e7. Requested by Mars4300; MP242 remains unchanged. Static source review and independent reading/hash verification of Mars SELECT-only PostgreSQL17 catalog receipt; no product edits, test execution, provider actions, or whole-graph certification.
+
+## Result and minimum scope
+
+One additional product file is necessary: app/services/delivery_service.py. Existing tests/test_refund_processing_protocol.py is the minimum already-authorized race/regression host. Retain tests in existing allowed protocol modules if needed; no new module, route file, migration, shared fixture, or trust service edit is justified by this audit. Extend the finite caller/FK matrix and exact artifact manifest. Scope acceptance and MP implementation remain with Mars; do not change the active MP242 prompt.
+
+A change only to _lock_transaction is insufficient: webhook idempotency writes before that helper, DLQ retry bypasses it, and streaming spans commits. Correct order-first acquisition must precede the first transaction/child acquisition in each database transaction. Validate canonical linkage after acquiring locks, current refund/order authority, and stale callback state. Refusal must not commit newly created money authority or side effects. Preserve supported unlinked transactions explicitly without manufacturing order authority.
+
+## Actual caller and transaction boundaries
+
+app/api/v1/router.py:189 registers deliveries without a feature guard. Authenticated deliveries.py routes reach token creation65–77, download-url80–109, streaming112–122, confirmation125–149, dispute152–174, retry177–196. Deprecated dispute is still callable. Buyer/admin ownership checks do not establish current refund authority.
+
+The registered payment_intent.succeeded webhook commits its synchronous handling at webhooks.py:734, then invokes _create_delivery_for_payment744. That helper1560–1609 uses a fresh async session, performs a nonlocking order/transaction lookup1573–1582, records idempotency1592–1598, then create_delivery_record1603. Its exception handler rolls back1606. The actual idempotency caller supplies transaction_id but no order_id. No synchronous-lock-across-async self-deadlock is claimed.
+
+A repository app search for DeliveryService/get_delivery_service/process_dlq_retry/record_stripe_webhook_idempotency found these route and webhook constructors. process_dlq_retry has a definition only; retain it as a directly callable service edge, not an established scheduled/HTTP production path. SellerWorkspaceDeliveryService is a distinct class and is not conflated here.
+
+## Complete service acquisition disposition
+
+| Service entry or callback | Acquisition/write sequence at frozen source | Disposition |
+|---|---|---|
+| create_delivery_record57–95 | transaction FOR UPDATE64; transaction update81; audit86; queue93; commit94 | Actual webhook. Audit inserts order FK after transaction. Metadata marker early return must not become authority bypass. |
+| generate_delivery_token97–196 | transaction lock105; reused audit140 or transaction update177/audit186; commit | Actual token/download-url routes. Same reverse edge. Allowed tx status alone is insufficient evidence of current order/refund access. |
+| validate_token198–247 / stream249–346 | transaction lock228; tx status-only refusal233; start audit282 then commit293 | Actual download route. Audit reverse edge. Stream is not one lock transaction. |
+| stream progress604–639 | transaction lock613; attempt/JTI only616; transaction update623; audit628; commit639 | Actual generator303. Chunk is yielded302 before this recheck. Requires current access check before release, with defined transaction/stream boundary. |
+| stream finalization641–687 | transaction lock647; retained ranges657; unconditional transition to delivered658–665; audit666/677; commit687 | Actual generator322. No current status/order-refund/attempt validation. Late completion can overwrite a refunded transaction when retained ranges cover descriptor bytes. |
+| fail_delivery416–456 | transaction lock426; unconditional delivery_failed432–437; audit438; DLQ insert446; commit455 | Actual generator exception338. A late error can overwrite refunded status. Lock-order-only correction does not repair terminal-state resurrection. |
+| confirm_delivery348–377 | transaction lock356; status delivered gate357; transition360; audit368 | Actual confirmation route. Must preserve accepted partial/full-refund semantics under canonical current order authority. |
+| dispute_delivery379–414 | transaction lock388; delivered gate389; tx disputed397; tx event404; audit405 | Actual deprecated but registered route. Same audit reverse edge/current-authority concern. |
+| retry_delivery458–505 | transaction lock467; allowed states468; update479; event487; audit488; queue495; commit496 | Actual retry route. Must not turn prior late-error resurrection into newly authorized delivery. |
+| record_stripe_webhook_idempotency507–558 | idempotency INSERT520 with tx/order FKs, transaction UPDATE543, audit551, commit557 | Actual webhook; bypasses _lock_transaction. Order prelock must precede INSERT, not merely UPDATE or later create_delivery_record. Conflict/replay path also needs precise transaction disposition. |
+| process_dlq_retry912–985 | DLQ FOR UPDATE914, then DLQ update; max branch tx UPDATE940 then audit953; retry branch audit978 | No app caller found. Existing public method bypasses transaction helper. Resolve order/tx and lock in consistent order before DLQ lock for direct invocation, or explicitly retain non-applicable proof. Do not claim deployed retry worker. |
+| get_delivery_record560–588 / list_audit_events590–602 | nonlocking SELECT | Read-only; no order/transaction writer fix required. |
+
+Remaining helpers were read through the end of the service. _transition1005–1024 updates transaction then inserts transaction_events. _update_transaction_state1026–1042 updates transaction. _audit1073–1126 INSERT SELECT writes both transaction_id and t.order_id. _enqueue_dlq868–910 writes both parent references then audits. Metadata/range/token/descriptor/file-reader helpers add no database order/transaction acquisition. The local file reader alone does not prove a production device path.
+
+## Source and retained database relationships
+
+Mars receipt s1714-delivery-audit-fk-readonly.json SHA256 a2888085cc22207bf1b1fa3ad2b8b6aac2001625288030a8a5d8f25110d72a08 was read in full and independently hashed. Owner executed SELECT-only against container bc08dbdebdb9398cfbfa2e5dd111eb323669155b1e89d52739ed555a4b702e64, database s1714_f3_final_b1307230, server170011 at2026-09-12T08:41:20Z. This is retained disposable catalog evidence, not current production catalog proof.
+
+Catalog confirms immediate/default FKs from delivery_audit_log, delivery_dead_letter_queue, and stripe_webhook_idempotency to BOTH orders and transactions. Audit order FK source was also confirmed in 000_initial.py:16956–16957 and 20260318_001_bq_biz_delivery_confidence_phase1.py:115. A transaction lock followed by child insertion requiring order KEY SHARE conflicts with refund's order FOR UPDATE then transaction acquisition. This is a concrete static reverse dependency; no runtime deadlock was executed in this audit.
+
+_queue_delivery_request689–747 calls trust_event_bus.enqueue_and_publish717 with related_order_id725/related_transaction_id726. The related fields are plain UUID columns, not FKs, in app/models/trust.py:165–166, and trust_outbound_messages does not appear in the receipt's incoming-parent FK inventory. Do not invent another order FK from names alone. However enqueue_and_publish commits141 before refresh142/publish143; delivery audit731 occurs after that commit. A service-entry lock does not survive it. Implementation must explicitly handle this boundary and revalidate after release as applicable, without presuming trust service edits are necessary. No claim is made about every trust outbound consumer.
+
+The previous finite map omits delivery_service.py, delivery_audit_log, stripe_webhook_idempotency; its selected child inventory is not all incoming parent relationships.
+
+## Required focused proof for the owner build
+
+Use the existing disposable migrated PostgreSQL17 protocol host and retain exact node/XML/log evidence. Exercise actual route/service and signed-webhook helpers, not a synthetic helper-only substitute. Include order-first vs refund races for token/audit and idempotency; audit/DLQ actual FK behavior; direct DLQ disposition; both order-linked and explicitly supported unlinked cases; conflict/replay idempotency; late stream error and completion after full refund; partial-refund current-order behavior according to the accepted contract; stale attempt/JTI and revoked order before next byte/token/retry/confirmation. Account for the trust enqueue commit and streaming commits. Require no deadlocks, no refunded-status resurrection, no new delivery on revoked access, no invented refund authority, and exact accepted partial-refund behavior. This report does not define a new partial-refund product policy or certify real-cloud/device delivery.

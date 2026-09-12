@@ -1,0 +1,115 @@
+{
+  "verified_at": "2026-09-12T05:25:12.999051+00:00",
+  "task": "2eff053cc9ba",
+  "ts_job": 238,
+  "candidate": "7890b0c0bc6a5fed4d50b796e11fda9e49102c51",
+  "base": "c9d8840b72c0fa208e9cf2eb5506767845dee9ac",
+  "status": "terminal_pushed_scan_clean_not_gate3",
+  "manifest": "/var/tmp/s1714-continuation-398e2594.json",
+  "manifest_sha256": "6c8ebe3488cc852cf60ee8fb71be69d2ae6280698c93aa2f0e09dbeb7be8a793",
+  "artifact_hashes_verified": 62,
+  "artifact_hash_mismatches": [],
+  "exact_commit_source_hashes_verified": 28,
+  "source_hash_mismatches": [],
+  "junit_counts_independently_recounted": true,
+  "runs": {
+    "core": {
+      "counts": {
+        "passed": 266,
+        "failed": 5,
+        "skipped": 0,
+        "error": 0
+      },
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "log_sha256": "62b67cd7bc81cec908d167c1ba629f649e4ea76c49f536e3a2d1d031172b367a",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "xml_sha256": "ff32522e5c8e4d93512a4b307a43f4d7fb99c2d8c1d83ea125d5752a49345dd4",
+      "command": "rtk proxy env S1714_DB=s1714_f3_bound_398e2594 S1714_TEST_LOG=/var/tmp/s1714-bound-core-398e2594.log python3 /var/tmp/s1714-run-398e2594.py -m pytest -q tests/test_order_money_protocol.py tests/test_refund_processing_protocol.py tests/test_refund_webhook_protocol.py tests/test_finance_phase2.py --tb=short -ra -o junit_family=legacy --junitxml=/var/tmp/s1714-bound-core-398e2594.xml",
+      "exit_code": 1
+    },
+    "adjacent": {
+      "counts": {
+        "passed": 284,
+        "failed": 2,
+        "skipped": 0,
+        "error": 0
+      },
+      "log": "/var/tmp/s1714-bound-adjacent-398e2594.log",
+      "log_sha256": "a27401668379fbf5ccec12415588c4ad94057be604a331a632d66615cb798b80",
+      "xml": "/var/tmp/s1714-bound-adjacent-398e2594.xml",
+      "xml_sha256": "ca35261e99492a5d9c8f9ebf345dd22995b9a3ef22e3bba6decc8804920b10b1",
+      "command": "rtk proxy env S1714_DB=s1714_f3_bound_398e2594 S1714_TEST_LOG=/var/tmp/s1714-bound-adjacent-398e2594.log python3 /var/tmp/s1714-run-398e2594.py -m pytest -q tests/test_settlement.py tests/test_transaction_state_machine.py tests/test_transaction_trigger.py tests/test_order_escrow.py tests/test_gold_path_transaction.py tests/test_finance_phase1.py tests/test_finance_gate2_phase1.py tests/test_finance_phase3.py --tb=short -ra -o junit_family=legacy --junitxml=/var/tmp/s1714-bound-adjacent-398e2594.xml",
+      "exit_code": 1
+    }
+  },
+  "final_failures": {
+    "tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "properties": {
+        "provider_guard_self_test": "fail-fast passed",
+        "unmocked_provider_attempts": "0"
+      }
+    },
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_create_subscription": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "properties": {}
+    },
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_at_period_end": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "properties": {}
+    },
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_immediate": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "properties": {}
+    },
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_already_canceled_raises": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-core-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-core-398e2594.xml",
+      "properties": {}
+    },
+    "tests/test_finance_phase1.py::TestMigrationStructure::test_migration_downgrade_drops_tables": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-adjacent-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-adjacent-398e2594.xml",
+      "properties": {}
+    },
+    "tests/test_finance_gate2_phase1.py::TestGate2Models::test_billing_entity_has_gate2_columns": {
+      "status": "failed",
+      "log": "/var/tmp/s1714-bound-adjacent-398e2594.log",
+      "xml": "/var/tmp/s1714-bound-adjacent-398e2594.xml",
+      "properties": {
+        "provider_guard_self_test": "fail-fast passed",
+        "unmocked_provider_attempts": "0"
+      }
+    }
+  },
+  "baseline_failures": 6,
+  "new_failures": 1,
+  "original_19_posting_cases_passed": true,
+  "source_fixes_reviewed": [
+    "all generic transaction refunded transitions denied including orderless",
+    "create_quote locks order then transaction and revalidates before first write",
+    "matched authority missing/incompatible deployment pins now retryable protocol unavailable",
+    "failed refund webhook preserves signed payload and signature-valid marker for retry"
+  ],
+  "limitations": [
+    "No live provider, environment lifecycle, real-money or production proof performed.",
+    "Final Gate3 reviewers must assess lock-matrix coverage limits, particularly nullable legacy FK assignments; catalog inventory is not a two-connection test of every such assignment.",
+    "No failed or skipped node is acceptance. Mars owns final acceptance."
+  ],
+  "canonical_remote_verified": "7890b0c0bc6a5fed4d50b796e11fda9e49102c51\trefs/heads/build/bq-refund-safe-production-s1714",
+  "checkout_clean": true,
+  "f4_trace": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-F4-END-TO-END-SOURCE-MAP-S1712.md",
+  "f4_trace_sha256": "44b8e6323ca6f7e913ee8112e0d6bbc79aad10e0b798f6a68ac7082ff7534ca6",
+  "no_product_or_runtime_mutations": true,
+  "assessment": "Real F3 progress; finite F4 findings and full accepted lock/proof matrix remain owner/reviewer gates. Static inventory is not exhaustive FK barrier proof."
+}

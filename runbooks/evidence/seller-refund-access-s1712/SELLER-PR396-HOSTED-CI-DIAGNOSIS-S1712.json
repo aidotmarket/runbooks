@@ -1,0 +1,33 @@
+{
+  "observed_at": "2026-09-12T08:12:09.548807+00:00",
+  "candidate": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "run_id": 34682341722,
+  "status": "failure",
+  "gold_path": {
+    "errors": 14,
+    "passed": 0,
+    "cause": "module autouse migrated_protocol fixture requires absent verified disposable PostgreSQL17 environment"
+  },
+  "canonical_payment": {
+    "failed": 52,
+    "passed": 3,
+    "errors": 0,
+    "missing_payload_json_failures": 51,
+    "missing_orders_delivered_at_failures": 1
+  },
+  "source_sha256": {
+    "test_gold_path_transaction.py": "91a240748a5897cf7296de96b456b45908501259402dac9ab98d0e15b841062e",
+    "test_order_money_protocol.py": "b7fbc8e28072cbd70fa3e648e1a9199f28affc6ac334251b8b95696ba6aefc46",
+    "integration_conftest.py": "ee32d440e06366b02fc69b58260d38f53886c3f03728b9f2d9a153162cd2d1e4",
+    "test_webhook_canonical_payment.py": "b68a446906a1e4077777ea1cecdefb9631840bc2c96222ced64415dee5f49f09",
+    "test_fulfillment_pending_status.py": "dd924f5e2ad1c03b65c32b5ee84aa7b54c91fad470e91a9025e33a84f8655cb9",
+    "webhooks.py": "d614c8a80387aba7b96eb1305af2ea11ec9bafe55385d5ace56bc21ba1f00f6a",
+    "fulfillment_service.py": "9b15fc39b88e548b59dcff8720bba665025cb4b8d20a8e02dc969a8ee008f0ca",
+    "order_service.py": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f"
+  },
+  "log_sha256": "f317ea6489d2f36bfc267b416e08095b265a91d199665d430e1f50cc8729db5d",
+  "diagnosis": "SELLER-PR396-HOSTED-CI-DIAGNOSIS-S1712.md",
+  "owner_response": 4277,
+  "product_mutations": false,
+  "tests_rerun": false
+}

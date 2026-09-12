@@ -1,0 +1,40 @@
+from pathlib import Path
+import sys, os, subprocess, tempfile, json, hashlib, datetime
+root=Path('/Users/max/koskadeux-mcp')
+sys.path.insert(0,str(root))
+from koskadeux_mcp import minimal_bridge as bridge
+assert Path(bridge.__file__).resolve()==root/'koskadeux_mcp/minimal_bridge.py'
+assert hashlib.sha256(Path(bridge.__file__).read_bytes()).hexdigest()=='6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d'
+def git(cwd,*args,env=None,check=True):
+ r=subprocess.run(['git',*args],cwd=cwd,env=env,text=True,capture_output=True)
+ if check: assert r.returncode==0, (args,r.returncode,r.stderr)
+ return r
+work=Path(tempfile.mkdtemp(prefix='s1714-serving-hook-'))
+repo=work/'repo';remote=work/'remote.git'
+git(work,'init','--bare',str(remote));git(work,'init',str(repo))
+git(repo,'config','user.name','S1714 Local Canary');git(repo,'config','user.email','s1714@example.invalid')
+(repo/'base.txt').write_text('local canary base')
+git(repo,'add','base.txt');git(repo,'commit','-m','local base')
+base=git(repo,'rev-parse','HEAD').stdout.strip();git(repo,'remote','add','origin',str(remote))
+env=bridge._builder_git_env(str(repo),base,dict(os.environ))
+(repo/'clean.txt').write_text('ordinary update')
+git(repo,'add','clean.txt');git(repo,'commit','-m','ordinary update')
+clean=git(repo,'rev-parse','HEAD').stdout.strip()
+records=[]
+def push(label,expected):
+ before=git(work,'--git-dir',str(remote),'rev-parse','refs/heads/main',check=False)
+ r=git(repo,'push','origin','HEAD:refs/heads/main',env=env,check=False)
+ after=git(work,'--git-dir',str(remote),'rev-parse','refs/heads/main').stdout.strip()
+ records.append(dict(stage=label,exit_code=r.returncode,remote_before=before.stdout.strip() if before.returncode==0 else None,remote_after=after,stdout=r.stdout,stderr=r.stderr))
+ assert (r.returncode==0)==expected
+ assert after==clean
+ return r
+push('clean',True);push('unchanged-repeat',True)
+secret='AKIA'+'1234567890ABCDEF'
+(repo/'blocked.txt').write_text('AWS='+secret)
+git(repo,'add','blocked.txt');git(repo,'commit','-m','synthetic blocked specimen')
+r=push('secret-rejected',False)
+assert secret not in r.stdout+r.stderr
+assert 'minimal bridge secret scan blocked: blocked.txt:1:aws_access_key' in r.stderr
+out=dict(timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),interpreter=sys.executable,source=str(bridge.__file__),source_sha256=hashlib.sha256(Path(bridge.__file__).read_bytes()).hexdigest(),serving_head=git(root,'rev-parse','HEAD').stdout.strip(),serving_status=git(root,'status','--porcelain').stdout,temporary_local_work=str(work),records=records,external_network=False)
+p=Path('/Users/max/koskadeux-state/s1656/s1714-empty-push-serving-canary.json');p.write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out,indent=2))

@@ -292,9 +292,9 @@
 - Path: `runbooks/builder-controls.md`
 - Purpose: This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
 - Owner: `vulcan`
-- Last verified: `2026-08-23`
+- Last verified: `2026-09-12`
 - Aliases: builder-bridge, minimal-bridge, mp-builder-controls
-- Error signatures: none
+- Error signatures: minimal bridge secret scan error, pre-push supplied no ref records
 - Status: current
 
 ## Buyer Request Publication and Discovery
@@ -592,6 +592,15 @@
 - Last verified: `2026-03-06`
 - Aliases: none
 - Error signatures: none
+- Status: current
+
+## Failed TEST purchase refund and recovery
+- Path: `runbooks/seller-failed-test-refund-recovery.md`
+- Purpose: Status: implementation integrated by Mars on September 12, 2026, at environment candidate `7b50ae6db00d7457baaf29b4b5796b64f305746d`, from delegated source `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, delegated base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns the combined normal P/N harness and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: S1681 failed paid run release, Failed positive negative purchase recovery
+- Error signatures: normal atomic refund effects unproved; preserve FAILED checkpoint, persisted canonical authority receipt differs
 - Status: current
 
 ## Gate Procedure
@@ -900,6 +909,15 @@
 - Error signatures: Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL, status=PRELIMINARY or reason=stats_reset_changed, is an operator-controlled one-shot migration, empty-only quarantine invariant failed, external dependencies on quarantine tables, quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0, relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table, relation 'orders' does not exist or crm_* does not exist, empty-only drop invariant failed, view or dependency blocker
 - Status: current
 
+## Seller paired settlement conclusion and recovery
+- Path: `runbooks/seller-paired-settlement-conclusion.md`
+- Purpose: Source checkpoint: environment `6b473e3006b4c87716fbe2e96a712181acd2011c`, independently reviewed in Mars4243/Vulcan4244 after the prior2b517 slice. This explains implemented source, not an accepted or executed live run. Original-acceptance binding finding4239 is corrected at this exact source: purchase-time original hash, named criteria and pinned source/payment checks are enforced before cleanup, phase advancement and conclusion. Read the current Seller Workspace operator guide, failed TEST refund recovery and owner checkpoint before using any dated identity here.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Paired online offline settlement resume, Seller settlement archive and cleanup diagnosis
+- Error signatures: original acceptance differs from purchase-time receipt, archived original acceptance differs from purchase-time receipt, original acceptance criteria or pinned source differs
+- Status: current
+
 ## Seller production payment cutover
 - Path: `runbooks/seller-production-payment-cutover.md`
 - Purpose: Prepared September12,2026 for Mars4120. Read-only preflight; no production deployment, configuration, stop, restart, cancellation, queue or database mutation was performed. This is the release-specific supplement to the Seller Workspace operator guide. It must be incorporated into the accepted payment Gate2 and final deployment record.
@@ -907,6 +925,15 @@
 - Last verified: `2026-09-12`
 - Aliases: Seller payout quiescence and restore
 - Error signatures: none
+- Status: current
+
+## Seller purchase access after refunds
+- Path: `runbooks/seller-refund-access-diagnosis.md`
+- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 with verified MP244 readiness correction and delivery operations. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Partial refund download refresh, Seller delivery credential diagnosis
+- Error signatures: DELIVERY_CREDENTIAL_GENERATION_STALE, DELIVERY_REFRESH_UNAVAILABLE, DELIVERY_REFRESH_ACCESS_REJECTED, 'oauth_provider' is an invalid keyword argument for User
 - Status: current
 
 ## Seller SEO Validation Runbook

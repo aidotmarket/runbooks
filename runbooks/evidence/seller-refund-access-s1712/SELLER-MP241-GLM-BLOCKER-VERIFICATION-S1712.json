@@ -1,0 +1,30 @@
+{
+  "at": "2026-09-12T08:14:27.467305+00:00",
+  "candidate": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "verdict": "REQUEST_CHANGES",
+  "response": "/Users/max/council/glm/response-20260912-093658-607837.md",
+  "response_sha256": "d5024293783d3ffd86a6a85379ebcec51beb6e21cdec104644c35231b4540fc8",
+  "full_response_read": true,
+  "finding": "Scheduled stale-agent cleanup locks transactions before linked orders; actual registered outside acquirer omitted from finite map.",
+  "source_confirmed": {
+    "scheduled.py": {
+      "lines": "578-604",
+      "sha256": "31ed8e38e1e66356e56faf91ee9d28604b31cab129495f994d5e6fd8dfac08af"
+    },
+    "celery_app.py": {
+      "lines": "236-239",
+      "sha256": "400d8de8b3064caa3bd6954947f8a1e5f1fe84c1e2de1698528d3ed694ff0b61"
+    },
+    "transaction_service.py": {
+      "lines": "360-401",
+      "sha256": "a7c23683be93aca3700e220bb0d2863c277619cc47d849b80d18ad34d99a6cdb"
+    }
+  },
+  "static_race": "Cleanup transaction UPDATE takes row lock, then waits for linked order. Refund/listener owns order, then waits for transaction. Same database transaction retains cleanup locks through agent spend, event and audit writes.",
+  "applicability": "Normal agent checkout durably links order and PI in agent_payment_pending; no source exclusion prevents delayed capture/refund overlap with stale cleanup.",
+  "finite_map_omission_verified": true,
+  "runtime_race_executed_by_vulcan": false,
+  "required": "MP-authored bounded order-first cleanup with binding/state revalidation and real migrated-PG both-ordering proof; preserve valid unlinked stale cleanup, spend/event behavior and retries.",
+  "provenance_finding": "Final failure-reconciliation object still names af1de970/125cfe in provenance; top manifest correctly names79e931/8283. Add explicit immutable-history supersession, not silent rewrite.",
+  "owner_alert": 4278
+}

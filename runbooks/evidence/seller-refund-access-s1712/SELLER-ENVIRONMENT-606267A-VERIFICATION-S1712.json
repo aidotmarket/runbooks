@@ -1,0 +1,113 @@
+{
+  "at": "2026-09-12T11:52:47.979174+00:00",
+  "status": "EXACT_CORRECTED_SOURCE_AND_RETAINED_LOGS_VERIFIED_REVIEW_PENDING_NOT_LIVE_RELEASE",
+  "candidate": "606267af80470b1d61c07d91cda30a0dc5200224",
+  "base": "c6b8770e69514035b2c78f0433f86209b4cefe0f",
+  "remote": "606267af80470b1d61c07d91cda30a0dc5200224\trefs/heads/codex/s1714-refund-proof\nc6b8770e69514035b2c78f0433f86209b4cefe0f\trefs/heads/main\n",
+  "clean": true,
+  "source_hashes": {
+    "README.md": "9a0751d935bba5d39c21369e1cb513d143b9c255e575dd54bf61101467d3b11f",
+    "bin/check-settlement": "730fa542364c588b86470ce882292a041115ddfb50b08223d9c508f34ae370f0",
+    "bin/seed": "df8a42e88c1a14c9681b235c0ab5bc0270ccc7a19d32571511e51328155f099b",
+    "bin/verify": "60e5933ac13f68ee4b0e4f3e274f8ab37b3f8ba6aa21158f862836be5cbcfd14",
+    "browser/s1590-money-path.spec.ts": "a4d495a9804c431e98f68c382939a9f4d227a4488d37479c71c63252e94a427f",
+    "browser/s1681-delivery-leg.ts": "cb0809804dd09a90fc5d238faa3cb9f8f5cf8dd81a57802f57f94e684a28ba78",
+    "compose.yaml": "04764949b543c349bd63a14ed3c5ffb3af203af4b08ad744ea0167db73ece207",
+    "seed/s3-fixture.py": "971e45f107b56b64f44aed579e1a1b0f098671c0483c03c77bf314ed79d29381",
+    "seed/seed.py": "0eba0f292e664de25b39325a459a88a244d19a78550557098ffd1de4a63afe63",
+    "tests/compose-contract.sh": "fd53f5194d567667189c8e6eb07aec8bd7e798a3830458c313f59844ff2f48b0",
+    "tests/test-delivery-contract.py": "de639f0305aef9c0ca13354c8eaab6fb8c3d695d68fe617fa88f39985aada5ef",
+    "tests/test-refund-proof-contract.py": "bbbcfaa43e780fb03a0af9aa2343d7ae5632af2936149016312c82d01d4e1c64",
+    "tests/test-seed-contract.py": "aa539b6a8845ac4ee0f08fb2493efb5b6b0447f34806fadd8216506ce06caa00",
+    "versions.env": "0ba4ddcc62e3b95de5d009dd954d374e1968f060146f7c1d200b4db7040d447e"
+  },
+  "full_changed_file_count": 14,
+  "manifest": "/Users/max/koskadeux-state/s1656/s1714-environment-606267a-review-manifest.json",
+  "manifest_sha256": "f9f7be4c2a9f3056d9687dc855cc2959b96d84aa1941ec9d6601369a8c713248",
+  "tests_receipt": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/entry-final-receipt.json",
+  "tests_receipt_sha256": "a11690ec303e56fa907b19b84553fbefcee5223f424b141afb5ab088769a0591",
+  "logs": [
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "./tests/compose-contract.sh",
+        "--static-only"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/0.log",
+      "sha256": "7241073d79346317d4a4e6e289a8526c5bfe44d8693b2dee68e611924afbb8a0",
+      "verified_count": 2
+    },
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "tests/test-seed-contract.py"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/1.log",
+      "sha256": "91e6e31a3d2e585fc09cad4bf1716a356c1869f9b9dccfce890b23df320d69c7",
+      "verified_count": 72
+    },
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "tests/test-delivery-contract.py"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/7-final-delivery.log",
+      "sha256": "4e21791ad1ac7b3b7ab3994d34961fa7716fce44a8d6f41cee84b7e053682fcb",
+      "verified_count": 110
+    },
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "tests/test-journey-contract.py"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/3.log",
+      "sha256": "c972083d3e5979329de4b8c1ce85f4b2cd1c9fb55616313eedcd95f6c1dd4e46",
+      "verified_count": 10
+    },
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "tests/test-nightly-contract.py"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/4.log",
+      "sha256": "fa44ae438b2a7a33a800223886d267a2c0311d728915ea338be3dc5ca49941f8",
+      "verified_count": 21
+    },
+    {
+      "argv": [
+        "rtk",
+        "proxy",
+        "python3",
+        "tests/test-refund-proof-contract.py"
+      ],
+      "exit_code": 0,
+      "log": "/Users/max/koskadeux-state/s1656/s1714-environment-merchant-correction-checks/8-final-refund.log",
+      "sha256": "f2f81abc24bb9e4872c4350a4a7546a0917bca63d43f915586e9a7c410431de5",
+      "verified_count": 135
+    }
+  ],
+  "python_contracts": 348,
+  "static_tests": 2,
+  "delta_read": "All three correction files b006 to 9187 and full 9187 to 606267 including dd01 strict archived-negative boolean and final guarded purchase entry read independently. Earlier root-source assessments apply only to unchanged bytes. Full14 Council review pending.",
+  "prior_delta_receipt": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-ENVIRONMENT-9187-DELTA-REVIEW-S1712.json",
+  "fresh_migration_proof": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-FRESH-MERCHANT-PROOF-S1712.json",
+  "limitations": [
+    "No new test executions in this verification; six actual logs independently rehashed and counts parsed.",
+    "Product c3 accepted separately; environment unanimous decision pending.",
+    "No protected run, provider, production or paid lifecycle mutation."
+  ]
+}

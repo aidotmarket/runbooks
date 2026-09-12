@@ -1,0 +1,42 @@
+# Production delivery transport assessment — S1712
+
+Observed: 2026-09-12T07:24:48.087422+00:00. Request Mars4246, bounded scope confirmed Mars4249.
+
+Both authorized S1707 production purchases use direct Workspace cloud delivery. The VC alternate callback and external raw-HMAC-consumer limitations in §17.3 are outside these two evidenced paths. Production device delivery remains an explicit evidence gap; no other production device order was authorized or supplied.
+
+## Exact records
+
+| Provider | Order | Purchased version | Connection | Saved bytes |
+|---|---|---|---|---|
+| r2 | 7489fdd2-012b-4a05-80a9-e4a5577342fa | 06a8b2aa-7ceb-4316-8d5e-21a38af21fe5 | 9988e2be-588a-46d6-a926-908004b273b3 (revoked) | 26 |
+| aws | c91951ed-d22d-4407-b7ec-23873688520a | bb60b6f0-8953-4f87-9921-c033f137a05a | e832d1f9-4abd-4c76-99f2-1b31a06b48c8 (revoked) | 31 |
+
+Both orders and transactions are delivered, downloads used is 1 of 3, and each has one persisted Workspace download session and file grant. Each immutable purchased version resolves through its publication and authority to the same seller-owned connection. No device ID, source dataset or legacy serial is bound. Full UUIDs, scope hashes, timestamps and deployment IDs are in the adjacent JSON.
+
+## Actual path at the deployed source
+
+Railway metadata identifies backend, worker, Beat and profile worker at `d766b8e4e66d7803ebe48f8a3132521abbebe957`, frontend at `ffd54077bf115bbcb09882150c37f17ce4c672d5`. This is metadata plus exact Git source evidence, not a fresh hash of every running container file.
+
+1. The order page selects `WorkspaceDownload` for Workspace purchases (page.tsx:443) and excludes that marker from the legacy branch (445). The component requests a session, then one file grant per entry.
+2. `api/sellerWorkspaceDownload.ts:45–47,65–72` POSTs to the Workspace session/file endpoints. The backend requires a JWT session; no raw-HMAC credential is used.
+3. `fulfillment_service.py:176–182` resolves Workspace fulfillment before device dispatch and does not fall back on failure.
+4. `seller_workspace_delivery.py:81–153` checks current order access and immutable version/publication/authority/connection ownership. Lines 133–135 require a verified connection and active credential. Lines 180–208 mint AWS or R2 direct-object grants.
+5. Session issuance (291–324) validates the first provider object before consuming allowance, persists its encrypted grant and commits the audit before returning. File requests (326–350) recheck context before retrieving cached or new grants.
+6. `workspaceDownloadStream.ts:25–26` performs a direct HTTPS GET to the signed provider URL with If-Match, CORS and no browser credentials or redirects, then verifies exact byte count while saving.
+7. `raw_download_service.py:77–79` and `order_service.py:314–316` refuse Workspace sources before legacy token generation.
+
+## Present availability and limits
+
+Both connections were revoked during the earlier authorized cleanup on September 10. The retained browser files were rehashed now and still match the paid-purchase receipt (26 R2 bytes; 31 AWS bytes). Historical delivery is therefore supported, but fresh delivery today is not established. At the pinned source, connection revocation should reject both new and cached grants before returning them; this assessment did not issue a live grant or execute a new refusal test.
+
+Mars4249 confirms there is no additional already-authorized production device-order receipt. S1656/run25/device proofs are TEST only. Do not substitute them for a production device/source/version/config chain, broaden customer inventory, or invent a production receipt.
+
+This does not close final F5 product acceptance, full harness Gate3, Workspace Gate2, the controlled production cutover, the wallet limitation or fresh joint paid acceptance.
+
+## Reproduction and support
+
+Read `infisical-secrets.md` and `local-secops.md` before credential handling. Use only the explicit Railway production target recorded in the JSON. The retained `work/production-transport-read-s1712.sql` wraps its exact two-order query in BEGIN READ ONLY / ROLLBACK. Its companion Python script obtains the Railway-owned database URL in memory and suppresses credentials. Preserve the original receipt; use a separately named receipt for any subsequently authorized read. Never dump signed grant envelopes or provider URLs.
+
+Before upgrade, repeat the exact source/deployment binding against the accepted final candidate and verify that Workspace selection, current access checks, immutable source ownership, provider object preconditions and audited grant issuance still hold. Record new live proof separately from these retained historical files. Do not reopen revoked connections as a diagnostic shortcut.
+
+Evidence: `SELLER-PRODUCTION-TRANSPORT-READ-S1712.json`, `SELLER-PRODUCTION-TRANSPORT-ASSESSMENT-S1712.json`, and the exact backend/frontend source inventories in `work/production-transport-source-s1712/`. All actions in this assessment were read-only; additional spend was $0.

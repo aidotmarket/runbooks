@@ -1,0 +1,140 @@
+{
+  "at": "2026-09-12T02:17:42.714375+00:00",
+  "fields": [
+    {
+      "name": "deploymentTriggerCreate",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "INPUT_OBJECT",
+              "name": "DeploymentTriggerCreateInput"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deploymentTriggerDelete",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deploymentTriggerUpdate",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "INPUT_OBJECT",
+              "name": "DeploymentTriggerUpdateInput"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "environmentTriggersDeploy",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "INPUT_OBJECT",
+              "name": "EnvironmentTriggersDeployInput"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "serviceConnect",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "INPUT_OBJECT",
+              "name": "ServiceConnectInput"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "serviceDisconnect",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trustedDomainRetriggerVerification",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "mutations_performed": false
+}

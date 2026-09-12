@@ -1,0 +1,64 @@
+{
+  "at": "2026-09-12T11:04:30.901195+00:00",
+  "candidate": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "base": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+  "scope": "full 42 targets requested; preserve each reviewers declared fresh/prior coverage and limitations",
+  "responses": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-124430-691511.md",
+      "sha256": "a4d4f7f1a60e61b82a3d763ea56f4e76637cc9ab99fbd113039b4881e347fec6",
+      "bytes": 18760,
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS"
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-124431-085300.md",
+      "sha256": "6a24c6502d2617c7303c5ad0e366486c4caacc36ae3b5d9b59d2e7ca86af4d9d",
+      "bytes": 20522,
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS"
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-124431-485095.md",
+      "sha256": "c5909635f001bd508247b965997a5a3d732f9f83787d7303d9577e25f0ff7120",
+      "bytes": 16619,
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS"
+    }
+  },
+  "panel_votes": "all three APPROVE_WITH_NITS, no HIGH/MEDIUM",
+  "owner_acceptance": {
+    "status": "UNANIMOUS_APPROVE_WITH_NITS_PRODUCT_GATE3_ONLY",
+    "path": "/Users/max/koskadeux-state/s1656/s1714-product-gate3-c3a62af8-unanimous-decision.json",
+    "sha256": "ed425ff091bebc41a879f3b4167a7816e0f23c47d94211a17426e5b5fd9b190f",
+    "full_read": true,
+    "all_vote_hashes_match": true
+  },
+  "release_accepted": false,
+  "notes": [
+    "CC LOW1 shared download/window gate may restrict confirm/dispute/retry after exhaustion/expiry; source-only, nonblocking, requires explicit retained disposition; do not silently alter policy.",
+    "CC carries 35 byte-identical files from prior full read and freshly reviews seven-file delta; preserve this stated method, not a claim of fresh line-by-line all42.",
+    "DS F1 unchanged mapping defect source applicability receipt retained; no automatic waiver.",
+    "GLM and CC limits on independently reconstructed source/evidence remain explicit; Vulcan exact hash/XML/node-edge/hosted verification receipts remain separate.",
+    "Advisory order-only per-chunk optimization/outbox/publication API not authorized implementation scope.",
+    "Full environment, protected lifecycle, real holds, production adoption/Beat, external device and Workspace release gates remain open."
+  ],
+  "nonblocking_dispositions": [
+    "CC LOW1 current shared access gate conservatively refuses confirm/dispute/retry after download exhaustion or access expiry; not refund-safety blocker, separate dispute route remains; preserve as open behavior follow-up, no unreviewed relaxation.",
+    "Per-chunk full locking is accepted required behavior; proposed lighter locks/outbox advisory, excluded from this implementation.",
+    "Six exact inherited baseline failures retained; owner/peer find no demonstrated planned-path doppler dependency, not dynamic release certification or waiver.",
+    "Readiness84th row direct workflow evidence separate from pytest; owner/peer independently verified every1024XML execution,732refs and actual first-attempt hosted success.",
+    "Reviewer coverage limitations explicit; no claim any reviewer reran runtime tests."
+  ],
+  "release_gates_open": [
+    "Final exact environment source/runtime pins and unanimous environment Gate3",
+    "Protectedrun25 genuinehold and ordered onlineTransfer/offline/summary",
+    "Corrected pairedP/N real48h provider/PG/refund/access proof",
+    "StableAIMData1.23.3 two plists and actualscheduledrun",
+    "ExactdeployedcleanupBeatreceipt and old-writerquiescence",
+    "Gate4/S1681 and ackstormBQ Railwayattestation",
+    "Authorized Workspace compatibility window",
+    "Productiontriggerfreeze beforemainmerge, forwardmigration/exactdeployment/reconciliation",
+    "Actual external verification; wallet/VC/rawHMAC limits remain where applicable"
+  ]
+}

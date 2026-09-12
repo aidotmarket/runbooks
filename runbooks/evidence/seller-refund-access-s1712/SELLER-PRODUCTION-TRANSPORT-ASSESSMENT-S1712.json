@@ -1,0 +1,242 @@
+{
+  "observed_at": "2026-09-12T07:24:48.087422+00:00",
+  "request": 4246,
+  "peer_scope_confirmation": 4249,
+  "status": "BOUNDED_PRODUCTION_TRANSPORT_ASSESSMENT_NOT_RELEASE_ACCEPTANCE",
+  "read_receipt": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-PRODUCTION-TRANSPORT-READ-S1712.json",
+  "read_receipt_sha256": "624294482ed0ab3f167298ce2bb6e66148d6d5a028b48bb7bf6fb1f9a7a5cca9",
+  "source": {
+    "repo": "aidotmarket/ai-market-backend",
+    "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+    "source_sha256": {
+      "app/services/seller_workspace_delivery.py": "a93577f579340b2ed2f65385b65251ad3d177a58c9119fde949e77baf8fccf23",
+      "app/services/order_service.py": "7c02da1a645d2f977bf48ca6e3097a08692bb2f18b2d0c1da6e9464ec7463634",
+      "app/services/fulfillment_service.py": "e060f46d50a3ae08bf42fc90890ad6334e37f8dc1e9952c1ffc6e4877902d5d0",
+      "app/services/raw_download_service.py": "03ce9139c6add9c7a46c3e3bf547796fd53894d3966f9d82329ffef31ef3657a",
+      "app/api/v1/endpoints/seller_workspace_delivery.py": "a2a0537bfc2af3179aa6982bdccaed968dc479a6620fa48ed66a4535aa0ef237"
+    }
+  },
+  "frontend_source": {
+    "commit": "ffd54077bf115bbcb09882150c37f17ce4c672d5",
+    "source_sha256": {
+      "api/sellerWorkspaceDownload.ts": "5f4453a15836005ea8051e54e96a106cfb3ff76f71c1e8e5bedd17ea7bc8e1ff",
+      "components/orders/workspaceDownloadStream.ts": "9cf5504faef4bf8b751ab623e319a4f64b09bc724545844c24e81f0f9d1ac1bf",
+      "components/orders/WorkspaceDownload.tsx": "e93b3054396303484ec0c283ce6b0ea64e3db4f3ffc098ba2ea4a5be6aa6b24d",
+      "app/dashboard/orders/[id]/page.tsx": "e35510ccff778781e4355f85ae74948a9ed320ddbd8a72a22936fd890afcdd3b"
+    }
+  },
+  "orders": [
+    {
+      "order_id": "7489fdd2-012b-4a05-80a9-e4a5577342fa",
+      "transaction_id": "733ded10-00ca-4619-8a51-716fc2df89c4",
+      "buyer_id": "0a3eb2e1-8cc1-4ea9-84ce-542491784be3",
+      "seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "listing_id": "d255088e-9f12-4738-a5a9-b153a8131aac",
+      "status": "delivered",
+      "revoked": false,
+      "delivery_method": "direct",
+      "delivered_at": "2026-09-10T15:30:26.979746+00:00",
+      "purchased_version_id": "06a8b2aa-7ceb-4316-8d5e-21a38af21fe5",
+      "downloads_used": 1,
+      "max_downloads": 3,
+      "access_expires_at": "2026-09-17T15:06:31.819525+00:00",
+      "delivery_config_keys": null,
+      "delivery_config_type": null,
+      "delivery_device_id": null,
+      "delivery_source_kind": null,
+      "delivery_publication_id": null,
+      "transaction_status": "delivered",
+      "transaction_order_id": "7489fdd2-012b-4a05-80a9-e4a5577342fa",
+      "fulfillment_type": "file_download",
+      "listing_type": "raw",
+      "source_dataset_id": null,
+      "source_authority_kind": "workspace_connection",
+      "source_authority_id": null,
+      "source_device_id": null,
+      "has_legacy_s3_connection": null,
+      "version_id": "06a8b2aa-7ceb-4316-8d5e-21a38af21fe5",
+      "version_label": "1",
+      "version_status": "active",
+      "object_count": 1,
+      "total_size_bytes": 26,
+      "publication_id": "8650a6a8-4eff-4cdf-8c64-e7ccb12b2067",
+      "publication_seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "authority_id": "ff4ead77-a922-4de5-aa19-ea7eb17c4a9d",
+      "authority_kind": "workspace_connection",
+      "legacy_serial_id": null,
+      "connection_id": "9988e2be-588a-46d6-a926-908004b273b3",
+      "authority_version": 1,
+      "authority_active": true,
+      "immutable_scope_hash": "6687d82508b36c22cb5e1a6da478930c24d267a3668a2afb57837e891d77ff36",
+      "connection_seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "connection_provider": "r2",
+      "connection_status": "revoked",
+      "connection_revoked_at": "2026-09-10T15:55:52.311991+00:00",
+      "workspace_download_sessions": 1,
+      "workspace_file_grants": 1
+    },
+    {
+      "order_id": "c91951ed-d22d-4407-b7ec-23873688520a",
+      "transaction_id": "ed6074fd-617f-45a7-84ea-a20301a026be",
+      "buyer_id": "0a3eb2e1-8cc1-4ea9-84ce-542491784be3",
+      "seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "listing_id": "e4e2fea9-72a8-434d-a5a5-74e6d63540f7",
+      "status": "delivered",
+      "revoked": false,
+      "delivery_method": "direct",
+      "delivered_at": "2026-09-10T15:35:00.678947+00:00",
+      "purchased_version_id": "bb60b6f0-8953-4f87-9921-c033f137a05a",
+      "downloads_used": 1,
+      "max_downloads": 3,
+      "access_expires_at": "2026-09-17T15:35:00.571788+00:00",
+      "delivery_config_keys": null,
+      "delivery_config_type": null,
+      "delivery_device_id": null,
+      "delivery_source_kind": null,
+      "delivery_publication_id": null,
+      "transaction_status": "delivered",
+      "transaction_order_id": "c91951ed-d22d-4407-b7ec-23873688520a",
+      "fulfillment_type": "file_download",
+      "listing_type": "raw",
+      "source_dataset_id": null,
+      "source_authority_kind": "workspace_connection",
+      "source_authority_id": null,
+      "source_device_id": null,
+      "has_legacy_s3_connection": null,
+      "version_id": "bb60b6f0-8953-4f87-9921-c033f137a05a",
+      "version_label": "1",
+      "version_status": "active",
+      "object_count": 1,
+      "total_size_bytes": 31,
+      "publication_id": "fc0903e6-4dfe-484b-b542-df194f98021c",
+      "publication_seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "authority_id": "c2d5858b-3110-483e-89dc-03f1fae4c7ce",
+      "authority_kind": "workspace_connection",
+      "legacy_serial_id": null,
+      "connection_id": "e832d1f9-4abd-4c76-99f2-1b31a06b48c8",
+      "authority_version": 1,
+      "authority_active": true,
+      "immutable_scope_hash": "213d0bcf7e8e2940ad8897059c977e0280718a13e0c6f229bb6966710a0a90d3",
+      "connection_seller_id": "ffe4b253-4c39-42a5-b48e-9478bf10fa43",
+      "connection_provider": "aws",
+      "connection_status": "revoked",
+      "connection_revoked_at": "2026-09-10T15:55:31.857942+00:00",
+      "workspace_download_sessions": 1,
+      "workspace_file_grants": 1
+    }
+  ],
+  "deployments": [
+    {
+      "service": "issue-channel-watcher",
+      "service_id": "d48dd44c-4541-4387-89da-50b2b1d0c8fe",
+      "deployment_id": "2a164663-b055-4420-9456-5e8ef7635cb1",
+      "status": "SUCCESS",
+      "commit": "d21321590d5e968fdd6ae47037a1cbeef56e2ea6"
+    },
+    {
+      "service": "ai-market-backup",
+      "service_id": "53aa2e80-8ffa-4e22-a38f-f52a6b6c6c80",
+      "deployment_id": "86f3a166-1f4e-4bbb-880b-18bda86621ad",
+      "status": "SUCCESS",
+      "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957"
+    },
+    {
+      "service": "Qdrant",
+      "service_id": "6f7211f0-8308-4f5b-b8c4-197547e80177",
+      "deployment_id": "8720988c-fde4-4759-9fb4-9d523b952aed",
+      "status": "SUCCESS",
+      "commit": null
+    },
+    {
+      "service": "ai-market-backend",
+      "service_id": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+      "deployment_id": "621173d0-149d-4d9a-a611-09767d7203ba",
+      "status": "SUCCESS",
+      "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957"
+    },
+    {
+      "service": "ai-market-celery-worker",
+      "service_id": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+      "deployment_id": "f5415bba-ced7-4269-a6c8-d8626f3c53d0",
+      "status": "SUCCESS",
+      "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957"
+    },
+    {
+      "service": "ai-market-celery-beat",
+      "service_id": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+      "deployment_id": "dbef10f9-ee53-47dc-8932-bc7bf689f6e0",
+      "status": "SUCCESS",
+      "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957"
+    },
+    {
+      "service": "Redis",
+      "service_id": "d0d3a73e-ae3d-4b68-9107-34b991938e36",
+      "deployment_id": "c71a3d3f-01a0-47e3-a9cb-7cfce40c5329",
+      "status": "SUCCESS",
+      "commit": null
+    },
+    {
+      "service": "Postgres",
+      "service_id": "b86ef2a3-97e1-42fe-922a-73fe18b1d518",
+      "deployment_id": "416fe9a1-9a65-4836-b2d4-1dadea18bfb5",
+      "status": "SUCCESS",
+      "commit": null
+    },
+    {
+      "service": "ops-dashboard",
+      "service_id": "2255a03d-23e1-4672-a319-0bb16dda9a17",
+      "deployment_id": "99ea0ba7-8b21-46a6-8409-99d448a64f0a",
+      "status": "SUCCESS",
+      "commit": "0a329321b15a00b13e7eef4c538bf2d6b3086e21"
+    },
+    {
+      "service": "ai-market-seller-profile-worker",
+      "service_id": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+      "deployment_id": "be1504b6-2da0-46d9-86aa-949ec4f2de43",
+      "status": "SUCCESS",
+      "commit": "d766b8e4e66d7803ebe48f8a3132521abbebe957"
+    },
+    {
+      "service": "ai-market-frontend",
+      "service_id": "68be3ead-b9f3-48ce-b4b6-7d8f8e0740bd",
+      "deployment_id": "a0ce0449-2de5-4492-a874-330a9c6abc43",
+      "status": "SUCCESS",
+      "commit": "ffd54077bf115bbcb09882150c37f17ce4c672d5"
+    }
+  ],
+  "retained_paid_receipt": "/Users/max/Documents/Codex/2026-09-09/seller-agent-account-consumer-continuation/outputs/SELLER-PAID-PURCHASES-S1707.json",
+  "retained_paid_receipt_sha256": "7f6a1b4a3b0111114520d4df97dd4468eb383b03f888a739e8d9ee175e72164e",
+  "saved_bytes_verified_now": [
+    {
+      "provider": "r2",
+      "order_id": "7489fdd2-012b-4a05-80a9-e4a5577342fa",
+      "path": "/Users/max/Downloads/ai-market-verification-s1707/ai-market-f4c41aea-3ac2-4f33-9bbf-bded0ccff196/001-synthetic-sale.csv",
+      "size": 26,
+      "sha256": "af098d46add86fe0bfcaf2abd33d64eddcb78c232381682a3daa35034e64bae2",
+      "matches_retained_receipt": true
+    },
+    {
+      "provider": "aws",
+      "order_id": "c91951ed-d22d-4407-b7ec-23873688520a",
+      "path": "/Users/max/Downloads/ai-market-verification-s1707/ai-market-d58b562c-6fa4-4470-a1f5-16a54691358b/001-s1707-browser-5656b729285d40ecb95a58cfcc46ca1d.csv",
+      "size": 31,
+      "sha256": "0103c07cc2038d12fce9db0aeb16b8bcd92e86e0cc838c3c29c3dff898da4b6d",
+      "matches_retained_receipt": true
+    }
+  ],
+  "conclusions": [
+    "Both exact authorized production purchases use workspace_connection direct delivery; each has one persisted Workspace session and grant.",
+    "No device or legacy serial binding appears on either authorized purchase. Frontend selects Workspace component; backend selects Workspace fulfillment before device dispatch.",
+    "Workspace JWT session/file endpoints mint AWS/R2 object grants; frontend fetches provider HTTPS URL with signed If-Match. Legacy raw-HMAC helpers refuse Workspace sources.",
+    "The section17.3 VC alternate callback and external raw-HMAC consumer limitations are not on these two evidenced Workspace paths. This does not establish production safety of other transports.",
+    "Both connections remain revoked; exact deployed source refuses non-verified connections before returning cached or new file grants. This is a source-derived refusal expectation, not a fresh live refusal execution.",
+    "No additional authorized production device-order receipt exists per Mars4249. S1656/run25/device receipts are TEST only. Production-device transport evidence remains unresolved."
+  ],
+  "limitations": [
+    "Railway deployment metadata was read; running-container source files were not independently hashed in this assessment.",
+    "Retained files were rehashed; no fresh browser download, purchase, grant issuance, callback, provider request or production mutation was performed.",
+    "The currently deployed d766 product is not the final F5 product; full product/environment reviews, controlled deployment and joint paid acceptance remain open."
+  ],
+  "mutations_performed": false,
+  "new_spend_usd": 0
+}
