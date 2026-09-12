@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-09-12T11:00:04.465694+00:00",
+  "candidate": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "root_base": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+  "assessment": "No demonstrated dependency on doppler_key_prefix in the inspected planned money paths; inherited ORM defect remains explicit and unresolved. Not a release waiver or dynamic/deployed certification.",
+  "findings": [
+    "finance.py is in the 42-file scope; line54 is unchanged. Root diff only adds Refund and StripeEvent fields.",
+    "All app/scripts literal BillingEntity and billing_entities call sites searched. doppler_key_prefix literal appears only in model, migration schema/seed and existing assertion across app/scripts/alembic/tests.",
+    "Finance engine185-191 checks mapped identity, code, active, merchant, country and currency; entity object used only for absence check before strict chart posting.",
+    "Refund readiness149 explicitly selects id under exact merchant predicates; protocol report88 projects id/code/country/currency/is_active/merchant_of_record and serializes only those SQL mappings.",
+    "Additional BillingService entity consumers use id/currency; x402 consumers use id. No getattr/serialization of BillingEntity found in the six inspected files.",
+    "No source edits, DB calls, provider calls or test reruns. Dynamic attribute construction, external consumers, deployed configuration and production behavior are not certified."
+  ],
+  "source_sha256": {
+    "app/models/finance.py": "b5b9c613310b89533b7910e3b6742ef4284a01b95dea2a2b0acdf8b444cb02c8",
+    "app/services/finance/engine.py": "c107fe555b9708c69de0d12a9a6465959317edfb409d678a732117e6c1a9deb1",
+    "app/services/refund_processing_service.py": "75d2f8296c3bceac46d0501200a8bd8495bac9a2aea76f60d3d5132472b3bfc7",
+    "scripts/order_money_protocol.py": "b0900f6f572c277de6b1dd7971e69fd45d143800f2b6defc8ae654bda5d2de61",
+    "app/services/billing_service.py": "ebf9a07aa5f0042b237bdae906ef254f5c5d1c87d6916f39491e37383bc82eaa",
+    "app/services/x402_service.py": "fedaaea10433203601b4bc0844c0aa9fd5f28606523f20b315a2453191f6f958"
+  },
+  "review_responses": {
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-124431-485095.md",
+      "sha256": "c5909635f001bd508247b965997a5a3d732f9f83787d7303d9577e25f0ff7120",
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": false
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-124431-085300.md",
+      "sha256": "6a24c6502d2617c7303c5ad0e366486c4caacc36ae3b5d9b59d2e7ca86af4d9d",
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": false
+    }
+  }
+}
