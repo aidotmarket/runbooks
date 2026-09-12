@@ -1,0 +1,26 @@
+{
+  "observed_at": "2026-09-12T10:05:35.574903+00:00",
+  "candidate": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+  "run_id": 34687335197,
+  "canonical": "success",
+  "gold": "setup failed before tests",
+  "cleanup": "success",
+  "failed_log": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-MP243-HOSTED-FAILURE-S1712.log",
+  "failed_log_sha256": "5afb86c2550f2afe987e9fe612e480dfe5a8cc0d269e921bd88a63063b8dfe18",
+  "image_digest": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73",
+  "entrypoint_source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/mp243-postgres-entrypoint-source-s1712.sh",
+  "entrypoint_sha256": "9c440299ae04a0a79d55b8bf03307036d890a40979d2fb698073c9050d4b20a5",
+  "source_chain": {
+    "socket_only_listen": 297,
+    "temporary_server_start": 360,
+    "database_creation": 362,
+    "temporary_server_stop": 365,
+    "final_server_exec": 384
+  },
+  "diagnosis": "Workflow socket pg_isready can succeed against temporary initialization server before requested database creation. Hosted psql then failed because named database did not exist. Same image source independently verified.",
+  "required_correction": "Actual requested-database TCP query readiness before migration, bounded refusal and owned cleanup; fresh exact-source hosted proof. A green retry without correction does not eliminate race.",
+  "scope": "Existing workflow within accepted 42 targets; MP owns edits.",
+  "production_or_provider_mutations": false,
+  "independent_runtime_tests": false,
+  "status": "OPEN_READINESS_CORRECTION"
+}
