@@ -199,6 +199,9 @@ Track **application cleanup**, **physical resource cleanup**, **template/permiss
 
 ## Upgrade, deployment and rollback
 
+For the refund/settlement correction, use the [production payment cutover runbook](seller-production-payment-cutover.md). It names the verified Railway stop/restore controls, old-writer exclusion, interrupted-payment reconciliation and exact evidence required before enabling the new code. Its September12 receipts are read-only preparation, not a completed cutover.
+
+
 1. Record current owner, source SHA, deployed SHA per service, four immutable pins, runtime IDs/versions, active jobs and baseline configuration. Read current relevant runbooks and exact Council contract. Preserve peer changes; use an owned branch/worktree.
 2. Fix the smallest responsible layer. A broker wire correction does not justify loosening verifier IAM/network checks. Update this guide and the infrastructure README when their instructions become inaccurate.
 3. Run focused contract/adversarial tests and required broader checks. For image changes, run the actual production image with network disabled, read-only root, non-root UID, dropped capabilities, CPU/memory bounds and scratch mount. Synthetic AWS I/O is useful but does not replace real cloud proof.
