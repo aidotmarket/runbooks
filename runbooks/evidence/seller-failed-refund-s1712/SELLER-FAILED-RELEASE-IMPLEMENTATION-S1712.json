@@ -1,0 +1,59 @@
+{
+  "candidate": "4b46150334bb8b7601722a352cee44336c212867",
+  "base": "1408afc57e1614d3d105e88cbaab80310dfb9ee1",
+  "branch": "codex/s1712-failed-run-release",
+  "observed_at": "2026-09-12T04:54:06.937978+00:00",
+  "repo": "aidotmarket/money-path-test-environment",
+  "worktree": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/failed-run-release-s1712",
+  "pushed": true,
+  "clean": true,
+  "allowed_files": [
+    "bin/check-settlement",
+    "tests/test-refund-proof-contract.py"
+  ],
+  "source_sha256": {
+    "bin/check-settlement": "8e04becdc00463ed01552352cae91221e260222fc4a7da505535eac3ba0ff4ed",
+    "tests/test-refund-proof-contract.py": "e98e016f9e8d47524a8977515a9452b030abe71e3f199c8c48d1992cd583899b"
+  },
+  "tests": [
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-FAILED-RELEASE-CONTRACT-TESTS-S1712.log",
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "824ad251e360d994dec975c97f7af1f044c841f0c0554bcf8c881a8fcacc82b5"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-FAILED-RELEASE-DELIVERY-REGRESSION-S1712.log",
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "85f15ec951bdb38b65d4059f335ca74ca121662182865848377bae101767b61e"
+    }
+  ],
+  "authority_messages": [
+    4186,
+    4190,
+    4196,
+    4199
+  ],
+  "shared_normal_helpers_required": [
+    "pair_provider_snapshot",
+    "validate_positive_payout_finances"
+  ],
+  "integration_hooks": {
+    "record_settlement_failure": "Owner invokes only actual terminal settlement exception after both genuine holds; rejects wait exit2 and v1. Does not wire Mars main callsite.",
+    "preserve_settled_positive_v2": "Requires integrated Mars normal helpers, immutable purchase anchors and fresh actual posted payout proof. Optional existing bare-negative receipt must agree. Never refunds P.",
+    "refund_role_provider_v2": "Exact nine identity fields; additional confirmation fields ignored for transport. Purpose-independent immutable request supports normal N to failed N recovery.",
+    "validate_refund_effects_v2": "Uses agreed new money_snapshot refund_orders,merchants,refund_transaction_events and expanded refund_events; normal bound confirmation requires prior confirmed."
+  },
+  "limitations": [
+    "No live runtime, database, provider or paid-run execution. Embedded provider main tested with fake provider transport only.",
+    "New financial SQL source inspected, not executed against live database.",
+    "Successful P preservation delegates real finance/provider verification to Mars normal helpers; isolated tests cover integration seam, not real payout.",
+    "A captured payment still needs a persisted exact order PaymentIntent binding for private registration. No direct row repair.",
+    "Prior attempted refund with no exact provider match remains uncertain and cannot create again.",
+    "An unpaid sibling with live checkout remains protected until separately verified expiration/no-capture."
+  ],
+  "completion": "Bounded two-file implementation delivered for Mars integration; full product/environment Gate3 and live release remain open."
+}

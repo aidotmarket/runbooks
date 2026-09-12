@@ -728,6 +728,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `normal atomic refund effects unproved; preserve FAILED checkpoint`
+
+- [Failed TEST purchase refund and recovery](runbooks/seller-failed-test-refund-recovery.md)
+
 ## `Not Authorized`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
@@ -811,6 +815,10 @@
 ## `pending or dead_letter rows deleted`
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
+
+## `persisted canonical authority receipt differs`
+
+- [Failed TEST purchase refund and recovery](runbooks/seller-failed-test-refund-recovery.md)
 
 ## `pinned host-network browser-runner cannot reach all localhost origins`
 
