@@ -1,0 +1,62 @@
+{
+  "at": "2026-09-12T16:34:45.904993+00:00",
+  "status": "REVISE_NOT_UNANIMOUS_NOT_ACCEPTED",
+  "candidate": "c6bae734aa7faf5645f3cd724ab3460c7ac2f49f",
+  "base": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+  "spec_sha256": "acd4f0e9220f2e9f0af7c490591647a08bd3addb52565eba76871cbf5a2ccacb",
+  "packet_sha256": "7b353083b2b7564ec1cc7ae41357d2550c0fbc73eeee675c3a43219ef98771e2",
+  "responses": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-182113-146450.md",
+      "sha256": "a06caa9db09d7b50f105970275cb02432a60b0b65caa64f3fea01e7fa9a3ddb2",
+      "bytes": 25008,
+      "full_owner_read": true,
+      "verdict": "APPROVE_WITH_NITS"
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-182113-898552.md",
+      "sha256": "5dfd7b233bf0e49fecf0856d4e793c81d09fee22abe51689cdfa08ea8b2d880b",
+      "bytes": 18103,
+      "full_owner_read": true,
+      "verdict": "APPROVE_WITH_NITS"
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-182113-550910.md",
+      "sha256": "74d5dc6b8dd4d516edeb4dfa70aed4fa3055264ddde611307cfbe8a460eb45c0",
+      "bytes": 23384,
+      "full_owner_read": true,
+      "verdict": "REVISE"
+    }
+  },
+  "owner_decision": "One MEDIUM blocks unanimity. All three accept checkout factual correction in principle; no acceptance carried forward. Resolve explicit protected core discovery invariant before implementation; final behavior must preserve forged nonW zero optional lookups and registered binding uncertainty retry or actual DB mutation refusal. Full next candidate and all18 complete responses require fresh CC/GLM/DeepSeek review.",
+  "required_revision": [
+    "Explicit immutable minimal Order discovery tuple / registration relationship or equally complete invariant, no source-only assumption; evaluate scoped DB amendment with actual readiness/catalog and nonW compatibility proof",
+    "Every post-registration classifier field mutation DB-refused or signed500/no effects and restored sameID convergence; original forged N200/no optional unchanged",
+    "Pending/unknown/coexisting refund/event closure rejection; original full B01-B18 and all remaining MP247 requirements retained",
+    "Explicit17-file scope amendment for narrow three webhook test compatibility changes, full original15 failed traces, no six-baseline expansion",
+    "Exact corrected Workspace false403 node name with original failed evidence retained; defaulttrue absentoverride matrix",
+    "Both canonical mixed synthetic pair directions and actual product effects/results; no unproven production bound",
+    "Both armed route presence and unarmed absence from fresh startup",
+    "Exact local command outputs; full review-range diff whitespace acknowledged, raw evidence retained byteexact"
+  ],
+  "verification_correction": {
+    "command": [
+      "rtk",
+      "proxy",
+      "git",
+      "diff",
+      "--check",
+      "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+      "c6bae734aa7faf5645f3cd724ab3460c7ac2f49f",
+      "--"
+    ],
+    "cwd": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-checkout-contract-s1712",
+    "exit": 2,
+    "stdout": "runbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:258: trailing whitespace.\n+E         \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:260: trailing whitespace.\n+E         \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:286: trailing whitespace.\n+E         \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:370: trailing whitespace.\n+  \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:372: trailing whitespace.\n+  \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:398: trailing whitespace.\n+  \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.xml:91: trailing whitespace.\n+E         \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.xml:93: trailing whitespace.\n+E         \nrunbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.xml:119: trailing whitespace.\n+E         \n",
+    "stderr": ""
+  },
+  "reviewer_claim_correction": "CC NIT1 says derived JSON shows explicit canonical env; exact JSON contains command/cwd/exit/duration/log/hash only. Retain measured canonicaltrue versus unproven inherited override absence distinction.",
+  "implementation_accepted": false,
+  "runtime_changed": false,
+  "next_builder_base": "e621c760509bde085d5ef784bb14ffa90810d92b"
+}
