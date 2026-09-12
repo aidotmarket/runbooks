@@ -1,0 +1,54 @@
+{
+  "observed_at": "2026-09-12T07:34:32.752281+00:00",
+  "manifest": "/var/tmp/s1714-f5-continuation-b1307230.json",
+  "manifest_sha256": "18902299281ca572148decf0aceb113ce7ba4f45a8b64c794a7ee023df6216c0",
+  "status": "INDEPENDENT_ARTIFACT_VERIFICATION_NOT_ACCEPTANCE",
+  "head": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "remote_head": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "checkout_clean": true,
+  "source_counts": {
+    "source_sha256": 37,
+    "migration_ancestry_source_sha256": 321,
+    "protected_file_hashes": 2
+  },
+  "scope_count": 37,
+  "retained_artifacts_verified": 104,
+  "final_artifacts_verified": 139,
+  "suites": {
+    "core": {
+      "counts": {
+        "passed": 503,
+        "failed": 4
+      },
+      "xml": "/var/tmp/s1714-f5-final-core-b1307230.xml",
+      "xml_sha256": "dd2839128eeadc7ad0241ef3d44a9e5a0240a729df607fab07d0fd2ab1c287e8",
+      "log_sha256": "6cef6d15ec80be24a3b2437c81934208caed9a39d882d24964e3ef8370390890"
+    },
+    "adjacent": {
+      "counts": {
+        "passed": 284,
+        "failed": 2
+      },
+      "xml": "/var/tmp/s1714-f5-final-adjacent-b1307230.xml",
+      "xml_sha256": "b5f5e2b7cba4b76bfcb7a1b148d2ad7b9f6f60c5ce12cfa65321d197e8e54c9a",
+      "log_sha256": "a00659f0c16fd6b6f5e0a56725becce31cf77afed8fdf33d435e030a7e3776b8"
+    }
+  },
+  "matrix_rows": 59,
+  "matrix_node_references": 501,
+  "provider_guarded_nodes": 631,
+  "nonzero_unmocked_attempt_records": [],
+  "original_posting_nodes": 19,
+  "mismatches": [],
+  "acceptance_gaps": [
+    "API-cost shared-lock contention remains UNSATISFIED; bounded source/catalog/runtime evidence for owner/Council decision, no waiver inferred.",
+    "Finite FK map distinguishes 13 direct nullable assignment edge pairs from 17 source-owned-parent/non-assignment dispositions; not full graph certification.",
+    "VC alternate callback omits frozen request/device tuple; external raw HMAC consumer current-order revocation remains unproved.",
+    "wallet.py same-class SELECT*/User(**row) defect retained at SHA25618fb7749055dd1b0430dd450417d052b44e1afb55a005f8763c5a662b1776ca6; no wallet route certification or edit.",
+    "Six unrelated baseline failures preserved; no all-green claim.",
+    "Full product/environment exact Gate3, production freeze/quiescence, run25 lifecycle, genuine P/N holds, provider transport and external production acceptance remain open. No live/provider/paid/harness/runtime mutation.",
+    "Normal up-to-date push rejected by bridge empty-ref-record check; remote remains exact. No harness edit/bypass permitted."
+  ],
+  "product_or_runtime_mutations": false,
+  "tests_rerun": false
+}
