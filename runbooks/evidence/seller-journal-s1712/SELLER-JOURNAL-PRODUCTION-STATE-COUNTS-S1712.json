@@ -1,0 +1,79 @@
+{
+  "database": "railway",
+  "server_address": "10.177.145.12/32",
+  "server_port": 5432,
+  "observed_at": "2026-09-12T03:51:37.10759+00:00",
+  "read_only": "on",
+  "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+  "journal_state_counts": null,
+  "function": {
+    "definition": "CREATE OR REPLACE FUNCTION public.finance_prevent_posted_entry_mutation()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\n        BEGIN\n            IF OLD.status = 'posted' OR OLD.posted_at IS NOT NULL THEN\n                RAISE EXCEPTION 'posted journal entries are immutable';\n            END IF;\n            RETURN OLD;\n        END;\n        $function$\n",
+    "body": "\n        BEGIN\n            IF OLD.status = 'posted' OR OLD.posted_at IS NOT NULL THEN\n                RAISE EXCEPTION 'posted journal entries are immutable';\n            END IF;\n            RETURN OLD;\n        END;\n        ",
+    "security_definer": false,
+    "language": "plpgsql",
+    "result": "trigger"
+  },
+  "entry_triggers": [
+    {
+      "name": "trg_immutable_posted_entries",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER trg_immutable_posted_entries BEFORE DELETE OR UPDATE ON public.journal_entries FOR EACH ROW EXECUTE FUNCTION finance_prevent_posted_entry_mutation()"
+    },
+    {
+      "name": "trg_closed_period_guard",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER trg_closed_period_guard BEFORE INSERT OR UPDATE ON public.journal_entries FOR EACH ROW EXECUTE FUNCTION finance_guard_closed_period()"
+    },
+    {
+      "name": "trg_balanced_on_post",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER trg_balanced_on_post BEFORE INSERT OR UPDATE ON public.journal_entries FOR EACH ROW EXECUTE FUNCTION finance_validate_journal_posting()"
+    }
+  ],
+  "line_triggers": [
+    {
+      "name": "trg_immutable_posted_lines",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER trg_immutable_posted_lines BEFORE DELETE OR UPDATE ON public.journal_lines FOR EACH ROW EXECUTE FUNCTION finance_prevent_posted_line_mutation()"
+    },
+    {
+      "name": "trg_line_entity_consistency",
+      "enabled": "O",
+      "definition": "CREATE TRIGGER trg_line_entity_consistency BEFORE INSERT OR UPDATE ON public.journal_lines FOR EACH ROW EXECUTE FUNCTION finance_guard_line_account_entity()"
+    }
+  ],
+  "target": {
+    "provider": "Railway",
+    "project_id": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+    "project_name": "ai-market",
+    "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+    "environment_name": "production",
+    "service_id": "b86ef2a3-97e1-42fe-922a-73fe18b1d518",
+    "service_name": "Postgres",
+    "service_instance_id": "a2d74c5e-7bf6-4a5d-9d8b-7bee8e20d2df",
+    "database": "railway",
+    "database_service_latest_deployment_id": "416fe9a1-9a65-4836-b2d4-1dadea18bfb5",
+    "public_connection_host": "shuttle.proxy.rlwy.net",
+    "public_connection_port": 50727
+  },
+  "credential_resolution_command": [
+    "rtk",
+    "proxy",
+    "railway",
+    "variables",
+    "-e",
+    "23e322c3-b195-45d8-9151-c4c27a998c33",
+    "-s",
+    "b86ef2a3-97e1-42fe-922a-73fe18b1d518",
+    "--json"
+  ],
+  "credential_source_field": "DATABASE_PUBLIC_URL; held in memory only",
+  "target_assertions_passed": true,
+  "query": "BEGIN READ ONLY;\nSELECT json_build_object('database',current_database(),'server_address',inet_server_addr()::text,'server_port',inet_server_port(),'observed_at',clock_timestamp(),'read_only',current_setting('transaction_read_only'),'server_version',current_setting('server_version'),\n'journal_state_counts',(SELECT json_agg(x) FROM (SELECT status,posted_at IS NOT NULL AS has_posted_at,source_type,count(*) AS entry_count,min(created_at) AS oldest_created_at,max(created_at) AS newest_created_at FROM public.journal_entries GROUP BY status,posted_at IS NOT NULL,source_type ORDER BY status,source_type) x),'function',(SELECT json_build_object('definition',pg_get_functiondef(p.oid),'body',p.prosrc,'security_definer',p.prosecdef,'language',l.lanname,'result',pg_get_function_result(p.oid)) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_language l ON l.oid=p.prolang WHERE n.nspname='public' AND p.proname='finance_prevent_posted_entry_mutation' AND p.pronargs=0),\n'entry_triggers',(SELECT json_agg(json_build_object('name',t.tgname,'enabled',t.tgenabled,'definition',pg_get_triggerdef(t.oid))) FROM pg_trigger t WHERE t.tgrelid='public.journal_entries'::regclass AND NOT t.tgisinternal),\n'line_triggers',(SELECT json_agg(json_build_object('name',t.tgname,'enabled',t.tgenabled,'definition',pg_get_triggerdef(t.oid))) FROM pg_trigger t WHERE t.tgrelid='public.journal_lines'::regclass AND NOT t.tgisinternal));\nROLLBACK;",
+  "mutations_performed": false,
+  "function_body_sha256": "1f2b86b5ac66d98691c8c4d8b1c6b98d48d16fb551aed59de795475e8260e724",
+  "original_receipt_body_matches": true,
+  "installed_defective_trigger_confirmed": true,
+  "implication": "Allowed draft UPDATE returns OLD and can suppress status/posted_at changes in production. This catalogue query does not establish historical affected-row counts or financial balances.",
+  "counts_interpretation": "Aggregate persisted state only. Draft existence does not identify which rows should be posted or attribute any row to the defective trigger. No row identifiers, descriptions, source refs, monetary totals or customer data selected."
+}
