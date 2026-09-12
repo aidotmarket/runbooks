@@ -14,6 +14,16 @@ error_signatures:
 
 This is the continuing operator guide for diagnosis, support, controlled upgrades and recovery. Read it together with the dated [live release record](seller-workspace-live-release.md). That record preserves individual failures and receipts; this guide explains the system and the procedure. The [architecture contract](../seller-workspace-cloud-listing-delivery.md) contains frozen security requirements and historical W1/W2 scope, which must not be mistaken for current availability.
 
+## September 12 continuation status
+
+S1712 remains the sole Vulcan owner. The full release is incomplete. Mars owns the active refund/cleanup correction MP242 and its environment; Workspace Gate2 remains undispatched until the final dependencies are accepted. The existing cumulative $100 approval remains in effect and no renewed user permission is pending for this authorized work.
+
+Read [refund and delivery diagnosis](seller-refund-access-diagnosis.md) for the exact current source/test checkpoint, the additional actual DeliveryService caller findings, and their support and verification requirements. The newer hosted run has 55 canonical-payment passes and a Gold Path migration setup failure under correction. Preliminary commits, successful jobs and retained test counts do not equal final product acceptance.
+
+The separate empty-ref bridge correction is deployed at `22a0deac` with unanimous review, actual installed-hook canary and serving identity verified. The automatic reloader did restart the gateway; the cutover must not be described as no-restart. See [builder controls](builder-controls.md) for the retained activation evidence and reloader limitations.
+
+The baseline below is dated historical evidence. Preserve protected run25 and Mars's owner-controlled transition, genuine P/N hold periods, production trigger freeze before merge, old-writer quiescence and the separate fresh Workspace joint-proof gate.
+
 ## Verified baseline and remaining gates
 
 Verified on September 11, 2026, against backend candidate `6c0e93cbf805b48a7b0c4e589deda6c880378784`, merged as `012159b93330ef54951ccd035534d3299f742063` in [PR393](https://github.com/aidotmarket/ai-market-backend/pull/393):

@@ -14,9 +14,31 @@ error_signatures:
 
 # Seller purchase access after refunds: diagnosis and upgrade runbook
 
-Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 after the full MP241 review and hosted payment failures. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 at 08:55 UTC during MP242 and after the bounded DeliveryService audit. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
 
-## Current exact candidate and remaining acceptance work
+## Latest correction and delivery audit checkpoint
+
+F6 is unanimously accepted at runbooks decision `e7c7b489cae0f032a0ae480a73c56f2a1a065ec6`, spec SHA256 `d77baa6f7767ecf3389f7c08dd612fc8989c311c550628c3176d58dfcef96581`. Mars owns MP242 task `cb96adb8e127` / TS242 with 41 authorized files from `4812055`. At this checkpoint the build is still active; its preliminary commit `b9ffde2e5ce755ecd95d926db923181f981324e8` has been pushed, but is not a terminal or accepted product. The previous scope-under-review wording below is historical.
+
+[Hosted run34684328866](https://github.com/aidotmarket/ai-market-backend/actions/runs/34684328866) at b9ffde2 completed with **55 canonical-payment tests passed** and Gold Path setup failure. Gold Path now creates its isolated PostgreSQL 17, but migration stops because the configured `s1714_disposable_app` role does not exist. `20260826_001_issue_channel_schema_and_queue.py:387–394` requires an existing non-superuser application role distinct from the migration administrator. The workflow exported the name without creating it. Its owned-container cleanup passed; the selected Gold Path tests never ran. This is a setup failure, not another count of product test failures. MP is correcting the existing workflow. [Exact job/log receipt](evidence/seller-refund-access-s1712/SELLER-MP242-HOSTED-CI-DIAGNOSIS-S1712.json).
+
+For a future fresh test environment, provision the exact application role in the owned disposable database before the full migration, preserve the role separation and database/provider guards, and require the selected test command to execute. Do not infer a pass from a successful migration or container cleanup. Bind both hosted jobs to the final exact commit, then reconcile the full retained suites and requirement matrix.
+
+### Additional actual delivery paths requiring owner disposition
+
+Independent bounded source review at `4812055` found actual authenticated `/deliveries` routes and the successful-payment webhook calling `app/services/delivery_service.py`. Token creation locks the transaction before inserting an audit row whose order foreign key needs an order lock. Refund processing uses order before transaction. The audit and dead-letter tables each reference both parents; webhook idempotency also inserts a transaction reference before updating the transaction and inserting the order-linked audit. Mars independently confirmed these relationships with SELECT-only catalog evidence on the retained migrated PostgreSQL 17 database. This establishes a static reverse dependency, not an executed production deadlock.
+
+The same service has actual streaming callbacks that can write `delivery_failed` after a late error or `delivered` after retained full byte coverage without validating current refund/order state. A late callback can overwrite refunded status. Token validation only checks selected transaction statuses; chunk output precedes the progress check. Preserve the accepted partial-refund policy and current order authority rather than inventing a new access rule. The report records the exact reachable methods and line numbers.
+
+A lock-helper-only correction is insufficient. `record_stripe_webhook_idempotency` writes before that helper. `process_dlq_retry` bypasses it, although no app caller was found and no active retry-worker claim is made. Streaming crosses commits. `_queue_delivery_request` calls a trust helper that commits before publishing and before the next audit; entry locks no longer exist after that boundary. The trust message related-order/transaction fields are plain UUIDs, so their names do not establish another foreign-key edge.
+
+The [complete bounded service/caller audit](evidence/seller-refund-access-s1712/SELLER-DELIVERY-OUTSIDE-ACQUIRER-AUDIT-S1712.txt) and [source/catalog hash receipt](evidence/seller-refund-access-s1712/SELLER-DELIVERY-OUTSIDE-ACQUIRER-AUDIT-S1712.json) define the minimum proposed addition: delivery_service.py, with the existing refund protocol test host. No route, migration, shared fixture or trust-service edit is established as necessary by this audit. Mars read the full package and owns the concrete follow-up scope after MP242 finishes. The active build is unchanged; the report does not authorize a competing implementation or certify the whole graph, production device path, raw-HMAC or VC transport.
+
+Diagnosis should retain the precise source/image, current order/transaction/refund/attempt identities, current phase and correlated audit evidence. Use normal retry and reconciliation; do not repair a symptom by overwriting financial status or issuing another token. Required implementation proof includes actual caller/foreign-key races, current-access refusal, late full-refund error/completion, stale attempt/JTI, supported unlinked handling and the trust/stream commit boundaries. Publish a correction only after exact final source, actual execution and full review; production freeze, quiescence and joint live proof remain separate gates.
+
+The independent empty-ref hook correction **is deployed** as `22a0deac6903414dce2f232d842d3588127ec9fa`. Runbooks PR178 and PR180 bind the reviewed source, installed-hook canary and actual automatic gateway reload. That resolved build-transport defect does not establish product acceptance.
+
+## Historical MP241 exact candidate and acceptance findings
 
 MP241 task `a1082e11438e` / TS241 finished at [4812055d08f91664fba373ab1a1406fe35dd66e7](https://github.com/aidotmarket/ai-market-backend/tree/4812055d08f91664fba373ab1a1406fe35dd66e7) without further source edits. This retains MP240's saved commit after a capacity failure and runs final full suites after its last changes. Accepted F5 is decision `79e931d9828544029580ae478bba0f508b04ae3a`, exact spec blob SHA256 `8283e7ce20dcc3e1ceeb2324e7750ec4535be9efad0e0008b8fd9b5691e8f34d`. The current 37-file scope adds only the bounded OAuth helper to F4. The source-only and live acceptance boundaries still apply.
 
@@ -54,7 +76,7 @@ Mars's F6 proposal is runbooks commit `2218d27dcbc3eca6f08ad6650e1c2272b99bfbec`
 
 For the upgrade evidence, preserve the older reconciliation artifact and add an explicit current-spec supersession: its af1de970 provenance is predecessor-only, while the final accepted amendment and new candidate must have exact current hashes. Reconcile all new hosted and race nodes alongside the original posting positives, complete core/adjacent suites, 321 migration hashes, protected files and provider-guard properties. The refund path returns before the shared processed-request logger; durable applied-event state and the processor commit are the authoritative completion evidence, and missing that optional log line is not proof of a failed refund. Do not infer success from an admitted event alone.
 
-The separate empty-ref bridge correction remains a separately reviewed, unshipped harness change. All product/environment reviews, production trigger freeze before merge, old-writer quiescence, genuine P/N holds, owner-released Workspace W window and fresh external paid acceptance remain open.
+At the dated F6 proposal checkpoint the separate empty-ref bridge correction was unshipped; the latest checkpoint above supersedes that status. All product/environment reviews, production trigger freeze before merge, old-writer quiescence, genuine P/N holds, owner-released Workspace W window and fresh external paid acceptance remain open.
 
 ## Historical MP239 candidate and then-open correction work
 
