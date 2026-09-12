@@ -947,9 +947,9 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Test cleanup is fully verified. Full release completion still requires joint AIM Data compatibility confirmation. Profiling admission remains paused after test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
+- Purpose: The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
 - Owner: `vulcan`
-- Last verified: `2026-09-11`
+- Last verified: `2026-09-12`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
 - Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
 - Status: current

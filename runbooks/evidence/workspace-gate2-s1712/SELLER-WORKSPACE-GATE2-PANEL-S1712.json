@@ -1,0 +1,64 @@
+{
+  "candidate": "e138f16a6068ebc0214f7f11baa936f1dc4e689c",
+  "status": "NOT_UNANIMOUS_REVISE_NO_BUILD",
+  "responses": {
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-142649-391642.md",
+      "sha256": "b3b8d7b21b1c57ae2d49c5f3cad51e4250c62cd5ed589384edaf2ad8a52a65ee",
+      "full_read": true,
+      "verdict": "REVISE",
+      "blocking": [
+        "F1 exact W window scope undecided; purchase chain admits off-window same-pair order",
+        "F2 owner_window_id/sha256 has no defined source artifact"
+      ],
+      "low": [
+        "F3 exclusive custody must be attested before creation/deletion; read-delete residual cannot be solved by last read",
+        "F4 permit exact nonsecret PYTHONPATH=/app for mounted receiver",
+        "F5 carry/disposition accepted runbook targets"
+      ],
+      "nit": [
+        "F6 actual CI run tuple absent in request; manifest had completed checks"
+      ],
+      "review_corrections": [
+        "Reviewer transcribes second CI id34693553536; actual is34693553736",
+        "F3 requested post-read-write preservation is not attainable with name DELETE and unconstrained external writers; design must avoid claiming impossible guarantee",
+        "BETTER drop-table rollback is unsafe if registration remains needed for paid/refund authority; retain compatible authority/history rather than blind drop"
+      ],
+      "limits": "Static30turn review, no implementation/runtime proof; detailed dependency test counts and some owner authority not independently recomputed"
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-142648-929521.md",
+      "sha256": "1b8a19a7100b1714e32ae3e852d6d1edf7b86526a7c45555df6dfc424b153e58",
+      "full_read": true,
+      "verdict": "REQUEST_CHANGES",
+      "blocking": [
+        "HIGH exact W/window registration required",
+        "HIGH name DELETE race; remove DELETE from success path or prove real provider atomic exclusion",
+        "MEDIUM backend local Docker Image ID must be distinct from OCI/registry digest"
+      ],
+      "low": [
+        "Explicit seller02 account_pool totp_secret_name binding"
+      ],
+      "direction": "Separate immutable authority table, exact bind-purchase receiver transaction; retain fixed custody with explicit inactive_with_retained_custody/deactivation_incomplete and drift refusal. No table-drop rollback.",
+      "limits": "Static design review; no implementation/provider/runtime tests; installed Infisical online API not verified, uses admitted no-CAS contract"
+    },
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-142637-351776.md",
+      "sha256": "4040e355ceb372f9356a67c5177cac78cabe07af4b10c57a65390c13c228b6ee",
+      "full_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "review_corrections": [
+        "Exact host cardinality cannot stop a signed old qualifying W order; preserve exact-window authority requirement",
+        "No proven provider exclusion of external Infisical writers; observed drift does not prevent post-read name DELETE race",
+        "Actual c3 seller02 lacks totp_secret_name",
+        "No provider mutations does not imply no row locks; N _admits calls lock_order_money_sync"
+      ],
+      "nits": [
+        "Capture signature optional locked and _prepare_only",
+        "Target actual order_payout_eligibility and dispatch_order_payout for direct/scheduled exclusion"
+      ]
+    }
+  },
+  "implementation_dispatched": false,
+  "decision": "Revise complete exact-window, custody, image, schema and lifecycle contract; all three must review revised candidate; no vote carried over"
+}

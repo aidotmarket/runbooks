@@ -1,0 +1,33 @@
+{
+  "candidate": "793e79153d9eac5c2d57536982d3f793b04d2c19",
+  "base": "0ec6bac7afa66def9a5f51385443ff215b51fc3f",
+  "packet_sha256": "a302d6dbc571b53ec3f42a277d7f0e633dbbe55eaca2e2b187f0f71f6ecd2355",
+  "standard_preamble_sha256": "bed4287e7eb77c035055a377230305e4e972eeff42bf5d61c77aa7dab7faca83",
+  "responses": {
+    "cc": {
+      "request": "/Users/max/council/cc/request-20260912-152306-947339.md",
+      "response": "/Users/max/council/cc/response-20260912-152306-947339.md",
+      "request_sha256": "6ceb0a870d998d9617ba750a26cc9a43baca6f0f2d01428eaa9a468098891cbd",
+      "packet_exact_suffix": true,
+      "status": "submitted"
+    },
+    "glm": {
+      "request": "/Users/max/council/glm/request-20260912-152307-326373.md",
+      "response": "/Users/max/council/glm/response-20260912-152307-326373.md",
+      "request_sha256": "6ceb0a870d998d9617ba750a26cc9a43baca6f0f2d01428eaa9a468098891cbd",
+      "packet_exact_suffix": true,
+      "status": "submitted"
+    },
+    "deepseek": {
+      "request": "/Users/max/council/deepseek/request-20260912-152307-628770.md",
+      "response": "/Users/max/council/deepseek/response-20260912-152307-628770.md",
+      "request_sha256": "6ceb0a870d998d9617ba750a26cc9a43baca6f0f2d01428eaa9a468098891cbd",
+      "packet_exact_suffix": true,
+      "status": "submitted"
+    }
+  },
+  "status": "ALL_THREE_SUBMITTED_NOT_APPROVED",
+  "max_turns": 30,
+  "model_override": false,
+  "implementation_dispatched": false
+}

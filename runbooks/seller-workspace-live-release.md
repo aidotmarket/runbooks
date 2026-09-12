@@ -1,7 +1,7 @@
 ---
 title: Seller Workspace live release operations
 owner: vulcan
-last_verified: '2026-09-11'
+last_verified: '2026-09-12'
 aliases:
   - Seller Workspace production release
   - AWS profiling cleanup
@@ -14,9 +14,15 @@ error_signatures:
 
 # Seller Workspace live release operations
 
-AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Test cleanup is fully verified. Full release completion still requires joint AIM Data compatibility confirmation. Profiling admission remains paused after test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
+The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
 For architecture, normal operations, exact API sequencing, diagnosis, safe teardown, upgrades and future-instance handoff, use the [Seller Workspace operator guide](seller-workspace-operator-guide.md). The dated batches below preserve historical authority and failure evidence; the current $100 cumulative authority supersedes older incremental allowances.
+
+## September12 implementation and review boundary
+
+Backendc3 and corrected environment43d67264 have complete implementation acceptance; runbooks PR188 merge0ec6bac7 records those final source/spec pins. The Workspace design was revised after its first full panel required changes. Exact candidate793e791 is now submitted to fresh CC/GLM/DeepSeek review; no fixture code, window, protected-runtime repin or live acceptance is implied. Read the [current operator procedure and immutable contract](seller-workspace-operator-guide.md#workspace-fixture-design-review-and-recovery-status) for the two-stage order authority, retained credential custody, reset preservation, response collection and future-instance diagnosis.
+
+The dates and earliest-window estimates in historical entries below are not current activation permission. Protected run25 and every required genuine hold/phase remain governed by Mars's explicit lifecycle transition. Current work continues under the existing cumulative $100 authority; no future handoff extension is inferred.
 
 ## Final cleanup confirmation
 
