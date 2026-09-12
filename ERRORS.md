@@ -296,9 +296,21 @@
 
 - [Seller Workspace operator guide](runbooks/seller-workspace-operator-guide.md)
 
+## `DELIVERY_CREDENTIAL_GENERATION_STALE`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
 ## `delivery_cycle_failed`
 
 - [Buyer Request Publication and Discovery](runbooks/buyer-request-publication-and-discovery.md)
+
+## `DELIVERY_REFRESH_ACCESS_REJECTED`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
+## `DELIVERY_REFRESH_UNAVAILABLE`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
 
 ## `deployed_sha_stale`
 

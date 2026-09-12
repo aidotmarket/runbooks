@@ -293,3 +293,8 @@ PR393 baseline pins:
 The image retains the `sha256:` prefix in the ECR URI. Raw/canonical template hashes and unsigned/signed ZIP hashes are not interchangeable. Obtain complete artifact keys and signing receipts from the publication record rather than constructing a plausible key.
 
 Before handing off, state exact deployed identity, active feature gates, last successful user-path proof, all remaining resources/permissions, cumulative allocation, pending operation handles, peer ownership/window, next action and explicit completion criteria. A future instance should be able to continue from this bounded set without guessing credentials, rerunning consumed jobs or declaring an unfinished gate complete.
+
+
+## Retained access after refunds
+
+Use the [partial-refund access diagnosis runbook](seller-refund-access-diagnosis.md) for the full route, service, device callback, raw token and agent/MCP map. It separates actual delivery eligibility from independent access restrictions and records pending corrections without treating source review as runtime proof.
