@@ -1,0 +1,237 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+1. **LOW — The refund-function source-hash recipe is off by one, so the stated command does not reproduce the stated digest.**
+
+   - **Severity:** LOW; non-blocking for this design-only Gate1 verdict, but it should be corrected before final Gate2 dispatch.
+   - **Evidence:**
+     - `aidotmarket/runbooks@1ff494acc79245e8481ece2e985eda902fbf5207:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md:88` retains the claimed refund-function digest `9c29e6e300116aa5e2cdba8f8b0fd61cb3666450b6019a4980034b81cecee567`.
+     - The same document at `:102` says the method is “webhooks.py1700–1807 joined by newline without a trailing newline.”
+     - At `aidotmarket/ai-market-backend@d766b8e4e66d7803ebe48f8a3132521abbebe957:app/api/v1/endpoints/webhooks.py:1700-1808`, `_handle_refund` begins at line 1700, its final closing parenthesis is at line 1806, lines 1807–1808 are blank separators, and the next definition begins at line 1809.
+   - **Observed:** SHA-256 of lines **1700–1807**, joined by newline with no trailing newline, is `881bd14b4d29e27a72b6b1a24c5f00f017dd881179514745e02ffd4238475a69`. The claimed `9c29e6e3…cee567` reproduces only when lines **1700–1808** are included.
+   - **Expected:** The documented extraction boundary and digest must reproduce one another exactly.
+   - **Reproduction:** Static evidence only. For example, split the `git show d766b8e4…:app/api/v1/endpoints/webhooks.py` bytes into lines and hash `"\n".join(lines[1699:1807])` versus `"\n".join(lines[1699:1808])`.
+   - **Impact:** A Gate2 reviewer following the written recipe obtains a false mismatch. That weakens an otherwise correct source-identity evidence chain and could cause either unnecessary rejection or improvised hash-boundary selection.
+   - **Smallest required outcome:** Either change the range to `1700–1808`, or retain `1700–1807` and replace the digest with `881bd14b…8475a69`. Prefer also naming an anchor such as “from `def _handle_refund` through the two blank lines immediately before `def _insert_agent_audit_log`,” or pinning the complete `webhooks.py` digest.
+   - **Verification criterion:** The exact published command yields the exact published digest at `d766b8e4…`.
+
+No HIGH or MEDIUM finding survived independent verification.
+
+## Coverage
+
+### Artifact identity and request completeness
+
+I reviewed the exact committed artifact, not merely the builder narrative.
+
+- Repository: `aidotmarket/runbooks`.
+- Candidate: `1ff494acc79245e8481ece2e985eda902fbf5207`.
+- Base: `9aa91d48fcdfd166b510f1a0f5c3197b89b24287`.
+- The candidate is the direct child of the declared base.
+- Pinned checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-s1712`.
+- Checkout was clean at the candidate; branch and `origin/docs/seller-interop-merge-s1712` pointed to the same candidate.
+- Exact diff:
+  - `M specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md` — 39 insertions, 5 deletions.
+  - `A specs/evidence/S1712-workspace-authority-4096-4097.json` — 9 insertions.
+- The supplied `rtk proxy git … diff` command ran successfully and returned exactly those two entries.
+- `git diff --check` produced no finding.
+- Candidate document blob: `ce0f28a8413df4a139cf7247e317513cae2ec3e7`; SHA-256 exactly `4055fb41983dc5b36a887d003a5e5512dc96d1bf7e104d7924945d2ae44410c6`.
+- Authority-receipt blob: `a0a6b2dde8ef7db0ba3a07d23ba472cf027f6d37`; SHA-256 exactly `8b300ea2ce2be4b6c2431d0910c6409389b0f1575680a7a0dcca26e2c8449c9c`.
+- Base document blob: `cd984a6647da984de244ca8fa07f27cdfa0005b3`.
+
+The request supplied the required repository/base/candidate identity, checkout, changed files, runnable diff, environment/test constraints, finite bound, ground truth, scope boundary, prior reviews, builder verification, and numbered blocking questions. I used 57 of the permitted 60 tool calls.
+
+### Authority and dependency evidence
+
+- The committed authority receipt and the external receipt at `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-MARS-AUTHORITY-4096-4097-S1712.json` are byte-identical and have the declared SHA-256.
+- The receipt contains Mars4096, Mars4097, and event `99af61fd-db46-42fd-a18d-1d0698e457d1`.
+- The independent Mars handoff at `/Users/max/koskadeux-state/handoffs/MARS-S1714-CONTINUATION-2026-09-12.md:46` corroborates the Max authorization, exact event ID, bus4096, ownership split, preservation of run25, and supersession boundary.
+- `aidotmarket/runbooks@d03e8053e402236c0315ca5164fc446d302a01bf:runbooks/seller-workspace-operator-guide.md:233` independently records the superseding authority. Lines 237 also corroborate the separate Workspace `W` namespace and Gate2 processor/schema readiness interface attributed to Mars4103/4105.
+- Mars dependency commits exist:
+  - `aidotmarket/runbooks@f1a5ccbf9a1d99bba10551da2560a8a98013d0cf`
+  - `aidotmarket/runbooks@a016107478d5b4fe48b6d30d92e8360ef3ab5c53`
+- `a0161074…:specs/BQ-REFUND-SAFE-PRODUCTION-S1714-GATE1.md:61-81` confirms:
+  - the stricter **all-refunded/all-revoked** policy, including bare revocation, at lines 65;
+  - durable pending admission followed by one atomic async effects transaction at lines 67–69;
+  - shared payout reservation and direct/scheduler coverage at lines 71;
+  - separate P/N acceptance orders at line 75;
+  - serialized `webhooks.py` ownership at line 79.
+- I did **not** treat `a0161074…` as an accepted Gate2/product candidate. The candidate correctly says that review is non-transferable and requires an exact final rebind.
+
+Raw bus-message provenance for 4069/4070, 4103, and 4105 was not independently authenticated beyond the retained/corroborating runbook evidence. The Max event likewise has no cryptographic signature available to this review. These upstream identity limitations are **UNVERIFIED**, but the exact retained receipts and independent handoff/runbook corroboration resolve the prior presentation gap for this design review.
+
+### Source and environment verification
+
+At `aidotmarket/ai-market-backend@d766b8e4e66d7803ebe48f8a3132521abbebe957`:
+
+- Complete-file SHA-256 values match exactly:
+  - `app/services/settlement_service.py` = `161bd06d863c208f0cc1597dcda972138f9214fea9d5b05068cb9152b20532b1`.
+  - `app/services/transaction_service.py` = `58749e7c29d022aa7e36d78ff8a63b06579b723043d41558b12a9e65c436c283`.
+- The claimed `_handle_refund` digest matches the source only under the corrected range in Finding 1.
+- The cited defects are real:
+  - `app/api/v1/endpoints/webhooks.py:740-750` invokes the synchronous refund handler and separately commits the async finance session.
+  - `webhooks.py:1700-1806` updates the order, but `:1773-1788` transitions the linked transaction only for agent buyers.
+  - `app/services/settlement_service.py:37-101` checks transaction confirmation and hold, then invokes Stripe Transfer without checking linked-order refund/revocation.
+- Synthetic `charge.refunded` suppression is present at `webhooks.py:451-452` and `:552-565`.
+- Signature verification precedes event-idempotency processing at `webhooks.py:476-535`.
+- Public synthetic Connect refusal is retained at `app/api/v1/endpoints/stripe_connect.py:136`, `:227`, and `:291`.
+- Packaged fixture IDs match exactly:
+  - seller02 `961bd48a-3018-43f4-a7ad-6871720fd806`;
+  - buyer01 `7d662d0e-22f2-4b87-bbc5-80984ba808ac`.
+- `app/e2e/account_pool.py:17-34` permits only secret-name references, and `:79-86` exposes the requested packaged loaders. A seller02 `totp_secret_name` therefore needs no value-bearing schema change.
+
+At `aidotmarket/money-path-test-environment`:
+
+- PR27 base `03d3f30acf854537edd76fdb19e1cf521b577c9a`, candidate `a7f1daf396c290810d1535c9049aeccb2b6f56ed`, and merge `c6b8770e69514035b2c78f0433f86209b4cefe0f` exist.
+- Candidate and merge trees are identical: `33a1159752df08bf1c7d30ff73f2f0a05a90748b`.
+- Base-to-merge diff is exactly nine files and 588 insertions.
+- The lock wrapper at `03d3f30…:bin/check-settlement:102-137` validates inherited token, owner ancestry, held lock, and checkpoint state.
+- `bin/check-settlement:140-168` restricts the locked command to an exact environment-bin parent, applies the guarded-name set, exports the entered-path environment, and enforces the 30-minute deadline.
+- `workspace-fixture` is absent from the guarded-name set, so the candidate’s requirement that the child explicitly invoke `--guard seed` is necessary and correct.
+- Normal seed behavior at `c6b8770…:seed/seed.py:184-194` clears seller02 TOTP/Connect/payout readiness and at `:356-357`, `:381-382` refuses gained seller02 Connect/TOTP state.
+- `bin/reset:6-10` performs guard before cleanup; S3 cleanup and container destruction occur later at `:56-66`. `bin/seed:6-10` has the same lock/guard ordering.
+- The S1681 conflict is exact: `03d3f30…:browser/s1681-delivery-leg.ts:255-257` revokes, `:267` confirms, and `:268-274` expects completed/confirmed.
+- The retained run25 receipt at `/Users/max/koskadeux-state/s1656/s1714-run25-pending-hold-verification.json` records direct checker exit 2, `pending_settlement`, and hold deadline `2026-09-13T23:41:11.491739Z`. The supervisor exit 1 is explicitly an Infisical wrapper artifact.
+- Existing allowlist targets are present; the proposed new environment/backend implementation files are absent at the pinned baselines, consistent with design-only status.
+- `versions.env` is Mars-owned and is correctly excluded from the Workspace allowlist while being named as a Gate2 integration dependency.
+
+Official Stripe documentation, read on 2026-09-12, supports the provider correction:
+
+- The Accounts v1 object page exposes `capabilities`, `payouts_enabled`, `type`, and related fields, but does not document `livemode` as an Account attribute.
+- The API-keys documentation distinguishes test/live keys and says objects in one mode are not accessible from the other.
+- Connect testing documents test-account creation and warns that sandbox capability behavior may not always match live capability behavior.
+
+### Not reviewed and why
+
+- No implementation tests, product tests, operational scripts, Docker commands, DB queries, locks, provider calls, refunds, Transfers, payouts, or live activation/deactivation were run. The request prohibited those operations, no implementation exists, and Docker was not on this reviewer’s PATH.
+- I did not inspect live database contents, provider state, running image digests, current lock ownership, or the active container runtime.
+- I did not exhaustively read the complete backend, complete S1656 parent specification, complete S1681 harness, or every historical runbook/evidence artifact. I read the cited load-bearing paths and related contracts.
+- Builder claims about a commit hook and “indexed119 runbooks” were not independently reproduced and are **UNVERIFIED**; they are not load-bearing for this design verdict.
+- Acceptance of Mars’s Gate2/product design is neither claimed nor reviewed as granted.
+
+## Answers to the numbered questions
+
+### Q1 — Are packaged identity binding and TEST-only provider/refund admission sufficiently strict without weakening public guards?
+
+**Yes, at design scope.**
+
+The contract binds identity to the packaged account-pool entries, exact role/secret-name pairs, database IDs, synthetic classification, and reserved fixture email, while explicitly rejecting request IDs, runtime registration, provider metadata, or email patterns as authority. The verified account-pool model already prevents values in secret-name fields.
+
+The provider contract is also appropriately mode-aware: test-key form plus authenticated retrieval and exact ownership marker establish the Account’s test provenance; event, charge, PaymentIntent, and refund objects must still explicitly report `livemode=false` where their schemas do so. Requiring an invented Account `livemode` field would be wrong; the official Account schema omits it.
+
+Gate2 must still make the following executable:
+
+- one-to-one persisted joins across user/party/order/transaction/PaymentIntent/charge/Payment/refund;
+- exact seller02/buyer01 ownership and both synthetic flags;
+- no agent key, device authority, connected-account context, or fallback IDs;
+- one exact full refund with positive integer amount/currency agreement;
+- explicit event/object mode and production-marker refusal;
+- no broad synthetic-suppression bypass;
+- public synthetic Connect and 2FA guards byte-for-byte in intent and behavior.
+
+Blocking criterion: any live, foreign, duplicate, or ambiguous actor/event/provider identity that can be admitted, or any weakening of a public guard, rejects Gate2.
+
+### Q2 — Does the shared-lock/inner-guard protocol preserve run25 and fail closed on every error?
+
+**Yes, if implemented exactly as specified.**
+
+The existing wrapper validates the command parent, lock token, owner ancestry, and held lock. Because `workspace-fixture` is outside its guarded-name set, entering through `S1681_LOCK_ENTERED` alone would indeed be insufficient. Requiring an unchanged inner `check-settlement --guard seed` and treating every nonzero result—both exit 1 and exit 2—as pre-mutation refusal closes that gap.
+
+The run25 receipt independently shows the current checkpoint would make the guard return exit 2. Read-only status must not create a token, write audit state, or claim a mutation-safe snapshot.
+
+Gate2 tests must prove:
+
+1. lock acquisition;
+2. successful inner guard;
+3. only then first audit/provider/database/secret write;
+4. exit 1 and exit 2 both produce zero mutations;
+5. crash between lock and successful guard leaves no audit phase or mutation;
+6. malformed audit, foreign lock, missing owner, wrong ancestor/token, and timeout all fail closed;
+7. normal seed/reset refuse active or inconsistent Workspace audit before S3 cleanup or container destruction;
+8. pure status creates no token or audit write.
+
+Blocking criterion: any pre-guard write or any nonzero guard path that continues rejects Gate2/Gate3.
+
+### Q3 — Are before-state custody, idempotent creation, recovery, and deactivation sufficient?
+
+**Yes as a Gate1 contract; Gate2 must freeze the exact serialization and discriminators.**
+
+The design now requires a private, atomic, versioned audit; fixed identities and pins; operation identity before provider creation; stable provider idempotency; exact owned-resource reconciliation; retained restorable seller02 before-state; protected-state comparison; refusal on corrupt/incomplete audit; and non-destructive cleanup unless every new Workspace order is proven terminal and unable to settle.
+
+The revised enumerated seller02 restoration fields and the requirement that the audit retain only a ciphertext digest/version discriminator, never plaintext TOTP, materially improve the prior draft. Reconciliation by unique ownership marker after idempotency-key retention expires is also the correct durable mechanism.
+
+Gate2 must still define and test:
+
+- exact audit JSON schema/version and phase transitions;
+- exact provider marker, idempotency key/payload, and account enumeration query;
+- exact TOTP secret UUID/version and DB ownership discriminator;
+- snapshot serialization and timestamp handling;
+- interrupted create/retrieve/delete behavior;
+- duplicate or contradictory marked-account refusal;
+- exact `stripe_connect` row equality before deletion;
+- partial recovery resuming only the same validated operation;
+- refusal, not repair, of incomplete preexisting marked accounts;
+- deactivation refusal on uncertain provider outcome, unresolved refund, or changed identity/ciphertext;
+- protected seller01/buyer01/device/trust/serial before/after equality.
+
+Blocking criterion: any path that loses restorable state, reassigns a foreign provider identity, retries an uncertain provider operation as a fresh create, or deletes/duplicates an unowned resource rejects Gate2/Gate3.
+
+### Q4 — Is the interface with Mars’s refund/concurrency/acceptance design complete, and which Gate2 requirements precede MP work?
+
+**It is complete enough for this design-only Gate1, but not yet an implementation interface.** The candidate correctly treats Mars’s current design as non-transferable and requires an exact accepted Gate2/product rebind.
+
+The following concrete Gate2 requirements must precede MP implementation or any `webhooks.py` integration:
+
+1. **Exact dependency rebind.** Name the unanimously accepted Mars Gate2/product candidate SHA/blob. Neither `f1a5ccbf…` nor `a0161074…` is acceptance.
+2. **Final Mars non-interference approval** of the exact Workspace amendment, integration boundary, protected-state comparison, and cleanup contract.
+3. **Cross-repository runtime manifest.** Freeze `versions.env`, accepted backend SHA, exact source tree, built image digest, both specification SHAs, Compose project identity, and owner-reviewed rebuild/redeploy sequence. Activation must refuse every mismatch before secret/provider/database writes.
+4. **Serialized `webhooks.py` base.** Base the narrow admission patch only on the accepted Mars candidate. No parallel shared-file edit.
+5. **Exact admission seam.** Workspace admission must occur before durable synchronous pending admission and delegate all financial effects to Mars’s accepted atomic async processor. It must not retain the old synchronous handler shape or hold sync locks across async processing.
+6. **Processor/schema readiness contract.** Admission must validate an exact accepted processor/schema version or marker. A standalone feature flag or deployment-order prose is insufficient.
+7. **Exact admission predicate.** Reuse the existing S1656 test-shape conjuncts and add only exact Workspace/full-refund bindings: signature, platform event shape, no connected-account context, `ENVIRONMENT=test`, `STRIPE_TEST_MODE=true`, explicit event/charge/PaymentIntent/refund test mode where available, exact identities, unique persisted joins, both synthetic flags, exact amount/currency, one full refund, no agent/device authority, and production-shape refusal.
+8. **Event and per-refund idempotency.** Define behavior for duplicate event IDs, different event IDs for the same refund, replay after partial failure, and duplicate acknowledgment without duplicate finance/access effects.
+9. **Settlement exclusion and payout reservation.** Bind the seven CC contracts: admission seam; order-based refund/revoke/dispute/pending exclusion including bare revocation; event/per-refund idempotency; retry failure behavior without `finally:break` suppression; schema/status/signatures; participating-writer enumeration and lock order; exact P/N/W receipt roles and cleanup.
+10. **All-refunded/all-revoked proof.** Tests must assert audited refusal because linked-order refund/revocation state was read. They must include a still-confirmed transaction plus refunded/revoked order and cover direct, scheduled, and legacy payout paths under the common reservation.
+11. **Acceptance redesign.** Freeze exact P and N order count, immutable IDs, roles, amounts, authority, cleanup, receipts, and the separate post-money Workspace `W` namespace/window. Do not add `W` to the P/N receipt set or mutate the old run.
+12. **Custody protocol.** Freeze seller02 TOTP generation, storage, UUID/version, retrieval, private stdin transfer, backend enrollment, deletion, and interrupted-operation behavior. The canary test must drive the real host-to-container boundary and inspect argv, environment/config, stdout/stderr, traces, audit, and persisted output.
+13. **Audit/recovery/deactivation proof.** Freeze the exact baseline fields, operation IDs, crash phase matrix, provider-resource disposition, equality checks, and destructive-cleanup refusal conditions.
+14. **Default-boundary proof.** Prove lock→guard→first-write ordering and active/inconsistent-audit refusal before any S3 cleanup, broad seed operation, or container destruction.
+15. **Exact file/test manifest.** No product settlement/transaction/billing/dispute correction may migrate into the Workspace allowlist. Environment-only code must not be represented as deployable product code.
+
+Blocking criterion: implementation or activation before these exact accepted dependencies, interfaces, pins, and proofs are bound rejects the gate.
+
+### Q5 — Is there a simpler or better design preserving signed refund proof, protected state, and the production objective?
+
+See the SIMPLER and BETTER assessments below. No simpler design removes normal signed proof, protected-state custody, provider reconciliation, or the production objective without violating an invariant.
+
+## SIMPLER
+
+**Advisory simplification:** collapse `seed/workspace-host.py` into a module used exclusively by `bin/workspace-fixture`, while retaining the fixed backend-container mode and private `docker exec -i` stdin boundary.
+
+- **Removes:** one new environment allowlist file and one host-to-host process hop.
+- **Preserves:** lock/guard ordering, test-key/provider validation, private custody, bounded stdin schema, backend encryption, canary testing, audit/recovery, and deactivation proofs.
+- **Why advisory only:** the separate host helper also gives useful custody/container orchestration separation and is already explicitly specified. There is no evidence of a scope violation or material risk requiring this change.
+
+Structural alternatives I tried to remove and rejected:
+
+- Reusing `seed/host-seed.py` would pull in S3, serial, and device state.
+- Folding activation into normal `bin/seed` would violate default-seed baseline behavior.
+- Replacing restorable before-state with hashes alone would make recovery impossible.
+- Using Compose environment injection would move the TOTP value toward container configuration despite the safer stdin design.
+- Avoiding the `webhooks.py` seam entirely would forfeit normal signed refund proof.
+
+## BETTER
+
+**Materially better approach:** have Mars’s accepted Gate2 product candidate expose one narrow, versioned processor/schema readiness and admission seam, defaulting to suppression, with the Workspace predicate integrated behind that seam rather than as an independently rebased Vulcan patch.
+
+- **Failure-mode comparison:**
+  - Current serialized rebase is safe if ordering is followed, but still depends on two owners coordinating an exact patch position in a money-path file.
+  - A single narrow seam makes default suppression structural, makes the Workspace predicate independently testable, and prevents activation on an unversioned or wrong processor.
+- **Cost:** one additional Gate2 interface contract and focused default-suppression/readiness tests. It may delay the Vulcan patch until Mars’s exact candidate is available.
+- **Rollback:** remove the Workspace predicate or return the default suppression decision; the independently accepted product candidate remains intact.
+- **Limit:** this must remain a narrow seam, not the generic admission-hook framework the candidate explicitly declines unless Mars’s accepted interface already provides it.
+
+Sources:
+- [Stripe Account object](https://docs.stripe.com/api/accounts/object)
+- [Stripe API keys](https://docs.stripe.com/keys)
+- [Testing Stripe Connect](https://docs.stripe.com/connect/testing)

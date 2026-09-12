@@ -1,0 +1,406 @@
+## 1. Verdict
+
+REQUEST_CHANGES
+
+The review request itself was complete and the exact artifact identity reproduced. The candidate is a serious, mostly well-bounded design, and many hazardous alternatives were correctly rejected. It cannot be dispatched for implementation in its current form because the W refund authority is broader than the accepted exact-window authority, and the credential cleanup protocol still contains a non-atomic destructive name-DELETE race.
+
+## 2. Findings
+
+### 1. HIGH — The proposed W predicate admits any qualifying purchased Workspace order, not only the one order in the authorized owner window
+
+**Evidence**
+
+- `aidotmarket/runbooks@e138f16a6068ebc0214f7f11baa936f1dc4e689c:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:55` defines the webhook predicate as a reusable purchase chain:
+  `payment-intent/charge → order → purchased_version → SellerListingPublication → DeliveryAuthority → seller-owned CloudConnection`.
+- The same candidate at `:57` says the host discovers exactly one new order against a complete snapshot, but immediately concedes:
+  - “The signed webhook cannot use a host receipt as database authority.”
+  - “This deliberately limits its exception by persisted purchase scope…”
+  - Mars4152 “explicitly does not prove membership in a particular host window.”
+- The candidate nevertheless excludes the missing persistence layer at `:55` (“no new financial or TEST-authority table”) and `:112` (“No…N-table extension is included. A reviewed choice to add W registration would require an explicit concrete extension before dispatch.”)
+- The accepted product dependency is stricter: `aidotmarket/runbooks@26588d3571efc3a19d1a9b591fb51991690e3f62:specs/BQ-REFUND-SAFE-PRODUCTION-S1714-GATE2.md:151` requires that N and W “use separate exact persisted authorities, never actor-only permission.” Its test contract at `:165` explicitly requires altered bindings and cross-authority denial.
+- Accepted Gate1 also requires the exact new Workspace order at `aidotmarket/runbooks@1ff494acc79245e8481ece2e985eda902fbf5207:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md:53`, and exact W cardinality at `:108`.
+- Actual `aidotmarket/ai-market-backend@c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2` confirms that the proposed chain has no owner-window or one-order discriminator:
+  - `app/models/order.py:126-142,164` binds an order to buyer, seller, listing, payment intent, and purchased version, but has no owner-window reference.
+  - `app/models/seller_listing_publication.py:12-22` makes publication/listing/version/authority bindings unique per publication, not per purchase window.
+  - `app/models/seller_workspace.py:673-708` makes `DeliveryAuthority` unique by `(listing_version_id, version)` and carries no order/window.
+  - `app/models/seller_workspace.py:140-146` binds the connection to a seller, not to one window or order.
+  - `app/models/finance.py:287-295` makes Payment PI/charge bindings unique, which identifies one order but does not select the authorized window.
+
+**Observed versus expected**
+
+- Observed: the webhook predicate would accept any signed, full, captured TEST refund whose order has the fixed seller02/buyer01 actors and the same immutable Workspace publication/authority/connection chain. The host snapshot is evidence outside the database and is explicitly unavailable to the webhook.
+- Expected: only the exact persisted order/transaction/PI/charge belonging to the explicitly opened W owner window may bypass synthetic suppression. Other W purchases, prior-window refunds, and later replayed W purchases must be refused by database authority.
+
+**Reproduction — static evidence only**
+
+Construct two persisted Workspace orders with:
+
+- the same fixed buyer01 and seller02;
+- the same listing, purchased version, publication, delivery authority, and CloudConnection;
+- distinct order IDs, transactions, PaymentIntents, charges, and captures.
+
+Both satisfy the proposed chain. The proposed predicate has no field by which it can reject the order outside the claimed window. The checkout’s current refusal of a second *active* purchase by the same buyer does not repair this: an out-of-window prior purchase, a later purchase after refund/release, or another compatible Workspace purchase is still within the predicate’s actual scope.
+
+**Impact**
+
+This violates the accepted “separate exact persisted authorities” contract. It can turn a legitimate signed TEST refund into an unauthorized out-of-window admission, and potentially another W order if duplicate or later compatible purchases exist. The normal processor will then faithfully apply the refund to the wrong-but-valid order. This is not an implementation detail; the candidate itself identifies it as a Gate2 decision and forbids MP from improvising the missing schema.
+
+**Smallest required outcome**
+
+Revise the specification and frozen scope to add one narrowly reviewed W authority registration before any implementation. At minimum it must specify:
+
+- a table separate from `s1681_refund_test_authorities`, for example `workspace_refund_test_authorities`;
+- immutable bindings for:
+  - `operation_id`;
+  - `owner_window_id`;
+  - `order_id` as primary key;
+  - unique `transaction_id`, `payment_id`, `payment_intent_id`, and `charge_id`;
+  - fixed `buyer_id`, `seller_id`;
+  - `listing_id`, `purchased_version_id`, `publication_id`, `delivery_authority_id`, and `connection_id`;
+  - capture amount and lowercase currency;
+  - backend source SHA, exact local image identity, environment SHA, accepted money-spec SHA, Workspace-spec SHA, and versions.env SHA;
+  - canonical receipt digest and protocol version;
+- constraints enforcing role W, one registered W order per owner window, and immutable binding columns after insert;
+- terminal/refund state tracked without changing the authority binding;
+- the exact migration and source files, including the backend migration/model, receiver registration mode, environment host command/action, webhook predicate, and tests;
+- the lifecycle:
+  1. activation under the existing owner lock;
+  2. complete pre-purchase snapshot;
+  3. W purchase;
+  4. a reviewed `bind`/`register-purchase` mutation under the same lock where the backend receiver independently recomputes the complete order delta and chain, then commits the authority row;
+  5. refund admission only when the signed event matches that immutable database row and all accepted pins;
+  6. deactivation only after that exact authority is refunded/terminal and cannot settle.
+
+The host receipt may remain diagnosis evidence, but must not be the webhook’s authority.
+
+**Verification criterion**
+
+A revised design must name the schema, migration, files, and lifecycle before dispatch. Implementation tests must prove, through the signed endpoint:
+
+- the registered W order is admitted and processed exactly once;
+- a second qualifying W order, prior-window order, later order, wrong PI/charge, altered stored binding, or conflicting registration is denied;
+- P, N, unrelated synthetic actors, agent/device transactions, partial/zero/wrong amounts, live mode, and incompatible readiness are denied;
+- revoking access or the CloudConnection does not prevent the authorized refund;
+- replay converges to one set of financial effects;
+- no active credential or download access is needed for admission.
+
+---
+
+### 2. HIGH — Infisical cleanup cannot establish exclusive custody; read-then-DELETE can delete another generation or party after the final read
+
+**Evidence**
+
+- `aidotmarket/runbooks@e138f16a6068ebc0214f7f11baa936f1dc4e689c:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:75` correctly states that Infisical DELETE by secret name has no expected-version or UUID precondition and that read-then-delete is not compare-and-delete.
+- The same section nevertheless proposes “exclusive ownership… for the entire operation” under the local fixture lock, immediate re-read, marker/version/digest checks, and DELETE by the fixed name.
+- Cleanup makes that DELETE part of successful deactivation at `:105-106`: delete the exact item, then record `inactive` only after all cleanup evidence passes.
+- The actual shared lock is process-local: `aidotmarket/money-path-test-environment@606267af80470b1d61c07d91cda30a0dc5200224:bin/check-settlement:308-343` validates token/ancestor/flock and local checkpoint state. It cannot serialize an independent writer using the Infisical HTTP API.
+- The candidate itself says at `:75` to preserve the secret if exclusive custody cannot be established, but it provides no enforceable way to prove that no independent Infisical-capable writer exists.
+
+**Observed versus expected**
+
+- Observed: the design still has a destructive sequence:
+  1. GET fixed name and verify UUID/version/digest/marker;
+  2. independent writer changes or recreates the same name;
+  3. DELETE by name is issued.
+- Expected: no cleanup path may delete a value it did not inspect, and successful terminal state must not depend on an unverifiable global absence of external writers.
+
+**Reproduction — static evidence only**
+
+Interleave an external `POST`/`PATCH`/DELETE+create on the same fixed secret name after the design’s final authenticated GET and before its name-based DELETE. UUID/version/digest/marker checks were all valid at GET time, but the name-based DELETE can remove the newly written item. The local fixture lock provides no barrier to that writer.
+
+**Impact**
+
+This can destroy another generation or party’s credential while marking cleanup successful. That is exactly the cross-generation custody failure the review was asked to assess. Better create/re-read reconciliation and preservation-on-drift reduce earlier risks, but they do not close the interval between final read and DELETE.
+
+**Smallest required outcome**
+
+Under the documented API, remove destructive DELETE from the required success path. Choose one of:
+
+1. **Safer accepted alternative:** retain the fixed seller02 TEST TOTP item after database restoration, report `inactive_with_retained_custody` or `deactivation_incomplete`, and permit a later activation only when the exact owned UUID/version/digest/marker still matches. This removes the non-atomic DELETE interval entirely.
+2. **Only if actually supported and proven:** use a provider-enforced atomic ID/version precondition or a dedicated single-writer ACL. The specification must name the concrete installed API capability and permission evidence; reviewers must not assume a fictional CAS endpoint or broaden secret access.
+
+If option 1 is selected, the candidate’s “prove fixed name absent, generate a new value every operation, then delete after cleanup” lifecycle must be revised accordingly.
+
+**Verification criterion**
+
+Implementation tests must inject an external write after the final pre-delete GET and prove:
+
+- no DELETE is issued under the current API;
+- the existing item is preserved;
+- cleanup is explicitly incomplete rather than `inactive`;
+- drift prevents subsequent activation;
+- no plaintext appears in logs, audit, arguments, exceptions, or output.
+
+If a real atomic precondition is later used, mismatched ID/version/digest/marker and deletion-response uncertainty must each cause preservation, not deletion.
+
+---
+
+### 3. MEDIUM — The runtime pin schema does not distinguish the locally built backend Docker Image ID from a registry OCI index digest
+
+**Evidence**
+
+- `aidotmarket/runbooks@e138f16a6068ebc0214f7f11baa936f1dc4e689c:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:37` says the cross-repository manifest names a “built image digest and source label.”
+- The receipt/pins use one field, `backend_image_digest`, at `:61` and `:65`, and only say the receiver compares it with the actual container image/source.
+- The accepted environment explicitly treats these identities differently:
+  - `aidotmarket/money-path-test-environment@606267af80470b1d61c07d91cda30a0dc5200224:README.md:39-46` distinguishes the AIM Data registry OCI index digest from locally built backend/frontend digests.
+  - `bin/up:158-180` records the backend’s local `docker image inspect {{.Id}}` value in `.runtime/image-digests.json`, separate from the AIM Data OCI index.
+- The accepted checker later compares the running container’s local `Image` value at `bin/check-settlement:3889-3896`.
+
+**Observed versus expected**
+
+- Observed: the Workspace receiver schema calls the discriminator only `backend_image_digest`; it does not define the extraction source or whether this is the local Docker Image ID, a registry manifest digest, or a multi-platform OCI index digest.
+- Expected: the money-path activation gate must name and compare the exact identity kind, with independent validation of source SHA and local image ID.
+
+**Reproduction — static evidence only**
+
+Two implementations can both pass prose-level “actual image digest” language while comparing different values: one uses `docker inspect --format '{{.Image}}' <container>`, another uses a published registry index digest or image-label manifest. A mismatched locally built binary could then pass the wrong comparison, or the correct runtime could be rejected.
+
+**Impact**
+
+This weakens the pre-mutation runtime/source pin gate. Because W admission can affect financial state, digest-kind confusion is material even though Docker operations were not performed in this review.
+
+**Smallest required outcome**
+
+Revise the pins and receipt schema to use explicit fields, for example:
+
+- `backend_source_sha40`;
+- `backend_local_image_id` = the exact local Docker `sha256:…` ID from the inspected running container or locally built image;
+- if applicable, a separate `backend_registry_manifest_digest` or `backend_oci_index_digest`;
+- explicit “not applicable” handling when no backend OCI index is published.
+
+Name the exact read-only extraction commands and forbid substitution of AIM Data’s OCI index for the backend’s local image ID.
+
+**Verification criterion**
+
+Implementation tests must independently mutate source SHA, local image ID, source label, versions.env, and any registry/OCI identity. Every mismatch must refuse before audit, credential, provider, or database writes.
+
+---
+
+### 4. LOW — The seller02 TOTP custody name is not explicitly bound in the packaged account-pool schema
+
+**Evidence**
+
+- `aidotmarket/ai-market-backend@c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2:app/e2e/account_pool.py:17-33` allows an optional `totp_secret_name`, while `e2e/account_pool.json:34-46` gives seller02 only email/password secret names and no TOTP reference.
+- The Gate2 candidate says the receiver resolves seller02/buyer01 from packaged identities at `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:47`, but its activation schema at `:67` carries the secret value and custody discriminator, not the reviewed packaged secret-name binding.
+- The fixed name is specified in prose at `:71-73`, and `e2e/account_pool.json` is in the frozen backend target set at `:112`.
+
+**Observed versus expected**
+
+- Observed: an implementer could hardcode the name in `workspace-host.py` or the receiver rather than bind it to the packaged seller02 identity.
+- Expected: the reviewed seller02 account-pool entry should explicitly carry `totp_secret_name: E2E_SYNTHETIC_SELLER_02_TOTP`, with type/validator and mismatch tests, as foreshadowed by Gate1.
+
+**Reproduction — static evidence only.**
+
+**Impact**
+
+Low: the fixed name is specified, and arbitrary names are already refused, but leaving the account-pool change implicit risks identity-binding drift.
+
+**Smallest required outcome**
+
+Show the exact account-pool JSON delta or an explicitly reviewed constant plus schema test binding the constant to the unique packaged seller02 entry.
+
+**Verification criterion**
+
+A seller02 entry with a missing, duplicate, renamed, or foreign TOTP secret name must fail package validation before mutation.
+
+---
+
+## 3. Coverage
+
+### Reviewed and independently verified
+
+- **Exact artifact identity**
+  - Checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-gate2-s1712`.
+  - Clean at candidate `e138f16a6068ebc0214f7f11baa936f1dc4e689c`.
+  - Branch: `docs/seller-workspace-gate2-s1712`.
+  - Base `0ec6bac7afa66def9a5f51385443ff215b51fc3f` is an ancestor.
+  - Full base-to-candidate diff is exactly one added file: `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`.
+  - Git blob: `f60dcd141f133f51c3600e2b2d1f7d94dd5a8a6d`.
+  - File SHA256: `07d527adca88e485b30429182bf65654a05f0c37da247ef10da5899028974456`.
+  - `git diff --check` passed.
+- **Gate2 document:** read in full from the exact embedded/local candidate, including command transport, W authority, nested schemas, custody, audit, deactivation, frozen scope, verification, diagnosis, release, upgrade, historical hash, and MP235 sections.
+- **Accepted backend dependency**
+  - Checkout is clean at `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2`.
+  - `d766b8e4e66d7803ebe48f8a3132521abbebe957` is an ancestor.
+  - Read the actual webhook signature/dedup/suppression/refund seam, S1681 persisted-authority predicate, refund processor/readiness/capture logic, relevant models, account-pool loader, User fields, TOTP encryption, and Connect identity upsert.
+  - Confirmed proposed Workspace files/tests do not yet exist.
+- **Accepted environment dependency**
+  - Checkout is clean at `606267af80470b1d61c07d91cda30a0dc5200224`.
+  - Candidate and merge `43d67264ab7a3a7e47d6cc6911737273ce1c94cc` have identical tree `e553476a38e0948d3a57da60872e406048a0d391`.
+  - Read lock/guard mechanics, seed/reset ordering, four-fixture contract, seller02 baseline, broad helper hazards, read-only `/s1656` mount, local image recording, and versions pins.
+- **Accepted specifications and receipts**
+  - Money Gate2 spec SHA256 exactly `1e3c9783575db778301d0b7ec8a66f1dadca0b855ce59cf0cff9bdaf8cfd6806`.
+  - Product owner-decision SHA256 exactly `ed425ff091bebc41a879f3b4167a7816e0f23c47d94211a17426e5b5fd9b190f`.
+  - Environment owner-decision SHA256 exactly `b3e7880bd6d574cd3ce9abba87990fa872017879b7ec8bf2e896158046ed6f2b`.
+  - PR188 pin receipt SHA256 exactly `4c134f79fc0230cdb1542c45260ea46eefee9ee31ebd355e877547c22aac13c4`.
+  - PR188 candidate and merge have identical tree `85a710ea5972a5e2999f214f783ef7f654d1b4e6`; the four recording diffs are the two specs, `money-path-test-environment.md`, and generated `INDEX.md`.
+  - Product manifest was read for the declared 1,024 executions, 1,010 unique nodes, 1,004 unique passes, and six exact inherited failures.
+  - Environment verification/panel records were read for the 348 contract plus two static-test claim.
+- **Protected run25 boundary**
+  - Static active-run read showed run `20260911T233041Z`, v1, `pending_settlement`, environment `03d3f30acf854537edd76fdb19e1cf521b577c9a`, and unchanged spec pins `519b1d5893dc410392cc66051dad0902572dcef9`.
+  - Retained direct guard receipt shows exit 2 and hold deadline `2026-09-13T23:41:11.491739Z`.
+  - This was a point-in-time read, not a health check or lifecycle execution.
+- **Gate1 continuity**
+  - Frozen checkout is clean at `1ff494acc79245e8481ece2e985eda902fbf5207`.
+  - All three final Gate1 responses were read as embedded.
+  - The prior hash-recipe defect is corrected in Gate2: at `d766`, joining exact git object lines 1700–1807 with terminating newline reproduces `9c29e6e300116aa5e2cdba8f8b0fd61cb3666450b6019a4980034b81cecee567`; stripping it reproduces `881bd14b4d29e27a72b6b1a24c5f00f017dd881179514745e02ffd4238475a69`.
+
+### Not reviewed, rerun, or verified
+
+- No tests, operational scripts, lock acquisition, fixture activation, Docker command, database query, provider call, credential request, deployment, production mutation, or runtime health check was performed.
+- Existing product/environment tests were not rerun. Their results are accepted only as retained dependency evidence, not proof of the proposed Workspace implementation.
+- Full bodies of all prior Gate3 reviewer responses were not reread; their exact decision files, hashes, verdicts, and declared scope were verified.
+- The complete 42-file backend product candidate and complete environment repository were not re-audited line by line. I read the load-bearing source interfaces named by this design.
+- Infisical’s online documentation and installed response/write behavior are **UNVERIFIED** here because network/provider operation was not performed. The no-CAS limitation is nevertheless admitted by the candidate itself.
+- Current running image digests, production source/image identity, scheduled Beat execution, provider reconciliation, AWS/R2 transport, public purchase/refund/bytes/denials, and production trigger state are **UNVERIFIED and not certified** by this design review.
+- Cryptographic provenance of the Max event beyond the retained/corroborating records is **UNVERIFIED**.
+
+## 4. Answers to the six feared-failure questions
+
+### Q1 — Can the W exception admit another order, P/N, arbitrary synthetic actor, or out-of-window refund?
+
+**Yes for another qualifying W order and out-of-window refunds; no for P/N or arbitrary actors as currently designed.**
+
+The fixed seller02/buyer01 binding and immutable Workspace publication/connection chain exclude:
+
+- Mars N/failed-run authorities;
+- seller01 P/N purchases;
+- arbitrary synthetic buyers/sellers;
+- agent/device-backed transactions;
+- fake lookalike chains;
+- wrong PI/charge joins;
+- missing capture;
+- wrong amount/currency/live mode when the accepted conjuncts are implemented.
+
+But the purchase chain is reusable across W orders and contains no owner-window discriminator. The signed webhook cannot use the host’s one-new-order snapshot, so the predicate’s actual database scope is broader than its operational intent. That is Finding 1 and is blocking.
+
+The design is correct that refunds must remain possible after credential, access, or connection revocation: admission should validate immutable purchased rights and financial capture, not active download eligibility. A revised persisted W authority must preserve that property.
+
+### Q2 — Can activation or cleanup overwrite/delete another generation or party?
+
+**Create/projection protections are mostly sound; destructive cleanup is not.**
+
+Verified strengths include:
+
+- actual User Stripe readiness projections are strings, not booleans (`User:84-87`);
+- existing TOTP encryption is AESGCM v1 and remains coupled to `TOTPService` (`TOTPService:238-264,317-336`);
+- the existing Connect upsert really can reassign a `stripe_connect` identity to a new party (`stripe_connect_identity.py:49-145`), so the candidate’s pre-proof prohibition and exact owned-row transaction are necessary;
+- seller02 baseline, exact restoration fields, unique auth_user binding, complete marker pagination, no broad seed helper, idempotency reconciliation, and no Party/auth-user deletion are all specified;
+- the actual four-fixture seed contract preserves buyer02 and refuses gained seller02 state.
+
+The unresolved failure is Infisical name-DELETE. Local lock ownership cannot exclude an independent API writer, and no atomic UUID/version precondition exists. As written, cleanup can inspect one item and delete a later item under the same name. That is Finding 2 and is blocking.
+
+### Q3 — Can a wrapper bypass the settlement lock/guard, mutate before refusal, leak a secret, or silently repair audit state?
+
+**No bypass is visible if implemented exactly; one identity ambiguity remains.**
+
+The existing environment mechanics support the proposed ordering:
+
+- `check-settlement:308-343` validates inherited token, ancestry, held lock, and guard state;
+- `check-settlement:346-372` launches only an exact environment-bin path and propagates child exit status;
+- `workspace-fixture` is not in the guarded-name set, so requiring the child to invoke `--guard seed` is necessary;
+- actual `bin/seed` and `bin/reset` acquire the wrapper lock before local guard and later writes;
+- `compose.yaml:90-96` mounts `./seed` read-only at `/s1656`;
+- private stdin, no TTY, no `-e`, bounded duplicate-key-aware JSON, no generic pass-through, read-only status, atomic audit, and secret-canary subprocess testing are all specified.
+
+No implementation exists yet, so these remain design obligations. The remaining blocking ambiguity is the undifferentiated backend image digest/local Image ID/OCI-index identity in Finding 3.
+
+### Q4 — Can crash, retry, or deactivation lose a paid role or duplicate resources?
+
+**The general crash architecture is sound, but the two authority/custody gaps prevent full certification.**
+
+The design correctly requires:
+
+- durable preparation before provider creation;
+- complete provider marker enumeration;
+- no fresh account after uncertain or expired idempotency;
+- exact database restoration before credential cleanup;
+- one transaction for projection/owned identity creation;
+- inspect-after-commit recovery instead of creating another secret/account;
+- no broad identity helper or Party/auth-user deletion;
+- retention of provider accounts with history;
+- refusal of destructive cleanup when payout/refund/financial aggregate is uncertain;
+- explicit terminal W financial disposition.
+
+Accepted backend behavior also supports durable refund admission before provider reads and atomic effects before HTTP 2xx (`refund_processing_service.py:324-371`).
+
+However:
+
+- without exact W registration, crash/retry cannot prove which W paid role is authoritative;
+- without a safe custody decision, deactivation can destroy another generation;
+- successful `inactive` currently depends on a cleanup step that cannot be made safe under the documented API.
+
+Those are blocked by Findings 1 and 2.
+
+### Q5 — Does the frozen scope implement all accepted Gate1 without overwriting F1 or normal money behavior?
+
+**Not as written. The mount, fixture cardinality, transport, account configuration, and protected-state obligations are otherwise well aligned.**
+
+Verified compatibility includes:
+
+- actual read-only receiver path `/s1656/seed.py`;
+- accepted four-fixture environment contract with seller01/buyer01, buyer02, and seller02;
+- buyer02 as a protected fixture;
+- no current `workspace-fixture`, `workspace-host.py`, or Workspace test implementation;
+- no normal payment processor change proposed;
+- no N-table reuse proposed;
+- no runtime pin application or protected run release claimed.
+
+The missing load-bearing target is the exact persisted W authority extension. It must be added explicitly with migration, model/registration surface, host action, webhook predicate, and tests. This is not a refactor suggestion; it is required by the accepted product Gate2 contract.
+
+### Q6 — Are support, upgrade, and live acceptance obligations concrete and separated?
+
+**Mostly yes, and this review does not certify unexecuted implementation or release.**
+
+The candidate clearly separates:
+
+- exact accepted dependency identities;
+- design review;
+- future implementation tests;
+- owner window;
+- real public purchase/refund/denials;
+- protected run25;
+- production trigger freeze/quiescence/reconciliation;
+- migration/adoption;
+- source/image identity refresh;
+- rollback;
+- historical evidence versus current proof.
+
+I verified the dependency decisions, PR188 tree/pin receipt, inherited six-failure truth, environment test-count receipts, and protected run25 boundary only as static evidence. No live scheduled Beat, AWS/R2, production transport, or runtime cutover evidence was rerun or certified.
+
+## SIMPLER
+
+**Concrete simplest correction preserving every requirement:** make two reductions:
+
+1. Replace the broad purchase-scope W exception with one narrow immutable W authority row and one exact `bind-purchase` receiver transaction. This removes the host receipt’s pretended authority role and removes the entire class of “another qualifying W order/out-of-window refund” admissions.
+2. Stop deleting the fixed Infisical TOTP name. Retain it under explicit owned custody and mark deactivation `inactive_with_retained_custody` or `deactivation_incomplete`. This removes the entire final GET→external-write→name-DELETE race and the uncertain-delete/retry cleanup branch.
+
+Quantitatively, the custody alternative removes every per-operation DELETE and the need to prove a negative about all external writers. After initial creation, repeat activation can require one exact GET instead of create/re-read/delete/reconcile. It adds one reviewed authority table/action and a non-clean terminal state, which is less risk than an unsafe destructive operation.
+
+This is a mandate here because both reductions are supported by concrete scope/risk evidence, not merely preference.
+
+## BETTER
+
+**Materially better approach:** make the W owner window itself a backend-owned transactional state machine:
+
+- activation records the immutable window and custody/provider discriminators;
+- `bind-purchase` recomputes the complete order delta inside the backend transaction and commits the exact W authority;
+- webhook admission joins only that authority and all accepted source/image/spec pins;
+- the fixed TEST custody item is immutable and retained rather than deleted;
+- deactivation requires the authority’s terminal refund state and records retained custody explicitly.
+
+**Comparison**
+
+- Failure modes:
+  - current design: valid but out-of-window W refund admitted; external credential writer deleted;
+  - better approach: database constraints reject unregistered/conflicting W orders; no destructive name-DELETE exists.
+- Cost:
+  - one migration and narrow model/registration action;
+  - revised deactivation state;
+  - focused PostgreSQL, subprocess-canary, webhook, crash, pagination, and pin-mismatch tests.
+- Rollback:
+  - disable the W admission predicate;
+  - preserve existing paid rights and immutable authority rows;
+  - quarantine/retain the custody item and audit rather than deleting or reassigning it.
+
+This remains a narrow Workspace state machine, not the generic hook framework or broad secret/provider access the candidate correctly avoids.

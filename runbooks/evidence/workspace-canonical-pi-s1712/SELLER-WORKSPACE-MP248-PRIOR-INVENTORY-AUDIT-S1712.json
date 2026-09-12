@@ -1,0 +1,411 @@
+{
+  "status": "interim_union_inventory_only_not_final_source_acceptance",
+  "selected_cohorts": [
+    "workspace-final",
+    "money-final",
+    "canonical-first",
+    "adjacent-first",
+    "legacy-r3"
+  ],
+  "prior_unique": 1990,
+  "observed_unique": 2064,
+  "prior_observed": 1988,
+  "missing_prior": [
+    "tests/test_workspace_test_refund_admission.py::test_fresh_main_lifespan_public_checkout_reviewed_settings[False]",
+    "tests/test_workspace_test_refund_admission.py::test_fresh_main_lifespan_public_checkout_reviewed_settings[True]"
+  ],
+  "new_nodes": [
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[fk_cascade]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[fk_deferrable]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[fk_missing]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[fk_unvalidated]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[listing_guard_missing]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[parent_invalid]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[parent_not_ready]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[publication_disabled]",
+    "tests/test_workspace_test_authority.py::test_discovery_enforcement_catalog_refuses_each_fault[ri_disabled]",
+    "tests/test_workspace_test_authority.py::test_forward_only_downgrade_retains_discovery_objects",
+    "tests/test_workspace_test_refund_admission.py::test_close_observes_all_related_work_before_terminal[charge_only]",
+    "tests/test_workspace_test_refund_admission.py::test_close_observes_all_related_work_before_terminal[null_link_sibling]",
+    "tests/test_workspace_test_refund_admission.py::test_close_observes_all_related_work_before_terminal[pending_refund]",
+    "tests/test_workspace_test_refund_admission.py::test_close_observes_all_related_work_before_terminal[pi_only]",
+    "tests/test_workspace_test_refund_admission.py::test_close_observes_all_related_work_before_terminal[sentinel]",
+    "tests/test_workspace_test_refund_admission.py::test_closure_requires_all_three_event_success_states[processed_status-failed]",
+    "tests/test_workspace_test_refund_admission.py::test_closure_requires_all_three_event_success_states[processed_status-ignored]",
+    "tests/test_workspace_test_refund_admission.py::test_closure_requires_all_three_event_success_states[processed_status-received]",
+    "tests/test_workspace_test_refund_admission.py::test_closure_requires_all_three_event_success_states[refund_phase-admitted]",
+    "tests/test_workspace_test_refund_admission.py::test_closure_requires_all_three_event_success_states[status-failed]",
+    "tests/test_workspace_test_refund_admission.py::test_fresh_main_lifespan_public_checkout_canonical_default[False]",
+    "tests/test_workspace_test_refund_admission.py::test_fresh_main_lifespan_public_checkout_canonical_default[True]",
+    "tests/test_workspace_test_refund_admission.py::test_new_window_keeps_old_registration_exact_and_cannot_adopt_it",
+    "tests/test_workspace_test_refund_admission.py::test_normal_refund_direct_and_actual_scheduled_exclusion[2500]",
+    "tests/test_workspace_test_refund_admission.py::test_normal_refund_direct_and_actual_scheduled_exclusion[625]",
+    "tests/test_workspace_test_refund_admission.py::test_old_paid_purchase_in_baseline_cannot_gain_new_window_authority",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-after_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-before_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-open]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-parent_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-path_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[content-read]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-after_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-before_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-open]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-parent_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-path_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[delete-read]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-after_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-before_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-open]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-parent_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-path_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[leaf_replace-read]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-after_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-before_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-open]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-parent_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-path_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_mode-read]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-after_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-before_fstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-open]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-parent_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-path_lstat]",
+    "tests/test_workspace_test_refund_admission.py::test_private_artifact_synchronized_race_refuses_and_restores[parent_replace-read]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[False-buyer_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[False-id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[False-listing_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[False-seller_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[False-stripe_payment_intent_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[True-buyer_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[True-id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[True-listing_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[True-seller_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_discovery_parent_sql_refusal_and_refund[True-stripe_payment_intent_id]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[buyer_id-4b10c456-5936-49d7-be3f-d9c68c9a263e]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[buyer_type-agent]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[origin-manual]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[seller_id-32f8e9c1-a779-459c-b49b-d6db464133b5]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[seller_id-None]",
+    "tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[surface-api]",
+    "tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund",
+    "tests/test_workspace_test_refund_admission.py::test_separate_replays_one_refund_and_immutable_terminal_representative",
+    "tests/test_workspace_test_refund_admission.py::test_signed_null_link_failed_sibling_requires_same_id_recovery_before_close"
+  ],
+  "unresolved_xml_identity": [],
+  "prior_nonpassing": {
+    "tests/test_workspace_test_refund_admission.py::test_listing_version_is_purchased_binding_not_agent_proposal": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[failed_P]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[failed_N]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[unrelated]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[production]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[invalid_signature]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_non_w_regressions_never_read_optional_authority[device]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_s1656_purchase_preserves_real_capture_without_w_lookup": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_s1656_payin_real_finalize_without_optional_w": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_open_captures_complete_unpaid_baseline_and_bind_uses_only_exact_delta": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_stage_database_timeout_deadlock_rollback_and_recovery[timeout]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_stage_database_timeout_deadlock_rollback_and_recovery[deadlock]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_inspect_refuses_coherently_replaced_immutable_owner_mount": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_binder_blocks_arriving_cardinality_writer_then_preserves_registered_refund": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-schema_version]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-kind]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-namespace]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-operation_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-owner_window_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-owner_authorization_ref]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-pins]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-protected_evidence_sha256]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[owner-authorization.json-issued_at]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-schema_version]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-kind]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-namespace]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-operation_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-owner_window_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-pins]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[runtime.json-runtime_settings]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-schema_version]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-kind]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-namespace]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-operation_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-owner_window_id]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-owner_authorization_ref]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-attested_at]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_signed_unregistered_complete_mounted_schema_missing_fields_retryable[protected-evidence.json-records]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_registered_lifecycle_readiness_restoration_same_event[closing]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_registered_lifecycle_readiness_restoration_same_event[recovery]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_registered_lifecycle_readiness_restoration_same_event[closed]": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_workspace_test_refund_admission.py::test_actual_no_purchase_close_and_host_receipt_loss_retry": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      }
+    ],
+    "tests/test_webhook_audit.py::test_12_refund_full_revoked": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      },
+      {
+        "cohort": "legacy-r3",
+        "outcome": "pass"
+      }
+    ],
+    "tests/test_webhook_audit.py::test_13_refund_partial_access_kept": [
+      {
+        "cohort": "workspace-final",
+        "outcome": "error"
+      },
+      {
+        "cohort": "legacy-r3",
+        "outcome": "pass"
+      }
+    ],
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_create_subscription": [
+      {
+        "cohort": "money-final",
+        "outcome": "failure"
+      }
+    ],
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_at_period_end": [
+      {
+        "cohort": "money-final",
+        "outcome": "failure"
+      }
+    ],
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_immediate": [
+      {
+        "cohort": "money-final",
+        "outcome": "failure"
+      }
+    ],
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_already_canceled_raises": [
+      {
+        "cohort": "money-final",
+        "outcome": "failure"
+      }
+    ],
+    "tests/test_finance_phase1.py::TestMigrationStructure::test_migration_downgrade_drops_tables": [
+      {
+        "cohort": "adjacent-first",
+        "outcome": "failure"
+      }
+    ],
+    "tests/test_finance_gate2_phase1.py::TestGate2Models::test_billing_entity_has_gate2_columns": [
+      {
+        "cohort": "adjacent-first",
+        "outcome": "failure"
+      }
+    ]
+  },
+  "limitations": [
+    "Cohorts have known source mismatches; union presence is not final-source qualification.",
+    "No exception acceptance or replacement mapping is inferred.",
+    "Raw JUnit outcome is not full pytest phase verification; use retained raw report/plugin results for final acceptance."
+  ]
+}

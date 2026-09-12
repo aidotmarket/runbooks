@@ -1,0 +1,147 @@
+STRIPE_TEST_MODE is ENABLED — all Stripe operations use test keys
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade t260_qdrant_legacy_requeue -> 20260712_003_s1194_qdrant_producer_admission, S1194 P2 Qdrant producer admission and quarantine.
+INFO  [alembic.runtime.migration] Running upgrade 20260712_003_s1194_qdrant_producer_admission -> s1299_c1_corpus_control_plane, S1299 Chunk 1 corpus contracts and PostgreSQL control plane.
+INFO  [alembic.runtime.migration] Running upgrade s1299_c1_corpus_control_plane -> s1488_money_path_tables, S1488: restore the model-backed money-path tables.
+INFO  [alembic.runtime.migration] Running upgrade s1488_money_path_tables -> s1548_lifecycle_email_sends, S1548 Phase B: add the signup lifecycle email outbox.
+INFO  [alembic.runtime.migration] Running upgrade s1548_lifecycle_email_sends -> s1299_c2_admission_boundary, S1299 Chunk 2 admission boundary and notification isolation.
+INFO  [alembic.runtime.migration] Running upgrade s1299_c2_admission_boundary -> s1396_b_schema, S1396 B-schema: inert metadata-corpus storage and class checks.
+INFO  [alembic.runtime.migration] Running upgrade s1396_b_schema -> s1590_verification_epochs, S1590 Chunk 1: inert data-verification epoch store.
+INFO  [alembic.runtime.migration] Running upgrade s1590_verification_epochs -> s1396_c_admission_parity, S1396 Chunk C admission-parity prerequisite.
+INFO  [alembic.runtime.migration] Running upgrade s1396_c_admission_parity -> s1590_payment_state, S1590 Chunk 3: manual-capture payment state.
+INFO  [alembic.runtime.migration] Running upgrade s1590_payment_state -> s1590_corpus_events, S1590 Chunk 4 immutable artifacts and minimized S1396 events.
+INFO  [alembic.runtime.migration] Running upgrade s1590_corpus_events -> s1595_s1396_c_durability, S1595 additive durability for S1396 Chunk C.
+INFO  [alembic.runtime.migration] Running upgrade s1590_corpus_events -> s1590_publication, S1590 Chunk 6 immutable publication and listing projection.
+INFO  [alembic.runtime.migration] Running upgrade s1590_publication, s1595_s1396_c_durability -> e639f1569e02, merge s1590_publication and s1595_s1396_c_durability heads
+INFO  [alembic.runtime.migration] Running upgrade e639f1569e02 -> s1599_agent_audit_repair, Repair the production ``agent_audit_log`` schema from one frozen state.
+INFO  [alembic.runtime.migration] Running upgrade s1599_agent_audit_repair -> s1599_listing_attest_repair, Restore the missing listings attestation verification column.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.attestation_verified ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1599_listing_attest_repair -> s1511_issue_channel_queue, Create the isolated issue-channel state and pull queue.
+INFO  [alembic.runtime.migration] Running upgrade s1511_issue_channel_queue -> s1622_allai_ledger_dedupe, Restore the active-baseline allAI event-ledger dedupe contract.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_event_ledger.dedupe_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.uq_allai_event_ledger_dedupe_key_not_null ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1622_allai_ledger_dedupe -> s1396_trust_decisions, S1396 semantic trust decisions remain separate from safe admission.
+INFO  [alembic.runtime.migration] Running upgrade s1396_trust_decisions -> s1632_request_publication, Add the authoritative Buyer Request publication projection and outbox.
+INFO  [alembic.runtime.migration] Running upgrade s1632_request_publication -> s1632_request_matching, Add durable Buyer Request seller matching and delivery state.
+INFO  [alembic.runtime.migration] Running upgrade s1632_request_matching -> t2026_000727_provider_num_turns, Expand issue-channel completion telemetry to provider_num_turns.
+INFO  [alembic.runtime.migration] Running upgrade t2026_000727_provider_num_turns -> s1647_seller_workspace_w2, Add the disabled-by-default Seller Workspace W2 data foundation.
+INFO  [alembic.runtime.migration] Running upgrade s1647_seller_workspace_w2 -> s1646_payin_primary_identity, Add S1646 ordinary Stripe pay-in setup lineage and primary identity rule.
+INFO  [alembic.runtime.migration] Running upgrade s1646_payin_primary_identity -> s1648_issue_channel_repair, Repair a fully missing issue-channel schema on an already-stamped database.
+INFO  [alembic.runtime.migration] Running upgrade s1648_issue_channel_repair -> s1650_seller_workspace_w3, Additive Seller Workspace W3 profiling control schema.
+INFO  [alembic.runtime.migration] Running upgrade s1650_seller_workspace_w3 -> s1659_aim_data_oauth, S1659 additive public-client schema; retain all objects on downgrade.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients_client_id_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_authorization_codes_code_hash_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.owner_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.redirect_uris ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.allowed_scopes ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.oauth_clients_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.oauth_clients_owner_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_authorization_codes.oauth_authorization_codes_source_session_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1659_aim_data_oauth -> s1665_aim_data_oauth_activate, S1665 activate the owned AIM Data public client; retain data on rollback.
+INFO  [alembic.runtime.migration] Running upgrade s1659_aim_data_oauth -> seller_listing_drafts, Private seller working drafts; no change to listing publication or delivery.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_drafts -> seller_assistant_requests, Durable starter-credit holds for seller listing assistance.
+INFO  [alembic.runtime.migration] Running upgrade seller_assistant_requests -> seller_listing_sources, Encrypted working source bindings independent of profiling.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_sources -> seller_listing_approvals, Immutable exact seller review/source approval, not publication.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_approvals -> seller_listing_publications, Immutable seller publication/version/authority mapping, no endpoint enablement.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_publications -> seller_download_sessions, One purchased allowance with on-demand, single-issuance file grants.
+INFO  [alembic.runtime.migration] Running upgrade seller_download_sessions -> seller_listing_search_outbox, Durable marketplace search updates for approved seller listings.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_search_outbox -> seller_download_file_grants, Index immutable encrypted grants by session and file, preserving old grants.
+INFO  [alembic.runtime.migration] Running upgrade seller_download_file_grants -> seller_approved_source_chunks, Immutable encrypted chunks for bounded approved-file delivery lookup.
+INFO  [alembic.runtime.migration] Running upgrade seller_approved_source_chunks, s1665_aim_data_oauth_activate -> s1678_seller_release_merge, Join seller delivery and inherited AIM Data activation histories.
+INFO  [alembic.runtime.migration] Running upgrade s1678_seller_release_merge -> s1707_seller_r2_credentials, Permit approved R2 credentials in the existing encrypted connection store.
+INFO  [alembic.runtime.migration] Running upgrade s1707_seller_r2_credentials -> 50ca6386a0e4, Repair the existing order/transaction contract on drifted databases.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transaction_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.orders_transaction_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.sync_order_status_to_transaction() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trg_sync_order_to_transaction ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 50ca6386a0e4 -> f0e47ebd81ee, Restore the historical order creation defaults and generated order number.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.id ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.currency ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.status ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.revoked ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.max_downloads ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.downloads_used ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.auto_confirm_days ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transfer_status ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transfer_attempts ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.escrow_hold_hours ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.created_at ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.updated_at ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.generate_order_number() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.set_order_number() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.update_orders_updated_at() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trigger_set_order_number ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trigger_orders_updated_at ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade f0e47ebd81ee -> s1714_order_money_v1, S1714 order money protocol; bounded chart seed, retain history on rollback.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_entity_binding ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_version ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_state ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_counters ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_origin ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_dispatch_binding ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_success ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_scope ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_digests ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.uq_s1681_authority_run ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_distinct ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_negative ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_amount ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_failure ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trg_sync_order_to_transaction ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1714_order_money_v1 -> s1712_workspace_authority_v1, Persist immutable Workspace TEST authority without changing money writers.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/__main__.py", line 4, in <module>
+    main(prog="alembic")
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 641, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 631, in main
+    self.run_cmd(cfg, options)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 608, in run_cmd
+    fn(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/command.py", line 403, in upgrade
+    script.run_env()
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/script/base.py", line 583, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 95, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 113, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 117, in <module>
+    asyncio.run(run_migrations_online())
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 109, in run_migrations_online
+    await connection.run_sync(do_run_migrations)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py", line 891, in run_sync
+    return await greenlet_spawn(fn, self._proxied, *arg, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 202, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 92, in do_run_migrations
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/runtime/environment.py", line 948, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/runtime/migration.py", line 627, in run_migrations
+    step.migration_fn(**kw)
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/versions/20260912_002_workspace_test_authority.py", line 183, in upgrade
+    if not _discovery_object(connection, *obj):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/versions/20260912_002_workspace_test_authority.py", line 129, in _discovery_object
+    raise RuntimeError("workspace discovery constraint collision: " + name)
+RuntimeError: workspace discovery constraint collision: uq_s1712_order_discovery

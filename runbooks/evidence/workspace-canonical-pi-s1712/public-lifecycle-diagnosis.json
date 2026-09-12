@@ -1,0 +1,42 @@
+{
+  "source_hashes": {
+    "alembic/versions/20260912_002_workspace_test_authority.py": "d595ec66a929a84a366088fb03f51b7a7acd045dbb9808ea0f174e6a13aaf80f",
+    "app/api/v1/endpoints/webhooks.py": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde",
+    "app/e2e/surgical_reset.py": "9d9c741ae0c303ed702da0551b409e19295809adb1e58fc2807b9100634a706b",
+    "app/e2e/teardown.py": "fbbb02f52e7deed86cb57bb5caf0835ebb060889fcedba508f5a53f7a2d20769",
+    "app/e2e/workspace_fixture_protection.py": "5c7ca35511da12c0d91aab507f26089aedf5c757ade1804912c9692ef2fbb234",
+    "app/models/__init__.py": "2d677e30f198d560c90cef68c06749e570b6ca4d515e23abdfebb2dd123829e3",
+    "app/models/workspace_test_authority.py": "4768365224ed725b91b78b430063f8963f65c6adc453e7d82308f031f63beb83",
+    "app/services/workspace_refund_test_admission.py": "2e84f8c1a051e0282234add1ae92d05bf648951ef2db9d21a8e51344c8ae0f00",
+    "e2e/account_pool.json": "4b8f136ffdd99da142467ad3f96997bd3115048d4b28de35ac0b00a70c7a11dc",
+    "tests/test_e2e_stripe_isolation.py": "894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d",
+    "tests/test_e2e_surgical_reset.py": "f48b34b1b82a113462ba2d78110ea2664122873d96cb25b7a2d173267fe74938",
+    "tests/test_e2e_teardown_t2.py": "4748e5d127512c4b690a189469ccfaa8b1ed3849303b9011b0364b0e9d5139c1",
+    "tests/test_e2e_teardown_t2_real_pg.py": "1856ad24c007ada2c2986aaece68b7777f47c89837d7fe6448741a560d898fd9",
+    "tests/test_webhook_audit.py": "a6c2781bf4e9be915f9694e03c90b637b4c3e47a2ef4e8966cebe955e059e3c5",
+    "tests/test_webhooks.py": "f918cd1d72677c5ed5b3b535fa4c6625394a3470683dd9d9f6c27b094d228787",
+    "tests/test_workspace_test_authority.py": "1f21a4ba5a865801152ac30f558b71fff54068c0e0e625e87883b26c529015e8",
+    "tests/test_workspace_test_refund_admission.py": "f8ca59d0bcd716643f6e2011937ee5ca1052c9c31e8f86055d64633cf9c0b4bb"
+  },
+  "command": [
+    "rtk",
+    "proxy",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+    "-m",
+    "pytest",
+    "-vv",
+    "--tb=long",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_workspace_test_refund_admission.py",
+    "-k",
+    "selected_public_checkout",
+    "--junitxml=/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-diagnosis.xml",
+    "--basetemp=/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/evidence/public-lifecycle-diagnosis/tmp"
+  ],
+  "cwd": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0",
+  "exit": 1,
+  "duration": 10.69817590713501,
+  "log": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-diagnosis.log",
+  "log_sha256": "dc504e01a7d1554e717f673dab47aa827b5de8143c7527ed756dd3c02c015d30"
+}

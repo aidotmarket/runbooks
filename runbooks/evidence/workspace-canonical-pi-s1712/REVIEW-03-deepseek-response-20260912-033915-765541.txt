@@ -1,0 +1,115 @@
+# Council Review — S1712 Workspace Gate1 Round 2 (read-only)
+
+Reviewed artifact: `aidotmarket/runbooks@1ff494acc79245e8481ece2e985eda902fbf5207` (`specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md` blob `ce0f28a8`, 132 lines/26,919 bytes, sha256 `4055fb41…10c6`), with `specs/evidence/S1712-workspace-authority-4096-4097.json` (blob `a0a6b2dd`, sha256 `8b300ea2…9c9c`). Nothing was modified; no test, lock, provider, DB or environment operation was executed.
+
+---
+
+## 1. Verdict
+
+**APPROVE_WITH_NITS**
+
+Every Round-1 blocking item (GLM M1–M6, CC M1/M2, DS F1–F6) is folded and independently verifiable, and every load-bearing identity, hash and source claim I could reach reproduces at the exact SHAs. What remains are four LOW/NIT items (one reproducibility trap in the new hash method, one unnamed implementation surface, two provenance/verification-precision defects). None blocks; the verdict agrees with the findings.
+
+---
+
+## 2. Findings (highest severity first)
+
+**F1 — LOW — The newly published source-hash method does not reproduce the published digest when followed literally.**
+- Evidence: `aidotmarket/runbooks@1ff494a specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md:102` — "refund function hash uses webhooks.py1700–1807 joined by newline **without a trailing newline** at d766b8e4." At `ai-market-backend@d766b8e4 app/api/v1/endpoints/webhooks.py:1700-1807`: `sed -n '1700,1807p' | sha256sum` = `9c29e6e3…cee567` (the published value), whereas the literal "joined by newline without a trailing newline" = `881bd14b4d29e27a72b6b1a24c5f00f017dd881179514745e02ffd4238475a69`.
+- Observed vs expected: the digest is correct but its stated extraction rule is not; the byte range *including* its terminating newline is what hashes to `9c29e6e3…`. Expected: a method sentence that reproduces on first attempt.
+- Reproduction: `rtk proxy git -C <backend> show d766b8e4:app/api/v1/endpoints/webhooks.py | sed -n '1700,1807p' | shasum -a 256` (static evidence only).
+- Impact: the document orders "Revalidate source identity before final dispatch"; a dispatcher following the stated method literally sees a mismatch and may report false source drift on a money-path file. Low: both variants are one command apart, and the two whole-file hashes (`settlement_service.py` `161bd06d…`, `transaction_service.py` `58749e7c…`) DO reproduce exactly.
+- Smallest required outcome: change the clause to "including the terminating newline", or publish the literal command (`sed -n '1700,1807p' | sha256sum`).
+- Verification criterion: the documented command, run verbatim at the frozen candidate, outputs `9c29e6e3…cee567`.
+
+**F2 — LOW — The stdin-receiving surface for TOTP enrollment is not named, and is not obviously in either allowlist.**
+- Evidence: `runbooks@1ff494a …GATE1.md:118` ("sends a bounded JSON payload over that child's stdin to the **fixed script/mode**"); allowlist at `:65` (Environment) and `:67` (Backend). `money-path-test-environment-s1656@c6b8770 compose.yaml:85-92` mounts `./seed` into the backend container **read-only** at `/s1656`; the backend allowlist adds no receiving file.
+- Observed vs expected: Round-1 GLM M4 demanded "the exact transport **and the exact file surface**". The transport is now specified well (stdin, `docker exec -i`, no TTY, no `-e NAME=VALUE`, bounded schema, byte cap, canary-absence test); the receiver is described only as "the fixed script/mode". The only in-allowlist plausible receiver is `seed/seed.py` (mounted at `/s1656`, already calls `TOTPService`). Expected: the exact file and mode named.
+- Reproduction: static evidence only.
+- Impact: low — the design is implementable within the allowlist, but an implementer must guess the surface, or may add an unlisted file. Round-1 GLM M4 was raised partly for this reason; it is now ~80 % closed.
+- Smallest required outcome: Gate2 names `seed/seed.py`'s exact mode (or the alternative file) and states that it is the sole receiver, with the payload schema/refusal rules bound to it.
+- Verification criterion: the Gate2 packet names the receiver file+mode and shows it is inside the frozen allowlist.
+
+**F3 — LOW — Provenance statements in the artifact are not all supported by the retained evidence it names.**
+- Evidence: `…GATE1.md:3` — "Preparing this amendment independently is authorized by Mars4069/4070". In the retained file named by the same document (`outputs/SELLER-MARS-LATEST-RECOVERED-S1712.json`, verified to contain exactly ids 4077, 4079, 4081, 4082, 4083, 4085, 4087, 4090): 4069 is **absent**; 4070's body concerns the earlier `46c43a09/b9505ab6` rebase baseline and is expressly superseded by 4077; the corroborating autonomy authorization is **4079**. Separately, `:86` names five retained-evidence artifacts with no path or SHA, so only the authority receipt is resolvable from the document alone.
+- Observed vs expected: the load-bearing authority (event `99af61fd…`, Mars4096/4097) is now correctly receipt-bound and verbatim (`specs/evidence/S1712-workspace-authority-4096-4097.json:1-9`, hash matches). The 4069/4070 attribution is the one stale citation. Expected: cite 4079 (or drop the claim).
+- Reproduction: static evidence only (`python` scan of the named JSON).
+- Impact: low — provenance precision only; nothing downstream depends on which Mars message authorized *preparing* a design.
+- Smallest required outcome: correct the citation to 4079, or remove it.
+- Verification criterion: every message id cited in the document resolves in the artifact that the document names.
+
+**F4 — LOW — Builder verification is stated as conclusions, not commands, and one claim is unreadable.**
+- Evidence: `request-20260912-033915-765541.md:49` — "git diff --check passed; commit hook checked/indexed119 runbooks" with no commands, output, or skipped/failed items; the three source hashes are asserted without the extraction command (whose stated form is itself wrong, F1). Preamble (`request:10`) requires exact commands and results.
+- Observed vs expected: I independently reproduced the diff/clean-status/hashes (see Coverage), so the conclusions are true; but the block is not reproducible as written, and one phrase ("indexed119 runbooks") is garbled.
+- Reproduction: static evidence only.
+- Impact: low (design-only review; I verified the underlying facts myself).
+- Smallest required outcome: replace the sentence with 3–5 literal commands and their outputs, and fix the hash method per F1.
+- Verification criterion: a reader can re-run each line verbatim and get the stated result.
+
+**NITs (non-blocking)**
+- **N1** `…GATE1.md:114` cites the authority artifact by machine-local absolute path (`/Users/max/…/outputs/SELLER-MARS-AUTHORITY-4096-4097-S1712.json`) although the byte-identical artifact is now committed (`specs/evidence/S1712-workspace-authority-4096-4097.json`, blob `a0a6b2dd`, sha256 `8b300ea2…`; equality verified by hash). Cite the in-repo path + SHA; the host path is not resolvable elsewhere.
+- **N2** `request:51` gives prior verdicts but not the prior candidate identity; it is only implicit that Round 1 reviewed blob `cd984a66` at base `9aa91d4` (that is in fact the artifact the prior DS review reported). Name it explicitly in future re-reviews.
+- **N3** The committed receipt is a raw transport blob (duplicated `#4096` block, "PEER MESSAGES AT TURN START" wrapper). Acceptable as evidence, but unstructured; its only integrity binding is the dispatch-declared sha256. A small `{message_id, from, created_at, body, event_id}` shape would be more auditable.
+
+---
+
+## 3. Coverage
+
+**Verified independently (read-only, exact SHAs):**
+- **Artifact identity:** checkout `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-s1712` exists, `git status --porcelain` empty, HEAD `1ff494ac…`, parent `9aa91d48…`; `git diff --name-status 9aa91d4 1ff494a` = exactly `M specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md`, `A specs/evidence/S1712-workspace-authority-4096-4097.json`; commit touches only those two (+48/−5 across both; doc +39/−5, 98→132 lines); `git diff --check` exit 0. Both declared SHA256 values match exactly. Remote branch `origin/docs/seller-interop-merge-s1712` = `1ff494a`; `origin/main` = `d03e8053` (PR #167).
+- **Request ⇄ artifact equivalence:** the request file embeds the prepared document text and the authority JSON **verbatim** (python substring check `True`); the prepared file's sha256 equals the git blob's. So the text I reviewed is the committed text.
+- **Environment claims:** `money-path-test-environment-s1656@03d3f30` (HEAD, clean) exists; PR27 merge `c6b8770` parents = `03d3f30 + a7f1daf`, tree hashes equal (`33a1159752df08bf1c7d30ff73c2f0a05a90748b`), diff = 9 files/588 insertions incl. `workspace/README.md`; `versions.env` present with `BACKEND_RC_SHA=d766b8e4…`; the three fixture files (`bin/workspace-fixture`, `seed/workspace-host.py`, `tests/test-workspace-fixture.py`) are absent at the scaffold, as the allowlist's `(new)` markers require.
+- **Lock/guard protocol:** `bin/check-settlement@03d3f30:141-143` (path-based `--lock`, resolved parent must be `ROOT/bin`), `:102-129` (`inherited_lock`: token compare, ≤64-hop ancestor walk, re-`flock`), `:131-138` (`mutation_guard` refuses only `{reset,up,seed,down,preflight}` in `purchasing/pending_settlement`), `:160` (same guarded-name set → the new `workspace-fixture` name is indeed outside it), `:164` (`S1681_LOCK_ENTERED` set for all children), `:165-182` (child exit code propagated; 1800 s timeout). The document's "checking `S1681_LOCK_ENTERED` alone is insufficient; the child must call `--guard seed`" is **correct**.
+- **Seed contract:** `seed/seed.py@03d3f30:184-204` clears seller-02 TOTP/Connect/payout; `:381-382` `SeedRefusal("seller-02 gained TOTP or Connect state")`; `seed/host-seed.py:25` imports `seed/s3-fixture.py` and drives serial/device volume state (justifying a separate `workspace-host.py`); `compose.yaml:85-92` mounts `./seed` read-only at `/s1656`.
+- **Backend source:** `ai-market-backend@d766b8e4` exists; `e2e/account_pool.json` seller02 `961bd48a…`, buyer01 `7d662d0e…` (exact match); `webhooks.py:552-565` (`e2e_scope_suppressed`), `:740-746` (`charge.refunded` → sync handler + separate async finance commit with `finally: break`), `:1778-1789` (transaction write gated on `buyer_type=='agent'`), `settlement_service.py:37-96` (only `tx.status=='confirmed'` + 48 h hold, then `stripe.Transfer.create`) — the three claimed defects are real at the pin; whole-file hashes reproduce; `stripe_connect.py:53-58` public synthetic refusal intact.
+- **Mars dependency:** `runbooks-s1714-refund-release-spec` HEAD `a0161074`; `f1a5ccbf` exists; the `f1a5ccbf→a0161074` delta is 23 lines adding the "**Revocation policy** … ALL revoked orders, including bare access revocation" selection plus payout-reservation/acceptance/adoption/writer-ownership sections — so the document's "all-refunded/all-revoked … selected in Marsa0161074" is grounded, and the non-transferability clause correctly prevents binding to an unaudited revision.
+- **Protected run25:** `outputs/SELLER-MARS-LATEST-RECOVERED-S1712.json` contains exactly the eight messages the document enumerates; the authority receipt contains 4096/4097 and event `99af61fd…` verbatim; `/Users/max/koskadeux-state/s1656/s1714-run25-pending-hold-verification.json` records `direct_check_settlement_exit_code: 2`, `pending-hold`, `pending_settlement`, deadline `2026-09-13T23:41:11.491739+00:00`; the live checkpoint `acceptance-evidence/active-run.json` = run `20260911T233041Z`, `state pending_settlement`, `source.environment 03d3f30`, both pins `519b1d58`.
+- **S1681 conflict:** `browser/s1681-delivery-leg.ts@03d3f30:255-257` revoke/200/denied, `:267` confirm, `:268-269` expects `confirmed`/`completed` — genuine conflict with a universal revoked-order exclusion, exactly as described.
+- **PR167:** `d03e8053` exists, is the merge of PR #167, changes exactly `runbooks/seller-workspace-operator-guide.md`, whose `:233` now records the Max authorization via event `99af61fd…` and the supersession — so "old pending text is historical" is accurate.
+- **Allowlist existence:** all non-`(new)` paths resolve at the appropriate pins (`bin/reset`, `bin/seed`, `seed/seed.py`, `tests/test-seed-contract.py`, `e2e/account_pool.json`, `webhooks.py`, `tests/test_e2e_surgical_reset.py`, both runbooks docs, the S1656 parent spec); `workspace/README.md` resolves in the PR27 tree (not at `03d3f30`, correctly listed as an edit of the accepted scaffold).
+- **Round-1 dispositions verified:** authority receipt bound + hash-matched (GLM M1); artifact identity bound (GLM M2, DS F1); non-transferable dependency + explicit re-bind (GLM M3/CC M1); private-stdin transport with canary test (GLM M4, mostly); `versions.env`/pin ownership named as a Mars-owned integration dependency (GLM M5); running-image/source audit refuse (GLM M6); serialized integration chosen, the two-option handoff deleted (CC M2); audited-refusal assertion (CC L1); human-transition ownership corrected (CC L2); per-question blocking criteria added (DS F4); README wording reconciled (DS F5); message enumeration corrected to the exact eight ids (DS F6); marker-over-idempotency rule added (CC N2).
+
+**Not reviewed / not verified:**
+- No tests, checkers, locks, provider calls, DB reads or environment operations were run (read-only sandbox; design-only scope). All findings are static.
+- **UNVERIFIED (offline):** the Stripe documentation claims at `…GATE1.md:27,110` (Accounts v1 livemode absence; key/object separation) — network is blocked (curl exit 6). My own recollection agrees that Accounts v1 exposes no `livemode`, and the design's rule (never require the field, reject an explicit `true`) is safe under either fact, but I could not confirm it from the provider.
+- **UNVERIFIED:** the existence/authenticity of Max event `99af61fd…` beyond the peer relay captured in the receipt and the runbook publication record; Mars4103 ("separate W namespace/window"); Mars4069; the contents of the other four retained-evidence artifacts (existence verified only); actor identity of the votes recorded in `SELLER-INTEROP-ROUND3-VALIDATION-S1712.json`.
+- Not read this round: the body of `specs/BQ-REFUND-SAFE-PRODUCTION-S1714-GATE1.md` beyond the 23-line delta (Mars's review is a separate track); the full 554-line S1656 parent (only the cited conjuncts/lines); product code outside the refund/settlement/identity paths; the S1681 harness beyond the cited lines.
+- Budget: consumed ~30 of 60 tool calls; remaining budget was not needed for further verification.
+
+---
+
+## 4. Answers to the numbered questions
+
+**Q1 — Is packaged identity binding and TEST-only provider/refund admission sufficiently strict without weakening public guards?** Yes. The packaged-pool loaders exist, the role/secret-name + DB-id + reserved-email + synthetic conjuncts are strict, and the two public guards remain untouched (verified `stripe_connect.py:53-58`; suppression bypass is predicate-scoped). I confirmed the explicit IDs, the full-refund/positive-integer/exact-amount-currency restriction, the requirement that *event, charge and payment* objects report `livemode=false` where their schemas provide it, and the plausible-deny of disputed/transferred/incompatible orders. Blocking, per the document's own rule (`:132`), only if the predicate could admit a live/foreign/ambiguous actor or event — as written it cannot.
+
+**Q2 — Does the exact shared-lock/inner-guard protocol preserve run25 and fail closed on every error?** Yes. I verified the wrapper mechanics line-by-line (path-only `--lock`, token + ancestor + held-lock revalidation, guarded-name set missing the new command, exit-code propagation, 30-min deadline) and the live `pending_settlement` checkpoint, so today an `activate` through `--lock bin/workspace-fixture` + `--guard seed` refuses with exit 2. run25 is preserved by three independent facts: the amendment is an opt-in overlay, the S1681 harness is not in the allowlist, and the protected checkout sits at `03d3f30` with both pins `519b1d58`. Blocking if any pre-guard write path exists (including `status` acquiring a lock/token), if a non-zero guard exit other than refusal is treated as success, or if the audit phase is created before guard success — all of which the document now forbids, so Gate2 must *test* exactly those.
+
+**Q3 — Are before-state custody, idempotent provider creation, recovery and deactivation sufficient?** Yes at design level, with three Gate2 concretions: (a) the audit schema/version, the enumerated restorable seller-02 fields (`totp_enabled`, `totp_verified_at`, `totp_secret_enc`, `backup_codes_hash`, `stripe_account_id`, `stripe_onboarding_complete`, `stripe_payouts_enabled`, `stripe_details_submitted`) and the secret ownership/version discriminator must be frozen (the current TOTP path writes `user.totp_secret_enc` directly with no version token); (b) the "refuse preexisting incomplete-readiness accounts, never repair" rule must apply to activation and deactivation; (c) `bin/reset`/`bin/seed` must be *taught* to refuse when an active/inconsistent audit exists — that refusal is required, not current behavior. Blocking if before-state can be lost, a foreign provider identity reassigned, or unowned resources duplicated/deleted.
+
+**Q4 — Is the Mars interface complete, and what must precede MP work?** As a *design* interface, yes — but it must be re-bound before implementation. Concrete Gate2 requirements, in order:
+1. Bind to **Mars's accepted Gate2/product candidate SHA** (not `f1a5ccbf`, not the under-review `a0161074`) and to the accepted **S1681 acceptance-harness redesign**; freeze the seven contracts at `:123`: admission seam; order-state refund/revoke/dispute/pending exclusion **including bare revocation**; event + per-refund idempotency; retry/failure outcomes without `finally: break` suppression; schema/status/signatures; participating-writer enumeration + common lock order; P/N and separate W receipt roles, amounts, cleanup.
+2. Freeze the `webhooks.py` **line-ownership boundary** on the serialized base (admission predicate vs Mars's handler restructure vs S1713 idempotency) and name the base SHA.
+3. Name the exact **stdin receiver file+mode** for TOTP enrollment (F2) and bind the payload schema/byte cap/refusal rules to it.
+4. Freeze the **pin transition** (`versions.env`, `BACKEND_RC_SHA`, built image digest, both spec SHAs, rebuild/redeploy sequence) and the refuse-on-mismatch test with zero writes at each mismatched pin; implementation base = scaffold merge `c6b8770`.
+5. Fix the **hash method** (F1) and re-validate all three source hashes at the frozen candidate.
+6. Freeze the **audit schema**, phase transitions, before-state field list, secret version discriminator, provider idempotency identity + ownership-marker reconciliation, and the reset/seed refusal semantics for active/inconsistent audit.
+7. Specify the **test harness contract**: temp-root layout, `rtk` subprocess rule, protected-state snapshot/compare set (seller-01/buyer-01 rows, device/trust/serial), and the canary-secret absence assertions.
+8. Specify the **refund admission conjuncts** (reuse the S1656 §2.3 test-shape predicate + full-refund bindings), plus the audited-refusal test asserting the exclusion *read order state* rather than merely observing zero provider calls.
+9. Record the **UNVERIFIED authority reliance** explicitly and require a live-activation re-assertion of the Max event; replace the machine-local evidence path with the in-repo path+SHA (N1).
+Blocking if Gate2 allows implementation/activation without those exact accepted pins/interfaces.
+
+**Q5 — Simpler or better design preserving signed-refund proof, protected state and the production objective?** See below; both answers are advisory (no scope violation or material risk found).
+
+---
+
+### SIMPLER
+
+**None found for the fixture/refund interface itself.** I tried to remove: (a) `seed/workspace-host.py` in favour of hosting the enrollment mode in `bin/workspace-fixture` — rejected, because the receiver must run inside the container against the read-only `./seed` mount (`/s1656`) or backend code, so one host-side entrypoint cannot do both jobs; (b) folding activation into `bin/seed` — rejected, the default seed must retain its baseline while refusing gained readiness; (c) dropping the committed evidence JSON because it duplicates the `outputs/` file byte-for-byte — rejected, the in-repo copy is precisely what makes the authority resolvable and re-verifiable (GLM M1). The nearest real reduction is N1: replace the machine-local absolute path in `:114` with the in-repo relative path + blob sha256 — removes one unresolvable dependency, zero functional change, zero invariants touched.
+
+### BETTER
+
+**Replace the prose hash method with a committed, machine-checkable identity manifest** (e.g. `specs/evidence/S1712-source-identity.json`: file → git-blob SHA + SHA256 + the exact extraction command per range), generated by a script and re-run at Gate2/Gate3. Compared with the current sentence: the failure mode it removes is exactly F1-style ambiguity (a documented digest that does not reproduce), plus the human-prose step between "revalidate source identity" and a pass/fail; its own failure mode is manifest drift if hand-edited (mitigable by generating it in the same step that freezes pins), cost is one small committed file and one generation step, and rollback is trivial (docs-only, no product or environment effect). A second-order alternative — moving the admission predicate behind a Mars-owned seam — was proposed in Round 1 (CC BETTER) and is now explicitly **not selected** by the fold unless Mars's accepted interface already provides it; I do not re-propose it as a mandate, since the serialized-integration decision plus requiring Mars's accepted contract is an evidence-supported, non-blocking choice.
+
+---
+
+*Design-only review. This document approves nothing at Gate2/Gate3/activation; the four LOW findings and the nine Gate2 requirements above are the conditions I would check at the next gate. Prior PR27 scaffold votes are not approval of this amendment.*

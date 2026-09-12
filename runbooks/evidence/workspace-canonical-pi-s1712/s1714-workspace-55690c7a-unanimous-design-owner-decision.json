@@ -1,0 +1,57 @@
+{
+  "at": "2026-09-12T17:45:00.958479+00:00",
+  "session": "S1714",
+  "owner": "mars",
+  "gate": 2,
+  "decision": "UNANIMOUS_DESIGN_ACCEPTED_WITH_NITS",
+  "repo": "aidotmarket/runbooks",
+  "base": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+  "candidate": "55690c7a1fb48c87849a387f7fef79d7008385a9",
+  "spec_blob": "ba30c2d1f39a40e3de29ba964a47823ff452c03d",
+  "spec_sha256": "9b15ceebd63d0197c88a5012ab340edf21f519f96c464257a219a27353909972",
+  "packet_sha256": "f7d81100d068ba81e597e3b133ea97dc1f7b8bbc6d1e2977a1a0e0591bb4c8d4",
+  "responses": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-192808-747577.md",
+      "sha256": "798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1",
+      "bytes": 31926,
+      "verdict": "APPROVE_WITH_NITS",
+      "owner_read": "full response including findings, coverage, all answers, SIMPLER/BETTER",
+      "high_medium_findings": 0
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-191750-465420.md",
+      "sha256": "588d24d1055ed46442b863dacb3b3145a121496a7fd4c4573a032539d7461094",
+      "bytes": 24390,
+      "verdict": "APPROVE_WITH_NITS",
+      "owner_read": "full response including findings, coverage, all answers, SIMPLER/BETTER",
+      "high_medium_findings": 0
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-192617-104271.md",
+      "sha256": "462c73591d509e9fdb72666f80724459c5f6a5284098969f2631e712eace155b",
+      "bytes": 19570,
+      "verdict": "APPROVE_WITH_NITS",
+      "owner_read": "full response including findings, coverage, all answers, SIMPLER/BETTER",
+      "high_medium_findings": 0
+    }
+  },
+  "ground_truth": "Clean checkout, remote branch and PR190 head exact55690 verified17:44UTC. PR190 open draft, not merged. CC wrapper and CLI now absent after complete response. Existing owner manifest/source/CI receipts retained.",
+  "prior_votes_carried": false,
+  "coverage": "CC and DS incomplete coverage responses are retained history only; current replacements explicitly cover complete contract and all21 historical responses. GLM complete contract/history covered. No code execution claimed by reviews.",
+  "owner_disposition_receipt": "/Users/max/koskadeux-state/s1656/s1714-workspace-55690c7a-glm-deepseek-completion-owner-read.json",
+  "owner_disposition_receipt_sha256": "e05984fb1847b464923400f53e8f6c54144ae4fb07ddb443b89606501dd6f7a0",
+  "cc_dispositions": {
+    "L1_L2": "Implementation and actual-schema/repository-suite proof remain mandatory; no existing MP247 acceptance or toy-test substitution.",
+    "N1": "Use stripe_events table/raw-SQL for status; do not invent ORM attribute. Correct attribution in build instructions; preserve frozen reviewed bytes.",
+    "N2": "Preserve raw captures and authored-extraction provenance separately; no evidence rewriting to clear whitespace.",
+    "Q1": "Explicit corrected unregistered available-compatible200 versus registered/qualifying-uncertain500 matches contract.",
+    "BETTER": "Overbroad authority-before-any-shape phrase conflicts with its own SIMPLER/Q1 and exactspec331/419. Read as post-core-discriminator authority-before-mutable-Transaction checks only. No authority-first alternative or destructive rollback authorized."
+  },
+  "scope": "Entire frozen contract and B01-B18; exact17 backend targets, complete prior1990-node reconciliation plus all newly required tests. No filed-work expansion.",
+  "implementation_accepted": false,
+  "integration_gate3_accepted": false,
+  "runtime_authorized": false,
+  "release_complete": false,
+  "next": "Obtain Vulcan full-read concurrence and bind exact final MP request to this decision. Mars dispatches isolated MP continuation from e621 only; separate environment follows complete backend verification, then unanimous combined Gate3. Preserve run25 and genuine phase order."
+}

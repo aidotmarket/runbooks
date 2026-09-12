@@ -1,0 +1,28 @@
+{
+  "at": "2026-09-12T18:14:15.711941+00:00",
+  "status": "confirmed_interim_public_capture_failure_not_release",
+  "finding": "Order PI populated while linked Transaction PI NULL; all seven identity/money/currency equality comparisons true; actual signed capture fails durable reverse-binding check.",
+  "next_requirement": "Source correction and signed same-event recovery/full public flow; no seeded capture rows or weakened binding checks.",
+  "evidence": [
+    {
+      "path": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-r3.json",
+      "sha256": "96055dcac9c371ae5cb5e385b936f53de61856b0455752bfd1377156ec2ae1a6"
+    },
+    {
+      "path": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-diagnosis.json",
+      "sha256": "0b43d4a7b7cece5adea0138267994966de98fea98192a757f48ff806b64c88ee"
+    },
+    {
+      "path": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-binding.json",
+      "sha256": "f816ab86606355e5ad5d4067437bf7e2fde57825179ddc84b2e283830000b697"
+    },
+    {
+      "path": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-binding.log",
+      "sha256": "d66c668fa7c7bee469b923554586294ec02e716866f1484ceeb4c2c75298aaec"
+    },
+    {
+      "path": "/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-capture-source-provenance.json",
+      "sha256": "6d966ad3448184fd97fa1a240edbf99291838b4ade03a6a76380967606a81038"
+    }
+  ]
+}
