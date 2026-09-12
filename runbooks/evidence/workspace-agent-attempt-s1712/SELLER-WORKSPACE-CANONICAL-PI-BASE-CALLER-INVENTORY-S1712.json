@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-12T19:00:12.323872+00:00",
+  "cwd": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0",
+  "head": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "command": [
+    "rtk",
+    "proxy",
+    "rg",
+    "-n",
+    "--glob",
+    "*.py",
+    "mark_paid|bind_initial_order_payment_intent",
+    "app",
+    "tests"
+  ],
+  "exit_code": 0,
+  "stdout": "app/services/order_service.py:809:    async def mark_paid(\ntests/test_s1097_order_fulfillment_scoping.py:124:async def test_mark_paid_snapshots_access_window_once_at_confirmation_time():\ntests/test_s1097_order_fulfillment_scoping.py:147:        await service.mark_paid(order_id, \"pi_test\", auto_commit=False)\napp/api/v1/endpoints/webhooks.py:683:                            await order_service.mark_paid(\napp/api/v1/endpoints/checkout.py:246:            await order_service.mark_paid(order[\"id\"], mock_payment_intent_id, auto_commit=False)\ntests/test_notification_events.py:132:    await service.mark_paid(order_id, \"pi_1\", auto_commit=False)\ntests/test_notification_events.py:563:    mark_paid_mock = AsyncMock(return_value={\"id\": order_id})\ntests/test_notification_events.py:567:        lambda db: SimpleNamespace(mark_paid=mark_paid_mock),\ntests/test_notification_events.py:578:    assert mark_paid_mock.await_args.args == (order_id, \"pi_1\")\ntests/integration/test_webhook_canonical_payment.py:153:    async def mark_paid(actual_order_id, pi_id):\ntests/integration/test_webhook_canonical_payment.py:159:    paid = AsyncMock(side_effect=mark_paid)\ntests/integration/test_webhook_canonical_payment.py:164:    monkeypatch.setattr(webhooks, \"OrderService\", lambda _: SimpleNamespace(mark_paid=paid))\ntests/integration/test_webhook_canonical_payment.py:287:    async def mark_paid(actual_order_id, pi_id):\ntests/integration/test_webhook_canonical_payment.py:292:    paid = AsyncMock(side_effect=mark_paid)\ntests/integration/test_webhook_canonical_payment.py:296:    monkeypatch.setattr(webhooks, \"OrderService\", lambda _: SimpleNamespace(mark_paid=paid))\napp/services/order_service_updated.py:16:# Updated mark_paid method for P2.2:\napp/services/order_service_updated.py:17:async def mark_paid(\ntests/test_webhooks.py:1727:        monkeypatch.setattr(webhooks, \"OrderService\", lambda _: SimpleNamespace(mark_paid=paid))\napp/services/order_service_patch.py:2:Patch for OrderService.mark_paid method to integrate with P2.2 Escrow Hold State\napp/services/order_service_patch.py:5:# This is the updated mark_paid method that should replace the existing one:\napp/services/order_service_patch.py:7:async def mark_paid(\ntests/test_e2e_stripe_isolation.py:243:    order_service.mark_paid = AsyncMock()\ntests/test_e2e_stripe_isolation.py:258:    order_service.mark_paid.assert_not_awaited()\ntests/test_webhook_audit.py:273:    order_service.mark_paid = AsyncMock(return_value={\"id\": order_id})\ntests/test_webhook_audit.py:287:    order_service.mark_paid.assert_awaited_once_with(UUID(order_id), \"pi_test_09\")\ntests/test_webhook_audit.py:521:    order_service.mark_paid = AsyncMock(return_value={\"id\": order_id})\ntests/test_webhook_audit.py:535:    order_service.mark_paid.assert_awaited_once()\ntests/test_webhook_audit.py:647:        order_service.mark_paid = AsyncMock(return_value={\"id\": order_id})\ntests/test_webhook_audit.py:661:    order_service.mark_paid.assert_awaited_once_with(UUID(order_id), \"pi_gate3\")\ntests/test_webhook_audit.py:667:    order_service.mark_paid.assert_awaited_once()\n",
+  "stderr": "",
+  "status": "BASE_CALLER_TEXT_INVENTORY_ONLY_NOT_FINAL_GATE",
+  "limits": "Text matches require manual classification and alias/dynamic dispatch audit on final source. The new helper is not yet implemented."
+}

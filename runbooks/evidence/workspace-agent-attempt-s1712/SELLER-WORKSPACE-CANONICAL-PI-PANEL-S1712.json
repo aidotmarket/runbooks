@@ -1,0 +1,151 @@
+{
+  "at": "2026-09-12T19:22:21.636086+00:00",
+  "candidate": "e3b8b08813f1476910422c4233fee92360409cb7",
+  "packet_sha256": "e01727bab5939a87f9a520696399964a773f9898ab5d31b3918c821c58100d46",
+  "status": "ALL_THREE_FULL_SCOPE_TERMINAL_SEMANTIC_SUCCESSOR_REQUIRES_FRESH_REVIEW",
+  "owner_verification": "/Users/max/koskadeux-state/s1656/s1714-e3b8b088-full-panel-owner-verification.json",
+  "owner_verification_sha256": "855e55a0aeb450e6066bc0d0c3e884d82ab21d4861b16b4a5adeb9e045637461",
+  "owner_verification_full_read": true,
+  "owner_questions": "/Users/max/koskadeux-state/s1656/s1714-canonical-pi-review-questions-draft.md",
+  "owner_questions_sha256": "2c691ded1469099199908050dbd67fd018fa5e7723bf6e893c2d07003670196b",
+  "owner_questions_full_read": true,
+  "required_voters": [
+    "cc",
+    "glm",
+    "deepseek"
+  ],
+  "required_review_scope": "complete current contract and all26 historical responses; no carried votes",
+  "responses": [
+    {
+      "member": "deepseek",
+      "path": "/Users/max/council/deepseek/response-20260912-204045-957744.md",
+      "sha256": "92a588d292a052d5fe888d052c8b7190a9099de22220fdec3ff9fec043898f22",
+      "bytes": 14437,
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_MANDATES",
+      "blocking_high_medium": false,
+      "coverage_complete": false,
+      "coverage_limit": "Retained contract only spotchecked;26 historical responses indices only; explicitly not full-scope approval",
+      "required_vote_eligible": false,
+      "findings": [
+        "duplicate PI census/remediation",
+        "retain old200 forged-N regression",
+        "agent collision/provider-spend resolution",
+        "caller enumeration gate"
+      ]
+    },
+    {
+      "member": "deepseek",
+      "path": "/Users/max/council/deepseek/response-20260912-204506-597833.md",
+      "sha256": "65834b43dade0b44b7071b55928b95b87dfdadb25e86c1c8d6eaec01ef59913a",
+      "bytes": 25711,
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_MANDATES",
+      "blocking_high_medium": false,
+      "coverage_complete": false,
+      "required_vote_eligible": false,
+      "coverage_limit": "Historical response bodies not all read; completion required"
+    },
+    {
+      "member": "deepseek",
+      "path": "/Users/max/council/deepseek/response-20260912-205028-323589.md",
+      "sha256": "4cbe7d4ca051071d68f3c4b8c214863a04e08ccf4655242fe1e27cb828fd4f75",
+      "bytes": 26268,
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_MANDATES",
+      "blocking_high_medium": false,
+      "coverage_complete": true,
+      "required_vote_eligible": true
+    },
+    {
+      "member": "glm",
+      "path": "/Users/max/council/glm/response-20260912-204045-531244.md",
+      "sha256": "aabe967e57bb7104ad5ff9a6474029110bc2dce8f72268be3811f349dab2e874",
+      "bytes": 13521,
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "blocking_high_medium": false,
+      "coverage_complete": false,
+      "required_vote_eligible": false,
+      "coverage_limit": "Historical response bodies not all read; completion required"
+    },
+    {
+      "member": "cc",
+      "path": "/Users/max/council/cc/response-20260912-204046-397140.md",
+      "bytes": 21898,
+      "sha256": "a973ba9cc47cc41303a597b51c11896469b7b3b0bb3516fe1267c5bc69e69bff",
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "blocking_high_medium": false,
+      "coverage_complete": false,
+      "required_vote_eligible": false,
+      "coverage_limit": "Delta plus five historical responses sampled; retained477/full26 not read; completion requested by Mars4702"
+    },
+    {
+      "member": "glm",
+      "path": "/Users/max/council/glm/response-20260912-205453-683019.md",
+      "bytes": 14952,
+      "sha256": "c40322922e623a6987aa962309042a2b60c9a80e3e774874fe0b6cbdf706d329",
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "blocking_high_medium": false,
+      "coverage_complete": true,
+      "required_vote_eligible": true
+    },
+    {
+      "member": "cc",
+      "path": "/Users/max/council/cc/response-20260912-205848-528601.md",
+      "bytes": 35293,
+      "sha256": "0fa8daffc7d41ebb04c603e1ba913b97a111f8be0736535466356a0ff724aa05",
+      "full_response_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "blocking_high_medium": false,
+      "coverage_complete": true,
+      "required_vote_eligible": true,
+      "coverage_method": "CC personally full588spec;26fulltext through disclosed delegated extraction integrated againstspec, not personalverbatim",
+      "terminal_verified": true
+    }
+  ],
+  "design_accepted": false,
+  "implementation_accepted": false,
+  "dispatch_verified_at": "2026-09-12T18:43:49.462782+00:00",
+  "dispatches": [
+    {
+      "member": "cc",
+      "request": "/Users/max/council/cc/request-20260912-204046-397140.md",
+      "request_sha256": "a1789431f810aa1298764f481dd8278af47666fc95a41a4e5dc5b249c0658d97",
+      "response": "/Users/max/council/cc/response-20260912-204046-397140.md",
+      "live_launcher_pid": 14778,
+      "normal_turns": 30
+    },
+    {
+      "member": "glm",
+      "request": "/Users/max/council/glm/request-20260912-204045-531244.md",
+      "request_sha256": "a1789431f810aa1298764f481dd8278af47666fc95a41a4e5dc5b249c0658d97",
+      "response": "/Users/max/council/glm/response-20260912-204045-531244.md",
+      "live_launcher_pid": 14703,
+      "normal_turns": 30
+    },
+    {
+      "member": "deepseek",
+      "request": "/Users/max/council/deepseek/request-20260912-204045-957744.md",
+      "request_sha256": "a1789431f810aa1298764f481dd8278af47666fc95a41a4e5dc5b249c0658d97",
+      "response": "/Users/max/council/deepseek/response-20260912-204045-957744.md",
+      "live_launcher_pid": 14709,
+      "normal_turns": 30
+    }
+  ],
+  "coverage_completion": {
+    "member": "deepseek",
+    "request": "/Users/max/council/deepseek/request-20260912-204506-597833.md",
+    "request_sha256": "ad54786a059788437890c217074c4ceaed703e814248f13d3a5a45bfc963e10c",
+    "response": "/Users/max/council/deepseek/response-20260912-204506-597833.md",
+    "live_launcher_pid": 18597,
+    "normal_turns": 30,
+    "same_candidate": true,
+    "same_packet": true,
+    "verified_at": "2026-09-12T18:47:42.446831+00:00"
+  },
+  "mandate_disposition_draft": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-CANONICAL-PI-MANDATE-DISPOSITION-DRAFT-S1712.md",
+  "semantic_successor_proposal": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-AND-CALLER-SUCCESSOR-PROPOSAL-S1712.md"
+}

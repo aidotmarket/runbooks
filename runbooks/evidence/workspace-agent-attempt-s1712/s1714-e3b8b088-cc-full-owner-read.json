@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-12T19:18:55.426435+00:00",
+  "path": "/Users/max/council/cc/response-20260912-205848-528601.md",
+  "bytes": 35293,
+  "sha256": "0fa8daffc7d41ebb04c603e1ba913b97a111f8be0736535466356a0ff724aa05",
+  "candidate": "e3b8b08813f1476910422c4233fee92360409cb7",
+  "verdict": "APPROVE_WITH_NITS",
+  "full_owner_read": true,
+  "reviewer_coverage": "Personally full588spec; all26history fulltext through disclosed delegated extraction and integrated obligation crosscheck; retained prior backend source audit. No runtime proof.",
+  "low_nits": [
+    "OnePI-oneOrder/Tx premise and real census",
+    "Historical R3 snapshot label",
+    "Cosmetic migration cross-track naming"
+  ],
+  "owner_corrections": [
+    "Additive paragraph inaccurate ranges: original owner difflib proof5headerinsert+106append unchanged477 applies",
+    "Agent lifecycle assurance is superseded by concrete source discoveries and new semantic successor; no acceptance/MP dispatch from this vote"
+  ],
+  "implementation_accepted": false
+}
