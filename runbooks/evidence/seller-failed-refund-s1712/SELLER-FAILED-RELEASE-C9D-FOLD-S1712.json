@@ -1,0 +1,27 @@
+{
+  "candidate": "07aca0f238d36efa1dbdbe54f0612265f0da4054",
+  "parent": "4b46150334bb8b7601722a352cee44336c212867",
+  "product_schema": "c9d8840b72c0fa208e9cf2eb5506767845dee9ac",
+  "pushed": true,
+  "observed_at": "2026-09-12T05:02:25.863167+00:00",
+  "source_sha256": {
+    "bin/check-settlement": "a2a2dc3f630685d998437c453f873c40f5cb268ffd547093899e777e3cc6ec39",
+    "tests/test-refund-proof-contract.py": "17be1b064091cfada6222778598cdcd30afcb902656ffbf958109ca15bbc0102"
+  },
+  "corrections": [
+    "failed pair_receipt_sha256 equals failed envelope digest; separate failure digest retained",
+    "exact one persisted s1681 authority receipt matches canonical immutable hash for failed and prior-negative roles",
+    "fixed merchant UUID3ed61c38-79c0-4cf7-8011-5a781ff5f3b7",
+    "both current backend deployment source pins and DB authority pins bound before provider writes",
+    "transaction PaymentIntent reciprocal binding verified"
+  ],
+  "validation": {
+    "refund_contracts_passed": 60,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-FAILED-RELEASE-C9D-CONTRACT-TESTS-S1712.log",
+    "log_sha256": "650fb5dedce8adb50581523fabc2a7c5c50fec5d07659f364eed2439fe3d7192",
+    "delivery_regression": "108 passed on parent4b461503; not represented as a rerun on this follow-up"
+  },
+  "unchanged_limits": "No live database/provider/runtime execution; requires Mars normal integration, full exact tests and unanimous Gate3."
+}

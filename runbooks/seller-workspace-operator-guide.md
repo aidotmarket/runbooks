@@ -257,6 +257,12 @@ F2 design is accepted in Mars decision `8b4a315ddfc5325959190ca6ae1b5e07fc915b35
 
 Before release, prove full-ancestry and repeat migration convergence on disposable PostgreSQL, refusal of missing/altered/disabled/misbound definitions, draft edit/delete behavior, persisted posting with exact balances, posted entry AND line UPDATE/DELETE refusal, all eleven failing positive money paths and all six shared finance posting callers. Exercise post-then-mutate behavior and the separate manual path. Those runtime results are distinct from design approval and the temporary trigger-semantic probe. Final exact product/environment candidates need unanimous CC/GLM/DeepSeek review. Freeze auto-deployment before product merge, quiesce old writers, reconcile unknown provider outcomes, migrate with dispatch disabled and verify readiness before enabling, following the cutover runbook. No harness bypass or historical financial backfill is part of this correction.
 
+## Failed paid TEST run recovery
+
+Use the [failed TEST refund recovery runbook](seller-failed-test-refund-recovery.md) for the exact failed-role command, source/authority checks, immutable evidence sequence, normal provider/application accounting proof, interrupted-request reconciliation and preservation of an already successful positive payout. It documents delegated harness implementation `07aca0f238d36efa1dbdbe54f0612265f0da4054`, with60 current refund contracts and108 delivery regressions on its parent. Mars still owns integration and exact final review; these isolated tests are not a paid run, product acceptance or deployment.
+
+The protected v1 run25 and ordinary v2 hold-wait result remain outside failed-run cancellation. A terminal v2 settlement exception can be recorded only through the reviewed owner hook after both genuine holds. A successful P Transfer is preserved if N fails, and an unpaid sibling remains protected until actual expiration/no-capture is proved. Missing or suppressed accounting effects, unknown refund dispatch or changed immutable records keep the checkpoint open. Follow the linked runbook before diagnosis or an upgrade; do not reconstruct the procedure from a short status message.
+
 ## Current release and evidence index
 
 Repository artifacts are durable; local receipts must be retained with the handoff. All receipt paths below are relative to the evidence root's `outputs/`.

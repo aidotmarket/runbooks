@@ -594,6 +594,15 @@
 - Error signatures: none
 - Status: current
 
+## Failed TEST purchase refund and recovery
+- Path: `runbooks/seller-failed-test-refund-recovery.md`
+- Purpose: Status: implementation delivered for integration on September 12, 2026, at `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns normal P/N integration and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: S1681 failed paid run release, Failed positive negative purchase recovery
+- Error signatures: normal atomic refund effects unproved; preserve FAILED checkpoint, persisted canonical authority receipt differs
+- Status: current
+
 ## Gate Procedure
 - Path: `runbooks/gate-procedure.md`
 - Purpose: **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
