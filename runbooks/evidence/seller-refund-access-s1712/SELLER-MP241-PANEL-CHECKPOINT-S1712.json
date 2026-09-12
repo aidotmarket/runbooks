@@ -1,0 +1,47 @@
+{
+  "at": "2026-09-12T08:14:27.467305+00:00",
+  "candidate": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "reviews": {
+    "cc": {
+      "response": "/Users/max/council/cc/response-20260912-093657-826183.md",
+      "sha256": "786f1774f44bbcea26e114741782da4005dcc9d43aed969d823ffed01281de5a",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true,
+      "high_medium_findings": 0,
+      "disposition_A": "not applicable at exact supported source",
+      "disposition_B": "finite applicable chain accepted; not full graph certification"
+    },
+    "deepseek": {
+      "response": "/Users/max/council/deepseek/response-20260912-093658-170067.md",
+      "sha256": "4427139c05d2d57718354235dd5eda106e6de0fdc4c1386de7e702ec79547ec5",
+      "verdict": "APPROVE_WITH_MANDATES",
+      "full_response_read": true,
+      "high_medium_findings": 0,
+      "disposition_A": "not applicable at exact supported source",
+      "disposition_B": "finite applicable chain accepted; not full graph certification"
+    },
+    "glm": {
+      "response": "/Users/max/council/glm/response-20260912-093658-607837.md",
+      "sha256": "d5024293783d3ffd86a6a85379ebcec51beb6e21cdec104644c35231b4540fc8",
+      "verdict": "REQUEST_CHANGES",
+      "full_response_read": true,
+      "medium_findings": 1,
+      "low_findings": 1,
+      "disposition_A": "not applicable at exact supported source",
+      "disposition_B": "partially accepted; omitted scheduled writer blocks applicable-chain closure"
+    }
+  },
+  "unanimous": false,
+  "remote_ref_receipt": "SELLER-MP241-REMOTE-REF-S1712.json",
+  "release_acceptance": false,
+  "remaining": [
+    "Bounded scheduled-writer and hosted-CI correction, provenance supersession, MP implementation and exact new-candidate review",
+    "GLM full product review and owner disposition",
+    "separate bridge candidate review and deployment",
+    "final exact environment Gate3",
+    "production trigger freeze and old-writer quiescence",
+    "genuine P/N holds and owner-released Workspace W window",
+    "external live release acceptance"
+  ],
+  "status": "all three responses received; product changes required"
+}
