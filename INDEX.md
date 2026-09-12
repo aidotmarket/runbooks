@@ -920,11 +920,11 @@
 
 ## Seller purchase access after refunds
 - Path: `runbooks/seller-refund-access-diagnosis.md`
-- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Exact product source: `c9d8840b72c0fa208e9cf2eb5506767845dee9ac` (MP237 terminal). Prepared 2026-09-12. This is a source review and proposed finite acceptance map, not a product patch, Council vote, executed PostgreSQL reproduction, or release certification. F4 Round2 remains frozen with its existing reviewers; MP238 must not receive this as a prompt mutation.
+- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 after terminal MP239. The current assessment below supersedes the explicitly historical MP237 map. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
 - Owner: `vulcan`
 - Last verified: `2026-09-12`
 - Aliases: Partial refund download refresh, Seller delivery credential diagnosis
-- Error signatures: DELIVERY_CREDENTIAL_GENERATION_STALE, DELIVERY_REFRESH_UNAVAILABLE, DELIVERY_REFRESH_ACCESS_REJECTED
+- Error signatures: DELIVERY_CREDENTIAL_GENERATION_STALE, DELIVERY_REFRESH_UNAVAILABLE, DELIVERY_REFRESH_ACCESS_REJECTED, 'oauth_provider' is an invalid keyword argument for User
 - Status: current
 
 ## Seller SEO Validation Runbook

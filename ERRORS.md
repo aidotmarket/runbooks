@@ -1,5 +1,9 @@
 # Error signatures
 
+## `'oauth_provider' is an invalid keyword argument for User`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
 ## `401 or 403`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)

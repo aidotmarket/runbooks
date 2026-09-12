@@ -9,15 +9,35 @@ error_signatures:
   - DELIVERY_CREDENTIAL_GENERATION_STALE
   - DELIVERY_REFRESH_UNAVAILABLE
   - DELIVERY_REFRESH_ACCESS_REJECTED
+  - "'oauth_provider' is an invalid keyword argument for User"
 ---
 
 # Seller purchase access after refunds: diagnosis and upgrade runbook
 
-Owner: Vulcan S1712, coordinating with Mars S1714. Exact product source: `c9d8840b72c0fa208e9cf2eb5506767845dee9ac` (MP237 terminal). Prepared 2026-09-12. This is a source review and proposed finite acceptance map, not a product patch, Council vote, executed PostgreSQL reproduction, or release certification. F4 Round2 remains frozen with its existing reviewers; MP238 must not receive this as a prompt mutation.
+Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 after terminal MP239. The current assessment below supersedes the explicitly historical MP237 map. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+
+## Current exact candidate and remaining acceptance work
+
+MP239 finished and pushed [683dfc82d542ed45173cd8fbde53e254b2be263c](https://github.com/aidotmarket/ai-market-backend/tree/683dfc82d542ed45173cd8fbde53e254b2be263c) under the unanimously accepted F4 decision `af1de97030d090414fd7f09aafb5d005eeb9434a`. Its manifest explicitly says `pushed_exact_head_tested_acceptance_incomplete`. Independent verification reconciled 36 source files, 321 migration sources, two protected files, 67 artifacts and 62 retained predecessor artifacts; the canonical branch and clean checkout match. Core results are 367 passed/10 failed; adjacent results are 284 passed/two failed, with no skips or errors. Six failures reproduce unrelated baselines; six actual agent-route cases fail at the OAuth user loader. All 297 referenced results in the 50-row requirements matrix match JUnit, but a matching result does not establish complete requirement coverage.
+
+The [exact artifact assessment](evidence/seller-refund-access-s1712/SELLER-MP239-EXACT-ARTIFACT-VERIFICATION-S1712.json) preserves hashes and coverage limits. The continuation manifest SHA256 is `9cf91b2cbe8e4f0059788fd7c697c608722184ac7c33023a1ec6b34f05f7fb27`. The full core JUnit SHA256 is `00d94c0d1638b0a3ea22575e2aa762ae91328e4efd1b22985eafef785e8d4d88`; its log SHA256 is `473c95e2c5e8a24be060699d9bcc707ae522d94af853f06bc74571685dbaec24`. These are retained execution results, not tests rerun by this documentation change.
+
+Two concrete defects need correction:
+
+1. **Actual agent authentication fails before access authorization.** At this candidate, `app/api/v1/agent/router.py:514–544` verifies the bearer token, selects every database user column and constructs `User(**dict(row))`. Full migration ancestry includes `oauth_provider` and `oauth_id`, which the mapped User constructor does not accept. The six real data/request/artifact route cases fail from this common cause (four direct/chained exceptions; two closed-access cases wrap it as HTTP500). Read the [exact diagnosis](evidence/seller-refund-access-s1712/SELLER-MP239-OAUTH-LOADER-DIAGNOSIS-S1712.json). It was captured while the build was still running; the final candidate and JUnit hashes above are unchanged. Mars owns F5 candidate `35679c650a181f6d2bdf9ad762166555d2d8ccc4`, under full CC/GLM/DeepSeek review at this checkpoint. Its only additional product file is the router helper, using normal mapped ORM selection by verified subject. Preserve token verification, invalid/missing token and unknown-user refusal; do not change the User model, schema or OAuth policy. Actual helper/service route tests must pass without a mocked user loader.
+2. **Non-device S3 GET can mint credentials after download admission should refuse.** At `orders.py:532–537`, GET omits `access_expires_at`; line584 treats zero `max_downloads` as three. Lines632–646 call the real signed-URL builder even when `can_download` is false from exhausted counters. `_assert_current_access` checks revocation/linked transaction, and `_get_purchased_version_for_delivery` checks the version; neither checks expiry/counts. `order_service.py:514–568` actually assumes the seller role and presigns. This is a source diagnosis, independently confirmed by Mars4234, not an executed exploit. Enforce authoritative existing admission before credential creation/disclosure; prove expired, zero-limit and exhausted refusal with zero external role/presign attempts and a valid positive case with unchanged counters. Keep the reference public-link branch's distinct existing semantics explicit. The correction fits the existing F4 endpoint/service targets. [Exact source hashes and test obligations](evidence/seller-refund-access-s1712/SELLER-MP239-GET-CREDENTIAL-GUARD-S1712.txt).
+
+Other explicitly incomplete proof remains mandatory: API-cost shared-lock contention (distinct-entity progress is not contention), applicable nullable-FK assignment barriers with source-specific dispositions, positive Workspace issue/file after normal partial refund, raw single/multi-file/source and nonpartial cases, device S3 informational GET, and actual MCP duplicate purchase refusal with unchanged identity/no charge. Do not invent production account relationships to make a lock test pass. Preserve all 19 original posting positives and real provider fail-fast guards. The alternate VC callback and external raw-token consumer limits remain release requirements wherever the actual production transport depends on them.
+
+MP remains the product and product-test author; Mars owns its accepted finite amendment and dispatch. No competing build, active-prompt mutation, protected run25 change or user permission request is implied. Exact product/environment Gate3, genuine holds, production freeze/quiescence and outside verification remain open.
+
+## Historical MP237 source map
+
+The following detailed graph and proposed scope describe `c9d8840b72c0fa208e9cf2eb5506767845dee9ac` before accepted F4 implementation. Its present-tense descriptions are historical observations; use the current candidate assessment above for outstanding work. In particular, the old three-file Round2 and seven/eight-file scope discussion is not the current F5 manifest.
 
 Source copies and SHA256 inventories are under `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/f4-source-trace-s1712/`, in `SOURCE.json` and `SOURCE-ADDITIONAL.json`. The pinned [backend source](https://github.com/aidotmarket/ai-market-backend/tree/c9d8840b72c0fa208e9cf2eb5506767845dee9ac) is the portable source of truth. Every line below refers to that commit, not an evolving checkout. Source acquisition used `rtk proxy git show <commit>:<path>`; bounded cross-reference searches used `rtk proxy git grep ... <commit> -- app tests`.
 
-## Current findings and proposed correction scope
+## Historical findings and proposed correction scope
 
 The three-file F4 Round2 is insufficient for the stated end-to-end retained-access policy. The ordinary device S3 refresh path additionally requires `app/api/v1/endpoints/trust_websocket.py`. Existing agent artifact/request-access and MCP access discovery have additional partial-status exclusions, while duplicate agent purchase metadata hides an otherwise available data endpoint. These are separate customer surfaces, not extra hops in the S3 callback.
 
@@ -87,7 +107,7 @@ When a partially refunded buyer cannot download, first bind order buyer/listing/
 Do not clear partial/refund status, synthesize delivery timestamps, repurchase, broaden device ownership, replace immutable object identity, or fabricate a pending refresh tuple to recover service. MP applies the single accepted finite amendment only after the full required Council panel accepts the exact revised spec. MP238 has now terminated at `7890b0c0bc6a5fed4d50b796e11fda9e49102c51`; it did not change the access files mapped here, and its completion is not F4 acceptance. Keep run25 untouched; release runtime changes still require exact Gate3, trigger freeze and old-writer quiescence. Upgrade this map with the accepted source and actual evidence after the implementation; do not replace its pending tests with a healthy-process claim.
 
 
-## Latest exact build and related procedures
+## Historical MP238 checkpoint and related procedures
 
 MP238 source `7890b0c0bc6a5fed4d50b796e11fda9e49102c51` corrected the previously reported orderless refund transition, quote lock order and matched-authority source-pin retry defects. Independent verification checked all62 retained artifact hashes, all28 exact-commit source hashes, the canonical remote and clean checkout, and recounted JUnit:266 core passes/5 failures/0 skips;284 adjacent passes/2 failures/0 skips. Six failures reproduce the prior baseline; the remaining partial-refresh route failure is unresolved. No full-release or Gate3 success is implied. The [source-bound assessment](evidence/seller-refund-access-s1712/SELLER-MP238-TERMINAL-ASSESSMENT-S1712.json) records commands, logs, hashes and coverage limits.
 
