@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-09-12T22:30:08.902377+00:00",
+  "candidate_only": true,
+  "source_files": {
+    "app/services/transaction_service.py": "8c60abf32d3acf3cd71fc780a38a4127379cd527dc2b3c8fc46f43e1142ae4c9",
+    "app/services/mcp_tools.py": "d9d5286b6f5695577bdf0a476ed4b4ad90f73b4989f2fad191b245c785ca4dcd",
+    "app/services/billing_service.py": "3660e6c89c47f6ae49b46ef71ce3586794980b18b304bda922eb10ce46bb2e59",
+    "app/services/order_money_service.py": "424cda70bfd19cc235743cdda7ff4b6ed63f78f6d0b7c4d5a6dfa812a9ddc56b",
+    "app/core/stripe_async.py": "340f3d621bb68ae234c334b68aca824105a2b71cbfe33c638220b2068006c70a",
+    "app/api/v1/endpoints/webhooks.py": "58f836ecc8a4b2b53dc69e1b55cefe827b3c54b2f8d4b5606382af6315587aee",
+    "app/routers/mcp_sse.py": "c64f595c1df67ae1c4d858226134369bd52d3bdb632062bd9c7f3fb51682b223",
+    "app/api/v1/endpoints/mcp_server.py": "eee0dfff316b75c202bc968e9470540169f8dbb69730b84f97b1e145484770cf",
+    "app/main.py": "9fb73c627e228a8b96de60346e3fab2716d067bea3e9cc1fcdd29e9bace172b8",
+    "app/mcp/marketplace_remote.py": "0e39ab55529603dfa8e8b58cd2f8d4226ca62048c11c2aa742e0c48fa986c7ab",
+    "app/mcp/marketplace_auth.py": "b4c8a661ef2ee34b131848402b389b8ab91cce19b73e61b73ffedc11453e53b7",
+    "app/services/mcp_marketplace_tools.py": "db3ad3f606fa9e3db60a9705c3d85e93ef670a7a6dc8aff7d7ba67142013a5d4",
+    "app/routers/finance_agent.py": "55714fba2d22abea5752c5b66cd4ff401d65a6e2da4c22d428ac6fdd8850d47c",
+    "app/schemas/finance.py": "e9415ba3d0929c9e14db628f3ab45163afb30b7dc6df68b02d9d291982e1638f",
+    "app/services/finance/policy_engine.py": "09eb1c9025c5c2b25808cb6ad8e4083f907f376184046721dacec5d4540c0c11",
+    "app/api/deps.py": "54008006719bf2a984508d469cd38a98a9ddc57e3940aacc1315a9395a1d2367",
+    "app/allai/agents/finance/agent.py": "dffad4d03cefb3b507f0f11dec4492c75e9790a835f26998c3f119786cc85c12",
+    "app/tasks/scheduled.py": "1e40b2c2290ee20da11f4f59e58e3e2de200332f418ec935bb909e18a7caeaeb",
+    "app/core/celery_app.py": "400d8de8b3064caa3bd6954947f8a1e5f1fe84c1e2de1698528d3ed694ff0b61"
+  },
+  "caller_search": {
+    "command": [
+      "rtk",
+      "proxy",
+      "rg",
+      "-n",
+      "reconcile_agent_checkout|create_agent_checkout|mcp_tools|check_order_status|max_network_retries|StripeClient",
+      "app",
+      "scripts"
+    ],
+    "cwd": "/var/tmp/koskadeux/minimal-bridge-worktrees/5955e4e15ab5-3d61e3",
+    "exit": 0
+  }
+}

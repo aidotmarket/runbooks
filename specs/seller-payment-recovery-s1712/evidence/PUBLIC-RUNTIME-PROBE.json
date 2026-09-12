@@ -1,0 +1,30 @@
+{
+  "at": "2026-09-12T22:34:13.348977+00:00",
+  "authenticated": false,
+  "responses": [
+    {
+      "url": "https://api.ai.market/health",
+      "method": "GET",
+      "status": 200,
+      "body": "{\"status\":\"healthy\",\"scheduler_mode\":\"apscheduler\",\"timestamp\":\"2026-09-12T22:34:13.104773+00:00\",\"alembic_head\":\"f0e47ebd81ee\",\"alembic_current\":\"f0e47ebd81ee\",\"alembic_drift\":false,\"schema_model_tables\":264,\"schema_missing_table_count\":0,\"schema_unmapped_table_count\":42,\"schema_known_retired_count\":0,\"schema_drift\":false,\"model_schema_drift\":false}"
+    },
+    {
+      "url": "https://api.ai.market/mcp/marketplace/mcp",
+      "method": "GET",
+      "status": 404,
+      "body": "{\"detail\":\"Not Found\"}"
+    },
+    {
+      "url": "https://api.ai.market/api/v1/finance/agent/audit-log",
+      "method": "GET",
+      "status": 401,
+      "body": "{\"detail\":\"Invalid or missing Internal API Key \u2014 send header X-Internal-API-Key\"}"
+    },
+    {
+      "url": "https://api.ai.market/api/v1/checkout/verify/cs_probe_no_purchase",
+      "method": "GET",
+      "status": 401,
+      "body": "{\"detail\":\"Authentication required\"}"
+    }
+  ]
+}
