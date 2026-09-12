@@ -22,6 +22,8 @@ For architecture, normal operations, exact API sequencing, diagnosis, safe teard
 
 Backendc3 and corrected environment43d67264 have complete implementation acceptance; runbooks PR188 merge0ec6bac7 records those final source/spec pins. Workspace Gate2 candidateb444332a now has unanimous full CC/GLM/DeepSeek design approval with nits and the exact owner decision recorded. The accepted build sequence is backend MP fromc3, then environment43d67264 against actual new backend source. This documentation fold does not claim fixture implementation, an owner window, protected-runtime repin or live acceptance. Read the [current operator procedure and immutable contract](seller-workspace-operator-guide.md#workspace-fixture-design-review-and-recovery-status) for the two-stage order authority, retained credential custody, reset preservation, response collection and future-instance diagnosis.
 
+MP247 has confirmed a fresh-start checkout expectation conflict: inherited canonical-default routing returns200 with both E2E flag values, while the accepted test required false403. The [documentary correction](seller-workspace-operator-guide.md#checkout-branch-correction-under-review) is under review with full raw failure evidence; no product/runtime edit or implementation acceptance follows from it. Independent backend qualification continues.
+
 The dates and earliest-window estimates in historical entries below are not current activation permission. Protected run25 and every required genuine hold/phase remain governed by Mars's explicit lifecycle transition. Current work continues under the existing cumulative $100 authority; no future handoff extension is inferred.
 
 ## Final cleanup confirmation
