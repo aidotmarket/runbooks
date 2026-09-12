@@ -1,0 +1,77 @@
+{
+  "at": "2026-09-12T19:30:58.863381+00:00",
+  "base": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "source_hashes": {
+    "tests/test_agent_tx.py": "af89393f94d65ace80e0e2df94ef2c5e3820121930a046db2be38218b2cae20e",
+    "tests/test_bq_biz_agent_beta_m2.py": "9ddf640d8234234f4e69c6faeceead0420269012f7275e4913f2a90c1019c08c",
+    "tests/test_refund_processing_protocol.py": "7e5a871fb2a165fe9280a1fd7f810a7a47477a5d1947eafa121c55604aa4cad4"
+  },
+  "affected_functions": {
+    "tests/test_agent_tx.py": [
+      {
+        "function": "test_create_agent_checkout_persists_pi_before_return_and_sets_pending",
+        "line": 131
+      },
+      {
+        "function": "test_duplicate_checkout_returns_cached_result",
+        "line": 171
+      },
+      {
+        "function": "test_requires_action_marks_failed_and_rolls_back_spend",
+        "line": 279
+      }
+    ],
+    "tests/test_bq_biz_agent_beta_m2.py": [
+      {
+        "function": "test_create_agent_checkout_persists_pi_and_sets_pending",
+        "line": 136
+      },
+      {
+        "function": "test_no_payment_method_returns_422_with_spend_rollback",
+        "line": 244
+      },
+      {
+        "function": "test_requires_action_path_cancels_pi_and_fails_tx",
+        "line": 266
+      }
+    ],
+    "tests/test_refund_processing_protocol.py": [
+      {
+        "function": "f6_pending_agent",
+        "line": 2391
+      },
+      {
+        "function": "test_f6_cleanup_actual_task_revalidation",
+        "line": 2469
+      },
+      {
+        "function": "test_f6_cleanup_refund_listener_order_barriers",
+        "line": 2506
+      },
+      {
+        "function": "test_f6_binding_changes_under_transaction_lock_refuse_without_order_reentry",
+        "line": 2588
+      },
+      {
+        "function": "test_f6_multicandidate_releases_previous_lock_chain",
+        "line": 2626
+      },
+      {
+        "function": "test_f6_cached_cleanup_candidate_normal_capture_and_listener_completion",
+        "line": 2655
+      },
+      {
+        "function": "test_f6_task_blocks_at_order_without_owning_transaction",
+        "line": 2729
+      }
+    ]
+  },
+  "findings": [
+    "Agent unit PI doubles provide only id/status and generic empty database results; incompatible with required exact durable attempt/provider identity",
+    "Two requires-action tests assert generic rollback_spend is called; successor explicitly forbids post-prepare generic release",
+    "F6 real checkout fixture reuses seeded PI and changes seed Order PI only after new checkout; native uniqueness fails before cleanup",
+    "F6 stale/unlinked and multi-candidate tests require actual cleanup and spend0 for newly produced agent purchases; successor excludes durable attempts, so preserve separately proven legacy positives plus new attempt-specific refusal/terminal reconciliation proofs"
+  ],
+  "limits": "Static source diagnosis, not an executed future failure. Current9645601d remains frozen under review; scope and test-semantic disposition required before MP.",
+  "bus": 4728
+}

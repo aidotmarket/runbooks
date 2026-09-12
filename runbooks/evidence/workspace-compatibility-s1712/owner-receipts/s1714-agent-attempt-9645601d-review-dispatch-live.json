@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-12T19:27:08.471457+00:00",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "live_wrappers": [
+    "47420 47150 00:59 /Library/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/max/koskadeux-mcp/scripts/council_dir.py start cc /Users/max/council/cc/request-20260912-212609-273844.md",
+    "47425 47150 00:59 /Library/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/max/koskadeux-mcp/scripts/council_dir.py start deepseek /Users/max/council/deepseek/request-20260912-212609-666347.md",
+    "47431 47150 00:58 /Library/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python /Users/max/koskadeux-mcp/scripts/council_dir.py start glm /Users/max/council/glm/request-20260912-212610-077478.md"
+  ],
+  "responses": {
+    "cc": "/Users/max/council/cc/response-20260912-212609-273844.md",
+    "glm": "/Users/max/council/glm/response-20260912-212610-077478.md",
+    "deepseek": "/Users/max/council/deepseek/response-20260912-212609-666347.md"
+  },
+  "votes": {},
+  "max_turns": 30,
+  "accepted": false,
+  "observation_correction": "Initial broad ps search included its own shell command; corrected by exact identified wrapper PIDs, no job restarted."
+}

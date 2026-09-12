@@ -1,0 +1,78 @@
+# COUNCIL REVIEW — BOUNDED MISSING-COVERAGE COMPLETION, BATCH 1/3 (REVIEW-04 … REVIEW-11)
+
+Artifact under retained review: `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04`, base `e3b8b08813f1476910422c4233fee92360409cb7`, pinned checkout `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`. Read-only; nothing modified; no tests, providers, migrations, locks or runtime state touched. Turn budget: ~29 of 30 used (this batch consumed the missing-reading turns; identity/spec/source/packet audit NOT repeated, per dispatch).
+
+**This batch is not a whole-history vote.** It completes verbatim reading of REVIEW-04…REVIEW-11 only; **REVIEW-12 through REVIEW-27 remain unread/pending** (16 bodies), and the retained REVISE stands on the retained blocker, not on this batch's silence.
+
+---
+
+## 1. Verdict
+
+**REVISE**
+
+Retained F1 (MEDIUM, blocking) is unchanged and no fix has been applied. Nothing read in REVIEW-04…11 establishes a *new* HIGH/MEDIUM against `9645601d…`, and nothing resolves F1. Two historical MEDIUMs found in this batch (REVIEW-08 MEDIUM-1, REVIEW-10 M1) are addressed by the current successor scope (`specs/…GATE2.md:227` names both `app/e2e/surgical_reset.py` **and** `app/e2e/teardown.py` with the same four-identity refusal), so they do not add blockers — but the divergence between REVIEW-10 and REVIEW-11 on the same SHA is a concrete counterexample to treating any single "no MEDIUM" as closure.
+
+---
+
+## 2. Findings (highest severity first)
+
+### F1 — MEDIUM (blocking, RETAINED) — `expected_binding` carrier convention is jointly unsatisfiable with two frozen `mark_paid` assertions; **line anchors corrected in this batch**
+- **Evidence (candidate `9645601d…`, anchors re-verified this batch, replacing my previous incorrect 770/774/803):** `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:622` ("Extend the normal webhook's validated checkout result and **OrderService.mark_paid with a keyword-only expected_binding argument** … Pass it directly from `_handle_checkout_completed` to the independent async `mark_paid` session"); `:626` ("Canonical callers missing `expected_binding` refuse"; legacy `None` only when both directions confirm no canonical Transaction); `:647` (D4: "**Existing money assertions** and duplicate None test branches **remain**"); `:227` (`tests/test_webhook_audit.py` classified only as "**narrow dedup fixture compatibility**"); and the "Exact changes and rationale" block ≈`:433-435` restricting `webhook_audit` edits to the 11 dedup tuples `(event_id,)`→`(event_id,None)`. The candidate *does* authorise the integration double `:773` and notification/access-window tests `:775`, but names no authorised change for the `webhook_audit` money assertions.
+- **Evidence (frozen backend, re-confirmed from the packet's own embedded file listing):** call site `app/api/v1/endpoints/webhooks.py:683` `await order_service.mark_paid(`; assertions `tests/test_webhook_audit.py:287` `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")` and `tests/test_webhook_audit.py:661` `…assert_awaited_once_with(UUID(order_id), "pi_gate3")`. `assert_awaited_once_with` compares the full call including kwargs; a canonical call carrying `expected_binding=<12-field value>` leaves kwargs non-empty and fails.
+- **Observed vs expected / reproduction / impact / smallest outcome / verification criterion:** unchanged from my previous response — the frozen text cannot simultaneously hold (i) canonical webhook passes `expected_binding`, (ii) `webhook_audit` edits confined to the 11 dedup tuples, (iii) "existing money assertions remain". Static evidence only. One sentence fixing the call convention plus explicit authorisation for `:287`/`:661`.
+- **Note:** only this finding's *spec* anchors were wrong previously (770/774/803). The backend anchors `webhooks.py:683`, `test_webhook_audit.py:287`/`:661` were correct and are re-confirmed here.
+
+### F2 — LOW (RETAINED) — D1's retained-clause anchors resolve only against the 588-line base
+Retained unchanged; its spec line (`:631`) was not re-anchored in this batch and I mark the numeric anchor **not re-verified** — the substance (supersession-by-category anchored to base line numbers) stands.
+
+### F3 — LOW (RETAINED) — operator guide carries a competing candidate/result narrative (`runbooks/seller-workspace-operator-guide.md`). Unchanged; not re-walked this batch beyond confirming the file is one of the 3 modified paths.
+
+### F4 — NIT (RETAINED, resolved by prior dispatch) — manifest pointer (`FULL-REVIEW-MANIFEST-S1712.json` vs the actually supplied `SELLER-WORKSPACE-AGENT-ATTEMPT-FULL-REVIEW-MANIFEST-S1712.json`).
+
+### F5 — NIT (RETAINED) — packet hygiene (draft owner-questions header inside an active dispatch).
+
+### F6 — NIT (NEW, this batch) — citation/record hygiene defect in the retained artifact, now corrected
+- **Evidence:** my previous response stated "diff = 19 files (14 added evidence…)" and cited spec `:770`/`:774`/`:803`. Independently recomputed now: `git diff --name-status e3b8b088..9645601d` = **18 files: 15 added, 3 modified** (`runbooks/seller-workspace-live-release.md`, `runbooks/seller-workspace-operator-guide.md`, `specs/…GATE2.md`); `--shortstat` = `18 files changed, 1771 insertions(+), 6 deletions(-)`; spec = **876 lines / 247866 bytes**, sha256 `8ee6f5514b41252739da8158f0577f8a5c16267bd8132bf0c07c16ae98a77e1d` (matches manifest `spec_sha256`/`spec_bytes`). Corrected anchors: 622/626 (convention), 647 (D4), 227 (target class), ≈433-435 (webhook_audit scope), 773/775 (compat modules), 655-672 (D6 12-field schema, header `## D6 — closed12-field expected_binding schema` at `:655`).
+- **Impact:** an earlier reviewer relying on my 19/14 count or 770/774/803 anchors would mis-locate the blocking evidence. **Smallest outcome:** treat 18/15 and 622/626/647/655 as authoritative going forward. **Verification:** commands above; static evidence only.
+
+*HIGH/MEDIUM block; LOW/NIT do not. The verdict agrees with the findings (F1 blocking → REVISE).*
+
+---
+
+## 3. Coverage
+
+**Completed this batch — eight files read in full, every byte, in bounded ~9000-character chunks (no header-only extraction, no pre-summarisation), hashes/byte counts independently recomputed and matched to the manifest:**
+
+| REVIEW | file (under `runbooks/evidence/workspace-canonical-pi-s1712/`) | sha256 | bytes | full-read |
+|---|---|---|---|---|
+| 04 | `REVIEW-04-cc-response-20260912-142637-351776.txt` | `4040e355ceb372f9356a67c5177cac78cabe07af4b10c57a65390c13c228b6ee` | 26353 | ✔ (3 chunks) |
+| 05 | `REVIEW-05-glm-response-20260912-142648-929521.txt` | `1b8a19a7100b1714e32ae3e852d6d1edf7b86526a7c45555df6dfc424b153e58` | 30115 | ✔ (4) |
+| 06 | `REVIEW-06-deepseek-response-20260912-142649-391642.txt` | `b3b8d7b21b1c57ae2d49c5f3cad51e4250c62cd5ed589384edaf2ad8a52a65ee` | 29823 | ✔ (4) |
+| 07 | `REVIEW-07-cc-response-20260912-152306-947339.txt` | `469d976eca912cb460a70f30fb1271f15a0e18f90d0f5eb98ad6e6eaa522a864` | 28440 | ✔ (4) |
+| 08 | `REVIEW-08-glm-response-20260912-152307-326373.txt` | `8c5365317097cce0ac28d9f6f03b64ccab6f27b5e43b145cc8320588ee5b3d04` | 24078 | ✔ (3) |
+| 09 | `REVIEW-09-deepseek-response-20260912-152307-628770.txt` | `9fa58a459c3a24e007eccf3ea010d1fedf781b063cb2b5300c20e995aabf828b` | 27615 | ✔ (4) |
+| 10 | `REVIEW-10-deepseek-response-20260912-161148-113817.txt` | `5aac00b53787ec1faf1271eaae22b45808620ef838cbaa57aafde29c8d37e362` | 28847 | ✔ (4) |
+| 11 | `REVIEW-11-cc-response-20260912-161122-138835.txt` | `301da6aa37f5e054659480083977748da2f750ec5e22237ddbd4b3c6a7dd8adc` | 23579 | ✔ (3) |
+
+Total 218,850 bytes. Verdicts/findings/SIMPLER/BETTER/limits in all eight are accounted for below. Independently re-asserted (not merely relayed): diff 18/15 and spec 876 lines/247866 bytes/sha256 match the manifest; the custody golden preimage recomputed — `printf 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' | shasum -a 256` = `22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153`, matching REVIEW-10/11; D6 12-field schema read at `:655-672`.
+
+**NOT read / NOT verified (explicit):** REVIEW-12…REVIEW-27 (16 bodies) — **pending, this batch alone is not a whole-history vote**; the 876-line spec's *middles* beyond the anchors above and beyond my prior full read; the backend repo tree at HEAD (only packet-embedded lines and the grep listing were used); any test/provider/migration/lock/runtime behaviour. The four reviews at 04/05/06, 07/08/09, 10/11 target **earlier** candidates (`e138f16a`, `793e7915`, `87bc6d09`) and predate the `9645601d` successor's agent-attempt protocol — their transfer is at obligation level only.
+
+---
+
+## 4. Answers to the batch's numbered asks
+
+1. **Eight exact files/hashes/byte counts/full-read coverage?** Given in §3; all eight read end-to-end, middles included.
+2. **Newly identified obligations?** Mapped into the retained contract (obligation → source): W-admission executable test manifest (0/multiple new paid W orders; reject P/N/foreign/agent/device/real/livemode/lookalike; terminal-cleanup-before-next-window) ←04 L1; custody preconditions + "cleanup incomplete/secret preserved" terminal + 5 race tests ←04 L2/05-HIGH2/06-F3; `ensure_order_capture` optional kwargs (`locked=None,_prepare_only=False`) ←04 N1; settlement-exclusion regression locus `order_payout_eligibility`/`dispatch_order_payout` ←04 N2; W registration table columns/lifecycle ←05-HIGH1/06-F1; image-identity kind split `backend_local_image_id` vs OCI index ←05-MED3; `seller02.totp_secret_name` in `e2e/account_pool.json` ←05-LOW4; `owner_window_id/sha256` artifact-or-drop (dropped) ←06-F2; nonsecret-only `PYTHONPATH=/app` env exception ←06-F4; Gate1 runbook-doc target disposition ←06-F5; ASGI regression that the W disjunct never raises/returns true for S1656/S1681/unrelated/**production-shaped** events ←07-L1/09-L1/11-F1; four-identity refusal on **both** reset and teardown services ←08-MED1/10-M1; custody preimage/marker golden ←08-LOW2; `environment_sha` identity choice ←08-LOW3; canary scoped to the Workspace credential only ←08-NIT4; pre-bind-refund terminal-suppression invariant ("no refund before `bind-purchase` commits") ←09-L1; recovery exit for a post-bind extra paid order ←09-L2; non-creating money-lock sequence ←09-L3; second-active-purchase locus (MCP-only, not HTTP) ←09-L4; `ResetRefusal` category carrier ←10-N1; embedded runnable diff ←10-N3; `listing_manifest_hash` join must name `ListingVersion` ←11-F3; document permanent refusal of surgical reset for the four ←11-F4.
+3. **Counterexamples newly identified?** (a) **Reviewer divergence on one SHA:** REVIEW-10 (DeepSeek) raised **MEDIUM** M1 for the sibling `/e2e/teardown/account` path on `87bc6d09` while REVIEW-11 (CC) on the same SHA affirmed "No HIGH or MEDIUM" — a concrete falsifier of single-reviewer closure. (b) **Documented reversal:** REVIEW-04 ruled "a W registration table is **NOT** required"; REVIEW-05/06 rated its absence HIGH/MEDIUM; REVIEW-07 then endorsed the registration — do not cite REVIEW-04's ruling as authority. (c) REVIEW-09 L4: the "canonical checkout refuses a second active purchase" premise is reproducible in c3 only at `app/services/mcp_marketplace_tools.py:799`; later rounds verified the HTTP path permits `created` — a probability-reducer, never authority. (d) REVIEW-09 L1: an unregistered W `charge.refunded` is **terminally acknowledged** (HTTP 200, `status='completed'`, `e2e_scope_suppressed`) — the local financial effect is silently lost, so the "no refund before bind" ordering invariant must be stated. (e) REVIEW-06 F2: pins compared against an "owner-reviewed manifest" that does not contain the pin make the anti-drift check vacuous — generalisable warning.
+4. **Integration with the retained contract?** No new HIGH/MEDIUM survives against `9645601d`; the two batch MEDIUMs are closed in the current successor (`spec:227` adds `app/e2e/teardown.py` to the same refusal; `spec:304` records the DS terminal-refund/extra-order separation and the S1681-shaped W signature). F1 remains the single live blocker; F2/F3/F4/F5 retained; F6 corrects my earlier citation defect (18/15, anchors 622/626/647/655).
+5. **Fixes applied?** None (read-only; no edits, no new gate approval).
+6. **Remaining coverage?** REVIEW-12…REVIEW-27 still pending; this batch alone is NOT a whole-history vote.
+
+### SIMPLER
+**None found for this batch's scope.** The nearest concrete reductions, both **advisory** (no scope-violation evidence here): REVIEW-10's single shared `is_protected_workspace_fixture(uuid)` predicate consumed by both reset and teardown services — removes the M1 gap and duplicates zero tables/routes; and REVIEW-09's provider-anchored binding (drop baseline + `LOCK TABLE … SHARE`) — removes the extra-order dead-end at the cost of a `created_at`-vs-`window.opened_at` comparison. Things I tried to remove and could not (registration table, persisted baseline, retained custody, owner/runtime artifacts, the SHARE lock) each reopen a folded HIGH/MEDIUM. REVIEW-04's "separate admission module" BETTER was in fact adopted (now `app/services/workspace_refund_test_admission.py`, `spec:227`).
+
+### BETTER
+**Advisory only.** REVIEW-10's DB-level `BEFORE DELETE` trigger (backstop for every future destructive path, including ad-hoc SQL) is the strongest structural alternative, but its disqualifying failure mode is real: it would block the money proof's own settlement-guarded `bin/reset` clean lifecycle for seller01/buyer01/buyer02, and `docker compose down --volumes` bypasses triggers anyway — hence REVIEW-11 correctly declines it as a mandate; recommended form is app-level check for category/audit + DB trigger as backstop. REVIEW-09's provider-anchored registration is the better *concurrency* shape (removes the SHARE-lock blast radius and the L2 dead-end); cost = one provider-timestamp comparison and its tests, rollback = revert to baseline+SHARE with the registration table unchanged. Neither is mandated by evidence in this batch.
+
+Silence is not approval: verdict remains **REVISE** on F1, with F2–F6 non-blocking and REVIEW-12…REVIEW-27 explicitly unread.

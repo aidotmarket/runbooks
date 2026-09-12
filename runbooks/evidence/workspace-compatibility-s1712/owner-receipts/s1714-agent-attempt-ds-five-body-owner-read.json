@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-12T20:06:16.424246+00:00",
+  "response": "/Users/max/council/deepseek/response-20260912-220112-899456.md",
+  "bytes": 12216,
+  "sha256": "706fd5ab9a88c75b4f2235e25e12e6c47b08ee521f3e24ed3d0e84e353a3301d",
+  "owner_full_read": true,
+  "completed": "12\u201315 and24 full18contiguous <=8000character slices; corrects earlier unknown gaps",
+  "remaining_ds": "16\u201319 only after accumulated earlier samecandidate full readings",
+  "error_disposition": "Latest F1 conflates integration double153\u2013159 already authorized by spec773 with actual strict webhook_audit287/661 assertions; preserve actual originalF1, not new signature redesign. Designfix does not require appdiff.",
+  "active_ds": "/Users/max/council/deepseek/response-20260912-220544-760714.md",
+  "reader": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/read-agent-attempt-review-chunk-s1712.py",
+  "reader_owner_receipt": "/Users/max/koskadeux-state/s1656/s1714-review-chunk-reader-owner-verification.json",
+  "reader_receipt_sha256": "87b81440491819e319851c9c32cfcff67860d2ca7a0d007e8b56f664204cb9b0"
+}

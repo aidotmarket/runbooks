@@ -1,0 +1,34 @@
+{
+  "at": "2026-09-12T20:11:10.389671+00:00",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "responses": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-215136-338580.md",
+      "bytes": 17551,
+      "sha256": "10ac1bc57ab3b98ab9c8dc5fe0ab3090d4e4ca38e1926bab88887019814bb9ee",
+      "owner_full_read": true
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-220544-760714.md",
+      "bytes": 18077,
+      "sha256": "72e8fe3443b250593a83931beb2bd1995b16d411b2843d7ad9a44eb163026c2e",
+      "owner_full_read": true
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-215808-388612.md",
+      "bytes": 17372,
+      "sha256": "d5aa8c3563ea6485418dd4624ffef2b460e6791bc998e7cc7c465b751a322741",
+      "owner_full_read": true
+    }
+  },
+  "cc": "Full876 personal completed; REVISE confirmedF1MEDIUM+retainedLOW/NIT;33historynow221017-562341",
+  "deepseek": "Full876/source+all33history accumulated complete explicitly; final REVISEF1MEDIUM; no furthercurrentcandidate readingneeded. EarlierHIGH/integration-double/770errors retainedraw and retracted final.",
+  "glm": "09\u201316full completed;01\u201316/27\u201333+876spec total;17\u201321 now220859-003357 then22\u201326",
+  "owner_disposition": "Same F1 exact287legacyNoneonlybidirectionalabsence/661canonicalcompletevalue; no implicitcarrier/newsignature/table. Actual node09 Order-only source240\u2013289 directlyread. Readerhashdrift disclosed, oldversion reconstructedverified; chunks actual15 vsapprox14 no readinggap. 33index explicitagent-attempt history,26indexhistorical.",
+  "gate": "NOT_ACCEPTED; coherent31target correction pending completionCC/GLM and fresh review; noMP/production mutation",
+  "active": {
+    "cc": "/Users/max/council/cc/response-20260912-221017-562341.md",
+    "glm": "/Users/max/council/glm/response-20260912-220859-003357.md"
+  },
+  "reader_incident_receipt": "/Users/max/koskadeux-state/s1656/s1714-review-reader-live-support-drift-disposition.json"
+}

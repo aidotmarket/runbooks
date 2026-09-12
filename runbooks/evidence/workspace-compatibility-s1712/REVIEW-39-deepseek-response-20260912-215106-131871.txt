@@ -1,0 +1,130 @@
+# COUNCIL REVIEW — BATCH 2/3 COVERAGE COMPLETION (REVIEW-12 … REVIEW-19), READ-ONLY
+
+**Artifact under retained review:** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04`, base `e3b8b08813f1476910422c4233fee92360409cb7`, pinned checkout `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`. Nothing was modified. No tests, providers, migrations, locks or runtime state were touched. Turn budget: ~26 of 30 used.
+
+**Scope note on method.** The dispatch under review is itself a *coverage-completion pass* whose deliverable is a full verbatim reading of eight prior response bodies plus an integration judgment. I verified that record independently (identity, hashes, bytes, originals, ancestry, the current-contract anchors) rather than relaying it from the builder narrative or from the file the dispatch points at (`response-20260912-213939-513843.md`, which does not yet exist at review time — expected, it is today's output).
+
+---
+
+## 1. Verdict
+
+**REVISE** (on the retained artifact `9645601d…`).
+
+The artifact carries one retained blocking defect — F1 below — which is *not* resolved by this batch, and which I have now **upgraded from MEDIUM to HIGH** on evidence I could finally verify from the frozen packet. Nothing in the eight bodies closes it.
+
+Recorded separately, for the dispatch rather than the artifact: the batch-2 completion *as dispatched* was performed correctly and its record-level claims independently reproduce (eight exact paths, manifest hashes, byte counts, personal full-body reading, corrected 18/15 count, anchors 622/626/647/655). The review request's own framing defects are the MEDIUM findings F2/F3; a repaired batch-3 dispatch is the smallest way to close them.
+
+**This batch is not a whole-history vote.** REVIEW-20 … REVIEW-27 (8 bodies) remain unread. Silence here is not approval, and the retained REVISE stands.
+
+---
+
+## 2. Findings (highest severity first)
+
+### F1 — HIGH (blocking, RETAINED, upgraded from MEDIUM) — the `expected_binding` call convention is jointly unsatisfiable with two frozen `mark_paid` assertions, and I can now show the call site and the assertions from the frozen packet itself
+- **Repo@SHA:** `aidotmarket/runbooks@9645601d…` (spec); frozen backend source mirrored in the packet at the pinned backend base.
+- **Evidence (frozen, verified this batch):**
+  - Call site — packet:4007 (`app/api/v1/endpoints/webhooks.py:683`): `await order_service.mark_paid(checkout_data["order_id"], checkout_data["payment_intent_id"],)` — **exactly two positional arguments, no kwargs**, in `_handle_checkout_completed`.
+  - Frozen assertions — packet:11340 (`tests/test_webhook_audit.py:287`): `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")`; packet:11714 (`tests/test_webhook_audit.py:661`): `…assert_awaited_once_with(UUID(order_id), "pi_gate3")`. `assert_awaited_once_with` compares the whole call record including kwargs.
+  - Contract — spec `:622` ("Pass it directly from `_handle_checkout_completed` … keyword-only `expected_binding` argument"); `:626` ("Canonical callers missing `expected_binding` refuse"; legacy `None` only when reverse directions prove no canonical Transaction); `:647` ("**Existing money assertions** and duplicate None test branches remain").
+  - Authorization actually granted for `tests/test_webhook_audit.py` — spec `:227` ("narrow dedup fixture compatibility"), `:433-435` and packet:583 ("change the **11** explicit accepted dedup tuples from `(event_id,)` to `(event_id, None)`"); the three-file diff rationale and builder verification sections name no authorization for `:287`/`:661`.
+- **Observed vs expected:** Observed — the frozen call site passes two positionals; the construction requirement forces a new keyword-only argument on every canonical call, and no clause authorizes editing the two full-signature assertions. Expected — a self-consistent contract in which either (a) the covered canonical path does not require the extra kwarg, (b) the literal assertion lines are explicitly authorized to change, or (c) the expected value is documented for a kernel-bound carrier. The literal contract satisfies none.
+- **Reproduction:** static evidence only (packet lines and spec lines above; I did not execute the module — no tests authorized).
+- **Why the alternatives do not dissolve it:** the unwritten "pass `expected_binding=None` on the no-Transaction path" reading still emits a kwarg on the covered call, so (i) `:287` fails either by the extra `None` or by the PI-value flip implied by `:902` (packet:11730, `"pi_gate3"` fixture); (ii) the spec's own closed 12-field schema (D6, `:655-674`) makes an always-`None` carrier a contract violation for canonical callers at `:626`.
+- **Impact:** a blocking internal inconsistency in the frozen design text; whichever half an implementer follows, the other half fails. It also undermines the "zero unmigrated callers" gate at `:647`, which is the intended proof that all callers were migrated.
+- **Smallest required outcome:** one contract sentence that (a) names the exact call convention for the *covered* canonical path such that the two frozen assertion lines remain literally valid, **or** (b) explicitly authorizes the two assertion updates at packet:11340 / packet:11714 alongside the already-authorized 11 dedup tuple changes — plus a re-verified F1 closure.
+- **Verification criterion:** re-run the frozen `tests/test_webhook_audit.py` cohort against the final source; `test_09_checkout_completed_order_paid` and test_16 must pass with the retained whole-signature assertions, or the two authorized assertion lines must be shown in the authorized diff.
+
+### F2 — MEDIUM (blocking for the dispatch, not the artifact) — the review request's own identity/environment block omits three elements the preamble makes mandatory
+- **Repo@SHA:** the dispatch block pinned to `9645601d…`.
+- **Evidence:** the supplied block gives exactly five lines: pinned checkout, checkout HEAD, requested SHA, requested repository, expected branch, then "verify HEAD" and "review diff". It does **not** state the base SHA as an identity fact (`e3b8b088…` appears only inside the runnable diff command), does not state the finite turn budget, and does not state environment truth (whether tests can run, which repositories exist). The preamble requires all three.
+- **Observed vs expected:** Observed — a reviewer must mine the diff command and the manifest (`base`, `status: COMPLETE_PACKET_UNDISPATCHED_NOT_ACCEPTED`) to reconstruct the identity block. Expected — base SHA, tool/repo truth, and budget stated up front.
+- **Reproduction:** compare the dispatch block against the preamble list; `git rev-parse` confirms the checkout exists and the base is real (`git cat-file -t e3b8b088… → commit`).
+- **Impact:** small but structural — every downstream reviewer re-derives the same facts, which is exactly the discovery work the controller block exists to prevent.
+- **Smallest required outcome:** add `base: e3b8b088…`, the turn budget, and the "tests cannot run / read-only / rtk-prefixed" environment line to the standing block.
+- **Verification criterion:** the next dispatch's identity block contains base SHA, budget, and environment truth without the reviewer grepping the diff.
+
+### F3 — MEDIUM (blocking for the dispatch) — the batch is cross-generational but labelled as "on unchanged frozen9645601d", which is the exact misattribution risk the batch itself is meant to prevent
+- **Repo@SHA:** the eight bodies' own target SHAs are `87bc6d09` (R12, R13, R14, R15), `c6bae734` (R16, R17, R18) and `a4e06c08` (R19).
+- **Evidence:** R12:9 and R12:45 (`@87bc6d09…:specs/…:85`); R13:89 ("Design-only verdict on `…@b444332af4ec86c4258ae62d7c0c1e12f3f2645d`" — the R4 successor of R12/R13's candidate); R14:11 (`@b444332a…`); R16:9 (`@c6bae734aa7faf5645f3cd724ab3460c7ac2f49f`, base `56665b4e…`); R17:8 (`@c6bae734aa…`); R18:22 (`@c6bae734aa…`); R19:3 (`@a4e06c08f6d1cc9406dab658530a5a1292524e5a`). All four are real commits in the pinned object database (`git cat-file -t → commit`) and each is an ancestor of `9645601d…` (`git merge-base --is-ancestor → YES`), i.e. an accepted predecessor generation, not the frozen revision.
+- **Observed vs expected:** Observed — the dispatch's `Bounded missing-coverage completion BATCH 2/3 on unchanged frozen9645601d` reads as "these eight reviewed `9645601d`"; six of the eight (and all three blocking MEDIUMs, see F4) were rated against earlier candidates. Expected — the batch annotation should name each body's target SHA, or say plainly "eight bodies targeting the four generations `87bc6d09→b444332a→c6bae734→a4e06c08`, all predecessors of `9645601d`".
+- **Reproduction:** static evidence only (the eight headers above).
+- **Impact:** an integrator reading only the dispatch line would attribute all eight verdicts, including REVIEW-15's "APPROVE_WITH_NITS" and REVIEW-19's "No HIGH or MEDIUM survives", to `9645601d` — a silent upgrade of stale approvals. This is not merely formal: the batch is explicitly composed to close coverage gaps, so every reader inherits the mislabel.
+- **Smallest required outcome:** per-body target-SHA annotation, or a one-line generation key on the batch.
+- **Verification criterion:** each of the eight bodies is accompanied by its target SHA in the completion record, and the batch header states the predecessor-generation range.
+
+### F4 — LOW — the batch produced no new blocker against the frozen revision, but neither can it close F1, because the packet lines that would close it were not put in scope
+- **Repo@SHA:** `9645601d…`.
+- **Evidence:** three of the eight bodies emit blocking MEDIUMs — R12:5 (arming/teardown four-UUID coverage), R17:27 (classifier ordering can hide a registered authority), R18:19 (F1 classifier terminal suppression) — and all three are statically closed by the current frozen text I verified directly (spec `:227` adds `app/e2e/teardown.py` to the refusal; `:315`/`:342` accept the `e2e_routes_over_armed` P1 as expected in isolated TEST; the discovery-reference invariant resolves R17/R18). All other bodies are LOW/NIT only. But F1's closure additionally requires the packet's frozen assertion lines, which the dispatch's "no source/packet audits repeated" rule excludes, so R13:33, R15:N3, R18:F2, R19:N3 and R19:N3-adjacent all mark range-diff/CI/assertion claims UNVERIFIED — correctly.
+- **Observed vs expected:** Observed — the batch is internally coherent and adds no blocker; expected — its own closing claim ("no new blocker") is *sufficient but not decisive*, and the dispatch should say so rather than letting the batch read as progress on F1.
+- **Reproduction:** static evidence only (verdict/finding lines cited).
+- **Impact:** limits, not defects: the eight-body reading is necessary for completeness and cannot substitute for the one control clause F1 needs.
+- **Smallest required outcome:** carry "F1 stays open; this batch cannot close it" as an explicit line in the completion record, as batch 1 already did.
+- **Verification criterion:** the batch-2 record states F1 closure is out of scope, with the reason.
+
+### F5 — LOW — "personal full-body coverage" is a deliverable this reviewer cannot honestly certify to byte level, and the dispatch does not define the standard
+- **Repo@SHA:** the batch record.
+- **Evidence:** the eight files total 188,758 bytes / ≈48K tokens. I read all eight end to end in bounded chunks (verdict, findings, evidence blocks, coverage, answers, SIMPLER/BETTER, limits) and re-derived the manifest facts independently; a residue of repeated appendix/verbatim-citation text was not re-read line-by-line. The dispatch requires "personal full-body coverage … not extraction or summaries" but sets no sampling standard, so any completion record is unfalsifiable at the byte level.
+- **Observed vs expected:** Observed — "full-body coverage" is asserted, not measurable. Expected — a defined standard (all body length read; appendix/verbatim-appendices may be sampled) stated in the dispatch.
+- **Reproduction:** static evidence only.
+- **Impact:** low — it affects audit precision, not the verdict.
+- **Smallest required outcome:** define the standard once, in the standing block.
+- **Verification criterion:** the standard is stated and the completion record reports which regions were sampled.
+
+### F6 — NIT — the dispatch's non-standard numbering ("REVIEW12 through REVIEW19") collides with the underlying numbering of the fourth artifact generation
+- **Repo@SHA:** `9645601d…` (evidence layout).
+- **Evidence:** the manifest concatenates two evidence families: positions 1–26 live in `runbooks/evidence/workspace-canonical-pi-s1712/` and positions 27–33 in `runbooks/evidence/workspace-agent-attempt-s1712/`. For the current generation, the concatenated position *is* the artifact-batch number (`REVIEW-27-cc-…` etc.), so "REVIEW 20–27 remains next batch" spans two different artefacts: positions 20–26 are canonical-PI-era bodies, position 27 is the first agent-attempt body. Meanwhile the deepseek-family numbering on disk starts again at 01; the dispatch's bare "REVIEW12–19" is read here as *evidence positions*, not deepseek family numbers.
+- **Observed vs expected:** Observed — the same token means two different things depending on family. Expected — a single namespace (e.g. canonical `PI-nn` vs `ATT-nn`).
+- **Reproduction:** static evidence only (`ls` of the two evidence directories; manifest indices).
+- **Impact:** low, but it is the same class of defect as F3 and will recur in the next batch.
+- **Smallest required outcome:** label the next batch with both namespaces or prefix the generation.
+- **Verification criterion:** the batch-3 header is unambiguous about which family each number belongs to.
+
+*HIGH/MEDIUM block; LOW/NIT do not. The verdict agrees with the findings: F1 is a retained blocker on the artifact, so the artifact verdict is REVISE.*
+
+---
+
+## 3. Coverage
+
+**Verified this batch (read-only):**
+- **Artifact identity** — `git rev-parse HEAD` = `9645601d…` (matches requested); branch `docs/seller-workspace-agent-attempt-s1712`; clean working tree; base `e3b8b088…` exists as a commit; `git diff --name-status e3b8b088..9645601d` = **18 files: 15 added / 3 modified** (`runbooks/seller-workspace-live-release.md`, `runbooks/seller-workspace-operator-guide.md`, `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`); `--shortstat` = 18 changed, 1771(+), 6(−). This confirms the dispatch's corrected count 18/15.
+- **Spec** — 876 lines, 247,866 bytes, sha256 `8ee6f551…a77e1d`, blob `ad9bef7b…` via `git hash-object`; all matching the manifest.
+- **The eight bodies** — paths, byte counts and sha256 recomputed and matched to the manifest; each is a byte-identical copy of its council original where the original is present (verified for R12, R18, R19 by direct `shasum`; the manifest records the same `original_path` for all eight):
+
+  | position | path (evidence root) | bytes | sha256 | verdict |
+  |---|---|---|---|---|
+  | 12 | `workspace-canonical-pi-s1712/REVIEW-12-glm-response-20260912-161147-699100.txt` | 28037 | `70310a1a…a4e8a2` | APPROVE_WITH_MANDATES |
+  | 13 | `…/REVIEW-13-deepseek-response-20260912-163133-467416.txt` | 23924 | `c4319813…63971a` | APPROVE_WITH_NITS |
+  | 14 | `…/REVIEW-14-glm-response-20260912-163133-049461.txt` | 27095 | `0e19ec0e…eaac2b` | APPROVE_WITH_NITS |
+  | 15 | `…/REVIEW-15-cc-response-20260912-163132-665734.txt` | 21592 | `037b5f82…8995ea` | APPROVE_WITH_NITS |
+  | 16 | `…/REVIEW-16-cc-response-20260912-182113-146450.txt` | 25008 | `a06caa9d…a3ddb2` | APPROVE_WITH_NITS |
+  | 17 | `…/REVIEW-17-glm-response-20260912-182113-898552.txt` | 18103 | `5dfd7b23…2d880b` | APPROVE_WITH_NITS |
+  | 18 | `…/REVIEW-18-deepseek-response-20260912-182113-550910.txt` | 23384 | `74d5dc6b…eb45c0` | REVISE |
+  | 19 | `…/REVIEW-19-cc-response-20260912-184755-548538.txt` | 21615 | `777be6d9…a29676` | APPROVE_WITH_NITS |
+
+  Total 188,758 bytes; all eight read end-to-end in bounded chunks.
+- **Current-contract anchors** — spec `:622`, `:626`, `:647` and the D6 header `:655` (`## D6 — closed 12-field expected_binding schema`) exist and say what batch 1 said they say; `:227` names `app/e2e/teardown.py`; `:315`/`:342` accept the `e2e_routes_over_armed` P1 in isolated TEST; `:334` records the 14→17 test-target expansion; `:433-437` contain the 11 dedup-tuple change and the `_Result` sentinel change.
+- **F1 decisively re-anchored** — packet:4007 (call site = two positionals, no kwargs), packet:11340 (`:287`) and packet:11714 (`:661`) full-signature assertions; this is what turned F1 from MEDIUM to HIGH.
+- **Generations** — `87bc6d09` (spec blob size 91,103 bytes, matching R12's stated size), `b444332a`, `c6bae734`, `a4e06c08` all resolve to commits and are ancestors of `9645601d`.
+
+**Not covered / not verified (explicit):** REVIEW-20 … REVIEW-27 (8 bodies) — pending; the packet's coverage beyond the lines actually needed for F1 (full in-packet backend bodies, CI receipts, `checks`/`EXACT-CHECKS`); the backend checkout at HEAD (only the packet's frozen mirrors, `git hash-object`-consistent, were used); any test/provider/migration/lock/runtime behaviour (forbidden and unavailable). The batch-1 record's own middle sections and the disputed ledger beyond the four verified anchors were not re-derived.
+
+---
+
+## 4. Answers to the numbered questions
+
+The dispatch contains no numbered question list (F2 of the preamble's requirements — "three to six numbered questions" — is missing from the request, which the preamble says must be reported first; that is why the artifact verdict is REVISE and not a coverage pass). I answer the operative questions the dispatch text actually poses:
+
+1. **Eight exact paths/hashes/bytes/personal full-body coverage?** Yes — table in §3; all eight read end-to-end; totals and hashes match the manifest exactly; byte-identity to the council originals confirmed where the originals are on disk.
+2. **Newly identified obligations/counterexamples and integration with the current frozen contract?** No new obligations against `9645601d`. The three blocking findings in this range (R12-1, R17-2, R18-F1) are all against predecessor generations and are statically addressed by current frozen text I verified (`:227`, `:315`, `:342`, the discovery-reference invariant). Counterexample retained for the record: R12 (glm, `87bc6d09`) and R18 (deepseek, `c6bae734`) each block on a candidate that a later panel approved — i.e. single-panel approval is not closure; this is the same class as batch 1's R10/R11 divergence.
+3. **Historical alternatives versus binding requirements distinguished?** Partially, and this is F3. The dispatch asserts the distinction but labels all eight as "on unchanged frozen9645601d", so the distinction is not machine-checkable from the dispatch line alone. My reading: binding against `9645601d` are the current spec clauses; historical are the per-body findings tied to `87bc6d09`/`b444332a`/`c6bae734`/`a4e06c08`.
+4. **F1 unresolved?** Yes, and now upgraded to HIGH with frozen evidence (call site + both assertions). Nothing in the eight bodies closes it, and the dispatch's no-re-audit rule excludes the material that could.
+5. **Corrected count 18 files/15 added, anchors 622/626/647/655 retained?** All confirmed: `diff --name-status` = 18 (15A/3M); the four anchors are present and say what was claimed.
+6. **REVIEW20–27 next; this batch alone is not whole-history approval?** True and preserved: 8 of 16 remaining bodies read; F1 retained; no whole-history approval may be inferred.
+
+### SIMPLER
+**None found for the coverage task itself** — reading is the deliverable, and eight bodies at 188,758 bytes is already the minimum faithful form. For **F1**, the simplest concrete alternative that preserves every requirement is to move the covered `mark_paid` path to a fully keyword-argument call (`mark_paid(*, order_id, payment_intent_id, expected_binding)`) and update the two assertions *in the same authorized change*: it removes the whole-signature ambiguity and the latent positional-drift class at once, at the cost of one contract sentence plus two authorized assertion lines, and it changes no other caller. What I tried and could not remove: the `expected_binding` requirement (canonical callers must refuse per `:626`), the closed 12-field schema (`:655`), and the retained money assertions (`:647`) — dropping any one reopens the drift hole.
+
+### BETTER
+**None found that beats a corrected dispatch plus the F1 sentence.** The nearest materially better structure — 0.5–1% effort — is to publish the two frozen `mark_paid` assertion lines and the call-site excerpt *inside the standing dispatch block*, so a reviewer can settle F1 statically in one turn instead of across three batches. Its failure mode is trivial (a stale excerpt, guarded by the packet hash), its cost is two quoted lines, and its rollback is deleting them. Making the classifier itself registry-first (as REVIEW-18 BETTER) remains the strongest *design* alternative, but it is advisory: it is not supported by new scope-violation evidence in this batch, and its own failure mode (an extra read on non-W traffic if ordering is careless) is contained only by the existing cheap-tuple gate.
+
+**Bottom line:** the batch-2 reading was done honestly and reproducibly (paths, hashes, bytes, verdicts, and the distribution of HIGH/MEDIUM across the range all reproduce), but the retained blocker F1 is now **HIGH** and unresolved, the review request's identity/framing is incomplete (base SHA, budget, environment truth absent; cross-generational labelling), and REVIEW-20 … REVIEW-27 remain unread. Verdict: **REVISE** on the artifact; the batch itself passes with the F2/F3/F5/F6 dispatch corrections as mandates.

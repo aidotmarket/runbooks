@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-12T20:01:57.570269+00:00",
+  "session": "S1714",
+  "response": "/Users/max/council/deepseek/response-20260912-215526-865775.md",
+  "bytes": 19817,
+  "sha256": "e52a8a581bd3e9fe8740457cffa80327b0b34dd958516411a4db304554507044",
+  "owner_full_read": true,
+  "remaining_ds": "12\u201319 reread required,24 fragment;20\u201323/25\u201327 reported full; prior01\u201311/28\u201333 retained",
+  "next_ds": "/Users/max/council/deepseek/response-20260912-220112-899456.md",
+  "next_scope": "12\u201315+24 full with contiguous <=8000 character intervals;16\u201319 next",
+  "disposition": "Same F1 contract assertion conflict; no new product defect. Design correction does not require appdiff at design gate. Raw HIGH retained; prior generic caller-inventory NIT distinct. No invented old omitted intervals.",
+  "archive_verified": "REVIEW34\u201340 all exact originals and0400;41 not yet present at check",
+  "glm_active": "/Users/max/council/glm/response-20260912-215808-388612.md",
+  "cc_active": "/Users/max/council/cc/response-20260912-215136-338580.md"
+}

@@ -1,0 +1,284 @@
+{
+  "at": "2026-09-12T19:25:21.171040+00:00",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "tree": "9d4c35594ff6102424f6c081cce03b09d367c74f",
+  "base": "e3b8b08813f1476910422c4233fee92360409cb7",
+  "backend_base": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "manifest_sha256": "a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b",
+  "packet_sha256": "5419c9adf635e8777435760cf24195ce0fe12c34f40ce291bc68a2155c4fc66b",
+  "packet_bytes": 2222740,
+  "packet_mode": "0o400",
+  "spec_sha256": "8ee6f5514b41252739da8158f0577f8a5c16267bd8132bf0c07c16ae98a77e1d",
+  "spec_lines": 876,
+  "files_verified": 18,
+  "all33_originals_and_single_embedding_verified": true,
+  "source_context": [
+    {
+      "path": "e2e/account_pool.json",
+      "sha256": "4b8f136ffdd99da142467ad3f96997bd3115048d4b28de35ac0b00a70c7a11dc",
+      "bytes": 2432,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/e2e/workspace_fixture_protection.py",
+      "sha256": "5c7ca35511da12c0d91aab507f26089aedf5c757ade1804912c9692ef2fbb234",
+      "bytes": 683,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/e2e/surgical_reset.py",
+      "sha256": "9d9c741ae0c303ed702da0551b409e19295809adb1e58fc2807b9100634a706b",
+      "bytes": 13038,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/e2e/teardown.py",
+      "sha256": "fbbb02f52e7deed86cb57bb5caf0835ebb060889fcedba508f5a53f7a2d20769",
+      "bytes": 30514,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/api/v1/endpoints/webhooks.py",
+      "sha256": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde",
+      "bytes": 89695,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/workspace_refund_test_admission.py",
+      "sha256": "2e84f8c1a051e0282234add1ae92d05bf648951ef2db9d21a8e51344c8ae0f00",
+      "bytes": 51863,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/models/workspace_test_authority.py",
+      "sha256": "4768365224ed725b91b78b430063f8963f65c6adc453e7d82308f031f63beb83",
+      "bytes": 5616,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/models/__init__.py",
+      "sha256": "2d677e30f198d560c90cef68c06749e570b6ca4d515e23abdfebb2dd123829e3",
+      "bytes": 15133,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "alembic/versions/20260912_002_workspace_test_authority.py",
+      "sha256": "4964cc69b75f11c167a9e50f4a49dbeb2b8a64e8d976de34240ae842ee5300c4",
+      "bytes": 11171,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_workspace_test_refund_admission.py",
+      "sha256": "8ad5969c794f995620671f03a3ed47547eac3df1ad1b11b31ee5d3fd586ea43a",
+      "bytes": 91390,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_workspace_test_authority.py",
+      "sha256": "1f21a4ba5a865801152ac30f558b71fff54068c0e0e625e87883b26c529015e8",
+      "bytes": 12158,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_e2e_surgical_reset.py",
+      "sha256": "f48b34b1b82a113462ba2d78110ea2664122873d96cb25b7a2d173267fe74938",
+      "bytes": 21095,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_e2e_teardown_t2.py",
+      "sha256": "4748e5d127512c4b690a189469ccfaa8b1ed3849303b9011b0364b0e9d5139c1",
+      "bytes": 32069,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_e2e_teardown_t2_real_pg.py",
+      "sha256": "1856ad24c007ada2c2986aaece68b7777f47c89837d7fe6448741a560d898fd9",
+      "bytes": 48111,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_webhook_audit.py",
+      "sha256": "3a3fb5a5cc7f3b428d209df6c9dd097939cd5c239ced7695e323a138b40a06b3",
+      "bytes": 26336,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_e2e_stripe_isolation.py",
+      "sha256": "894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d",
+      "bytes": 14964,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_webhooks.py",
+      "sha256": "f918cd1d72677c5ed5b3b535fa4c6625394a3470683dd9d9f6c27b094d228787",
+      "bytes": 67148,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/order_money_service.py",
+      "sha256": "03d52fb58a7fe52ed6ba95eeab44fb7741d71afc7dce6febff0759a5f2a3e521",
+      "bytes": 26843,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/order_service.py",
+      "sha256": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f",
+      "bytes": 80257,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/transaction_service.py",
+      "sha256": "245f6aae5bf1826318296bc16262e903dcbf2b8955c72df80228a26da35c1761",
+      "bytes": 54156,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/billing_service.py",
+      "sha256": "ebf9a07aa5f0042b237bdae906ef254f5c5d1c87d6916f39491e37383bc82eaa",
+      "bytes": 48927,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_order_money_protocol.py",
+      "sha256": "b7fbc8e28072cbd70fa3e648e1a9199f28affc6ac334251b8b95696ba6aefc46",
+      "bytes": 41295,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_refund_webhook_protocol.py",
+      "sha256": "59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077",
+      "bytes": 22852,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/notification_service.py",
+      "sha256": "6d4b8db930b69a4a6c3c50e2739ca5991893678cb1b8495c95c23f8cf4214e3f",
+      "bytes": 8573,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/core/database.py",
+      "sha256": "45dd56c3de3f30ca7a06b38a6bd068cf47e855ae92ca6efe9601476243fd4b0d",
+      "bytes": 4007,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/api/v1/endpoints/checkout.py",
+      "sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf",
+      "bytes": 19124,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/integration/test_webhook_canonical_payment.py",
+      "sha256": "635d91761cf1b3c2a1144d1a1084106a6e31543916b13b86ad734f211c04c66c",
+      "bytes": 17227,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_notification_events.py",
+      "sha256": "4353393e89e1b7d2f2cce7cede7c5158132f93276553e6fa826fff2900a554fb",
+      "bytes": 19988,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/test_s1097_order_fulfillment_scoping.py",
+      "sha256": "7947bdaf88669f9b80547fd1054248391388488ee750d7109c2caafbe2945c59",
+      "bytes": 9908,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "tests/integration/conftest.py",
+      "sha256": "ee32d440e06366b02fc69b58260d38f53886c3f03728b9f2d9a153162cd2d1e4",
+      "bytes": 18054,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/models/order.py",
+      "sha256": "35ae1a928bdb2f0a2958333bbed7b600dc55a83a14832cb4f42e8a1388b99696",
+      "bytes": 9894,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/models/transaction.py",
+      "sha256": "8798a75c69e25fe49aa3302b3f9393296ca4deca50ff4f18e0003995c83d8b85",
+      "bytes": 8200,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/models/finance.py",
+      "sha256": "b5b9c613310b89533b7910e3b6742ef4284a01b95dea2a2b0acdf8b444cb02c8",
+      "bytes": 30186,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/agent_auth_service.py",
+      "sha256": "013ca5a86e12701eaf7eee02c27d726c9bb47f20638df384664e1a863eb3432e",
+      "bytes": 8752,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/services/mcp_tools.py",
+      "sha256": "d9d5286b6f5695577bdf0a476ed4b4ad90f73b4989f2fad191b245c785ca4dcd",
+      "bytes": 24616,
+      "packet_occurrences": 1
+    },
+    {
+      "path": "app/tasks/scheduled.py",
+      "sha256": "1e40b2c2290ee20da11f4f59e58e3e2de200332f418ec935bb909e18a7caeaeb",
+      "bytes": 27642,
+      "packet_occurrences": 1
+    }
+  ],
+  "spec_changes": [
+    [
+      "equal",
+      0,
+      1,
+      0,
+      1
+    ],
+    [
+      "insert",
+      1,
+      1,
+      1,
+      39
+    ],
+    [
+      "equal",
+      1,
+      588,
+      39,
+      626
+    ],
+    [
+      "insert",
+      588,
+      588,
+      626,
+      876
+    ]
+  ],
+  "ci": [
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "headSha": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+      "status": "completed",
+      "url": "https://github.com/aidotmarket/runbooks/actions/runs/34714018275"
+    },
+    {
+      "attempt": 1,
+      "conclusion": "success",
+      "headSha": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+      "status": "completed",
+      "url": "https://github.com/aidotmarket/runbooks/actions/runs/34714002171"
+    }
+  ],
+  "full_spec_diff_owner_read": true,
+  "runbook_diff_owner_read": true,
+  "prior_retained_spec_read": true,
+  "diff_check_exit": 0,
+  "accepted": false
+}

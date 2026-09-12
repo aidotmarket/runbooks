@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-12T20:18:38.816482+00:00",
+  "request": "/Users/max/council/cc/request-20260912-221017-562341.md",
+  "response": "/Users/max/council/cc/response-20260912-221017-562341.md",
+  "response_exists": false,
+  "wrapper_pid": 80943,
+  "wrapper_absent": true,
+  "request_matching_process_absent": true,
+  "launcher_sha256": "9ec1b75e919b9bfe1b3a6d95fe093ac3b93aa96e75169624659eb471f8c65320",
+  "launcher_bytes": 214,
+  "exit": 1,
+  "duration_seconds": 367,
+  "failure": "weekly provider limit",
+  "reported_reset": "Sep15 10am Europe/Madrid",
+  "coverage_remaining": "CC33historybodies; complete876spec retained priorresponse",
+  "retry_or_replacement_dispatched": false,
+  "owner_disposition_pending": true
+}

@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-12T20:21:37.593762+00:00",
+  "session": "S1714",
+  "event_id": "e4c7e041-4eee-4217-8be5-6591157274ca",
+  "user_text": "I am explicity authorizing you to continue withou tit",
+  "context": "Direct reply to CCweeklyquota blocker and requestrestorecapacity",
+  "effective_authority": "ProceedwithoutCC forcurrentS1714productionobjective. Requiredvoters GLM andDeepSeek unanimous, notpermanentCouncilpolicy. PreservehistoricalCCfindings/failedquota/unfinished33history; noCCapprovalclaimed.",
+  "unchanged": "MPproductbuilder;fullscope/sourcefreeze/1990+new/tests;protectedholds;failedpaidrefund-before-rerun;environment/combinedgate;cutover/fullAWS-R2productionproof.",
+  "cc_capacity_no_longer_blocks_current_task": true,
+  "glm_completed_response": "/Users/max/council/glm/response-20260912-220859-003357.md",
+  "glm_full_owner_read": true,
+  "glm_completed": "01\u201321 and27\u201333 plus876spec/source; final22\u201326 dispatchednext",
+  "deepseek": "fullcurrentcoverage complete REVISE F1MEDIUM;31correctionrequiresfreshbothreview",
+  "glm_bytes": 15415,
+  "glm_sha256": "f40b67e1fb09cf111257b1a189dc15006ca48546529ebe9f6ce0c68e821149c2"
+}

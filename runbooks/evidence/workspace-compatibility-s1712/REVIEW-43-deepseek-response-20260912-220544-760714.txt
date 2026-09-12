@@ -1,0 +1,107 @@
+## Request-block compliance (reported first, per preamble)
+
+The control block is mostly sound and independently verified: checkout HEAD = `9645601d50c10a5fe42f38e7972b8c159dc69b04` = requested candidate, branch `docs/seller-workspace-agent-attempt-s1712`, base `e3b8b088…` an ancestor, base→candidate diff = **18 files / 15 added evidence + 3 modified docs (spec, operator-guide, live-release)**, matching the block's "18 files 15 added"; `ManifestSHA a6bb4d09…` reproduces byte-exactly on `outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-FULL-REVIEW-MANIFEST-S1712.json` (19 535 B). Three block-level defects are reported before findings: the asserted `sourceSHA 2e926758…` is **not attested by any file in the reviewed tree** (UNVERIFIED, see F3); the four-file size "~14 chunks" is wrong (the helper's own index yields **15** chunks: 4+3+4+4); and the block's "all33" reading index is the 33-entry `agent-attempt-s1712/REVIEW-HISTORY.json`, **not** the 26-entry `workspace-canonical-pi-s1712/REVIEW-HISTORY.json` (see F4).
+
+I follow the preamble's mandated response order (verdict → findings → coverage → questions → SIMPLER/BETTER) rather than the block's ad-hoc ordering.
+
+---
+
+## 1. Verdict
+
+**REVISE**
+
+One MEDIUM finding blocks under the rubric. The artifact is byte-identical to the prior REVISE (zero delta), the prior F1 was mislocated, and the corrected F1 remains unresolved in the frozen contract. No historical obligation raises a new HIGH/MEDIUM, and the historical MEDIUMs are closed in the 964 text.
+
+---
+
+## 2. Findings (highest severity first)
+
+### F1 — MEDIUM (blocking) — The corrected F1 is real: the `mark_paid` keyword-only convention is never reconciled with the two strict two-arg assertions in the one file the amendment enumerates as "11 dedup tuples" only
+- **Evidence (candidate):** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:622` — "Extend the normal webhook's validated checkout result and **`OrderService.mark_paid` with a keyword-only `expected_binding` argument for canonical checkout** … Pass it directly from `_handle_checkout_completed` to the independent async `mark_paid` session"; `:626` — "Canonical callers missing `expected_binding` refuse"; `:435` — the enumerated change for `tests/test_webhook_audit.py` is "**change the11 explicit accepted dedup tuples** from `(event_id,)` to `(event_id, None)` … do not alter mapping/handler query results"; `:502`/`:508` — reconciliation rows require "Assert OrderService.mark_paid awaited exactly once with original Order/PI" / "Preserve … exactly-once OrderService.mark_paid" (no arity or kwargs stated).
+- **Evidence (pinned backend, the spec's own "At817f" anchor):** `ai-market-backend@817f7331a07d07929a67198b28a82ed9b98baa56` (worktree `/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0`, HEAD confirmed) `tests/test_webhook_audit.py:287` = `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")`; `:661` = `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_gate3")`. Both are canonical-checkout nodes (test_09 "checkout_completed_order_paid"; test_20 "…when_canonical_tx"). `AsyncMock.assert_awaited_once_with` compares args **and kwargs** exactly, and the spec's own annotation of the second double (`tests/integration/test_webhook_canonical_payment.py:153–159`, second at `:287`) confirms the doubles currently accept `(actual_order_id, pi_id)` only.
+- **Observed vs expected:** Observed — a call-convention change (`expected_binding` passed from `_handle_checkout_completed`) that must be observed by these two assertions, while the only *enumerated* edit for that module is the 11 dedup tuples and `:512` forbids weakening ("no skips/xfails/deselection"). Expected — exactly one stated call convention plus the required form of every assertion/double that observes it, consistent with the explicit authorization at `:773` to "update the double to validate the exact new value."
+- **Reproduction:** static evidence only (spec lines and backend bodies read in the pinned checkout; no test executed — execution not authorized).
+- **Impact:** the builder is trapped between a failing module and a forbidden assertion change; this is the same failure class that blocked the prior round, and the candidate is frozen (zero delta).
+- **Smallest required outcome:** one contract sentence extending the three-file amendment: in `tests/test_webhook_audit.py` also update the two strict `mark_paid` assertions (`:287`/`:661`) to the exact new call form (keyword-only `expected_binding`, or the declared legacy `None` form), in addition to the 11 dedup tuples — design text only, no app diff.
+- **Verification criterion:** the 876-line spec contains one unambiguous `mark_paid` convention that (a) still authorizes the 11 dedup tuples, (b) states the required form of `:287`/`:661`, and (c) is consistent with `:622`/`:626` and the `:773` double authorization.
+
+### F2 — LOW — Retained-history arithmetic is wrong in the retained record (traceability)
+- **Evidence:** `response-20260912-213353-838309.md:5` states "diff = 19 files (14 added evidence, 2 runbooks, 1 spec) reproduced" against `runbooks@9645601d…`; the actual `git diff --name-status e3b8b088…9645601d` is 18 files (15 added evidence + 3 modified docs), and the current request block states this correctly.
+- **Observed vs expected:** Observed 19/14; expected 18/15. `git`: 18 files, +1 771/−6.
+- **Reproduction:** static only (`git diff --stat/--name-status` on the pinned checkout).
+- **Impact:** low; a future reader could mis-size the delta or the evidence set.
+- **Smallest required outcome:** annotate or correct the 19-file line in the retained history.
+- **Verification criterion:** the stated file/added counts equal `git diff --name-status` on the same range.
+
+### F3 — LOW — The block's `sourceSHA 2e926758…` identifies nothing in the reviewed tree
+- **Evidence:** recursive grep for `2e926758ea0de745228be34c0f89899ae8ac294757447a84bed78beca679c19d` across the continuation tree returns no match; the helper script itself verifies only `ManifestSHA a6bb4d09…` (which reproduces) and the per-file `sha256`.
+- **Observed vs expected:** Observed — an unanchored digest in the identity block; expected — the block names the artifact it digests.
+- **Reproduction:** static only.
+- **Impact:** low (no load-bearing claim rests on it), but identity blocks must be auditable.
+- **Smallest required outcome:** name the path whose SHA256 equals that value, or drop the field.
+- **Verification criterion:** the named path hashes to `2e926758…`.
+
+### F4 — NIT — Reading-index ambiguity: the 33-body index is not the canonical-pi history file
+- **Evidence:** `workspace-canonical-pi-s1712/REVIEW-HISTORY.json` has `responses` n=26 and top-level `coverage_incomplete` = [cc `…191524-175920.md`, deepseek `…191750-833374.md`] plus `transport_failures` (glm/deepseek `…191524`, "Input exceeds1048576characters"). The 33-entry index is `workspace-agent-attempt-s1712/REVIEW-HISTORY.json` and the manifest's `all33_responses` (both enumerate 01–33 with matching hashes).
+- **Observed vs expected:** Observed — two different history files; 22/23 copies are byte-identical to their originals (`cd339ad4…`, `9ae77c16…` — no content loss). Expected — the block distinguishes them.
+- **Reproduction:** static only (`json` parse + `shasum` on both copies and originals).
+- **Impact:** none on the verdict; misreading the 26-entry file as the 33 index would understate coverage.
+- **Smallest required outcome:** cite the 33-entry index explicitly.
+- **Verification criterion:** the cited index has 33 entries covering 01–33.
+
+### F5 — NIT (carried, advisory) — the unadopted alternative for F1 should be recorded as such
+- **Evidence:** `response-20260912-213353-838309.md:74` records the costed alternative ("keep `OrderService.mark_paid`'s public signature unchanged and carry the validated binding on the owning session … `.info`/request-scoped immutable value"), which the current block explicitly declines ("no new signature/implicit carrier alternative adopted"). It is not adopted in `9645601d`.
+- **Observed vs expected:** Observed — the decline is stated in the request but not in the candidate contract; expected — the frozen contract records the rejected alternative and why.
+- **Reproduction:** static only.
+- **Impact:** none blocking (advisory per the rubric's simplification rule).
+- **Smallest required outcome:** one retained-rationale line in the candidate contract.
+- **Verification criterion:** the contract names the rejected carrier alternative and its reason.
+
+---
+
+## 3. Coverage
+
+**Verified independently this session (read-only):**
+- Identity: HEAD/base/branch/clean tree; `git diff --stat e3b8b088…9645601d` (18 files, 15 added + 3 docs, +1 771/−6); `ManifestSHA` recomputed and equal; helper index + per-file hashes for 16–19 recomputed on disk (`a06caa9d…`, `5dfd7b23…`, `74d5dc6b…`, `777be6d9…`) — all match the 33-entry history and the manifest; backend pin present at `/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0`, HEAD `817f7331…`.
+- **All four assigned bodies read untruncated**: REVIEW-16 (4 chunks: 0–7000, 7000–14000, 14000–21000, 21000–25008), REVIEW-17 (3: 0–7000, 7000–14000, 14000–18103), REVIEW-18 (4: 0–7000, 7000–14000, 14000–21000, 21000–23384), REVIEW-19 (4: 0–7000, 7000–14000, 14000–21000, 21000–21615) — 15 chunks, no gap; three chunks first seen mid-truncated in combined reads were re-read whole and singly. Each body targets its own SHA and none mentions `9645601`.
+- Candidate text load-bearing for F1: `spec:8, 24–25, 35, 227, 376, 410, 429, 435, 485, 502, 508, 512, 622, 626, 633, 647, 651, 655, 674, 682, 690, 773`; waiver state at `spec:4, 56, 633, 682`.
+- Prior same-candidate coverage receipts: `212609-666347` (full 876-line spec/source), `213353-838309` (01–03, 28–33), `213939-513843` (04–11, table-verified), `215526-865775` (20–23, 25–27, table-verified), `220112-899456` (12–15 + 24).
+
+**Not verified / gaps (explicit):**
+- **UNVERIFIED:** `sourceSHA 2e926758…` (unlocated); the block's "~14 chunks" claim (actual 15); backend behaviour of any kind — I read only `tests/test_webhook_audit.py:287/:661`, the doubles at `tests/integration/test_webhook_canonical_payment.py:150–166`, and `orders`-column provenance cited by the spec; the rest of 817f was deliberately not re-audited (per instruction).
+- **Not executed:** any test, migration, provider, container, DB, lock or runtime step (forbidden/unavailable); all findings are static.
+- I did not re-read the 876-line spec verbatim this session; I relied on `212609-666347`'s retained full read and spot-verified every line cited in F1 and Q5.
+- Did not re-hash bodies 01–15 and 20–33 (hashes match the two independent 33-entry indexes and the manifest).
+
+---
+
+## 4. Answers to the numbered questions
+
+**1) Have all 16–19 complete bodies been read untruncated?**
+**Yes.** All four, byte-complete, in 15 contiguous chunks (paths/hashes/ranges in §3): REVIEW-16 `runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-16-cc-response-20260912-182113-146450.txt` `a06caa9d…` 25 008 B [0–7000, 7000–14000, 14000–21000, 21000–25008]; REVIEW-17 `REVIEW-17-glm-response-20260912-182113-898552.txt` `5dfd7b23…` 18 103 B [0–7000, 7000–14000, 14000–18103]; REVIEW-18 `REVIEW-18-deepseek-response-20260912-182113-550910.txt` `74d5dc6b…` 23 384 B [0–7000, 7000–14000, 14000–21000, 21000–23384]; REVIEW-19 `REVIEW-19-cc-response-20260912-184755-548538.txt` `777be6d9…` 21 615 B [0–7000, 7000–14000, 14000–21000, 21000–21615]. **No missing interval.** 16/17/18 target `c6bae734…`; 19 targets `a4e06c08…`.
+
+**2) Any newly surviving concrete HIGH/MEDIUM after integrating these historical obligations?**
+**No new ones.** REVIEW-18's single MEDIUM (classifier returns `False` before the authority lookup, `ADJACENT-CLASSIFICATION-SOURCE.txt:141–146`) is closed in 964: the discovery-tuple composite FK + `LISTING`-owner discriminator with post-resolution mismatch → raise is present at `spec:376`, `:410`, `:485` (and REVIEW-19 independently verified that exact resolution). REVIEW-19's L1 (non-concurrent `orders` UNIQUE/FK DDL lock) and L2 (published-Listing seller immutability) are LOW and are already carried into 964 text (`:651` bounded 250 ms/2 s/5 s body deadline + explicit no-concurrent-DDL rule; `:410` frozen catalog including published-Listing seller enforcement + mutation tests). REVIEW-16/17 are APPROVE_WITH_NITS. **The only live blocker remains F1**, which no historical body raised or resolved.
+
+**3) Does accumulated same-candidate coverage now include the full 876-line spec/source and all 33 body readings?**
+**Yes, as enumerated, with three true residual gaps.** 876-line spec + source: retained from `212609-666347`. Bodies: 01–03 and 28–33 (`213353-838309`, full-text class), 04–11 (`213939-513843`), 12–15 + 24 (`220112-899456`), 20–23 + 25–27 (`215526-865775`), 16–19 (**this session**) = 01–33. Remaining gaps, stated plainly: (a) `sourceSHA 2e926758…` unattested (F3); (b) chunk-count claim off by one (F2); (c) the 33-entry vs 26-entry index ambiguity (F4); plus the standing non-gaps — backend `817f` sampled only, zero runtime. I did **not** reset any earlier coverage and did **not** fabricate intervals.
+
+**4) Consolidated current design verdict/findings, with the correct F1 location and the erroneous restatement distinguished.**
+**REVISE** on frozen `9645601d` (zero delta). Correct F1 locus: `tests/test_webhook_audit.py:287`/`:661` (pinned `817f7331`) strict `assert_awaited_once_with(order_id, pi)` versus the keyword-only `expected_binding` convention at `spec:622`/`:626`, under a three-file amendment whose enumerated edit for that module is only the 11 dedup tuples (`spec:435`) — see F1. **Erroneous restatement to strike:** the prior `220112-899456` F-1 cited the "canonical integration module's `mark_paid` double 153–159" as an unsatisfiable frozen assertion; `spec:773` **explicitly authorizes** updating that double ("update the double to validate the exact new value … Do not discard `expected_binding` with `**kwargs`"), so it is not a defect. Also strike `213353-838309` F1's line anchor `spec:770` — line 770 is the list item "26. tests/test_notification_events.py"; the operative text is `:622`. Both prior rounds rated this MEDIUM/HIGH; either way it blocks, so the verdict is unchanged. False closure (calling F1 resolved without a contract change) must not be accepted.
+
+**5) Are implementation/environment/genuine phases/cutover/live AWS/R2 proofs still wholly unwaived?**
+**Yes, wholly unwaived, and this review waives nothing.** `spec:4`: "Backend817f remains partial/unqualified. Fresh full review, full implementation qualification, environment integration, combined review, genuine phases and enabled AWS S3/R2 release proof remain required. This is preparation, not accepted implementation authority." `spec:633`: "All remaining authority, refund, provider, environment, genuine-hold, cutover and enabled AWS S3/R2 release gates remain binding." `spec:682`: "None of these low-mandate dispositions waives a release gate or constitutes implementation evidence." My APPROVE-class items are design-text only; nothing here certifies code, environment, runtime, window issuance, pin, hold, or live AWS S3/R2 release.
+
+---
+
+## SIMPLER
+
+**For F1 (mandate-eligible, since F1 is a blocking contradiction):** the minimal preserving fix is the one sentence in F1's "smallest required outcome" — extend the `tests/test_webhook_audit.py` clause from "the 11 dedup tuples" to "the 11 dedup tuples **and** the two strict `mark_paid` assertions at `:287`/`:661`, updated to the keyword-only `expected_binding` form." Quantified removal: deletes the whole F1 defect at zero target/schema/config cost; removes nothing else (the 11 tuples, the `_Result` sentinel, the SQL-string edit, the double authorization at `:773`, and the six inherited exceptions are all untouched). I also tried to remove the two assertions altogether (rejected: `:512` forbids weakening and they are the only exactly-once evidence for test_09/test_20) and to remove the keyword-only argument (rejected: it is the folded fix for the pre-lock validated-binding boundary at `:622`).
+
+**For the design as a whole:** none found that preserves every invariant. The binding constraint is the zero-optional-W-dependency rule for non-W traffic; REVIEW-19 already established that the declarative convalidated composite FK is cheaper than the alternatives (no trigger, no app-layer recheck, catalog-introspectable), so I do not re-open it.
+
+## BETTER
+
+**For F1:** the materially better approach is the recorded-but-unadopted carrier alternative (`213353-838309:74`): keep `OrderService.mark_paid`'s public signature and carry the once-built validated binding on the owning session/request-scoped immutable value the lock owner already holds. Failure modes compared: the current kwarg form leaves two strict `webhook_audit` assertions and a whole unmigrated-caller surface to reconcile (F1, plus `spec:647`'s zero-unmigrated-caller gate); the carrier form collapses both into one helper input already inside the 27 targets, at the cost of less auditable implicit data flow and the risk that a future caller bypasses the validated boundary. Cost: a rewrite of `spec:622`/`:626` plus the helper API (no new target); rollback is a textual revert with no schema or money-row exposure. **Advisory, not a mandate** — no scope-violation or material-risk evidence supports elevating it.
+
+**For the artifact:** none materially better than "close F1 by contract text, then re-issue the frozen candidate for the same unanimous design gate"; the alternatives I tested (drop the keyword-only arg; drop the composite FK) each reopen a folded blocker.

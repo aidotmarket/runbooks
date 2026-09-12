@@ -1,0 +1,247 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+### 1. NIT — The durable JSONB attempt authority still lacks an explicit final-tree inventory of every `transactions.metadata` writer
+
+- **Severity:** NIT — non-blocking; retained from the prior whole-spec review.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:709` selects `transactions.metadata` as the durable attempt store.
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:713` defines the closed `canonical_agent_attempt_v1` record and requires unrelated keys to be preserved.
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:755` and `:759` make that record load-bearing for webhook and stale-cleanup behavior.
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:645-647` requires a final-tree caller inventory for `mark_paid`, the binding helper, and affected completion entry points, but does not expressly enumerate every writer that replaces or rewrites `transactions.metadata`.
+  - Retained source evidence from the prior review identified whole-object writers at backend base `817f7331a07d07929a67198b28a82ed9b98baa56:app/services/delivery_service.py:1280-1295`, and malformed-string fallback behavior at `:1433-1440`. That source was not reread in this history batch.
+- **Observed:** The design requires preservation and malformed-record refusal, but the final qualification gate does not explicitly classify every metadata writer as non-destructive, attempt-aware, or refusing.
+- **Expected:** Extend D4, or the final mandatory proof, with an inventory of every final-tree `transactions.metadata` writer and its interaction with rows carrying `canonical_agent_attempt_v1`.
+- **Reproduction:** Static evidence only.
+- **Impact:** A whole-object JSONB replacement or fallback that reconstructs `{}` could erase or obscure durable attempt authority. No current normal-path money defect was demonstrated; this remains a qualification and durability traceability gap.
+- **Smallest required outcome:** Add one explicit metadata-writer classification requirement to the final caller/proof gate. No protocol redesign is needed.
+- **Verification criterion:** On the frozen implementation tree, retained `rtk` search/output classifies every `transactions.metadata` writer with zero unclassified writers, and metadata-mutating delivery/settlement/test paths prove the attempt bytes and revision unchanged.
+
+### 2. NIT — D4’s caller-classification vocabulary omits the fourth `agent_attempt_completion` mode by name
+
+- **Severity:** NIT — non-blocking; retained from the prior whole-spec review.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:647` permits only canonical `expected_binding`, strict direct/recovery, and independently proven no-Transaction legacy classifications.
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:837-843` adds `agent_attempt_completion` as a distinct fourth mode with durable attempt correlation, no Session, fresh provider evidence, and its own binding inputs.
+- **Observed:** A final qualification runner following only D4 could treat the new agent handlers as unclassifiable or force them into a browser/direct/recovery category.
+- **Expected:** D4 should expressly include `agent_attempt_completion` and its exact durable-attempt/provider-evidence inputs.
+- **Reproduction:** Static evidence only.
+- **Impact:** Ambiguous qualification, not a demonstrated protocol hole; the later section substantially constrains the actual behavior.
+- **Smallest required outcome:** Add the fourth classification to D4’s closed vocabulary.
+- **Verification criterion:** The final full-tree inventory explicitly classifies the original agent response and both signed PI handlers as `agent_attempt_completion`, records their required durable inputs, and reports zero unclassified or unmigrated callers.
+
+No new HIGH or MEDIUM finding resulted from the full reading of REVIEW-01 through REVIEW-08. These two NITs remain non-blocking, and the retained verdict is unchanged.
+
+## Exact artifact identity
+
+- Repository: `aidotmarket/runbooks`; `origin` is `git@github.com:aidotmarket/runbooks.git`.
+- Candidate HEAD: `9645601d50c10a5fe42f38e7972b8c159dc69b04`.
+- Base: `e3b8b08813f1476910422c4233fee92360409cb7`.
+- Branch: `docs/seller-workspace-agent-attempt-s1712`, exactly as expected.
+- Pinned checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`.
+- Working-tree status showed only the expected branch/tracking line and no modified entries.
+- The controller’s diff command runs. The range changes 18 files, with 1,771 insertions and 6 deletions.
+- Current specification:
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`
+  - 876 lines
+  - 247,866 bytes
+  - SHA256 `8ee6f5514b41252739da8158f0577f8a5c16267bd8132bf0c07c16ae98a77e1d`
+- Full packet:
+  - 2,222,740 bytes
+  - SHA256 `5419c9adf635e8777435760cf24195ce0fe12c34f40ce291bc68a2155c4fc66b`, unchanged.
+- Review manifest:
+  - 19,535 bytes
+  - SHA256 `a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b`
+  - Status remains `COMPLETE_PACKET_UNDISPATCHED_NOT_ACCEPTED`.
+
+## REVIEW-01 through REVIEW-08 identities and full-read coverage
+
+All eight files are tracked at the candidate, byte-for-byte match the manifest, and were read completely in contiguous slices of at most 4,500 bytes. Verdicts/headers were not substituted for middles, rationales, limits, or SIMPLER/BETTER sections.
+
+| # | File at `9645601d` | Original response | Blob | Bytes | SHA256 | Lines |
+|---|---|---|---|---:|---|---:|
+| 01 | `runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-01-cc-response-20260912-034649-557713.txt` | `/Users/max/council/cc/response-20260912-034649-557713.md` | `3f970fbd02c27d95f89ae0a2d4a6a6fa97efad3c` | 17,860 | `1a8b15b8790923fa5a0c60d6358ac3f20dee2a7101cebe03d140b33450bc5645` | 93 |
+| 02 | `.../REVIEW-02-glm-response-20260912-033915-462639.txt` | `/Users/max/council/glm/response-20260912-033915-462639.md` | `60f0442c5ae7c80a227827f022176e464d3d09a9` | 23,268 | `012fead06f9a1953f49ccf18863b3c7b32cb163574ae903ceaaf6de2353745d6` | 236 |
+| 03 | `.../REVIEW-03-deepseek-response-20260912-033915-765541.txt` | `/Users/max/council/deepseek/response-20260912-033915-765541.md` | `1940580477615c5f40cd4b5852b3b9ad758b3aae` | 22,313 | `aad035c8a9f6f2bf3a5ad42bf841f41932ee11d2000d4bf4d0069459c208b7c0` | 114 |
+| 04 | `.../REVIEW-04-cc-response-20260912-142637-351776.txt` | `/Users/max/council/cc/response-20260912-142637-351776.md` | `8f72aa88a52de18f1c333dcd4e0e10e21ce947d9b` | 26,353 | `4040e355ceb372f9356a67c5177cac78cabe07af4b10c57a65390c13c228b6ee` | 102 |
+| 05 | `.../REVIEW-05-glm-response-20260912-142648-929521.txt` | `/Users/max/council/glm/response-20260912-142648-929521.md` | `8a3f745de04489850c9b8e943cab460c4312b3cd` | 30,115 | `1b8a19a7100b1714e32ae3e852d6d1edf7b86526a7c45555df6dfc424b153e58` | 405 |
+| 06 | `.../REVIEW-06-deepseek-response-20260912-142649-391642.txt` | `/Users/max/council/deepseek/response-20260912-142649-391642.md` | `d30b1a95fc575d3df09898d6c7191b6c8da260ff` | 29,823 | `b3b8d7b21b1c57ae2d49c5f3cad51e4250c62cd5ed589384edaf2ad8a52a65ee` | 105 |
+| 07 | `.../REVIEW-07-cc-response-20260912-152306-947339.txt` | `/Users/max/council/cc/response-20260912-152306-947339.md` | `4593d8aba57df376afe9de6c44be771812988ee0` | 28,440 | `469d976eca912cb460a70f30fb1271f15a0e18f90d0f5eb98ad6e6eaa522a864` | 96 |
+| 08 | `.../REVIEW-08-glm-response-20260912-152307-326373.txt` | `/Users/max/council/glm/response-20260912-152307-326373.md` | `063853978c8dd9d490e979cea6c3bb9b95053dd7` | 24,078 | `8c5365317097cce0ac28d9f6f03b64ccab6f27b5e43b145cc8320588ee5b3d04` | 255 |
+
+The contiguous byte intervals were:
+
+- REVIEW-01: `[0,17859]`
+- REVIEW-02: `[0,23267]`
+- REVIEW-03: `[0,22312]`
+- REVIEW-04: `[0,26352]`
+- REVIEW-05: `[0,30114]`
+- REVIEW-06: `[0,29822]`
+- REVIEW-07: `[0,28439]`
+- REVIEW-08: `[0,24077]`
+
+The first attempted print of REVIEW-01 was tool-truncated. I did not rely on it: REVIEW-01 was immediately reread completely in four smaller contiguous slices. Two other read-only command attempts also failed harmlessly—one shell heredoc could not create a temporary file under the read-only profile, and one blob lookup used the wrong Git path syntax; both were replaced with corrected read-only commands.
+
+## Integration of all new obligations and conflicts found in REVIEW-01–08
+
+The verdict arc read in full was:
+
+1. REVIEW-01 CC: `APPROVE_WITH_NITS`
+2. REVIEW-02 GLM: `APPROVE_WITH_NITS`
+3. REVIEW-03 DeepSeek: `APPROVE_WITH_NITS`
+4. REVIEW-04 CC: `APPROVE_WITH_NITS`
+5. REVIEW-05 GLM: `REQUEST_CHANGES`
+6. REVIEW-06 DeepSeek: `REVISE`
+7. REVIEW-07 CC: `APPROVE_WITH_NITS`
+8. REVIEW-08 GLM: `APPROVE_WITH_MANDATES`
+
+### Historical conflicts are explicitly resolved, not silently inherited
+
+- CC’s REVIEW-04 rulings that no W registration table was needed and that read-then-DELETE could be made safe through asserted exclusive custody are expressly rejected by the current contract at `specs:86`. The current design instead selects exact persisted W authority and removes DELETE.
+- GLM REVIEW-05’s two HIGH findings and DeepSeek REVIEW-06’s corresponding blocking concerns are integrated:
+  - Separate `workspace_test_windows` and immutable `workspace_refund_test_authorities` tables are required at `specs:122-128`.
+  - Complete baseline, exact one-order delta, immutable registration, unique provider IDs, and closed-window convergence are required at `specs:130-142`.
+  - The undefined owner-window hash is gone; the exact eight-key pin set and local Docker Image ID/OCI distinction are at `specs:120`.
+- GLM REVIEW-08’s blocking reset-history finding is corrected by unconditional four-fixture protection in both supported backend cleanup services at `specs:144-160`, not by detecting destruction after the fact.
+- The later 27-target canonical-PI/agent successor does not quietly override the old Workspace contract. It states that no old vote carries forward at `specs:4` and `:42`, and D1 at `specs:631-633` supersedes only the specifically named normal-money scope clauses while retaining the S1681 restriction, forged-N non-waiver, and all release gates.
+
+### Gate1 obligations from REVIEW-01–03
+
+The following obligations from the first three complete bodies are represented in the current retained contract:
+
+- Exact accepted product/environment dependencies and hashes: `specs:52-66`.
+- Authentic signed TEST seam and normal financial processor ownership: `specs:76-78`.
+- Runtime manifest, source/image identity, and mismatch refusal before writes: `specs:80`, `:94`, `:102-120`.
+- Order-based refund/revocation/dispute/pending settlement exclusion, including bare revocation, through the actual `order_money_service` eligibility and dispatch paths: `specs:243`.
+- Event and per-refund idempotency/retry through the accepted normal processor: `specs:76`, `:241`.
+- Exact P/N/W acceptance fixtures and separate W namespace/owner transition: `specs:66`, `:102-110`, `:277-285`.
+- Private stdin transport, exact `seed/seed.py --workspace-activate-stdin` receiver, nonsecret `PYTHONPATH=/app`, and no credential-bearing environment/argv/Compose transport: `specs:94-98`.
+- Secret canary and scoped application-secret boundary: `specs:98`, `:237`, `:252`.
+- Account livemode/provider-shape posture: `specs:206`.
+- Corrected historical source-hash recipe: `specs:287-289`.
+- Runbook documentation targets, stale guide correction, and exact CI tuple requirement: `specs:229-233`.
+
+### Gate2 first-round corrections from REVIEW-04–06
+
+- `ensure_order_capture` includes the actual optional/internal parameters: `specs:72`.
+- Settlement regression targets the actual payout-eligibility path rather than only `settlement_service.py`: `specs:243`.
+- `totp_secret_name` is explicitly added to the seller02 packaged account entry: `specs:180`.
+- W registration is no longer optional or proof-orchestration-only; exact database authority is mandatory: `specs:124-142`.
+- No Infisical DELETE/PATCH/upsert is permitted; custody is retained and uncertainty is explicit: `specs:186-192`, `:218-221`.
+- `backend_local_image_id`, source SHA, source label, environment commit, spec pins, and `versions.env` hash are separately defined: `specs:120`.
+- Migration parent and single-head reconfirmation are required: `specs:124`.
+- Cheap definitely-non-W rejection and unchanged S1656/S1681/non-W behavior are mandatory: `specs:116`, `:250`.
+
+### Second-round mandates and nits from REVIEW-07–08
+
+- The W predicate must not disturb existing synthetic paths; real ASGI regressions are required: `specs:250`.
+- All four protected fixture UUIDs are refused by both SurgicalReset and Teardown, including pre-open, closed, missing-schema, damaged-lineage, and publication-race cases: `specs:146-160`.
+- Exact custody digest and marker encodings, including golden cross-boundary examples, are specified: `specs:172-174`.
+- `environment_sha` selects one exact deployed commit and rejects same-tree alias substitution: `specs:120`.
+- The canary is scoped to new Workspace custody material while preserving accepted application credentials under their own contracts: `specs:98`.
+
+No unresolved obligation or contradictory historical assumption from REVIEW-01 through REVIEW-08 was found. The material historical disagreements are specifically disclosed and superseded or corrected in the current text.
+
+## Coverage and remaining limits
+
+### Covered in this batch
+
+- Exact checkout, branch, repository, packet/spec/manifest hashes, and manifest-bound identities for REVIEW-01–08.
+- Every byte of REVIEW-01 through REVIEW-08, including all findings, coverage disclosures, answers, rationales, limits, and SIMPLER/BETTER sections.
+- Targeted re-anchoring of newly recovered historical obligations against the current specification sections cited above.
+- The retained whole-spec/source review and its two NITs remain unchanged.
+
+### REVIEW-09 through REVIEW-26
+
+I did **not** read the complete prose bodies of REVIEW-09 through REVIEW-26 in this batch. They remain only manifest/hash/verdict/heading-verified from the retained review. The eighteen remaining files are:
+
+- REVIEW-09 DeepSeek `152307-628770`
+- REVIEW-10 DeepSeek `161148-113817`
+- REVIEW-11 CC `161122-138835`
+- REVIEW-12 GLM `161147-699100`
+- REVIEW-13 DeepSeek `163133-467416`
+- REVIEW-14 GLM `163133-049461`
+- REVIEW-15 CC `163132-665734`
+- REVIEW-16 CC `182113-146450`
+- REVIEW-17 GLM `182113-898552`
+- REVIEW-18 DeepSeek `182113-550910`
+- REVIEW-19 CC `184755-548538`
+- REVIEW-20 GLM `184756-332575`
+- REVIEW-21 DeepSeek `184755-944151`
+- REVIEW-22 CC `191524-175920`
+- REVIEW-23 DeepSeek `191750-833374`
+- REVIEW-24 CC `192808-747577`
+- REVIEW-25 GLM `191750-465420`
+- REVIEW-26 DeepSeek `192617-104271`
+
+Silence over those eighteen bodies is not approval.
+
+### REVIEW-27 through REVIEW-33
+
+Yes—the retained review did directly read every prose body for REVIEW-27 through REVIEW-33. I audited the retained launcher record and confirmed whole-file read commands for each of the seven files, rather than only verdict/header extraction. I did not reread them in this batch.
+
+### Was the original 876-line specification fully read?
+
+Yes. The retained review’s process record establishes full-text coverage with overlap, not merely headings or selected paragraphs:
+
+- Packet lines 149–700 were an exact byte/text match for current specification lines 1–551.
+- The retained process directly read current lines 525–628.
+- It directly read overlapping ranges 629–700, 649–703, 703–740, 741–776, 777–828, and 829–876.
+- Therefore the full interval 1–876 was covered; there is no missing specification range.
+
+The earlier 0–40,000-byte direct reads were supplementary, not the basis for claiming middle-spec coverage.
+
+### Not run or not certified
+
+- No tests, migrations, databases, containers, providers, credentials, scheduler operations, locks, runtime mutations, or release operations were run.
+- GitHub CI and the external owner/CI receipts remain controller/manifest evidence and are **UNVERIFIED** here.
+- Backend source was not reread in this history batch; the prior 36-context source review remains retained.
+- Cryptographic provenance of peer-bus messages and Max’s event remains **UNVERIFIED** beyond retained/corroborating evidence.
+- This batch is not a whole-history vote, implementation acceptance, runtime acceptance, or production release approval.
+
+### Turn-budget disclosure
+
+I did not stay within the nominal 30 tool-turn budget; I used roughly twice that budget, mostly on corrected full-body rereads, current-spec obligation anchoring, and retained-log coverage reconstruction. All extra work remained read-only. This is a process overrun, not new execution evidence and not an artifact defect.
+
+## Answers to the six effective review questions
+
+1. **Does the pinned artifact match the controller identity, and is the batch input unchanged?**  
+   Yes. HEAD, branch, repository, packet SHA, manifest SHA, and current spec SHA all match. A mismatch would have blocked this batch; none was found.
+
+2. **Were REVIEW-01–08 completely read rather than header-extracted?**  
+   Yes. Every byte was read in contiguous slices after correcting one truncated initial print. Missing prose would have made this batch incomplete; no gap remains for these eight bodies.
+
+3. **Are all newly recovered obligations and conflicts integrated into the retained contract?**  
+   Yes for REVIEW-01–08. Exact persisted W authority, no destructive custody DELETE, four-fixture reset/teardown protection, exact image/environment pins, exact receiver/PYTHONPATH, scoped canary, exact custody encoding, actual settlement path, runbook/CI traceability, and release gates are all represented. Historical contrary rulings are explicitly superseded.
+
+4. **Does remaining history coverage still block a whole-history claim?**  
+   Yes. REVIEW-09–26 remain unread in full by this reviewer. This batch cannot be represented as completion of all 33 bodies or as a new whole-history vote.
+
+5. **Did the retained review actually read REVIEW-27–33 and the full 876-line specification?**  
+   Yes to both. REVIEW-27–33 were read as complete bodies, and the 876-line specification was covered over overlapping full-text ranges 1–551, 525–628, and 629–876.
+
+6. **Does this batch authorize implementation or execution?**  
+   No. It only completes the assigned history-reading segment. The prior AWN is retained, the two NITs remain open qualification requirements, and implementation, migrations, runtime issuance, tests, providers, production cutover, and AWS S3/R2 release remain unaccepted.
+
+## SIMPLER
+
+**None found** that preserves every requirement and invariant.
+
+Alternatives considered and rejected:
+
+- Replacing both native PI constraints with an application advisory lock removes one migration, two indexes, and the DDL step, but fails unknown/raw/future writers and adds a lock tier beneath established money locks.
+- A recovery-only Transaction PI backfill removes normal producer changes but leaves every future public checkout exposed to one-sided binding.
+- Removing the notification-isolation matrix removes fixture-only work but masks a real lifecycle failure.
+- Restoring the old rollback-only agent flow removes schema/state work but cannot bound one-shot provider spend after uncertain creation.
+- Removing crash/race/provider-status qualification reduces cost but loses the no-second-purchase and once-only release invariants.
+- The earlier simpler W corrections—exact registration plus retained custody—have already been adopted and are not further removable without reopening the REVIEW-05/06 blockers.
+
+## BETTER
+
+**Advisory only:** a first-class `agent_payment_attempts` table keyed by immutable `attempt_id` and unique `transaction_id`, with explicit revision/state/spend-release columns and immutable request columns, would be materially stronger than JSONB metadata.
+
+- **Failure-mode comparison:** It would make whole-object `transactions.metadata` replacement unable to erase the attempt authority and would provide a direct database uniqueness/ownership anchor. The current design depends on service discipline and the metadata-writer inventory in NIT 1.
+- **Cost:** One additional migration/table and query/join path; the 28-field record would still require exact validation. It would also expand the currently selected 27-target implementation scope.
+- **Rollback:** Like the selected forward-only design, retirement would need separately reviewed migration work. A dedicated table is harder to retire than metadata but easier to audit and constrain.
+- **Disposition:** Advisory only. The JSONB design can preserve the invariants if NIT 1’s final writer inventory is added; no demonstrated current failure mandates the schema expansion.
