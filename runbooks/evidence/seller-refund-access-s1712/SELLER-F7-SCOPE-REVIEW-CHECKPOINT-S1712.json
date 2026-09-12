@@ -1,0 +1,46 @@
+{
+  "at": "2026-09-12T09:24:49.670433+00:00",
+  "candidate": "c3ff459074511759e075fb8c7cc475536f5f2086",
+  "spec_sha256": "7b8d5502ae270958ccc036c0d064318eca10a4a8c115df205e599c99d94a2a15",
+  "responses": {
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-110920-803224.md",
+      "sha256": "0d752729197c3aae6f42e336d20df2a7516b5b5d85bd85f9a4cce475015467b5",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    },
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-110920-046533.md",
+      "sha256": "af3f0132f849efb9571698d586b93d3dd071262e25741487864d981530f10761",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-110920-478334.md",
+      "sha256": "0765f7d545377d15415e178998341c304f24dedf79e24a2c430b03ecca9f75f6",
+      "verdict": "APPROVE_WITH_NITS",
+      "full_response_read": true
+    }
+  },
+  "clarifications": [
+    "Name fail_delivery->_enqueue_dlq explicitly",
+    "Use exact create_delivery_record and record_stripe_webhook_idempotency symbols",
+    "Concrete byte bound and at most one admitted chunk in flight",
+    "Do not accept inferred0.110.1 session liveness; explicit owned factory sessions and real pinned-version ASGI proof",
+    "Do not interpret advisory lock-free unlinked branch as bypassing required transaction lock/revalidation",
+    "Epoch/schema expansion advisory is not authorized",
+    "CC router537 references distinct SellerWorkspaceDeliveryService; actual DeliveryService route registration is deliveries.router189 and deliveries.py112-122. Independent audit already binds actual caller."
+  ],
+  "status": "unanimous scope accepted, all full responses and14line decision read/hash verified; MP243 running; not product Gate3",
+  "session_assessment": "outputs/SELLER-F7-STREAM-SESSION-ASSESSMENT-S1712.json",
+  "accepted_decision": "26588d3571efc3a19d1a9b591fb51991690e3f62",
+  "accepted_spec_sha256": "1e3c9783575db778301d0b7ec8a66f1dadca0b855ce59cf0cff9bdaf8cfd6806",
+  "accepted_clarification_full_read": true,
+  "mp243": {
+    "task_id": "71bce160388f",
+    "ts_job_id": 243,
+    "base": "ffdcacb14929328285ef3ed27ba6dc939e550f42",
+    "owner": "Mars S1714 / MP",
+    "status": "running"
+  }
+}

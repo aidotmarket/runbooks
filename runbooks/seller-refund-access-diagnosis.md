@@ -14,9 +14,65 @@ error_signatures:
 
 # Seller purchase access after refunds: diagnosis and upgrade runbook
 
-Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 after verified MP242 completion and proposed F7 scope. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 with accepted F7 scope and candidate-bound delivery operations. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
 
-## Verified MP242 result and next delivery scope
+## Current F7 delivery implementation and operating procedure
+
+F7 is unanimously accepted at `26588d3571efc3a19d1a9b591fb51991690e3f62`, spec SHA256 `1e3c9783575db778301d0b7ec8a66f1dadca0b855ce59cf0cff9bdaf8cfd6806`. All full CC, GLM and DeepSeek responses and the accepted clarification were independently read. [Scope decision verification](evidence/seller-refund-access-s1712/SELLER-F7-SCOPE-REVIEW-CHECKPOINT-S1712.json).
+
+MP243 finished at `64c810dedba1f9667fbac901f2a15f04b4f98091` with a clean checkout and matching canonical remote. Its parent is verified MP242 `ffdcacb14929328285ef3ed27ba6dc939e550f42`; only DeliveryService and the existing refund protocol test module change in this increment. The service SHA256 `df5f9142a32689e069f74b4b31ea8173edc02cbd037b37855a9644e7cd3db6eb` matches independently read source. The procedure below explains this verified build, not an accepted or deployed product. The readiness correction, full review and production acceptance remain open. The older proposal and local 0.109 framework observations below are historical, superseded by accepted scope and the pinned source verification.
+
+Independent final verification reconciled all 42 source targets, 321 migration and two protected hashes, 139 retained and 233 predecessor artifacts, 57 final artifacts, and all four exact source-bound run headers. Core665 passed/four unchanged baseline failures; adjacent284 passed/two unchanged baseline failures; Gold14 passed/11 intentional marker deselections and canonical55 passed. Across1,024 execution entries there are1,010 unique nodes:1,004 passed and six unchanged baseline failures. All868 prior nodes,142 new F7 cases and19 original posting positives remain; no errors, skips, missing/duplicate/conflicting nodes or unmocked attempts were found. All ten actual ASGI lifecycle cases passed under pinned FastAPI0.110.1/Starlette0.37.2/SQLAlchemy2.0.25. Read [exact artifact verification](evidence/seller-refund-access-s1712/SELLER-MP243-EXACT-ARTIFACT-VERIFICATION-S1712.json), [fixed pre-build expectations](evidence/seller-refund-access-s1712/SELLER-MP243-FIXED-EXPECTATIONS-VERIFICATION-S1712.json) and [predecessor/header verification](evidence/seller-refund-access-s1712/SELLER-MP243-PREDECESSOR-HEADER-VERIFICATION-S1712.json). These bind manifest SHA256 `f3cea6577e694b6656ea99a83a9c0c89f93ad5f0a816336e85cc65d14cea9770`.
+
+The first full core reused the earlier proof database and failed three additional missing-account reseed cases because journal lines still referenced those accounts. Those failures remain preserved. The unchanged full suite on a fresh, fully migrated database with zero pre-run journals/lines passed all three. Do not delete retained financial history to prepare a test database or relabel those first-run failures as baseline exceptions. The remaining four subscription-service and two adjacent failures match the predecessor node and error-message identities exactly.
+
+### How a download is admitted
+
+The registered delivery download route calls `DeliveryService.stream_from_vz`. Token validation checks its signature and claims, route/transaction binding, buyer, active attempt, JTI and expiry. The shared `_lock_transaction` helper discovers links without writer locks, then locks the order, transaction and existing money authority in that order. It rechecks both links, uniqueness, payment binding, refund/revocation, access expiry and download limits before child audit or queue writes. It never creates money authority for delivery. An unlinked legacy transaction needs genuine absence checks and a recheck while locked; it is not a lock-free bypass.
+
+A full refund or closed access refuses further delivery. A partial refund requires prior delivered access and an otherwise open access window. Token renewal or retry must preserve the prior partial-refund delivery state and timestamps; it must not manufacture new delivery success. A valid token alone is insufficient when the current order has closed access.
+
+### Streaming and cancellation
+
+FastAPI 0.110.1 closes the request dependency before response iteration. The service therefore creates separate short callback sessions through the existing `AsyncSessionLocal` factory. Each callback commits or rolls back and closes; the request session is not reopened. The pinned inspection also binds Starlette 0.37.2 and SQLAlchemy 2.0.25. See [pinned framework verification](evidence/seller-refund-access-s1712/SELLER-F7-PINNED-FRAMEWORK-VERIFICATION-S1712.json) for file hashes and the exact source lifecycle.
+
+The reader fetches a bounded chunk outside a database session. The maximum is 262144 bytes. Before yielding that chunk, the service revalidates current access and commits `delivery_chunk_admitted`, then closes that callback session. At most the single admitted chunk may finish after a concurrent refund or revocation. On resumption after ASGI send returns, a fresh callback rechecks authority and records range progress. ASGI send returning does not prove that the buyer received or saved the bytes.
+
+Finalization uses another current-authority check and complete range coverage. Disconnect or cancellation closes both the response iterator and reader with shielded cleanup. An interruption audit is attempted only while access remains current. A refused late interruption/failure callback must not undo a refund or write completion. Once response headers have been sent, a later refusal may appear to the client as an interrupted download rather than a new JSON error response; diagnose the retained state and exact callback, not only the initial HTTP status.
+
+### Payment helper and queued delivery
+
+The actual payment helper commits the webhook idempotency record before it calls `create_delivery_record`. A refund may commit between those two operations. A committed idempotency marker followed by a 410 delivery refusal can therefore be correct. Do not delete that marker or replay a payment merely to force a delivery record.
+
+The existing trust enqueue helper commits its outbound record, refreshes it, and publishes. The local `_DeliveryEnqueueSession` adapter detaches the refreshed outbound value and ends that read transaction before publication. The service then reacquires current order/transaction authority before its post-publication audit. Publication success is not delivery authority and does not prove that an external device consumed the message. The external device consumer remains outside this source verification.
+
+### Diagnose before retrying
+
+Capture the exact deployed commit and active source identity first. Record transaction/order IDs, signed-event identity, attempt/JTI, request range and timing without copying token or secret values. Compare both order/transaction links, the existing money authority, refund and payment records, delivery metadata, audit events, transaction events, idempotency record and any delivery dead-letter row. Journal and agent-spend snapshots must remain unchanged on refused delivery operations.
+
+A 401 can indicate an expired credential; 403 can indicate buyer/route or access-window/limit refusal; 409 can indicate changed bindings, incompatible status or a conflicting idempotency record; 410 can indicate closed access or a superseded/revoked token. Use the exact error detail and current state rather than mapping every status to one cause. Do not reset a completed refund, extend access or alter a download count to clear an error.
+
+`Delivery interruption audit refused` or `Delivery failure callback refused` can be expected after a refund or newer attempt wins. Check whether the original transport exception was preserved and whether state stayed closed. A `delivery_chunk_admitted` event alone is not progress or completion. Missing completion after an interrupted send is expected.
+
+Dead-letter retries recheck canonical order binding, current status, partial-refund state, attempt and JTI before locking the child row. A stale item cannot become a fresh delivery attempt. Preserve quarantined rows and their evidence. Use only the reviewed retry path after identifying the underlying failure; manual row edits bypass these checks.
+
+### Upgrade and acceptance checklist
+
+Bind the final manifest to the accepted F7 decision `26588d3571efc3a19d1a9b591fb51991690e3f62`, all 42 approved targets, 321 migration hashes and two protected hashes. Preserve the prior 868 unique test nodes and 19 original posting positives. Reconcile all new results and six known predecessor failures individually; neither aggregate passing counts nor a successful build process closes review.
+
+Require actual registered-route ASGI cases for completion, refund before admission, after admission, between chunks and before finalization, send failure, disconnect, disconnect after refund, cancellation and oversized chunks. Each must verify closed sessions, zero checked-out connections at reader/send boundaries and independent order/transaction NOWAIT probes. Keep both real refund/operation orderings, the actual two-commit payment helper, real enqueue/publication boundary, stale credentials, partial refunds and dead-letter cases. A direct async iterator test alone is insufficient.
+
+Recheck this lifecycle when upgrading FastAPI, Starlette or SQLAlchemy. Keep exact framework versions in test evidence. Full Council acceptance, accepted environment integration, genuine protected-run/settlement windows, production writer quiescence, exact deployed identities and fresh joint AWS/R2 browser evidence remain separate gates. This candidate note does not authorize bypassing any of them. Existing user approval applies; no renewed permission is pending.
+
+### Disposable PostgreSQL startup race — open correction
+
+Hosted run `34687335197` on `64c810de` passed canonical-payment but failed Gold Path setup before tests: socket readiness succeeded, then the role-creation query reported that database `s1714_f3_34687335197_1` did not exist. Owned-container cleanup succeeded. This is distinct from MP242's corrected missing-role failure and does not indicate an application database outage.
+
+The failed hosted image digest `18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73` matches the locally inspected disposable image. Its entrypoint starts a socket-only temporary server before creating the requested database, then stops that server before launching the final server. The current workflow's socket `pg_isready` can therefore report readiness too early. Require a bounded actual query to the requested database over TCP, with failure and owned cleanup preserved. A green retry of unchanged source does not eliminate the race. Mars confirmed this remains a required correction before full product acceptance.
+
+Read the [source-bound diagnosis](evidence/seller-refund-access-s1712/SELLER-MP243-HOSTED-READINESS-DIAGNOSIS-S1712.json), [failed job log](evidence/seller-refund-access-s1712/SELLER-MP243-HOSTED-FAILURE-S1712.log) and [exact image entrypoint source](evidence/seller-refund-access-s1712/SELLER-MP243-POSTGRES-ENTRYPOINT-S1712.txt). These are evidence artifacts; do not execute the archived entrypoint as an operational command.
+
+## Historical verified MP242 result and then-proposed F7 scope
 
 At 09:04 UTC on September12, MP242 finished at `ffdcacb14929328285ef3ed27ba6dc939e550f42`. Independent checks found a clean checkout, identical remote head, exactly41 approved source files, unchanged321 migration and two protected hashes,139 predecessor and233 final artifact hashes, and no mismatches. Core523 passed/four documented baseline failures; adjacent284 passed/two baseline failures; no errors/skips. All19 original posting positives pass;590 node references across65 requirements reconcile. There are868 unique test nodes across882 execution entries, with720 provider-guard records and zero unmocked attempts. [Exact verification](evidence/seller-refund-access-s1712/SELLER-MP242-EXACT-ARTIFACT-VERIFICATION-S1712.json).
 

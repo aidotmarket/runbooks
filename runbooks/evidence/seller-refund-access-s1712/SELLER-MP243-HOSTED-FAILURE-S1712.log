@@ -1,0 +1,93 @@
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	﻿2026-09-12T10:02:18.9449310Z ##[group]Run set -euo pipefail
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9450015Z ^[[36;1mset -euo pipefail^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9450349Z ^[[36;1mname="s1714-gold-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9450783Z ^[[36;1mdatabase="s1714_f3_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9451248Z ^[[36;1mdocker run -d --name "$name" --label s1714.owner="$GITHUB_RUN_ID" \^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9451770Z ^[[36;1m  -e POSTGRES_PASSWORD=s1714-disposable-ci-only -e POSTGRES_DB="$database" \^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9452219Z ^[[36;1m  -p 127.0.0.1::5432 postgres:17-alpine^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9452596Z ^[[36;1mcontainer_id=$(docker inspect --format '{{.Id}}' "$name")^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9453180Z ^[[36;1mport=$(docker inspect --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostPort}}' "$name")^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9453751Z ^[[36;1m[[ "$container_id" =~ ^[0-9a-f]{64}$ && "$port" != 5432 ]]^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9454172Z ^[[36;1mecho "S1714_OWNED_CONTAINER=$container_id" >> "$GITHUB_ENV"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9454568Z ^[[36;1mfor attempt in {1..30}; do^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9454992Z ^[[36;1m  if docker exec "$container_id" pg_isready -U postgres -d "$database"; then break; fi^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9455420Z ^[[36;1m  sleep 1^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9455617Z ^[[36;1mdone^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9455916Z ^[[36;1mdocker exec "$container_id" pg_isready -U postgres -d "$database"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9456400Z ^[[36;1m# Required by the historical issue-channel security migration. This^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9456888Z ^[[36;1m# inert role belongs only to the fresh job-owned disposable cluster.^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9457491Z ^[[36;1mdocker exec "$container_id" psql -U postgres -d "$database" -v ON_ERROR_STOP=1 \^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9458088Z ^[[36;1m  -c "CREATE ROLE s1714_disposable_app NOLOGIN NOSUPERUSER"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9458968Z ^[[36;1mexport DATABASE_URL="***127.0.0.1:$port/$database"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9460203Z ^[[36;1mexport ENVIRONMENT=test SECRET_KEY=s1714-disposable-test-only-32chars^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9460829Z ^[[36;1mexport BILLING_ENTITY_CODE=AIM_WY_LLC STRIPE_TEST_MODE=true^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9461589Z ^[[36;1mexport RUN_ONE_SHOT_S1163_P2=1 ISSUE_CHANNEL_APPLICATION_DB_ROLE=s1714_disposable_app^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9462250Z ^[[36;1mexport S1714_DISPOSABLE_DATABASE="$database" S1714_DISPOSABLE_PORT="$port"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9462813Z ^[[36;1mexport S1714_DISPOSABLE_CONTAINER_ID="$container_id"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9463916Z ^[[36;1mfor key in DATABASE_URL ENVIRONMENT SECRET_KEY BILLING_ENTITY_CODE STRIPE_TEST_MODE RUN_ONE_SHOT_S1163_P2 ISSUE_CHANNEL_APPLICATION_DB_ROLE S1714_DISPOSABLE_DATABASE S1714_DISPOSABLE_PORT S1714_DISPOSABLE_CONTAINER_ID; do^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9464947Z ^[[36;1m  echo "$key=${!key}" >> "$GITHUB_ENV"^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9465369Z ^[[36;1mdone^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9518240Z ^[[36;1mpython -m alembic upgrade heads^[[0m
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9560922Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9561291Z env:
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9561490Z   LITELLM_TELEMETRY: False
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9561793Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9562219Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9562637Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9563026Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9563422Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9563802Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:18.9564124Z ##[endgroup]
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:19.0758378Z Unable to find image 'postgres:17-alpine' locally
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:19.9949557Z 17-alpine: Pulling from library/postgres
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2597511Z 55afa1ecc21d: Already exists
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2636849Z 4d80c046a9c7: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2640040Z 592349920552: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2640795Z a12187db4b17: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2641987Z 5858a3f690ea: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2646126Z 75de48f507ff: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2646973Z d884d6f49732: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2647701Z b36c1b75fdb7: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2648277Z f070a6577866: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2649145Z 7f3590dcd843: Pulling fs layer
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2650056Z d884d6f49732: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2650546Z b36c1b75fdb7: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2652629Z f070a6577866: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2653171Z 7f3590dcd843: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2655258Z 5858a3f690ea: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.2655822Z 75de48f507ff: Waiting
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5240592Z 4d80c046a9c7: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5241669Z 4d80c046a9c7: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5248098Z a12187db4b17: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5249247Z a12187db4b17: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5586467Z 4d80c046a9c7: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5779224Z 592349920552: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.5782413Z 592349920552: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.7615912Z 75de48f507ff: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.7618939Z 75de48f507ff: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.8347248Z d884d6f49732: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.8348098Z d884d6f49732: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.9971938Z b36c1b75fdb7: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:20.9973995Z b36c1b75fdb7: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.0826715Z f070a6577866: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.0827736Z f070a6577866: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.2142564Z 5858a3f690ea: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.2143315Z 5858a3f690ea: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.2388363Z 7f3590dcd843: Verifying Checksum
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:21.2388920Z 7f3590dcd843: Download complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:24.0850988Z 592349920552: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:24.0998756Z a12187db4b17: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.6867724Z 5858a3f690ea: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7300205Z 75de48f507ff: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7462978Z d884d6f49732: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7610038Z b36c1b75fdb7: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7750891Z f070a6577866: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7891112Z 7f3590dcd843: Pull complete
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7934395Z Digest: sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.7950238Z Status: Downloaded newer image for postgres:17-alpine
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:27.8126522Z 9fd1cd09d0458960e970c94ec47befb0e59d8998ddcc0655080050366d1c30fe
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:28.1808960Z /var/run/postgresql:5432 - no response
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:29.2631439Z /var/run/postgresql:5432 - accepting connections
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:29.3203574Z /var/run/postgresql:5432 - accepting connections
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:29.4031877Z psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "s1714_f3_34687335197_1" does not exist
+gold-path	Create owned disposable PostgreSQL 17 and migrate full ancestry	2026-09-12T10:02:29.4116051Z ##[error]Process completed with exit code 2.

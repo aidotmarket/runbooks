@@ -1,0 +1,43 @@
+{
+  "at": "2026-09-12T10:12:47.681954+00:00",
+  "manifest_sha256": "f3cea6577e694b6656ea99a83a9c0c89f93ad5f0a816336e85cc65d14cea9770",
+  "predecessor_artifacts_verified": 233,
+  "all_run_headers_verified": {
+    "adjacent": {
+      "head": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+      "database": "s1714_f3_f7_24bd4a9d",
+      "source_count": 42,
+      "migration_count": 321
+    },
+    "canonical": {
+      "head": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+      "database": "test",
+      "source_count": 42,
+      "migration_count": 321
+    },
+    "core": {
+      "head": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+      "database": "s1714_f3_f7_adjacent_24bd4a9d",
+      "source_count": 42,
+      "migration_count": 321
+    },
+    "gold": {
+      "head": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+      "database": "s1714_f3_f7_24bd4a9d",
+      "source_count": 42,
+      "migration_count": 321
+    }
+  },
+  "unchanged_failure_nodes": [
+    "tests/test_finance_gate2_phase1.py::TestGate2Models::test_billing_entity_has_gate2_columns",
+    "tests/test_finance_phase1.py::TestMigrationStructure::test_migration_downgrade_drops_tables",
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_already_canceled_raises",
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_at_period_end",
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_immediate",
+    "tests/test_finance_phase2.py::TestSubscriptionService::test_create_subscription"
+  ],
+  "f7_passing_guarded_nodes": 142,
+  "issues": [],
+  "readiness_race": "OPEN; unchanged hosted retry is not source correction",
+  "status": "ADDITIONAL_EVIDENCE_VERIFICATION_NOT_ACCEPTANCE"
+}

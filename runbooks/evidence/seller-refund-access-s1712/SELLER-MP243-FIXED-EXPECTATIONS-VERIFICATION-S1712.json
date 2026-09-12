@@ -1,0 +1,38 @@
+{
+  "observed_at": "2026-09-12T10:12:05.922426+00:00",
+  "manifest": "/var/tmp/s1714-f7-manifest-24bd4a9d.json",
+  "manifest_sha256": "f3cea6577e694b6656ea99a83a9c0c89f93ad5f0a816336e85cc65d14cea9770",
+  "expectations_sha256": "af9083cd3d3042b334d1fc71292be8bbcf5a896a8b99fd7eee11188a83d8e9ec",
+  "head": "64c810dedba1f9667fbac901f2a15f04b4f98091",
+  "unique_nodes": 1010,
+  "prior_nodes_retained": 868,
+  "missing_prior_nodes": [],
+  "duplicates": [],
+  "conflicts": [],
+  "actual_asgi_nodes": {
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[complete]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_admission]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[after_admission]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[between_chunks]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_finalize]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[send_error]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect_refunded]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[cancel]": "passed",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[oversized]": "passed"
+  },
+  "framework_versions": {
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[complete]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_admission]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[after_admission]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[between_chunks]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_finalize]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[send_error]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect_refunded]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[cancel]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25",
+    "tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[oversized]": "FastAPI=0.110.1;Starlette=0.37.2;SQLAlchemy=2.0.25"
+  },
+  "issues": [],
+  "status": "FIXED_EXPECTATIONS_CHECK_NOT_RELEASE_ACCEPTANCE"
+}

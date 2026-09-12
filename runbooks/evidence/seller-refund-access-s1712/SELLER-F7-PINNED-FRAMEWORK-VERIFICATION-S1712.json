@@ -1,0 +1,29 @@
+{
+  "at": "2026-09-12T09:29:11.175406+00:00",
+  "owner_receipt": "/Users/max/koskadeux-state/s1656/s1714-f7-pinned-framework-source.json",
+  "owner_receipt_sha256": "02362723a23d9df0ad11e204d3e9e32a9cafb88f86355cf89f640be39d7e9c7e",
+  "all_six_file_hashes_independently_verified": true,
+  "versions": {
+    "FastAPI": "0.110.1",
+    "Starlette": "0.37.2",
+    "SQLAlchemy": "2.0.25"
+  },
+  "files": {
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/fastapi/__init__.py": "d53230bf3b373524b7490184c66f320f60a05b21ce1dfd33b01a4f63a91fe37e",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/__init__.py": "49e0500bce7b4b2db5438bfcedd63b8e0562cf2c775fdabe557a0efd31c8d562",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/__init__.py": "4eef21873645eb5d1df63e7daee095d8844e2a9faed58f62f8f96173a35fe747",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/fastapi/routing.py": "75c4018f152c3bd293d299a9d5ec09cccf2a0f7c237198b506b9f2caa6042e81",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/routing.py": "6f2eba174bae3b5b9f33e04c4c634c2336b29325d046029d0543866040affe85",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/responses.py": "18a5b210b4414da48f444aa5bdc0e1c9d091b7a8a28400ed6e7d501e51cd06d1"
+  },
+  "source_ranges_read": {
+    "fastapi/routing.py": "265-328",
+    "starlette/routing.py": "63-78",
+    "starlette/responses.py": "241-269"
+  },
+  "conclusion": "Pinned FastAPI dependency AsyncExitStack exits before return response; Starlette then invokes response and streams. Existing get_async_db therefore closes request dependency before iterator execution. Explicit stream-owned session contract is necessary.",
+  "scope": "static pinned installed-source verification only; no executed ASGI lifecycle proof by Vulcan",
+  "supersedes_limitation_only": "Earlier local0.109 receipt remains immutable and accurate for its observation; pinned0.110.1 source is now available from MP243 isolated environment.",
+  "runtime_mutations": false,
+  "external_calls": false
+}
