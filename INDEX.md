@@ -922,7 +922,7 @@
 - Path: `runbooks/seller-workspace-operator-guide.md`
 - Purpose: This is the continuing operator guide for diagnosis, support, controlled upgrades and recovery. Read it together with the dated live release record. That record preserves individual failures and receipts; this guide explains the system and the procedure. The architecture contract contains frozen security requirements and historical W1/W2 scope, which must not be mistaken for current availability.
 - Owner: `vulcan`
-- Last verified: `2026-09-11`
+- Last verified: `2026-09-12`
 - Aliases: Seller Workspace diagnosis support and upgrades, Seller AWS and R2 operating procedure
 - Error signatures: stale_version, DELETE_IN_PROGRESS
 - Status: current

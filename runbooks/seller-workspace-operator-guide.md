@@ -1,7 +1,7 @@
 ---
 title: Seller Workspace operator guide
 owner: vulcan
-last_verified: '2026-09-11'
+last_verified: '2026-09-12'
 aliases:
   - Seller Workspace diagnosis support and upgrades
   - Seller AWS and R2 operating procedure
@@ -214,13 +214,29 @@ For rollback, stop new admission at the affected stage, preserve evidence and re
 
 ## Joint AIM Data compatibility gate
 
-Mars owns the running S1656 environment. [Draft PR27](https://github.com/aidotmarket/money-path-test-environment/pull/27) candidate `42ee957715431e2500fa1073849b149592d6cea0` is based on `ce9506ca02d1b1c29a5045215567d18d688a481b`. Its eight-file scope adds a Workspace overlay, preparation/compose tests, fixture template/files and instructions. Six tests and CFN lint passed; baseline compose, version pins, seed, browser and bin paths remain unchanged. This is preparation evidence, not a running compatibility environment.
+[PR27](https://github.com/aidotmarket/money-path-test-environment/pull/27) merged as `c6b8770e69514035b2c78f0433f86209b4cefe0f` after final candidate `a7f1daf396c290810d1535c9049aeccb2b6f56ed` received APPROVE_WITH_NITS from CC, GLM and DeepSeek. The base was `03d3f30acf854537edd76fdb19e1cf521b577c9a`; candidate and merge trees were verified equal. Its nine-file scope includes the isolated static-contract correction below. Candidate and baseline-without-overlay static checks, six prepare tests, two Compose tests and CFN lint 1.50.1 passed. The repository had no hosted workflows or commit statuses; checks API access returned 403. Do not claim hosted CI success for this merge.
 
-Mars confirmed the eight-file scope in response 4057, conditional on preserving the protected baseline files. Environment PR30 merged with backend PR394 pin `ec5262cf`; PR27 is rebased onto that head, all eight added files are unchanged, and exact-candidate Gate 3 was dispatched to CC/GLM/DeepSeek at 17:27 UTC. Await accepted Gate 3 and Mars's announced post-settlement window before application. The earliest stated window is approximately September 14 at 01:30 Madrid, after run 19 exits and the Transfer clears; that is not a reservation or permission to start. Do not repeatedly send request 4056. Do not create independent identities or alter existing seller01 trust/runtime. The overlay's narrow test flags do not define production R2 availability.
+Mars S1714 owns the durable S1656 run; Vulcan S1712 owns Workspace implementation. Mars message 4090 verified run25 bundle `20260911T233041Z`: full browser journey, purchase confirmation, checkpoint `pending_settlement`, and direct settlement checker exit 2 with `pending-hold`. Infisical mapped that child exit to supervisor exit 1; this wrapper result is not evidence of a failed paid run. Purchase/browser hashes and production snapshots were checked. The hold deadline is **2026-09-13T23:41:11.491739Z**, September 14 at 01:41 Madrid. This timestamp does not open a work window: Mars must verify settlement and explicitly announce the post-settlement window.
 
-Mars also reported webhook/finance sibling defects under `build:bq-stripe-webhook-finance-idempotency-s1713`; do not modify those branches before their specification. This guide does not treat that separate work as a completed Workspace fix.
+The protected run remains pinned to environment `03d3f30acf854537edd76fdb19e1cf521b577c9a`, backend `d766b8e4e66d7803ebe48f8a3132521abbebe957`, and both acceptance specifications `519b1d5893dc410392cc66051dad0902572dcef9`. Merging PR27 did not change the peer checkout, runtime or pins. Preserve seller01 identity/device/trust/serial/orders, existing buyer01 orders, checkpoints and the exact shared `environment.lock`. Do not run the peer settlement checker independently or create a second environment to bypass the window.
 
-The joint sequence must prove seller02 Workspace publication beside seller01 device listings in shared search; approved hosted Stripe TEST checkout by buyer01; common dispatcher delivery; actual downloaded byte hash; seller01 denial of seller02 connection/listing; denial of session-only download to an `aim_*` API key; and new-grant refusal after an explicitly authorized normal human TEST refund. No real purchase/refund/payout is implied. Record exact shared-environment versions and both owners' confirmation.
+### Static probe diagnosis and private preparation
+
+A missing `device-boot/changed.calls` previously came from a copied operational checker using live default evidence and lock paths. The child refused mutation because a settlement was pending, but lock acquisition could already have written the shared lock record. The reviewed correction assigns `S1656_ACCEPTANCE_EVIDENCE_DIR` beneath the temporary probe and asserts containment. Diagnose the child exit/stderr first; isolate copied operational helpers and never overwrite a peer lock as a repair. Run these contract probes sequentially. Normal boot performs two positive Compose renders and one missing-principal negative render.
+
+The preparer writes a private envelope. Pass only its `parameters` array to the CloudFormation SDK Parameters argument. A CLI consumer must write that array alone to a distinct exclusively created mode-0600 file and pass the file path, without printing/interpolating values. Reject incomplete output and remove both owned files during cleanup. Preparation is not provider or activation authority.
+
+### Unresolved activation and refund dependencies
+
+The normal seed clears seller02 TOTP/Connect/payouts state, while public Connect routes refuse synthetic users. GET Connect status can persist provider state for admitted users. A reviewed seed-only activation/deactivation amendment is required; do not patch payout flags, copy seller01 secrets or relax public synthetic guards. The draft is not Gate1 approval. Mars's conditional non-interference feedback requires exact shared locking, captured before-state, provider disposition and default seed/reset refusal while an amendment is active or inconsistent.
+
+At backend `d766b8e4`, the synthetic purchase exception does not admit `charge.refunded`, so a Stripe TEST refund alone does not establish an application refund or new-grant refusal. Source inspection also found that human refunds leave the transaction unchanged, settlement lacks a linked-order refund/revocation check, and finance commits separately from order/event handling. These are source findings, not a reproduced live erroneous transfer. The filed dispute-hold dependency owns human refund transition and settlement exclusion; the finance dependency owns retry-safe refund processing. Mars message 4085 sought Max's decision on only these narrow release dependencies. No subsequent authority decision was present in the recovered bus history at this update. Do not start the excluded filed work until that decision arrives.
+
+The existing acceptance browser proof revokes the same order at lines 255–257 of `browser/s1681-delivery-leg.ts`, then confirms it at 267 and expects completed/confirmed at 269. Correct settlement exclusion therefore needs an explicitly reviewed acceptance redesign. Preserve old proof as evidence of its original specification; do not clear revocation, remove assertions or treat the old payout as proof of corrected refund semantics. Do not reuse S1681 `--abandon-refunded` for Workspace orders or invoke internal handlers manually.
+
+The joint sequence must prove seller02 Workspace publication beside seller01 device listings in shared search; authorized hosted Stripe TEST checkout by buyer01; common dispatcher delivery; actual downloaded byte hash; cross-seller denial; API-key denial of session-only download; normal full-refund application/finance transition; durable direct and scheduled settlement refusal including retries/races; new-grant refusal; and cleanup. Record exact shared versions and both owners' confirmation. No new real-money first sale is implied.
+
+The finish line includes reviewed production deployment and outside verification of money-path plus Seller Workspace. Use the existing upgrade/rollback procedure, actual per-service deployed identities and immutable artifact matches, normal public-domain capabilities and authorized existing-order delivery checks. A test overlay merge, hold, healthy process or seed-only milestone does not close production release. Refresh the historical production observation before any deployment; the last retained four-service observation was September 11 at 17:30 UTC on `ec5262cf25ac46cf6ba437457572f587df375ac3`.
 
 ## Current release and evidence index
 
@@ -234,7 +250,8 @@ Repository artifacts are durable; local receipts must be retained with the hando
 | Cleanup baseline/result | Same directory: `SELLER-PROFILE-TEARDOWN-INVENTORY-S1712.json`, `SELLER-PROFILE-CLEANUP-CHECKPOINT-S1712.json`, `SELLER-PROFILE-DIRECT-CLEANUP-PROOF-S1712.json`, `SELLER-PROFILE-DEFINITION-ABSENCE-S1712.json` |
 | Budget and local material audit | Same directory: `SELLER-BOOTSTRAP-BUDGET-REFRESH-S1712.json`, `LOCAL-AUTHORIZATION-AUDIT-S1712.json` |
 | Published release | `SELLER-PROFILE-RESULT-WIRE-PUBLISHED-S1712.json` and related source/review/build/merge/deployment receipts |
-| Compatibility preparation | `SELLER-INTEROP-REBASED-VALIDATION-S1712.json`, `SELLER-COMPATIBILITY-EVIDENCE-S1712.json` |
+| Compatibility review and merge | `SELLER-INTEROP-ROUND3-VALIDATION-S1712.json`, `SELLER-INTEROP-DOC-CORRECTION-STATUS-S1712.json`, `SELLER-INTEROP-PR27-MERGE-S1712.json` |
+| Joint release dependencies and owner evidence | `SELLER-PRODUCTION-RELEASE-PLAN-S1712.md`, `SELLER-INTEROP-GATE1-AMENDMENT-DRAFT-S1712.md`, `SELLER-MARS-LATEST-RECOVERED-S1712.json`; Mars receipt `/Users/max/koskadeux-state/s1656/s1714-run25-pending-hold-verification.json` |
 
 Successful jobs: A `98c2ff63-74e7-4d2b-9d84-a67bd926a8b7`, B `66d0b846-0176-462e-a9d4-82844950f650`. Evidence: A `1a032af5-a4f6-4f18-b6ea-5babad4184ce`, B `9dde318e-e3f1-4d64-8f86-8508f94f2b7e`. Confirmed absent metadata: `arn:aws:ecs:eu-west-1:948749907373:task-definition/s1653-w3-a-profile:15` and `...:task-definition/s1653-w3-b-profile:9`. Earlier A14/B8 belong to another run and were already fully cleaned.
 
