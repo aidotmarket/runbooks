@@ -1,0 +1,9 @@
+# Corrections to bcabafd after both REVISE responses
+
+GLM1: explicit provider-read PI+ownedCharge no-webhook completion through unchanged capture/Order helpers; atomic financial and recovery audit; no fake Stripe event; strict late-event idempotence; requires_action investigation-only. GLM4: actual original actor+org acceptance predates preparation, historical version/hash and producer proof, future correlation in existing agent_audit_log, no added attempt fields. Actual terms service shadow/off/OR behavior is now explicit.
+
+DS1/GLM2: NULL-first due ordering, expired unknown-PI investigations excluded from charging slots; shared cursor for both invocation paths. DS2/GLM2:19candidate/570seconds plus30seconds overhead; bounded same-task recovery-only continuation, overlapping no-progress refusal and hourly backstop; capacity/backlog/500case proof. DS3/GLM3: complete auth source, explicit current key predicate before creating retry, trusted evidence read distinct. DS4/GLM2: authoritative terminal recovery audit co-committed; optional policy audit failure independently re-reads truthful outcome, no false rollback or duplicate release. DS5/6 and GLM5/6: remove25second/count contradictions; explicit client-scoped StripeClient and close_async.
+
+Native SDK probe is reproducible and localhost only. Shared qualification httpx0.27.2 differs from requirements>=0.28.1,<0.29. Isolated Stripe15.4.0/httpx0.28.1 probe passes; neither proves full deadlines or deployment. Use a declared-compatible isolated runtime for implementation, preserve existing shared runtime.
+
+Five extra product targets remain unchanged; all other changes stay within the prior32targets. No new table, migration, worker, registry, money-attempt field or checkout. Captured-refund effects remain byte-unchanged. All unamended parent and catalog invariants remain. This is design review, not implementation or deployment approval.

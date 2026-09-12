@@ -1,0 +1,66 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aim-node"
+dynamic = ["version"]
+description = "AI Marketplace Node SDK - build and deploy AIM tools"
+readme = "aim_node/README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "cryptography>=41.0",
+    "jsonschema>=4.0",
+    "mcp>=1.0",
+    "PyNaCl>=1.5",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "starlette>=0.27",
+    "aiosqlite>=0.19",
+    "click>=8.0",
+    "httpx>=0.25",
+    "PyJWT>=2.0",
+    "uvicorn>=0.20",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.100"]
+flask = ["flask>=3.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+aim-node = "aim_node.cli:main"
+
+[tool.hatch.version]
+path = "aim_node/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["aim_node"]
+
+[tool.hatch.build.targets.sdist]
+include = ["aim_node/", "aim_node/README.md"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "quarantine: Test quarantined due to known failure (deselected by default)",
+    "gold_path: Revenue-critical smoke test (deploy gate)",
+    "integration: Requires live PostgreSQL with migrations applied",
+    "network: Requires live network services and explicit opt-in",
+]
+addopts = "--strict-markers -m 'not quarantine'"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 60
+
+[tool.mypy]
+follow_imports = "skip"
+ignore_missing_imports = true
