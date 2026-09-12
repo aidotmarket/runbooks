@@ -84,6 +84,10 @@
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
 
+## `archived original acceptance differs from purchase-time receipt`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
+
 ## `AUTH_FAILED or Device is inactive or revoked`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
@@ -803,6 +807,14 @@
 ## `origin_mismatch`
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
+## `original acceptance criteria or pinned source differs`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
+
+## `original acceptance differs from purchase-time receipt`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
 
 ## `outcome_unknown`
 

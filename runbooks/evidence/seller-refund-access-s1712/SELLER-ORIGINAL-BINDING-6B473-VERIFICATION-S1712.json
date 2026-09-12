@@ -1,0 +1,53 @@
+{
+  "candidate": "6b473e3006b4c87716fbe2e96a712181acd2011c",
+  "checkout_head": "6b473e3006b4c87716fbe2e96a712181acd2011c",
+  "checkout_clean": true,
+  "remote": "6b473e3006b4c87716fbe2e96a712181acd2011c\trefs/heads/codex/s1714-refund-proof",
+  "receipt_sha256": "3624c1c7267782e04438e3c024cc72e81fdced8d0d37fea47e187e23c6b361b4",
+  "source_sha256": {
+    "bin/check-settlement": "30fc1b389665d510a1b8b623c9ec781016b6a728bbfba9b724b17c22a4233e84",
+    "bin/verify": "60e5933ac13f68ee4b0e4f3e274f8ab37b3f8ba6aa21158f862836be5cbcfd14",
+    "tests/test-refund-proof-contract.py": "0eb0e2097a4a442564628edcb59646ab8098ced31013074adc53b1498043acfd",
+    "tests/test-delivery-contract.py": "de639f0305aef9c0ca13354c8eaab6fb8c3d695d68fe617fa88f39985aada5ef"
+  },
+  "suites": {
+    "refund-proof": {
+      "sha256": "7258bbf786d64bf40a20e38cd3b359190404ccb02949904348291752dc7b0e99",
+      "tests": 124,
+      "OK": true,
+      "skipped": false
+    },
+    "delivery": {
+      "sha256": "8fb24f9cbbe7d5622792c0011850d9dd25eb0dbd7a6d629eed8ccc0d2f843c5a",
+      "tests": 110,
+      "OK": true,
+      "skipped": false
+    },
+    "seed": {
+      "sha256": "42334e17c9f427adab7c392b359e53793d9fa997aaa5e225c9dc03b6252f1b37",
+      "tests": 72,
+      "OK": true,
+      "skipped": false
+    },
+    "journey": {
+      "sha256": "a5ac7297a0f5da1074635b1b09f69e96633de6cba96b0849a3091f211363c6db",
+      "tests": 10,
+      "OK": true,
+      "skipped": false
+    },
+    "nightly": {
+      "sha256": "796d21d11003d668f87c3aedf2064f0d8f2757624c781b08fcae949bd6f84c4c",
+      "tests": 21,
+      "OK": true,
+      "skipped": false
+    }
+  },
+  "mismatches": [],
+  "full_four_file_diff_read": true,
+  "finding_4239": "corrected in source with actual original writer fixture and retained negative tests",
+  "no_tests_or_runtime_calls_executed_by_review": true,
+  "limitations": [
+    "337 retained tests use synthetic observations and isolated external boundaries",
+    "Full multi-day lifecycle/provider/device/production execution and unanimous exact Gate3 remain open"
+  ]
+}
