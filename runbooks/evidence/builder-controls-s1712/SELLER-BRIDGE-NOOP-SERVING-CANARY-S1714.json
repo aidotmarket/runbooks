@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-09-12T08:23:34.288798+00:00",
+  "interpreter": "/Users/max/koskadeux-mcp/venv/bin/python",
+  "source": "/Users/max/koskadeux-mcp/koskadeux_mcp/minimal_bridge.py",
+  "source_sha256": "6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d",
+  "serving_head": "22a0deac6903414dce2f232d842d3588127ec9fa",
+  "serving_status": "",
+  "temporary_local_work": "/var/folders/hh/hx7rp5196q3d8wppz2kqtbn40000gn/T/s1714-serving-hook-uu_lagjb",
+  "records": [
+    {
+      "stage": "clean",
+      "exit_code": 0,
+      "remote_before": null,
+      "remote_after": "c1918e9d5e1a5227a9425d860de44d4eca00de34",
+      "stdout": "",
+      "stderr": "To /var/folders/hh/hx7rp5196q3d8wppz2kqtbn40000gn/T/s1714-serving-hook-uu_lagjb/remote.git\n * [new branch]      HEAD -> main\n"
+    },
+    {
+      "stage": "unchanged-repeat",
+      "exit_code": 0,
+      "remote_before": "c1918e9d5e1a5227a9425d860de44d4eca00de34",
+      "remote_after": "c1918e9d5e1a5227a9425d860de44d4eca00de34",
+      "stdout": "",
+      "stderr": "Everything up-to-date\n"
+    },
+    {
+      "stage": "secret-rejected",
+      "exit_code": 1,
+      "remote_before": "c1918e9d5e1a5227a9425d860de44d4eca00de34",
+      "remote_after": "c1918e9d5e1a5227a9425d860de44d4eca00de34",
+      "stdout": "",
+      "stderr": "minimal bridge secret scan blocked: blocked.txt:1:aws_access_key\nerror: failed to push some refs to '/var/folders/hh/hx7rp5196q3d8wppz2kqtbn40000gn/T/s1714-serving-hook-uu_lagjb/remote.git'\n"
+    }
+  ],
+  "external_network": false
+}

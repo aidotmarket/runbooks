@@ -1,0 +1,35 @@
+{
+  "at": "2026-09-12T08:29:21.320518+00:00",
+  "owner_activation_sha256": "04c9b0180bd397394c5bca790aed00431208e273cbd53014a40d20d2b45b6d9c",
+  "canary_sha256": "87b65afd5d100f7aa62f0a20e4e6012e46f460beddab29dd79d81856eeb44c69",
+  "canary_script_sha256": "3abc06731ac28c81527c75a51f679782495218f3955b67e6fa0533b1a3f7ebf6",
+  "reload_script_sha256": "c0486771b3930d48180403afd85f1673d0306191917c6929cc6c428336162e5c",
+  "all_six_owner_artifact_hashes_match": true,
+  "candidate": "501df3347ddea5b17155cb7b4e941f98b46bf6ac",
+  "merge_serving_head": "22a0deac6903414dce2f232d842d3588127ec9fa",
+  "candidate_merge_tree": "d1c2beba83034c75fc2cd1d6eda52560e153c9a3",
+  "candidate_merge_tree_equal": true,
+  "current_serving_checkout_clean": true,
+  "current_source_sha256": "6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d",
+  "gateway_pid": 47150,
+  "expected_script_and_cwd_independently_verified": true,
+  "reload_log_exact_lines_independently_read": [
+    "2026-09-12T08:22:39Z fast-forwarded d2132159 to22a0deac",
+    "2026-09-12T08:22:40Z RELOADED com.koskadeux.mcp22a0deac"
+  ],
+  "actual_gateway_restart": true,
+  "manual_gateway_restart_by_mars_or_vulcan": false,
+  "queue_before_after_evidence": "Owner activation receipt and peer4285/4290: eight discovered sockets empty; not independently enumerated by Vulcan",
+  "canary_records_independently_read": true,
+  "canary_script_full_source_read": true,
+  "canary_rerun_by_vulcan": false,
+  "result": "deployed correction verified; product money release remains incomplete",
+  "reloader_ordering": "Fetch/FF168-178 precedes sessionTTL207-216 and build guard221+; guards govern restart, not checkout replacement",
+  "session_liveness_limit": "Owner observed Sep11 last_seen_at beyond1800sTTL; do not infer active-session absence from these timestamps alone",
+  "pr": 218,
+  "hosted_success_runs_independently_verified": [
+    34682994020,
+    34683014486,
+    34683014408
+  ]
+}

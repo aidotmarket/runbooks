@@ -46,12 +46,14 @@
   },
   "activation": {
     "owner": "Mars S1714",
-    "status": "pending exact merge/serving identity and canary",
-    "merge": null,
-    "serving_checkout_head": null,
-    "serving_source_sha256": null,
-    "active_builder_absence_receipt": null,
-    "fresh_process_canary": null,
-    "shipped": false
+    "status": "deployed and independently verified",
+    "merge": "22a0deac6903414dce2f232d842d3588127ec9fa",
+    "serving_checkout_head": "22a0deac6903414dce2f232d842d3588127ec9fa",
+    "serving_source_sha256": "6a8dd793200a2081540532e8d9de0c9906b4788263353685b1fd51f98e9dea2d",
+    "active_builder_absence_receipt": "SELLER-BRIDGE-NOOP-OWNER-ACTIVATION-S1714.json, owner-observed eight queues empty",
+    "fresh_process_canary": "SELLER-BRIDGE-NOOP-SERVING-CANARY-S1714.json",
+    "shipped": true,
+    "verification": "SELLER-BRIDGE-NOOP-ACTIVATION-VERIFICATION-S1712.json",
+    "actual_gateway_restart": true
   }
 }
