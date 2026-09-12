@@ -1,0 +1,30 @@
+{
+  "at": "2026-09-12T09:10:15.119926+00:00",
+  "request": 4314,
+  "response": 4315,
+  "scope_candidate": "c3ff459074511759e075fb8c7cc475536f5f2086",
+  "scope_base": "e7c7b489cae0f032a0ae480a73c56f2a1a065ec6",
+  "spec_path": "specs/BQ-REFUND-SAFE-PRODUCTION-S1714-GATE2.md",
+  "spec_sha256": "7b8d5502ae270958ccc036c0d064318eca10a4a8c115df205e599c99d94a2a15",
+  "delta": "one file,49 lines added, sections1-19.5 unchanged",
+  "full_delta_read": true,
+  "audit": "outputs/SELLER-DELIVERY-OUTSIDE-ACQUIRER-AUDIT-S1712.md",
+  "audit_sha256": "7417e167a033d0c5050b04bdb06b8bc00202a516b1283a8ce847cb5eef617f8d",
+  "substantive_findings": [],
+  "nonblocking_nit": "20.1 record_webhook_idempotency should be record_stripe_webhook_idempotency; exact line/caller disambiguates. Preserve reviewed candidate and clarify accepted decision.",
+  "coverage": [
+    "42 total files: only delivery_service.py additional; existing refund protocol tests",
+    "Current canonical order before transaction and child/FK; replay and both-direction linkage",
+    "No authority-on-refusal; legacy truly unlinked behavior",
+    "Partial prior access versus new delivery, full refund and independent revocation",
+    "Late progress/finalize/failure/retry and terminal metadata immutability",
+    "Chunk admission before yield, bounded in-flight exception, no locks over transport/yield",
+    "Actual queue internal commit and postcommit reacquisition",
+    "Actual service/route/webhook, FK barriers, exact before/after authority state",
+    "Predecessor revised-test failing proof and final passing proof",
+    "868 unique prior nodes/882 execution entries,19 original positives,20 F6cases, all full and hosted suites"
+  ],
+  "status": "independent bounded scope assessment; full panel decision pending; no implementation or final product acceptance",
+  "edits": false,
+  "competing_dispatch": false
+}

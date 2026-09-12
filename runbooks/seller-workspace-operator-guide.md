@@ -16,9 +16,9 @@ This is the continuing operator guide for diagnosis, support, controlled upgrade
 
 ## September 12 continuation status
 
-S1712 remains the sole Vulcan owner. The full release is incomplete. Mars owns the active refund/cleanup correction MP242 and its environment; Workspace Gate2 remains undispatched until the final dependencies are accepted. The existing cumulative $100 approval remains in effect and no renewed user permission is pending for this authorized work.
+S1712 remains the sole Vulcan owner. The full release is incomplete. MP242 refund/cleanup source and artifacts are independently verified at `ffdcacb14929328285ef3ed27ba6dc939e550f42`. Mars owns the next delivery correction and its environment; Workspace Gate2 remains undispatched until the final dependencies are accepted. The existing cumulative $100 approval remains in effect and no renewed user permission is pending for this authorized work.
 
-Read [refund and delivery diagnosis](seller-refund-access-diagnosis.md) for the exact current source/test checkpoint, the additional actual DeliveryService caller findings, and their support and verification requirements. The newer hosted run has 55 canonical-payment passes and a Gold Path migration setup failure under correction. Preliminary commits, successful jobs and retained test counts do not equal final product acceptance.
+Read [refund and delivery diagnosis](seller-refund-access-diagnosis.md) for the exact current source/test checkpoint, the additional actual DeliveryService caller findings, and their support and verification requirements. Corrected hosted run34684647863 passed both jobs:55 canonical-payment and14 selected Gold Path tests, with full migration and owned cleanup. The next bounded F7 delivery scope is under full review. Preliminary commits, successful jobs and retained test counts do not equal final product acceptance.
 
 The separate empty-ref bridge correction is deployed at `22a0deac` with unanimous review, actual installed-hook canary and serving identity verified. The automatic reloader did restart the gateway; the cutover must not be described as no-restart. See [builder controls](builder-controls.md) for the retained activation evidence and reloader limitations.
 

@@ -1,0 +1,76 @@
+{
+  "base-corrected": {
+    "path": "/var/tmp/s1714-f6-base-corrected-2cebbb30.xml",
+    "sha256": "9178890f387dbea97c133ffece6f10d94e1d8cc2cabb4b0c531301be3f63d029",
+    "counts": {
+      "failed": 7,
+      "passed": 3
+    },
+    "nodes": [
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[stale]",
+        "status": "failed",
+        "message": "assert 2 == 1"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[unlinked]",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[nonstale]",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[paid]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[refund_admitted]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[partial]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[full]",
+        "status": "passed",
+        "message": ""
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[binding]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[reconciliation]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      },
+      {
+        "name": "test_f6_cleanup_actual_task_revalidation[no_pi]",
+        "status": "failed",
+        "message": "AssertionError: assert {'cleaned': 1} == {'cleaned': 0}\n  \n  Differing items:\n  {'cleaned': 1} != {'cleaned': 0}\n  Use -v to get more diff"
+      }
+    ]
+  },
+  "base-lock": {
+    "path": "/var/tmp/s1714-f6-base-lock-2cebbb30.xml",
+    "sha256": "5d97016f75f0752ef2cd5d4bc5fcfecf213022e7abd6f2959f1be1d9af5907d1",
+    "counts": {
+      "failed": 1
+    },
+    "nodes": [
+      {
+        "name": "test_f6_task_blocks_at_order_without_owning_transaction",
+        "status": "failed",
+        "message": "sqlalchemy.exc.DBAPIError: (sqlalchemy.dialects.postgresql.asyncpg.Error) <class 'asyncpg.exceptions.LockNotAvailableError'>: could not obtain lock on row in relation \"transactions\"\n[SQL: select id from transactions where id=$1 for update nowait]\n[parameters: (UUID('5f1e3257-18c9-4583-91ee-5beafe84ca10'),)]\n(Background on this error at: https://sqlalche.me/e/20/dbapi)"
+      }
+    ]
+  }
+}

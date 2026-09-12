@@ -1,0 +1,70 @@
+{
+  "observed_at": "2026-09-12T09:04:19.137929+00:00",
+  "manifest": "/var/tmp/s1714-f6-verified-continuation-2cebbb30.json",
+  "manifest_sha256": "fe0fee0d7c20fc98c0c61ae501c7cdfc82ac083972bf6a222a660f52786de395",
+  "status": "INDEPENDENT_ARTIFACT_VERIFICATION_NOT_ACCEPTANCE",
+  "head": "ffdcacb14929328285ef3ed27ba6dc939e550f42",
+  "remote_head": "ffdcacb14929328285ef3ed27ba6dc939e550f42",
+  "checkout_clean": true,
+  "source_counts": {
+    "source_sha256": 41,
+    "migration_ancestry_source_sha256": 321,
+    "protected_file_hashes": 2
+  },
+  "scope_count": 41,
+  "retained_artifacts_verified": 139,
+  "final_artifacts_verified": 233,
+  "suites": {
+    "core": {
+      "counts": {
+        "passed": 523,
+        "failed": 4
+      },
+      "xml": "/var/tmp/s1714-f6-verified-core-2cebbb30.xml",
+      "xml_sha256": "e42cbc64c4b378ce4bc013e5a5472eea41c4f5a6c19358e18b644fd282184c1b",
+      "log_sha256": "dcdef65226eec0634570e1bf12e87e903bdcf1c4f1db3b80e38153b55fd699de"
+    },
+    "adjacent": {
+      "counts": {
+        "passed": 284,
+        "failed": 2
+      },
+      "xml": "/var/tmp/s1714-f6-verified-adjacent-2cebbb30.xml",
+      "xml_sha256": "a19aed23fd3961ea3bfcf87ec715e5a23eb00f9c8551a15a1d797b0c342c5a3b",
+      "log_sha256": "2c8e7bfd5a980098d8eb14dc8fbbbde94ff3b34ada99d2825cc194949d914f18"
+    },
+    "gold": {
+      "counts": {
+        "passed": 14
+      },
+      "xml": "/var/tmp/s1714-f6-verified-gold-2cebbb30.xml",
+      "xml_sha256": "7ba5019f96f7751a27cb2952c40dbae1ed59fa665ed2408f8f79a5e6655199a1",
+      "log_sha256": "3840e9374818e39c670bb0c3dbba81ba64b983f20fee9b17003ed77c068dac49"
+    },
+    "canonical": {
+      "counts": {
+        "passed": 55
+      },
+      "xml": "/var/tmp/s1714-f6-verified-canonical-2cebbb30.xml",
+      "xml_sha256": "1ba339575007ed45632afd4757f0863e40f7b2bc7760f6c0c3d7a09589d56964",
+      "log_sha256": "5fbf355cb4a0ff2929121fc5e96bdf8da0ae85af63ad6bf5dfbb9f35dc8b1fd7"
+    }
+  },
+  "matrix_rows": 65,
+  "matrix_node_references": 590,
+  "provider_guarded_nodes": 720,
+  "nonzero_unmocked_attempt_records": [],
+  "original_posting_nodes": 19,
+  "mismatches": [],
+  "acceptance_gaps": [
+    "Local full suites used repository Python3.12/macOS with genuine owned PG17/PG16. Actual hosted Ubuntu/Python3.11 Gold Path14 and canonical55 both passed on the same exact source; raw logs retained.",
+    "Full product/environment unanimous Gate3, protected run25, genuine ordered P/N holds, Workspace window, freeze/quiescence and external production acceptance remain open. Hosted CI requirement is now satisfied.",
+    "Finite FK/trigger/acquirer proof only; no whole graph certification.",
+    "Wallet SELECT*/User(**row) defect remains out of scope and unchanged; VC alternate callback correlation and external raw-HMAC revocation remain unproved.",
+    "Refund processed-log early-return omission is advisory only; no logging fix included.",
+    "No live Stripe/AWS/R2/provider calls, new paid purchases, protected runtime or historical proof DB reset. Historical integration trigger teardown runs only on separate owned PG16.",
+    "All six unrelated baseline failures explicitly retained."
+  ],
+  "product_or_runtime_mutations": false,
+  "tests_rerun": false
+}
