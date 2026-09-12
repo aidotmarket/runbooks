@@ -1,0 +1,39 @@
+# Bounded correction recommendation for Mars4279
+
+Vulcan S1712, 2026-09-12. Source assessment only; no implementation or review dispatch. Preserve product `4812055d08f91664fba373ab1a1406fe35dd66e7` and its historical evidence.
+
+## Smallest initial implementation file scope
+
+| File | Required change and boundary |
+|---|---|
+| `app/tasks/scheduled.py` | Correct only `cleanup_stuck_agent_transactions` to acquire linked order before transaction and revalidate binding, age, state and money restrictions before status, spend, event and audit writes. Preserve registration and valid stale unlinked cleanup. |
+| `tests/test_refund_processing_protocol.py` | Add the actual scheduled-task versus refund/listener both-ordering PostgreSQL tests using existing migrated fixtures and barriers. Include binding changes, pending/refunded/paid/reconciliation refusal, valid unlinked cleanup and retry/event/spend cardinality. This is an existing file in the 37-file manifest. |
+| `.github/workflows/test-gold-path.yml` | Supply a genuinely isolated PostgreSQL 17/full-ancestry environment for the gold-path job's existing autouse requirements, reusing the exact accepted initialization recipe and recording actual container/database identity. Do not invent identity or weaken the test guard. Preserve both hosted jobs and their assertions. |
+| `tests/integration/test_webhook_canonical_payment.py` | Update its private temporary `stripe_events` schema for current signed-payload/dedup columns while retaining the actual SQL, retry/refusal and no-further-writes assertions. |
+| `tests/integration/test_fulfillment_pending_status.py` | Locally provide all current fulfillment query fields and correct seller ownership in the test's own rollback scope; retain actual asyncpg SQL, real offline queue/outbound effects and existing assertions. |
+
+This is **five implementation files, four newly added to the existing manifest, for 41 unique source files** if no additional change is needed. Do not expand the general integration fixture, common money service, product webhook, migrations or guards just to silence the first reported failure. If a reusable committed CI initializer is necessary, name that exact additional script and its isolation contract in the amendment; do not leave a hidden outside-manifest dependency. The workflow must not depend on `/var/tmp` evidence files or the local machine's already-prepared database.
+
+There is an alternative to changing workflow setup: separate mock-only checkout tests from the real-PG autouse fixtures. That would also require correctly preserving the unconditional provider/socket guard, whose self-test currently calls `disposable_url()`. It is not a one-line import removal. The initial recommendation above preserves the existing real-PG test design and avoids changing the shared guard across hundreds of nodes. The owner and panel should select the concrete design before MP.
+
+## Locking details the amendment must resolve
+
+The existing common helper is not read-only: `lock_order_money_sync` at lines 149–153 creates a missing authority row, and requires complete PI/reverse/account bindings. Reusing it blindly for every historical unpaid/unlinked row can change behavior or manufacture state. Decide the exact eligibility boundary and preserve no-op/reconciliation outcomes for unsupported bindings.
+
+Do not replace the bulk update with a loop that acquires a full order→transaction→agent chain and then another order in the **same transaction**. Retained first-row agent locks could introduce a new cross-order reverse edge. Either use reviewed per-order atomic transactions with retry-safe partial progress, or acquire the complete deterministic batch lock sets in the accepted order before downstream writes. Retain a multi-order/shared-agent race case if the implementation processes a batch in one transaction.
+
+For a candidate observed as unlinked, revalidate the absence of its order link under the transaction lock. If a link appeared, release and restart through the order-first path; never acquire that newly discovered order while holding transaction first. No provider call belongs under these locks.
+
+The task is scheduled at `celery_app.py:236–239` on the scheduled queue every hour at minute 20. Its current writes are one transaction: bulk transaction update at `scheduled.py:580–589`, linked order update at 594–604, spend release at 605–616, transaction event at 617–629 and agent audit at 630–647. Normal checkout persists the eligible linked/PI state at `transaction_service.py:360–401`. The omission is actual source, not a hypothetical inventory concern.
+
+## Hosted fixture details
+
+The fulfillment query reads additional order fields `delivered_at`, `completed_at`, `confirmed_at`, `revoked`, `purchased_version_id`, `access_expires_at`, `downloads_used` and `max_downloads`, as well as `listings.seller_id`. Its existing temporary listings table also lacks seller_id. Provide these complete fields with real types and correct before-state; do not stop after adding delivered_at. A test-local schema adjustment avoids widening `tests/integration/conftest.py` and changing unrelated trigger-test semantics.
+
+The canonical webhook temporary event table must include both `payload_json` and `signature_valid`; it shadows persistent schema. The existing three passing Connect bind cases must continue to pass. The retained historical trigger in the integration conftest remains narrow historical-test scaffolding, not current refund protocol evidence.
+
+## Evidence correction and acceptance
+
+Keep the old failure-reconciliation artifact immutable. Add an explicit final supersession/crosswalk that binds the new exact candidate and accepted amendment, names historical `af1de970` provenance as predecessor-only, and preserves final node results. Update the finite writer map to include the scheduled task and its executed barriers. All reviewers must assess the new candidate; current two approving votes cannot override GLM's blocking result.
+
+Run the literal hosted commands in their declared clean environments, retain no-skip results, and rerun the affected core/adjacent proof on the new exact source. Record old and new artifact hashes and distinguish this correction from the six unchanged baseline failures. Keep the bridge correction, production cutover, environment review and genuine holds separate.
