@@ -1,0 +1,73 @@
+{
+  "at": "2026-09-12T10:40:40.929802+00:00",
+  "manifest": "/var/tmp/s1714-readiness-6fc522aa/manifest.json",
+  "manifest_sha256": "e23c753c6da7451fcbd0d1c5beb1d6ae0dc8f098aab7881749d9d1d6f2410287",
+  "candidate": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "actual_execution_count": 1024,
+  "unique_nodes": 1010,
+  "guarded_executions": 862,
+  "headers": {
+    "adjacent": {
+      "argv": [
+        "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_settlement.py",
+        "tests/test_transaction_state_machine.py",
+        "tests/test_transaction_trigger.py",
+        "tests/test_order_escrow.py",
+        "tests/test_gold_path_transaction.py",
+        "tests/test_finance_phase1.py",
+        "tests/test_finance_gate2_phase1.py",
+        "tests/test_finance_phase3.py",
+        "--tb=short"
+      ],
+      "cwd": "/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec",
+      "head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2"
+    },
+    "canonical": {
+      "argv": [
+        "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/integration/test_webhook_canonical_payment.py",
+        "tests/integration/test_fulfillment_pending_status.py"
+      ],
+      "cwd": "/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec",
+      "head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2"
+    },
+    "core": {
+      "argv": [
+        "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_order_money_protocol.py",
+        "tests/test_refund_processing_protocol.py",
+        "tests/test_refund_webhook_protocol.py",
+        "tests/test_finance_phase2.py",
+        "--tb=short"
+      ],
+      "cwd": "/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec",
+      "head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2"
+    },
+    "gold": {
+      "argv": [
+        "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+        "-m",
+        "pytest",
+        "tests/test_gold_path_transaction.py",
+        "-m",
+        "gold_path",
+        "-v",
+        "--tb=short"
+      ],
+      "cwd": "/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec",
+      "head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2"
+    }
+  },
+  "issues": [],
+  "status": "EVERY_EXECUTION_VERIFIED_BEFORE_DEDUPLICATION_NOT_RELEASE_ACCEPTANCE"
+}

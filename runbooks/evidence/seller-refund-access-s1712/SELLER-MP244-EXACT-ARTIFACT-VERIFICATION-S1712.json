@@ -1,0 +1,69 @@
+{
+  "observed_at": "2026-09-12T10:41:11.846647+00:00",
+  "manifest": "/var/tmp/s1714-readiness-6fc522aa/manifest.json",
+  "manifest_sha256": "e23c753c6da7451fcbd0d1c5beb1d6ae0dc8f098aab7881749d9d1d6f2410287",
+  "status": "INDEPENDENT_ARTIFACT_VERIFICATION_NOT_ACCEPTANCE",
+  "head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "remote_head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "checkout_clean": true,
+  "source_counts": {
+    "source_sha256": 42,
+    "migration_ancestry_source_sha256": 321,
+    "protected_file_hashes": 2
+  },
+  "scope_count": 42,
+  "retained_artifacts_verified": 291,
+  "final_artifacts_verified": 52,
+  "suites": {
+    "adjacent": {
+      "counts": {
+        "passed": 284,
+        "failed": 2
+      },
+      "xml": "/var/tmp/s1714-readiness-6fc522aa/adjacent.xml",
+      "xml_sha256": "d8f5bbf91f368bfad93c5c8cb7946bcb35a806d26aa5048669fc5f2e8dae9411",
+      "log_sha256": "309880e89fd7640afcb975b797716f1f163a480b94f2ffcce9e46ac2648a59b9"
+    },
+    "canonical": {
+      "counts": {
+        "passed": 55
+      },
+      "xml": "/var/tmp/s1714-readiness-6fc522aa/canonical.xml",
+      "xml_sha256": "bea1793fd88f92bfbc87ee9a2302d6a9970662c8ef7d8c1abc96e4f249054687",
+      "log_sha256": "08a92838a71c6da03e0f233481cea893541d4b6be6185c47fb7b46c46d572873"
+    },
+    "core": {
+      "counts": {
+        "passed": 665,
+        "failed": 4
+      },
+      "xml": "/var/tmp/s1714-readiness-6fc522aa/core.xml",
+      "xml_sha256": "6c16be82a0baf807b16ebb3a24c16b0813d8bda7b4b7d722102a9f52bb04c814",
+      "log_sha256": "ee104dfb006632545a0f5a83b80c0fbe6d49332e0f39af2a7c92a3add050f2e7"
+    },
+    "gold": {
+      "counts": {
+        "passed": 14
+      },
+      "xml": "/var/tmp/s1714-readiness-6fc522aa/gold.xml",
+      "xml_sha256": "92d50655f4e1903ee9932f4ca555cf153dcedd9499a5b1622b953cc6d5c6db5e",
+      "log_sha256": "c70d0c6cd7e30cb8144f145a78ebf376b9807ed074ff265f7794d7f474f67794"
+    }
+  },
+  "matrix_rows": 84,
+  "matrix_node_references": 732,
+  "provider_guarded_nodes": 862,
+  "nonzero_unmocked_attempt_records": [],
+  "original_posting_nodes": 19,
+  "mismatches": [],
+  "acceptance_gaps": [
+    "Build only: full exact product/environment Gate3, protected run25, genuine ordered P/N holds, Workspace window, trigger freeze/old-writer quiescence, forward-only deployment and production/external acceptance remain open. No merge/deploy/provider call performed.",
+    "At most one admitted bounded 262144-byte chunk can finish after revocation. ASGI send return does not certify receipt by an external device; admitted bytes cannot be retracted.",
+    "Actual buyer signed-token consumer refusal is executed. External VZ/raw HMAC consumption has no current-order read in this source; VC alternate callback lacks the frozen request/device tuple. Those external production limits remain open.",
+    "Known wallet SELECT-star ORM defect remains outside the 42-target scope; no wallet certification or fix.",
+    "Finite explicit F7 acquirer map plus retained predecessor dispositions; catalog inventory is not whole-graph race certification.",
+    "Six unchanged unrelated baseline defects retained verbatim. Refund processed-log early-return omission remains advisory."
+  ],
+  "product_or_runtime_mutations": false,
+  "tests_rerun": false
+}

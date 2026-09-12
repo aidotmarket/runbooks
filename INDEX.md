@@ -929,7 +929,7 @@
 
 ## Seller purchase access after refunds
 - Path: `runbooks/seller-refund-access-diagnosis.md`
-- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 with accepted F7 scope and candidate-bound delivery operations. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 with verified MP244 readiness correction and delivery operations. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
 - Owner: `vulcan`
 - Last verified: `2026-09-12`
 - Aliases: Partial refund download refresh, Seller delivery credential diagnosis
