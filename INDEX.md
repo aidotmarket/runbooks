@@ -596,7 +596,7 @@
 
 ## Failed TEST purchase refund and recovery
 - Path: `runbooks/seller-failed-test-refund-recovery.md`
-- Purpose: Status: implementation delivered for integration on September 12, 2026, at `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns normal P/N integration and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
+- Purpose: Status: implementation integrated by Mars on September 12, 2026, at environment candidate `7b50ae6db00d7457baaf29b4b5796b64f305746d`, from delegated source `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, delegated base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns the combined normal P/N harness and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
 - Owner: `vulcan`
 - Last verified: `2026-09-12`
 - Aliases: S1681 failed paid run release, Failed positive negative purchase recovery
@@ -916,6 +916,15 @@
 - Last verified: `2026-09-12`
 - Aliases: Seller payout quiescence and restore
 - Error signatures: none
+- Status: current
+
+## Seller purchase access after refunds
+- Path: `runbooks/seller-refund-access-diagnosis.md`
+- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Exact product source: `c9d8840b72c0fa208e9cf2eb5506767845dee9ac` (MP237 terminal). Prepared 2026-09-12. This is a source review and proposed finite acceptance map, not a product patch, Council vote, executed PostgreSQL reproduction, or release certification. F4 Round2 remains frozen with its existing reviewers; MP238 must not receive this as a prompt mutation.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Partial refund download refresh, Seller delivery credential diagnosis
+- Error signatures: DELIVERY_CREDENTIAL_GENERATION_STALE, DELIVERY_REFRESH_UNAVAILABLE, DELIVERY_REFRESH_ACCESS_REJECTED
 - Status: current
 
 ## Seller SEO Validation Runbook
