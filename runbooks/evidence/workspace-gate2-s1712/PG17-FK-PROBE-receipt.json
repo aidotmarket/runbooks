@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-12T16:56:06.244536+00:00",
+  "status": "BOUNDED_PG17_COMPOSITE_FK_SEMANTICS_PROVED",
+  "resource": "53eacf9b3cb4d2847b8323b381f795fc3cb2ca931d7153a29405ecfba7e7ce01",
+  "owner": "pg17-fk-null-probe-s1712-8a3ec9e3",
+  "network": "none",
+  "port_published": false,
+  "persistent_volume": false,
+  "resource_absence_verified": true,
+  "sql_sha256": "748bbb7782975033296ad141cbe0b786c6799f0f653c26e896acdf8378e8f1cb",
+  "log_sha256": "1108cbc59a545cbbb8c3da5dcdd476bdb20558ec7f067c9fd26239fde248ff28",
+  "limits": "Temporary toy tables in one rolled-back PostgreSQL17 transaction. No W migration, product fixture, provider, runtime or Gate3 qualification."
+}

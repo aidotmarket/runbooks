@@ -1,0 +1,14 @@
+{
+  "base": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+  "head": "a4e06c08f6d1cc9406dab658530a5a1292524e5a",
+  "total": 14243,
+  "per_file": {
+    "runbooks/evidence/workspace-gate2-s1712/CHECKOUT-R2-GLM.txt": 4,
+    "runbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt": 6,
+    "runbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.xml": 3,
+    "runbooks/evidence/workspace-gate2-s1712/WEBHOOK-BASELINE-C3-FULL.xml": 7113,
+    "runbooks/evidence/workspace-gate2-s1712/WEBHOOK-COMPATIBILITY.patch": 4,
+    "runbooks/evidence/workspace-gate2-s1712/WEBHOOK-MP247-FULL.xml": 7113
+  },
+  "raw_bytes_preserved": true
+}
