@@ -79,3 +79,22 @@ The async effects transaction claims the event, acquires the common order then l
 **Writer ownership.** Mars/MP exclusively changes the normal refund branch and common payout authority for this dependency. Vulcan's seller02 TEST predicate/fixture work applies only after that accepted product candidate or an explicit serialized patch handoff. No parallel shared-webhooks edits. Inventory includes transaction settlement/scheduler, order_service.confirm_order's legacy Transfer path, auto-confirm callers, order revoke/dispute writers, refund webhook and relevant finance/agent effects. Metering payout and support-session revocation are separate domains unless source evidence shows shared order money state; Gate2 records exclusions rather than changing them by name match.
 
 Round2 must explicitly accept or reject these selections, react to the other reviewers, and identify unresolved contradictions. APPROVE_WITH_MANDATES means Gate2 work remains; no product build is authorized until its complete concrete protocol is unanimously reviewed.
+
+
+## 9. Gate1 decision and Gate2 mandate register (2026-09-12)
+
+Gate1 Round2 is UNANIMOUS APPROVE_WITH_MANDATES on exact candidate a016107478d5b4fe48b6d30d92e8360ef3ab5c53. Evidence: /Users/max/council/cc/response-20260912-033803-451322.md; /Users/max/council/glm/response-20260912-032127-241000.md; /Users/max/council/deepseek/response-20260912-032128-044638.md. Original CC request032127-565948 terminated without a vote after900s shared-profile queue wait; same immutable request retried033803-451322 after terminal verification. This is transport recovery within Round2, not a fourth round or substituted voter. CC explicitly concedes its bare-revoked-pays proposal. No unresolved design split, no HIGH or CRITICAL veto. Product build remains blocked until unanimous Gate2.
+
+| Mandate | Required Gate2 outcome |
+|---|---|
+| CC RM1; GLM1 | Inline atomic effects commit before HTTP2xx; retryable admission; no fire-and-forget success; exact same-event/different-event replay and crash tests. |
+| CC RM2/RM4; GLM2 | Grep-verified every order-linked Transfer writer, common lock/authority protocol and identical refund sort key; supported complete provider reconciliation; justify separate metering exclusion. |
+| CC RM3; DS F3 | Explicit strict revoked policy authority; adoption buckets including bare-revoked otherwise-eligible; operator recovery without unsafe old-path rollback. |
+| DS F1; GLM1 | One monotonic succeeded-refund aggregate drives Payment and order/full-refund access; atomic journal and agent delta; partial-to-full and reordered event assertions. |
+| DS F2 | Define precise admission-versus-dispatch linearization commit, recheck under common authority and bounded honest external-race guarantee. |
+| DS F4 | Mandatory post-dispatch external-full-refund test: reconciliation-required, no second Transfer, no automatic reversal, nondecreasing aggregate and audit. |
+| GLM3; DS F5/F6 | Exact P/N roles and cardinality, real clocks, receipts, TEST spending, cleanup, protected run25 adoption, separate Workspace W window; assert refund-derived fields, not only revocation. |
+
+Policy authority for the strict exclusion is Max's supplied S1713 plan section4: the Workspace amendment includes the #4067 requirement that settlement must refuse refunded/revoked orders. Max instructed this task to follow that plan and subsequently authorized all necessary production dependencies (Event99af61fd-db46-42fd-a18d-1d0698e457d1, bus4096). This release selects that strict reading explicitly; it is not a reviewer-created exception or an inferred authorization to reverse completed Transfers. Gate2 will preserve the primary authority citation and quantify the affected population; no repetitive user permission question is needed to implement already authorized refusal.
+
+Read-only source preparation found additional necessary details: raw and ORM event code use the same stripe_events table; TransactionService.transition commits internally; dispute-won writers currently restore access; scheduler catch-all writes without prior rollback; the alternate PaymentService refund helper has no app callers; two existing order Transfer identities differ and must be preserved. Gate2 must resolve these at the real source boundaries. Operational evidence and working notes in /Users/max/koskadeux-state/s1656/ are preparatory, not substitutes for a committed unanimously approved Gate2.
