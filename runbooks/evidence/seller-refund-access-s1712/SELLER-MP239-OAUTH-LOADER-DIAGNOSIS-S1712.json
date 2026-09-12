@@ -1,0 +1,51 @@
+{
+  "candidate": "683dfc82d542ed45173cd8fbde53e254b2be263c",
+  "task": "bd681ed7645b",
+  "candidate_state": "committed intermediate; MP239 still running, no terminal acceptance claim",
+  "junit": "/var/tmp/s1714-f4-final-core-4fa3abbc.xml",
+  "junit_sha256": "00d94c0d1638b0a3ea22575e2aa762ae91328e4efd1b22985eafef785e8d4d88",
+  "log": "/var/tmp/s1714-f4-final-core-4fa3abbc.log",
+  "log_sha256": "473c95e2c5e8a24be060699d9bcc707ae522d94af853f06bc74571685dbaec24",
+  "nodes": [
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[True-data]",
+      "failure": "direct/chained TypeError",
+      "underlying_loader_confirmed": true
+    },
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[True-request]",
+      "failure": "expected403 got wrapped500",
+      "underlying_loader_confirmed": true
+    },
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[True-artifact]",
+      "failure": "expected403 got wrapped500",
+      "underlying_loader_confirmed": true
+    },
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[False-data]",
+      "failure": "direct/chained TypeError",
+      "underlying_loader_confirmed": true
+    },
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[False-request]",
+      "failure": "direct/chained TypeError",
+      "underlying_loader_confirmed": true
+    },
+    {
+      "node": "test_f4_actual_agent_routes_oauth_and_broker[False-artifact]",
+      "failure": "direct/chained TypeError",
+      "underlying_loader_confirmed": true
+    }
+  ],
+  "source_sha256": {
+    "app/api/v1/agent/router.py": "cb93b785fc6746ff99fa3df4defa205284a6a15117deb9d3ba8ffa600f904d32",
+    "app/models/user.py": "9749075d8e8693cdc549f8b54506e091c75f21147865eecdcc139a7395af273a",
+    "alembic/versions/000_initial.py": "c4d32a93f5f3e1023f753de3f81aa8a918e94af6b6ff61159b7ed9b45cd8b96d",
+    "tests/test_refund_processing_protocol.py": "a9c6c3aaa37d236ef3f415844a3307ff3978335a2fa35090b254903ff5745a1e"
+  },
+  "finding": "actual OAuth user loader SELECT * -> User(**dict(row)) fails on unmapped full-ancestry oauth_provider column before any of three access surfaces",
+  "minimum_extra_product_file": "app/api/v1/agent/router.py",
+  "owner_alert": 4231,
+  "no_product_or_runtime_mutation": true
+}
