@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-12T08:54:12.673833+00:00",
+  "run": 34684328866,
+  "head": "b9ffde2e5ce755ecd95d926db923181f981324e8",
+  "canonical_payment": "SUCCESS",
+  "canonical_log": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-MP242-CANONICAL-HOSTED-S1712.log",
+  "canonical_log_sha256": "4aaab1bbb0028292f2ebc1c6d86760d3bb5a0e539ca39c28e859c10566386cd6",
+  "canonical_summary": [
+    "canonical-payment\tRun python -m pytest -q tests/integration/test_webhook_canonical_payment.py tests/integration/test_fulfillment_pending_status.py\t2026-09-12T08:52:37.7171857Z 55 passed, 7 warnings in 6.84s"
+  ],
+  "gold_path": "setup failure before tests",
+  "exception": "RuntimeError: configured backend application role does not exist",
+  "source": "alembic/versions/20260826_001_issue_channel_schema_and_queue.py:387",
+  "source_requirements": "Existing named non-superuser role distinct from migration administrator; exact disposable s1714_disposable_app is exported but never created before migration.",
+  "owned_container_cleanup": "SUCCESS",
+  "failed_log": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-MP242-HOSTED-FAILURES-S1712.log",
+  "failed_log_sha256": "6188ceee673300c9012e27bd89110edb8d371c6d83f01c918bf6896cc087ffa6",
+  "mars_alert": 4306,
+  "user_action_required": false,
+  "production_mutations": false
+}

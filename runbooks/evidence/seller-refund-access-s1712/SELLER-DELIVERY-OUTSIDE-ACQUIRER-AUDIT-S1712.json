@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-12T08:48:40.524723+00:00",
+  "candidate": "4812055d08f91664fba373ab1a1406fe35dd66e7",
+  "files_sha256": {
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/outside-writer-audit-s1712/delivery_service.py": "b4bd93c4d9cec46f1cc292be12ee2979b6b76bfbc7ad2f965dc44d7719654d37",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/outside-writer-audit-s1712/deliveries.py": "3ed864a996a88836cf6b8417d343d6b0194c32fa2a2729453281ed8c6fb0495c",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/outside-writer-audit-s1712/trust_event_bus.py": "a890f4708ec89a1a678b868df2bddbb8acc798f9f4fc306aab660b3bbdef1205",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/outside-writer-audit-s1712/trust_outbound_writer.py": "0aac2d5181f9c36396eb39de41a5f7928aa310e23050a6de148f08f6a7633803",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/pr396-ci-source/webhooks.py": "d614c8a80387aba7b96eb1305af2ea11ec9bafe55385d5ace56bc21ba1f00f6a",
+    "/Users/max/koskadeux-state/s1656/s1714-delivery-audit-fk-readonly.json": "a2888085cc22207bf1b1fa3ad2b8b6aac2001625288030a8a5d8f25110d72a08",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-DELIVERY-OUTSIDE-ACQUIRER-AUDIT-S1712.md": "7417e167a033d0c5050b04bdb06b8bc00202a516b1283a8ce847cb5eef617f8d"
+  },
+  "minimum_additional_product_files": [
+    "app/services/delivery_service.py"
+  ],
+  "existing_test_host": "tests/test_refund_processing_protocol.py",
+  "active_mp242_changed": false,
+  "runtime_test_executed": false,
+  "whole_graph_certified": false
+}
