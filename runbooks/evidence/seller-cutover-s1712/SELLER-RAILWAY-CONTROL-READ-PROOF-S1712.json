@@ -1,0 +1,68 @@
+{
+  "at": "2026-09-12T02:11:03.528795+00:00",
+  "authentication": "existing ambient CLI account/workspace RAILWAY_API_TOKEN; no value retained",
+  "query": "query ActiveWriters($serviceId: String!, $environmentId: String!) {\n  serviceInstance(serviceId: $serviceId, environmentId: $environmentId) {\n    serviceId serviceName drainingSeconds overlapSeconds numReplicas\n    activeDeployments { id status deploymentStopped canRedeploy }\n  }\n}",
+  "services": [
+    {
+      "serviceId": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+      "serviceName": "ai-market-backend",
+      "drainingSeconds": null,
+      "overlapSeconds": null,
+      "numReplicas": null,
+      "activeDeployments": [
+        {
+          "id": "621173d0-149d-4d9a-a611-09767d7203ba",
+          "status": "SUCCESS",
+          "deploymentStopped": false,
+          "canRedeploy": true
+        }
+      ]
+    },
+    {
+      "serviceId": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+      "serviceName": "ai-market-celery-worker",
+      "drainingSeconds": null,
+      "overlapSeconds": null,
+      "numReplicas": null,
+      "activeDeployments": [
+        {
+          "id": "f5415bba-ced7-4269-a6c8-d8626f3c53d0",
+          "status": "SUCCESS",
+          "deploymentStopped": false,
+          "canRedeploy": true
+        }
+      ]
+    },
+    {
+      "serviceId": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+      "serviceName": "ai-market-celery-beat",
+      "drainingSeconds": null,
+      "overlapSeconds": null,
+      "numReplicas": null,
+      "activeDeployments": [
+        {
+          "id": "dbef10f9-ee53-47dc-8932-bc7bf689f6e0",
+          "status": "SUCCESS",
+          "deploymentStopped": false,
+          "canRedeploy": true
+        }
+      ]
+    },
+    {
+      "serviceId": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+      "serviceName": "ai-market-seller-profile-worker",
+      "drainingSeconds": null,
+      "overlapSeconds": null,
+      "numReplicas": null,
+      "activeDeployments": [
+        {
+          "id": "be1504b6-2da0-46d9-86aa-949ec4f2de43",
+          "status": "SUCCESS",
+          "deploymentStopped": false,
+          "canRedeploy": true
+        }
+      ]
+    }
+  ],
+  "mutations_performed": false
+}

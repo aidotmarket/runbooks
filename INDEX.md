@@ -900,6 +900,15 @@
 - Error signatures: Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL, status=PRELIMINARY or reason=stats_reset_changed, is an operator-controlled one-shot migration, empty-only quarantine invariant failed, external dependencies on quarantine tables, quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0, relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table, relation 'orders' does not exist or crm_* does not exist, empty-only drop invariant failed, view or dependency blocker
 - Status: current
 
+## Seller production payment cutover
+- Path: `runbooks/seller-production-payment-cutover.md`
+- Purpose: Prepared September12,2026 for Mars4120. Read-only preflight; no production deployment, configuration, stop, restart, cancellation, queue or database mutation was performed. This is the release-specific supplement to the Seller Workspace operator guide. It must be incorporated into the accepted payment Gate2 and final deployment record.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Seller payout quiescence and restore
+- Error signatures: none
+- Status: current
+
 ## Seller SEO Validation Runbook
 - Path: `seo-seller-validation.md`
 - Purpose: Discovery health checks and readiness scoring for marketplace listings.

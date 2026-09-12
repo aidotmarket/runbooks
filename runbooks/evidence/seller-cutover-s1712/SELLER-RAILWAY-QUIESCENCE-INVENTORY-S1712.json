@@ -1,0 +1,216 @@
+{
+  "at": "2026-09-12T01:59:45.453082+00:00",
+  "project_id": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+  "services": [
+    {
+      "name": "issue-channel-watcher",
+      "service_id": "d48dd44c-4541-4387-89da-50b2b1d0c8fe",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "2a164663-b055-4420-9456-5e8ef7635cb1",
+      "status": "SUCCESS",
+      "sha": "d21321590d5e968fdd6ae47037a1cbeef56e2ea6",
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-east4-eqdc4a": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ALWAYS",
+      "cron": null
+    },
+    {
+      "name": "ai-market-backup",
+      "service_id": "53aa2e80-8ffa-4e22-a38f-f52a6b6c6c80",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "86f3a166-1f4e-4bbb-880b-18bda86621ad",
+      "status": "SUCCESS",
+      "sha": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-east4-eqdc4a": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "NEVER",
+      "cron": "0 2 * * *"
+    },
+    {
+      "name": "Qdrant",
+      "service_id": "6f7211f0-8308-4f5b-b8c4-197547e80177",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "8720988c-fde4-4759-9fb4-9d523b952aed",
+      "status": "SUCCESS",
+      "sha": null,
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ai-market-backend",
+      "service_id": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "621173d0-149d-4d9a-a611-09767d7203ba",
+      "status": "SUCCESS",
+      "sha": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ai-market-celery-worker",
+      "service_id": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "f5415bba-ced7-4269-a6c8-d8626f3c53d0",
+      "status": "SUCCESS",
+      "sha": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "can_redeploy": true,
+      "start_command": "sh -c 'python -m app.core.seller_schema_readiness && exec celery -A app.core.celery_app worker --loglevel=info --concurrency=2 -Q default,scheduled,emails,vectoraiz'",
+      "replicas": {
+        "us-east4-eqdc4a": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ai-market-celery-beat",
+      "service_id": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "dbef10f9-ee53-47dc-8932-bc7bf689f6e0",
+      "status": "SUCCESS",
+      "sha": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "can_redeploy": true,
+      "start_command": "celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule",
+      "replicas": {
+        "us-east4-eqdc4a": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "Redis",
+      "service_id": "d0d3a73e-ae3d-4b68-9107-34b991938e36",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "c71a3d3f-01a0-47e3-a9cb-7cfce40c5329",
+      "status": "SUCCESS",
+      "sha": null,
+      "can_redeploy": true,
+      "start_command": "/bin/sh -c \"rm -rf $RAILWAY_VOLUME_MOUNT_PATH/lost+found/ && exec docker-entrypoint.sh redis-server --requirepass $REDIS_PASSWORD --save 60 1 --dir $RAILWAY_VOLUME_MOUNT_PATH\"",
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "Postgres",
+      "service_id": "b86ef2a3-97e1-42fe-922a-73fe18b1d518",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "416fe9a1-9a65-4836-b2d4-1dadea18bfb5",
+      "status": "SUCCESS",
+      "sha": null,
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ops-dashboard",
+      "service_id": "2255a03d-23e1-4672-a319-0bb16dda9a17",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "99ea0ba7-8b21-46a6-8409-99d448a64f0a",
+      "status": "SUCCESS",
+      "sha": "0a329321b15a00b13e7eef4c538bf2d6b3086e21",
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ai-market-seller-profile-worker",
+      "service_id": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "be1504b6-2da0-46d9-86aa-949ec4f2de43",
+      "status": "SUCCESS",
+      "sha": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "can_redeploy": true,
+      "start_command": "sh -c 'python -m app.core.seller_schema_readiness && exec celery -A app.core.celery_app worker --loglevel=info --concurrency=4 --prefetch-multiplier=1 -Q seller_workspace_profile_control'",
+      "replicas": {
+        "us-east4-eqdc4a": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    },
+    {
+      "name": "ai-market-frontend",
+      "service_id": "68be3ead-b9f3-48ce-b4b6-7d8f8e0740bd",
+      "environment_id": "23e322c3-b195-45d8-9151-c4c27a998c33",
+      "deployment_id": "a0ce0449-2de5-4492-a874-330a9c6abc43",
+      "status": "SUCCESS",
+      "sha": "ffd54077bf115bbcb09882150c37f17ce4c672d5",
+      "can_redeploy": true,
+      "start_command": null,
+      "replicas": {
+        "us-west2": {
+          "numReplicas": 1
+        }
+      },
+      "draining_seconds": null,
+      "overlap_seconds": null,
+      "restart_policy": "ON_FAILURE",
+      "cron": null
+    }
+  ],
+  "mutations_performed": false
+}
