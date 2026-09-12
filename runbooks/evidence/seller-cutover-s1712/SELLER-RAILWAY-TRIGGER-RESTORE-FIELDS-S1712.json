@@ -1,0 +1,115 @@
+{
+  "at": "2026-09-12T03:14:53.912839+00:00",
+  "query": "query TriggerRestoreReadOnly { role0: serviceInstance(serviceId:\"4a68ea36-41de-4300-9bab-48e506b0dba6\", environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\") { serviceId rootDirectory railwayConfigFile } role1: serviceInstance(serviceId:\"b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1\", environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\") { serviceId rootDirectory railwayConfigFile } role2: serviceInstance(serviceId:\"6f7319f0-2fc1-4e51-9955-6a8bd644e363\", environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\") { serviceId rootDirectory railwayConfigFile } role3: serviceInstance(serviceId:\"ca74c2ac-6045-4d32-9e62-c1c39b8a8a80\", environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\") { serviceId rootDirectory railwayConfigFile } createInput: __type(name:\"DeploymentTriggerCreateInput\") { inputFields {name type {kind name ofType {kind name}}}} }",
+  "result": {
+    "data": {
+      "role0": {
+        "serviceId": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+        "rootDirectory": null,
+        "railwayConfigFile": null
+      },
+      "role1": {
+        "serviceId": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+        "rootDirectory": null,
+        "railwayConfigFile": "railway.worker.json"
+      },
+      "role2": {
+        "serviceId": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+        "rootDirectory": null,
+        "railwayConfigFile": "railway.beat.json"
+      },
+      "role3": {
+        "serviceId": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+        "rootDirectory": null,
+        "railwayConfigFile": null
+      },
+      "createInput": {
+        "inputFields": [
+          {
+            "name": "branch",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          },
+          {
+            "name": "checkSuites",
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            }
+          },
+          {
+            "name": "environmentId",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          },
+          {
+            "name": "projectId",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          },
+          {
+            "name": "provider",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          },
+          {
+            "name": "repository",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          },
+          {
+            "name": "rootDirectory",
+            "type": {
+              "kind": "SCALAR",
+              "name": "String",
+              "ofType": null
+            }
+          },
+          {
+            "name": "serviceId",
+            "type": {
+              "kind": "NON_NULL",
+              "name": null,
+              "ofType": {
+                "kind": "SCALAR",
+                "name": "String"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "mutations_performed": false
+}
