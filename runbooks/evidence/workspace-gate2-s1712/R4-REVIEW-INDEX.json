@@ -1,0 +1,36 @@
+{
+  "reviewed_candidate": "b444332af4ec86c4258ae62d7c0c1e12f3f2645d",
+  "reviewed_spec_sha256": "38bc8a84c1458336300e32535243a1703fad08faa613eca0d0595ccbb46e386f",
+  "owner_decision": "R4-OWNER-DECISION.json",
+  "owner_decision_sha256": "8bb18a5a19e1fd10de5564b2a3b0cff4fd86b321817868f47a917eb816077136",
+  "reviews": [
+    {
+      "role": "cc",
+      "source": "/Users/max/council/cc/response-20260912-163132-665734.md",
+      "retained": "R4-cc-response.txt",
+      "sha256": "037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea",
+      "bytes": 21592,
+      "verdict": "APPROVE_WITH_NITS",
+      "full_read_by_vulcan": true
+    },
+    {
+      "role": "glm",
+      "source": "/Users/max/council/glm/response-20260912-163133-049461.md",
+      "retained": "R4-glm-response.txt",
+      "sha256": "0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b",
+      "bytes": 27095,
+      "verdict": "APPROVE_WITH_NITS",
+      "full_read_by_vulcan": true
+    },
+    {
+      "role": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-163133-467416.md",
+      "retained": "R4-deepseek-response.txt",
+      "sha256": "c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a",
+      "bytes": 23924,
+      "verdict": "APPROVE_WITH_NITS",
+      "full_read_by_vulcan": true
+    }
+  ],
+  "scope": "Unanimous design acceptance only; implementation and runtime gates remain open"
+}

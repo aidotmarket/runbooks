@@ -292,9 +292,9 @@
 - Path: `runbooks/builder-controls.md`
 - Purpose: This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
 - Owner: `vulcan`
-- Last verified: `2026-08-23`
+- Last verified: `2026-09-12`
 - Aliases: builder-bridge, minimal-bridge, mp-builder-controls
-- Error signatures: none
+- Error signatures: minimal bridge secret scan error, pre-push supplied no ref records
 - Status: current
 
 ## Buyer Request Publication and Discovery
@@ -594,6 +594,15 @@
 - Error signatures: none
 - Status: current
 
+## Failed TEST purchase refund and recovery
+- Path: `runbooks/seller-failed-test-refund-recovery.md`
+- Purpose: Status: implementation integrated by Mars on September 12, 2026, at environment candidate `7b50ae6db00d7457baaf29b4b5796b64f305746d`, from delegated source `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, delegated base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns the combined normal P/N harness and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: S1681 failed paid run release, Failed positive negative purchase recovery
+- Error signatures: normal atomic refund effects unproved; preserve FAILED checkpoint, persisted canonical authority receipt differs
+- Status: current
+
 ## Gate Procedure
 - Path: `runbooks/gate-procedure.md`
 - Purpose: **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
@@ -875,7 +884,7 @@
 
 ## S1656 Money Path Test Environment
 - Path: `money-path-test-environment.md`
-- Purpose: This page operates the disposable S1656/S1681 money-path environment at `aidotmarket/money-path-test-environment@03d3f30acf854537edd76fdb19e1cf521b577c9a` (S1710/S1711/S1713/S1714 folds of `e2028111f66d2b95d0c361d2c888b549b16520f8`; source references written `environment:file:line` that name `e2028111` remain valid for every file except `seed/s3-fixture.py`, `seed/host-seed.py` from line 273 and `tests/test-seed-contract.py`, which PRs #13 and #14 changed; PRs #15 and #16 changed only `versions.env`, `seed/seed.py:51` and the two contract tests; PR #17 changed `versions.env`, `seed/seed.py:51`, `tests/compose-contract.sh:213/:242`, `tests/test-seed-contract.py` and `.gitignore`; PR #18 changed `seed/host-seed.py:283–306`, `bin/check-settlement:270` and `tests/test-seed-contract.py`; PR #19 changed `browser/s1681-delivery-leg.ts:85–101`; PR #20 added `bin/check-settlement` `--abandon-unpaid` (:810–925) and tests; PR #21 changed its `unpaid_orders()` and Stripe block; PR #22 one line in that block; PR #23 changed `versions.env`, `seed/seed.py:51`, `tests/compose-contract.sh:213/:242`, `tests/test-seed-contract.py`; PR #24 added `bin/check-settlement` `--abandon-refunded` and three snapshot columns; PR #25 bound its release to the refund's own `charge.refunded` event id; PR #26 repinned the frontend: `versions.env`, `tests/compose-contract.sh:215/:243`, `tests/test-seed-contract.py:141`; PR #28 changed `bin/check-settlement` `delivery_snapshot()` backend query path and `device_action`; PR #33 replaces Compose polling with fresh direct-Docker lookup/exec/logs and three device-action attempts; PR #34 registers S3ScanJob in the standalone replay driver; PR #35 gives the three hosted-return dialog probes real bounded waits): paid verification, buyer purchase, direct S3 delivery and genuine test Connect settlement. Source references written `environment:file:line` below all refer to that immutable commit, read with `git show`; the permanent checkout must be clean at that head before execution. S1709 is a documentation/source verification date, not a connected acceptance result.
+- Purpose: The accepted next environment is `aidotmarket/money-path-test-environment@43d67264ab7a3a7e47d6cc6911737273ce1c94cc` (PR #36, unanimous CC/GLM/DeepSeek Gate 3). It pins backend `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2` and implements the refund-safe Gate 2 specification accepted at `26588d3571efc3a19d1a9b591fb51991690e3f62`. S1656 A2 item 37 and S1681 G14.23 record the exact candidate, merge, reviews, tests and future mutual-pin contract. See seller refund/access diagnosis for its evidence requirements and retained advisories.
 - Owner: `mars`
 - Last verified: `2026-09-12`
 - Aliases: BQ-MONEY-PATH-TEST-ENV-S1656, BQ-MONEY-PATH-DELIVERY-LEG-S1681, S1681 delivery and settlement, S1656 money path, money-path-test-environment, ai-market-money-path-s1656
@@ -900,6 +909,15 @@
 - Error signatures: Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL, status=PRELIMINARY or reason=stats_reset_changed, is an operator-controlled one-shot migration, empty-only quarantine invariant failed, external dependencies on quarantine tables, quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0, relation '<quarantined_table>' does not exist or UndefinedTable for a quarantined table, relation 'orders' does not exist or crm_* does not exist, empty-only drop invariant failed, view or dependency blocker
 - Status: current
 
+## Seller paired settlement conclusion and recovery
+- Path: `runbooks/seller-paired-settlement-conclusion.md`
+- Purpose: Source checkpoint: environment `6b473e3006b4c87716fbe2e96a712181acd2011c`, independently reviewed in Mars4243/Vulcan4244 after the prior2b517 slice. This explains implemented source, not an accepted or executed live run. Original-acceptance binding finding4239 is corrected at this exact source: purchase-time original hash, named criteria and pinned source/payment checks are enforced before cleanup, phase advancement and conclusion. Read the current Seller Workspace operator guide, failed TEST refund recovery and owner checkpoint before using any dated identity here.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Paired online offline settlement resume, Seller settlement archive and cleanup diagnosis
+- Error signatures: original acceptance differs from purchase-time receipt, archived original acceptance differs from purchase-time receipt, original acceptance criteria or pinned source differs
+- Status: current
+
 ## Seller production payment cutover
 - Path: `runbooks/seller-production-payment-cutover.md`
 - Purpose: Prepared September12,2026 for Mars4120. Read-only preflight; no production deployment, configuration, stop, restart, cancellation, queue or database mutation was performed. This is the release-specific supplement to the Seller Workspace operator guide. It must be incorporated into the accepted payment Gate2 and final deployment record.
@@ -907,6 +925,15 @@
 - Last verified: `2026-09-12`
 - Aliases: Seller payout quiescence and restore
 - Error signatures: none
+- Status: current
+
+## Seller purchase access after refunds
+- Path: `runbooks/seller-refund-access-diagnosis.md`
+- Purpose: Owner: Vulcan S1712, coordinating with Mars S1714. Updated 2026-09-12 with verified MP244 readiness correction and delivery operations. The current assessment below supersedes the explicitly historical MP239 and MP237 maps. This is a diagnosis and evidence guide; it does not certify a release or authorize another implementation owner.
+- Owner: `vulcan`
+- Last verified: `2026-09-12`
+- Aliases: Partial refund download refresh, Seller delivery credential diagnosis
+- Error signatures: DELIVERY_CREDENTIAL_GENERATION_STALE, DELIVERY_REFRESH_UNAVAILABLE, DELIVERY_REFRESH_ACCESS_REJECTED, 'oauth_provider' is an invalid keyword argument for User
 - Status: current
 
 ## Seller SEO Validation Runbook
@@ -920,9 +947,9 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: AWS S3 and Cloudflare R2 seller publication and real paid browser downloads have passed in production. Actual AWS profiling now also passed through the normal production application. Test cleanup is fully verified. Full release completion still requires joint AIM Data compatibility confirmation. Profiling admission remains paused after test cleanup; the core seller features remain enabled. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
+- Purpose: The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
 - Owner: `vulcan`
-- Last verified: `2026-09-11`
+- Last verified: `2026-09-12`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
 - Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
 - Status: current

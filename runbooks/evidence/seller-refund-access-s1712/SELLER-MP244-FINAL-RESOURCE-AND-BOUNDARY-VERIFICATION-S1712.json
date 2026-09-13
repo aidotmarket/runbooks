@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-12T10:42:26.512312+00:00",
+  "manifest_sha256": "e23c753c6da7451fcbd0d1c5beb1d6ae0dc8f098aab7881749d9d1d6f2410287",
+  "candidate": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "independently_absent_owned_containers": {
+    "canonical": "f0381886b0d682b4962a1df850129d67fe523e99f7cc81d5880c5bf610919c19",
+    "expiry": "18260e20c4406595f868275394a60951935225c58ac83432443986e37b8fb0a0",
+    "success": "c197f40cfa0396912513b6555018a394ac60d48eca53ea494a3d5833dc8c32a7"
+  },
+  "readiness": {
+    "expiry": {
+      "elapsed": 60.162395166931674,
+      "exact_workflow_gate": true,
+      "exit_code": 1,
+      "log": "/var/tmp/s1714-readiness-6fc522aa/expiry-gate.log",
+      "released_before_db_creation": false,
+      "socket_acceptance_did_not_pass": true
+    },
+    "success": {
+      "elapsed": 6.204384457785636,
+      "exact_workflow_gate": true,
+      "exit_code": 0,
+      "log": "/var/tmp/s1714-readiness-6fc522aa/success-gate.log",
+      "released_before_db_creation": true,
+      "socket_acceptance_did_not_pass": true
+    }
+  },
+  "hosted_run": 34688843645,
+  "hosted_attempt": 1,
+  "hosted_success": true,
+  "canonical_fixture_boundary": {
+    "source": "tests/integration/test_webhook_canonical_payment.py",
+    "temporary_stripe_events_definition_line": 67,
+    "omitted_column": "refund_phase",
+    "hosted_missing_column_log_events": 3,
+    "scope": "Canonical checkout/fulfillment SQL and trigger cases use temporary audit/user fixtures and service doubles. They do not establish the full new refund schema. Genuine full refund proof is in migrated PostgreSQL17 core.",
+    "actual_failure_tests": "Three injected fulfillment failure modes assert status500, retained failed/fulfillment_pending event, paid_at, and then successful retry. Their limited fixture is not a production outage."
+  },
+  "status": "BOUNDED_CI_CORRECTION_VERIFIED_NOT_GATE3_OR_RELEASE",
+  "runtime_tests_rerun": false
+}

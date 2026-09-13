@@ -1,0 +1,47 @@
+{
+  "at": "2026-09-12T14:47:08.506693+00:00",
+  "session": "S1714",
+  "component_owner": "vulcan",
+  "umbrella_owner": "mars",
+  "candidate": "b444332af4ec86c4258ae62d7c0c1e12f3f2645d",
+  "base": "8f58ec24153beb4c7f467e4ce30e7363305b3380",
+  "spec_sha256": "38bc8a84c1458336300e32535243a1703fad08faa613eca0d0595ccbb46e386f",
+  "status": "UNANIMOUS_APPROVE_WITH_NITS_DESIGN_ONLY",
+  "reviews": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-163132-665734.md",
+      "sha256": "037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea",
+      "bytes": 21592,
+      "full_owner_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": 0
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-163133-049461.md",
+      "sha256": "0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b",
+      "bytes": 27095,
+      "full_owner_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": 0
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-163133-467416.md",
+      "sha256": "c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a",
+      "bytes": 23924,
+      "full_owner_read": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": 0
+    }
+  },
+  "dispositions": [
+    "Append W predicate after both existing S1681 OR disjuncts; preserve cheap non-W rejection and actual ASGI isolation tests.",
+    "Retain exact three reviewed runtime settings. Explicitly document and assert actual isolated TEST monitor alert with missing E2E_ARMED_AT; no suppression, relabeling healthy, production exception, settings widening, or broad sysadmin health as W/release proof.",
+    "Inventory checkout/router/harness-bypass helper/sysadmin flag effects and callers for upgrades. No new narrower flag selected.",
+    "Preserve original registered refund convergence; do not remove W admission or disarm mid-window to clear alert.",
+    "Owner source/CI/request-byte receipts supply independently verified evidence omitted by individual reviewers; reviews are design only."
+  ],
+  "implementation_authorization": "Backend MP first from c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2 using exact decision-bound full specification; environment after backend against actual resulting source. Full unanimous implementation Gate3 required before runtime or merge.",
+  "release_not_accepted": true,
+  "protected_run25_unchanged": true,
+  "source_recording_requirement": "Final actual built Workspace backend SHA in versions.env, environment Gate3, final A2/G14/headchain pins; never substitute dependency c3 or repin protected runtime."
+}

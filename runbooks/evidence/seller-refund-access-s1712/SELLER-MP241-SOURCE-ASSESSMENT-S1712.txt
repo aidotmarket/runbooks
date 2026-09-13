@@ -1,0 +1,27 @@
+# MP241 bounded source and evidence assessment — S1712
+
+Candidate `4812055d08f91664fba373ab1a1406fe35dd66e7`, predecessor `683dfc82d542ed45173cd8fbde53e254b2be263c`. MP241 task `a1082e11438e` / TS241 is terminal (builder exit0, nothing_changed). The wrapper has no configured test collector; use the actual final full-suite logs/JUnit in the manifest, not wrapper booleans.
+
+## Independently verified evidence
+
+`SELLER-MP241-EXACT-ARTIFACT-VERIFICATION-S1712.json` records exact remote and clean checkout, 37 approved files, 321 migration sources, two protected files, 104 predecessor artifacts and 139 final artifacts. All hashes match. Core: 503 passed/four failed. Adjacent: 284 passed/two failed. No errors/skips. All 19 original posting nodes pass. The 59-row matrix has 501 matching node references; 631 nodes record guard self-test and zero unmocked attempts. These include unit/static and real-PostgreSQL tests, not 787 production executions.
+
+## Inspected corrections
+
+The complete product diff from MP239 changes only the OAuth helper and orders GET endpoint; raw download implementation is unchanged. The helper validates the subject before querying and uses mapped ORM User selection. Eleven actual signed-input cases verify early refusal and attached valid User. Eight caller audit entries distinguish three executed access-route functions (two states each) from five source-only callers; wallet route certification is not implied.
+
+Orders GET now selects access expiry, preserves explicit zero max_downloads, and calls existing authoritative download admission before credential construction/disclosure. The 12 actual signed HTTP cases cover partial/delivered/completed x available/expired/zero/exhausted. Positive cases reach the actual credential builder with provider doubles; negative cases record no assume/presign calls and no credential. All cases compare before/after order, session, money and audit snapshots. Device GET remains informational with five available/refusal cases and no publication or signed URL. Public reference behavior remains separate.
+
+Workspace positive proof uses actual source/draft/review/approval/publication services, an AWS connection and encrypted credential with local KMS/provider doubles, a real partial-refund processor call, then actual issue/file and idempotent replay. It checks one provider mint, one session/grant, consumed allowance exactly1, and unchanged transaction/money/refund/business state. This is local AWS service proof; it does not prove live R2, browser or provider behavior on the final candidate.
+
+## Explicit open dispositions
+
+API-cost: verified five exact source hashes against the disposition receipt. The only app caller uses the fixed legacy entity. Template accounts5000/2000 are disjoint from strict merchant accounts1000/2110/4000/5100; migrated merchant lacks2000. Actual unsupported merchant execution refuses with zero new journal and unchanged accounts. Two API-cost ordering cases prove concurrent posted progress while the other transaction remains uncommitted; five other callers prove blocking via pg_blocking_pids. API-cost shared blocking is not proven and must receive the owner/full-panel disposition promised by Mars4255. No chart relationship should be manufactured merely to make the requirement pass.
+
+Finite foreign-key map:13 nullable assignment edges have dedicated both-ordering cases;17 have explicit newly-created/preowned-parent or no-assignment source dispositions. This assessment read the complete map and verified source-hash binding, but does not independently certify every disposition or full graph safety. Owner/full-panel review remains required.
+
+The §17.3 alternate VC and external raw-HMAC consumer gaps remain for those transports. The separate bounded production assessment4251/4255 proves they are outside the two authorized historical Workspace purchases, not that production device delivery is proven. Both historical cloud connections remain revoked. The wallet.py loader limitation and six unrelated baseline failures remain explicit.
+
+The actual normal push attempt failed because the bridge rejects an empty ref-update record on an up-to-date push. The remote already equals4812055 and the full candidate scanner passed. This is a separate bridge issue, not a missing product upload. No bypass, empty commit, hook change or harness mutation is needed to establish the existing remote identity.
+
+No full product/environment Gate3, controlled deployment, run25 completion, genuine P/N hold, Workspace W window or fresh joint paid acceptance is claimed. No tests were rerun or product/runtime changed by this assessment.

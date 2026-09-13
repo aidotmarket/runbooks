@@ -1,0 +1,61 @@
+{
+  "observed_at": "2026-09-12T10:23:38.955682+00:00",
+  "candidate": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "workflow_sha256": "f582222f82dc67322ac82f2c6e4638311adafb5b7cb3b42606fc40f641f4ceae",
+  "exact_gate_and_cleanup_match_committed_workflow": true,
+  "readiness": {
+    "expiry": {
+      "elapsed": 60.162395166931674,
+      "exact_workflow_gate": true,
+      "exit_code": 1,
+      "log": "/var/tmp/s1714-readiness-6fc522aa/expiry-gate.log",
+      "released_before_db_creation": false,
+      "socket_acceptance_did_not_pass": true
+    },
+    "success": {
+      "elapsed": 6.204384457785636,
+      "exact_workflow_gate": true,
+      "exit_code": 0,
+      "log": "/var/tmp/s1714-readiness-6fc522aa/success-gate.log",
+      "released_before_db_creation": true,
+      "socket_acceptance_did_not_pass": true
+    }
+  },
+  "expiry_container_absence_independently_verified": "18260e20c4406595f868275394a60951935225c58ac83432443986e37b8fb0a0",
+  "fresh_core_preconditions": {
+    "database": "s1714_f3_ready_success_6fc522aa",
+    "heads": [
+      [
+        "s1714_order_money_v1"
+      ]
+    ],
+    "identity": [
+      [
+        "s1714_f3_ready_success_6fc522aa",
+        "172.17.0.7/32",
+        "PostgreSQL 17.11 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit"
+      ]
+    ],
+    "journal_count": 0,
+    "role": [
+      [
+        "s1714_disposable_app",
+        false,
+        false
+      ]
+    ]
+  },
+  "artifact_hashes": {
+    "/var/tmp/s1714-readiness-6fc522aa/exact-workflow-gate.sh": "ce911e94e6e455937cbc6c17add77942b8d8184f6bc65116a05f8f277676871a",
+    "/var/tmp/s1714-readiness-6fc522aa/exact-workflow-cleanup.sh": "baeff7c593103a5dc5a202412ca02b47e118650da55d5143059281b901ce2954",
+    "/var/tmp/s1714-readiness-6fc522aa/delayed-entrypoint.sh": "67365023ecc25f7c21478b3a75afe4daa53dbb9e240ee35543c5471c0b8a89c9",
+    "/var/tmp/s1714-readiness-6fc522aa/expiry-gate.log": "f520371dfe1dd899070529fae2cbfbb38978fe62156676618fbb3758eaf81578",
+    "/var/tmp/s1714-readiness-6fc522aa/success-gate.log": "7e3b6692114d36a6dcbc1591ca38e68d448f5c92f59d6330006a471fa711c928",
+    "/var/tmp/s1714-readiness-6fc522aa/cleanup-expiry.log": "9d85a7f4d235365d74558c2a265c4f6e8521b941b92a57815d18adf5c6b2cc73"
+  },
+  "status": "BOUNDED_READINESS_PROOF_VERIFIED_NOT_TERMINAL_OR_RELEASE_ACCEPTANCE",
+  "limitations": [
+    "Full final source test suites, all owned cleanup and hosted evidence still pending.",
+    "No production/provider runtime proof and no tests rerun by Vulcan."
+  ]
+}

@@ -1,0 +1,34 @@
+# Empty pre-push input assessment and repair runbook — S1712
+
+Read-only response to Mars4259. No bridge edit, hook change, build dispatch, Git push or service restart was performed. A pure extraction of the existing parser reproduced the failure without importing the module or invoking Git.
+
+## Exact cause and evidence
+
+Current clean koskadeux-mcp checkout is `d21321590d5e968fdd6ae47037a1cbeef56e2ea6`. `koskadeux_mcp/minimal_bridge.py` SHA256 `2366749787613424221b82f71d826d7e8666b8341df8ccc891c4742c5bc98450`; `tests/test_minimal_bridge.py` SHA256 `c2bf51a08282f0812bef72c391b49eaccb40dd671ffb54240e459a47098a20ea`.
+
+`_scan_pre_push_records` validates the base SHA at196–197, splits stdin at198, then raises at199–200 if there are no rows. `_pre_push_hook_main` catches that at225–227 and returns1 with `minimal bridge secret scan error`. Thus a valid up-to-date push is misclassified before any added-line scan. The retained MP241 normal-push receipt records exit1, and its separate assessment corrects the receipt's anticipatory success note. The product's canonical remote is already4812055, independently read again at07:42:21Z; no product commit is missing.
+
+Git provides one record per pushed ref through pre-push stdin. Its implementation invokes the hook and omits refs with REF_STATUS_UPTODATE, so a zero-record invocation is legitimate. This is supported by [Git's hook contract](https://git-scm.com/docs/githooks#_pre_push) and [Git transport source](https://github.com/git/git/blob/master/transport.c) (read September12, pre_push_hook_feed_stdin and run_pre_push_hook). This source-based conclusion is independent of the retained observed failure.
+
+`SELLER-BRIDGE-NOOP-PURE-PROBE-S1712.json` records exact function/OID-constant extraction. Valid-base empty string raises no-ref-records; invalid-base empty input still raises invalid base; newline-only, whitespace-only and malformed nonempty inputs reject as malformed. The scan sentinel was never called. This is parser reproduction, not another Git push or full integration test.
+
+## Smallest proposed repair (not authored)
+
+Only change the zero-record case in `koskadeux_mcp/minimal_bridge.py` to succeed with no findings after existing base validation. A malformed nonempty record must still fail closed; do not broadly strip whitespace or swallow parsing/scanner errors. Keep range selection, SHA/ref validation, deletion handling, per-ref scans, exact fingerprint allowlist, wrapper scan and the no-verify invocation guard unchanged. No change to bridge runner, queue, global hooks, product source or provider configuration is needed.
+
+Implementation tests belong in existing `tests/test_minimal_bridge.py`:
+
+1. Valid-base exact empty input returns no findings without invoking a scan; actual hook entrypoint exits0 silently. Both supported SHA lengths should remain valid.
+2. Invalid base, whitespace/blank records, wrong field count, invalid SHA/ref and scan errors retain sanitized refusal and no input echo. Do not weaken the existing test at406.
+3. Real isolated local repository/bare remote: ordinary clean update succeeds through the unchanged injected hook; immediately repeated same-ref push succeeds and leaves the remote unchanged; then a real secret-bearing update remains blocked before publication. This distinguishes legitimate empty input from disabling the scan.
+4. Retain direct-secret/no-verify denial, exact allowlist/path/rule fingerprint cases at289–417 and wrapper preservation/reporting tests. Do not add a second push route or a guard bypass.
+
+## Existing tracking and ownership
+
+Relevant existing runbook: `/Users/max/Projects/ai-market/runbooks/runbooks/builder-controls.md` (binding scanner C-24 and salvage procedure). Its recorded maintainer is Vulcan, not proof of an active implementation claim. Historical merged [PR172](https://github.com/aidotmarket/koskadeux-mcp/pull/172) introduced the binding scanner. Historical closed support tickets T-2026-000556/T-2026-000383 concern the old HEAD-ref hook parser, not this empty-input defect. Bounded GitHub issue/PR searches found no open exact-match work item. Exact open support-ticket queries for `minimal bridge secret scan error` and `pre-push supplied no ref records` each returned zero results. No active exact implementation owner was established; Mars4259 currently owns coordination of this assessment. The assignment-query text filter returned unrelated eligible items and must not be treated as an exhaustive negative search.
+
+## When it breaks
+
+On this specific no-op error, preserve the transcript and actual exit status, inspect local HEAD/clean state and independently read the exact canonical remote. If they match, no upload is needed; a failing no-op command does not erase already-published code. Do not bypass hooks, force-push, change ref names or invent an empty commit to get a success label. If the remote differs, this diagnosis alone does not establish the cause; inspect the actual scanner/range failure with sensitive content suppressed. The current product review can assess its existing exact remote artifact separately from this bridge defect.
+
+Before a separately assigned repair is accepted, bind the exact base/candidate, pass the focused actual-hook regression and existing scanner boundary tests, complete independent Council review, and update Builder Controls in the same change. Preserve shared service/worktree owners; an edited file or passing process is not deployment proof. No new permission request is implied by this assessment, and no fix/dispatch has been started.

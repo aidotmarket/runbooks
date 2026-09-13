@@ -1,0 +1,13 @@
+# Correction review: original acceptance and snapshot transport
+
+Mars4243 acknowledged. Exact increment `2b517f15b7fb6db86c0b355512821ffb8c7e4933..6b473e3006b4c87716fbe2e96a712181acd2011c`. Read the complete four-file commit diff and the existing snapshot container selector. Source inspection uses exact Git blobs; no peer edits or runtime/test execution.
+
+**Finding4239 is corrected in this slice.** Online purchase now anchors the original acceptance bytes in its immutable purchase receipt. Archive loading checks that digest before cleanup or phase advancement; resume checks it again before wrapper/summary publication. The new validator checks the exact 17 names against hash-bound browser acceptance, original environment/source/A2 identities, clean-seed and clean-worktree facts, production preservation and original writer exit marker. It also reconciles diagnostics and the actual manual-capture TEST payment outcome with the expected pinned amounts, published epoch timestamps and the browser's deliberately shortened payment reference. Original evidence is retained unchanged.
+
+The test fixture executes the actual original writer from `bin/verify`, rather than hand-constructing arbitrary acceptance keys. The full archive positive goes through this validator; file replacement and source/A2/key/browser/payment negatives exercise the correction. Summary and resume aggregation still isolate their broader archive loaders, so they do not prove a real multi-day lifecycle.
+
+The original `/snapshot` helper now resolves a fresh exact project/service container for each database and log read. It uses direct Docker observation and counts matching duplicate records in both stdout and stderr. `snapshot_container` rejects zero or multiple IDs. The new tests extract the actual embedded snapshot function and exercise fresh IDs, both streams and missing/ambiguous refusal; they do not execute Docker or contact the live environment.
+
+Independent receipt verification is in `SELLER-ORIGINAL-BINDING-6B473-VERIFICATION-S1712.json`: exact clean head/canonical remote, four Git-source hashes and all five retained logs match. Retained test totals are124 refund +110 delivery +72 seed +10 journey +21 nightly =337, all OK without skips. Three changed Python sources compile without execution. The shell and embedded syntax checks are owner-reported in the retained receipt, not rerun here.
+
+No new blocker found in this bounded correction. This closes4239 as an independent source/evidence review; full exact product/environment Gate3 and actual provider/backend/device/multi-day/production verification remain separate and open.

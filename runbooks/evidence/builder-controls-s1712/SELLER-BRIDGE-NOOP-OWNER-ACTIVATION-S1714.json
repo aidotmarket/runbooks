@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-09-12T08:25:15.479395+00:00",
+  "pr": 218,
+  "approved_candidate": "501df3347ddea5b17155cb7b4e941f98b46bf6ac",
+  "merge_serving_sha": "22a0deac6903414dce2f232d842d3588127ec9fa",
+  "tree": "d1c2beba83034c75fc2cd1d6eda52560e153c9a3",
+  "unanimous_gate3": "CC/GLM/DeepSeek APPROVE_WITH_NITS; no required code correction",
+  "hosted_success_runs": [
+    34682994020,
+    34683014486,
+    34683014408
+  ],
+  "activation": "Existing periodic reload_when_idle.sh automatically fast-forwarded08:22:39Z and restarted08:22:40Z; Mars did not manually restart. Source verified before and after; eight discovered queues had zero active/queued jobs. No source-transition no-restart claim.",
+  "gateway_before": 44323,
+  "gateway_after": 47150,
+  "registry_limitation": "Open Mars/Vulcan last_seen_atSep11 were beyond reloader30minuteTTL; do not infer liveness from registry timestamp alone. No registry patch or watcher change.",
+  "canary_result": "clean push0; unchanged repeat0; synthetic secret refused1; remote unchanged after repeat/refusal; fresh actual serving module/interpreter; local bareGit only",
+  "artifacts": {
+    "/Users/max/koskadeux-state/s1656/s1714-empty-push-candidate.json": "fa7fa2ac8d64b607e69f9ce514e2d4de6ba80f1e91485e38aa8fd492d8a7fe21",
+    "/Users/max/koskadeux-state/s1656/s1714-empty-push-base-proof.json": "6976e6853fdc900acca1d465239c95445a9aa48808f87678b2af21577a541975",
+    "/Users/max/koskadeux-state/s1656/s1714-empty-push-serving-canary.json": "87b65afd5d100f7aa62f0a20e4e6012e46f460beddab29dd79d81856eeb44c69",
+    "/Users/max/council/cc/response-20260912-095940-914940.md": "14191211e0fb27bb32c4f030b5e44290e47cf71005e04e96f7427aec736a00bc",
+    "/Users/max/council/deepseek/response-20260912-095941-308794.md": "d24e84fce0c56fe122f07a1fb4a46851435940d01f24960b6317ff14e5f95e3d",
+    "/Users/max/council/glm/response-20260912-101441-278837.md": "4997234fd7fec7a7fbddf5cae24e7e7da2b24a466b9ce9210e6ab6566c026c09"
+  },
+  "reload_log_tail": [
+    "[2026-09-11T20:04:10Z] fetch failed (continuing with local state)",
+    "Updating d21321590d..22a0deac69",
+    "Fast-forward",
+    " koskadeux_mcp/minimal_bridge.py |   3 +-",
+    " tests/test_minimal_bridge.py    | 101 ++++++++++++++++++++++++++++++++++++++++",
+    " 2 files changed, 103 insertions(+), 1 deletion(-)",
+    "[2026-09-12T08:22:39Z] fast-forwarded d21321590d5e968fdd6ae47037a1cbeef56e2ea6 -> 22a0deac6903414dce2f232d842d3588127ec9fa",
+    "[2026-09-12T08:22:40Z] RELOADED: bounced com.koskadeux.mcp onto 22a0deac6903414dce2f232d842d3588127ec9fa (was 'd21321590d5e968fdd6ae47037a1cbeef56e2ea6', secret_refresh=0)"
+  ],
+  "production_payment_acceptance": false
+}

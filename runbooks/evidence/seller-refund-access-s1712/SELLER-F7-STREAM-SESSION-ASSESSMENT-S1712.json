@@ -1,0 +1,40 @@
+{
+  "at": "2026-09-12T09:16:57.681045+00:00",
+  "request": 4316,
+  "response": 4319,
+  "source_commit": "ffdcacb14929328285ef3ed27ba6dc939e550f42",
+  "source_sha256": {
+    "app/core/database.py": "45dd56c3de3f30ca7a06b38a6bd068cf47e855ae92ca6efe9601476243fd4b0d",
+    "app/api/v1/endpoints/deliveries.py": "3ed864a996a88836cf6b8417d343d6b0194c32fa2a2729453281ed8c6fb0495c",
+    "requirements.txt": "de2ddc547920024e669f7965278f81a7889660930e5b404636524a226df617ad"
+  },
+  "installed_library_sha256": {
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/fastapi/__init__.py": "5e183f4e87192e12ce0404411724579c5badf5f83128262440485d57440890c2",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/fastapi/routing.py": "5ef56dc81e4f1270dea41e2ec46b75abcb057a1ff65a49af4e5c56af0e18d4e9",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/starlette/__init__.py": "af986c35ac1f57e7958e0e731fabd343540eb568afc51ee74eb383d2587d78c3",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/starlette/routing.py": "0d6f8e59f16abf66b6c6c23a5943e5acdf302b57ba2468e254f0b131155267d2",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/starlette/responses.py": "ac6e139cd204614fb61472fe9741bc47e45ff7855130ee6bbec402d36a166666",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/sqlalchemy/__init__.py": "4eef21873645eb5d1df63e7daee095d8844e2a9faed58f62f8f96173a35fe747",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/session.py": "b1cf522b0a8480f893223948c956baefd17e436096a7affcb9c24e8acfe161a4",
+    "/Users/max/Projects/ai-market/ai-market-backend/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py": "6c94d35c4ef2078a83e8949ed25bc9bfc40049fd8ea143a81d0a65b753831c99"
+  },
+  "installed_fastapi": "0.109.0",
+  "installed_starlette": "0.35.1",
+  "requirements_fastapi": "0.110.1",
+  "findings": [
+    "Actual get_async_db closes its session in finally; route returns StreamingResponse using captured service.",
+    "Inspected FastAPI0.109 AsyncExitStack exits before response return; Starlette invokes response and iterator after route returns.",
+    "SQLAlchemy close releases resources and defaults to reusable session, so post-close execute is not proof of a safely owned request lifecycle.",
+    "Existing AsyncSessionLocal factory atdatabase59-61 can be imported inside delivery_service.py; no extra factory/route/database file amendment is demonstrated necessary."
+  ],
+  "required_acceptance": [
+    "Explicitly owned stream sessions for short per-chunk/callback transactions; release before transport and yield.",
+    "Commit/rollback/close in every normal/refusal/send-error/disconnect/cancellation path; do not rely on implicit request-session reuse.",
+    "Actual ASGI lifecycle proof under pinned FastAPI0.110.1 with exact Starlette/SQLAlchemy versions, not only direct iterator or older local framework tests."
+  ],
+  "limitations": [
+    "Exact0.110.1 implementation not found in bounded local/cache lookup; no source/behavior claim for that version.",
+    "No new runtime test, provider/external call or product edit.",
+    "No whole lifecycle certification until actual owner build proof."
+  ]
+}

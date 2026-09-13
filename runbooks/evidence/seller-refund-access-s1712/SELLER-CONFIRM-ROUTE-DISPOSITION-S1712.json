@@ -1,0 +1,27 @@
+{
+  "at": "2026-09-12T11:59:46.674598+00:00",
+  "status": "FALSE_POSITIVE_RETRACTED_NO_SOURCE_CHANGE",
+  "initial_alert": 4411,
+  "correction_messages": [
+    4413,
+    4414
+  ],
+  "candidate": "606267af80470b1d61c07d91cda30a0dc5200224",
+  "backend": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "finding": "Initial suspected exhaustion-before-confirm conflict used wrong service route. Actual browser /transactions/{id}/confirm is transaction_actions.confirm_transaction -> OrderService.confirm_order; DeliveryService restricted confirm is under /deliveries. Canonical confirmation has no download-limit predicate, so no planned-path blocker established.",
+  "scope": "Static complete route/function trace only, no runtime or product edit. DS F2 advisory assessment must cite actual canonical route and separately prove revoke persistence.",
+  "source_hashes": {
+    "/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/router.py": "d6bcdbc0b8752c0ad76dc37ec5e40504af9928a30f6732ffd09f51e4d65cec5a",
+    "/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/endpoints/deliveries.py": "3ed864a996a88836cf6b8417d343d6b0194c32fa2a2729453281ed8c6fb0495c",
+    "/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/endpoints/transaction_actions.py": "c9eafabd80520f5506850fc9c9b6fdffc160f35d702b7625b2aa6b25010da0b3",
+    "/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/services/order_service.py": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f",
+    "/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/services/delivery_service.py": "df5f9142a32689e069f74b4b31ea8173edc02cbd037b37855a9644e7cd3db6eb",
+    "/Users/max/Projects/ai-market/money-path-test-environment-s1714-refund-proof/browser/s1681-delivery-leg.ts": "cb0809804dd09a90fc5d238faa3cb9f8f5cf8dd81a57802f57f94e684a28ba78"
+  },
+  "owner_r2": {
+    "path": "/Users/max/koskadeux-state/s1656/s1714-environment-606267a-advisory-source-assessment-r2.json",
+    "sha256": "4e63e3428ad4ee3b3c248850ba71a14c8dd5d59c7f9b2d45cf5886ff5bf663da",
+    "full_read_and_5_source_hashes_verified": true,
+    "revocation_source": "Actual seller revoke uses same locked order-money state, sets independent_revocation True, flushes then records orders.revoked/revoked_at and commits. Canonical confirm tests independent_revocation. Persisted revoked_at exists but is not retained/bound in current v2 role archive; preserve LOW evidence-coverage distinction."
+  }
+}

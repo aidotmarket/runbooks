@@ -1,5 +1,9 @@
 # Error signatures
 
+## `'oauth_provider' is an invalid keyword argument for User`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
 ## `401 or 403`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
@@ -79,6 +83,10 @@
 ## `any semantic row contains a redacted placeholder or has no current trust lineage`
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
+
+## `archived original acceptance differs from purchase-time receipt`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
 
 ## `AUTH_FAILED or Device is inactive or revoked`
 
@@ -296,9 +304,21 @@
 
 - [Seller Workspace operator guide](runbooks/seller-workspace-operator-guide.md)
 
+## `DELIVERY_CREDENTIAL_GENERATION_STALE`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
 ## `delivery_cycle_failed`
 
 - [Buyer Request Publication and Discovery](runbooks/buyer-request-publication-and-discovery.md)
+
+## `DELIVERY_REFRESH_ACCESS_REJECTED`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
+
+## `DELIVERY_REFRESH_UNAVAILABLE`
+
+- [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
 
 ## `deployed_sha_stale`
 
@@ -660,6 +680,10 @@
 
 - [Session Registry Recovery](session-registry-recovery.md)
 
+## `minimal bridge secret scan error`
+
+- [Builder Controls](runbooks/builder-controls.md)
+
 ## `minimal_bridge_base_unresolved`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
@@ -728,6 +752,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `normal atomic refund effects unproved; preserve FAILED checkpoint`
+
+- [Failed TEST purchase refund and recovery](runbooks/seller-failed-test-refund-recovery.md)
+
 ## `Not Authorized`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
@@ -784,6 +812,14 @@
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
+## `original acceptance criteria or pinned source differs`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
+
+## `original acceptance differs from purchase-time receipt`
+
+- [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
+
 ## `outcome_unknown`
 
 - [Issue Channel](issue-channel.md)
@@ -811,6 +847,10 @@
 ## `pending or dead_letter rows deleted`
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
+
+## `persisted canonical authority receipt differs`
+
+- [Failed TEST purchase refund and recovery](runbooks/seller-failed-test-refund-recovery.md)
 
 ## `pinned host-network browser-runner cannot reach all localhost origins`
 
@@ -851,6 +891,10 @@
 ## `POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `pre-push supplied no ref records`
+
+- [Builder Controls](runbooks/builder-controls.md)
 
 ## `preflight refusal (404, 403, 401, non-200, allowed=false, timeout)`
 

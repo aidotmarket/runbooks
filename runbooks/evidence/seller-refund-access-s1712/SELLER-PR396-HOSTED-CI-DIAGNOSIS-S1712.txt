@@ -1,0 +1,28 @@
+# PR396 hosted payment checks: exact failure diagnosis
+
+Read-only diagnosis, 2026-09-12, Vulcan S1712. Backend candidate `4812055d08f91664fba373ab1a1406fe35dd66e7`, base `d766b8e4e66d7803ebe48f8a3132521abbebe957`, draft PR396. No product, test, workflow, database or review candidate was changed.
+
+GitHub workflow `Gold Path Tests`, run `34682341722`, finished with both jobs failing. Raw failed-step log is retained in `SELLER-PR396-HOSTED-FAILURES-S1712.log`. These are additional hosted compatibility failures, separate from the six established failures in the retained full suites. They must not be described as those six baselines or hidden by skips.
+
+## Gold-path job: all 14 selected tests error at setup
+
+The workflow runs `tests/test_gold_path_transaction.py -m gold_path` without a PostgreSQL service or S1714 disposable environment. At candidate lines 8–9, that module imports `db`, `migrated_protocol` and `provider_http_guard` from the real protocol suites. `migrated_protocol` is a module-autouse fixture in `tests/test_order_money_protocol.py:86–105`, so it runs even for the selected mock-based checkout tests.
+
+The observed first failure is `disposable_url():27`: missing `S1714_DISPOSABLE_DATABASE` gives an empty string that fails the required prefix assertion. This fixture also correctly requires a matching `127.0.0.1` database on a non-5432 port, `s1714_f3_` namespace, actual 64-character container identity, PostgreSQL 17, full protocol ancestry and exact migrated chart/trigger state. A placeholder environment variable would merely move the failure and would misrepresent isolation. The provider guard also depends on the verified disposable socket. The existing hosted job does not provide this setup.
+
+## Canonical-payment job: real connection succeeds, minimal fixtures are stale
+
+The PostgreSQL 16 service starts and its explicit connection check passes. The selected two integration files then report **52 failed / 3 passed**:
+
+- **51** failures: `stripe_events.payload_json` missing. `tests/integration/test_webhook_canonical_payment.py:28–32` creates a temporary `stripe_events` table with the older columns. Candidate `webhooks.py:509` writes `payload_json` and `signature_valid` in normal dedup admission; lines 537–541 read/update them. The temporary table shadows any persistent schema. Adding a migration to the workflow alone cannot fix that shadowing.
+- **1** failure: `orders.delivered_at` missing. `tests/integration/conftest.py:115–133` creates a minimal orders table without the delivery/access fields now read by `fulfillment_service.py:159` and adjacent lines. The failing test is `test_paid_order_with_offline_device_is_pending`. Updating just the first reported column may expose further missing fields; bind the complete actual query and guard requirements.
+
+The integration fixture installs a historical hand-written trigger, including partial-refund→refunded behavior. These fixtures were designed for narrow historical checkout/trigger tests and are not full-ancestry refund-protocol proof. Keep their scope explicit if retained. Do not run their schema/trigger teardown against the protected or full-proof database.
+
+## Required disposition
+
+Mars owns a bounded MP-authored correction and its review. Preserve the active exact product review rather than editing `4812055` in place. The correction must make the literal hosted commands runnable in their declared environment, preserve provider/network refusal and real isolation, align the real integration fixtures with required source semantics, and retain all existing positive/refusal assertions. If workflow or out-of-manifest fixture files are required, enumerate them in the concrete scope before build. No live provider, borrowed protected database, manufactured container identity, skipped check or relaxed assertion is a substitute.
+
+After correction, retain exact source hashes, commands, environment identity and hosted results, and revalidate the affected retained protocol/access coverage on the new candidate. A passing local artifact at `4812055` remains valid for its recorded environment, but cannot certify these failing hosted commands.
+
+Source bytes were extracted from exact Git objects into `work/pr396-ci-source/`; this directory is evidence only. The operator did not run any product tests or migrations while diagnosing.
