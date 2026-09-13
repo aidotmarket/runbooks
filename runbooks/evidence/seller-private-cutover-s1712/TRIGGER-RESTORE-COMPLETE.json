@@ -1,0 +1,286 @@
+{
+  "at": "2026-09-13T14:10:37.315509+00:00",
+  "status": "ALL_FOUR_ORIGINAL_TRIGGER_CONFIGURATIONS_RESTORED",
+  "owner_message": 5413,
+  "exact_main": "525751775bbff2d87d6f2858166854bb5df8f292",
+  "triggers": {
+    "role0": {
+      "edges": [
+        {
+          "node": {
+            "id": "ee5612c3-bc08-4494-adf6-952c93c7e169",
+            "branch": "main",
+            "checkSuites": false,
+            "environmentId": "23e322c3-b195-45d8-9151-c4c27a998c33",
+            "projectId": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+            "provider": "github",
+            "repository": "aidotmarket/ai-market-backend",
+            "serviceId": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+            "baseEnvironmentOverrideId": null
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "R1BDOlM6ZWU1NjEyYzMtYmMwOC00NDk0LWFkZjYtOTUyYzkzYzdlMTY5"
+      }
+    },
+    "role1": {
+      "edges": [
+        {
+          "node": {
+            "id": "db64d211-8c24-48cf-9bdb-bce30a90275f",
+            "branch": "main",
+            "checkSuites": false,
+            "environmentId": "23e322c3-b195-45d8-9151-c4c27a998c33",
+            "projectId": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+            "provider": "github",
+            "repository": "aidotmarket/ai-market-backend",
+            "serviceId": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+            "baseEnvironmentOverrideId": null
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "R1BDOlM6ZGI2NGQyMTEtOGMyNC00OGNmLTliZGItYmNlMzBhOTAyNzVm"
+      }
+    },
+    "role2": {
+      "edges": [
+        {
+          "node": {
+            "id": "7b4fcaf9-a33a-4564-a0bd-1a334fdf3795",
+            "branch": "main",
+            "checkSuites": false,
+            "environmentId": "23e322c3-b195-45d8-9151-c4c27a998c33",
+            "projectId": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+            "provider": "github",
+            "repository": "aidotmarket/ai-market-backend",
+            "serviceId": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+            "baseEnvironmentOverrideId": null
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "R1BDOlM6N2I0ZmNhZjktYTMzYS00NTY0LWEwYmQtMWEzMzRmZGYzNzk1"
+      }
+    },
+    "role3": {
+      "edges": [
+        {
+          "node": {
+            "id": "a0af011b-5583-4bb9-9bbc-fcb7381b81b4",
+            "branch": "main",
+            "checkSuites": false,
+            "environmentId": "23e322c3-b195-45d8-9151-c4c27a998c33",
+            "projectId": "e81dd66f-808c-412e-b32c-f6d910f0ac5d",
+            "provider": "github",
+            "repository": "aidotmarket/ai-market-backend",
+            "serviceId": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+            "baseEnvironmentOverrideId": null
+          }
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "R1BDOlM6YTBhZjAxMWItNTU4My00YmI5LTliYmMtZmNiNzM4MWI4MWI0"
+      }
+    },
+    "createInput": {
+      "inputFields": [
+        {
+          "name": "branch",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "checkSuites",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Boolean",
+            "ofType": null
+          }
+        },
+        {
+          "name": "environmentId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "projectId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "provider",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "repository",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "rootDirectory",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "name": "serviceId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "service_config": {
+    "role0": {
+      "serviceId": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+      "rootDirectory": null,
+      "railwayConfigFile": null
+    },
+    "role1": {
+      "serviceId": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+      "rootDirectory": null,
+      "railwayConfigFile": "railway.worker.json"
+    },
+    "role2": {
+      "serviceId": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+      "rootDirectory": null,
+      "railwayConfigFile": "railway.beat.json"
+    },
+    "role3": {
+      "serviceId": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+      "rootDirectory": null,
+      "railwayConfigFile": null
+    },
+    "createInput": {
+      "inputFields": [
+        {
+          "name": "branch",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "checkSuites",
+          "type": {
+            "kind": "SCALAR",
+            "name": "Boolean",
+            "ofType": null
+          }
+        },
+        {
+          "name": "environmentId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "projectId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "provider",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "repository",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        },
+        {
+          "name": "rootDirectory",
+          "type": {
+            "kind": "SCALAR",
+            "name": "String",
+            "ofType": null
+          }
+        },
+        {
+          "name": "serviceId",
+          "type": {
+            "kind": "NON_NULL",
+            "name": null,
+            "ofType": {
+              "kind": "SCALAR",
+              "name": "String"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

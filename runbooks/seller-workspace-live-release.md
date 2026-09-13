@@ -15,7 +15,14 @@ error_signatures:
 # Seller Workspace live release operations
 
 
-## Current approved implementation and published harness — 13 September 2026
+## Current production milestone — 13 September 2026
+
+The four-service production cutover is now complete on exact merge `525751775bbff2d87d6f2858166854bb5df8f292` (accepted tree `0b335a79b2a1ada12be75aa497f31037f5a774ee`). The private-network migration and both original capture reconciliations succeeded; final report has all16 issue buckets zero, purchased rights and original ingress preserved, and payout dispatch remains false. All four actual runtimes were verified, both public API health origins are healthy on the new schema, the temporary operator is removed, and original deployment triggers are restored. See the [complete cutover, diagnosis, support and upgrade procedure](seller-production-payment-cutover.md) and its evidence manifest.
+
+This supersedes only earlier pending-production statements. Full release remains open for the current coordinated AWS/R2 journeys and profiling, genuine protected holds, AIMData1.23.3 stable/installed-schedule evidence and final payout/Gate4 disposition. No new paid purchase, shortened hold or protected-run transition is implied.
+
+
+## Historical pre-cutover implementation and published harness — 13 September 2026
 
 GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The [complete owner decision](evidence/workspace-mp255-approval-s1712/OWNER-IMPLEMENTATION-DECISION.json), [raw review and coverage manifest](evidence/workspace-mp255-approval-s1712/MANIFEST.json), and [documentary dispositions](evidence/workspace-mp255-approval-s1712/DOCUMENTARY-DISPOSITION.txt) retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
 
