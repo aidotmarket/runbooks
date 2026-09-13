@@ -1,0 +1,32 @@
+{
+  "OWNER-IMPLEMENTATION-DECISION.json": {
+    "source": "/Users/max/koskadeux-state/s1656/s1714-mp255-combined-gate3-owner-decision.json",
+    "sha256": "72f335b01cf989344d0597c03d3be2093f311d386843fda48e22de3a66bb4efc",
+    "bytes": 3830
+  },
+  "COMPONENT-IMPLEMENTATION-APPROVAL.json": {
+    "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/MP255-TWO-REVIEWER-IMPLEMENTATION-APPROVAL-S1712.json",
+    "sha256": "6b31a0418a59279bfe900ec08b6c87842987f13970a07c4082ebc6e7ee1002e6",
+    "bytes": 1735
+  },
+  "DEEPSEEK-COMPOSITE-COVERAGE.json": {
+    "source": "/Users/max/koskadeux-state/s1656/s1714-mp255-deepseek-composite-coverage-owner.json",
+    "sha256": "265091735f884740f69cb9bd43a2bd743a2e5d62cfed886d73048546b87c5f69",
+    "bytes": 6475
+  },
+  "DEEPSEEK-FINAL.txt": {
+    "source": "/Users/max/council/deepseek/response-20260913-095001-195403.md",
+    "sha256": "64a98c7b21101b660b129bbfe436c4b808d4e81860cf7fff718db0d1d931ee55",
+    "bytes": 25568
+  },
+  "GLM-FINAL.txt": {
+    "source": "/Users/max/council/glm/response-20260913-095000-889697.md",
+    "sha256": "ffd1fc6b87499b324b115e6cac31877aace0f54b943705742147828f33f0365a",
+    "bytes": 26788
+  },
+  "DOCUMENTARY-DISPOSITION.txt": {
+    "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp255-final-review-documentary-fold-s1712/DISPOSITION.md",
+    "sha256": "19358b8088feacde54403df9622ac7614fdfe0423f403a75eb4f21a4ccefeacb",
+    "bytes": 4916
+  }
+}

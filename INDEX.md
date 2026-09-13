@@ -947,18 +947,18 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in the architecture runbook, while preserving its non-custodial and immutable-approval requirements.
+- Purpose: GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The complete owner decision, raw review and coverage manifest, and documentary dispositions retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
 - Owner: `vulcan`
-- Last verified: `2026-09-12`
+- Last verified: `2026-09-13`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
 - Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
 - Status: current
 
 ## Seller Workspace operator guide
 - Path: `runbooks/seller-workspace-operator-guide.md`
-- Purpose: This is the continuing operator guide for diagnosis, support, controlled upgrades and recovery. Read it together with the dated live release record. That record preserves individual failures and receipts; this guide explains the system and the procedure. The architecture contract contains frozen security requirements and historical W1/W2 scope, which must not be mistaken for current availability.
+- Purpose: GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The complete owner decision, raw review and coverage manifest, and documentary dispositions retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
 - Owner: `vulcan`
-- Last verified: `2026-09-12`
+- Last verified: `2026-09-13`
 - Aliases: Seller Workspace diagnosis support and upgrades, Seller AWS and R2 operating procedure
 - Error signatures: stale_version, DELETE_IN_PROGRESS
 - Status: current

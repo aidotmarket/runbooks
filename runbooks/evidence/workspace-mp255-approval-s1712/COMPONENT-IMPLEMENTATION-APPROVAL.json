@@ -1,0 +1,33 @@
+{
+  "at": "2026-09-13T08:16:32.772388+00:00",
+  "status": "IMPLEMENTATION_APPROVED_BY_BOTH_REQUIRED_REVIEWERS",
+  "backend": "2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50",
+  "environment": "a0e028f4e0fa9ab6e53510909e7e8ddd725f20ae",
+  "documentary": "24da40e953109eb71996f1a2ed27116bb84167d0",
+  "package_manifest": "308b82c71802fe2a923f8acbb18437488d4fcf3695f5981df275cbc9490fbe91",
+  "authority": "Max: If GLM and Deepseek agree that is approval. CC waived, not counted as a voter.",
+  "reviews": {
+    "glm": {
+      "response": "/Users/max/council/glm/response-20260913-095000-889697.md",
+      "sha256": "ffd1fc6b87499b324b115e6cac31877aace0f54b943705742147828f33f0365a",
+      "verdict": "APPROVE_WITH_NITS"
+    },
+    "deepseek": {
+      "response": "/Users/max/council/deepseek/response-20260913-095001-195403.md",
+      "sha256": "64a98c7b21101b660b129bbfe436c4b808d4e81860cf7fff718db0d1d931ee55",
+      "verdict": "APPROVE_WITH_NITS"
+    }
+  },
+  "deepseek_composite_coverage": "/Users/max/koskadeux-state/s1656/s1714-mp255-deepseek-composite-coverage-owner.json",
+  "nit_disposition": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp255-final-review-documentary-fold-s1712/DISPOSITION.md",
+  "nit_manifest_sha256": "16f9d79e3a611982b22dbd69cf05a4a3ddd83dcb8d6718feaf9b1d9dcf4b8e7a",
+  "high_medium_findings_remaining": false,
+  "production_complete": false,
+  "remaining": [
+    "Genuine protected phases and joint environment proof",
+    "Exact production writer quiescence and cutover",
+    "Deployed runtime and bounded actual AWS profiling",
+    "AWS and R2 connection/publication/delivery journeys",
+    "Joint AIM Data compatibility and published current documentation"
+  ]
+}
