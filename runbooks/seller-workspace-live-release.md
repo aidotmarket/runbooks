@@ -22,6 +22,12 @@ The four-service production cutover is now complete on exact merge `525751775bbf
 This supersedes only earlier pending-production statements. Full release remains open for the current coordinated AWS/R2 journeys and profiling, genuine protected holds, AIMData1.23.3 stable/installed-schedule evidence and final payout/Gate4 disposition. No new paid purchase, shortened hold or protected-run transition is implied.
 
 
+## Next qualification source — 13 September 2026
+
+[Environment PR38](https://github.com/aidotmarket/money-path-test-environment/pull/38) is merged as `77f720451941a1815114ad960af80d345f99624d`, exact reviewed tree `d3feaf8be3b79ab781bf365d2543cd4236572482`, and selects production backend `525751775bbff2d87d6f2858166854bb5df8f292`. GLM and DeepSeek both approve the four-file pin change; CC is waived. The 72 seed and two static Compose checks are preparation evidence only. Frontend and AIM Data pins are unchanged.
+
+The [S1656 source record](../specs/BQ-MONEY-PATH-TEST-ENV-S1656-GATE1.md#next-qualification-source-pins-after-production-deployment-2026-09-13) and matching S1681 record bind this next environment. After documentary review and merge, future authorized qualification uses that actual documentary merge for both acceptance pins. Protected run25 keeps environment03d3 and both original519b pins. This publication neither approves the separate sequence amendment nor starts a runtime or owner window.
+
 ## Historical pre-cutover implementation and published harness — 13 September 2026
 
 GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The [complete owner decision](evidence/workspace-mp255-approval-s1712/OWNER-IMPLEMENTATION-DECISION.json), [raw review and coverage manifest](evidence/workspace-mp255-approval-s1712/MANIFEST.json), and [documentary dispositions](evidence/workspace-mp255-approval-s1712/DOCUMENTARY-DISPOSITION.txt) retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
