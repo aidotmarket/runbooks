@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-13T14:13:09.796645+00:00",
+  "scope": "Public operational receipts only; no private scopes, payment/event bodies or credentials. Full raw source/review/runtime archive remains in named S1712/S1714 evidence roots.",
+  "files": {
+    "DEPLOYMENT-READINESS.json": "56d5cb335b2910935ad39076eeb8042db04fb9e01596f3b91e5872f1dba830ed",
+    "OWNER-MIGRATION-ADOPTION-READY.json": "949ac95af81b6c2237b98fa78b97d18031dc806b05f2690e988ffdce2c30aba7",
+    "VULCAN-REPORT-AFTER-VERIFIED.json": "0d2b430de26907fcc03d9a111bbd1cf2e525a035de9a41698f9ac24f443f6b60",
+    "VULCAN-PURCHASE-PRESERVATION-VERIFIED.json": "f8f0fda4673ad57ecec5575a708d2a1284bf0ba857eb50d1251b9070503a90da",
+    "WORKSPACE-REFUND-AUTHORITY-ACL.json": "89aa2ee3342ba1fa80b8539d1751d67ba3a6b8ebf95c48e448adc2addd4dc52a",
+    "BEAT-PROCESS-BROKER-SCHEDULE.json": "baaa6963a09b6d7a2dab1821f5feb2cb30618a4f9de430764beb15344909d6dd",
+    "TRIGGER-RESTORE-COMPLETE.json": "3477d79d148227252c80f73cc9d166cbc8c013eccd06bcd02852115cf06604a9",
+    "CLEANUP-COMPLETE.json": "57172d83d30e55c83917fbfee1df1b07c38316ed9dbda4fbece02e1b6e42b06e"
+  }
+}

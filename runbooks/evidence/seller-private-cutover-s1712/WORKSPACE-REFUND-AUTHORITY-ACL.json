@@ -1,0 +1,12 @@
+{
+  "database_role": "ai_market_app",
+  "table": "workspace_refund_test_authorities",
+  "select": true,
+  "insert": true,
+  "update": true,
+  "delete": true,
+  "read_only": true,
+  "rolled_back": true,
+  "at": "2026-09-13T14:02:42.938247+00:00",
+  "deployment_id": "cc8cea0b-334e-40e7-9793-ba042049b3de"
+}

@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-13T13:52:57.560930+00:00",
+  "before_sha256": "000c0a30fc6b600fbd446053ddb3982f0bf66b5bb985f8b63f20556e47a1cfbe",
+  "after_sha256": "c3bc6bb09b4919096e1ee399e309c4bca811849576970a8140d4dff9a29f5c3f",
+  "purchase_rows": 2,
+  "purchase_preimages_equal_except_native_transaction_pi_and_updated_at": true,
+  "original_ingress_rows": 4,
+  "all_original_ingress_fields_unchanged": true,
+  "seven_new_refund_fields_all_null": true,
+  "capture_payments_after": 2,
+  "journals_after": 2,
+  "support_disputes_unchanged": true,
+  "owner_final_ready_pending": true
+}

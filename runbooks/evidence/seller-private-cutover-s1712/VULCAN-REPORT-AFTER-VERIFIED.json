@@ -1,0 +1,10 @@
+{
+  "at": "2026-09-13T13:49:08.510634+00:00",
+  "report_sha256": "0bb562f1131e5312755ab6059d64267c4008bc71ae8eb6a285a1bbd27023f6ad",
+  "all_16_issue_buckets_zero": true,
+  "protocol_ready": true,
+  "corrected_posting_guard_ready": true,
+  "chart_missing_conflicts_duplicates": 0,
+  "owner_purchase_preservation_pending": true,
+  "deployment_authorized": false
+}

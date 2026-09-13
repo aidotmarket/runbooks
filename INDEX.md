@@ -920,9 +920,9 @@
 
 ## Seller production payment cutover
 - Path: `runbooks/seller-production-payment-cutover.md`
-- Purpose: Prepared September12,2026 for Mars4120. Read-only preflight; no production deployment, configuration, stop, restart, cancellation, queue or database mutation was performed. This is the release-specific supplement to the Seller Workspace operator guide. It must be incorporated into the accepted payment Gate2 and final deployment record.
+- Purpose: The reviewed release is deployed and verified across API, general worker, Beat and profile worker. Candidate `11e26a016374255af034b69eb20214bbe1e81f20`, tree `0b335a79b2a1ada12be75aa497f31037f5a774ee`, merged/deployed commit `525751775bbff2d87d6f2858166854bb5df8f292`. GLM and DeepSeek agreement is approval under the user's explicit project rule; CC is waived, not approved. The final compatibility correction passed 68 focused tests and both CI workflows. Owner/native and platform evidence are separate gates, all completed for this cutover. Earlier preflight-only statements below are historical.
 - Owner: `vulcan`
-- Last verified: `2026-09-12`
+- Last verified: `2026-09-13`
 - Aliases: Seller payout quiescence and restore
 - Error signatures: none
 - Status: current
@@ -947,7 +947,7 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The complete owner decision, raw review and coverage manifest, and documentary dispositions retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
+- Purpose: The four-service production cutover is now complete on exact merge `525751775bbff2d87d6f2858166854bb5df8f292` (accepted tree `0b335a79b2a1ada12be75aa497f31037f5a774ee`). The private-network migration and both original capture reconciliations succeeded; final report has all16 issue buckets zero, purchased rights and original ingress preserved, and payout dispatch remains false. All four actual runtimes were verified, both public API health origins are healthy on the new schema, the temporary operator is removed, and original deployment triggers are restored. See the complete cutover, diagnosis, support and upgrade procedure and its evidence manifest.
 - Owner: `vulcan`
 - Last verified: `2026-09-13`
 - Aliases: Seller Workspace production release, AWS profiling cleanup

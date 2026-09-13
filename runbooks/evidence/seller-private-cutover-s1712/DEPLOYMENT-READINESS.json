@@ -1,0 +1,283 @@
+{
+  "at": "2026-09-13T14:07:49.633903+00:00",
+  "owner": "Vulcan S1712",
+  "status": "ALL_FOUR_APPROVED_DEPLOYMENTS_RUNTIME_VERIFIED",
+  "candidate": "11e26a016374255af034b69eb20214bbe1e81f20",
+  "accepted_tree": "0b335a79b2a1ada12be75aa497f31037f5a774ee",
+  "deploy_commit": "525751775bbff2d87d6f2858166854bb5df8f292",
+  "services": [
+    {
+      "service_id": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+      "deployment": {
+        "id": "cc8cea0b-334e-40e7-9793-ba042049b3de",
+        "status": "SUCCESS",
+        "deploymentStopped": false,
+        "instances": [
+          {
+            "id": "70d5659c-16cd-45c2-b86c-8e9d0e639376",
+            "status": "RUNNING"
+          }
+        ],
+        "source_sha": "525751775bbff2d87d6f2858166854bb5df8f292",
+        "image_digest": "sha256:66d3563f52ad3b7fd56d875042a6fe6381659b02357a24671c4abcd55b4cd173",
+        "service_manifest": {
+          "build": {
+            "builder": "DOCKERFILE",
+            "buildCommand": null,
+            "nixpacksPlan": null,
+            "watchPatterns": [],
+            "dockerfilePath": "Dockerfile",
+            "buildEnvironment": "V3",
+            "nixpacksConfigPath": null
+          },
+          "deploy": {
+            "region": null,
+            "runtime": "V2",
+            "numReplicas": 1,
+            "cronSchedule": null,
+            "startCommand": null,
+            "limitOverride": null,
+            "overlapSeconds": null,
+            "drainingSeconds": null,
+            "healthcheckPath": "/health",
+            "preDeployCommand": null,
+            "sleepApplication": false,
+            "useLegacyStacker": false,
+            "ipv6EgressEnabled": false,
+            "multiRegionConfig": {
+              "us-west2": {
+                "numReplicas": 1
+              }
+            },
+            "requiredMountPath": null,
+            "restartPolicyType": "ON_FAILURE",
+            "healthcheckTimeout": null,
+            "registryCredentials": null,
+            "preDeployTimeoutSeconds": null,
+            "restartPolicyMaxRetries": 10
+          }
+        }
+      },
+      "service_instance": {
+        "serviceId": "4a68ea36-41de-4300-9bab-48e506b0dba6",
+        "activeDeployments": [
+          {
+            "id": "cc8cea0b-334e-40e7-9793-ba042049b3de",
+            "status": "SUCCESS",
+            "deploymentStopped": false
+          }
+        ]
+      }
+    },
+    {
+      "service_id": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+      "deployment": {
+        "id": "c09a856d-da2a-4be4-9e3e-f5e73c0a0d2a",
+        "status": "SUCCESS",
+        "deploymentStopped": false,
+        "instances": [
+          {
+            "id": "5bfd16bc-16ff-4f0d-b2e7-2147c4045041",
+            "status": "RUNNING"
+          }
+        ],
+        "source_sha": "525751775bbff2d87d6f2858166854bb5df8f292",
+        "image_digest": "sha256:ab9caf16d1ac6211e39eb6385ee7b0a7ea5e408f481ccb83d58a320e42c201ff",
+        "service_manifest": {
+          "build": {
+            "builder": "DOCKERFILE",
+            "buildCommand": null,
+            "nixpacksPlan": null,
+            "watchPatterns": [],
+            "dockerfilePath": "Dockerfile",
+            "buildEnvironment": "V3",
+            "nixpacksConfigPath": null
+          },
+          "deploy": {
+            "region": null,
+            "runtime": "V2",
+            "numReplicas": 1,
+            "cronSchedule": null,
+            "startCommand": "celery -A app.core.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule",
+            "limitOverride": null,
+            "overlapSeconds": null,
+            "drainingSeconds": null,
+            "healthcheckPath": null,
+            "preDeployCommand": null,
+            "sleepApplication": false,
+            "useLegacyStacker": false,
+            "ipv6EgressEnabled": false,
+            "multiRegionConfig": {
+              "us-east4-eqdc4a": {
+                "numReplicas": 1
+              }
+            },
+            "requiredMountPath": null,
+            "restartPolicyType": "ON_FAILURE",
+            "healthcheckTimeout": null,
+            "registryCredentials": null,
+            "preDeployTimeoutSeconds": null,
+            "restartPolicyMaxRetries": 10
+          }
+        }
+      },
+      "service_instance": {
+        "serviceId": "6f7319f0-2fc1-4e51-9955-6a8bd644e363",
+        "activeDeployments": [
+          {
+            "id": "c09a856d-da2a-4be4-9e3e-f5e73c0a0d2a",
+            "status": "SUCCESS",
+            "deploymentStopped": false
+          }
+        ]
+      }
+    },
+    {
+      "service_id": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+      "deployment": {
+        "id": "d04a4546-2e7f-4239-b7f3-5a9315b6d97a",
+        "status": "SUCCESS",
+        "deploymentStopped": false,
+        "instances": [
+          {
+            "id": "dffc59ed-2af0-4358-9b27-67d19806f7db",
+            "status": "RUNNING"
+          }
+        ],
+        "source_sha": "525751775bbff2d87d6f2858166854bb5df8f292",
+        "image_digest": "sha256:4596a7da1f740a3ef6e81ecda5b0f78163008465ec7b6470ab3b36bca7ddd9af",
+        "service_manifest": {
+          "build": {
+            "builder": "DOCKERFILE",
+            "buildCommand": null,
+            "nixpacksPlan": null,
+            "watchPatterns": [],
+            "dockerfilePath": "Dockerfile",
+            "buildEnvironment": "V3",
+            "nixpacksConfigPath": null
+          },
+          "deploy": {
+            "region": null,
+            "runtime": "V2",
+            "numReplicas": 1,
+            "cronSchedule": null,
+            "startCommand": "sh -c 'python -m app.core.seller_schema_readiness && exec celery -A app.core.celery_app worker --loglevel=info --concurrency=2 -Q default,scheduled,emails,vectoraiz'",
+            "limitOverride": null,
+            "overlapSeconds": null,
+            "drainingSeconds": null,
+            "healthcheckPath": null,
+            "preDeployCommand": null,
+            "sleepApplication": false,
+            "useLegacyStacker": false,
+            "ipv6EgressEnabled": false,
+            "multiRegionConfig": {
+              "us-east4-eqdc4a": {
+                "numReplicas": 1
+              }
+            },
+            "requiredMountPath": null,
+            "restartPolicyType": "ON_FAILURE",
+            "healthcheckTimeout": null,
+            "registryCredentials": null,
+            "preDeployTimeoutSeconds": null,
+            "restartPolicyMaxRetries": 10
+          }
+        }
+      },
+      "service_instance": {
+        "serviceId": "b04bf73a-aa49-4bdb-9e8d-f8f2715ce9b1",
+        "activeDeployments": [
+          {
+            "id": "d04a4546-2e7f-4239-b7f3-5a9315b6d97a",
+            "status": "SUCCESS",
+            "deploymentStopped": false
+          }
+        ]
+      }
+    },
+    {
+      "service_id": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+      "deployment": {
+        "id": "3d5c8950-6d3c-41fc-b05d-285cea43e14b",
+        "status": "SUCCESS",
+        "deploymentStopped": false,
+        "instances": [
+          {
+            "id": "fc5f44e5-637f-42be-abf7-63526f522aec",
+            "status": "RUNNING"
+          }
+        ],
+        "source_sha": "525751775bbff2d87d6f2858166854bb5df8f292",
+        "image_digest": "sha256:2f5f3db30d6b14403dbb26442d7a20df8441691e7f95e4496a57fb0c6f25d551",
+        "service_manifest": {
+          "build": {
+            "builder": "DOCKERFILE",
+            "buildCommand": null,
+            "nixpacksPlan": null,
+            "watchPatterns": [],
+            "dockerfilePath": "/Dockerfile",
+            "buildEnvironment": "V3",
+            "nixpacksConfigPath": null
+          },
+          "deploy": {
+            "region": null,
+            "runtime": "V2",
+            "numReplicas": 1,
+            "cronSchedule": null,
+            "startCommand": "sh -c 'python -m app.core.seller_schema_readiness && exec celery -A app.core.celery_app worker --loglevel=info --concurrency=4 --prefetch-multiplier=1 -Q seller_workspace_profile_control'",
+            "limitOverride": null,
+            "overlapSeconds": null,
+            "drainingSeconds": null,
+            "healthcheckPath": null,
+            "preDeployCommand": null,
+            "sleepApplication": false,
+            "useLegacyStacker": false,
+            "ipv6EgressEnabled": false,
+            "multiRegionConfig": {
+              "us-east4-eqdc4a": {
+                "numReplicas": 1
+              }
+            },
+            "requiredMountPath": null,
+            "restartPolicyType": "ON_FAILURE",
+            "healthcheckTimeout": null,
+            "registryCredentials": null,
+            "preDeployTimeoutSeconds": null,
+            "restartPolicyMaxRetries": 10
+          }
+        }
+      },
+      "service_instance": {
+        "serviceId": "ca74c2ac-6045-4d32-9e62-c1c39b8a8a80",
+        "activeDeployments": [
+          {
+            "id": "3d5c8950-6d3c-41fc-b05d-285cea43e14b",
+            "status": "SUCCESS",
+            "deploymentStopped": false
+          }
+        ]
+      }
+    }
+  ],
+  "all_four_payout_dispatch_false": true,
+  "api_general_profile_database_role": "ai_market_app",
+  "beat_database_role": null,
+  "beat_database_role_explanation": "No DATABASE_URL configured; actual Beat process/broker/schedules verified. No DB credentials added.",
+  "schema_head": "s1714_canonical_pi_binding_v1",
+  "operator_cleanup_complete": true,
+  "full_release_complete": false,
+  "remaining": "AWS profiling, AWS/R2 normal journeys and joint purchased download proof, protected genuine48h holds, AIMData1.23.3 stable and installed schedule, final payout/Gate4 disposition.",
+  "evidence": {
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/SERVING-RUNTIME-api-20260913T140047Z.json": "2929c28d79f26db35d0fc16099f3c9d57084dca48f06f33e444606f2e10cc685",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/SERVING-RUNTIME-general-20260913T135912Z.json": "db7ddaeaaefd25563134b5ea55b9f912707a5758154f3957d196ba886942674f",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/SERVING-RUNTIME-profile-20260913T140208Z.json": "5244428f55559dc14bfd19a4287d03a83e41738c346b0e677629bac42321ea88",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/SERVING-RUNTIME-DIAGNOSTIC-beat-20260913T140501Z.json": "e264c6e501450c7f8d4db95841a76b2d0b949e21017a5bf0d203c9a870c8975e",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/DEPLOYMENT-STATUS-20260913T140143Z.json": "929b4be344d5155ba6d5be1b8c0832647572471519869444db6341d438bccbd6",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/OWNER-READY-VERIFIED.json": "f275818650a473d603f6212df68f5f2ebd6860c303a653235bd9e32dfc6433fc",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/BEAT-PROCESS-BROKER-SCHEDULE.json": "baaa6963a09b6d7a2dab1821f5feb2cb30618a4f9de430764beb15344909d6dd",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/WORKSPACE-REFUND-AUTHORITY-ACL.json": "89aa2ee3342ba1fa80b8539d1751d67ba3a6b8ebf95c48e448adc2addd4dc52a",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/API-HEALTH-20260913T1400Z.json": "5da0cfe4db0cb50ca8595af9914635caa4ac2c5e53531535dcae75eb9872bf86",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp258-private-cutover-s1712/POSTDEPLOY-WORKERS-20260913T140256Z.json": "9089e8ba2d39cdbef148e73f971e680c1234c3259801836d4b173138a90b0ef3",
+    "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/railway-private-operator-s1712/CLEANUP-COMPLETE.json": "57172d83d30e55c83917fbfee1df1b07c38316ed9dbda4fbece02e1b6e42b06e"
+  }
+}

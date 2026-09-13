@@ -1,0 +1,18 @@
+{
+  "at": "2026-09-13T14:07:00.431372+00:00",
+  "status": "OPERATOR_CLEANUP_VERIFIED_COMPLETE",
+  "service_absent_complete_project_inventory": true,
+  "service_absent_all_four_environment_inventories": true,
+  "deployment_status": "REMOVED",
+  "instance_status": "REMOVED",
+  "all26_private_files_retained_then_removed": true,
+  "unrelated_project_service_ids_unchanged": true,
+  "stop_acknowledgement_not_exit": "Stop acknowledged but standby remained RUNNING. Exact authorized empty service deletion completed termination; no second stop or native action.",
+  "evidence": {
+    "PRIVATE-DIRECTORY-CLEANUP.json": "3b0b2bcb3e6d89dfbaa4673a840a33fb2a9db56a5728e05d216bf34178cf00c2",
+    "OPERATOR-STOP.json": "ec4635a3dd30690e58be9ac0df8caca85030d07c788f2087f544b185d976cfc1",
+    "OPERATOR-DELETE.json": "02161c742474f264470e21987cae5d28d9328b2b2f06405b6f916015a971eba0",
+    "POST-DELETE-PROJECT-DEPLOYMENT-READBACK.json": "c922b29f94e41230f1f824ccdab370c8548880e360771aa08800110ef0c94c48",
+    "POST-DELETE-ENVIRONMENT-INVENTORY.json": "b0afa73776b6d4cabee931f48b14dc605f6bc49dc92555a4f9e741ac9f7f1c62"
+  }
+}

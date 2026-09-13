@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-13T13:55:54.567128+00:00",
+  "owner": "Mars S1714",
+  "status": "OWNER_MIGRATION_ADOPTION_VERIFIED_READY",
+  "candidate": "11e26a016374255af034b69eb20214bbe1e81f20",
+  "accepted_tree": "0b335a79b2a1ada12be75aa497f31037f5a774ee",
+  "deploy_commit": "525751775bbff2d87d6f2858166854bb5df8f292",
+  "owner_stop_go_message": 5403,
+  "schema_heads": [
+    "s1714_canonical_pi_binding_v1"
+  ],
+  "protocol_ready": true,
+  "all_native_actions_exit_zero": true,
+  "capture_payments": 2,
+  "balanced_posted_journals": 2,
+  "native_audit_receipts_verified": 2,
+  "audit_hash_uses_exact_native_double_json_encoding": true,
+  "purchased_rights_preserved": true,
+  "original_ingress_all_existing_fields_preserved": true,
+  "new_ingress_refund_columns_null": true,
+  "payout_dispatch_must_remain_false": true,
+  "deployment_authorized": true,
+  "minimum_remaining_quota_percent": 10,
+  "last_remaining_quota_percent": 47,
+  "recovery": "Forward-compatible only. Do not deploy old d766 after migrated schema/adoption.",
+  "evidence": {
+    "/Users/max/koskadeux-state/s1656/s1714-private-report-after.json": "0bb562f1131e5312755ab6059d64267c4008bc71ae8eb6a285a1bbd27023f6ad",
+    "/Users/max/koskadeux-state/s1656/s1714-private-adoption-finance-acl.json": "967dea78e753f03a3ccab70f4d6db165791bf02137abc0a9f89b4e16397a175f",
+    "/Users/max/koskadeux-state/s1656/s1714-production-cutover-preflight-20260913T134950Z.json": "c3bc6bb09b4919096e1ee399e309c4bca811849576970a8140d4dff9a29f5c3f",
+    "/Users/max/koskadeux-state/s1656/s1714-private-operator-gate-owner.json": "3ec004e3cb72473e3eb2344c9f0cc5ee9aa65252c3fed32eb58d43addfb5397b"
+  },
+  "native_terminal_receipts": {
+    "OWNER-NATIVE-TERMINAL-plan-one.json": "77fad16000d372bcf1858dc2a5ab7c7bfe72290b39e42a0f00bb4876e0822699",
+    "OWNER-NATIVE-TERMINAL-migrate.json": "5d29b1084e970731fb3102d7a19201a0f9901566933124eb1b76bc85021f1bee",
+    "OWNER-NATIVE-TERMINAL-apply-one.json": "3aea8e19fbfb691d108bcc0797d14affcda3c1b7a0fe11d37a6f05df44bd9081",
+    "OWNER-NATIVE-TERMINAL-apply-two.json": "79ae2bf672341de44d71d7e3c09aa86b5e75084d31b90f1a04a0e953ca98c31b",
+    "OWNER-NATIVE-TERMINAL-report-before.json": "3813eaca85ceeb4446a55ed41b1d0be929669bfc3de3de8baece3839cc6082a1",
+    "OWNER-NATIVE-TERMINAL-plan-two.json": "4fcfb3bd29a2cd17b68f8299530e293d6502a06bf847384d548596ce28fb646c",
+    "OWNER-NATIVE-TERMINAL-report-after.json": "c8631dc0caf2ec3f53ebb9baa112ed534248b0c91287dc15045c15fbffe86184"
+  }
+}
