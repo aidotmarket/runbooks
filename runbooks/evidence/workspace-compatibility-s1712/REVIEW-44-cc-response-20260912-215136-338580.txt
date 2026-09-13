@@ -1,0 +1,119 @@
+# COUNCIL REVIEW RESPONSE — S1712 agent-attempt successor (bounded missing-coverage completion + DeepSeek F1 disposition)
+
+Repository: `aidotmarket/runbooks`
+Base: `e3b8b08813f1476910422c4233fee92360409cb7`
+Candidate (frozen): `9645601d50c10a5fe42f38e7972b8c159dc69b04`
+Branch: `docs/seller-workspace-agent-attempt-s1712`
+Spec under review: `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`
+Backend context (UNQUALIFIED, per controller): `817f7331a07d07929a67198b28a82ed9b98baa56`
+
+---
+
+## Artifact-identity verification (all PASS)
+
+- `git rev-parse HEAD` → `9645601d50c10a5fe42f38e7972b8c159dc69b04` — matches requested candidate. ✅
+- `git rev-parse --abbrev-ref HEAD` → `docs/seller-workspace-agent-attempt-s1712` — matches expected branch. ✅
+- Spec bytes/lines: `876L / 247866B` — matches controller's stated `247866 bytes / 876 lines`. ✅
+- Spec SHA256: `8ee6f5514b41252739da8158f0577f8a5c16267bd8132bf0c07c16ae98a77e1d` — matches controller's stated hash byte-for-byte. ✅
+- Checkout path matches the controller block. No mismatch to report.
+
+The controller-supplied identity block is correct in every field. No repository discovery was performed.
+
+---
+
+## 1. VERDICT
+
+**REVISE** — DESIGN-ONLY; **NOT a full-scope vote** (33 historical review bodies remain unread per controller instruction "No full-scope vote until missing history completes").
+
+This flips the prior digest-based **APPROVE_WITH_NITS** to **REVISE** for exactly one reason: completing the mandated full spec read **and** verifying the named backend assertions against real source confirmed **DeepSeek F1 as a CONFIRMED MEDIUM** (§2, F1). A MEDIUM blocks; the rubric requires the verdict to agree with the findings, so I cannot honestly retain a clean AWN while reporting a verified money-path scope contradiction ("Silence is not approval").
+
+Everything else the prior AWN dispositioned is **retained and re-affirmed against the now-complete read**: the design approach (durable `canonical_agent_attempt_v1`, once-only spend release, 4th binding mode, 8-row provider-status policy, native-uniqueness PI binding, two-stage W authority, four-fixture unconditional refusal) is sound as a proposal. **The REVISE collapses back to AWN the moment F1 is closed** (a one-clause fix, §SIMPLER). This is consistent with the controller's own signal that F1 is "unresolved" and that "successor fixes [are] separately being drafted, not accepted."
+
+---
+
+## 2. FINDINGS (highest severity first)
+
+### F1 — MEDIUM (BLOCKS) — `expected_binding` breaks `test_webhook_audit.py:287/661`; the contract prescribes the change but never authorizes the test edit it forces (DeepSeek F1, CONFIRMED)
+
+**Evidence — candidate (`runbooks@9645601d`, `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`):**
+- `:622` — "Extend the normal webhook's validated checkout result and **OrderService.mark_paid with a keyword-only expected_binding argument for canonical checkout**. … Pass it directly from `_handle_checkout_completed` to the independent async mark_paid session … **The sync synthetic path passes the same validated value** into its sync lock owner."
+- `:655–676` — D6 defines `expected_binding` as a closed **12-field** immutable value; `:626` "**Canonical callers missing expected_binding refuse.**"
+- `:435` — the ONLY authorized edit to `test_webhook_audit.py` in the three-file compatibility amendment: "change the **11** explicit accepted dedup tuples from `(event_id,)` to `(event_id, None)` … **do not alter mapping/handler query results or the general `_result` helper**." (the "eleven-dedup-tuples-only" restriction the controller names)
+- `:645–647` — D4 requires, on the final frozen tree, enumerating "**all … test uses of mark_paid** … across the entire repository … Classify every caller as **canonical with complete expected_binding** … Require zero unclassified/unmigrated callers … **Existing money assertions … remain**."
+- `:773` — the spec **explicitly** fixes the identical two-positional-arg problem **but only for test #25** (`tests/integration/test_webhook_canonical_payment.py`): "At 817f the canonical integration module's **mark_paid double 153–159 accepts only two positional arguments and cannot receive expected_binding** … update the double to validate the exact new value … **Do not discard expected_binding with `**kwargs`** or fabricate pass results."
+- Whole-file search confirms the spec never cites `287`/`661` and never mentions `test_webhook_audit.py`'s mark_paid assertions; `expected_binding` occurs only at `622/626/647/655/674/690/773/843/845`.
+
+**Evidence — backend context (`817f7331`, `tests/test_webhook_audit.py`), read read-only (no tests executed):**
+- `:287` `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")` — enclosing node 9 (`:243` "checkout.session.completed → real order uses **async OrderService paid flow**").
+- `:661` `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_gate3")` — enclosing node 20 (`:596` "checkout.session.completed with **ENABLE_CANONICAL_TX** …"; `:638` `patch.object(settings, "ENABLE_CANONICAL_TX", True)`).
+- Both are **strict two-positional-arg, zero-kwarg** assertions. `expected_binding` is absent from this file at 817f. (`:535`/`:667` are `assert_awaited_once()` count-only and are unaffected.)
+
+**Observed vs expected.** The canonical/synthetic checkout paths (which nodes 9 and 20 exercise) will call `mark_paid(UUID(order_id), pi, expected_binding=<12-field value>)`. A `assert_awaited_once_with(order_id, pi)` with no kwargs fails against a call carrying `expected_binding=…` (mock call-args `((order_id,pi),{})` ≠ `((order_id,pi),{"expected_binding":…})`). So `:287` and `:661` **break** once `expected_binding` is implemented. The contract requires that change (`:622`) and requires migrating those uses (D4, `:647`) — yet the authorized `test_webhook_audit.py` scope is "11 dedup tuples only" (`:435`), and the spec pointedly authorized the *same* migration for test #25 (`:773`) while leaving #15 unaddressed. D4's "Existing money assertions … remain" is in unreconciled tension with D4's own "migrate every mark_paid use." **This is exactly the ambiguity the spec's own standard says to remove explicitly** (cf. `:477`, where the analogous Transaction-comparison DeepSeek F1 was closed by "The explicit table removes the ambiguity," and `:773` for #25).
+
+**Reproduction:** static evidence only (Python `unittest.mock` semantics + verified node/flag context; no test run per constraints).
+
+**Impact:** On the money-path checkout→paid webhook-audit suite, an implementer following the contract literally is trapped: (a) leave `287/661` broken (violates `:451` "No xfail/skip/deselection"), (b) edit them beyond the stated `test_webhook_audit.py` scope, or (c) apply the `**kwargs` swallow that `:773` explicitly forbids and that would mask a real regression. It also blocks unanimous acceptance (DeepSeek already flags it).
+
+**Smallest required outcome:** Add one explicit clause (mirroring `:773`) authorizing the `test_webhook_audit.py:287/661` mark_paid-assertion migration to the `expected_binding` call shape, and state that **D4 governs over the `:435` minimum-patch restriction for the `expected_binding` dimension** (i.e., preserve behavioral intent — awaited once with the exact order/PI — while adding the `expected_binding` value/matcher; no `**kwargs`). No candidate bytes were changed by this review.
+
+**Verification criterion:** On the frozen final tree, D4's mark_paid enumeration lists `287/661` classified "canonical with complete expected_binding"; the two assertions assert the `expected_binding` value (or an explicit matcher) with no `**kwargs` swallow; all three named modules run with every original behavioral assertion intact and zero xfail/skip.
+
+**Fairness note (why not HIGH, why not NIT):** Not HIGH — it is design-only, localized, and closable in one clause; the spec's D4 + "return concrete additional scope for review before editing" (`:382`) prevent silent shipment (they bounce it to review, which is what is happening). Not NIT — it is a verified, load-bearing, money-path contradiction that the candidate does not resolve and that the spec's own exactness standard (`:477`, `:773`) would not tolerate; and it is precisely what DeepSeek requires be fixed before acceptance.
+
+---
+
+### F2 — LOW (non-blocking) — spend-writer enumeration relies on the D4/§"reconciliation" gate rather than naming every existing decrement site (RETAINED)
+
+The once-only spend-release protocol names the two remediated writers explicitly — `webhooks._handle_payment_failed_agent` (`:753`, GREATEST decrement without the release marker) and `lock_stale_agent_payment` (`:759`) — and delegates completeness to "A complete implementation must **enumerate those callers** and prove this guard" (`:749`) plus D4 (`:647`). The prior review's LOW stands: the contract does not itself name every existing spend-decrement site (previously identified as `transaction_service.py:427` and `refund_processing_service.py:492-493` in backend context), leaning on the enumeration gate instead. Non-blocking because the gate is mandatory and money-safe (held-by-default; `:715`, `:823` "every other state requires held"). Retained from prior disposition; backend line numbers not re-verified this session (static, unqualified context).
+
+### F3 — NIT (non-blocking) — D1 retained-clause line anchors are off by +38 (RETAINED, re-verified this session)
+
+D1 (`:633`) cites "retained line 189" (normal-money scope restriction), "retained line 420" (no-new-normal-money-writer), and "line 315" (`test_refund_webhook_protocol.py` outside target list). Against the current 876-line file these are all **+38**: the real content is at `:227` (scope/"Keep normal financial processor and S1681 admission/table/CLI untouched"), `:458` ("No new normal money writer … is added"), and `:353` ("`tests/test_refund_webhook_protocol.py` remains outside the target list"). The spec itself acknowledges the class of defect at D8 (`:686`: references are "diff-output positions … must be re-anchored"). Content is unambiguous; only the numeric anchors are stale. Non-blocking.
+
+### F4 — NIT (non-blocking) — attempt-state count 6 vs 7 (RETAINED, re-verified this session)
+
+`:715` ("States:") enumerates **6** attempt states (prepared_unknown, response_observed, bound_pending, cancellation_unknown, cancelled_reconciled, conflict_reconciliation); the later exact table `:804` and transitions `:814–821` enumerate **7** (adds `completed`). `:777` states the later section "makes the preceding proposal exact and adds completed handling," so the 6-state prose is understood as superseded — but `:715` is not cross-updated, so a reader of that section alone misses `completed`. Non-blocking.
+
+---
+
+## 3. COVERAGE
+
+**Read in full this session (exact intervals), spec `SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md` @ `9645601d`:**
+- Lines **1–876 (entire file)**, in bounded chunks: 1–92, 93–125, 126–150, 151–184, 185–235, 235–299, 300–359, 359–430, 430–499, 500–559, 560–624, 625–700, 700–784, 784–876. The mandated interval **45–624 inclusive is 100% covered**, all middles; 1–44 and 625–876 (the delta) were also read in full to disposition F1 and confirm cross-references. No line was skipped. Longest line = 3126 chars (`:118`); all long lines (`:82,94,106,110,118,120,126,128,136,140,142,146,156,160,166,178,416`) rendered complete with no truncation (per-line verified). This supersedes the prior "retained-spec + digest" coverage basis.
+- Verified independently this session: HEAD/branch/spec size/lines/SHA256; D1 +38 offset (three anchors); 8-row provider-status table (`:859–868`, `:876`); Stripe one-`l` `canceled` vs internal two-`l` `cancelled` (`:855`); release requires `amount_received_cents==0 AND amount_capturable_cents==0` (`:872`); 4th mode `agent_attempt_completion` both-NULL/no-Session admission (`:837–851`); durable `canonical_agent_attempt_v1` in `transactions.metadata` JSONB (`:708–713`); once-only `spend_release_state` (`:744–759`, `:809–812`).
+- Verified against backend source (817f, read-only, treated as UNQUALIFIED context): `test_webhook_audit.py:287/661` strict two-arg mark_paid assertions and their enclosing nodes 9/20; `expected_binding` absent at 817f. This turns DeepSeek F1 from a design-logic inference into a source-confirmed finding.
+
+**NOT covered (and why):**
+- **The 33 full original historical review bodies** (CC/GLM/DeepSeek across all rounds, incl. the DeepSeek response that raised the `expected_binding`/`287/661` F1). Per controller, these remain pending; therefore **no full-scope vote** is cast. A digest is not full reading.
+- **Source-hash / packet / manifest / delta re-audit** — deliberately not repeated (controller instruction; already done in the prior response `response-20260912-212609-273844.md`).
+- **No tests run, no migrations, no provider/runtime/mutation.** Backend `817f` is unqualified context and is not certified here.
+- F2's backend line numbers (`txn_svc:427`, `refund_proc:492-493`) not re-verified this session (retained static).
+
+---
+
+## 4. ANSWERS TO CONTROLLER DIRECTIVES
+
+The request substituted specific directives for the standard "3–6 numbered questions"; I note that formal numbered questions were absent and treat the directives as the questions.
+
+**(a) Full verbatim read of `45–624` (all middles).** Done — see Coverage. Integrated with the already-read delta. New/confirmed findings reported above; no silent approval of any interval.
+
+**(b) Integrate retained obligations with the new delta.** The retained e3b8b088 body (custody/no-DELETE, two-stage W authority, four-fixture unconditional refusal, canonical receipts, durable audit) is internally coherent with the canonical-PI amendment (native uniqueness, `bind_initial_order_payment_intent_sync`, D6 `expected_binding`) and the agent-attempt successor (durable attempt, once-only release, 4th mode, provider-status policy). Scope layering is consistent when read as intended: **14 → 17** (three webhook test-compat: audit/isolation/webhooks) **→ 24** (canonical-PI: +4 services, +2 tests, +1 migration) **→ 27** (successor: +`test_webhook_canonical_payment.py`/`test_notification_events.py`/`test_s1097_order_fulfillment_scoping.py`). The one substantive integration defect surfaced by the full read is F1 (the `expected_binding` ↔ `test_webhook_audit.py` scope gap).
+
+**(c) Independently disposition DeepSeek F1 against the full contract.** CONFIRMED (F1 above), MEDIUM. Distinct from the *other* "DeepSeek F1" already closed at `:477` (post-resolution Transaction comparison, resolved by the `:464–472` table). The controller's F1 — `expected_binding` vs `test_webhook_audit.py:287/661` strict two-arg assertions vs the eleven-dedup-tuples-only restriction — is real, source-verified, and unresolved by this candidate. It is exactly the kind of gap the spec closes elsewhere (`:773` for test #25) and simply did not close for test #15.
+
+---
+
+## SIMPLER
+
+The **F1 fix is itself the simplification**: one explicit clause, copied in spirit from `:773`, authorizing `test_webhook_audit.py:287/661` (and any other repo-wide mark_paid assertion D4 finds) to migrate to the `expected_binding` call shape, and one sentence stating D4 governs over the `:435` minimum-patch restriction for the `expected_binding` dimension. This removes the contradiction without adding scope (no new file, no product-code change) and converts REVISE→AWN. No simpler resolution preserves both the money-path assertion integrity and the "no `**kwargs`, no green-suite-hacking" invariants.
+
+For the broader contract: **none found** at the design level — the durable-attempt/native-uniqueness/four-fixture-refusal machinery is already the minimal shape for its stated invariants (I looked for a way to drop the composite discovery FK `uq_s1712_order_discovery`/`fk_s1712_registered_order_discovery` and the two PI unique constraints in favor of application checks; the spec's own D2/D8/`:539` rationale — arbitrating conflicting writes from all DB clients without a new advisory-lock tier — is sound and I could not remove them without reintroducing the forged-N / drift holes).
+
+## BETTER
+
+**None found** that reduces risk. The one alternative worth naming and rejecting: make `expected_binding` **positional-with-default** instead of keyword-only, so legacy `assert_awaited_once_with(order_id, pi)` might coincidentally still pass. Rejected — it weakens the "canonical callers missing expected_binding refuse" guard (`:626`), invites silent None-passing on money paths, and still breaks node 20 (which asserts the exact call). The candidate's keyword-only + explicit-migration approach is the correct one; it merely needs F1's authorization clause. Rollback of F1's fix is trivial (documentation-only), cost is one clause, failure mode is nil.
+
+---
+
+### Bottom line
+Identity verified exact. Full spec (1–876) read; mandated 45–624 fully covered. Prior LOW/NITs retained and re-verified (F2/F3/F4). Completing the read + verifying real source confirmed **DeepSeek F1 as a MEDIUM** → **REVISE (design-only, not full-scope)**, collapsing to AWN on the one-clause fix. No full-scope approval is available until F1 closes **and** the 33 historical review bodies are read. Backend `817f` remains unqualified context; no tests/migrations/runtime were exercised.

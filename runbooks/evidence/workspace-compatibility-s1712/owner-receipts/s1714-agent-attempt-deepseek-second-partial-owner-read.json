@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-12T19:39:10.360745+00:00",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "response": "/Users/max/council/deepseek/response-20260912-213353-838309.md",
+  "sha256": "ebd2a7176ae1bc4984a914d0ea7a8dd050073344e89734773998270cc859d17d",
+  "bytes": 14097,
+  "full_owner_read": true,
+  "verdict": "REVISE",
+  "coverage": "Retainedfullspec/source; REVIEW01\u201303/28\u201333 statedfull; REVIEW04\u201327 prose middles explicitlyunread. Notfullscopevote.",
+  "corrections": [
+    "Actualdiff18files15added not19/14",
+    "Currentfilecitations770/774/803 are stale/wrong; usefirstresponse verifiedF1anchors620\u2013628/655\u2013676 andrealbackend287/661"
+  ],
+  "next": "Bounded8bodygroups04\u201311/12\u201319/20\u201327, normal30turns each onlymissingreading, thenconsolidatedfullvote",
+  "accepted": false
+}

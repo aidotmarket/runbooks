@@ -1,0 +1,154 @@
+REQUEST_CHANGES
+
+## 1. Findings
+
+### 1. MEDIUM — The unresolved `expected_binding` / strict-call discrepancy remains a live integration blocker
+
+- **Severity:** MEDIUM, blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:622` requires canonical checkout to pass a closed `expected_binding` value into `OrderService.mark_paid`.
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:626` states: “Canonical callers missing `expected_binding` refuse.”
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-CANONICAL-PI-BASE-CALLER-INVENTORY-S1712.json:17` records the two unreconciled strict assertions:
+    - `tests/test_webhook_audit.py:287`: `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")`
+    - `tests/test_webhook_audit.py:661`: `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_gate3")`
+  - The same inventory explicitly labels itself `BASE_CALLER_TEXT_INVENTORY_ONLY_NOT_FINAL_GATE` at `:19`; it is static evidence, not a substitute for a final caller gate.
+  - The retained target description at `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:227` describes `tests/test_webhook_audit.py` as “narrow dedup fixture compatibility,” while the later supersession at `:633` makes the 24-target canonical-PI amendment binding. I found no explicit reconciliation of those two exact assertions to the amended canonical-call contract.
+- **Observed versus expected:**
+  - Observed: the frozen design requires canonical callers to include `expected_binding`, but the retained strict test expectations still admit only the historical two-positional-argument call shape. The externally referenced “11-tuple-only” correction does not appear, in the frozen candidate, to repair those assertions.
+  - Expected: the integrated contract must either update both strict assertions to the complete explicit binding expectation, including the required `expected_binding`, or define an exact tested compatibility boundary. It must not leave selected mandatory tests in contradiction with the selected signature.
+- **Reproduction:** Static evidence only. No backend test was run.
+- **Impact:** Implementing the specified canonical call will fail these strict assertions or invite weakening/skipping them. That blocks the full regression/qualification contract even though it is a documentation/test-integration defect rather than a demonstrated production-money failure.
+- **Smallest required outcome:** Amend the frozen design/target matrix to name and repair both `tests/test_webhook_audit.py:287` and `:661`, and bind a final caller/call-expectation enumeration so no other exact `mark_paid` mock is missed.
+- **Verification criterion:** At the next frozen candidate, the two assertions expect the explicit canonical binding, legacy-only behavior remains separately covered through `expected_binding=None`, and a complete source/test enumeration reports no remaining strict two-argument canonical expectation. No skip, deselect, xfail, or relaxation may close this finding.
+
+This is the surviving owner-tracked DS F1. Owner tracking does not waive the rubric: HIGH/MEDIUM blocks.
+
+### 2. NIT — Fourth mode and metadata-writer boundary remain explicit; retain as a nonblocking caution
+
+- **Severity:** NIT, nonblocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:839` adds a named fourth internal mode, `agent_attempt_completion`.
+  - `:843` makes `expected_agent_attempt_id` and `expected_agent_attempt_revision` explicit mode-only scalar inputs.
+  - `:845` defines the provider metadata as a closed set: exact transaction/order/API-key UUIDs and `buyer_type='agent'`, with no arbitrary provider payload or caller override.
+- **Observed versus expected:**
+  - Observed: the fourth mode and metadata fields are explicit and closed.
+  - Expected: they must remain named and separately reviewed; they must not become an implicit carrier, new authority table, or additional unreviewed public signature.
+- **Reproduction:** Static evidence only.
+- **Impact:** Traceability and future-scope control only.
+- **Smallest required outcome:** Retain the closed fourth-mode/metadata definition exactly; any carrier, table, or signature expansion requires a fresh review.
+- **Verification criterion:** A future diff contains no unnamed metadata carrier, implicit mode selection, new authority table, or extra API signature beyond those explicitly accepted in the frozen text.
+
+### 3. NIT — Historical “11-tuple” terminology differs from the current artifact’s authoritative 12-field description
+
+- **Severity:** NIT, nonblocking.
+- **Evidence:**
+  - Current `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:622` enumerates the binding fields.
+  - `:843` explicitly calls the current value the “exact12-field value.”
+  - The review request refers to the unresolved external DS F1 using “11 tuple” terminology.
+- **Observed versus expected:**
+  - Observed: the current frozen text says 12 fields, while the external correction narrative uses the historical 11-tuple description.
+  - Expected: future corrections should reanchor to the current authoritative 12-field language. This terminology difference does not cure or alter DS F1: either formulation still requires the strict webhook-audit call expectations to be reconciled.
+- **Reproduction:** Static evidence only.
+- **Impact:** Attribution/traceability only.
+- **Smallest required outcome:** Reanchor the external correction to current line citations and the current 12-field definition.
+- **Verification criterion:** The fresh correction cites the current field enumeration and explicitly reconciles both strict assertions.
+
+No other surviving HIGH or MEDIUM was identified from the final five bodies or targeted consolidation.
+
+## 2. Coverage
+
+### Artifact identity and environment
+
+- Verified pinned checkout HEAD as:
+
+  `9645601d50c10a5fe42f38e7972b8c159dc69b04`
+
+- Verified branch:
+
+  `docs/seller-workspace-agent-attempt-s1712`
+
+- Verified tracked working tree reported clean, with no ahead/behind indication against its configured upstream.
+- Verified the supplied base→candidate range `e3b8b08813f1476910422c4233fee92360409cb7..9645601d50c10a5fe42f38e7972b8c159dc69b04` changes exactly 18 paths: 15 added files under `runbooks/evidence/workspace-agent-attempt-s1712/` and three modified docs—the specification, operator guide, and live-release guide. The measured diff is **+1771/−6**.
+- Verified the frozen reader SHA256:
+
+  `8c1d9a2830982aeed65d6da3d31bb71114c3abe8d76f0d3cb01bf5c71587dc44`
+
+  for:
+
+  `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/read-agent-attempt-review-chunk-s1712.py`
+
+- Read-only constraints were observed: no tests, migration, database, provider, credential, container, runtime, production, or state-mutating action was performed; no delegation was used.
+- The supplied manifest SHA `a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b` was not independently rehashed because the turn budget was exhausted after full body reading and targeted F1 verification. **UNVERIFIED**.
+- Process disclosure: the first identity/diff verification commands used plain `git` before the rtk-only requirement was applied; subsequent commands used `rtk proxy`. Those initial commands were read-only and their identity outputs were unambiguous. One attempted Python heredoc also failed because the read-only environment could not create its shell temporary file; it changed nothing. Later helper execution succeeded.
+- `git` emitted harmless `confstr()` warnings about the Darwin temporary-directory path; those warnings did not affect SHA, branch, status, or diff output.
+
+### Personally read in full
+
+All five required historical bodies were consumed completely through the frozen helper, one chunk per tool output, with original preamble/body markers and end markers observed and no byte gaps:
+
+1. `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-22-cc-response-20260912-191524-175920.txt`  
+   Target `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9`  
+   SHA256 `cd339ad4c957bbfa76862a8309a04ad671d3d33ab179035147f60d045d33cbe2`  
+   15,207 bytes; intervals `0–7000`, `7000–14000`, `14000–15207`.
+
+2. `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-23-deepseek-response-20260912-191750-833374.txt`  
+   Target `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9`  
+   SHA256 `9ae77c162c424535ef472d3c8320c9fab138f294bae308715330017c56c61135`  
+   14,788 bytes; intervals `0–7000`, `7000–14000`, `14000–14788`.
+
+3. `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-24-cc-response-20260912-192808-747577.txt`  
+   Target `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9`  
+   SHA256 `798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1`  
+   31,926 bytes; intervals `0–7000`, `7000–14000`, `14000–21000`, `21000–28000`, `28000–31926`.
+
+4. `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-25-glm-response-20260912-191750-465420.txt`  
+   Target `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9`  
+   SHA256 `588d24d1055ed46442b863dacb3b3145a121496a7fd4c4573a032539d7461094`  
+   24,390 bytes; intervals `0–7000`, `7000–14000`, `14000–21000`, `21000–24390`.
+
+5. `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-26-deepseek-response-20260912-192617-104271.txt`  
+   Target `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9`  
+   SHA256 `462c73591d509e9fdb72666f80724459c5f6a5284098969f2631e712eace155b`  
+   19,570 bytes; intervals `0–7000`, `7000–14000`, `14000–19570`.
+
+Total: **105,881 bytes**, **18/18 chunks**, **no gap**.
+
+### Not re-read or not independently verified
+
+- Earlier bodies 01–08, 09–16, and 17–21 were not reread; the controller explicitly instructed not to reset already completed same-candidate coverage. Their completion is inherited from the supplied same-candidate ledger.
+- Bodies 27–33 and the full 876-line/source packet were not reread for the same reason.
+- The separately referenced non-frozen “31 correction” was not personally read in full. **UNVERIFIED**. It cannot close DS F1 merely by existing outside the frozen candidate.
+- Backend source, launchers, tests, migration behavior, provider behavior, environment execution, live AWS/R2 behavior, and the 1990-node regression were not executed or requalified.
+- Historical verdicts target earlier SHAs and do not carry into the current vote.
+
+## 3. Answers to the numbered questions
+
+1. **Did I personally consume all five complete and untruncated bodies with exact identities and intervals?**  
+   **Yes.** The exact paths, target SHA, whole-file SHA256, byte count, and contiguous byte interval for each body are listed in Coverage. There are no gaps.
+
+2. **Does any concrete HIGH/MEDIUM survive in the current full contract after integration?**  
+   **Yes.** One surviving MEDIUM: the unresolved `expected_binding` requirement versus the strict `test_webhook_audit.py:287` and `:661` call assertions. This is DS F1. Historical findings that were actually resolved are not reopened; this one is not resolved in the frozen candidate.
+
+3. **Does accumulated same-candidate reading now cover the full 876/source packet and all 33 bodies?**  
+   **Yes, according to the supplied accumulated same-candidate ledger:** 01–08, 09–16, 17–21, the full packet/source coverage, and 27–33 were already completed; this review personally closes 22–26. Therefore there is no true remaining gap in the defined 33-body/full-packet corpus. Runtime, provider, migration, live release, and other out-of-batch execution areas remain separate unexecuted gates, not newly missing reading.
+
+4. **Consolidated design verdict and findings?**  
+   **REQUEST_CHANGES.** The historical 22–26 AWN decisions concerned `55690c7a…` and do not carry forward. The current `9645601d…` whole contract remains blocked by DS F1: webhook-audit strict calls still conflict with the explicit canonical `expected_binding` contract. The external “11 tuple” wording is historical/imprecise against the current 12-field text, but that difference does not resolve the call mismatch. The fourth-mode/metadata-writer concern remains NIT-only and explicit. I found no basis to adopt an implicit carrier, new authority table, or additional unreviewed signature.
+
+5. **Are all implementation, source, environment, hold, cutover, and live release gates still unwaived?**  
+   **Yes.** Nothing in this review waives the 1990-node plus new/final-source qualification, final environment integration, genuine protected holds, production cutover, or live AWS S3/Cloudflare R2 proof. Current `9645601d…` remains unaccepted. The owner has authorized proceeding without CC for this production task, so CC neither blocks nor supplies approval; the forthcoming gate requires GLM and DeepSeek unanimity. This GLM review is a changes vote, so unanimity is not achieved. The non-frozen correction still requires fresh review and does not close DS F1.
+
+## SIMPLER
+
+The simplest concrete repair is a two-assertion/test-scope reconciliation: explicitly update the exact `test_webhook_audit.py:287` and `:661` expectations for the already-reviewed explicit `expected_binding` contract, preserving the legacy `expected_binding=None` case separately.
+
+It removes **zero** invariants, **zero** tables, **zero** migrations, and **zero** additional runtime signatures. It removes only the two stale two-argument call expectations and the resulting contradiction.
+
+## BETTER
+
+A materially better guard is a final build-time `mark_paid` caller-and-assertion enumeration gate: a read-only source inventory that finds every real caller and every strict mock assertion, then binds the resulting identities to tests for canonical binding, legacy `None`, and refusal on omission.
+
+- **Compared with the current approach:** it replaces a manually retained base inventory, explicitly labeled non-final, with a repeatable gate.
+- **Failure modes:** it can catch future caller and mock drift before qualification; its main residual failure is an unparsable/dynamic call shape, which must fail closed rather than be ignored.
+- **Cost:** one read-only enumeration check plus a small mapping fixture; no schema, provider, runtime route, or money-writer change.
+- **Rollback:** remove the gate independently; it does not alter application behavior.

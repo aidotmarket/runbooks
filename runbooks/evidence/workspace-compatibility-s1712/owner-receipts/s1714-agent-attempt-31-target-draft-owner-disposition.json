@@ -1,0 +1,22 @@
+{
+  "observed_at": "2026-09-12T19:54:43.807116+00:00",
+  "session": "S1714",
+  "owner_disposition": "Proposed31 scope accepted for preparation only; full changed spec/operator text read; no Gate acceptance or implementation dispatch",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "backend": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "drafts": [
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-candidate-draft-s1712/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md",
+      "bytes": 259625,
+      "sha256": "cfe7dd5edf7474fa9d1cc09c2c7cf0f3ee490682ea78ca00f22917f9837cbd51"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-candidate-draft-s1712/seller-workspace-operator-guide.md",
+      "bytes": 75858,
+      "sha256": "c4a0bdee2acdd2c5a4f322508977c8851435d07b4a0896c09532781d62f7b780"
+    }
+  ],
+  "verified_source": "Atomicity91lines; scheduled570\u2013656; refund duplicate1240\u20131266 and F73180\u20133230; static, not test execution",
+  "protected": "03d3f30acf854537edd76fdb19e1cf521b577c9a; both protected hashes unchanged",
+  "gate": "DeepSeek F1 unresolved frozen candidate; missing review coverage live"
+}

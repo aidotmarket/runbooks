@@ -1,0 +1,39 @@
+{
+  "session": "S1714",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "observed_utc": "2026-09-12T19:52Z",
+  "artifacts": [
+    {
+      "path": "/Users/max/council/cc/response-20260912-212609-273844.md",
+      "bytes": 25168,
+      "sha256": "77d1f69bf8238141f8481a69e370584421f0f67d15eff679d7ac225f064ab8dd",
+      "owner_full_read": true
+    },
+    {
+      "path": "/Users/max/council/deepseek/response-20260912-213939-513843.md",
+      "bytes": 14332,
+      "sha256": "eca57f1a51aa91d10aad7ebfe73673034c9f303df94c64215f7c65d9cd474818",
+      "owner_full_read": true
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-COMPATIBILITY-SUCCESSOR-DRAFT-S1712.md",
+      "bytes": 14151,
+      "sha256": "2a088ba1749f8a1734b7054fd72c1a0c51d9088a92b9185d772a0cf218e262f5",
+      "owner_full_read": true
+    }
+  ],
+  "decision": "NOT_ACCEPTED; DeepSeek F1 MEDIUM retained; CC and GLM partial-scope AWN not full votes",
+  "completed_coverage": "DeepSeek REVIEW04\u201311 full bodies owner read; no new blocker; prior12\u201327 missing",
+  "active_reviews": {
+    "cc": "/Users/max/council/cc/response-20260912-215136-338580.md",
+    "deepseek": "/Users/max/council/deepseek/response-20260912-215106-131871.md",
+    "glm": "/Users/max/council/glm/response-20260912-214253-341139.md"
+  },
+  "scope_disposition": "Proposed31 targets after verified obsolete atomicity fake; peer bus4745; no product edit or implementation acceptance",
+  "source_read": {
+    "tests/test_cleanup_stuck_agent_transactions_atomicity.py": "all91lines",
+    "app/tasks/scheduled.py": "570\u2013656",
+    "tests/test_refund_processing_protocol.py": "1240\u20131266"
+  },
+  "remaining": "CC retainedspec45\u2013624 then33history bodies; GLM01\u201308 then09\u201326 and explicit27\u201333/fullspec confirmation; DeepSeek12\u201319 then20\u201327. Fold all final findings into coherent successor; fresh full review before MP."
+}

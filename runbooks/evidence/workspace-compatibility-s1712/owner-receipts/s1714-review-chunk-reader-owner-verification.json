@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-12T20:03:44.205589+00:00",
+  "utility": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/read-agent-attempt-review-chunk-s1712.py",
+  "utility_sha256": "2e926758ea0de745228be34c0f89899ae8ac294757447a84bed78beca679c19d",
+  "owner_full_source_read": true,
+  "manifest_sha256": "a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b",
+  "files": 33,
+  "chunks": 130,
+  "bytes": 776622,
+  "all_contiguous_utf8_bounded_exact": true,
+  "reading_proof": false,
+  "limitation": "Utility verifies file against supplied manifest, not manifest authenticity or gitHEAD itself; owner independently pinned actual manifest SHA above. Does not establish model read or gate approval."
+}

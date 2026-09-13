@@ -1,0 +1,167 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+1. **NIT — the frozen candidate still lacks an explicit final-tree inventory of every `transactions.metadata` writer**
+
+   - **Severity:** NIT, non-blocking. This is retained from the owner-read prior review, not newly discovered in REVIEW-09 through REVIEW-16.
+   - **Evidence:** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:709` selects `transactions.metadata` as the durable agent-attempt store; `:713` requires unrelated keys to be preserved; `:755` and `:759` make the record load-bearing for webhook and stale-cleanup behavior. The caller/proof gate at `:645-647` inventories `mark_paid`, the binding helper, and completion entry points, but does not expressly classify every writer that replaces or rewrites the whole metadata object.
+   - **Observed vs expected:** Observed, the contract requires preservation but has no closed final-tree classification of all metadata writers. Expected, every writer is classified as non-destructive, attempt-aware/authorized, or refusing, with zero unclassified writers.
+   - **Reproduction:** Static evidence only. No implementation tree was tested.
+   - **Impact:** A whole-object JSONB replacement or malformed-string fallback could erase or obscure durable attempt authority. This is a qualification and durability traceability gap, not a demonstrated normal-path money defect.
+   - **Smallest required outcome:** Add one explicit metadata-writer classification requirement to the final caller/proof gate. No table, signature, or protocol redesign is required or attempted here.
+   - **Verification criterion:** On the frozen implementation tree, retained `rtk` search/output identifies every `transactions.metadata` writer with zero unclassified writers; metadata-mutating delivery, settlement, and test paths prove the attempt bytes and revision remain unchanged.
+
+2. **NIT — D4’s caller-classification vocabulary omits the fourth `agent_attempt_completion` mode by name**
+
+   - **Severity:** NIT, non-blocking. Also retained from the owner-read prior review.
+   - **Evidence:** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:647` defines only canonical `expected_binding`, strict direct/recovery, and independently proven no-Transaction legacy classifications. Later, `:837-843` defines `agent_attempt_completion` as a distinct fourth mode with durable-attempt correlation, no Session, provider evidence, and dedicated binding inputs; `:851` gives it a separate qualification matrix.
+   - **Observed vs expected:** Observed, a qualification runner following only D4 could treat the new agent handlers as unclassifiable or force them into a browser/direct/recovery category. Expected, D4 explicitly includes `agent_attempt_completion` and its exact durable-attempt/provider inputs.
+   - **Reproduction:** Static evidence only.
+   - **Impact:** Ambiguous qualification, not a demonstrated protocol hole; the later fourth-mode section substantially constrains behavior.
+   - **Smallest required outcome:** Add the fourth classification name and required inputs to D4’s closed vocabulary.
+   - **Verification criterion:** The full-tree inventory explicitly classifies the original agent response and both signed PI handlers as `agent_attempt_completion`, records their required durable inputs, and reports zero unclassified or unmigrated callers.
+
+No new HIGH or MEDIUM finding arose from the complete reading of REVIEW-09 through REVIEW-16. The two NITs remain against frozen candidate `9645601d`; an unaccepted correction draft outside this frozen candidate cannot be counted as resolving them without a later fresh review.
+
+## Coverage
+
+### Artifact and checkout identity
+
+- Pinned checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`.
+- Verified HEAD: `9645601d50c10a5fe42f38e7972b8c159dc69b04`.
+- Verified branch: `docs/seller-workspace-agent-attempt-s1712`.
+- Requested repository: `aidotmarket/runbooks`.
+- Requested base: `e3b8b08813f1476910422c4233fee92360409cb7`.
+- The supplied runnable diff reproduced the controller’s changed-file set: 15 added evidence files and 3 modified authored files, 18 paths total. No identity mismatch was found.
+- Full manifest SHA-256 was independently reproduced as  
+  `a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b`.
+- Every one of the eight assigned response entries matched the manifest in both byte count and SHA-256.
+
+All eight evidence files were physically last modified in the current history by evidence-import commit `06ec7af13269de9835d849adfe9552cc2a8d87b8`, but each body reviews its own earlier target generation. Those historical votes and target contracts are not carried forward to candidate `9645601d`.
+
+### Exact eight-file inventory and verbatim reading intervals
+
+Directory: `runbooks/evidence/workspace-canonical-pi-s1712/`. Intervals are Unicode character offsets, not byte offsets; byte counts are listed separately. SHA-256 values are full and uncompressed.
+
+| # | Exact filename | Historical target SHA | Bytes | Full SHA-256 | Full character reading intervals |
+|---:|---|---|---:|---|---|
+| 09 | `REVIEW-09-deepseek-response-20260912-152307-628770.txt` | `793e79153d9eac5c2d57536982d3f793b04d2c19` | 27,615 | `9fa58a459c3a24e007eccf3ea010d1fedf781b063cb2b5300c20e995aabf828b` | `[0,9000)`, `[9000,18000)`, `[18000,27279)` |
+| 10 | `REVIEW-10-deepseek-response-20260912-161148-113817.txt` | `87bc6d09b6551b2d0b0c381ffa8c78a4ba988658` | 28,847 | `5aac00b53787ec1faf1271eaae22b45808620ef838cbaa57aafde29c8d37e362` | `[0,9000)`, `[9000,18000)`, `[18000,28552)`, plus overlap reread `[21000,24000)` after output truncation |
+| 11 | `REVIEW-11-cc-response-20260912-161122-138835.txt` | `87bc6d09b6551b2d0b0c381ffa8c78a4ba988658` | 23,579 | `301da6aa37f5e054659480083977748da2f750ec5e22237ddbd4b3c6a7dd8adc` | `[0,9000)`, `[9000,18000)`, `[18000,23413)` |
+| 12 | `REVIEW-12-glm-response-20260912-161147-699100.txt` | `87bc6d09b6551b2d0b0c381ffa8c78a4ba988658` | 28,037 | `70310a1a8a319ed73a08696e82a04f5fa5b831b3bee4f249f9693bc08fa4e8a2` | `[0,9000)`, `[9000,18000)`, `[18000,27979)`, plus overlap reread `[21500,24000)` after output truncation |
+| 13 | `REVIEW-13-deepseek-response-20260912-163133-467416.txt` | `b444332af4ec86c4258ae62d7c0c1e12f3f2645d` | 23,924 | `c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a` | `[0,9000)`, `[9000,18000)`, `[18000,23739)` |
+| 14 | `REVIEW-14-glm-response-20260912-163133-049461.txt` | `b444332af4ec86c4258ae62d7c0c1e12f3f2645d` | 27,095 | `0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b` | `[0,9000)`, `[9000,18000)`, `[18000,27061)` |
+| 15 | `REVIEW-15-cc-response-20260912-163132-665734.txt` | `b444332af4ec86c4258ae62d7c0c1e12f3f2645d` | 21,592 | `037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea` | `[0,9000)`, `[9000,18000)`, `[18000,21434)` |
+| 16 | `REVIEW-16-cc-response-20260912-182113-146450.txt` | `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f` | 25,008 | `a06caa9db09d7b50f105970275cb02432a60b0b65caa64f3fea01e7fa9a3ddb2` | `[0,9000)`, `[9000,18000)`, `[18000,24825)` |
+
+Historical target-generation grouping:
+
+- REVIEW-09 targets `793e7915…` over base `0ec6bac7…`.
+- REVIEW-10, REVIEW-11, and REVIEW-12 target `87bc6d09…` over base `8f58ec24…`.
+- REVIEW-13, REVIEW-14, and REVIEW-15 target `b444332a…` over base `8f58ec24…`.
+- REVIEW-16 targets `c6bae734…` over base `56665b4e…`.
+
+### What was and was not reviewed
+
+Reviewed:
+
+- Every character of all eight assigned bodies, including findings, coverage, answers, repeated citations, appendices, and SIMPLER/BETTER sections.
+- Exact byte counts, SHA-256 values, and manifest equality for those eight files.
+- Target generation stated inside each body.
+- Targeted current-contract passages needed to determine whether historical obligations or counterexamples remain unresolved at `9645601d`.
+- The two retained prior NIT passages from the owner-read response `REVIEW-40-glm-response-20260912-214253-341139.txt`; I did not repeat its full specification/source/identity/launcher audit.
+
+Not reviewed or repeated:
+
+- REVIEW-17 through REVIEW-26 remain unread in this batch and are listed exactly below.
+- No product source, backend source, environment source, launcher, runtime, migration, database, provider, credential, container, or test execution audit was repeated.
+- No historical review body outside the assigned eight was substituted for direct reading.
+- Historical CI conclusions, cryptographic owner/bus provenance, provider behavior, runtime image state, live release evidence, and all execution gates remain **UNVERIFIED** here.
+- This is not a whole-history acceptance and carries no historical vote forward.
+
+## Answers to the numbered deliverables
+
+### 1. Exact eight-file completion
+
+Completed. The table above gives exact filename, historical target SHA, bytes, full SHA-256, and every character interval read. There are no unread intervals in any of the eight assigned files.
+
+The only two output truncations occurred in the final chunks of REVIEW-10 and REVIEW-12. Precise overlapping intervals were reread as recorded above. Manifest and current-spec grep output truncations did not reduce assigned-file reading because the relevant intervals were reissued directly.
+
+### 2. New unresolved obligations and counterexamples against the current contract
+
+**New counterexamples: none found in REVIEW-09 through REVIEW-16.** Their material historical findings are either explicitly folded into the current contract or explicitly superseded.
+
+Historical findings and their current disposition:
+
+- **REVIEW-09 L1, pre-registration refund ordering:** now explicit at current `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:140` and `:142`; suppression is terminal, registration cannot be manufactured, and the incident cannot silently close. The anomaly test remains an execution obligation.
+- **REVIEW-09 L2, extra-order recovery exit:** current `:136`, `:142`, and `:269` require retained evidence, original registered-refund convergence where applicable, owner reconciliation/archival correction, and no automatic closure escape. The two-session PostgreSQL and incident tests remain open.
+- **REVIEW-09 L3, avoid creating money state:** current `:136` and `:250` retain existing-row locking and explicitly require missing-money-state refusal without auto-creation.
+- **REVIEW-09 L4, “MCP-only checkout”:** superseded by later source-verified HTTP/canonical checkout findings. Current `:114` and `:118` correctly distinguish canonical routing from the legacy synthetic guard.
+- **REVIEW-10 M1, sibling teardown path:** current `:146` applies the shared four-UUID refusal to both `SurgicalResetService.reset` and `TeardownService.teardown`; `:148` preserves the actual HTTP/status carriers. Current `:306` explicitly declines to count the historical CC approval that missed the sibling path.
+- **REVIEW-10 L1 / incident merging:** current `:142` separates extra-order convergence from terminal unregistered-refund escalation.
+- **REVIEW-11 non-W webhook isolation, signature ambiguity, and ListingVersion binding:** current `:116`, `:140`, `:166`, and `:250` retain cheap non-W rejection, zero optional-W lookup/exception requirements, the peer-shaped W signature, and explicit ListingVersion disambiguation.
+- **REVIEW-11 permanent reset-loss documentation:** current `:146` and `:304` document permanent refusal of the four identities and require separately reviewed archival reconciliation for future change.
+- **REVIEW-12 M1, synthetic checkout arming plus destructive route import:** current `:114`, `:116`, `:118`, and `:146` explicitly bind the three runtime settings, preserve default canonical routing, test both route states, and guard both destructive services.
+- **REVIEW-12 NIT, owner/runtime immutability:** current `:126` enumerates every immutable owner/runtime preimage and hash column and permits only the named lifecycle columns to change.
+- **REVIEW-13/14/15 armed-monitor and flag-effect residuals:** current `:342` retains exact true/empty-array settings, expects and attributes the missing-`E2E_ARMED_AT` P1, and inventories checkout branching, router registration, harness bypass, and monitor on upgrade. Execution remains open.
+- **REVIEW-15 W-disjunct ordering:** current `:334` retains that both S1681 predicates precede W, while `:116` and `:250` retain the actual zero-optional-W invariant rather than relying only on source order.
+- **REVIEW-16 canonical-default/no-override proof:** current `:118`, `:328`, and `:366` require proving `ENABLE_CANONICAL_TX` is absent from overrides and resolves to true; the historical false-403 node remains retained as failed evidence.
+- **REVIEW-16 mixed-synthetic canonical bypass:** current `:118` explicitly exercises both canonical mixed-synthetic directions and retains actual responses/effects as a release dependency; no production exclusion is assumed.
+- **REVIEW-16 adjacent forged-N/W classification:** current `:362` and the later protected discovery-tuple section retain both obligations: a forged fixed-actor lookalike must remain zero-optional-W/200, while a genuinely registered W charge must not be silently discarded when a later binding drifts.
+
+Therefore the remaining items are qualification/runtime obligations, not textual counterexamples against `9645601d`.
+
+The existing DSF1 assertion/scope conflict remains owner-tracked. I did not adjudicate it here, did not redesign the assertion convention, table, or signature, and make no implementation claim. A coherent correction outside the frozen candidate still awaits a later fresh review.
+
+### 3. Retained prior NITs and no artifact edits
+
+Retained unchanged:
+
+1. Explicit final-tree `transactions.metadata` writer inventory.
+2. Explicit fourth `agent_attempt_completion` classification in D4.
+
+No repository, evidence, manifest, spec, output, or other artifact was modified. Language observed in an external compatibility draft is not treated as accepted and does not amend frozen candidate `9645601d`.
+
+### 4. Exact remaining REVIEW-17 through REVIEW-26 coverage
+
+All remaining files are under `runbooks/evidence/workspace-canonical-pi-s1712/`:
+
+1. `REVIEW-17-glm-response-20260912-182113-898552.txt`
+2. `REVIEW-18-deepseek-response-20260912-182113-550910.txt`
+3. `REVIEW-19-cc-response-20260912-184755-548538.txt`
+4. `REVIEW-20-glm-response-20260912-184756-332575.txt`
+5. `REVIEW-21-deepseek-response-20260912-184755-944151.txt`
+6. `REVIEW-22-cc-response-20260912-191524-175920.txt`
+7. `REVIEW-23-deepseek-response-20260912-191750-833374.txt`
+8. `REVIEW-24-cc-response-20260912-192808-747577.txt`
+9. `REVIEW-25-glm-response-20260912-191750-465420.txt`
+10. `REVIEW-26-deepseek-response-20260912-192617-104271.txt`
+
+This batch completes only REVIEW-09 through REVIEW-16. It is not a whole-history vote and does not close the remaining coverage.
+
+### 5. Actual limits, turn count, and unread intervals
+
+- Controller-style rounds used: **29 of 30**.
+- Top-level `rtk`-prefixed shell invocations: **46**.
+- Assigned-file chunk reads: 24 primary bounded chunks plus 2 precise truncation-repair rereads.
+- Unread intervals in assigned files: **none**.
+- Tests, migrations, database operations, providers, credentials, containers, runtime actions, protected-window operations, and mutations: **none run**.
+- Network/GitHub verification: none; CI claims remain **UNVERIFIED**.
+- Process note: the metadata helper was launched as `rtk python3 …`, but it internally invoked read-only `git log` through Python subprocess rather than adding a second outer `rtk` prefix. All top-level shell commands were `rtk`-prefixed and no mutation occurred.
+- One overly broad recursive grep produced oversized truncated output and was cancelled; it was not used as a substitute for assigned-file reading. A later narrowly bounded read confirmed the two retained NIT passages.
+- This verdict approves only completion of this bounded history-coverage batch. It does not approve implementation, runtime, release, owner-window issuance, or the current candidate as a whole.
+
+## SIMPLER
+
+None found for the assigned requirement. I considered removing:
+
+- REVIEW-11’s embedded controller preamble and repeated boilerplate; rejected because “complete text” requires verbatim reading.
+- Repeated historical citations and overlapping coverage paragraphs; rejected because repeated context records target-generation evolution and prevents losing superseded obligations.
+- Historical contradictory approvals or rejected alternatives; rejected because they are load-bearing evidence for why the current contract guards both cleanup services, rejects broad DB triggers/guard reordering, and separates incident classes.
+
+Any such removal would save text or rounds but would violate the complete-reading and integration requirements without improving safety.
+
+## BETTER
+
+None found within the frozen read-only scope. The two retained NITs need only explicit classification language in the final proof gate; replacing the JSONB attempt store, redesigning the mode signature/table, or adding a new database anchor would be a broader protocol change, not a justified correction from this history batch.

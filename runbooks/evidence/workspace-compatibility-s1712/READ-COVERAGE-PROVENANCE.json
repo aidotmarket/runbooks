@@ -1,0 +1,2155 @@
+{
+  "status": "PREPARATION_COMPLETE_PRIOR_COVERAGE_NOT_NEW_CANDIDATE_APPROVAL",
+  "parent": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "required_reviewers": [
+    "glm",
+    "deepseek"
+  ],
+  "cc": "USER-WAIVED not approved",
+  "fresh_judgment_required": true,
+  "old_votes_carried": false,
+  "hashes_are_not_reading_proof": true,
+  "unchanged_history": [
+    {
+      "sequence": 1,
+      "original_path": "/Users/max/council/cc/response-20260912-034649-557713.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-01-cc-response-20260912-034649-557713.txt",
+      "sha256": "1a8b15b8790923fa5a0c60d6358ac3f20dee2a7101cebe03d140b33450bc5645",
+      "bytes": 17860,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-01-cc-response-20260912-034649-557713.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 2,
+      "original_path": "/Users/max/council/glm/response-20260912-033915-462639.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-02-glm-response-20260912-033915-462639.txt",
+      "sha256": "012fead06f9a1953f49ccf18863b3c7b32cb163574ae903ceaaf6de2353745d6",
+      "bytes": 23268,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-02-glm-response-20260912-033915-462639.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 3,
+      "original_path": "/Users/max/council/deepseek/response-20260912-033915-765541.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-03-deepseek-response-20260912-033915-765541.txt",
+      "sha256": "aad035c8a9f6f2bf3a5ad42bf841f41932ee11d2000d4bf4d0069459c208b7c0",
+      "bytes": 22313,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-03-deepseek-response-20260912-033915-765541.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 4,
+      "original_path": "/Users/max/council/cc/response-20260912-142637-351776.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-04-cc-response-20260912-142637-351776.txt",
+      "sha256": "4040e355ceb372f9356a67c5177cac78cabe07af4b10c57a65390c13c228b6ee",
+      "bytes": 26353,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-04-cc-response-20260912-142637-351776.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 5,
+      "original_path": "/Users/max/council/glm/response-20260912-142648-929521.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-05-glm-response-20260912-142648-929521.txt",
+      "sha256": "1b8a19a7100b1714e32ae3e852d6d1edf7b86526a7c45555df6dfc424b153e58",
+      "bytes": 30115,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-05-glm-response-20260912-142648-929521.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 6,
+      "original_path": "/Users/max/council/deepseek/response-20260912-142649-391642.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-06-deepseek-response-20260912-142649-391642.txt",
+      "sha256": "b3b8d7b21b1c57ae2d49c5f3cad51e4250c62cd5ed589384edaf2ad8a52a65ee",
+      "bytes": 29823,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-06-deepseek-response-20260912-142649-391642.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 7,
+      "original_path": "/Users/max/council/cc/response-20260912-152306-947339.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-07-cc-response-20260912-152306-947339.txt",
+      "sha256": "469d976eca912cb460a70f30fb1271f15a0e18f90d0f5eb98ad6e6eaa522a864",
+      "bytes": 28440,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-07-cc-response-20260912-152306-947339.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 8,
+      "original_path": "/Users/max/council/glm/response-20260912-152307-326373.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-08-glm-response-20260912-152307-326373.txt",
+      "sha256": "8c5365317097cce0ac28d9f6f03b64ccab6f27b5e43b145cc8320588ee5b3d04",
+      "bytes": 24078,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-08-glm-response-20260912-152307-326373.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 9,
+      "original_path": "/Users/max/council/deepseek/response-20260912-152307-628770.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-09-deepseek-response-20260912-152307-628770.txt",
+      "sha256": "9fa58a459c3a24e007eccf3ea010d1fedf781b063cb2b5300c20e995aabf828b",
+      "bytes": 27615,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-09-deepseek-response-20260912-152307-628770.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 10,
+      "original_path": "/Users/max/council/deepseek/response-20260912-161148-113817.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-10-deepseek-response-20260912-161148-113817.txt",
+      "sha256": "5aac00b53787ec1faf1271eaae22b45808620ef838cbaa57aafde29c8d37e362",
+      "bytes": 28847,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-10-deepseek-response-20260912-161148-113817.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 11,
+      "original_path": "/Users/max/council/cc/response-20260912-161122-138835.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-11-cc-response-20260912-161122-138835.txt",
+      "sha256": "301da6aa37f5e054659480083977748da2f750ec5e22237ddbd4b3c6a7dd8adc",
+      "bytes": 23579,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-11-cc-response-20260912-161122-138835.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 12,
+      "original_path": "/Users/max/council/glm/response-20260912-161147-699100.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-12-glm-response-20260912-161147-699100.txt",
+      "sha256": "70310a1a8a319ed73a08696e82a04f5fa5b831b3bee4f249f9693bc08fa4e8a2",
+      "bytes": 28037,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-12-glm-response-20260912-161147-699100.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 13,
+      "original_path": "/Users/max/council/deepseek/response-20260912-163133-467416.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-13-deepseek-response-20260912-163133-467416.txt",
+      "sha256": "c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a",
+      "bytes": 23924,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-13-deepseek-response-20260912-163133-467416.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 14,
+      "original_path": "/Users/max/council/glm/response-20260912-163133-049461.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-14-glm-response-20260912-163133-049461.txt",
+      "sha256": "0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b",
+      "bytes": 27095,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-14-glm-response-20260912-163133-049461.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 15,
+      "original_path": "/Users/max/council/cc/response-20260912-163132-665734.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-15-cc-response-20260912-163132-665734.txt",
+      "sha256": "037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea",
+      "bytes": 21592,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-15-cc-response-20260912-163132-665734.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 16,
+      "original_path": "/Users/max/council/cc/response-20260912-182113-146450.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-16-cc-response-20260912-182113-146450.txt",
+      "sha256": "a06caa9db09d7b50f105970275cb02432a60b0b65caa64f3fea01e7fa9a3ddb2",
+      "bytes": 25008,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-16-cc-response-20260912-182113-146450.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 17,
+      "original_path": "/Users/max/council/glm/response-20260912-182113-898552.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-17-glm-response-20260912-182113-898552.txt",
+      "sha256": "5dfd7b233bf0e49fecf0856d4e793c81d09fee22abe51689cdfa08ea8b2d880b",
+      "bytes": 18103,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-17-glm-response-20260912-182113-898552.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 18,
+      "original_path": "/Users/max/council/deepseek/response-20260912-182113-550910.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-18-deepseek-response-20260912-182113-550910.txt",
+      "sha256": "74d5dc6b8dd4d516edeb4dfa70aed4fa3055264ddde611307cfbe8a460eb45c0",
+      "bytes": 23384,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-18-deepseek-response-20260912-182113-550910.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 19,
+      "original_path": "/Users/max/council/cc/response-20260912-184755-548538.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-19-cc-response-20260912-184755-548538.txt",
+      "sha256": "777be6d94e48aede4778701a8ce1d781e44dcc956fd0d513f1dcfc3ebda29676",
+      "bytes": 21615,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-19-cc-response-20260912-184755-548538.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 20,
+      "original_path": "/Users/max/council/glm/response-20260912-184756-332575.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-20-glm-response-20260912-184756-332575.txt",
+      "sha256": "c895670d4b9b338d8da711a7523779de06a3369984bce3670d6324c50542ae3b",
+      "bytes": 19619,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-20-glm-response-20260912-184756-332575.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 21,
+      "original_path": "/Users/max/council/deepseek/response-20260912-184755-944151.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-21-deepseek-response-20260912-184755-944151.txt",
+      "sha256": "a2fc9742da9ded257d6402755153e6e85b31f76288050e86d7ecc928e2e89bd5",
+      "bytes": 27993,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-21-deepseek-response-20260912-184755-944151.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 22,
+      "original_path": "/Users/max/council/cc/response-20260912-191524-175920.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-22-cc-response-20260912-191524-175920.txt",
+      "sha256": "cd339ad4c957bbfa76862a8309a04ad671d3d33ab179035147f60d045d33cbe2",
+      "bytes": 15207,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-22-cc-response-20260912-191524-175920.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 23,
+      "original_path": "/Users/max/council/deepseek/response-20260912-191750-833374.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-23-deepseek-response-20260912-191750-833374.txt",
+      "sha256": "9ae77c162c424535ef472d3c8320c9fab138f294bae308715330017c56c61135",
+      "bytes": 14788,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-23-deepseek-response-20260912-191750-833374.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 24,
+      "original_path": "/Users/max/council/cc/response-20260912-192808-747577.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-24-cc-response-20260912-192808-747577.txt",
+      "sha256": "798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1",
+      "bytes": 31926,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-24-cc-response-20260912-192808-747577.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 25,
+      "original_path": "/Users/max/council/glm/response-20260912-191750-465420.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-25-glm-response-20260912-191750-465420.txt",
+      "sha256": "588d24d1055ed46442b863dacb3b3145a121496a7fd4c4573a032539d7461094",
+      "bytes": 24390,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-25-glm-response-20260912-191750-465420.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 26,
+      "original_path": "/Users/max/council/deepseek/response-20260912-192617-104271.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-26-deepseek-response-20260912-192617-104271.txt",
+      "sha256": "462c73591d509e9fdb72666f80724459c5f6a5284098969f2631e712eace155b",
+      "bytes": 19570,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-26-deepseek-response-20260912-192617-104271.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 27,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-27-cc-response-20260912-204046-397140.txt",
+      "original_path": "/Users/max/council/cc/response-20260912-204046-397140.md",
+      "sha256": "a973ba9cc47cc41303a597b51c11896469b7b3b0bb3516fe1267c5bc69e69bff",
+      "bytes": 21898,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-27-cc-response-20260912-204046-397140.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 28,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-28-glm-response-20260912-204045-531244.txt",
+      "original_path": "/Users/max/council/glm/response-20260912-204045-531244.md",
+      "sha256": "aabe967e57bb7104ad5ff9a6474029110bc2dce8f72268be3811f349dab2e874",
+      "bytes": 13521,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-28-glm-response-20260912-204045-531244.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 29,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-29-deepseek-response-20260912-204045-957744.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-204045-957744.md",
+      "sha256": "92a588d292a052d5fe888d052c8b7190a9099de22220fdec3ff9fec043898f22",
+      "bytes": 14437,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-29-deepseek-response-20260912-204045-957744.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 30,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-30-deepseek-response-20260912-204506-597833.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-204506-597833.md",
+      "sha256": "65834b43dade0b44b7071b55928b95b87dfdadb25e86c1c8d6eaec01ef59913a",
+      "bytes": 25711,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-30-deepseek-response-20260912-204506-597833.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 31,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-31-deepseek-response-20260912-205028-323589.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-205028-323589.md",
+      "sha256": "4cbe7d4ca051071d68f3c4b8c214863a04e08ccf4655242fe1e27cb828fd4f75",
+      "bytes": 26268,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-31-deepseek-response-20260912-205028-323589.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 32,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-32-glm-response-20260912-205453-683019.txt",
+      "original_path": "/Users/max/council/glm/response-20260912-205453-683019.md",
+      "sha256": "c40322922e623a6987aa962309042a2b60c9a80e3e774874fe0b6cbdf706d329",
+      "bytes": 14952,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-32-glm-response-20260912-205453-683019.txt",
+      "unchanged_from_parent": true
+    },
+    {
+      "sequence": 33,
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-33-cc-response-20260912-205848-528601.txt",
+      "original_path": "/Users/max/council/cc/response-20260912-205848-528601.md",
+      "sha256": "0fa8daffc7d41ebb04c603e1ba913b97a111f8be0736535466356a0ff724aa05",
+      "bytes": 35293,
+      "full_s1712_read": true,
+      "source": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712/runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-33-cc-response-20260912-205848-528601.txt",
+      "unchanged_from_parent": true
+    }
+  ],
+  "new_history": [
+    {
+      "sequence": 34,
+      "member": "cc",
+      "source": "/Users/max/council/cc/response-20260912-212609-273844.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-34-cc-response-20260912-212609-273844.txt",
+      "bytes": 25168,
+      "sha256": "77d1f69bf8238141f8481a69e370584421f0f67d15eff679d7ac225f064ab8dd",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false
+    },
+    {
+      "sequence": 35,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-212609-666347.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-35-deepseek-response-20260912-212609-666347.txt",
+      "bytes": 23769,
+      "sha256": "2a5e2755a9228684d8f8634faf2a680609dbd63f0071ca4704f6a6cd5dd45f0e",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false
+    },
+    {
+      "sequence": 36,
+      "member": "glm",
+      "source": "/Users/max/council/glm/response-20260912-212610-077478.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-36-glm-response-20260912-212610-077478.txt",
+      "bytes": 15794,
+      "sha256": "dcedca8b78997ce3dda2df896f5cfac1ef11f0b38d5ddba61ca3da2a88c08804",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false
+    },
+    {
+      "sequence": 37,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-213353-838309.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-37-deepseek-response-20260912-213353-838309.txt",
+      "bytes": 14097,
+      "sha256": "ebd2a7176ae1bc4984a914d0ea7a8dd050073344e89734773998270cc859d17d",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false
+    },
+    {
+      "sequence": 38,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-213939-513843.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-38-deepseek-response-20260912-213939-513843.txt",
+      "bytes": 14332,
+      "sha256": "eca57f1a51aa91d10aad7ebfe73673034c9f303df94c64215f7c65d9cd474818",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false
+    },
+    {
+      "sequence": 39,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-215106-131871.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-39-deepseek-response-20260912-215106-131871.txt",
+      "bytes": 22070,
+      "sha256": "d046bba5a2e33c237952b8d2814be5117963b8931de71f813c648d772ab85d75",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false,
+      "highest_artifact_finding": "HIGH same retained F1",
+      "coverage_limit": "12\u201319 repeated appendix text not fully reread;20\u201327 pending",
+      "record_errors": "Claims prior213939 response absent despite preserved14332byte file; mixed dispatch/artifact findings."
+    },
+    {
+      "sequence": 40,
+      "member": "glm",
+      "source": "/Users/max/council/glm/response-20260912-214253-341139.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-40-glm-response-20260912-214253-341139.txt",
+      "bytes": 20970,
+      "sha256": "9446385b963b7eed39f4aebadcd1d231bf1403c7663aa9303bcff2e517bf75c1",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false,
+      "verdict": "APPROVE_WITH_NITS",
+      "coverage": "01\u201308 now full; full876spec and27\u201333 confirmed from retained launcher;09\u201326 still pending",
+      "process_limit": "Reviewer disclosed about60toolturns vs nominal30; no override authorized."
+    },
+    {
+      "sequence": 41,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-215526-865775.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-41-deepseek-response-20260912-215526-865775.txt",
+      "bytes": 19817,
+      "sha256": "e52a8a581bd3e9fe8740457cffa80327b0b34dd958516411a4db304554507044",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false,
+      "verdict": "REVISE",
+      "artifact_finding": "same retained expected_binding F1",
+      "dispatch_findings_separate": true,
+      "coverage": "20\u201323/25\u201327 complete reported;24 fragment within28\u2013120 missing;12\u201319 unclosed",
+      "correction": "prior213939 existence confirmed; original absence claim retracted"
+    },
+    {
+      "sequence": 42,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-220112-899456.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-42-deepseek-response-20260912-220112-899456.txt",
+      "bytes": 12216,
+      "sha256": "706fd5ab9a88c75b4f2235e25e12e6c47b08ee521f3e24ed3d0e84e353a3301d",
+      "full_response_read_by_s1712": true,
+      "whole_scope_approval": false,
+      "verdict": "REVISE",
+      "coverage": "12\u201315 and24 complete via18observed-sentinel character chunks; remaining16\u201319",
+      "finding_precision": "Current restatement conflates alreadyauthorizedintegrationdouble with originalwebhook_audit287/661; preserveoriginalspecificF1, no new signature/advisory adopted."
+    },
+    {
+      "sequence": 43,
+      "member": "deepseek",
+      "source": "/Users/max/council/deepseek/response-20260912-220544-760714.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-43-deepseek-response-20260912-220544-760714.txt",
+      "bytes": 18077,
+      "sha256": "72e8fe3443b250593a83931beb2bd1995b16d411b2843d7ad9a44eb163026c2e",
+      "full_response_read_by_s1712": true,
+      "verdict": "REVISE",
+      "highest_artifact_finding": "MEDIUM",
+      "coverage": "Complete accumulated876spec/source+all33bodyreadings; no missing text intervals. Helperhash drift and index/count nits separately retained.",
+      "whole_spec_history_reading_complete": true,
+      "design_accepted": false
+    },
+    {
+      "sequence": 44,
+      "member": "cc",
+      "source": "/Users/max/council/cc/response-20260912-215136-338580.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-44-cc-response-20260912-215136-338580.txt",
+      "bytes": 17551,
+      "sha256": "10ac1bc57ab3b98ab9c8dc5fe0ab3090d4e4ca38e1926bab88887019814bb9ee",
+      "full_response_read_by_s1712": true,
+      "verdict": "REVISE",
+      "highest_artifact_finding": "MEDIUM",
+      "coverage": "Full876spec nowfresh; confirms exactwebhook_auditF1;all33historybodiespending.",
+      "whole_spec_history_reading_complete": false,
+      "design_accepted": false
+    },
+    {
+      "sequence": 45,
+      "member": "glm",
+      "source": "/Users/max/council/glm/response-20260912-215808-388612.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-45-glm-response-20260912-215808-388612.txt",
+      "bytes": 17372,
+      "sha256": "d5aa8c3563ea6485418dd4624ffef2b460e6791bc998e7cc7c465b751a322741",
+      "full_response_read_by_s1712": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "highest_artifact_finding": "NIT",
+      "coverage": "09\u201316full;17\u201326remaining; originalfullspec+01\u201308+27\u201333retained.",
+      "whole_spec_history_reading_complete": false,
+      "design_accepted": false
+    },
+    {
+      "sequence": 46,
+      "member": "glm",
+      "source": "/Users/max/council/glm/response-20260912-220859-003357.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-46-glm-response-20260912-220859-003357.txt",
+      "bytes": 15415,
+      "sha256": "f40b67e1fb09cf111257b1a189dc15006ca48546529ebe9f6ce0c68e821149c2",
+      "full_response_read_by_s1712": true,
+      "verdict": "APPROVE_WITH_NITS",
+      "coverage": "17\u201321 complete, 18 chunks, 110714 bytes. Accumulated 01\u201321 and27\u201333 complete;22\u201326 pending. No new HIGH/MEDIUM; two retained NITs; existing F1 owner-tracked.",
+      "whole_spec_history_reading_complete": false,
+      "design_accepted": false
+    },
+    {
+      "sequence": 47,
+      "member": "glm",
+      "source": "/Users/max/council/glm/response-20260912-222137-175754.md",
+      "retained_path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-47-glm-response-20260912-222137-175754.txt",
+      "bytes": 15377,
+      "sha256": "69470792e9424c9fa1fc20c02b0dbd70beb8a1ac4271824c82a42f0a81a8b33e",
+      "full_response_read_by_s1712": true,
+      "verdict": "REQUEST_CHANGES",
+      "highest_artifact_finding": "MEDIUM same F1",
+      "coverage": "22\u201326 complete, 18 chunks,105881 bytes; accumulated full876/source and all33 history complete",
+      "whole_spec_history_reading_complete": true,
+      "design_accepted": false,
+      "precision_disposition": "Eleven dedup mock tuples are distinct from exact12 expected_binding fields. Source-backed node09 is legacy explicitNone, node20 canonical12; no field count change."
+    }
+  ],
+  "prior_reading_chains": {
+    "deepseek": {
+      "responses": [
+        35,
+        37,
+        38,
+        39,
+        41,
+        42,
+        43
+      ],
+      "consolidated": 43,
+      "complete_unchanged_history": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "remaining_history_intervals": [],
+      "caveats": "Earlier extraction-only and repeated-appendix gaps corrected in43; all intermediate bodies retained."
+    },
+    "glm": {
+      "responses": [
+        36,
+        40,
+        45,
+        46,
+        47
+      ],
+      "consolidated": 47,
+      "complete_unchanged_history": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "remaining_history_intervals": [],
+      "caveats": "47 relies on accumulated same-candidate ledger for prior batches; each full raw chain is supplied."
+    }
+  },
+  "source_context": [
+    {
+      "kind": "backend",
+      "path": "backend/e2e/account_pool.json",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/e2e/account_pool.json",
+      "bytes": 2432,
+      "sha256": "4b8f136ffdd99da142467ad3f96997bd3115048d4b28de35ac0b00a70c7a11dc",
+      "git_blob": "c9951d384902dae3e9b5eaebf742909fdf34af3a",
+      "chunk_byte_intervals": [
+        [
+          0,
+          2432
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/e2e/workspace_fixture_protection.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/e2e/workspace_fixture_protection.py",
+      "bytes": 683,
+      "sha256": "5c7ca35511da12c0d91aab507f26089aedf5c757ade1804912c9692ef2fbb234",
+      "git_blob": "43407d89f8a0885494ebfb4648a4b37cc1288f6b",
+      "chunk_byte_intervals": [
+        [
+          0,
+          683
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/e2e/surgical_reset.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/e2e/surgical_reset.py",
+      "bytes": 13038,
+      "sha256": "9d9c741ae0c303ed702da0551b409e19295809adb1e58fc2807b9100634a706b",
+      "git_blob": "fbcc458bed0fabd68e6e4e567180d073ee971425",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          13038
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/e2e/teardown.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/e2e/teardown.py",
+      "bytes": 30514,
+      "sha256": "fbbb02f52e7deed86cb57bb5caf0835ebb060889fcedba508f5a53f7a2d20769",
+      "git_blob": "46e630b5b36d0aa9ebf3fccab5bdf2110a9ea6f3",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          30514
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/api/v1/endpoints/webhooks.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/endpoints/webhooks.py",
+      "bytes": 89695,
+      "sha256": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde",
+      "git_blob": "9f270d4e0876a6c1a574f4003ccaefde1667ae87",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          70000
+        ],
+        [
+          70000,
+          77000
+        ],
+        [
+          77000,
+          84000
+        ],
+        [
+          84000,
+          89695
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/workspace_refund_test_admission.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/workspace_refund_test_admission.py",
+      "bytes": 51863,
+      "sha256": "2e84f8c1a051e0282234add1ae92d05bf648951ef2db9d21a8e51344c8ae0f00",
+      "git_blob": "822a73166151296b87bbd306ef3bbd0f1509ad4b",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          51863
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/workspace_test_authority.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/workspace_test_authority.py",
+      "bytes": 5616,
+      "sha256": "4768365224ed725b91b78b430063f8963f65c6adc453e7d82308f031f63beb83",
+      "git_blob": "9b9c0803299dad23d3dcb196fe7d7e05b228dc9d",
+      "chunk_byte_intervals": [
+        [
+          0,
+          5616
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/__init__.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/__init__.py",
+      "bytes": 15133,
+      "sha256": "2d677e30f198d560c90cef68c06749e570b6ca4d515e23abdfebb2dd123829e3",
+      "git_blob": "41123328335c6e09b4e5c68d2c3805e3db1ab24c",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          15133
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/alembic/versions/20260912_002_workspace_test_authority.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/versions/20260912_002_workspace_test_authority.py",
+      "bytes": 11171,
+      "sha256": "4964cc69b75f11c167a9e50f4a49dbeb2b8a64e8d976de34240ae842ee5300c4",
+      "git_blob": "8cca7ff1f5c51f2509c1464049e8318107606d26",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          11171
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_workspace_test_refund_admission.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_workspace_test_refund_admission.py",
+      "bytes": 91390,
+      "sha256": "8ad5969c794f995620671f03a3ed47547eac3df1ad1b11b31ee5d3fd586ea43a",
+      "git_blob": "7ed6fd82982e21f94b8ea24a8b1c620683b59498",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          70000
+        ],
+        [
+          70000,
+          77000
+        ],
+        [
+          77000,
+          84000
+        ],
+        [
+          84000,
+          91000
+        ],
+        [
+          91000,
+          91390
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_workspace_test_authority.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_workspace_test_authority.py",
+      "bytes": 12158,
+      "sha256": "1f21a4ba5a865801152ac30f558b71fff54068c0e0e625e87883b26c529015e8",
+      "git_blob": "9415386fc3ebfcbef6794dbfb124476456b08e64",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          12158
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_e2e_surgical_reset.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_e2e_surgical_reset.py",
+      "bytes": 21095,
+      "sha256": "f48b34b1b82a113462ba2d78110ea2664122873d96cb25b7a2d173267fe74938",
+      "git_blob": "cb46797d73caac6c54af61838dddaafa7447f541",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          21095
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_e2e_teardown_t2.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_e2e_teardown_t2.py",
+      "bytes": 32069,
+      "sha256": "4748e5d127512c4b690a189469ccfaa8b1ed3849303b9011b0364b0e9d5139c1",
+      "git_blob": "488aea30aa983b12fd984960345e8548e770335f",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          32069
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_e2e_teardown_t2_real_pg.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_e2e_teardown_t2_real_pg.py",
+      "bytes": 48111,
+      "sha256": "1856ad24c007ada2c2986aaece68b7777f47c89837d7fe6448741a560d898fd9",
+      "git_blob": "cc8073b7098be095842fcf7abc03b15b07a6ed4d",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          48111
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_webhook_audit.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_webhook_audit.py",
+      "bytes": 26336,
+      "sha256": "3a3fb5a5cc7f3b428d209df6c9dd097939cd5c239ced7695e323a138b40a06b3",
+      "git_blob": "005304a6e08f4afd69b95ba0f9c777dfbe2ee066",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          26336
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_e2e_stripe_isolation.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_e2e_stripe_isolation.py",
+      "bytes": 14964,
+      "sha256": "894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d",
+      "git_blob": "24038141f5aacb780c0a6a75058f19ca3728d691",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          14964
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_webhooks.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_webhooks.py",
+      "bytes": 67148,
+      "sha256": "f918cd1d72677c5ed5b3b535fa4c6625394a3470683dd9d9f6c27b094d228787",
+      "git_blob": "c29f8e3b4337bf18743498fa8ece6ceaf0ecf51d",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          67148
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/order_money_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/order_money_service.py",
+      "bytes": 26843,
+      "sha256": "03d52fb58a7fe52ed6ba95eeab44fb7741d71afc7dce6febff0759a5f2a3e521",
+      "git_blob": "3542b7e5e9420e5783df5632ed04745d8ec6dec5",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          26843
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/order_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/order_service.py",
+      "bytes": 80257,
+      "sha256": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f",
+      "git_blob": "a6e333f4f6830f3dfe0a312f747ac82f899ddee9",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          70000
+        ],
+        [
+          70000,
+          77000
+        ],
+        [
+          77000,
+          80257
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/transaction_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/transaction_service.py",
+      "bytes": 54156,
+      "sha256": "245f6aae5bf1826318296bc16262e903dcbf2b8955c72df80228a26da35c1761",
+      "git_blob": "a7137531fd65da4cf0f47277d12838818194989d",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          54156
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/billing_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/billing_service.py",
+      "bytes": 48927,
+      "sha256": "ebf9a07aa5f0042b237bdae906ef254f5c5d1c87d6916f39491e37383bc82eaa",
+      "git_blob": "0323e56c9cf59b44ac57c2af92c4e00d15bacfce",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          48927
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_order_money_protocol.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_order_money_protocol.py",
+      "bytes": 41295,
+      "sha256": "b7fbc8e28072cbd70fa3e648e1a9199f28affc6ac334251b8b95696ba6aefc46",
+      "git_blob": "f3b3264cdeafa84f87f12c80ea29c6e964687de1",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          41295
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_refund_webhook_protocol.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_refund_webhook_protocol.py",
+      "bytes": 22852,
+      "sha256": "59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077",
+      "git_blob": "477dca32cab5babbc6941db821632da97a4c92de",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          22852
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/notification_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/notification_service.py",
+      "bytes": 8573,
+      "sha256": "6d4b8db930b69a4a6c3c50e2739ca5991893678cb1b8495c95c23f8cf4214e3f",
+      "git_blob": "afcf1934a3b293be1007724f0ed8ceb2c2af3259",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          8573
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/core/database.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/core/database.py",
+      "bytes": 4007,
+      "sha256": "45dd56c3de3f30ca7a06b38a6bd068cf47e855ae92ca6efe9601476243fd4b0d",
+      "git_blob": "0144a4c7653e5a8a68ab4505f5aeb813650dc5df",
+      "chunk_byte_intervals": [
+        [
+          0,
+          4007
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/api/v1/endpoints/checkout.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/endpoints/checkout.py",
+      "bytes": 19124,
+      "sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf",
+      "git_blob": "af3e53e6ab1d00b1c7edf2bf1cf527e53f3870bd",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          19124
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/integration/test_webhook_canonical_payment.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/integration/test_webhook_canonical_payment.py",
+      "bytes": 17227,
+      "sha256": "635d91761cf1b3c2a1144d1a1084106a6e31543916b13b86ad734f211c04c66c",
+      "git_blob": "907a773eed13536b96fc56f9a3ae799878e4dbc4",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          17227
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_notification_events.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_notification_events.py",
+      "bytes": 19988,
+      "sha256": "4353393e89e1b7d2f2cce7cede7c5158132f93276553e6fa826fff2900a554fb",
+      "git_blob": "2dd1757a9b331528707ecede2ae46f2fb289f847",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          19988
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_s1097_order_fulfillment_scoping.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_s1097_order_fulfillment_scoping.py",
+      "bytes": 9908,
+      "sha256": "7947bdaf88669f9b80547fd1054248391388488ee750d7109c2caafbe2945c59",
+      "git_blob": "00eb42482a8e15bfd6ae9507947ea7c3da0b5c7d",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          9908
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/integration/conftest.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/integration/conftest.py",
+      "bytes": 18054,
+      "sha256": "ee32d440e06366b02fc69b58260d38f53886c3f03728b9f2d9a153162cd2d1e4",
+      "git_blob": "d0f9e1e87ae0cdfcd3e2f7bca77595db2549a194",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          18054
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/order.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/order.py",
+      "bytes": 9894,
+      "sha256": "35ae1a928bdb2f0a2958333bbed7b600dc55a83a14832cb4f42e8a1388b99696",
+      "git_blob": "bcb21a6e513247d1771adbbe124a484f557c01fb",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          9894
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/transaction.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/transaction.py",
+      "bytes": 8200,
+      "sha256": "8798a75c69e25fe49aa3302b3f9393296ca4deca50ff4f18e0003995c83d8b85",
+      "git_blob": "73268e16bb036dceb36fc21e9c2834e31d1b6c42",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          8200
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/finance.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/finance.py",
+      "bytes": 30186,
+      "sha256": "b5b9c613310b89533b7910e3b6742ef4284a01b95dea2a2b0acdf8b444cb02c8",
+      "git_blob": "5d123a26c40c09d8c2ac39d6985509bc8bfd282f",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          30186
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/agent_auth_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/agent_auth_service.py",
+      "bytes": 8752,
+      "sha256": "013ca5a86e12701eaf7eee02c27d726c9bb47f20638df384664e1a863eb3432e",
+      "git_blob": "de8409109f8deb35340c413eb0a600d632501da9",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          8752
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/mcp_tools.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/mcp_tools.py",
+      "bytes": 24616,
+      "sha256": "d9d5286b6f5695577bdf0a476ed4b4ad90f73b4989f2fad191b245c785ca4dcd",
+      "git_blob": "bc0316757b9caeff7365bc4c97390cf1f8d28e06",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          24616
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/tasks/scheduled.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/tasks/scheduled.py",
+      "bytes": 27642,
+      "sha256": "1e40b2c2290ee20da11f4f59e58e3e2de200332f418ec935bb909e18a7caeaeb",
+      "git_blob": "616d7a1e61c4c410bd7d703348a9dcf1816e500c",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          27642
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": false,
+      "actual_reading_required": false,
+      "reading_rule": "Integrate unchanged source; verify same-reviewer prior coverage, read any actual missing interval"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_agent_tx.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_agent_tx.py",
+      "bytes": 12655,
+      "sha256": "af89393f94d65ace80e0e2df94ef2c5e3820121930a046db2be38218b2cae20e",
+      "git_blob": "5f0a888f4d621df722d9bf12b37045826269aa0b",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          12655
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_bq_biz_agent_beta_m2.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_bq_biz_agent_beta_m2.py",
+      "bytes": 20307,
+      "sha256": "9ddf640d8234234f4e69c6faeceead0420269012f7275e4913f2a90c1019c08c",
+      "git_blob": "927fdd1db36a1abf93a17df18f3e8bbfbdb932fd",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          20307
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_refund_processing_protocol.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_refund_processing_protocol.py",
+      "bytes": 211711,
+      "sha256": "7e5a871fb2a165fe9280a1fd7f810a7a47477a5d1947eafa121c55604aa4cad4",
+      "git_blob": "9a9ca18138e4f8056a4a4b8f08855304969be442",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          70000
+        ],
+        [
+          70000,
+          77000
+        ],
+        [
+          77000,
+          84000
+        ],
+        [
+          84000,
+          91000
+        ],
+        [
+          91000,
+          98000
+        ],
+        [
+          98000,
+          105000
+        ],
+        [
+          105000,
+          112000
+        ],
+        [
+          112000,
+          119000
+        ],
+        [
+          119000,
+          126000
+        ],
+        [
+          126000,
+          133000
+        ],
+        [
+          133000,
+          140000
+        ],
+        [
+          140000,
+          147000
+        ],
+        [
+          147000,
+          154000
+        ],
+        [
+          154000,
+          161000
+        ],
+        [
+          161000,
+          168000
+        ],
+        [
+          168000,
+          175000
+        ],
+        [
+          175000,
+          182000
+        ],
+        [
+          182000,
+          189000
+        ],
+        [
+          189000,
+          196000
+        ],
+        [
+          196000,
+          203000
+        ],
+        [
+          203000,
+          210000
+        ],
+        [
+          210000,
+          211711
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_cleanup_stuck_agent_transactions_atomicity.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_cleanup_stuck_agent_transactions_atomicity.py",
+      "bytes": 2916,
+      "sha256": "ea6a4fb87e9185bf56923ae5e58248c40d877d878b3350f6faab966e5c2fa4b8",
+      "git_blob": "75095feab9330568c9a96d0a9b83929d1ac95f83",
+      "chunk_byte_intervals": [
+        [
+          0,
+          2916
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/tests/test_seller_post_listing_setup_gate.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_seller_post_listing_setup_gate.py",
+      "bytes": 22086,
+      "sha256": "862161ff29a0dca8eddde022acc5e5d2a9e057e568224b9d1f02217b54539641",
+      "git_blob": "429d23c020c1fa2652eab10c63143a842a42aca7",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          22086
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/delivery_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/delivery_service.py",
+      "bytes": 65205,
+      "sha256": "df5f9142a32689e069f74b4b31ea8173edc02cbd037b37855a9644e7cd3db6eb",
+      "git_blob": "682075aa27f603e174ca8aef73018bd201371809",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          42000
+        ],
+        [
+          42000,
+          49000
+        ],
+        [
+          49000,
+          56000
+        ],
+        [
+          56000,
+          63000
+        ],
+        [
+          63000,
+          65205
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/refund_processing_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/refund_processing_service.py",
+      "bytes": 38153,
+      "sha256": "75d2f8296c3bceac46d0501200a8bd8495bac9a2aea76f60d3d5132472b3bfc7",
+      "git_blob": "76ba1fb12180dfbb8a03db91b7478d042b501b9a",
+      "chunk_byte_intervals": [
+        [
+          0,
+          7000
+        ],
+        [
+          7000,
+          14000
+        ],
+        [
+          14000,
+          21000
+        ],
+        [
+          21000,
+          28000
+        ],
+        [
+          28000,
+          35000
+        ],
+        [
+          35000,
+          38153
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/tasks/settlement_scheduler.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/tasks/settlement_scheduler.py",
+      "bytes": 2420,
+      "sha256": "55de9321210c5e406ae10d71bfd719f127d48ac2b4bc069cc3f254d2cd0323e2",
+      "git_blob": "baf4366c23ff8eb3705fd80a24c0893f51f934a8",
+      "chunk_byte_intervals": [
+        [
+          0,
+          2420
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/services/settlement_service.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/settlement_service.py",
+      "bytes": 3746,
+      "sha256": "8eec2b8e91bf1427e50a72dca8e26058a9f4240f9b40fe6e70fe02d9bf2fff25",
+      "git_blob": "0103c598e303d35af1e809b1144d7291eb0dbc1b",
+      "chunk_byte_intervals": [
+        [
+          0,
+          3746
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    },
+    {
+      "kind": "backend",
+      "path": "backend/app/models/agent_api_key.py",
+      "source": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/models/agent_api_key.py",
+      "bytes": 1637,
+      "sha256": "9c924944e28b748ef233422459d4acaf9f0b6895fc016d0daa8e7f38c4dd7fa5",
+      "git_blob": "665b005b250b20ed3e7c483c2fb70efb3fdd50de",
+      "chunk_byte_intervals": [
+        [
+          0,
+          1637
+        ]
+      ],
+      "model_reading_proven": false,
+      "new_to_packet": true,
+      "actual_reading_required": true,
+      "reading_rule": "Full new source body required"
+    }
+  ],
+  "new_candidate_reading": {
+    "full_final_spec": true,
+    "all_new_history_34_onward": true,
+    "all10_new_source_bodies": true,
+    "all_changed_authored_docs_and_owner_dispositions": true,
+    "all12_active_owner_questions": true,
+    "unchanged_material": "Use completed same-reviewer full-reading chain to integrate unchanged obligations; receipts never replace text reading when actual gaps exist. Record concrete missing intervals, not assumed completion. No repeated unchanged audits required."
+  },
+  "final_candidate_binding_pending": false,
+  "current_authority": {
+    "at": "2026-09-12T20:27:18.751631+00:00",
+    "user_text": "I am explicitlu authorizing you to continue without it",
+    "context": "Direct response to CC weekly quota blocker in S1712",
+    "owner_event": "e4c7e041-4eee-4217-8be5-6591157274ca",
+    "owner_receipt": "/Users/max/koskadeux-state/s1656/s1714-max-cc-waiver-current-production-authority.json",
+    "owner_receipt_sha256": "0db297cb9f454a854992fbd903a79cdaead5e4e56161725d1125270dacbf884b",
+    "scope": "Current S1714 ai.market production objective including Workspace; not global Council policy",
+    "cc_status": "USER-WAIVED, unavailable, not approved",
+    "required_reviewers": [
+      "glm",
+      "deepseek"
+    ],
+    "acceptance": "Agreement by GLM and DeepSeek approving the exact candidate is sufficient approval; no additional CC or user approval required",
+    "retained": "Existing CC findings, raw responses, terminal quota failure and incomplete history remain evidence",
+    "unchanged": "Sole Mars MP dispatch, full 1990+new qualification, source freeze, environment and combined review, genuine phases, cutover, enabled AWS S3 and Cloudflare R2 proof, cumulative USD100 cap",
+    "cc_retry_required": false,
+    "additional_user_text": "If GLM and Deepseek agree that is approval"
+  },
+  "candidate_binding": "This committed file is bound to the successor commit that contains it; request manifest supplies exact commit and spec SHA without self-referential hashes."
+}

@@ -1,0 +1,307 @@
+{
+  "votes_carried": false,
+  "responses": [
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-034649-557713.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-01-cc-response-20260912-034649-557713.txt",
+      "sha256": "1a8b15b8790923fa5a0c60d6358ac3f20dee2a7101cebe03d140b33450bc5645",
+      "bytes": 17860
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-033915-462639.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-02-glm-response-20260912-033915-462639.txt",
+      "sha256": "012fead06f9a1953f49ccf18863b3c7b32cb163574ae903ceaaf6de2353745d6",
+      "bytes": 23268
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-033915-765541.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-03-deepseek-response-20260912-033915-765541.txt",
+      "sha256": "aad035c8a9f6f2bf3a5ad42bf841f41932ee11d2000d4bf4d0069459c208b7c0",
+      "bytes": 22313
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-142637-351776.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-04-cc-response-20260912-142637-351776.txt",
+      "sha256": "4040e355ceb372f9356a67c5177cac78cabe07af4b10c57a65390c13c228b6ee",
+      "bytes": 26353
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-142648-929521.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-05-glm-response-20260912-142648-929521.txt",
+      "sha256": "1b8a19a7100b1714e32ae3e852d6d1edf7b86526a7c45555df6dfc424b153e58",
+      "bytes": 30115
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-142649-391642.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-06-deepseek-response-20260912-142649-391642.txt",
+      "sha256": "b3b8d7b21b1c57ae2d49c5f3cad51e4250c62cd5ed589384edaf2ad8a52a65ee",
+      "bytes": 29823
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-152306-947339.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-07-cc-response-20260912-152306-947339.txt",
+      "sha256": "469d976eca912cb460a70f30fb1271f15a0e18f90d0f5eb98ad6e6eaa522a864",
+      "bytes": 28440
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-152307-326373.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-08-glm-response-20260912-152307-326373.txt",
+      "sha256": "8c5365317097cce0ac28d9f6f03b64ccab6f27b5e43b145cc8320588ee5b3d04",
+      "bytes": 24078
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-152307-628770.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-09-deepseek-response-20260912-152307-628770.txt",
+      "sha256": "9fa58a459c3a24e007eccf3ea010d1fedf781b063cb2b5300c20e995aabf828b",
+      "bytes": 27615
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-161148-113817.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-10-deepseek-response-20260912-161148-113817.txt",
+      "sha256": "5aac00b53787ec1faf1271eaae22b45808620ef838cbaa57aafde29c8d37e362",
+      "bytes": 28847
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-161122-138835.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-11-cc-response-20260912-161122-138835.txt",
+      "sha256": "301da6aa37f5e054659480083977748da2f750ec5e22237ddbd4b3c6a7dd8adc",
+      "bytes": 23579
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-161147-699100.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-12-glm-response-20260912-161147-699100.txt",
+      "sha256": "70310a1a8a319ed73a08696e82a04f5fa5b831b3bee4f249f9693bc08fa4e8a2",
+      "bytes": 28037
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-163133-467416.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-13-deepseek-response-20260912-163133-467416.txt",
+      "sha256": "c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a",
+      "bytes": 23924
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-163133-049461.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-14-glm-response-20260912-163133-049461.txt",
+      "sha256": "0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b",
+      "bytes": 27095
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-163132-665734.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-15-cc-response-20260912-163132-665734.txt",
+      "sha256": "037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea",
+      "bytes": 21592
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-182113-146450.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-16-cc-response-20260912-182113-146450.txt",
+      "sha256": "a06caa9db09d7b50f105970275cb02432a60b0b65caa64f3fea01e7fa9a3ddb2",
+      "bytes": 25008
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-182113-898552.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-17-glm-response-20260912-182113-898552.txt",
+      "sha256": "5dfd7b233bf0e49fecf0856d4e793c81d09fee22abe51689cdfa08ea8b2d880b",
+      "bytes": 18103
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-182113-550910.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-18-deepseek-response-20260912-182113-550910.txt",
+      "sha256": "74d5dc6b8dd4d516edeb4dfa70aed4fa3055264ddde611307cfbe8a460eb45c0",
+      "bytes": 23384
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-184755-548538.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-19-cc-response-20260912-184755-548538.txt",
+      "sha256": "777be6d94e48aede4778701a8ce1d781e44dcc956fd0d513f1dcfc3ebda29676",
+      "bytes": 21615
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-184756-332575.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-20-glm-response-20260912-184756-332575.txt",
+      "sha256": "c895670d4b9b338d8da711a7523779de06a3369984bce3670d6324c50542ae3b",
+      "bytes": 19619
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-184755-944151.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-21-deepseek-response-20260912-184755-944151.txt",
+      "sha256": "a2fc9742da9ded257d6402755153e6e85b31f76288050e86d7ecc928e2e89bd5",
+      "bytes": 27993
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-191524-175920.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-22-cc-response-20260912-191524-175920.txt",
+      "sha256": "cd339ad4c957bbfa76862a8309a04ad671d3d33ab179035147f60d045d33cbe2",
+      "bytes": 15207
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-191750-833374.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-23-deepseek-response-20260912-191750-833374.txt",
+      "sha256": "9ae77c162c424535ef472d3c8320c9fab138f294bae308715330017c56c61135",
+      "bytes": 14788
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-192808-747577.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-24-cc-response-20260912-192808-747577.txt",
+      "sha256": "798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1",
+      "bytes": 31926
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-191750-465420.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-25-glm-response-20260912-191750-465420.txt",
+      "sha256": "588d24d1055ed46442b863dacb3b3145a121496a7fd4c4573a032539d7461094",
+      "bytes": 24390
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-192617-104271.md",
+      "path": "runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-26-deepseek-response-20260912-192617-104271.txt",
+      "sha256": "462c73591d509e9fdb72666f80724459c5f6a5284098969f2631e712eace155b",
+      "bytes": 19570
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-27-cc-response-20260912-204046-397140.txt",
+      "original_path": "/Users/max/council/cc/response-20260912-204046-397140.md",
+      "sha256": "a973ba9cc47cc41303a597b51c11896469b7b3b0bb3516fe1267c5bc69e69bff",
+      "bytes": 21898,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-28-glm-response-20260912-204045-531244.txt",
+      "original_path": "/Users/max/council/glm/response-20260912-204045-531244.md",
+      "sha256": "aabe967e57bb7104ad5ff9a6474029110bc2dce8f72268be3811f349dab2e874",
+      "bytes": 13521,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-29-deepseek-response-20260912-204045-957744.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-204045-957744.md",
+      "sha256": "92a588d292a052d5fe888d052c8b7190a9099de22220fdec3ff9fec043898f22",
+      "bytes": 14437,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-30-deepseek-response-20260912-204506-597833.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-204506-597833.md",
+      "sha256": "65834b43dade0b44b7071b55928b95b87dfdadb25e86c1c8d6eaec01ef59913a",
+      "bytes": 25711,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-31-deepseek-response-20260912-205028-323589.txt",
+      "original_path": "/Users/max/council/deepseek/response-20260912-205028-323589.md",
+      "sha256": "4cbe7d4ca051071d68f3c4b8c214863a04e08ccf4655242fe1e27cb828fd4f75",
+      "bytes": 26268,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-32-glm-response-20260912-205453-683019.txt",
+      "original_path": "/Users/max/council/glm/response-20260912-205453-683019.md",
+      "sha256": "c40322922e623a6987aa962309042a2b60c9a80e3e774874fe0b6cbdf706d329",
+      "bytes": 14952,
+      "full_s1712_read": true
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-33-cc-response-20260912-205848-528601.txt",
+      "original_path": "/Users/max/council/cc/response-20260912-205848-528601.md",
+      "sha256": "0fa8daffc7d41ebb04c603e1ba913b97a111f8be0736535466356a0ff724aa05",
+      "bytes": 35293,
+      "full_s1712_read": true
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-212609-273844.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-34-cc-response-20260912-212609-273844.txt",
+      "bytes": 25168,
+      "sha256": "77d1f69bf8238141f8481a69e370584421f0f67d15eff679d7ac225f064ab8dd"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-212609-666347.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-35-deepseek-response-20260912-212609-666347.txt",
+      "bytes": 23769,
+      "sha256": "2a5e2755a9228684d8f8634faf2a680609dbd63f0071ca4704f6a6cd5dd45f0e"
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-212610-077478.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-36-glm-response-20260912-212610-077478.txt",
+      "bytes": 15794,
+      "sha256": "dcedca8b78997ce3dda2df896f5cfac1ef11f0b38d5ddba61ca3da2a88c08804"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-213353-838309.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-37-deepseek-response-20260912-213353-838309.txt",
+      "bytes": 14097,
+      "sha256": "ebd2a7176ae1bc4984a914d0ea7a8dd050073344e89734773998270cc859d17d"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-213939-513843.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-38-deepseek-response-20260912-213939-513843.txt",
+      "bytes": 14332,
+      "sha256": "eca57f1a51aa91d10aad7ebfe73673034c9f303df94c64215f7c65d9cd474818"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-215106-131871.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-39-deepseek-response-20260912-215106-131871.txt",
+      "bytes": 22070,
+      "sha256": "d046bba5a2e33c237952b8d2814be5117963b8931de71f813c648d772ab85d75"
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-214253-341139.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-40-glm-response-20260912-214253-341139.txt",
+      "bytes": 20970,
+      "sha256": "9446385b963b7eed39f4aebadcd1d231bf1403c7663aa9303bcff2e517bf75c1"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-215526-865775.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-41-deepseek-response-20260912-215526-865775.txt",
+      "bytes": 19817,
+      "sha256": "e52a8a581bd3e9fe8740457cffa80327b0b34dd958516411a4db304554507044"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-220112-899456.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-42-deepseek-response-20260912-220112-899456.txt",
+      "bytes": 12216,
+      "sha256": "706fd5ab9a88c75b4f2235e25e12e6c47b08ee521f3e24ed3d0e84e353a3301d"
+    },
+    {
+      "original_path": "/Users/max/council/deepseek/response-20260912-220544-760714.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-43-deepseek-response-20260912-220544-760714.txt",
+      "bytes": 18077,
+      "sha256": "72e8fe3443b250593a83931beb2bd1995b16d411b2843d7ad9a44eb163026c2e"
+    },
+    {
+      "original_path": "/Users/max/council/cc/response-20260912-215136-338580.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-44-cc-response-20260912-215136-338580.txt",
+      "bytes": 17551,
+      "sha256": "10ac1bc57ab3b98ab9c8dc5fe0ab3090d4e4ca38e1926bab88887019814bb9ee"
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-215808-388612.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-45-glm-response-20260912-215808-388612.txt",
+      "bytes": 17372,
+      "sha256": "d5aa8c3563ea6485418dd4624ffef2b460e6791bc998e7cc7c465b751a322741"
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-220859-003357.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-46-glm-response-20260912-220859-003357.txt",
+      "bytes": 15415,
+      "sha256": "f40b67e1fb09cf111257b1a189dc15006ca48546529ebe9f6ce0c68e821149c2"
+    },
+    {
+      "original_path": "/Users/max/council/glm/response-20260912-222137-175754.md",
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-47-glm-response-20260912-222137-175754.txt",
+      "bytes": 15377,
+      "sha256": "69470792e9424c9fa1fc20c02b0dbd70beb8a1ac4271824c82a42f0a81a8b33e"
+    }
+  ],
+  "prior_parent": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "required_reviewers": [
+    "glm",
+    "deepseek"
+  ],
+  "cc_status": "USER-WAIVED",
+  "transport_failure_not_review_body": "cc-221017-launcher.log",
+  "precision_dispositions": [
+    "Eleven dedup mock result sequences differ from the closed12-field expected_binding; no schema correction implied",
+    "Source fixture09/287 is genuine legacy and expects explicitNone after both reverse absences; fixture20/661 is canonical exact12",
+    "DeepSeek interim HIGH was consolidated to MEDIUM on the same F1; retain all raw history",
+    "GLM and DeepSeek completed prior876/source and33 historical bodies; fresh corrected candidate approval pending"
+  ]
+}

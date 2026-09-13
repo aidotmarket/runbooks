@@ -1,0 +1,11 @@
+{
+  "at": "2026-09-12T20:08:13.456638+00:00",
+  "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/read-agent-attempt-review-chunk-s1712.py",
+  "old_sha256": "2e926758ea0de745228be34c0f89899ae8ac294757447a84bed78beca679c19d",
+  "new_sha256": "8c1d9a2830982aeed65d6da3d31bb71114c3abe8d76f0d3cb01bf5c71587dc44",
+  "owner_full_source_read": true,
+  "exact_change": "Only constants and manifest hash/candidate checks added; output/chunk function unchanged. Reversing only those additions reproduces exact prior hash.",
+  "live_request_affected": "deepseek220544-760714 referenced prior utility hash; candidate/spec/historical body hashes unchanged",
+  "disposition": "No restart or live request mutation. Freeze current utility; future changes versioned filename. Await terminal reviewer and preserve any reported mismatch.",
+  "peer_alert": 4763
+}

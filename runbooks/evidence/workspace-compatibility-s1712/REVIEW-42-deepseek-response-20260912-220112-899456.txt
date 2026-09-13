@@ -1,0 +1,82 @@
+# Council Review — Reading Completion, `workspace-canonical-pi-s1712` batch (REVIEW-12, 13, 14, 15, 24)
+
+## 1. Verdict
+
+**REVISE**
+
+The reading deliverable is complete and clean, but the assessed artifact is unchanged (`9645601d…`, zero delta since the prior REVISE) and the retained blocking finding **F1** remains unresolved, with REVIEW-16–19 still unread. This batch cannot convert the history to approval. It closes the specific reading gaps it was scoped to close (12, 13, 14, 15, full 24) and nothing more.
+
+## 2. Findings (highest severity first)
+
+### F-1 — HIGH (retained, unresolved; unchanged since prior) — the two frozen `mark_paid` signature assertions still conflict and no candidate code reconciles them
+- **Evidence:** `aidotmarket/runbooks@9645601d:runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-AGENT-ATTEMPT-AND-CALLER-SUCCESSOR-PROPOSAL-S1712.txt:73` — “At817f the canonical integration module's mark_paid double153–159 accepts only two positional arguments and cannot receive expected_binding.” Against that, `…SELLER-WORKSPACE-CANONICAL-PI-MANDATE-DISPOSITION-DRAFT-S1712.txt:29,37` freezes the closed 12-field `expected_binding` as a required parameter. The only competing proposal is recorded advisably at `…REVIEW-29-deepseek-response-20260912-204045-957744.txt:64` (“removes … two public signature changes”). So one frozen assertion says the pinned double cannot accept `expected_binding`; another says it must; the advisory “fix” is a different signature.
+- **Observed:** two mutually incompatible frozen signature assertions on the same call path (`mark_paid`). **Expected:** a single reconciled signature in the frozen contract, with the pinned caller/double able to receive it, and no competing unfixed assertion.
+- **Reproduction:** static evidence only — I verified the runbooks-side locus. The backend `817f7331…` side is **UNVERIFIED** (the pinned backend context was explicitly excluded from this task, so I did not read it).
+- **Impact:** blocks dispatch/freeze of the agent-attempt contract; a builder cannot satisfy both assertions simultaneously.
+- **Smallest required outcome:** owner adopts the single retained correction (one `mark_paid` signature) in the frozen contract and removes/annotates the conflicting assertion.
+- **Verification criterion:** the frozen contract contains exactly one `mark_paid` signature and the pinned caller/double accepts that signature, with no surviving contrary assertion.
+
+### F-2 — MEDIUM — whole-history coverage is still incomplete: REVIEW-16, 17, 18, 19 remain unread
+- **Evidence:** the four files exist at `aidotmarket/runbooks@9645601d:runbooks/evidence/workspace-canonical-pi-s1712/REVIEW-16-cc-…182113-146450.txt` (25,008 B), `REVIEW-17-glm-…898552.txt` (18,103 B), `REVIEW-18-deepseek-…550910.txt` (23,384 B), `REVIEW-19-cc-…548538.txt` (21,615 B); hashes are indexed in `…/REVIEW-HISTORY.json`. They were not read in this batch.
+- **Observed:** the batch scope was declared as exactly five files (12, 13, 14, 15, 24). **Expected:** any “complete history” vote must have read 12–26 — and, per the delta lineage, the newer REVIEW-27–33 as well.
+- **Reproduction:** static evidence only.
+- **Impact:** a whole-history approval would be false; this batch cannot close it.
+- **Smallest required outcome:** read 16–19 (and note 20–23, 25, 26 status) before any whole-history claim.
+- **Verification criterion:** per-file receipts for 16–19 with independent hashes.
+
+### F-3 — NIT — path-only citation of the governing spec is ambiguous across candidate lineages
+- **Evidence:** the same path `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md` exists at, at least, `87bc6d09` (blob `6ac4cfac…`, 91,103 B — REVIEW-12:1), `b444332a` (blob `36e2a091…` — REVIEW-13/14/15), `55690c7a` (blob `ba30c2d1…`, 160,188 B — REVIEW-24:4), and the current `9645601d` (blob `ad9bef7b23052d755a5c983c34347b06982b7445`, 247,866 B, sha256 `8ee6f551…a77e1d`, versioned at `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:11`). Only the SHA disambiguates.
+- **Observed:** the historical bodies cite the shared filename; a reader can conflate versions. **Expected:** SHA-anchored citations for the spec in any packet that mixes lineages.
+- **Reproduction:** static (git `ls-tree`/`shasum` above).
+- **Impact:** misattribution risk only. **Smallest outcome:** require `repo@SHA:path` for the spec everywhere in the packet.
+
+### F-4 — NIT — the 964 delta’s added artifacts are a *different* directory from the five files this batch reads
+- **Evidence:** `git diff --name-status e3b8b088…9645601d` returns 15 additions under `runbooks/evidence/workspace-agent-attempt-s1712/` (REVIEW-27–33, `OWNER-QUESTIONS-DRAFT.txt`, `SELLER-WORKSPACE-AGENT-ATTEMPT-*`, `SELLER-WORKSPACE-CANONICAL-PI-*S1712.json`, `s1714-e3b8b088-cc-full-owner-read.json`) plus 3 modified docs. The five files I read live under `runbooks/evidence/workspace-canonical-pi-s1712/` and are **unchanged** between base and 964 (empty `git diff … -- runbooks/evidence/workspace-canonical-pi-s1712/`).
+- **Observed:** a brief describing “15 added historical-evidence artifacts” next to the five predecessors invites treating them as one set. **Expected:** the two evidence directories are named distinctly (they cover different subjects: W gate2 refund design vs. agent-attempt/caller successor).
+- **Reproduction:** static. **Impact:** attribution hygiene only.
+
+## 3. Coverage
+
+**Read (complete, untruncated):** all five files, 18 contiguous character slices ≤8,000 chars, each with an end sentinel that I observed present (no truncation):
+
+| file | chars | bytes | sha256 | intervals read |
+|---|---|---|---|---|
+| REVIEW-12-glm-…161147-699100.txt | 27,979 | 28,037 | `70310a1a8a319ed73a08696e82a04f5fa5b831b3bee4f249f9693bc08fa4e8a2` | 1-8000, 8001-16000, 16001-24000, 24001-27979 |
+| REVIEW-13-deepseek-…163133-467416.txt | 23,739 | 23,924 | `c4319813fc6b9dc9d646ead460313868220601d95f998dfc40a1b1d45763971a` | 1-8000, 8001-16000, 16001-23739 |
+| REVIEW-14-glm-…163133-049461.txt | 27,061 | 27,095 | `0e19ec0e128fd4093cec2891704e74bac84956ca66623e8cbbaeb9a952eaac2b` | 1-8000, 8001-16000, 16001-24000, 24001-27061 |
+| REVIEW-15-cc-…163132-665734.txt | 21,434 | 21,592 | `037b5f821847770b70582677cad29efbb11de7315adf4a1794cde699258995ea` | 1-8000, 8001-16000, 16001-21434 |
+| REVIEW-24-cc-…192808-747577.txt | 31,677 | 31,926 | `798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1` | 1-8000, 8001-16000, 16001-24000, 24001-31677 |
+
+Totals: 131,890 chars / 132,574 bytes (≈133 KB, matching the controller estimate); 18 slices (controller estimated ~17).
+
+**Independently verified:** checkout HEAD = `9645601d50c10a5fe42f38e7972b8c159dc69b04` (= requested candidate); base→candidate diff = exactly 18 files (15 A + 3 M); git blob SHAs at HEAD for all five; sha256/byte counts **match `REVIEW-HISTORY.json` exactly** for all five; 964 spec blob/size/sha256; the five files are byte-identical base→964; none of the five mentions `9645601`; concrete provisions in the 964 spec (below). I also read `REVIEW-HISTORY.json` (both slices) and the owner-read receipt at `/Users/max/koskadeux-state/s1656/s1714-agent-attempt-ds-batch2-build-draft-owner-read.json`.
+
+**Not read (out of this batch’s scope):** REVIEW-01–11, 16–23, 25, 26 (canonical-pi-s1712); REVIEW-27–33 (agent-attempt-s1712 delta); the 247,866-byte 964 spec body; per instruction, the pinned backend context `817f7331…` was **not** opened. UNVERIFIED: backend `817f` source, CI tuples, runtime.
+
+## 4. Answers to the numbered questions
+
+**1) Have all five complete bodies been personally read without truncation?**
+Yes. All five were read start-to-finish in 18 contiguous slices ≤8,000 chars, each slice terminated by an observed sentinel. Character intervals covered with no gap: 12 → 1–27,979; 13 → 1–23,739; 14 → 1–27,061; 15 → 1–21,434; 24 → 1–31,677. **No missing byte/text block**; byte-level identity confirmed separately by whole-file sha256 matching the retained index.
+
+**2) Do they expose any requirement not met by the current retained contract?**
+**No surviving concrete HIGH/MEDIUM.** The historical items are resolved or superseded, and I confirmed the load-bearing ones are present in the 964 spec text:
+- REVIEW-12 MEDIUM #1 (sibling `TeardownService` reachable under the arming flag) → closed in text: `specs/…GATE2.md:146` guards **both** `SurgicalResetService.reset` and `TeardownService.teardown` with the shared `is_protected_workspace_fixture`; `:315` and `:342` bind the arming/disposition.
+- REVIEW-13/14/15 LOW/NIT (`E2E_ARMED_AT` monitor, harness-bypass inventory, disjunct ordering) → `specs/…GATE2.md:315`, `:342` (arming recorded and attributed, harness-bypass helper inventoried) and `:313` (W disjunct explicitly appended **after** the unchanged S1681 disjuncts, cheap non-W rejection first).
+- REVIEW-24 L1/L2/N1/N2 are LOW/NIT (its own verdict says no HIGH/MEDIUM survives) and target `55690c7a`, a different candidate; whether 964’s rewritten body reproduces its exact NIT fixes is **UNVERIFIED** (spec body not re-audited) — non-blocking either way.
+- The **blocking** item on the current candidate is **not** from these five files: it is F1, from the 964-lineage agent-attempt evidence (see F-1). Historical HIGH/MEDIUMs here are historical **resolved** findings; I distinguish them from F1 explicitly.
+
+**3) Are historical target identities and current zero-delta identity separated?**
+Yes. The five files target their own SHAs — 12 → `87bc6d09…` (base `8f58ec24…`); 13/14/15 → `b444332a…`; 24 → `55690c7a…` (base `56665b4e…`) — and **none** mentions `9645601` (grep: none). They also sit in a different evidence directory from the 964 delta. The only separation hazard is the shared spec **path** (F-3). Misattribution does not occur in the artifacts themselves; vote use is safe only with SHA-anchored citations.
+
+**4) Does F1 remain unresolved and REVIEW-16–19 remain unread after this batch?**
+Yes, and this task **cannot** close F1. F1 is a 964-lineage backend-signature conflict (`mark_paid` double vs. the frozen `expected_binding` requirement; F-1), not something in the five historical bodies. The candidate is byte-identical to the prior assessed SHA (zero delta), so the prior REVISE stands. REVIEW-16, 17, 18, 19 were not read (F-2). Any claim of “whole history approved” would be false.
+
+**5) Can you return the exact five per-file receipts and remaining gaps without fabricating coverage?**
+Yes — the `Coverage` table above is the exact per-file receipt set (chars/bytes/sha256/intervals). Remaining gaps, named explicitly: **unread** = REVIEW-01–11, 16–23, 25, 26 (canonical-pi-s1712) and REVIEW-27–33 (agent-attempt-s1712, the 964 delta); **UNVERIFIED** = backend `817f`, CI tuples, all runtime. I fabricated no intervals; the owner-accepted 12–19 gap limitation is now partly repaid (12–15 done), with 16–19 still open.
+
+## SIMPLER / BETTER
+
+- **SIMPLER:** none found for the reading deliverable — it cannot be reduced below reading the bytes, and slicing by code-point was already the minimal faithful mechanism. For the *artifact*, the simplest correction that preserves every invariant is the **single reconciled `mark_paid` signature** (F-1) combined with the existing 964 provisions for the four-UUID guard and arming disposition; it removes the competing assertion (the advisory at REVIEW-29:64 — replacing the closed `expected_binding` type + keyword with a `checkout_data` extension — deletes one public type and two signature changes, and is the concrete candidate for that reconciliation). Advisory, not a mandate: no evidence of scope violation.
+- **BETTER:** none found that is materially better than finishing the reading and adopting the single signature. The alternative “choose the narrower synthetic-purchase flag” was already considered and declined in the 964 text; it does not address F1 and adds a production config change.
+
+*Read-only throughout; no file, repo, DB, provider, container, or runtime state was modified.*

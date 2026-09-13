@@ -1,0 +1,139 @@
+# FastAPI & Server
+fastapi==0.110.1
+uvicorn[standard]==0.27.0
+python-multipart>=0.0.9
+
+# Database
+sqlalchemy==2.0.25
+greenlet>=3.0.0  # explicit for Apple Silicon: SQLAlchemy 2.0.25 greenlet platform marker only covers aarch64 not arm64, so M-series macs skip the transitive install
+
+psycopg2-binary==2.9.11
+asyncpg==0.31.0
+aiosqlite>=0.19  # boot-critical: imported at module load by aim_node.models.job; declared in pyproject but was missing here, so cold Docker builds crashed with ModuleNotFoundError
+alembic==1.13.1
+
+# Redis
+redis==5.0.1
+
+# Authentication
+python-jose[cryptography]==3.3.0
+itsdangerous==2.2.0
+PyJWT[crypto]>=2.8.0  # Ed25519/EdDSA support for VZ publish trust tokens
+PyNaCl>=1.5.0
+passlib[bcrypt]==1.7.4
+# PINNED: bcrypt 4.0.1 required for passlib compatibility (fixes __about__ error)
+bcrypt==4.0.1
+
+# Stripe
+stripe>=15.3.0,<16.0.0
+
+# HTTP Client
+# python-telegram-bot requires <0.29; google-genai 2.22 requires >=0.28.1.
+httpx>=0.28.1,<0.29
+fastmcp>=0.3
+
+# Validation & Settings
+pydantic>=2.10,<3
+pydantic-settings>=2.5.2
+email-validator==2.1.0
+jsonschema>=4.21
+
+# Utils
+python-dateutil==2.8.2
+uuid6==2024.1.12
+bleach>=6.0.0
+psutil>=5.9
+click>=8.1
+sqlparse>=0.5.4,<0.6
+
+# Synthetic Data Generation (P1.4 - Synthetic Preview Service)
+faker>=22.0.0
+
+# Qdrant
+qdrant-client==1.7.3
+
+# LLM Abstraction (Phase 4.P - LLM Portability)
+# app/core/llm.py uses google-genai + anthropic directly
+
+# Claude API
+anthropic==0.49.0
+
+# Agentic Workflows (Phase 4.1 - Sales Agent)
+# LangGraph for multi-agent orchestration
+langgraph>=0.2.0
+langchain-core>=0.3.0
+
+# Background Tasks (Phase 3.H.3 - TD-010)
+# Celery for distributed task processing (replaces APScheduler)
+celery[redis]>=5.3.0
+# APScheduler kept for backwards compatibility during migration
+apscheduler>=3.10.0
+
+# Backup & Ops
+b2sdk>=2.5.0,<3.0.0
+google-cloud-storage>=2.14.0
+tenacity>=8.2.0
+
+# Document Processing (Phase 3.V.2)
+pypdf>=4.0.0
+python-docx>=1.1.0
+tiktoken>=0.5.0
+reportlab>=4.0.0
+
+# Google GenAI SDK (New - replaces deprecated google-generativeai)
+# Migration: 2026-01-26
+google-genai>=2.22.0,<3
+cryptography>=43
+pyotp>=2.9.0
+qrcode[pil]>=7.4.2
+
+# Gmail API (Phase 6.A)
+google-api-python-client>=2.100.0
+google-auth>=2.35.0
+google-auth-oauthlib>=1.2.0
+google-auth-httplib2>=0.2.0
+beautifulsoup4>=4.12.0
+
+# Google Cloud KMS (Phase 3.T Trust & Encryption)
+google-cloud-kms>=2.0.0
+pyyaml>=6.0
+
+# Telegram Bot (Phase 6.C - Draft Approval)
+python-telegram-bot>=21.0
+
+# Policy Engine JSON Logic (S51 - Content Validation)
+json-logic-qubit==0.9.1
+google-cloud-speech>=2.21.0
+# AgentField (S59 - Agent Infrastructure)
+agentfield>=0.1.0
+
+# MCP Remote Server (CRM MCP for Claude.ai connector)
+mcp>=1.8.0,<1.9
+
+# Hugging Face Integration (P3.4)
+# For dataset uploads and Hub API
+datasets>=2.16.0
+huggingface_hub>=0.20.0
+pandas>=2.0.0
+# AWS SDK (Phase 4.P - Enterprise LLM: Bedrock)
+boto3>=1.34.0
+aiofiles>=23.0.0
+
+# Unicode confusable detection (BQ-B2 Contact Stripping)
+confusable_homoglyphs>=3.0.0
+
+# Social-Media Ingestion (ST-2)
+# Twitter/X API client
+tweepy>=4.14
+# Reddit async API client
+asyncpraw>=7.7
+
+# OpenTelemetry (BQ-OBS — Grafana Cloud observability)
+opentelemetry-sdk~=1.39.1
+opentelemetry-exporter-otlp-proto-http~=1.39.1
+opentelemetry-instrumentation-fastapi~=0.60b1
+opentelemetry-instrumentation-httpx~=0.60b1
+opentelemetry-instrumentation-sqlalchemy~=0.60b1
+opentelemetry-instrumentation-redis~=0.60b1
+
+resend>=2.0.0
