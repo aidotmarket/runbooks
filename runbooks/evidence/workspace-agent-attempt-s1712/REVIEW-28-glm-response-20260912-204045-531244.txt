@@ -1,0 +1,115 @@
+1. APPROVE_WITH_NITS
+
+**Artifact identity note, reported first:** the controller did not provide an expected branch. I verified the pinned checkout instead:
+
+- `HEAD = e3b8b08813f1476910422c4233fee92360409cb7`, exactly matching the requested candidate.
+- Observed branch: `docs/seller-workspace-canonical-pi-s1712`, clean and tracking `origin/docs/seller-workspace-canonical-pi-s1712`.
+- Remote: `git@github.com:aidotmarket/runbooks.git`.
+- Candidate tree: `b2a848d0434c5319f256311cd3b4160cb11ca053`; base tree: `8c4d774477d741717a0bf39a475e34acbe0edd48`.
+- Exactly 74 files changed from `55690c7a1fb48c87849a387f7fef79d7008385a9`; the three authored/non-evidence paths are:
+  - `runbooks/seller-workspace-live-release.md`
+  - `runbooks/seller-workspace-operator-guide.md`
+  - `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`
+- Request packet SHA-256 verified as `e01727bab5939a87f9a520696399964a773f9898ab5d31b3918c821c58100d46`, 1,797,149 bytes.
+- Current specification SHA-256 verified as `5ad66b78bdb59ad2d66cb25e39c96599132c748f9715ec4527a23d3ff9fff4fa`, 188,441 bytes, 588 lines.
+- Owner-questions SHA-256 verified as `2c691ded1469099199908050dbd67fd018fa5e7723bf6e893c2d07003670196b`.
+- Owner-verification SHA-256 verified as `855e55a0aeb450e6066bc0d0c3e884d82ab21d4861b16b4a5adeb9e045637461`.
+- Immutable packet counts verified: current spec embedded once, 26 historical-response files embedded once, and 26 backend-source markers.
+- Full-range `git diff --check` reproduced exit 2 with exactly 7,693 retained trailing-whitespace findings. The three authored prose files pass `diff --check`; the findings are in retained raw evidence, not product/prose changes.
+
+This is **design approval only**. It is not implementation, qualification, runtime, protected-window, provider, or production acceptance.
+
+## 2. Findings
+
+**No HIGH or MEDIUM findings. Therefore there are no blocking findings.**
+
+1. **NIT — the closed `expected_binding` value names its fields but does not freeze their exact scalar representations.**
+   - Evidence: `aidotmarket/runbooks@e3b8b08813f1476910422c4233fee92360409cb7:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:584-586`.
+   - Observed: the specification says the value is “closed” and carries `order_id`, `transaction_id`, session IDs, PI, amount/currency, actor/listing IDs, and fee fields, and rejects missing/extra fields and mismatching types, but does not state whether UUID-valued fields cross the internal boundary as `UUID` objects or canonical lowercase strings, nor the precise string/nonnegative-integer constraints.
+   - Expected: a one-table exact schema for every field, including UUID representation, canonical string form, allowed nullability, amount bounds, and currency normalization.
+   - Reproduction: static evidence only.
+   - Impact: minor implementation/test divergence at an internal boundary; the design still requires exact keys, exact types, and locked-row equality.
+   - Smallest required outcome: add the exact type table before implementation dispatch.
+   - Verification criterion: the barrier tests mutate every field type and representation and prove refusal with no binding or finance effect.
+
+2. **NIT — the same continuation status is duplicated verbatim in two operator-facing runbooks.**
+   - Evidence:
+     - `aidotmarket/runbooks@e3b8b08813f1476910422c4233fee92360409cb7:runbooks/seller-workspace-operator-guide.md:396-402`
+     - `aidotmarket/runbooks@e3b8b08813f1476910422c4233fee92360409cb7:runbooks/seller-workspace-live-release.md:433-439`
+   - Observed: both files repeat the same MP248 status, cohort result, evidence location, and open-gate paragraph.
+   - Expected: one canonical status section and a short pointer from the secondary runbook, or an explicit statement of which document is authoritative for continuation status.
+   - Reproduction: static evidence only.
+   - Impact: future status updates can drift while both documents appear authoritative.
+   - Smallest required outcome: designate the specification/operator continuation section as authoritative and reduce the other duplicate to a linked summary.
+   - Verification criterion: a later status update changes only the authoritative section, and both user-facing paths resolve to the same candidate/result.
+
+## 3. Coverage
+
+Reviewed:
+
+- The exact runbooks checkout, HEAD, tree, remote, branch/status, 74-file base-to-candidate diff, and authored prose diffs.
+- The complete current 588-line specification, especially:
+  - retained Workspace authority, discovery, registration, closure, custody, release, and migration obligations;
+  - the complete canonical PI amendment at lines 487-588;
+  - direct-mode ownership, source freeze, fixture isolation, and final `expected_binding` clarification.
+- The immutable packet’s structure, hashes, current-spec embedding, 26 historical-response inventory, 26 backend-source inventory, authored diff, current primary evidence, and relevant raw evidence.
+- Backend source embedded at base `817f7331a07d07929a67198b28a82ed9b98baa56`, including the relevant sections of:
+  - `webhooks.py`
+  - `checkout.py`
+  - `order_service.py`
+  - `transaction_service.py`
+  - `billing_service.py`
+  - `order_money_service.py`
+  - `notification_service.py`
+  - `database.py`
+  - the W migration
+  - the three relevant test modules
+- Historical review outcomes and rejected approaches, including the prior nonacceptances and latest base-candidate design approvals. No prior vote was carried forward.
+- MP248 evidence:
+  - public producer trace;
+  - failed binding diagnostic;
+  - final Workspace and money XML/log manifests;
+  - prior 1,990-node inventory, two renamed checkout nodes, 44 setup errors, one capture failure, and four retained subscription failures;
+  - template-session diagnosis and owned cleanup/absence receipts.
+- Reproduced the full-range whitespace count and the clean authored-file check.
+
+Not run and not verified:
+
+- No product tests, database tests, migrations, provider calls, container operations, live tests, product edits, or runtime activation, as forbidden by the review request.
+- GitHub remote PR-head and two CI successes are owner-verification claims; network verification was not performed. **UNVERIFIED**, though the exact local candidate and owner-verification file hashes were verified.
+- No independent full backend repository was supplied. The packet’s relevant source and trace support the named producer paths, and native constraints provide database-wide enforcement, but the narrative claim that no writer exists anywhere else in the full backend tree remains **UNVERIFIED** outside the embedded source/caller-search evidence.
+- Repetitive full historical-response and raw-log bytes were structurally inventoried and reviewed at their load-bearing verdicts, findings, commands, outcomes, and relevant excerpts; I did not re-render every repetitive line of all 26 responses or the 5.7 MB builder log. Their exact retained files and hashes were verified.
+
+## 4. Answers to the eight numbered questions
+
+1. **Yes, as a design.** The final design moves PI binding into the lock-owning operation. Normal `_handle_checkout_completed` passes a closed `expected_binding` into independent async `OrderService.mark_paid`; that session owns Order→Transaction locks and commits binding plus paid transition together. The synthetic branch uses its existing synchronous owner. `TransactionService.handle_payment` must derive authority from persisted locked Order state, never from `tx_id` alone. Expected Session, transaction, actor/listing, amount, fee, currency, and PI facts are revalidated after locking. Evidence: specification lines 513-520, 556-567, and 582-588; embedded base source confirms the current unlocked validation/async-session boundary and current `mark_paid` lock order.
+
+2. **Yes, as a design.** Recovery is PI-first: resolve an existing Order by stored PI, read authoritative PI/Charge outside money locks, then lock event→Order→Transaction and run the narrow recovery before strict capture processing. It does not reopen completed-checkout dedup; refuses conflicting PI, asymmetric history, retained registration, Payment/refund/payout/authority, revocation, dispute, reconciliation, or settled/refunded states; preserves status and paid history; and binds Transaction PI plus capture atomically. The normal backup path is explicitly forbidden from creating `OrderMoneyState` to make recovery possible. Evidence: specification lines 513-520, 523-535, 539-545, and 573-580.
+
+3. **Yes, as a design.** Two nullable, nondeferrable native unique constraints enforce per-table non-NULL PI exclusivity for every database writer while allowing multiple unpaid NULLs. Duplicate preflight aborts rather than choosing a winner; named-object collision and repeat behavior are fail-closed; DDL is bounded, ordered, transactional, and rollback-safe; PG17 full/repeat ancestry, catalog facts, bounds, collision, rollback, and forward-only refusal are mandatory. Strict reverse-pair validation remains responsible for cross-table coherence. Evidence: specification lines 503-510 and 539-545.
+
+4. **Yes, as a design.** Same-PI different-Order and different-Transaction writers are arbitrated by the native constraints; the loser rolls back and cannot retain a one-sided binding. Same-pair different-event work serializes on Order→Transaction after each event lock. Agent provider creation receives no new binding/event/money lock beforehand; uniqueness applies when the returned PI is persisted. Cancellation, duplicate collision, timeout, deadlock, unique conflict, and uncertain commit are explicitly refusal/reconciliation states, not success. Provider reads remain outside event/money locks. Evidence: specification lines 513-520, 539-545, and 547-553.
+
+5. **Yes.** The base contract is retained byte-for-byte as prose, and the new top status explicitly supersedes only the prior 17-target/no-normal-money limit for the named 24-target PI scope. Mutable Transaction drift, exact registered parent reference, publication immutability, all three refund-event success fields, one-sided signed-event inclusion, finite READ COMMITTED observation, immutable terminal representative, and release/cutover gates remain mandatory. Evidence: candidate specification lines 1-4 and 418-486, plus the base-to-candidate diff showing no prior specification line removed.
+
+6. **Yes, as a design; it is not yet qualified.** The next build must freeze one exact candidate/tree/hash before qualification, rerun all 1,990 original node identities plus new obligations without skips or selection substitutes, explicitly reconcile both renamed checkout cases, retain the previously passing True semantics and accepted False correction, preserve all MP248 failures and six original exceptions, and reject cohort unions or earlier migration vectors as final evidence. The current inventory’s 1,988/1,990 observation, two missing renamed names, 44 setup errors, and failed capture are retained, not promoted. Evidence: specification lines 568-571; operator/live runbook lines cited above; retained inventory and XML evidence.
+
+7. **Yes, as a required fixture correction; it is not yet proved.** The design keeps real notifications and payment handlers, binds the notification factory to the owned per-case database, tracks and awaits only owned notification work with a five-second bound, disposes every owned pool in `finally`, cleans the admin engine on pre-yield failure, conditionally drops only a successfully created clone, and requires a forced failure followed by a successful next-template clone. It separately preserves the real product PI omission and forbids monkeypatching payment, killing sessions, or suppressing assertions as a substitute. Evidence: specification lines 573-580 and the retained source/log diagnosis.
+
+8. **Yes.** Environment integration, exact source/image/spec pin recording, protected genuine holds, refund release, delivery/device evidence, stable and scheduled execution, Gate4, coordinated production cutover, and enabled AWS S3/Cloudflare R2 release remain mandatory. The specification and both runbooks explicitly state that this candidate, raw evidence, design review, and CI do not accept implementation or production. Evidence: candidate specification lines 1-4 and 696-718; runbook continuation sections.
+
+### SIMPLER
+
+None found.
+
+Alternatives I attempted to remove:
+
+- Replacing the migration and two native constraints with a shared helper/advisory lock would remove one migration and the ACCESS EXCLUSIVE cutover step, but it fails unknown/raw/future database writers and adds a new lock tier.
+- A recovery-only Transaction PI backfill would remove several normal producer changes, but leaves every future public checkout exposed to the same defect.
+- Fixing only the notification test would remove the 44 setup errors’ immediate symptom, but does not address the real product PI omission.
+
+### BETTER
+
+None found.
+
+A cross-table PI FK or exclusion-style constraint was considered as a “stronger” alternative. It is materially worse here: unpaid rows require NULLs in both tables, a cross-table constraint would broaden schema coupling and locking, and it still would not remove the need for exact producer/recovery semantics and strict money validation. The selected pair of per-table native uniqueness plus strict locked reverse-pair validation has smaller scope, database-wide collision enforcement, and a straightforward rollback/reconciliation path.

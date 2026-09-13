@@ -1,0 +1,249 @@
+{
+  "status": "PROPOSED_CORRECTION_NOT_ACCEPTED",
+  "parent": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "scope_count": 31,
+  "history_count": 47,
+  "required_reviewers": [
+    "glm",
+    "deepseek"
+  ],
+  "authority": "CURRENT-USER-AUTHORITY.json",
+  "whole_prior_reading_complete": true,
+  "implementation_accepted": false,
+  "complete_source_context": 46,
+  "new_source_context": 10,
+  "owner_messages": [
+    4745,
+    4749,
+    4770,
+    4787,
+    4788
+  ],
+  "files": [
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/ACTIVE-REVIEW-QUESTIONS.txt",
+      "bytes": 6541,
+      "sha256": "7bec693e2c5c62a684bd92cc415730644e17efd1c38092fe0d598588fb13856a"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/CURRENT-USER-AUTHORITY.json",
+      "bytes": 1237,
+      "sha256": "36ab003dbb9678138dc4161bb3c7025ebd8c81fe813a90c69688e6111e7371ea"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/NEXT-BUILD-PREPARATION.txt",
+      "bytes": 30595,
+      "sha256": "3cbc7e188e1ed1e6fa2e7713c3a173dba3aabcc6f73d18383a372d491f84d2df"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/READ-COVERAGE-PROVENANCE.json",
+      "bytes": 75631,
+      "sha256": "73945057054807b8630dcd22752aa8606d8b2a330c32609f27e9acd677fe712e"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-34-cc-response-20260912-212609-273844.txt",
+      "bytes": 25168,
+      "sha256": "77d1f69bf8238141f8481a69e370584421f0f67d15eff679d7ac225f064ab8dd"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-35-deepseek-response-20260912-212609-666347.txt",
+      "bytes": 23769,
+      "sha256": "2a5e2755a9228684d8f8634faf2a680609dbd63f0071ca4704f6a6cd5dd45f0e"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-36-glm-response-20260912-212610-077478.txt",
+      "bytes": 15794,
+      "sha256": "dcedca8b78997ce3dda2df896f5cfac1ef11f0b38d5ddba61ca3da2a88c08804"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-37-deepseek-response-20260912-213353-838309.txt",
+      "bytes": 14097,
+      "sha256": "ebd2a7176ae1bc4984a914d0ea7a8dd050073344e89734773998270cc859d17d"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-38-deepseek-response-20260912-213939-513843.txt",
+      "bytes": 14332,
+      "sha256": "eca57f1a51aa91d10aad7ebfe73673034c9f303df94c64215f7c65d9cd474818"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-39-deepseek-response-20260912-215106-131871.txt",
+      "bytes": 22070,
+      "sha256": "d046bba5a2e33c237952b8d2814be5117963b8931de71f813c648d772ab85d75"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-40-glm-response-20260912-214253-341139.txt",
+      "bytes": 20970,
+      "sha256": "9446385b963b7eed39f4aebadcd1d231bf1403c7663aa9303bcff2e517bf75c1"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-41-deepseek-response-20260912-215526-865775.txt",
+      "bytes": 19817,
+      "sha256": "e52a8a581bd3e9fe8740457cffa80327b0b34dd958516411a4db304554507044"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-42-deepseek-response-20260912-220112-899456.txt",
+      "bytes": 12216,
+      "sha256": "706fd5ab9a88c75b4f2235e25e12e6c47b08ee521f3e24ed3d0e84e353a3301d"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-43-deepseek-response-20260912-220544-760714.txt",
+      "bytes": 18077,
+      "sha256": "72e8fe3443b250593a83931beb2bd1995b16d411b2843d7ad9a44eb163026c2e"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-44-cc-response-20260912-215136-338580.txt",
+      "bytes": 17551,
+      "sha256": "10ac1bc57ab3b98ab9c8dc5fe0ab3090d4e4ca38e1926bab88887019814bb9ee"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-45-glm-response-20260912-215808-388612.txt",
+      "bytes": 17372,
+      "sha256": "d5aa8c3563ea6485418dd4624ffef2b460e6791bc998e7cc7c465b751a322741"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-46-glm-response-20260912-220859-003357.txt",
+      "bytes": 15415,
+      "sha256": "f40b67e1fb09cf111257b1a189dc15006ca48546529ebe9f6ce0c68e821149c2"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-47-glm-response-20260912-222137-175754.txt",
+      "bytes": 15377,
+      "sha256": "69470792e9424c9fa1fc20c02b0dbd70beb8a1ac4271824c82a42f0a81a8b33e"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/REVIEW-HISTORY.json",
+      "bytes": 16020,
+      "sha256": "9e621e911bf3d23971a8be32e84af7e4c8c8108c598ef791b704be9c6435e409"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/SELLER-WORKSPACE-AGENT-ATTEMPT-COMPATIBILITY-MATRIX-DRAFT-S1712.json",
+      "bytes": 33751,
+      "sha256": "61965adab6a6dd3736c227298a86db59ebec1b8d7f986af81a82fc634f96e65c"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/SELLER-WORKSPACE-AGENT-ATTEMPT-LATEST-DISPOSITION-DRAFT-S1712.json",
+      "bytes": 2582,
+      "sha256": "6f0dd753e8c93ea31564fc2fb6e30f92746e5d54e2b023e167d69bcbe97f87e8"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/cc-221017-RECEIPT.json",
+      "bytes": 720,
+      "sha256": "352ec7db602c9b15145a4a3474e5a80376b4d2373a18e76ecfcaa4590a0c6332"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/cc-221017-launcher.log",
+      "bytes": 214,
+      "sha256": "9ec1b75e919b9bfe1b3a6d95fe093ac3b93aa96e75169624659eb471f8c65320"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-31-target-draft-owner-disposition.json",
+      "bytes": 1319,
+      "sha256": "19ea78c3613dd808d8bee63961397e5d67a7dbd07ee9bcd48049ce150a367bb5"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-33-history-pre-freeze-verification.json",
+      "bytes": 471,
+      "sha256": "3df9421513c38114101fd92eb3a6d9431c294eeff3373d9eb0bd75b119ef28c7"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-9645601d-owner-verification.json",
+      "bytes": 8804,
+      "sha256": "bf2abd34a44b9f00ca44180971362fd3e59368898d334b9ea8217ef01066a741"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-9645601d-review-dispatch-live.json",
+      "bytes": 1290,
+      "sha256": "14e1eb7af9968f562b83fe5de362327d00bb4acc889b98316ff8df84a56853b9"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-additional-caller-compatibility-owner-findings.json",
+      "bytes": 3008,
+      "sha256": "1ba17c52a61d44c4ff9d79f171d4bc8e12da69bef14f28300effcb6df5d73796"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-deepseek-partial-owner-read.json",
+      "bytes": 861,
+      "sha256": "df977699218d45c7509da511eb68699875d4a4b126e1c44723f4abb9f9f4ffbb"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-deepseek-second-partial-owner-read.json",
+      "bytes": 835,
+      "sha256": "855f226ef66961d39e8b256b80ab9cb28f2089d84988e3563c6c50d7a48dab5a"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-ds-batch2-build-draft-owner-read.json",
+      "bytes": 1424,
+      "sha256": "4556b67b6ce91b9d725fa35bd9684605cb485ed2b4e16d98a9ab694cfb60d312"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-ds-batch3-owner-read.json",
+      "bytes": 1071,
+      "sha256": "99d3305f3fca4e735fe88e48bb3f90458ee4bf3d30f366601e010d4cacc30d1e"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-ds-complete-cc-fullspec-owner-decision.json",
+      "bytes": 2031,
+      "sha256": "d39292d5c3367a6e0cd5b3f199d80bbe3779be23bfaa36eeba4b974c5269a6d9"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-ds-five-body-owner-read.json",
+      "bytes": 1134,
+      "sha256": "01d1d428ab43044d22fb7c80bb41d0819873202dc4c2b5f135232ee2a1840225"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-glm-batch1-matrix31-owner-read.json",
+      "bytes": 1100,
+      "sha256": "519f0c7d49040ce15801b9afab1df723221a4205f1a94dc5f2f4e299e5bc84e9"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-glm-partial-owner-read.json",
+      "bytes": 915,
+      "sha256": "210a5c8165d480dfcaab6f2ec60741072cd099485dadf7b94ac1a5fa34dd7b29"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-latest-disposition-archive-owner-check.json",
+      "bytes": 2500,
+      "sha256": "6c820e900f24a9ef3686f61324facbfa48d80c2d8c5c5d18cce59d3a89281bd0"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-matrix-template-owner-read.json",
+      "bytes": 558,
+      "sha256": "84069b239c09fc2f86b28e262c2724b4f31124c646845ffb2b2c40db6a79bd5d"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-next-build-draft-owner-read.json",
+      "bytes": 862,
+      "sha256": "0e80b383e0921884271256ab513a8aac31d0cb0d96c8a4f979f4ca66964a435d"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-pre-freeze-owner-disposition.json",
+      "bytes": 1369,
+      "sha256": "8c7e6e883880c2c6f95d7df08081a54ee1878a1212a996f5ccdb31826ad648fc"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-review-completion-20260912T1952Z.json",
+      "bytes": 2005,
+      "sha256": "603f02d42f197c24e9fbf4465e101c8f944e906cf1de48ff8a3bf1ae3300cf15"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-agent-attempt-successor-owner-disposition.json",
+      "bytes": 1951,
+      "sha256": "3da585652fcc40f017998e681da37c0eb55a3c06310f95a4f02665d9490b0ff7"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-max-cc-waiver-current-production-authority.json",
+      "bytes": 1162,
+      "sha256": "0db297cb9f454a854992fbd903a79cdaead5e4e56161725d1125270dacbf884b"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-review-chunk-reader-owner-verification.json",
+      "bytes": 742,
+      "sha256": "87b81440491819e319851c9c32cfcff67860d2ca7a0d007e8b56f664204cb9b0"
+    },
+    {
+      "path": "runbooks/evidence/workspace-compatibility-s1712/owner-receipts/s1714-review-reader-live-support-drift-disposition.json",
+      "bytes": 893,
+      "sha256": "1ca899951cddc1faf182efe7d0749d5692aea9d56f9cc04792680acb5faac637"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-12T20:27:18.751631+00:00",
+  "user_text": "I am explicitlu authorizing you to continue without it",
+  "context": "Direct response to CC weekly quota blocker in S1712",
+  "owner_event": "e4c7e041-4eee-4217-8be5-6591157274ca",
+  "owner_receipt": "/Users/max/koskadeux-state/s1656/s1714-max-cc-waiver-current-production-authority.json",
+  "owner_receipt_sha256": "0db297cb9f454a854992fbd903a79cdaead5e4e56161725d1125270dacbf884b",
+  "scope": "Current S1714 ai.market production objective including Workspace; not global Council policy",
+  "cc_status": "USER-WAIVED, unavailable, not approved",
+  "required_reviewers": [
+    "glm",
+    "deepseek"
+  ],
+  "acceptance": "Agreement by GLM and DeepSeek approving the exact candidate is sufficient approval; no additional CC or user approval required",
+  "retained": "Existing CC findings, raw responses, terminal quota failure and incomplete history remain evidence",
+  "unchanged": "Sole Mars MP dispatch, full 1990+new qualification, source freeze, environment and combined review, genuine phases, cutover, enabled AWS S3 and Cloudflare R2 proof, cumulative USD100 cap",
+  "cc_retry_required": false,
+  "additional_user_text": "If GLM and Deepseek agree that is approval"
+}

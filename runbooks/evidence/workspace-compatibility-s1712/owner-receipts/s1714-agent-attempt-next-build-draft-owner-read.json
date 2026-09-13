@@ -1,0 +1,19 @@
+{
+  "at": "2026-09-12T19:31:55.771960+00:00",
+  "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-NEXT-BUILD-DRAFT-S1712.md",
+  "sha256": "22dd95562fdc778fb84e515d275358e904f3a26c7976f5afb9c359b63f4d8142",
+  "bytes": 26123,
+  "full_owner_read": true,
+  "accepted": false,
+  "status": "Preparation only; fresh reviews and additional caller-test scope/semantic reconciliation required",
+  "preserved": [
+    "7200 seconds explicit nextMP",
+    "Full B01-B18 and1990+new",
+    "Sourcefreeze beforequalifyingruns",
+    "Actualnotificationcase isolation",
+    "Allnewagentattemptrequirements",
+    "Ownedresource/durableevidence/normalpush",
+    "Completeenvironment andproduction gates"
+  ],
+  "open_finding": "s1714-agent-attempt-additional-caller-compatibility-owner-findings.json"
+}

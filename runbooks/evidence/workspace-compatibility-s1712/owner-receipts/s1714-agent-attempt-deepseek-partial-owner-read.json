@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-12T19:33:26.740789+00:00",
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "response": "/Users/max/council/deepseek/response-20260912-212609-666347.md",
+  "sha256": "2a5e2755a9228684d8f8634faf2a680609dbd63f0071ca4704f6a6cd5dd45f0e",
+  "bytes": 23769,
+  "full_owner_read": true,
+  "verdict": "REVISE",
+  "coverage": "Full876spec/source; NONEof33historybodiesfullread; incomplete fullscope, completionrequired",
+  "blocking": [
+    "F1MEDIUM expected_binding call convention conflictswith webhook_audit287/661 frozen assertions/11tupleeditrestriction"
+  ],
+  "owner_disposition": "Prepare explicitalwayspasskeyword and2assertion authorization; canonicalNone/missing bothrefuse, Noneonlybothreverseabsence. No session.info carrier or newtable advisory adopted. Keepcandidatefrozen while fullpanel completes.",
+  "accepted": false
+}

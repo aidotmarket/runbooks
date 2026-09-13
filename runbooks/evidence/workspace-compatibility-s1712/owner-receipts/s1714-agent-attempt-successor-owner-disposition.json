@@ -1,0 +1,33 @@
+{
+  "at": "2026-09-12T19:09:53.516682+00:00",
+  "session": "S1714",
+  "proposal": {
+    "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-AND-CALLER-SUCCESSOR-PROPOSAL-S1712.md",
+    "sha256": "afd3847ea10007f5bc45e70a336214d19b7e1826e1209380ed81e940fa1d4c75",
+    "full_owner_read": true
+  },
+  "glm": {
+    "path": "/Users/max/council/glm/response-20260912-205453-683019.md",
+    "sha256": "c40322922e623a6987aa962309042a2b60c9a80e3e774874fe0b6cbdf706d329",
+    "bytes": 14952,
+    "full_owner_read": true,
+    "verdict": "APPROVE_WITH_NITS",
+    "candidate": "e3b8b08813f1476910422c4233fee92360409cb7"
+  },
+  "source_base": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "source_hashes": {
+    "app/services/transaction_service.py": "245f6aae5bf1826318296bc16262e903dcbf2b8955c72df80228a26da35c1761",
+    "app/tasks/scheduled.py": "1e40b2c2290ee20da11f4f59e58e3e2de200332f418ec935bb909e18a7caeaeb",
+    "app/services/agent_auth_service.py": "013ca5a86e12701eaf7eee02c27d726c9bb47f20638df384664e1a863eb3432e",
+    "app/api/v1/endpoints/webhooks.py": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde"
+  },
+  "disposition": "Semantic successor preparation authorized; precise schema/transitions/refusal mapping and prebinding signed-event discovery must be explicit before freeze. 27 targets proposed. No Gate2 acceptance or MP dispatch. CC 28000/28018 live observed.",
+  "implementation_accepted": false,
+  "exact_schema_followup": {
+    "at": "2026-09-12T19:14:43.715668+00:00",
+    "sha256": "2e4307c8b48415b5487da7a33f9ad90df71480d5ceb4c0843fb8e4b11cbcdfe5",
+    "full_appended_section_read": true,
+    "bus": 4713,
+    "open": "Explicit agent_attempt_completion both-NULL/no-Session binding mode must reconcile previous direct/recovery refusals; atomic prepared-to-bound-to-completed signed event transition. No widening legacy/browser modes."
+  }
+}

@@ -1,0 +1,129 @@
+--- a/tests/test_webhook_audit.py
++++ b/tests/test_webhook_audit.py
+@@ -192,7 +192,7 @@
+                 return r
+             # First request: upsert succeeds
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         return _result(None)
+ 
+@@ -221,7 +221,7 @@
+         if "INSERT INTO stripe_events" in sql and params and "sha256" in params:
+             captured["sha256"] = params["sha256"]
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_sha_test",)
++            r.fetchone.return_value = ("evt_sha_test", None)
+             return r
+         return _result(None)
+ 
+@@ -260,7 +260,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT * FROM orders" in sql:
+             return _result(order_row)
+@@ -296,7 +296,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT id, status FROM orders" in sql:
+             return _result({"id": order_id, "status": "completed"})
+@@ -327,7 +327,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT id, status FROM orders" in sql:
+             return _result({"id": order_id, "status": "disputed"})
+@@ -359,7 +359,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT id, status, amount_cents FROM orders" in sql:
+             return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+@@ -391,7 +391,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT id, status, amount_cents FROM orders" in sql:
+             return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+@@ -422,7 +422,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "connect_identity" in sql:
+             return _result({"id": user_id, "is_test": False, "email": "seller@example.com"})
+@@ -461,7 +461,7 @@
+     if "INSERT INTO stripe_events" in sql:
+         # Dedup upsert succeeds (RETURNING returns the event_id)
+         r = MagicMock()
+-        r.fetchone.return_value = ("evt_test",)
++        r.fetchone.return_value = ("evt_test", None)
+         return r
+     if "SELECT" in sql or "UPDATE" in sql:
+         raise Exception("simulated DB error")
+@@ -513,7 +513,7 @@
+         if "INSERT INTO stripe_events" in sql:
+             call_order.append("dedup_insert")
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_test",)
++            r.fetchone.return_value = ("evt_test", None)
+             return r
+         elif "SELECT * FROM orders" in sql:
+             call_order.append("handler_select")
+@@ -618,7 +618,7 @@
+         calls.append((sql, params))
+         if "INSERT INTO stripe_events" in sql:
+             r = MagicMock()
+-            r.fetchone.return_value = ("evt_ok",)
++            r.fetchone.return_value = ("evt_ok", None)
+             return r
+         if "SELECT * FROM orders" in sql:
+             return _result(order_row)
+--- a/tests/test_e2e_stripe_isolation.py
++++ b/tests/test_e2e_stripe_isolation.py
+@@ -21,7 +21,7 @@
+         self._row = row
+ 
+     def fetchone(self):
+-        return ("evt_ok",) if self._row == "dedup" else self._row
++        return ("evt_ok", None) if self._row == "dedup" else self._row
+ 
+     def mappings(self):
+         return self
+--- a/tests/test_webhooks.py
++++ b/tests/test_webhooks.py
+@@ -1379,10 +1379,11 @@
+     assert not any("status = 'completed'" in sql for sql in statements)
+     assert " ".join(statements[-1].split()) == (
+         "INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, "
+-        "stripe_account, processed_at, payload_sha256, status, error_message) VALUES "
++        "stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES "
+         "(:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), "
+-        ":sha256, 'failed', :err) ON CONFLICT (stripe_event_id) DO UPDATE "
+-        "SET status = 'failed', error_message = EXCLUDED.error_message"
++        ":sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE "
++        "SET status = 'failed', error_message = EXCLUDED.error_message "
++        "WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'"
+     )
+     failure_params = ctx.db.execute.call_args.args[1]
+     assert failure_params["event_id"] == ctx.event["id"]

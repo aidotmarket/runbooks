@@ -1,0 +1,66 @@
+{
+  "status": "ADJACENT_CLASSIFIER_REGRESSION_RESTORED_ORIGINAL_EXPECTATION_NO_SCOPE_EXTENSION",
+  "observed_at": "2026-09-12T16:07:06.456482+00:00",
+  "task": "cb5e73ca4aed",
+  "node": "tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[W]",
+  "initial_result": "failed: actual500 vs expected200, optional Workspace schema missing",
+  "rerun_result": "same unchanged node passed after MP service core classification fix",
+  "unchanged_test_sha256": "59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077",
+  "fixture_facts": [
+    "N order/transaction actors changed to seller02/buyer01",
+    "Listing remains owned seller01; generic purchase has no purchased-version/publication authority",
+    "This is not proof of a genuine immutable W charge"
+  ],
+  "scope_decision_proposed": "Keep original14targets and original adjacent200 expectation. No tests/test_refund_webhook_protocol.py target or broad fixed-actor ambiguity override is selected. Require actual forged-nonW no-optional-lookups and genuine/registeredW unavailable500/restoredsameID proofs.",
+  "rejected_alternative": "Changing W mutation expectation to500 solely because fixed actors match would conceal the core classifier defect and broaden optional-W dependency; not selected.",
+  "remaining_limits": [
+    "Passing one node does not prove all genuine-W/claimed-registration drift or production isolation",
+    "money-core-final has8failures:4knownsubscription+4new missing-account-reseed failures, not full green",
+    "Other regression suites remain under builder reconciliation; no new baseline waiver or implementation acceptance"
+  ],
+  "raw_run_and_node_evidence": [
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final-source.json",
+      "sha256": "398f19a9ce00efbfde4896acc7bef9c5901060ef813f018ea5b4e038d7581ae9",
+      "bytes": 2322
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final-source.log",
+      "sha256": "051c04a233e6c24442679c2f3b94d04a2cacb1bf9419957773c041f821103a07",
+      "bytes": 150575
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final-source.xml",
+      "sha256": "0824df34ffadc39ec4f078119972570b03cddee01fb30647f96032b5122aa235",
+      "bytes": 200192
+    },
+    {
+      "candidate_file": "ADJACENT-money-core-final-source-W-node.xml",
+      "sha256": "bada757a46998cb1718db50d0cd8c6599450cb8cb0d926695ee636b34dab20d2",
+      "bytes": 3038,
+      "extraction": "Complete byte-exact testcase element from corresponding full XML; raw complete run retained above"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final.json",
+      "sha256": "ab39eb10eeec71805fd1dae0a7a6186790cd30e7f20bf63973ffed45c28e33e4",
+      "bytes": 2427
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final.log",
+      "sha256": "57097ee596a928ab39fef3115b6e0bd072e6cf364454b51879000a08772ef696",
+      "bytes": 414909
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-adjacent-classification-evidence/money-core-final.xml",
+      "sha256": "686d0ef909cff42386f9a5812c802ee3341586fd9890eb3cb4bcb11efc2f3d1b",
+      "bytes": 467352
+    },
+    {
+      "candidate_file": "ADJACENT-money-core-final-W-node.xml",
+      "sha256": "1951740efb91f2516df78f3514de5b19950e0c7d424eecf5b5ac8d9701814860",
+      "bytes": 290,
+      "extraction": "Complete byte-exact testcase element from corresponding full XML; raw complete run retained above"
+    }
+  ],
+  "failure_log_excerpt_sha256": "b55418ece5973d67a28b3e459025c64fa325174167e32f6e2c1bfd1feec35375"
+}

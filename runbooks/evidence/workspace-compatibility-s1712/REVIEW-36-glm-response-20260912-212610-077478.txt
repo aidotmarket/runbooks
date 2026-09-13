@@ -1,0 +1,131 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+### 1. NIT — The metadata durability proof does not explicitly inventory all `transactions.metadata` writers
+
+- **Severity:** NIT — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:713` makes `transactions.metadata["canonical_agent_attempt_v1"]` the durable attempt authority.
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:779-812` defines the exact closed record and immutability rules.
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:645-647` requires a final-tree caller inventory for `mark_paid`, the binding helper, and affected completion entry points, but does not expressly enumerate every writer of `transactions.metadata`.
+  - Supporting base source: backend context `817f7331a07d07929a67198b28a82ed9b98baa56:app/services/delivery_service.py:1280-1295` replaces the whole JSONB value with a serialized dictionary, and `817f7331a07d07929a67198b28a82ed9b98baa56:app/services/delivery_service.py:1433-1440` silently returns `{}` when string metadata cannot be decoded. Other inspected writers, such as webhook and settlement paths, use `jsonb_set`.
+- **Observed:** The design says to preserve unrelated keys when writing the attempt and requires malformed attempt records to refuse, but the final qualification gate does not explicitly classify every existing whole-object metadata writer or prove that later delivery/settlement/test writers preserve the closed attempt unchanged.
+- **Expected:** Extend the D4 final-tree inventory to include every `transactions.metadata` writer and prove each is either a non-destructive `jsonb_set`/merge, an attempt-aware locked transition, or a refusal path for rows carrying `canonical_agent_attempt_v1`.
+- **Reproduction:** Static evidence only.
+- **Impact:** A future whole-object replacement or malformed-metadata fallback could erase or obscure the durable identity. I found no current normal-path delivery of this failure: the inspected delivery writer runs only after payment and copies valid existing metadata, so this is a qualification/traceability gap, not a demonstrated money defect.
+- **Smallest required outcome:** Add one inventory/qualification sentence to D4 or the mandatory proof section; no protocol redesign is needed.
+- **Verification criterion:** On the frozen implementation tree, the retained `rtk` search/output classifies every `transactions.metadata` writer with zero unclassified writers, and delivery/settlement tests show the attempt object and revision unchanged after their metadata updates.
+
+### 2. NIT — D4’s caller-classification list predates and omits the fourth binding mode by name
+
+- **Severity:** NIT — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:647` requires every caller to be classified only as canonical-with-`expected_binding`, strict direct/recovery, or no-Transaction legacy.
+  - `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:837-851` later adds `agent_attempt_completion` as a distinct fourth mode with durable-attempt correlation, no Session, fresh provider evidence, and atomic binding/capture semantics.
+- **Observed:** The zero-unmigrated-caller gate does not name `agent_attempt_completion` as an allowed classification even though the final section makes it mandatory.
+- **Expected:** D4 should classify callers as canonical, direct, signed recovery, legacy no-Transaction, **or agent-attempt completion with the exact durable attempt/provider evidence**.
+- **Reproduction:** Static evidence only.
+- **Impact:** An implementer or qualification runner could treat the new agent handlers as unclassifiable or force them into an inappropriate browser/direct class. The later exact fourth-mode specification substantially limits the practical ambiguity.
+- **Smallest required outcome:** Add the fourth mode to D4’s classification vocabulary.
+- **Verification criterion:** The final caller inventory explicitly includes the original agent response and both signed PI handlers, records `agent_attempt_completion` inputs, and reports zero unclassified or unmigrated callers.
+
+No HIGH or MEDIUM finding was established. These NITs do not block design acceptance.
+
+## Coverage
+
+### Independently verified
+
+- **Artifact identity:**
+  - Pinned HEAD is exactly `9645601d50c10a5fe42f38e7972b8c159dc69b04`.
+  - Branch is exactly `docs/seller-workspace-agent-attempt-s1712`.
+  - Working tree is clean.
+  - Tree is `9d4c35594ff6102424f6c081cce03b09d367c74f`.
+  - Base `e3b8b08813f1476910422c4233fee92360409cb7` is an ancestor.
+  - Spec blob is `ad9bef7b23052d755a5c983c34347b06982b7445`.
+- **Hashes and sizes:**
+  - Packet: 2,222,740 bytes, SHA256 `5419c9adf635e8777435760cf24195ce0fe12c34f40ce291bc68a2155c4fc66b`.
+  - Current spec: 876 lines, 247,866 bytes, SHA256 `8ee6f5514b41252739da8158f0577f8a5c16267bd8132bf0c07c16ae98a77e1d`.
+  - Owner-question file: SHA256 `f1cd5fb5d797e6080741ec750f0b643c2ff5b786105fed1df0fa9016c700e9a0`.
+  - Agent-attempt manifest: SHA256 `a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b`.
+  - Owner receipt: SHA256 `bf2abd34a44b9f00ca44180971362fd3e59368898d334b9ea8217ef01066a741`, and it records `accepted:false`.
+- **Changed surface:**
+  - The controller’s diff command runs.
+  - The range changes 18 files: 15 new evidence files, two runbooks, and the specification; `1,771` insertions and `6` deletions total.
+  - I reviewed the specification and authored runbook changes, including the canonical continuation pointer and authoritative operator section.
+  - `git diff --check e3b8b088..9645601d --` independently exits `0`.
+- **Review packet and history:**
+  - All 33 listed response files were byte/hash verified against the manifest.
+  - Their verdicts and finding headings were extracted from the complete bodies, and the later responses 27–33 were reviewed directly. Historical obligations were cross-checked against the current specification and the retained dispositions.
+  - I did not use a model override or subagent.
+- **Backend source identity:**
+  - All 36 manifest source contexts were read from backend base `817f7331a07d07929a67198b28a82ed9b98baa56` with `git show`; every byte count and SHA256 matched the packet headings.
+  - I manually inspected the load-bearing agent producer, spend reservation, webhook success/failure, money-lock, stale-cleanup, and metadata paths.
+  - The base remains unqualified context, not accepted implementation.
+
+### Not run or not verified
+
+- No tests, migrations, databases, containers, providers, scheduler operations, or runtime mutations were run, per the review constraints.
+- GitHub CI successes and the external CI receipt were not independently queried; they are controller/manifest evidence and remain **UNVERIFIED** here.
+- The Stripe documentation URLs were not reopened under the restricted network. The provider-status table is assessed as the proposed application contract, not as proof of an installed adapter’s behavior.
+- This is design acceptance only. It does not certify implementation, qualification, migration safety, environment integration, protected holds, production cutover, or AWS S3/R2 release.
+- The normal 30-round budget is exhausted; I stopped further reading after the final identity/source checks above.
+
+## Answers to all 12 active owner questions
+
+1. **Canonical public checkout atomicity — Yes, as a design.**  
+   The async `OrderService.mark_paid` owner establishes Order→Transaction locks and commits both PI columns plus the paid transition in one transaction (`specs:598-604,620-626`). `expected_binding` is closed, immutable, and revalidated under locks (`specs:655-676`). The direct method, synthetic branch, and legacy no-Transaction compatibility are separately constrained (`specs:594-602`). This remains to be implemented and tested.
+
+2. **Original-ID failed-capture recovery — Yes, as a design.**  
+   Recovery is restricted to the original failed `payment_intent.succeeded` ID, matching stored PI/Session, authoritative provider facts, exact ownership, and absence of authority/history conflicts (`specs:549-575`). Completed checkout dedup is not reopened. The backup handler may not create `OrderMoneyState` merely to make recovery possible (`specs:617`).
+
+3. **Native uniqueness and cross-table coherence — Yes, as a design.**  
+   Two nullable, nondeferrable, per-table unique constraints enforce non-NULL PI exclusivity while retaining multiple NULLs (`specs:541-547`). Duplicate census, collision refusal, catalog verification, PG17 ancestry, rollback, bounds, and forward-only refusal are mandatory (`specs:541-547,577-583,635-653`). Strict reverse-pair and money validation remains mandatory; no cross-table FK is claimed.
+
+4. **Races, cancellation, unique conflicts, and uncertain commits — Yes, as a design.**  
+   Native constraints arbitrate same-PI writers; event→Order→Transaction ordering serializes same-pair events; losers roll back with no half binding (`specs:577-583`). Timeouts, deadlock, SQLSTATE `23505`, cancellation, and commit uncertainty are refusals, never success (`specs:581`). Provider reads remain outside money locks (`specs:583,739-747`).
+
+5. **Retained Workspace authority/closure contract — Yes.**  
+   The candidate explicitly preserves the accepted Workspace obligations. The registered discovery tuple, composite parent reference, publication enforcement, post-authority mutable-Transaction comparison, refund-event inclusion, final READ COMMITTED observation, and immutable terminal representative remain at `specs:372-418` and `specs:456-518`. D1 supersedes only the precisely named historical scope conflicts (`specs:631-633`).
+
+6. **One frozen final source and original 1990-node qualification — Yes as a requirement, not as completed evidence.**  
+   The next build must freeze its tree before qualification; later edits invalidate affected runs; all 1,990 original nodes plus new cases must be accounted for without skips, cohorts, earlier migration vectors, or invented failures (`specs:606-608,585-591`). MP248 failures, both renamed checkout nodes, and the six historical exceptions remain retained.
+
+7. **Notification/test lifecycle isolation — Yes as a required fixture correction.**  
+   The real notification service and payment handlers remain; the fixture must bind the session factory to the owned case database, await only owned tasks with a five-second bound, dispose every owned pool in `finally`, clean pre-yield failures, and prove forced failure followed by a successful next clone (`specs:611-615`). Payment monkeypatches, session killing, and suppressed assertions are forbidden.
+
+8. **Environment/provider/release gates — Yes, all remain mandatory.**  
+   The candidate repeatedly states that backend `817f7331` is partial and unqualified and that implementation qualification, environment integration, pins, genuine phases, refund release, delivery/device evidence, scheduled execution, Gate4, cutover, and enabled AWS S3/R2 proof remain open (`specs:2-5`; `runbooks/seller-workspace-operator-guide.md:405-409`). No reviewer approval, draft PR, CI success, or source test is production acceptance.
+
+9. **Durable agent identity, crash behavior, and one-shot provider dispatch — Yes, as a design.**  
+   The exact 28-key attempt record, immutable request fields, revision/state transitions, and release evidence are specified (`specs:711-727,777-827`). The original Order/link/attempt commits before provider creation; uncertain prepare means no dispatch by that caller; no timeout or missing local PI authorizes another creation (`specs:717-725`). The provider key remains exactly `api_key_id:transaction_id` (`specs:792`).
+
+10. **Signed success before local PI binding — Yes, through the fourth mode.**  
+    `agent_attempt_completion` is distinct from browser checkout, direct, and paid-history recovery modes (`specs:837-843`). Signed metadata is only a candidate locator; authoritative provider facts are obtained outside event/money locks, the original event then owns Order→Transaction, and binding, strict capture, paid/fulfillment transition, and `completed` commit atomically (`specs:829-851`). Browser/direct/paid-history restrictions remain unchanged.
+
+11. **Common once-only spend release across all writers — Yes, as a design.**  
+      Release requires exact original ownership, definitive terminal no-charge evidence, `amount_received=0`, `amount_capturable=0`, absence of other authority/liability, sufficient aggregate spend, and one atomic marker/counter/status/audit transition (`specs:737-759,870-876`). The signed failure webhook and stale scheduler must not release independently; age, a `payment_failed` event alone, empty local history, or foreign collision is insufficient (`specs:751-759`).
+
+12. **Complete caller inventory and 27-target compatibility — Yes, with NIT 2 above.**  
+      The exact 27-file list is at `specs:9-35`. The canonical integration double, notification tests, and access-window test must use real faithful fixtures rather than generic kwargs, unconstrained mocks, shared-schema mutation, or new baseline exceptions (`specs:765-775`). D4 requires a final full-tree caller gate (`specs:645-647`), but its classification vocabulary should expressly include the fourth agent mode.
+
+## SIMPLER
+
+**None found** that preserves every requirement.
+
+Alternatives I attempted to remove:
+
+- Replacing the two native PI constraints with an application advisory lock would remove one migration, both indexes, and the cutover DDL step, but it fails unknown raw/future/legacy writers and adds a new lock tier beneath established money locks.
+- A recovery-only Transaction PI backfill would remove normal producer changes but leaves every future public checkout exposed to the demonstrated one-sided binding defect.
+- Omitting the notification isolation matrix would remove fixture-only work but would mask a real lifecycle failure without fixing the product PI omission.
+- Replacing the durable agent protocol with the existing rollback-only branch would remove schema/state work but cannot bound provider spend after uncertain creation or rollback.
+- Removing the mandatory crash/race/provider-status tests would reduce qualification cost but would remove the core once-only and no-second-purchase invariants.
+
+## BETTER
+
+**Advisory only:** a first-class `agent_payment_attempts` table keyed by immutable `attempt_id` and unique `transaction_id`, with explicit revision/state/spend-release columns and immutable request columns, would be materially stronger than JSONB metadata for long-term durability.
+
+- **Failure-mode comparison:** It would make whole-object `transactions.metadata` replacement unable to erase the attempt authority and would give the database a direct uniqueness/ownership anchor. The selected JSONB design avoids that risk only through service discipline and the metadata-writer inventory proposed in NIT 1.
+- **Cost:** One additional migration/table and service query/join; the current 28-field record still must be validated. It would also expand the stated 27-target implementation scope.
+- **Rollback:** Like the selected forward-only design, removal would require a separately reviewed migration; a table is harder to retire than metadata but easier to audit.
+- **Disposition:** Advisory. The current design can preserve every invariant by adding the explicit metadata-writer gate; no demonstrated current failure mandates the schema expansion.

@@ -1,0 +1,159 @@
+I have enough verified evidence. Recording my final review.
+
+## 1. Verdict
+
+**REVISE**
+
+The documentary correction itself is source-grounded and honest, and I reproduced its identity and its central checkout claim exactly. But the successor design it now proposes — specifically the composite-FK "stable discovery tuple" replacing the `c6bae` classifier — is **not sufficient or precise** for the registered-drift retry/refusal invariant it is introduced to close, and it is internally inconsistent with its own execution matrix. One HIGH blocker and two MEDIUM blockers follow.
+
+## 2. Findings (highest severity first)
+
+---
+
+### F1 — HIGH (blocks) — The "stable discovery tuple" does not close the registered-drift case, and directly contradicts its own execution matrix.
+
+**Severity:** HIGH — the load-bearing invariant (a retained registered W refund must become a durable, retryable failure when its classifier binding drifts; never terminal suppression) is left unenforced for exactly the fields still filtered on.
+
+**Evidence (exact repo@SHA):**
+- `aidotmarket/runbooks@a4e06c08f6d1cc9406dab658530a5a1292524e5a:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:331` — the classifier is redefined: *"query only Orders joined to Listings, using the order's fixed seller02/buyer01 pair and exact PaymentIntent, and the listing's seller02 ownership. It must not filter on Transaction seller/buyer, api_key_id, buyer_type, origin, surface … before authority lookup. Those are compared after exact provider-ID registration resolution and must raise the existing retryable authority exception on mismatch."*
+- `…GATE2.md:356` (execution matrix) — *"For every mutable Transaction discovery field previously used in the early join (seller_id,buyer_id,api_key_id,buyer_type,origin,surface), perform actual database mutation after valid registration; the signed refund must produce durable failed500 … and the same event ID must converge exactly once after restoration."*
+- The current classifier at `aidotmarket/ai-market-backend@e621c760509bde085d5ef784bb14ffa90810d92b:app/services/workspace_refund_test_admission.py:355-357` (the code this design replaces) does exactly the opposite: filters on those Transaction fields, then `if not ids: return False` **before** the authority lookup at `:360`, which at the seam (`app/api/v1/endpoints/webhooks.py` @c3a62af8 `:560-576`, unchanged at e621) yields HTTP 200 `e2e synthetic event suppressed` and `stripe_events.status='completed'`.
+- Nothing in the design compares the Transaction discovery fields after registration. The registration receipt fixpoint is `{seller_id, buyer_id}` derived from **Order** (`…GATE2.md:347`-region), while the fields at issue (`api_key_id, buyer_type, origin, surface, transaction.seller_id, transaction.buyer_id`) exist on `app/models/transaction.py@c3a62af8:140-142,145-146,155` and are never echoed into `registration_json` or compared.
+- Supporting: `Transaction.seller_id` is `nullable=True` at `app/models/transaction.py@c3a62af8:146`, and the e621 migration `alembic/versions/20260908_002_seller_listing_publications.py:59-62` immutability guards cover only `listings`/`listing_versions`/`delivery_authorities` — **not `transactions`**. So the drift class is materially reachable.
+
+**Observed vs expected:** Observed — the design fixes Order-tuple drift (via the new composite FK) and Listing-owner drift (via existing publication guards), but leaves the Transaction discovery fields free: on the stated design (drop the Transaction filter) a mutated registered charge resolves authority and admits with **no 500 at all**, so the `:356` expectation cannot hold; on the retained filter it re-creates the very `IF NOT ids: return False` suppression that the whole successor exists to remove. Expected — a retained registered W charge whose classifier binding drifts must reach the durable-failed/non-2xx path and converge on the same event ID after restoration.
+
+**Reproduction:** Static evidence only (read-only sandbox; no Postgres/ASGI executed). The same-named node `test_signed_n_authority_cannot_admit_other_scope[W]` (actual500 vs unchanged200) and the byte-exact `ADJACENT-CLASSIFICATION-SOURCE.txt:139-146` in this candidate document the originating defect.
+
+**Impact:** This is the exact blocker the prior DeepSeek response (`REVISE`, one MEDIUM on "registered W binding drift before optional authority lookup") demanded be resolved "first"; the successor does not resolve it. A registered paid TEST refund can silently fall out of admission — the failure class the candidate's own text (`:310`) instructs reviewers to reject ("make a retained registered refund disappear into terminal suppression").
+
+**Smallest required outcome:** Amend the design so authority resolution is **not** gated on any mutable field: locate the registration by provider IDs (`payment_intent`/`charge`) using the Order tuple alone (which the composite FK now freezes), and require an explicit post-resolution comparison that maps every drifted mutable field to `WorkspaceTestAuthorityUnavailable`. Then reconcile `:331`/`:356` — either keep the Transaction fields in a *non-suppressing* ambiguity/raise path, or delete the `:356` line and state plainly that Transaction drift is out of contract and why that is acceptable. No implementation beyond this should be authorized.
+
+**Verification criterion:** Real signed ASGI test: with the authority store available and one registered authority, mutate in turn each of `Transaction.seller_id/buyer_id/api_key_id/buyer_type/origin/surface` and assert durable failed event + HTTP 500 − not 200 `e2e synthetic event suppressed`; restore and assert exactly-one same-event-ID convergence; and the forged seller01 generic lookalike still returns its original 200 with **zero** optional-W schema/mount lookups.
+
+---
+
+### F2 — MEDIUM (blocks) — The composite FK is defeated under MATCH SIMPLE when the already-nullable `orders.stripe_payment_intent_id` is NULL, which is a supported state of the table it is written against.
+
+**Severity:** MEDIUM.
+
+**Evidence:**
+- `…GATE2.md:331` requires *"a validated MATCH SIMPLE, NONDEFERRABLE composite foreign key from workspace_refund_test_authorities(order_id,seller_id,buyer_id,listing_id,payment_intent_id) to orders(id,seller_id,buyer_id,listing_id,stripe_payment_intent_id) … This prevents changing any referenced Order discovery value, including setting one to NULL or deleting the order."*
+- Actual DDL: `alembic/versions/000_initial.py@c3a62af8:3844` creates `orders.stripe_payment_intent_id character varying(255)` **NULL-able** (no NOT NULL); no unique or otherwise referencing index exists on it (`000_initial.py:12508-12564`). `app/models/order.py@c3a62af8:142` confirms no `nullable=False`; `purchased_version_id` is likewise `nullable=True` (`:164`).
+- Under PostgreSQL's MATCH SIMPLE semantics an FK is satisfied, and therefore not enforced, when **any** referenced column is NULL. So for any order row whose `stripe_payment_intent_id` is NULL the composite reference is inert.
+
+**Observed vs expected:** Observed — the design asserts the reference blocks NULLing a referenced value "including setting one to NULL"; with a nullable parent key the composite FK cannot provide that guarantee in the NULL case, and the UNIQUE constraint on `(id,…)` plus the nullable parent also permits derived-row configurations the design does not enumerate. Expected — either the referenced columns are constrained non-null (with an explicit reviewed migration on the core `orders` table, which is new core-signature change the candidate acknowledges), or the guarantee is restated for the non-null case only and the null path is covered by a separate mechanism. **UNVERIFIED (cannot execute PG):** whether `ON UPDATE RESTRICT` blocks the parent UPDATE for a *dependent* row whose referenced key is NULL — Postgres's documented behavior leaves `UPDATE … SET pi=NULL` unenforced for such references; I could not run a live probe.
+
+**Reproduction:** Static evidence only (`000_initial.py:3844` DDL + `docs` MATCH SIMPLE semantics). No PostgreSQL instance was queried.
+
+**Impact:** The FK is advertised as the load-bearing DB-level guarantee for the discovery tuple; if realized as written it is silently weaker than described for a state the table permits, and the qualification matrix (`:356`, "the database refuses and original values/authority remain") would pass only the cases it happens to exercise.
+
+**Smallest required outcome:** Add, in the same reviewed amendment, either `ALTER TABLE orders ALTER COLUMN stripe_payment_intent_id SET NOT NULL` (with a preflight proof no NULLs exist and a stated behavior for order rows created un-paid) **or** an explicit, individually tested mutation matrix that *names* the NULL-parent case and shows the refusal is provided by another guarded mechanism; update `:331`'s claim to match. Do not leave the "including setting one to NULL" claim unqualified.
+
+**Verification criterion:** A PG17 test inserts a registered authority whose parent order has `stripe_payment_intent_id IS NULL`, attempts `UPDATE orders SET stripe_payment_intent_id=NULL` and a change to the other four referenced values, and records which is refused by which object — with the resulting behavior matching the amended text exactly.
+
+---
+
+### F3 — MEDIUM (blocks) — The migration extension as specified is not repeatable, contradicting "repeat migration" qualification.
+
+**Severity:** MEDIUM.
+
+**Evidence:**
+- The existing W migration (`alembic/versions/20260912_002_workspace_test_authority.py@e621c760`, lines 11-63) uses `CREATE TABLE IF NOT EXISTS` and `CREATE UNIQUE INDEX IF NOT EXISTS`, and lines 88/95 use `DROP TRIGGER IF EXISTS` before `CREATE TRIGGER` — i.e. it was written to be re-runnable.
+- `…GATE2.md:331` adds a named `UNIQUE` constraint (`uq_s1712_order_discovery`) and a named composite FK (`fk_s1712_registered_order_discovery`) to `orders`/`workspace_refund_test_authorities`. Neither `ALTER TABLE … ADD CONSTRAINT` supports `IF NOT EXISTS`; the candidate itself states at `:337` that *"Fresh full ancestry and repeat migration … must execute on supported runtime"* and at `:353` `"a changed parent is a reviewed integration change."* No guard or `existing_constraint` helper is named in the scope.
+- This repo has exactly this pattern to copy: `20260912_001_order_money_protocol.py@e621c760:184-185` uses `ensure_index(...)` and `:205` uses an `EXISTS(...)` preflight — so the risk is known and the remedy exists, but the candidate does not select it.
+
+**Observed vs expected:** Observed — a naive implementation of the stated two-object addition fails on the second migration attempt. Expected — the amendment names the idempotency mechanism (preflight existence check, or `_ensure_constraint`-style helper) for both new objects.
+
+**Reproduction:** Static evidence only.
+
+**Impact:** Blocks the repeat-migration / re-ancestry qualification the candidate itself lists as required; without a named mechanism, MP is left to improvise inside an authenticated migration on a money database.
+
+**Smallest required outcome:** Amend `…GATE2.md:331` (or the migration target line) to name the exact idempotency guard for both new core objects, as `20260912_001` already does for `stripe_events` indexes.
+
+**Verification criterion:** Run the W migration twice against the same owned PG17 database and show the second run is a no-op that preserves the frozen catalog fingerprint.
+
+---
+
+### F4 — LOW — The bounded whitespace evidence is real, disclosed, and should not be "fixed," but the visible magnitude is larger than the summary implies.
+
+**Severity:** LOW (non-blocking).
+
+**Evidence:** `git diff --check <base> <candidate>` exits 2 with exactly **14,243** trailing-whitespace findings across 26 changed files (independently reproduced). Breakdown: `WEBHOOK-BASELINE-C3-FULL.xml` 7,113, `WEBHOOK-MP247-FULL.xml` 7,113, `ADJACENT-CLASSIFICATION-SOURCE.txt` 10,408 (embedded pytest source/traceback context carried into the runbook-visible evidence), `CHECKOUT-fresh-public-third.txt` 6, `.xml` 3, `CHECKOUT-R2-GLM.txt` 4, `WEBHOOK-COMPATIBILITY.patch` 4, plus small counts in the surrounding files. The **targeted** range `-- specs/…GATE2.md runbooks/seller-workspace-operator-guide.md runbooks/seller-workspace-live-release.md` exits **0** (verified). This matches the candidate's own framing.
+
+**Observed vs expected:** Observed — the task preamble to this review (`Review precision`, `:308`) reports "nine trailing-whitespace findings in two byte-exact captured output files" for the successor's precedent (`c6bae`), and the request body reports "14243 trailing-whitespace findings … in byte-exact evidence." Both are true of their respective ranges; the successor's own visible evidence now carries ~14k of them. Expected — the same explicit range distinction the candidate already makes, stated wherever the count is quoted, so a future reviewer cannot read "nine" as the current magnitude.
+
+**Reproduction:** `git -C <checkout> diff --check 56665b4e… a4e06c08… --` (real repo, no rtk) → 14,243 findings; targeted three-file range → exit 0.
+
+**Impact:** Procedural only; I confirmed the whitespace is load-bearing inside retained raw captures, so rewriting it would falsify declared hashes. Note one nuance: `ADJACENT-CLASSIFICATION-SOURCE.txt` is an *authored extraction* file (a `+# …` block capturing MP247 source), so its ~10k trailing-whitespace lines are not byte-exact raw capture in the same sense as the two XMLs — worth a one-line statement of provenance.
+
+**Smallest required outcome:** Keep the bytes; state per-file provenance so the "raw evidence, do not rewrite" justification is precisely attributable.
+
+**Verification criterion:** Each whitespace-bearing evidence file is classed as either raw captured output (immutable) or authored extraction (regenerable), and the claim is consistent everywhere the counts appear.
+
+---
+
+### F5 — NIT — "No … migration … target is added by this amendment" is literally contradicted four paragraphs earlier in the same document.
+
+**Severity:** NIT.
+
+**Evidence:** `…GATE2.md:386` — *"No app, normal money processor, webhook implementation, migration, configuration, provider or environment target is added by this amendment."* But `…GATE2.md:184` lists `alembic/versions/20260912_002_workspace_test_authority.py(new)` as one of the seventeen backend targets, and `:331` mandates a new named UNIQUE constraint + composite FK installed by that same migration.
+
+**Observed vs expected:** Observed — the three-file compatibility patch alone adds no migration; the successor revision as a whole does. Expected — say which revision the sentence scopes to.
+
+**Impact:** Documentation traceability only.
+
+**Smallest required outcome:** Scope that sentence to the amendment, or note that the migration target is carried from the earlier successor scope.
+
+**Verification criterion:** The 17-target list and the "no target added" claim are mutually consistent when read together.
+
+---
+
+## 3. Coverage
+
+**Independently verified (read-only; `git` object reads at pinned SHAs):**
+- **Artifact identity:** `runbooks-checkout-contract-s1712` HEAD = `a4e06c08f6d1cc9406dab658530a5a1292524e5a`, clean worktree; base `56665b4e8db7dbf83085bdf88ec35b2a41ce93a7` is an ancestor; base→candidate = **26 changed files, 95,815 insertions / 3 deletions** (23 evidence additions + 3 modifications: the spec, `seller-workspace-operator-guide.md`, `seller-workspace-live-release.md`). Spec blob = `bd928b640c8c6d1dd0ef20f61c5e48be853a16e1`, SHA256 = `ae83c717240b2993ab1e8ed9096ad939968abd3f04066410f7698fe3c4c46d3c`, size = **141,803 bytes** — all exact.
+- **Evidence identity spot-hashes reproduced at the candidate:** `ADJACENT-CLASSIFICATION-SOURCE.txt` = `57bc414d…` (blob `74520ad6…`), `WEBHOOK-COMPATIBILITY.patch` = `6609d8b8…` (blob `0dd71ac0…`), `WEBHOOK-COMPATIBILITY-MANIFEST.json` = `e6768db6…` (blob `4e71b17c…`), `CHECKOUT-R2-OWNER-DECISION.json` blob `2fbdd765…`.
+- **Local checks reproduced exactly:** full-range `diff --check` exits 2 with **14,243** findings; targeted three-file range exits 0; worktree clean.
+- **Backend grounding at `c3a62af8…`** (`ai-market-backend`): `Order` columns (`app/models/order.py:113-164`) — `stripe_payment_intent_id` **nullable**, `purchased_version_id` nullable; `Transaction` columns (`:133-155`) — the drifted fields are real and `seller_id` is nullable; **DDL** `alembic/versions/000_initial.py:3828-3887` (orders) and `:12508-12564` (no index on `stripe_payment_intent_id`); publication immutability guards (`alembic/versions/20260908_002_…:57-76`) enumerate `listings/listing_versions/delivery_authorities` but **not `transactions`**; the three-predicate seam is **not** present at c3 (only the two S1681 disjuncts) — confirming the W disjunct is still future work.
+- **MP247 grounding at `e621c760…`:** `app/services/workspace_refund_test_admission.py` exists (the successor is a delta on a real file); its discovery join + `if not ids: return False` before authority resolution reproduced verbatim at `:355-357`; the checkpoint insert/conflict SQL with `payload_json, signature_valid` and `WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'` reproduced at `:843-849` (and `:887`); `stripe_events.refund_*`/`payload_json`/`signature_valid` columns confirmed (`20260912_001_order_money_protocol.py:282,287-288`; `20260318_001_…:161-162`).
+- **The three compatibility test files are byte-equal at c3 and e621** (`2d5bcb49…`, `d4cd1cba…`, `3564c4b6…`) — the amendment's premise holds.
+- **Scope arithmetic:** 14 prior targets + the 3 named test files = 17, matching `…GATE2.md:184`.
+
+**Not verified / UNVERIFIED:**
+- **CI tuples** `34706135079` / `34706133359` (status/conclusion) — no network; UNVERIFIED.
+- Any **execution**: no PostgreSQL session, ASGI request, `docker exec`, lock acquisition, migration run, monitor, provider/credential call, or fixture action. All findings are static. The Postgres `MATCH SIMPLE` / `ON UPDATE RESTRICT` reading in F2 is from documented semantics plus the pinned DDL, not a live probe.
+- The successor is **not applied** at this candidate: the composite FK, amended catalog, and classifier reorder exist only as proposed text. `app/e2e/workspace_fixture_protection.py`, the amended migration, and `admits_workspace_refund`-in-webhooks are absent at both pinned backend SHAs.
+- I did **not** re-derive: the closure observation semantics (`…GATE2.md:371`) beyond checking the referenced `stripe_events` columns exist; the custody/marker golden digest; the surgical-reset/teardown guards; the owner/runtime artifact schemas. These were verified in earlier rounds and are unchanged by this candidate; I spot-checked only what the new amendment touches.
+- The 18 embedded prior responses were **not** re-hashed individually; I read their verdicts and the two most load-bearing (CC and DeepSeek `c6bae`) in full context.
+
+**Turn/budget:** completed within the 30-turn bound; no load-bearing area left uncovered.
+
+## 4. Answers to the numbered questions
+
+**Q1 — Does the exact named composite Order discovery reference plus existing published Listing guard preserve all forged non-W optional-isolation and registered drift retry/refusal cases?**
+**Partly — it fails the registered-drift half.** ✓ Forged non-W isolation: preserved and improved (the listing-owner discriminator rejects seller01 generic lookalikes before any optional W read, consistent with the unchanged `test_signed_n_authority_cannot_admit_other_scope[W]` expectation). ✓ Order-tuple drift: a genuine new DB-level guard, assuming F2 is fixed. ✓ Listing-owner / version / authority drift: already DB-guarded by `20260908_002`. ✗ **Registered drift across the Transaction discovery fields (`seller_id, buyer_id, api_key_id, buyer_type, origin, surface`) is not preserved** — see F1. The clause at `:331` ("Those are compared after exact provider-ID registration resolution and must raise") names no comparison that reads those fields, and `:356` requires an outcome (`durable failed500`) the design cannot produce. **Blocking.**
+
+**Q2 — Are actual RI enforcement/readiness/catalog/lock proofs sufficient and precise?**
+**Not yet.** The *intent* is correctly precise (`:365-371` demands `convalidated`, `condeferrable=false`, `condeferred=false`, MATCH SIMPLE, RESTRICT actions, internal RI triggers with enabled state, OID normalization by constrained relation). But: (a) the MATCH SIMPLE parent-column nullability gap (F2); (b) non-idempotent constraint/FK creation against a self-imposed repeat-migration requirement (F3); (c) the standing `CATALOG_SQL` in `workspace_refund_test_admission.py@e621` still excludes any `orders` object and still contains the unparenthesized `... or n.nspname='public' and c.relname in (...)` predicate — the amendment must both extend the projection and make that predicate unambiguous, and it does not say so. Lock proofs (short `orders SHARE NOWAIT`, all-row `NOWAIT`, `lock_timeout=250ms`/`statement/idle=2s`/host 5 s, no lock upgrade, no event lock after money locks) are coherent and are the strongest part of the amendment. **F2/F3 block.**
+
+**Q3 — Does terminal closure include NULL-linkage signed siblings, one-sided identity ambiguity, finite READ COMMITTED cutoff and multiple valid replay events without extra financial effects or reversed event locks?**
+**Yes — this is the best-specified part of the candidate.** `:371` requires OR-inclusion across `refund_order_id` / `refund_payment_intent_id` / `refund_charge_id` **or** (`signature_valid=true` AND retained `payload_json.data.object.payment_intent` or `.id` matching), explicitly notes the payload relation is required when the linkage columns are NULL (signed failure before admission already retains `payload_json`; the referenced columns exist), refuses contradictory/malformed matches as ambiguous, forbids unsigned metadata and provider IO for discovery, bounds at 4096+sentinel, takes **no event-row lock after Order/money locks** (preserving event→money order), classifies every related retained Refund/event rather than a filtered positive subset, and allows multiple valid applied replay IDs to converge on one financial effect. The deterministic representative (smallest `stripe_event_id`, retained unchanged on retry) is coherent for a non-textual column and matches the existing single-event behavior it replaces. No reversed event locks. No finding.
+
+**Q4 — Are the exact three compatibility-test changes scope-safe, preserving assertions and all 15 original failure identities without six-baseline expansion?**
+**Yes.** The three files are byte-equal at c3 and e621 (verified hashes), so the patch is a genuine fixture/assertion repair, not a behavior change. `test_webhook_audit.py` 11 tuple widenings to `(event_id, None)` match the current `RETURNING stripe_event_id,error_message` contract; `test_e2e_stripe_isolation.py`'s single `_Result` sentinel likewise; `test_webhooks.py`'s exact-string SQL update matches the *actual* e621 checkpoint statement (`:843-849`, including `payload_json, signature_valid`, `cast(:signed_payload as jsonb)`, and the `status <> 'completed' AND refund_phase IS DISTINCT FROM 'applied'` guard). Behavior assertions (HTTP200 suppression, exact reason, no handler call, durable commit, HTTP500/finance_pending/retry/same-ID convergence) are preserved, no substring/permissive rewrite, no xfail/skip/waiver, and the 15 identities are separately reproduced on immutable c3. `tests/test_refund_webhook_protocol.py` stays out of scope with its 200 intact. No finding.
+
+**Q5 — Does full lifecycle/custody/cleanup/default-canonical/legacy/mixed-synthetic/route/monitor design remain coherent?**
+**Yes, with the caveats above.** The checkout correction is accurate and reproducible: canonical early return at `checkout.py:149-171` precedes the legacy-only guard at `:190-195`; `ENABLE_CANONICAL_TX` defaults true (`config.py:101`); accepted Compose overrides neither. Legacy 403 (`synthetic_purchase_requires_e2e_guard`) is correctly re-scoped to an auxiliary explicit-false test, and the "obtaining a checkout URL is not paid proof" clause is a genuine strengthening. Correctly preserved: the three runtime literals, both four-UUID service guards, the expected `e2e_armed_window` P1 alert, the W-last disjunct ordering (now consistent with `webhooks.py@c3a62af8:560-561`), and the upgrade inventory. The mixed-synthetic canonical bypass note is appropriately recorded as a release-gate dependency rather than a claim. Custody/no-DELETE and account cleanup are untouched by this amendment.
+
+## SIMPLER
+
+**None found that preserves the invariants — and I tried the obvious two.** (a) *Drop the Transaction filter entirely and rely on the Order/Listing guards* is the candidate's own direction, but it removes the `:356` expectation without replacing it, i.e. it trades a suppression bug for an unenforced-drift bug (F1); a preserving variant is a two-step predicate — cheap actor/PI rejection on the Order tuple alone, then registration resolution, with drift at any point raising rather than returning False. That *removes* the join filter (4 columns + its early `return False`) and adds one ordering constraint. (b) *Drop the composite FK and keep only the existing publication guards* preserves nothing for the Order tuple (`orders.seller_id/buyer_id/listing_id/stripe_payment_intent_id` have no immutability trigger) and reopens the R4/Q1 defect. The genuinely removable item is the redundant `uq_s1712_order_discovery` **if** the FK were re-pointed at `orders.id` with an immutability trigger on the four remaining columns — but that swaps a declarative object for a hand-written trigger, which the candidate deliberately declines, so I record it as advisory only. No scope-violation evidence supports mandating it.
+
+## BETTER
+
+**One materially better structure, and it is small: make the registration lookup authoritative *before* any shape filtering, and let the FK protect only what it can actually protect.** Concretely: (1) resolve `workspace_refund_test_authorities` by `payment_intent_id`/`charge_id` first, using the Order tuple alone (never a Transaction-bearing join); (2) if exactly one row → validate every retained binding and **raise** on any mismatch (this is where the Transaction-field drift at `:356` is enforced, by construction rather than by hope); (3) if no row → apply cheap fixed-pair/Listing-owner rejection and return False; (4) if the store is unavailable → raise for fixed-pair traffic only. **Failure modes vs the candidate:** current — a registered refund either vanishes into terminal suppression (keep the join) or is admitted with unexamined drift (drop the join); better — `unregistered-200` and `registered-with-uncertainty-500` become structurally disjoint rather than ordering-dependent, which is exactly the split the candidate's own `:310`/`:343` text asserts but `:331` cannot guarantee. **Cost:** a reordering of two reads plus the receipt comparison already required, and the F1 test matrix; no new table, no new lock, no new route. **Rollback:** revert the predicate branch; authority rows, financial rows, and custody are untouched. It also subsumes F2's severity (the FK becomes defense-in-depth rather than the sole guarantee) and lets F3 be scoped to the one constraint that remains.
+
+---
+
+*This is a design-only verdict on `aidotmarket/runbooks@a4e06c08…` (spec SHA256 `ae83c717…c46d3c`). It certifies no implementation, no test pass, no window issuance, no pin application, and no release; F1/F2/F3 must be folded into the next candidate and re-reviewed before any backend dispatch. MP247 source is treated strictly as the factual baseline it is, not as an accepted implementation.*

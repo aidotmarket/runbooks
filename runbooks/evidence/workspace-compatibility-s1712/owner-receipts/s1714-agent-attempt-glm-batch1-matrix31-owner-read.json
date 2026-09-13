@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-12T19:59:10.740834+00:00",
+  "session": "S1714",
+  "matrix": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-COMPATIBILITY-MATRIX-DRAFT-S1712.json",
+  "sha256": "43c25270a2f4e8c830f1ad3bb72d64c1f16034846ebd8a65d37a4fa1e7d76c36",
+  "bytes": 32206,
+  "owner_read": "full changed JSON versus previously full-read27 template",
+  "scope_equal_exact_spec": true,
+  "scope_count": 31,
+  "rows": 32,
+  "all_execution_fields_blank": true,
+  "not_acceptance": true,
+  "glm_response": "/Users/max/council/glm/response-20260912-214253-341139.md",
+  "glm_sha256": "9446385b963b7eed39f4aebadcd1d231bf1403c7663aa9303bcff2e517bf75c1",
+  "glm_bytes": 20970,
+  "glm_owner_full_read": true,
+  "glm_coverage": "01\u201308 full;27\u201333 and876spec explicitly confirmed;09\u201326 remain",
+  "glm_next_response": "/Users/max/council/glm/response-20260912-215808-388612.md",
+  "glm_next_scope": "09\u201316 full history only",
+  "glm_process_limit": "reviewer reported prior ~60toolturns despite nominal30; no owner override"
+}

@@ -1,0 +1,44 @@
+{
+  "at": "2026-09-12T17:02:48.522906+00:00",
+  "candidate": "a4e06c08f6d1cc9406dab658530a5a1292524e5a",
+  "base": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+  "spec_sha256": "ae83c717240b2993ab1e8ed9096ad939968abd3f04066410f7698fe3c4c46d3c",
+  "status": "FULL_PANEL_TERMINAL_REVISE_NOT_ACCEPTED",
+  "responses": {
+    "cc": {
+      "path": "/Users/max/council/cc/response-20260912-184755-548538.md",
+      "bytes": 21615,
+      "sha256": "777be6d94e48aede4778701a8ce1d781e44dcc956fd0d513f1dcfc3ebda29676",
+      "vote": "APPROVE_WITH_NITS",
+      "owner_full_read": true
+    },
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260912-184756-332575.md",
+      "bytes": 19619,
+      "sha256": "c895670d4b9b338d8da711a7523779de06a3369984bce3670d6324c50542ae3b",
+      "vote": "APPROVE_WITH_NITS",
+      "owner_full_read": true
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260912-184755-944151.md",
+      "bytes": 27993,
+      "sha256": "a2fc9742da9ded257d6402755153e6e85b31f76288050e86d7ecc928e2e89bd5",
+      "vote": "REVISE",
+      "owner_full_read": true
+    }
+  },
+  "required_disposition": [
+    "Do not waive DeepSeek vote or carry old approvals. Prepare exact successor and full fresh panel.",
+    "Explicit post-authority Transaction field comparisons and exception routing; retain actual existing helper/source counterevidence and real per-field retry tests.",
+    "Resolve nullable-parent assertion with bounded owned PG17 exact tuple evidence; no global Order PI NOT NULL on unpaid orders.",
+    "Named schema object fresh/repeat preflight and collision refusal precisely specified.",
+    "Preserve byte-exact raw whitespace; disclose actual14243 full-range findings and scoped prose pass.",
+    "Verify and specify all three event state fields, contradictory-field closure refusal.",
+    "Carry core DDL quiescence/lock/index qualification, normal writes and unchanged accepted money fingerprint, actual published Listing guard tests.",
+    "Retain exploratory15-node result7pass8fail; classify newly reachable fixture/behavior requirements without waiver, then complete three modules in MP build."
+  ],
+  "implementation_accepted": false,
+  "runtime_or_release_accepted": false,
+  "protected_run25": "nightly pins and active pointer original hashes independently verified unchanged at17:03UTC",
+  "counterevidence_receipt": "/Users/max/koskadeux-state/s1656/s1714-workspace-a4e06c08-deepseek-owner-read.json"
+}

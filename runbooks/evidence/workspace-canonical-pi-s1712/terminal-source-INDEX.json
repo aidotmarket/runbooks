@@ -1,0 +1,94 @@
+{
+  "at": "2026-09-12T18:19:20.751498+00:00",
+  "head": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "terminal_status": "timeout",
+  "qualified": false,
+  "entries": [
+    {
+      "path": "e2e/account_pool.json",
+      "sha256": "4b8f136ffdd99da142467ad3f96997bd3115048d4b28de35ac0b00a70c7a11dc",
+      "bytes": 2432
+    },
+    {
+      "path": "app/e2e/workspace_fixture_protection.py",
+      "sha256": "5c7ca35511da12c0d91aab507f26089aedf5c757ade1804912c9692ef2fbb234",
+      "bytes": 683
+    },
+    {
+      "path": "app/e2e/surgical_reset.py",
+      "sha256": "9d9c741ae0c303ed702da0551b409e19295809adb1e58fc2807b9100634a706b",
+      "bytes": 13038
+    },
+    {
+      "path": "app/e2e/teardown.py",
+      "sha256": "fbbb02f52e7deed86cb57bb5caf0835ebb060889fcedba508f5a53f7a2d20769",
+      "bytes": 30514
+    },
+    {
+      "path": "app/api/v1/endpoints/webhooks.py",
+      "sha256": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde",
+      "bytes": 89695
+    },
+    {
+      "path": "app/services/workspace_refund_test_admission.py",
+      "sha256": "2e84f8c1a051e0282234add1ae92d05bf648951ef2db9d21a8e51344c8ae0f00",
+      "bytes": 51863
+    },
+    {
+      "path": "app/models/workspace_test_authority.py",
+      "sha256": "4768365224ed725b91b78b430063f8963f65c6adc453e7d82308f031f63beb83",
+      "bytes": 5616
+    },
+    {
+      "path": "app/models/__init__.py",
+      "sha256": "2d677e30f198d560c90cef68c06749e570b6ca4d515e23abdfebb2dd123829e3",
+      "bytes": 15133
+    },
+    {
+      "path": "alembic/versions/20260912_002_workspace_test_authority.py",
+      "sha256": "4964cc69b75f11c167a9e50f4a49dbeb2b8a64e8d976de34240ae842ee5300c4",
+      "bytes": 11171
+    },
+    {
+      "path": "tests/test_workspace_test_refund_admission.py",
+      "sha256": "8ad5969c794f995620671f03a3ed47547eac3df1ad1b11b31ee5d3fd586ea43a",
+      "bytes": 91390
+    },
+    {
+      "path": "tests/test_workspace_test_authority.py",
+      "sha256": "1f21a4ba5a865801152ac30f558b71fff54068c0e0e625e87883b26c529015e8",
+      "bytes": 12158
+    },
+    {
+      "path": "tests/test_e2e_surgical_reset.py",
+      "sha256": "f48b34b1b82a113462ba2d78110ea2664122873d96cb25b7a2d173267fe74938",
+      "bytes": 21095
+    },
+    {
+      "path": "tests/test_e2e_teardown_t2.py",
+      "sha256": "4748e5d127512c4b690a189469ccfaa8b1ed3849303b9011b0364b0e9d5139c1",
+      "bytes": 32069
+    },
+    {
+      "path": "tests/test_e2e_teardown_t2_real_pg.py",
+      "sha256": "1856ad24c007ada2c2986aaece68b7777f47c89837d7fe6448741a560d898fd9",
+      "bytes": 48111
+    },
+    {
+      "path": "tests/test_webhook_audit.py",
+      "sha256": "3a3fb5a5cc7f3b428d209df6c9dd097939cd5c239ced7695e323a138b40a06b3",
+      "bytes": 26336
+    },
+    {
+      "path": "tests/test_e2e_stripe_isolation.py",
+      "sha256": "894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d",
+      "bytes": 14964
+    },
+    {
+      "path": "tests/test_webhooks.py",
+      "sha256": "f918cd1d72677c5ed5b3b535fa4c6625394a3470683dd9d9f6c27b094d228787",
+      "bytes": 67148
+    }
+  ],
+  "owned_cleanup": "container and volume still present at terminal observation; Mars notified; do not remove before descendant reconciliation"
+}

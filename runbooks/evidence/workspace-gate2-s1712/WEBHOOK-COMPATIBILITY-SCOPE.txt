@@ -1,0 +1,31 @@
+# Narrow webhook test compatibility amendment — S1712
+
+PROPOSED ONLY. Not applied, dispatched, accepted or added to any inherited exception. Keep the separately dispatched c6bae734 checkout candidate and7b353083 packet immutable. Review this explicit additional test scope before MP changes any file outside the original14 targets. Mars owns dispatch and next builder.
+
+## Decision requested
+
+Permit exactly three additional backend test targets at the verified e621c760509bde085d5ef784bb14ffa90810d92b continuation base: tests/test_webhook_audit.py, tests/test_e2e_stripe_isolation.py and tests/test_webhooks.py. This changes total backend target scope from14 to17 only if explicitly accepted. Existing14 obligations remain unchanged. No app, normal money processor, webhook implementation, migration, configuration, provider or environment target is added by this amendment.
+
+The complete proposed three-file diff and originals/proposals are retained here. It repairs stale database-result doubles and a stale expected SQL string while preserving the existing tests and every existing behavioral assertion. It is a concrete minimum patch for review, not a claim of executed success. If executing it exposes further stale fixtures or a real defect, retain the failure and supply exact source/intent disposition; do not broaden scope or weaken expected behavior automatically.
+
+## Exact changes and rationale
+
+In tests/test_webhook_audit.py, change the11 explicit accepted dedup tuples from (event_id,) to (event_id, None), retaining their original event IDs. The shared helper contributes to more than one of13 failing cases in this module. None represents no prior error_message. Keep duplicate fetchone=None branches unchanged; do not alter mapping/handler query results or the general _result helper. The accepted immutable c3 and current e621 webhook both RETURN stripe_event_id,error_message and inspect index1 for fulfillment_pending before any W branch. A one-column result cannot represent that query.
+
+In tests/test_e2e_stripe_isolation.py, change only the _Result dedup sentinel tuple to ("evt_ok", None); preserve all other result behavior. Keep public HTTP200 suppression, exact suppression reason, no handler call, durable commit and e2e_scope_suppressed assertions. Do not stub Workspace admission to force a result or convert a synthetic event into ordinary processing.
+
+In tests/test_webhooks.py, update only the exact whitespace-normalized SQL expectation in test_payment_succeeded_billing_failure_leaves_failed_checkpoint to include payload_json, signature_valid, cast(:signed_payload as jsonb), :signature_valid and the conflict-update condition protecting completed/applied rows. Keep full exact-string comparison and all existing HTTP500, finance_pending, event ID/error, commit/rollback, no delivery, subsequent successful same-event retry and completion assertions. Do not remove the SQL assertion, replace it with a permissive substring or derive expected SQL by calling the implementation.
+
+Signed-payload retention and applied-refund protection are accepted money semantics. No handler/dedup/source rollback is permitted to satisfy the old expected SQL. Normal signature/scope ordering, duplicate behavior, retries and refund effects retain their independently required actual-database protocol evidence. These mocked tests do not replace actual signed PostgreSQL tests.
+
+## Exact evidence and limits
+
+S1712 executed the exact15 newly observed failing nodes at immutable c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2. All15 node identities and messages match the MP247 webhook-regressions-final result:14 index1 tuple errors and1 SQL mismatch. All three test files are byte-equal across that base and e621. The process denied all DNS and socket connections, used FastAPI0.110.1/Starlette0.37.2/SQLAlchemy2.0.25, no database/container resources, and verified source hashes unchanged. Existing tokenizer data with pinned SHA was copied to the isolated audit directory. The first collection-only network-guard failure remains separately retained; it is not represented as executed tests.
+
+Full baseline log, XML, receipt,15-node identity/message reconciliation and reference XML are retained beside this package, with hashes in manifest. Full MP247 regression log/XML and complete original baseline evidence are also referenced. This proves pre-W provenance; it is not a release waiver or an addition to the six accepted historical exceptions. Broad regression qualification remains incomplete until this explicitly accepted repair is actually executed and any newly reachable failure resolved.
+
+## Required validation after acceptance
+
+Use the existing supported runtime and network-isolated harness. Run the three complete test modules, preserve all collected node identities and complete outputs, and explicitly confirm all15 prior failures now execute their original behavior assertions. Re-run relevant actual signed money/refund/dedup and W regression cohorts against exact final source, with fresh owned PostgreSQL17 resources where those tests require them. Preserve signature failure refusal, duplicates processed once, failure checkpoint/retry convergence, payload hashes, handler order, critical500/noncritical200, synthetic suppression and applied-refund immutability. Preserve the unchanged forged N-to-W test and genuine registered W recovery matrix. No xfail/skip/deselection or exception expansion is authorized.
+
+Record original and final hashes, exact17-target diff only if amended, all command/runtime/source/node identities, original failures, final results and resource absence. Full combined backend/environment Gate3 remains required. Neither approval of this scope proposal nor passing mocked tests permits runtime changes or release.

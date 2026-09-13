@@ -1,0 +1,302 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+No HIGH or MEDIUM findings survive independent review. The candidate is acceptable as a documentary Gate2 successor design and explicit scope amendment only. It does not authorize implementation, runtime installation, protected-runtime mutation, environment dispatch, merge, or release acceptance.
+
+### 1. NIT — Closure wording should explicitly bind both event status fields
+
+- **Severity:** NIT — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@a4e06c08f6d1cc9406dab658530a5a1292524e5a:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:373-375` requires related events to be “completed/applied” and free of unresolved state, but does not explicitly enumerate both persisted event-status fields.
+  - At `aidotmarket/ai-market-backend@e621c760509bde085d5ef784bb14ffa90810d92b:app/models/finance.py:395-404`, `StripeEvent` has both `status` and a separate `processed_status` constrained to `received|processed|failed|ignored`.
+  - The accepted processor updates both fields together on success at `app/services/refund_processing_service.py:529-531` and `:617`.
+- **Observed versus expected:**
+  - Observed: “completed/applied” is likely intended to mean `status='completed'`, `refund_phase='applied'`, and the fully processed state, but an implementer could test only one status field.
+  - Expected: the closure contract should explicitly require the conjunction `status='completed'`, `refund_phase='applied'`, and `processed_status='processed'`, or the exact accepted equivalent, for every relevant applied event.
+- **Reproduction:** static evidence only.
+- **Impact:** Low ambiguity only. The surrounding requirement to reject contradictory or incompletely proven associations would probably catch the mismatch, but making the fields explicit removes implementation drift.
+- **Smallest required outcome:** Add one sentence naming the exact event field conjunction used for closure.
+- **Verification criterion:** A PostgreSQL fixture containing a relevant event with, for example, `status='completed'` and `refund_phase='applied'` but `processed_status='failed'` must refuse closure.
+
+### 2. NIT — The core parent key needs migration/write-overhead evidence in final qualification
+
+- **Severity:** NIT — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@a4e06c08f6d1cc9406dab658530a5a1292524e5a:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:333-339` adds a named composite parent key on every `public.orders` row and a composite FK, while preserving ordinary order processing.
+  - At `aidotmarket/ai-market-backend@e621c760509bde085d5ef784bb14ffa90810d92b:app/models/order.py:120-142`, `orders.id`, actors, `listing_id`, and `stripe_payment_intent_id` are core fields on the shared order table.
+- **Observed versus expected:**
+  - Observed: the design is semantically precise and explains why the uniqueness is redundant because `orders.id` is unique, but it does not explicitly quantify migration locking/index-build cost or steady-state index maintenance.
+  - Expected: final migration qualification should retain exact PostgreSQL version, row count, lock scope/duration, index validity, and normal order-write cohorts.
+- **Reproduction:** static evidence only.
+- **Impact:** Operational/deployment cost only. No invariant violation is present; the index is the mechanism that supplies a native referenced key for RESTRICT enforcement.
+- **Smallest required outcome:** Include the migration lock/index qualification and ordinary order-write regression in the final execution record.
+- **Verification criterion:** Fresh/repeat owned PostgreSQL17 migration succeeds with the expected bounded lock behavior, and unrelated order identity/status/financial writes remain executable after the parent key is installed.
+
+## Coverage
+
+### Independently verified
+
+- **Artifact identity**
+  - Repository checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-checkout-contract-s1712`.
+  - HEAD: `a4e06c08f6d1cc9406dab658530a5a1292524e5a`.
+  - Branch: `docs/seller-workspace-checkout-contract-s1712`; local and remote point at the candidate.
+  - Working tree clean.
+  - Base `56665b4e8db7dbf83085bdf88ec35b2a41ce93a7` is an ancestor.
+  - Base-to-candidate diff contains exactly the 23 added evidence files plus the three modified documentation/spec files listed in the request.
+  - Spec blob: `bd928b640c8c6d1dd0ef20f61c5e48be853a16e1`.
+  - Spec SHA256: `ae83c717240b2993ab1e8ed9096ad939968abd3f04066410f7698fe3c4c46d3c`.
+  - Spec size: `141803` bytes.
+- **Changed evidence identities**
+  - Recomputed SHA256 and byte count for every changed file listed in the request; all match exactly.
+  - Recomputed the c6bae owner decision hash as `5aa327617dfea7fe1381d8a8c1032266fc4d6951290d45c67813688ff00939c8`.
+- **Historical review evidence**
+  - Read the complete current specification and the 18 embedded historical responses.
+  - Recomputed SHA256 for all 18 local historical response files; every hash matches the request and retained decision records.
+  - Verified the c6bae verdict split: CC and GLM `APPROVE_WITH_NITS`; DeepSeek `REVISE`.
+- **Diff checks**
+  - Full review-range `git diff --check` exits `2`.
+  - It reports exactly 14,243 trailing-whitespace findings, consistent with retained raw XML/log bytes.
+  - The scoped check over the edited spec/operator/live prose exits `0`.
+  - Rewriting the raw evidence to make the full range check green would violate byte retention and is correctly rejected.
+- **Webhook compatibility evidence**
+  - Parsed both multi-megabyte JUnit XML files.
+  - Both contain the exact same 15 failure identities: 14 `IndexError: tuple index out of range` failures and one exact SQL mismatch.
+  - The 14 tuple failures map to the stale one-column dedup result doubles.
+  - The SQL failure maps to the current signed-payload/signature retention and completed/applied protection SQL.
+  - Verified the three original test files are byte-identical at `c3a62af8...` and `e621c760...`.
+  - Verified the proposed patch passes `git apply --check` with no modification.
+  - Verified proposed file hashes:
+    - `tests/test_webhook_audit.py` → `84494c5815d5a5f8eb5cce39707a18d5cc2791fd3d7a15863886b69fcf843531`
+    - `tests/test_e2e_stripe_isolation.py` → `894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d`
+    - `tests/test_webhooks.py` → `61945e848a82d99c007e4aa7b964b70f2809da26c48382ebd64f2dfa1749970e`
+  - Verified the actual current SQL at `webhooks.py:507-516` returns two columns and the critical retry SQL at `:841-849` includes signed payload, signature validity, and completed/applied protection.
+- **Backend source grounding**
+  - Verified clean `e621c760509bde085d5ef784bb14ffa90810d92b`.
+  - Verified current W service hash `6f80022c39fd440c8a6b2e267a3e6f205f05fb683b7db9ea0d1d0565e208eee8`.
+  - Confirmed the current defective classifier still joins mutable `Transaction` fields and returns `False` before authority lookup at `app/services/workspace_refund_test_admission.py:353-366`.
+  - Confirmed the current close path still filters to one positive refund/event at `:686-691`, exactly the defect the successor addresses.
+  - Confirmed `checkout.py` hash is `7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf` at `aca73e88...` and `e621...`.
+  - Confirmed canonical checkout returns before the legacy E2E flag guard.
+  - Confirmed accepted environment Compose at `606267af...` contains neither `ENABLE_CANONICAL_TX` nor the three final Workspace runtime literals.
+  - Verified existing publication guards:
+    - `seller_listing_publications` inserts only with a seller/listing/version/authority binding match.
+    - Publication update/delete is refused.
+    - Published `listings.seller_id` mutation is refused by `guard_workspace_listings` when a publication references the listing.
+    - W registration FKs independently RESTRICT deletion of listing/version/publication/authority/connection rows.
+  - Verified the accepted order-money readiness catalog does not include arbitrary `orders` indexes, so the proposed s1712 parent key need not alter the accepted money fingerprint.
+- **Prior candidate and exact successor delta**
+  - Prior candidate `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f` exists.
+  - The exact `c6bae→a4e06c` delta adds the three current panel responses/owner decision, webhook evidence package, diagnostic runbooks, and the successor discovery/closure/test-scope sections.
+  - Candidate parent chain is `c6bae73 → 436fddc → a4e06c0`.
+
+### Not run or not verified
+
+- No tests, scripts, migrations, database sessions, Docker commands, provider calls, credentials, locks, runtime actions, or CI queries were executed, consistent with the request.
+- Builder-reported `check.py`/`index.py` outputs are therefore not independently reproduced.
+- The two GitHub documentation-CI success tuples are **UNVERIFIED**. They are documentation checks and are not application qualification.
+- Post-patch execution of the three test modules is **UNVERIFIED** and remains mandatory.
+- Live runtime image identity, protected run25 lifecycle state, provider state, production triggers, production transport, AWS S3/Cloudflare R2 release, and owner-window issuance were not inspected and are not certified.
+- I did not re-audit every line of the accepted 42-target product and 14-file environment candidates. I inspected the load-bearing source interfaces affected by this successor.
+- Review budget: approximately 28 of 30 turns used; no load-bearing area was left silent.
+
+## Answers
+
+### 1. Does the composite Order discovery reference plus the existing published Listing guard preserve both forged non-W optional isolation and registered-W drift retry/refusal?
+
+**Yes, at design level.**
+
+The proposed classifier uses only:
+
+- fixed Order seller02/buyer01 pair;
+- exact PaymentIntent;
+- Listing seller ownership.
+
+It removes all mutable Transaction filters from early classification. Therefore:
+
+- the unchanged forged N case, whose listing remains seller01-owned, returns `False` before W schema or mount access and preserves HTTP 200;
+- a matching seller02 listing charge reaches W readiness and provider-ID authority resolution before mutable product validation;
+- missing readiness, runtime, mount, authority, or binding consistency raises `WorkspaceTestAuthorityUnavailable` into the durable failed/non-2xx path;
+- exact absence with fully available compatible authority remains terminal suppression;
+- an existing registration is validated and retains same-event convergence.
+
+The composite reference then protects all early-discovery parent fields after registration:
+
+- `orders.id`
+- `seller_id`
+- `buyer_id`
+- `listing_id`
+- `stripe_payment_intent_id`
+
+`ON UPDATE RESTRICT` and `ON DELETE RESTRICT` prevent another value, NULL, or deletion after registration. The separate published-listing guard prevents `listings.seller_id` mutation while the W registration/publication exists, and FKs preserve the referenced row. Disabled or missing enforcement is catalog drift and must refuse readiness.
+
+Mutable Transaction fields are intentionally not database-immutable. They move to post-authority validation and must produce durable 500/no-effect failure and same-ID recovery after restoration. This is the correct separation.
+
+### 2. Are RI enforcement, readiness, catalog, and lock proofs sufficiently precise?
+
+**Yes as a proposed contract; execution remains required.**
+
+The successor specifies:
+
+- exact parent unique constraint name and column order;
+- exact child composite FK name and column order;
+- `MATCH SIMPLE`;
+- nondeferrable immediate enforcement;
+- validation state;
+- update/delete RESTRICT actions;
+- parent index uniqueness, validity, readiness, and immediate enforcement;
+- enabled referenced/referencing internal RI triggers;
+- stable constraint/relation/function identity without OIDs;
+- exact existing published-listing seller and publication immutability guards;
+- fresh/repeat migration and disabled/misbound/dropped invariant tests;
+- preservation of the accepted money readiness fingerprint.
+
+The Stage B lock design remains coherent:
+
+- `orders SHARE NOWAIT` precedes row locks;
+- no order UPDATE or table-lock upgrade occurs;
+- registration and bound transition commit atomically;
+- RI waits remain bounded by the existing 250 ms/2 s/5 s limits;
+- partial effects roll back and retry by exact immutable identity;
+- duplicate binders and concurrent discovery writers are explicitly tested.
+
+I found no design path where ordinary SQL mutates the protected discovery tuple after registration without database refusal.
+
+### 3. Does terminal closure correctly include NULL-linkage signed siblings, one-sided ambiguity, finite READ COMMITTED cutoff, and multiple valid replay events?
+
+**Yes.**
+
+The relevant-event union is conservative:
+
+- linkage by registered order;
+- linkage by registered PI;
+- linkage by registered charge;
+- OR signed payload relation through PI or object ID.
+
+Thus:
+
+- a signed failed sibling with NULL linkage remains visible;
+- a one-sided or contradictory linkage is ambiguous and refuses closure;
+- malformed matching signed evidence refuses closure;
+- unsigned metadata is not used as proof;
+- provider IO is not required for discovery;
+- all retained Refund rows must have known resolved outcomes;
+- exactly one normal full applied Refund must account for the registered amount;
+- every visible relevant event must be resolved and consistently bound;
+- multiple valid applied replay event IDs may point to the same sole Refund without creating another financial effect.
+
+The deterministic representative is well defined:
+
+- choose the smallest verified `stripe_event_id` under PostgreSQL `COLLATE "C"`;
+- retain it unchanged on retries, even if a later replay sorts earlier;
+- do not invent a Refund-to-event foreign relationship.
+
+The READ COMMITTED cutoff is honest:
+
+- observation is finite, sorted, bounded at 4096 plus sentinel;
+- event rows are not locked after Order/money locks;
+- visible committed admitted/failed/unresolved work prevents closure;
+- uncommitted or later work is late delivery, not a timeless exhaustiveness claim;
+- retained authority permits normal exact replay after closure;
+- terminal receipt immutability prevents rewriting the selected representative.
+
+This avoids reversed lock ordering and does not overclaim future event prevention.
+
+### 4. Are the three compatibility-test changes scope-safe and assertion-preserving?
+
+**Yes on static evidence; post-repair execution is still required.**
+
+The amendment adds exactly:
+
+- `tests/test_webhook_audit.py`
+- `tests/test_e2e_stripe_isolation.py`
+- `tests/test_webhooks.py`
+
+It changes total backend targets from 14 to 17 and adds no application, webhook implementation, normal money writer, migration, provider, configuration, or environment target.
+
+The patch:
+
+- converts exactly the stale one-column successful dedup result tuples to `(event_id, None)`;
+- leaves duplicate `fetchone=None` branches unchanged;
+- changes only the one isolation dedup sentinel;
+- updates the one stale exact SQL expectation to the actual accepted SQL;
+- keeps full exact-string SQL comparison;
+- preserves critical/noncritical status, finance checkpoint, retry, commit/rollback, no-delivery, suppression reason, and completion assertions;
+- introduces no skip, xfail, deselection, exception expansion, or source rollback.
+
+The 15 original failure identities and messages match exactly across baseline and MP247 XML. The patch is not evidence that those modules now pass; the required complete module rerun remains outstanding.
+
+### 5. Does lifecycle, custody, cleanup, canonical/legacy checkout, mixed-synthetic, route, and monitor design remain coherent?
+
+**Yes.**
+
+The successor does not weaken:
+
+- two-stage window/registration authority;
+- immutable registration;
+- one-nonclosed-window rule;
+- retained custody with no DELETE/PATCH/upsert;
+- exact owned restoration;
+- protected-state comparison;
+- unconditional four-UUID cleanup-service refusal;
+- default seed/reset/up preservation guards;
+- owner/runtime/pin verification;
+- normal financial processor ownership;
+- production marker rejection before optional W access.
+
+The canonical checkout correction remains coherent:
+
+- `ENABLE_CANONICAL_TX` defaults true;
+- accepted Compose does not override it;
+- canonical checkout returns before the legacy-only E2E flag guard;
+- both E2E flag values must create a real order/transaction on the canonical path;
+- the obsolete false-403 expectation is retained as failed evidence, not relabeled;
+- legacy false-403/true-legacy behavior is tested only under an explicitly labeled auxiliary canonical override;
+- a checkout URL is not capture, registration, or refund proof;
+- both armed route presence and unarmed absence must be tested from fresh startup;
+- the expected isolated TEST monitor P1 remains asserted and is not broad health or release proof;
+- both mixed-synthetic canonical directions must be measured with real effects;
+- any discovered production exposure remains an explicit release dependency rather than implicit safety.
+
+### 6. Are there remaining HIGH/MEDIUM blockers, and is implementation/runtime release accepted?
+
+**No HIGH/MEDIUM blocker remains in this successor design. No implementation or release acceptance is granted.**
+
+All B01–B18 obligations, genuine holds, owner/source/image transition, protected run25 handling, full implementation Gate3, actual PostgreSQL/ASGI execution, provider/custody evidence, production quiescence/cutover, and complete AWS S3/Cloudflare R2 release remain open.
+
+## SIMPLER
+
+**None materially simpler found beyond the selected design.**
+
+The candidate already removes:
+
+- six mutable Transaction fields from early classification;
+- the authority-first actor-only alternative that would break forged-N isolation;
+- a generic hand-written core mutation trigger;
+- provider IO from closure discovery;
+- reverse event-row locking;
+- any timeless future-event exhaustiveness claim.
+
+I tried to remove:
+
+- the redundant parent unique key — cannot, because PostgreSQL needs an exact referenced key for the composite FK;
+- the Listing join — cannot, because actor-only lookup would make forged N depend on optional W;
+- the composite FK — cannot, because otherwise mutable Order discovery fields can become terminal suppression;
+- event locks — cannot, because locking events after money rows reverses the accepted lock order;
+- the finite cutoff — cannot be replaced by an unbounded future guarantee without new coordination machinery.
+
+The selected native RI approach is the smallest invariant-preserving mechanism found.
+
+## BETTER
+
+**None found.**
+
+Rejected alternatives:
+
+- Generic Order mutation trigger: broader core-policy surface, more failure modes, and unnecessary because native RESTRICT enforcement is sufficient.
+- Authority lookup before the core Listing-owner discriminator: would reintroduce optional-W dependency for forged N.
+- Event locks during closure: risks deadlock and violates event→order lock order.
+- Provider-side exhaustive closure query: introduces provider IO and still cannot prove absence of future deliveries.
+- A new canonical checkout stop flag: would be a new production-relevant behavior outside this documentary correction and is unnecessary for W authority isolation.
+
+The proposed combination of cheap core discrimination, native composite RI, exact catalog readiness, and finite committed-event observation is materially better than the prior mutable join and filtered-positive closure design.

@@ -1,0 +1,77 @@
+{
+  "status": "FULL_SUCCESSOR_PREPARED_FOR_FRESH_REVIEW_NOT_ACCEPTED",
+  "base": "e3b8b08813f1476910422c4233fee92360409cb7",
+  "review_history_count": 33,
+  "entries": [
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/OWNER-QUESTIONS-DRAFT.txt",
+      "bytes": 6107,
+      "sha256": "f1cd5fb5d797e6080741ec750f0b643c2ff5b786105fed1df0fa9016c700e9a0"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-27-cc-response-20260912-204046-397140.txt",
+      "bytes": 21898,
+      "sha256": "a973ba9cc47cc41303a597b51c11896469b7b3b0bb3516fe1267c5bc69e69bff"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-28-glm-response-20260912-204045-531244.txt",
+      "bytes": 13521,
+      "sha256": "aabe967e57bb7104ad5ff9a6474029110bc2dce8f72268be3811f349dab2e874"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-29-deepseek-response-20260912-204045-957744.txt",
+      "bytes": 14437,
+      "sha256": "92a588d292a052d5fe888d052c8b7190a9099de22220fdec3ff9fec043898f22"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-30-deepseek-response-20260912-204506-597833.txt",
+      "bytes": 25711,
+      "sha256": "65834b43dade0b44b7071b55928b95b87dfdadb25e86c1c8d6eaec01ef59913a"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-31-deepseek-response-20260912-205028-323589.txt",
+      "bytes": 26268,
+      "sha256": "4cbe7d4ca051071d68f3c4b8c214863a04e08ccf4655242fe1e27cb828fd4f75"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-32-glm-response-20260912-205453-683019.txt",
+      "bytes": 14952,
+      "sha256": "c40322922e623a6987aa962309042a2b60c9a80e3e774874fe0b6cbdf706d329"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-33-cc-response-20260912-205848-528601.txt",
+      "bytes": 35293,
+      "sha256": "0fa8daffc7d41ebb04c603e1ba913b97a111f8be0736535466356a0ff724aa05"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-HISTORY.json",
+      "bytes": 11861,
+      "sha256": "152a656d573aa27ca70134dac3508646ea0d1614113696715e03f156352e4e39"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-AGENT-ATTEMPT-AND-CALLER-SUCCESSOR-PROPOSAL-S1712.txt",
+      "bytes": 42715,
+      "sha256": "e5a4f83a54f92a0499205a03da613793ec2814a57ea2fafdca47ede589e49cfb"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-CANONICAL-PI-BASE-CALLER-INVENTORY-S1712.json",
+      "bytes": 3741,
+      "sha256": "65d2ec063f03103f7f72cfac222223c2fce73caf1654c2532076c8fcba561e34"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-CANONICAL-PI-MANDATE-DISPOSITION-DRAFT-S1712.txt",
+      "bytes": 19081,
+      "sha256": "26afc645bbd5fae6a1a4bd91a8e0269e6f7c8effee466961952b04159af5be48"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-CANONICAL-PI-PANEL-S1712.json",
+      "bytes": 6650,
+      "sha256": "5db2409b32dafbf28d0115757f5f456b5943082cfe25243db7b711a8bb3100a4"
+    },
+    {
+      "path": "runbooks/evidence/workspace-agent-attempt-s1712/s1714-e3b8b088-cc-full-owner-read.json",
+      "bytes": 1019,
+      "sha256": "e92a33f2becccb9eb0dc75a66a0e7be5038c65f58e59da05c7032505f2ba9162"
+    }
+  ]
+}

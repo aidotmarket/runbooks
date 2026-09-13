@@ -1,0 +1,79 @@
+# COUNCIL REVIEW — CONSOLIDATED FULL-SCOPE (completion pass)
+
+Artifact: `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04`, base `e3b8b08813f1476910422c4233fee92360409cb7`. Read-only; nothing modified; no tests/migrations/providers/state touched (execution not authorized). Turn budget used: ~23 of 30.
+
+Identity re-verified before content: `git rev-parse HEAD` = `9645601d…` ✔ (matches requested candidate); branch `docs/seller-workspace-agent-attempt-s1712` ✔; manifest `outputs/…FULL-REVIEW-MANIFEST-S1712.json` present, its `packet_sha256` `5419c9ad…4fc66b`/`spec_sha256` `8ee6f551…a77e1d`/`all33_responses` (33 entries) consistent ✔; diff = 19 files (14 added evidence, 2 runbooks, 1 spec) reproduced ✔. My fully-read 876-line contract and independently inspected backend/source findings are retained; identity/source/spec reading not repeated. **No fix applied ⇒ previous REVISE stands unless a finding is affirmatively resolved, and none is resolved by approval-by-omission.**
+
+---
+
+## 1. Verdict
+
+**REVISE**
+
+F1 (MEDIUM) below is a live, source-anchored internal contradiction on the frozen candidate and blocks. All 33 historical bodies were integrated (method and limits in §3); **none of them establishes a HIGH/MEDIUM against this candidate, and none resolves F1** — the closest, DeepSeek REVIEW-31 F-5, raises only enumeration completeness, not the assertion conflict.
+
+---
+
+## 2. Findings (highest severity first)
+
+### F1 — MEDIUM (blocking) — the `expected_binding` carrier convention is jointly unsatisfiable with two frozen `mark_paid` call assertions in an in-scope test file
+- **Evidence (candidate):** `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:770` ("Pass it directly from `_handle_checkout_completed` to the independent async `mark_paid` session… do not reconstruct trusted event facts from caller-supplied IDs"); `:774` ("Canonical callers missing `expected_binding` refuse"; legacy `None` only when both directions confirm no canonical Transaction); `:647` ("**Existing money assertions** and duplicate None test branches **remain**"); `:435` (the *only* authorised edit to `tests/test_webhook_audit.py` is the 11 dedup tuples `(event_id,)`→`(event_id,None)`); `:227` ("tests/test_webhook_audit.py (**narrow dedup fixture compatibility**)"). The candidate explicitly authorises updating the integration double (`:773`) and the notification/access-window tests (`:775`) but says nothing authorising the `webhook_audit` money assertions.
+- **Evidence (frozen backend, retained 817f7331 context, re-confirmed in the packet):** `tests/test_webhook_audit.py:287` `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_test_09")` (test_09, a real `checkout.session.completed` → async paid flow) and `:661` `order_service.mark_paid.assert_awaited_once_with(UUID(order_id), "pi_gate3")` (the `ENABLE_CANONICAL_TX=True` **canonical** path, which also asserts the `UPDATE transactions … paid_at`). `assert_awaited_once_with` compares kwargs; a canonical call carrying `expected_binding=<12-field value>` leaves kwargs non-empty and fails.
+- **Observed:** the frozen text simultaneously requires (i) the canonical webhook to pass `expected_binding`, (ii) `test_webhook_audit.py` edits be confined to the 11 dedup tuples, and (iii) "existing money assertions remain". (i)+(ii)+(iii) cannot all hold at `:661` (definitively canonical) and at `:287` (canonical real-checkout path). The text also never states whether a non-canonical caller passes `expected_binding=None` *explicitly* or *omits* it — the difference decides whether `:287` also breaks.
+- **Expected:** one stated convention (always pass, with `:287`/`:661` explicitly named as authorised call-boundary updates; or omit-when-None, with the sentinel defined) plus explicit authorisation, not a generic "existing money assertions remain".
+- **Reproduction:** static evidence only. HEAD/diff reproduced; spec lines and packet-embedded backend assertions read directly. Executing the suite is forbidden and unnecessary — the mismatch is textual.
+- **Impact:** a foreseeable qualification failure in an in-scope module on the exact seam owner question 12 names; a builder obeying `:435` literally hits it and, per the contract's stop-and-escalate rule, must return for owner review — an avoidable round-trip.
+- **Smallest required outcome:** one sentence fixing the `mark_paid` call convention plus explicit authorisation for `tests/test_webhook_audit.py:287` and `:661`.
+- **Verification criterion:** after the fix, a reader can name the exact call convention and point to the authorised change for both assertions; no other statement in the 876-line file contradicts it.
+
+### F2 — LOW — D1's retained-clause anchors resolve only against the 588-line base, not the candidate
+- **Evidence:** candidate `:631` (D1) names supersession of "retained line189" and "retained line420" (the superseded text lives at base `e3b8b088…:189`/`:420`); the candidate file is now 876 lines, so those numbers do not resolve to the quoted clauses in the reviewed artifact. Historical DeepSeek REVIEW-30/31 **F-1** raised the same supersession-by-category concern; the candidate now names 189/420 but still omits the base-revision qualifier.
+- **Observed/expected:** anchors are correct for the base but unresolvable in the candidate. Expected: name base `e3b8b088` or re-anchor to candidate lines.
+- **Reproduction:** static evidence only. **Impact:** a reader of the candidate alone cannot resolve which clauses the authority-critical supersession overturns. **Smallest outcome:** add the base-revision qualifier. **Verification:** both anchors resolve.
+
+### F3 — LOW — operator guide still carries a competing candidate/result narrative
+- **Evidence:** `runbooks/seller-workspace-operator-guide.md` retained MP248 paragraph (≈`:396-402`) sits above the appended authoritative continuation section, describing a different, earlier successor. **Cross-corroborated** by GLM REVIEW-32 finding 2 (duplicate continuation status in two runbooks) and by my prior F4.
+- **Observed/expected:** two candidate/result narratives, one stale. Expected: one authority + pointer. **Reproduction:** `git diff e3b8b088..9645601 -- runbooks/` (verified). **Impact:** operator confusion. **Smallest outcome:** trim/redirect the earlier paragraph. **Verification:** one narrative remains.
+
+### F4 — NIT (resolved by this dispatch) — manifest pointer
+- The original block names `FULL-REVIEW-MANIFEST-S1712.json`, which does not exist; this completion request explicitly supplies the correct `outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-FULL-REVIEW-MANIFEST-S1712.json`. Resolved; recorded for traceability.
+
+### F5 — NIT — packet hygiene (draft headers in an active dispatch)
+- Embedded owner-questions block still reads "draft, not dispatched / required voters CC, GLM and DeepSeek" while this dispatch is DeepSeek-only and active. Cosmetic.
+
+### Integrated historical obligations (no surviving HIGH/MEDIUM; confirmed folded)
+All 33 bodies' verdicts/findings were extracted and cross-checked. Material historical mandates are now folded into the candidate: duplicate census/remediation (DeepSeek REVIEW-29/30/31 F-1/F-2 → **D2**); zero-unmigrated-caller gate (REVIEW-31 F-5 → **D4** `:647`); 002 DDL bounds + fingerprint-projection extension (REVIEW-30/31 F-6 → **D5**); exact 12-field `expected_binding` scalar table (GLM REVIEW-28/32 NIT → **D6** `:803`+); supersession-by-citation (REVIEW-30/31 F-1 → **D1**); agent duplicate-PI safe outcome (REVIEW-29 F-3 → **D3**). REVIEW-21's HIGH F1 (stable discovery tuple) and F2/F3 MEDIUMs were closed in later rounds (REVIEW-22/23/24 "no HIGH/MEDIUM survives"). **No historical obligation is dropped; the only live blocker, F1, was never raised historically.**
+
+---
+
+## 3. Coverage
+
+- **Read in full (verbatim):** REVIEW-01, 02, 03 (parent contract rounds); REVIEW-28, 29, 30, 31, 32 full findings/verdict/coverage; REVIEW-33 whole (verdict, findings, SIMPLER/BETTER, scope statement); plus the current 876-line spec sections cited above, the 12 owner questions, the manifest, and the packet-embedded backend assertions.
+- **Read by complete structured extraction (every verdict, every finding/mandate header with severity, all SIMPLER/BETTER sections, coverage limits) for all 33:** REVIEW-04…27. This is full obligation-level coverage but **not verbatim full-body reading**.
+- **NOT read verbatim:** the long prose middles of REVIEW-04…27 (~24 bodies); the ~10K-char/call output ceiling of this environment made 851 KB of body text unreachable inside 30 turns. **UNVERIFIED:** nothing load-bearing I relied on beyond the extracted headers/bodies listed; I mark the un-read prose as UNVERIFIED for completeness claims, and my "no dropped obligation" claim rests on the extracted finding/mandate set, not on verbatim reading of those middles.
+- **Not executed / not verifiable here:** any test run, migration, provider call, or runtime state; the 1,990-test / six-exception / census cohorts; historical CV tuples. Static only, as mandated.
+
+---
+
+## 4. Answers to the 12 numbered questions
+
+1. **Atomic dual-PI persist without crossing sessions with locks held; exact callers.** Yes as design (D1/D3, spec `:770`,`:774`). Residual **F1** (call-boundary convention).
+2. **Original-ID signed capture recovery.** Yes — refusal of non-NULL overwrite, revoked/refunded/disputed states, both-NULL direct mode, and empty-authority refusal are stated (`:774` and D6 area); residual F1 convention.
+3. **Two native nullable uniques + strict reverse-pair validation; ordering/preflight/rollback/PG17.** Yes; D2 duplicate census + named separately reviewed remediation, D5 bounds/atomicity/projection extension. Closed.
+4. **Races, cancellation, unique-conflict, uncertain commit; agent branches; no provider I/O under new locks.** Yes as design, bounded and fail-closed; D3 supplies the durable-attempt safe outcome the historical REVIEW-29 F-3 flagged.
+5. **Full Workspace authority/discovery/registration/closure intact.** Yes — composite FK, publication enforcement, three refund-event statuses, one-sided inclusion, finite READ COMMITTED, immutable terminal representative all retained (REVIEW-22/23/24/26 verified).
+6. **One frozen final source across 1,990 tests + new obligations.** Yes as design; the "one frozen source / no cohort-union / retain six exceptions" mandate is retained and enumerated in D4/D6; execution remains a Gate3 obligation.
+7. **Test-lifecycle isolation real notification behavior + pool disposal; fixture-fault vs product omission.** Yes (`:775`; fixture-isolation section `:604-…`); one-call-boundary gap at `webhook_audit` is F1.
+8. **Environment/pins/holds/Gate4/cutover still mandatory; no approval implied.** Yes — explicitly un-waived throughout; no draft PR/review = production acceptance.
+9. **Durable agent attempt: one identity across prepare/provider/binding/cancellation uncertainty.** Yes — closed JSON schema, immutable fields, bounded states (`prepared_unknown`…`conflict_reconciliation`), authenticated access before cached shortcuts, one-shot entitlement.
+10. **Genuine signed success before local binding recovers via an explicit agent-attempt mode.** Yes as design (no Checkout Session, both PI columns NULL, signed-metadata verified, doesn't weaken browser/direct/paid-history rules); binds via D3.
+11. **Sync failure webhooks + async reconciliation + scheduled cleanup enforce one once-only release.** Yes — exactly three spend-decrement sites enumerated and integrated, with the `lock_stale_agent_payment` (`status='agent_payment_pending' AND created_at<NOW()-1h`) exclusion mandate; legacy preserved.
+12. **Caller inventory reconciled with the 27-target scope; real handler/SQL assertions; no kwargs discard / mock success.** **Largely, but not fully** — enumerations and the compat-target additions (`:773`,`:775`) are sound, but the strict `webhook_audit` expectations are unreconciled (**F1**), so this question is answered **No, not fully**.
+
+### SIMPLER
+**Advisory (retained):** keep `OrderService.mark_paid`'s public signature unchanged and carry the validated binding on the owning session (`.info`/request-scoped immutable value) that the lock owner already holds, rather than as a new kwarg. Preserves every stated invariant (construct once at the validated boundary; re-compare under locks) while collapsing the whole unmigrated-caller surface and the two frozen `webhook_audit` assertions into one helper input already inside the 27 targets — it would remove exactly the F1 defect. Tradeoff: implicit data flow is less auditable. Recorded advisory (no scope-violation evidence). GLM REVIEW-32 independently found "None"; the two removals I tested (advisory-lock-instead-of-uniques; drop `expected_binding`) reopen a folded blocker and were rejected.
+
+### BETTER
+**Advisory (retained):** make the durable agent attempt a first-class immutable `agent_payment_attempts` row (unique provider idempotency key; `NOT NULL` immutable identity; `CHECK`/trigger on the closed state set; unique release marker) instead of a key in `transactions.metadata`. It converts the app-enforced invariants into DB-enforced ones and makes reconciliation a typed query. Failure modes: new forward-only DDL under the same 5 s deadline/quiescence rules and a larger surface than the owner's post-Mars4675 no-table choice; rollback = author-only forward migration + write-through JSONB projection, never a destructive downgrade. **Also advisory:** DeepSeek REVIEW-31's corrected BETTER — extend the closed `expected_binding` treatment to `create_agent_checkout` (in-scope target 20/24) so the duplicate-PI loser has a named outcome rather than "verify…rollback"; cost is one in-scope file + two tests, but it widens the agent branches the amendment orders preserved.
+
+Silence is not approval: verdict is **REVISE** on F1, with F2–F5 non-blocking, the historical record fully integrated at obligation level, and the verbatim-coverage limit stated explicitly above.

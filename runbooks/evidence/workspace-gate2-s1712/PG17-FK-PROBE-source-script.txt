@@ -1,0 +1,87 @@
+from pathlib import Path
+import subprocess,json,uuid,hashlib,time,datetime
+out=Path(__file__).resolve().parent/('pg17-fk-null-probe-s1712-'+uuid.uuid4().hex[:8]);out.mkdir()
+owner=out.name;name=owner; commands=[];cid=None
+sql=r"""\set ON_ERROR_STOP on
+\pset pager off
+BEGIN;
+SELECT version(),current_setting('server_version_num');
+CREATE TEMP TABLE probe_orders(id uuid PRIMARY KEY,seller_id uuid,buyer_id uuid,listing_id uuid,stripe_payment_intent_id varchar(255),status text NOT NULL DEFAULT 'created',CONSTRAINT uq_s1712_order_discovery UNIQUE(id,seller_id,buyer_id,listing_id,stripe_payment_intent_id));
+CREATE TEMP TABLE probe_authority(order_id uuid NOT NULL,seller_id uuid NOT NULL,buyer_id uuid NOT NULL,listing_id uuid NOT NULL,payment_intent_id varchar(255) NOT NULL,CONSTRAINT fk_s1712_registered_order_discovery FOREIGN KEY(order_id,seller_id,buyer_id,listing_id,payment_intent_id) REFERENCES probe_orders(id,seller_id,buyer_id,listing_id,stripe_payment_intent_id) MATCH SIMPLE ON UPDATE RESTRICT ON DELETE RESTRICT NOT DEFERRABLE);
+CREATE TEMP TABLE probe_results(test text PRIMARY KEY,sqlstate text,expected text);
+INSERT INTO probe_orders VALUES ('00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004','pi_probe_registered','created');
+INSERT INTO probe_authority SELECT id,seller_id,buyer_id,listing_id,stripe_payment_intent_id FROM probe_orders;
+INSERT INTO probe_results VALUES ('valid_complete_registration','00000','00000');
+DO $probe$
+DECLARE col text; state text; expected text; value text; expr text; child_col text;
+BEGIN
+FOREACH col IN ARRAY ARRAY['id','seller_id','buyer_id','listing_id','stripe_payment_intent_id'] LOOP
+ expected:=CASE WHEN col='id' THEN '23502' ELSE '23503' END;
+ BEGIN EXECUTE format('UPDATE probe_orders SET %I=NULL WHERE id=%L::uuid',col,'00000000-0000-0000-0000-000000000001');state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+ IF state<>expected THEN RAISE EXCEPTION 'Unexpected parent NULL behavior % %',col,state;END IF;
+ INSERT INTO probe_results VALUES ('parent_null_'||col,state,expected);
+ value:=CASE WHEN col='stripe_payment_intent_id' THEN 'pi_probe_changed' ELSE '00000000-0000-0000-0000-000000000099' END;
+ BEGIN EXECUTE format('UPDATE probe_orders SET %I=%L WHERE id=%L::uuid',col,value,'00000000-0000-0000-0000-000000000001');state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+ IF state<>'23503' THEN RAISE EXCEPTION 'Unexpected parent change behavior % %',col,state;END IF;
+ INSERT INTO probe_results VALUES ('parent_change_'||col,state,'23503');
+ child_col:=CASE WHEN col='id' THEN 'order_id' WHEN col='stripe_payment_intent_id' THEN 'payment_intent_id' ELSE col END;
+ SELECT string_agg(CASE WHEN x=col THEN 'NULL' ELSE quote_ident(x) END,',' ORDER BY ord) INTO expr FROM unnest(ARRAY['id','seller_id','buyer_id','listing_id','stripe_payment_intent_id']) WITH ORDINALITY AS t(x,ord);
+ BEGIN EXECUTE 'INSERT INTO probe_authority SELECT '||expr||' FROM probe_orders';state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+ IF state<>'23502' THEN RAISE EXCEPTION 'Unexpected child NULL behavior % %',child_col,state;END IF;
+ INSERT INTO probe_results VALUES ('child_null_'||child_col,state,'23502');
+END LOOP;
+BEGIN DELETE FROM probe_orders WHERE id='00000000-0000-0000-0000-000000000001';state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+IF state<>'23503' THEN RAISE EXCEPTION 'Unexpected parent deletion %',state;END IF;
+INSERT INTO probe_results VALUES ('parent_delete',state,'23503');
+END $probe$;
+UPDATE probe_orders SET status='paid' WHERE id='00000000-0000-0000-0000-000000000001';
+INSERT INTO probe_results SELECT 'registered_status_update','00000','00000' WHERE (SELECT status FROM probe_orders WHERE id='00000000-0000-0000-0000-000000000001')='paid';
+INSERT INTO probe_orders VALUES ('00000000-0000-0000-0000-000000000010','00000000-0000-0000-0000-000000000020','00000000-0000-0000-0000-000000000030','00000000-0000-0000-0000-000000000040',NULL,'created');
+INSERT INTO probe_results VALUES ('unregistered_nullable_parent','00000','00000');
+DO $probe$
+DECLARE state text;
+BEGIN
+BEGIN INSERT INTO probe_authority SELECT id,seller_id,buyer_id,listing_id,'pi_no_parent_match' FROM probe_orders WHERE id='00000000-0000-0000-0000-000000000010';state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+IF state<>'23503' THEN RAISE EXCEPTION 'Null parent falsely matched nonnull child %',state;END IF;
+INSERT INTO probe_results VALUES ('null_parent_nonnull_child_refused',state,'23503');
+BEGIN INSERT INTO probe_authority SELECT id,seller_id,buyer_id,listing_id,stripe_payment_intent_id FROM probe_orders WHERE id='00000000-0000-0000-0000-000000000010';state:='00000';EXCEPTION WHEN OTHERS THEN GET STACKED DIAGNOSTICS state=RETURNED_SQLSTATE;END;
+IF state<>'23502' THEN RAISE EXCEPTION 'Null parent plus null child escaped %',state;END IF;
+INSERT INTO probe_results VALUES ('null_parent_null_child_refused',state,'23502');
+END $probe$;
+UPDATE probe_orders SET seller_id=NULL,stripe_payment_intent_id='pi_unregistered' WHERE id='00000000-0000-0000-0000-000000000010';
+UPDATE probe_orders SET stripe_payment_intent_id=NULL,status='created' WHERE id='00000000-0000-0000-0000-000000000010';
+INSERT INTO probe_results VALUES ('unregistered_identity_and_null_updates','00000','00000');
+SELECT conname,pg_get_constraintdef(oid,true),convalidated,condeferrable,condeferred FROM pg_constraint WHERE conrelid IN ('probe_orders'::regclass,'probe_authority'::regclass) ORDER BY conname;
+SELECT c.relname,i.indisunique,i.indisvalid,i.indisready,i.indimmediate FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid WHERE i.indrelid='probe_orders'::regclass ORDER BY c.relname;
+SELECT c.relname,t.tgname,t.tgenabled,t.tgisinternal,p.proname FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_proc p ON p.oid=t.tgfoid WHERE t.tgconstraint=(SELECT oid FROM pg_constraint WHERE conname='fk_s1712_registered_order_discovery' AND conrelid='probe_authority'::regclass) ORDER BY c.relname,p.proname;
+SELECT json_agg(row_to_json(r) ORDER BY test) AS results FROM probe_results r;
+SELECT count(*) AS cases,bool_and(sqlstate=expected) AS all_expected FROM probe_results;
+SELECT count(*) AS retained_authorities FROM probe_authority;
+ROLLBACK;
+"""
+(out/'probe.sql').write_text(sql)
+(out/'source-script.py').write_text(Path(__file__).read_text())
+def call(args,input=None,timeout=30):
+ p=subprocess.run(['rtk','proxy',*args],input=input,capture_output=True,text=True,timeout=timeout)
+ d={'command':['rtk','proxy',*args],'exit':p.returncode,'stdout':p.stdout,'stderr':p.stderr};commands.append(d);return d
+try:
+ image=call(['docker','image','inspect','postgres:17-alpine','--format','{{.Id}}']);assert image['exit']==0
+ image_id=image['stdout'].strip()
+ created=call(['docker','run','--detach','--pull','never','--network','none','--name',name,'--label','workspace.owner='+owner,'--tmpfs','/var/lib/postgresql/data:rw','--env','POSTGRES_HOST_AUTH_METHOD=trust',image_id]);assert created['exit']==0;cid=created['stdout'].strip();(out/'resource.json').write_text(json.dumps({'id':cid,'owner':owner,'image':image_id,'network':'none','ports':[],'persistent_volume':False},indent=2)+'\n')
+ ready=False
+ for _ in range(30):
+  r=call(['docker','exec',cid,'pg_isready','-h','127.0.0.1','-U','postgres','-d','postgres']);
+  if r['exit']==0:ready=True;break
+  time.sleep(0.5)
+ assert ready
+ r=call(['docker','exec','-i',cid,'psql','-X','-h','127.0.0.1','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],input=sql,timeout=45)
+ (out/'probe.log').write_text(r['stdout']+r['stderr']);assert r['exit']==0,r
+finally:
+ if cid:
+  label=call(['docker','inspect','--format','{{index .Config.Labels "workspace.owner"}}',cid]);assert label['exit']==0 and label['stdout'].strip()==owner
+  removed=call(['docker','rm','-f','-v',cid]);assert removed['exit']==0
+  absent=call(['docker','inspect',cid]);assert absent['exit']==1 and 'no such' in absent['stderr'].lower()
+  inventory=call(['docker','ps','-a','--filter','label=workspace.owner='+owner,'--format','{{.ID}}']);assert inventory['exit']==0 and not inventory['stdout'].strip()
+ (out/'commands.json').write_text(json.dumps(commands,indent=2)+'\n')
+receipt={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'status':'BOUNDED_PG17_COMPOSITE_FK_SEMANTICS_PROVED','resource':cid,'owner':owner,'network':'none','port_published':False,'persistent_volume':False,'resource_absence_verified':True,'sql_sha256':hashlib.sha256((out/'probe.sql').read_bytes()).hexdigest(),'log_sha256':hashlib.sha256((out/'probe.log').read_bytes()).hexdigest(),'limits':'Temporary toy tables in one rolled-back PostgreSQL17 transaction. No W migration, product fixture, provider, runtime or Gate3 qualification.'}
+(out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n');print(json.dumps({'directory':str(out),**receipt}))

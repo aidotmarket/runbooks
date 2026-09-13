@@ -1,0 +1,70 @@
+{
+  "at": "2026-09-12T15:44:57.235272+00:00",
+  "status": "CONFIRMED_ACCEPTED_TEST_EXPECTATION_CONFLICT_REQUIRES_REVIEWED_RECONCILIATION",
+  "task_id": "cb5e73ca4aed",
+  "runtime": "FastAPI0.110.1/Starlette0.37.2",
+  "probes": [
+    {
+      "armed": false,
+      "canonical": true,
+      "status": 200,
+      "body": {
+        "checkout_url": "https://checkout.stripe.test/isolated",
+        "session_id": null,
+        "order_id": "e2c9fdb9-d375-4a67-9247-49cd40fe2f70",
+        "order_number": "ORD-2026-2407D76C",
+        "expires_at": null,
+        "transaction_id": "2967c335-c954-400c-9c8c-c79536aa5a47"
+      }
+    },
+    {
+      "armed": true,
+      "canonical": true,
+      "status": 200,
+      "body": {
+        "checkout_url": "https://checkout.stripe.test/isolated",
+        "session_id": null,
+        "order_id": "357a73f1-f3d2-4eb2-9ace-3d7fbd310b04",
+        "order_number": "ORD-2026-635E894E",
+        "expires_at": null,
+        "transaction_id": "d2922ffa-1582-4e0a-8e6a-1def8c262599"
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-checkout-contract-evidence/fresh-public-third.json",
+      "sha256": "ea4c72d5440f533e05b18412715d324956280ebe56e36fbf10fb5bca5baef13f"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-checkout-contract-evidence/fresh-public-third.log",
+      "sha256": "8e5654ea7b7e6eb4d30eaec9024fdf29f3d1a86f65e4606fa7f2ec7e45863ede"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/mp247-checkout-contract-evidence/fresh-public-third.xml",
+      "sha256": "d7f0b0594e2f49eadce37510de0e5085456dcf33595ad8e62451acae9779da7c"
+    }
+  ],
+  "source_facts": [
+    "checkout.py canonical branch149-171 returns before legacy guard190-195",
+    "ENABLE_CANONICAL_TX defaultTrue; accepted Compose does not override",
+    "false switch does not yield required403 on actual default canonical path"
+  ],
+  "code_mutations_by_auditor": false,
+  "runtime_mutations_by_auditor": false,
+  "implementation_accepted": false,
+  "historical_source_hashes_independently_verified": [
+    {
+      "revision": "d766b8e4e66d7803ebe48f8a3132521abbebe957",
+      "checkout_sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf"
+    },
+    {
+      "revision": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+      "checkout_sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf"
+    },
+    {
+      "revision": "aca73e881ca77ae8e29b77c45f293ad5fa56395d",
+      "checkout_sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf"
+    }
+  ]
+}

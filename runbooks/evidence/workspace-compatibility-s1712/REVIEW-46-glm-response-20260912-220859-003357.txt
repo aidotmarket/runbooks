@@ -1,0 +1,156 @@
+APPROVE_WITH_NITS
+
+## Numbered findings
+
+1. **NIT — the frozen candidate still lacks an explicit final-tree inventory of every `transactions.metadata` writer**
+
+   - **Severity:** NIT, non-blocking.
+   - **Evidence:** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:645-647` requires enumeration and classification of `mark_paid`, the binding helper, and completion entry points, but does not expressly classify every writer that replaces or rewrites the whole `transactions.metadata` JSONB object. The prior same-candidate review retained this at `outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-45-glm-response-20260912-215808-388612.txt:5-13`.
+   - **Observed:** The contract requires attempt preservation but has no closed final-tree classification of all metadata writers as non-destructive, authorized/attempt-aware, or refusing.
+   - **Expected:** On the frozen implementation tree, every `transactions.metadata` writer is inventoried and classified, with zero unclassified writers.
+   - **Reproduction:** Static evidence only. No implementation tree was executed.
+   - **Impact:** A whole-object JSONB replacement or malformed-string fallback could erase or obscure durable attempt authority. This remains a qualification and traceability gap, not a demonstrated normal-path money defect.
+   - **Smallest required outcome:** Add the explicit metadata-writer classification requirement to the final caller/proof gate. The language visible in the external compatibility draft is not acceptance and does not amend frozen `9645601d`.
+   - **Verification criterion:** Retained `rtk` search/output identifies every writer; delivery, settlement, and test paths prove the attempt bytes and revision remain unchanged or are changed only by an authorized transition.
+
+2. **NIT — D4’s caller-classification vocabulary still omits the fourth `agent_attempt_completion` mode by name**
+
+   - **Severity:** NIT, non-blocking.
+   - **Evidence:** `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:645-647` defines only canonical `expected_binding`, strict direct/recovery, and no-Transaction legacy classifications. Later, `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:837-851` defines `agent_attempt_completion` as a distinct fourth mode with durable-attempt correlation, no Session, provider evidence, dedicated binding inputs, and its own qualification matrix.
+   - **Observed:** A runner following only D4 could treat the agent handlers as unclassifiable or force them into a browser/direct/recovery category.
+   - **Expected:** D4 explicitly includes `agent_attempt_completion` and its exact durable-attempt/provider inputs.
+   - **Reproduction:** Static evidence only.
+   - **Impact:** Qualification ambiguity only; the later fourth-mode section substantially constrains the behavior.
+   - **Smallest required outcome:** Add the fourth classification name and required inputs to D4’s closed vocabulary.
+   - **Verification criterion:** The full-tree inventory classifies the original agent response and both signed PI handlers as `agent_attempt_completion`, records their required durable inputs, and reports zero unclassified or unmigrated callers.
+
+These two NITs do not block this bounded history-coverage result. This is **not** a whole-history or design-acceptance vote.
+
+## Coverage
+
+### Artifact and environment identity verified
+
+- Repository: `aidotmarket/runbooks`.
+- Pinned checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`.
+- HEAD verified as `9645601d50c10a5fe42f38e7972b8c159dc69b04`.
+- Branch/status verified as `docs/seller-workspace-agent-attempt-s1712`, clean and tracking the corresponding origin branch.
+- Base verified through the supplied diff as `e3b8b08813f1476910422c4233fee92360409cb7`.
+- Base-to-candidate diff reproduced as exactly 18 paths: 15 added evidence files and 3 modified authored files; `1771 insertions(+), 6 deletions(-)`.
+- Review helper SHA256 independently reproduced as:
+  `8c1d9a2830982aeed65d6da3d31bb71114c3abe8d76f0d3cb01bf5c71587dc44`.
+- Review manifest SHA256 independently reproduced as:
+  `a6bb4d09ef95f56779dfad174ddf67ddd773c413e8ce0d28f85725b44dfad77b`.
+- The manifest binds candidate `9645601d50c10a5fe42f38e7972b8c159dc69b04`.
+
+### Required reading
+
+- I personally consumed every chunk of REVIEW-17 through REVIEW-21 through the mandated helper.
+- An initial command concatenating REVIEW-17 chunks produced interface truncation; I discarded that result as evidence and reread each chunk separately until each exact interval and end marker was visible.
+- Final result: five complete bodies, 18 chunks, 110,714 body bytes, with no missing interval.
+
+### Focused integration checks
+
+- Verified the current contract’s resolution of the historical registered-Transaction-drift dispute at `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:460-475`.
+- Verified current MATCH SIMPLE treatment at `:479-483`.
+- Verified current named-object migration preflight and direct repeat-body requirement at `:485`.
+- Verified the current fourth-mode boundary at `:837-851`.
+- Verified the frozen caller inventory still records `tests/test_webhook_audit.py:287` and `:661` as strict two-positional-call assertions.
+- Verified the later owner index and prior response explicitly preserve, rather than accept, the correction state.
+
+### Not run or not verified
+
+- No tests, migrations, database operations, providers, credentials, containers, locks, runtime actions, protected-window operations, or other mutations were run.
+- No network or GitHub CI verification was performed; CI tuples remain **UNVERIFIED**.
+- I did not repeat completed source/spec/launcher/network audits or recursively reread completed REVIEW-01 through REVIEW-16 and REVIEW-27 through REVIEW-33.
+- Execution of the proposed migration, classifier, fourth mode, caller inventory, and release gates remains open.
+- The external compatibility correction draft was inspected only to confirm that it is explicitly not an accepted successor. It does not resolve either NIT or DSF1 inside frozen candidate `9645601d`.
+- The nominal 30-turn budget is exhausted; I stopped further reading after the required bodies and focused checks. The remaining REVIEW-22 through REVIEW-26 bodies are not covered by this response.
+
+## Answers to the numbered questions
+
+### 1. Were all five complete bodies consumed without truncation?
+
+**Yes.** Exact identities, hashes, byte counts, and consumed byte intervals:
+
+| Review | Target candidate | Complete body hash | Bytes | Intervals consumed `[start,end)` |
+|---|---|---:|---:|---|
+| REVIEW-17 `REVIEW-17-glm-response-20260912-182113-898552.txt` | `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f` | `5dfd7b233bf0e49fecf0856d4e793c81d09fee22abe51689cdfa08ea8b2d880b` | 18,103 | `[0,7000)`, `[7000,14000)`, `[14000,18103)` |
+| REVIEW-18 `REVIEW-18-deepseek-response-20260912-182113-550910.txt` | `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f` | `74d5dc6b8dd4d516edeb4dfa70aed4fa3055264ddde611307cfbe8a460eb45c0` | 23,384 | `[0,7000)`, `[7000,14000)`, `[14000,21000)`, `[21000,23384)` |
+| REVIEW-19 `REVIEW-19-cc-response-20260912-184755-548538.txt` | `a4e06c08f6d1cc9406dab658530a5a1292524e5a` | `777be6d94e48aede4778701a8ce1d781e44dcc956fd0d513f1dcfc3ebda29676` | 21,615 | `[0,7000)`, `[7000,14000)`, `[14000,21000)`, `[21000,21615)` |
+| REVIEW-20 `REVIEW-20-glm-response-20260912-184756-332575.txt` | `a4e06c08f6d1cc9406dab658530a5a1292524e5a` | `c895670d4b9b338d8da711a7523779de06a3369984bce3670d6324c50542ae3b` | 19,619 | `[0,7000)`, `[7000,14000)`, `[14000,19619)` |
+| REVIEW-21 `REVIEW-21-deepseek-response-20260912-184755-944151.txt` | `a4e06c08f6d1cc9406dab658530a5a1292524e5a` | `a2fc9742da9ded257d6402755153e6e85b31f76288050e86d7ecc928e2e89bd5` | 27,993 | `[0,7000)`, `[7000,14000)`, `[14000,21000)`, `[21000,27993)` |
+
+No interval is missing. Receipts were not used as a substitute for reading the body text.
+
+### 2. Did historical integration produce a newly surviving HIGH/MEDIUM against the current full contract?
+
+**No newly surviving HIGH/MEDIUM arose from REVIEW-17 through REVIEW-21.**
+
+The main historical blockers integrate as follows:
+
+- REVIEW-17 Finding 2 and REVIEW-18 F1 concerned registered W binding drift becoming terminal suppression. Current `runbooks@9645601d:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:460-475` now requires post-authority locking and validation, maps each of the six Transaction mutations to conflict/unavailable handling, requires durable HTTP 500/no financial effect, and mandates separate PostgreSQL mutation/restoration/same-event convergence tests.
+- REVIEW-21 F1 disputed whether those Transaction comparisons were actually named. Current `:462-475` supplies the exact per-field comparison table and exception routing; the historical ambiguity is therefore resolved at design level, though runtime qualification remains open.
+- REVIEW-21 F2 challenged MATCH SIMPLE null behavior. Current `:481-483` states that all five child registration columns are NOT NULL, the parent PI remains nullable only for unrelated unpaid orders, a registered non-NULL tuple is protected from parent NULLing, and global `orders.stripe_payment_intent_id NOT NULL` is expressly rejected.
+- REVIEW-21 F3 challenged repeat migration. Current `:485` requires fail-closed named-object catalog preflight for both the parent UNIQUE and composite FK, aborts same-name wrong objects, verifies exact definitions after creation, and requires a direct second upgrade-body no-op rather than relying on Alembic head.
+- REVIEW-19/20 migration-lock, catalog, listing-immutability, closure-status, and overhead concerns remain mandatory qualification gates rather than current contradictions.
+
+The **separately existing DSF1** `test_webhook_audit.py:287/661` `expected_binding` call/assertion conflict has not disappeared. It remains owner-tracked and must be resolved before any whole-design acceptance vote. It is not a new finding generated by REVIEW-17 through REVIEW-21, and this batch result must not be used as such a vote.
+
+### 3. Are the two NITs retained, and is DSF1 left owner-tracked without accepting the outside correction?
+
+**Yes to both.**
+
+- The metadata-writer and fourth-mode NITs are explicitly retained at `outputs/agent-attempt-compatibility-review-evidence-s1712/REVIEW-45-glm-response-20260912-215808-388612.txt:5-25` and `:121-122`.
+- The frozen candidate still has:
+  - `expected_binding` required directly from `_handle_checkout_completed` at `runbooks@9645601d:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:622`;
+  - canonical callers missing it refusing at `:626`;
+  - existing money assertions retained at `:647`;
+  - the `test_webhook_audit.py` compatibility amendment restricted to eleven dedup tuples at `:435`;
+  - a separate explicit migration only for the canonical integration double at `:773`.
+- The frozen caller inventory at `runbooks@9645601d:runbooks/evidence/workspace-agent-attempt-s1712/SELLER-WORKSPACE-CANONICAL-PI-BASE-CALLER-INVENTORY-S1712.json:17` preserves the exact strict assertions:
+  - `tests/test_webhook_audit.py:287`: `assert_awaited_once_with(UUID(order_id), "pi_test_09")`;
+  - `tests/test_webhook_audit.py:661`: `assert_awaited_once_with(UUID(order_id), "pi_gate3")`.
+- Owner tracking is explicit:
+  - `REVIEW-45...txt:115` says DSF1 remains owner-tracked and that a coherent correction outside the frozen candidate awaits fresh review.
+  - `INDEX.json:109` says to preserve the original specific webhook-audit F1 and adopt no new signature or advisory convention.
+  - The external draft’s `seller-workspace-operator-guide.md:402` says correction is only being prepared and that “No successor commit or accepted implementation is claimed by this draft.”
+
+Therefore, I do **not** count the external 31-target correction draft as accepted or as resolving either NIT or DSF1.
+
+### 4. Is REVIEW-22 through REVIEW-26 explicitly remaining, and is no whole-history vote claimed?
+
+**Yes.** After this batch, the exact remaining bodies are:
+
+1. `REVIEW-22-cc-response-20260912-191524-175920.txt`  
+   SHA256 `cd339ad4c957bbfa76862a8309a04ad671d3d33ab179035147f60d045d33cbe2`, 15,207 bytes.
+2. `REVIEW-23-deepseek-response-20260912-191750-833374.md` retained as `REVIEW-23-deepseek-response-20260912-191750-833374.txt`  
+   SHA256 `9ae77c162c424535ef472d3c8320c9fab138f294bae308715330017c56c61135`, 14,788 bytes.
+3. `REVIEW-24-cc-response-20260912-192808-747577.txt`  
+   SHA256 `798c33bccabe40155fd3107701bfd529932ee08a727a54bb864ea873c22627f1`, 31,926 bytes.
+4. `REVIEW-25-glm-response-20260912-191750-465420.txt`  
+   SHA256 `588d24d1055ed46442b863dacb3b3145a121496a7fd4c4573a032539d7461094`, 24,390 bytes.
+5. `REVIEW-26-deepseek-response-20260912-192617-104271.txt`  
+   SHA256 `462c73591d509e9fdb72666f80724459c5f6a5284098969f2631e712eace155b`, 19,570 bytes.
+
+No whole-history vote is claimed:
+
+- `runbooks@9645601d:runbooks/evidence/workspace-agent-attempt-s1712/REVIEW-HISTORY.json:2-3` records `votes_carried:false` and 33 earlier responses.
+- `:235-236` discloses CC’s extraction-integration method and records `successor_accepted:false`.
+- The later completion index records `more_completion_responses_pending:true`, `whole_scope_approval:false` for responses 34–42, `design_accepted:false` for 43–45, and `whole_spec_history_reading_complete:false` for REVIEW-45.
+- REVIEW-45 explicitly listed REVIEW-17 through REVIEW-26 as remaining. This batch reduces that set to REVIEW-22 through REVIEW-26 only.
+
+### 5. Are implementation, environment, genuine holds, and production AWS/R2 gates unwaived?
+
+**Yes.** `runbooks@9645601d:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:4` explicitly retains fresh full review, full implementation qualification, environment integration, combined review, genuine phases, and enabled AWS S3/Cloudflare R2 release proof. No waiver was found in this batch, and none is authorized by this verdict.
+
+## SIMPLER
+
+The simplest preserving alternative is the selected bounded approach: read only the assigned complete bodies through the manifest-pinned, UTF-8-safe, ≤7,000-byte helper chunks, then perform focused current-contract integration. It removes recursive repository discovery, repeat source audits, and rereading already completed REVIEW-01 through REVIEW-16 and REVIEW-27 through REVIEW-33.
+
+It covered 5 bodies / 18 chunks / 110,714 bytes. I cannot remove repeated historical preambles, findings, coverage sections, or rejected alternatives because the mandate requires complete body consumption and those repeats preserve supersession history. Advisory only.
+
+## BETTER
+
+A materially better record format would add target candidate SHA, full chunk interval, and chunk hash directly to each manifest row, rather than requiring the reviewer to recover target SHAs from body prose. That would remove five body-derived target lookups and make interval coverage mechanically checkable.
+
+Its failure mode is that richer receipts still do not prove cognitive consumption, so they must remain secondary to full reading and content-specific integration. Cost is a small external manifest change; rollback is reverting the manifest. No candidate signature, table, protocol, or frozen correction is changed by this advisory.

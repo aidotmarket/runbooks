@@ -1,0 +1,22 @@
+{
+  "head": "817f7331a07d07929a67198b28a82ed9b98baa56",
+  "source_hashes": {
+    "app/services/notification_service.py": "6d4b8db930b69a4a6c3c50e2739ca5991893678cb1b8495c95c23f8cf4214e3f",
+    "app/core/database.py": "45dd56c3de3f30ca7a06b38a6bd068cf47e855ae92ca6efe9601476243fd4b0d",
+    "app/services/order_service.py": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f",
+    "tests/test_refund_webhook_protocol.py": "59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077",
+    "tests/test_workspace_test_refund_admission.py": "8ad5969c794f995620671f03a3ed47547eac3df1ad1b11b31ee5d3fd586ea43a"
+  },
+  "log_sha256": "e5d616125e94320a20a3149050c807611b81075bc3f80600417aef0c5e51316d",
+  "facts": [
+    "mark_paid registers after-commit notification at857 and commits at895",
+    "notification_service imports module-bound AsyncSessionLocal,213 opens it and241-243 schedules background task",
+    "database module creates pooled engine from initial settings.DATABASE_URL at37-60",
+    "W fixture304-327 changes environment for cloned DB; signed_post overrides webhook get_db/get_async_db only and disposes its own NullPool engines",
+    "retained log37668 onward shows notification FK failure for cloned seller961bd48a absent in notification database immediately after checkout; following44cases cannot clone template due one connected session",
+    "post-terminal direct PG observation found zero client backends"
+  ],
+  "inference": "Strong source/log evidence notification used module-global template pool rather than per-case clone, leaving idle pooled connection that blocks subsequent CREATE DATABASE TEMPLATE. Exact transient backend PID was not captured; no live reproduction claimed.",
+  "required_resolution": "MP test isolation must bind actual notification session factory to per-case owned migrated database, await owned background notification completion on both pass/failure, dispose every owned pool; prove next clone succeeds after forced assertion/notification failure. Do not disable actual payment processing or kill arbitrary DB sessions. Admin engine cleanup must also cover pre-yield CREATE DATABASE failure.",
+  "product_fix_separate": "Canonical dedicated PI omission remains actual product defect, not fixed through this test isolation change."
+}

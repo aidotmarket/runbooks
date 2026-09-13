@@ -1,0 +1,32 @@
+...                                                                      [100%]
+=============================== warnings summary ===============================
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:162: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:226: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderSafeResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:285: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderListResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:451: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderEventResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/test_workspace_test_refund_admission.py::test_registered_transaction_drift_same_signed_event_recovers[api_key_id-owned]
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/dateutil/tz/tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+3 passed, 220 deselected, 7 warnings in 16.06s

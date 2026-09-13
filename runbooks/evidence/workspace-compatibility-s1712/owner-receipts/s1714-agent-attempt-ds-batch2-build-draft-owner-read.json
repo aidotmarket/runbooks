@@ -1,0 +1,23 @@
+{
+  "observed_at": "2026-09-12T19:56:22.227913+00:00",
+  "session": "S1714",
+  "full_owner_read": [
+    {
+      "path": "/Users/max/council/deepseek/response-20260912-215106-131871.md",
+      "bytes": 22070,
+      "sha256": "d046bba5a2e33c237952b8d2814be5117963b8931de71f813c648d772ab85d75"
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-COMPATIBILITY-NEXT-BUILD-DRAFT-S1712.md",
+      "bytes": 29720,
+      "sha256": "9f3eda8f9cd91b61c6969b874dc2e967ad36be01f374f425d96bad285317c977"
+    }
+  ],
+  "ds_disposition": "REVISE same F1; reviewer upgraded HIGH, no new product issue. Prior response-213939 existed contrary to review claim. Batch2 admits appendix/repeated-text gaps12\u201319; not full history coverage. New batch3 requests20\u201327 full and exact missing12\u201319 intervals. No signature advisory adopted.",
+  "builder_disposition": "31target complete draft read in two untruncated chunks; preserves source freeze/1990+new/7200s/actual PG atomicity and complete acceptance requirements; not dispatchable. Raw last DS severity must update before freeze.",
+  "active_responses": {
+    "deepseek": "/Users/max/council/deepseek/response-20260912-215526-865775.md",
+    "cc": "/Users/max/council/cc/response-20260912-215136-338580.md",
+    "glm": "/Users/max/council/glm/response-20260912-214253-341139.md"
+  }
+}

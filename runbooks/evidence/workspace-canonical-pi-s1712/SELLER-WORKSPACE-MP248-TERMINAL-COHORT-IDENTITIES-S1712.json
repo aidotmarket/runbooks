@@ -1,0 +1,62 @@
+{
+  "workspace-final": {
+    "receipt_exit": 1,
+    "source_mismatches": [
+      "alembic/versions/20260912_002_workspace_test_authority.py"
+    ],
+    "cases": 1054,
+    "outcomes": {
+      "pass": 1009,
+      "failure": 1,
+      "error": 44
+    }
+  },
+  "money-final": {
+    "receipt_exit": 1,
+    "source_mismatches": [
+      "alembic/versions/20260912_002_workspace_test_authority.py"
+    ],
+    "cases": 669,
+    "outcomes": {
+      "pass": 665,
+      "failure": 4
+    }
+  },
+  "canonical-first": {
+    "receipt_exit": 0,
+    "source_mismatches": [
+      "alembic/versions/20260912_002_workspace_test_authority.py",
+      "tests/test_webhook_audit.py",
+      "tests/test_workspace_test_refund_admission.py"
+    ],
+    "cases": 55,
+    "outcomes": {
+      "pass": 55
+    }
+  },
+  "adjacent-first": {
+    "receipt_exit": 1,
+    "source_mismatches": [
+      "alembic/versions/20260912_002_workspace_test_authority.py",
+      "tests/test_webhook_audit.py"
+    ],
+    "cases": 286,
+    "outcomes": {
+      "pass": 284,
+      "failure": 2
+    }
+  },
+  "legacy-r3": {
+    "receipt_exit": 0,
+    "source_mismatches": [
+      "alembic/versions/20260912_002_workspace_test_authority.py",
+      "app/services/workspace_refund_test_admission.py",
+      "tests/test_workspace_test_authority.py",
+      "tests/test_workspace_test_refund_admission.py"
+    ],
+    "cases": 164,
+    "outcomes": {
+      "pass": 164
+    }
+  }
+}

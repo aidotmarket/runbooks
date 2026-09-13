@@ -1,0 +1,1534 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-9.0.3, pluggy-1.6.0 -- /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python
+rootdir: /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0
+configfile: pyproject.toml
+plugins: Faker-40.15.0, cov-7.1.0, timeout-2.4.0, langsmith-0.7.32, asyncio-1.3.0, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 669 items
+
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[1000] PASSED [  0%]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[2110] PASSED [  0%]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[4000] PASSED [  0%]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[5100] PASSED [  0%]
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[refund] PASSED [  0%]
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[payout_refund] PASSED [  0%]
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[refund_recovery] PASSED [  1%]
+tests/test_order_money_protocol.py::test_capture_replay_validates_source_and_exact_allocation PASSED [  1%]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[name-Wrong] PASSED [  1%]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[normal_balance-debit] PASSED [  1%]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[is_active-False] PASSED [  1%]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[allow_manual_posting-True] PASSED [  1%]
+tests/test_order_money_protocol.py::test_runtime_rejects_legacy_entity PASSED [  1%]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[0] PASSED [  2%]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[-1] PASSED [  2%]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[True] PASSED [  2%]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[2500.0] PASSED [  2%]
+tests/test_order_money_protocol.py::test_journals_do_not_commit_caller_transaction PASSED [  2%]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[9007199254740992] PASSED [  2%]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[-9007199254740992] PASSED [  2%]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[1.0] PASSED [  3%]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[nan] PASSED [  3%]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[value4] PASSED [  3%]
+tests/test_order_money_protocol.py::test_f1_hash_numeric_key_golden_bytes PASSED [  3%]
+tests/test_order_money_protocol.py::test_lock_order_assertion_rejects_every_reversed_adjacent_edge PASSED [  3%]
+tests/test_order_money_protocol.py::test_real_finance_lock_order_before_posting[accounting_periods] PASSED [  3%]
+tests/test_order_money_protocol.py::test_real_finance_lock_order_before_posting[gl_accounts] PASSED [  4%]
+tests/test_order_money_protocol.py::test_marketplace_journal_lock_follows_accounts PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_historical_body_normalization_is_exact PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_recognized_upgrade_preserves_all_other_guards[old] PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_recognized_upgrade_preserves_all_other_guards[corrected] PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[missing_function] PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[unknown_body] PASSED [  4%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[security] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[config] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[extra_attachment] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[missing_trigger] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_entries_DISABLE] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_entries_ENABLE REPLICA] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_entries_ENABLE ALWAYS] PASSED [  5%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_closed_period_guard_DISABLE] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_closed_period_guard_ENABLE REPLICA] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_closed_period_guard_ENABLE ALWAYS] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_balanced_on_post_DISABLE] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_balanced_on_post_ENABLE REPLICA] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_balanced_on_post_ENABLE ALWAYS] PASSED [  6%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_lines_DISABLE] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_lines_ENABLE REPLICA] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_immutable_posted_lines_ENABLE ALWAYS] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_line_entity_consistency_DISABLE] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_line_entity_consistency_ENABLE REPLICA] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[trg_line_entity_consistency_ENABLE ALWAYS] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[when] PASSED [  7%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[statement] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[insert] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[after] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[columns] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[constraint] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[args] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[foreign_function] PASSED [  8%]
+tests/test_order_money_protocol.py::test_f2_migration_readiness_report_refuse_catalog_drift[return_type] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[commission] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[credit_purchase] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[subscription_payment] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[stripe_fee] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[refund] PASSED [  9%]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[api_cost] PASSED [ 10%]
+tests/test_order_money_protocol.py::test_f2_manual_post_timestamp_and_actual_trigger_status PASSED [ 10%]
+tests/test_order_money_protocol.py::test_f2_draft_edit_delete_and_balance_period_entity_guards PASSED [ 10%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[name-foreign account] PASSED [ 10%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[account_type-expense] PASSED [ 10%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[normal_balance-debit] PASSED [ 10%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[is_active-False] PASSED [ 10%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[system_managed-False] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[allow_manual_posting-True] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_f2_each_old_immutability_condition_independently[status='posted'] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_f2_each_old_immutability_condition_independently[posted_at=clock_timestamp()] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-commission] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-credit_purchase] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-subscription_payment] PASSED [ 11%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-stripe_fee] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-refund] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[True-api_cost] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-commission] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-credit_purchase] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-subscription_payment] PASSED [ 12%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-stripe_fee] PASSED [ 13%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-refund] PASSED [ 13%]
+tests/test_order_money_protocol.py::test_marketplace_and_shared_finance_cross_order_lock_progress[False-api_cost] PASSED [ 13%]
+tests/test_order_money_protocol.py::test_full_participating_fk_and_trigger_lock_inventory PASSED [ 13%]
+tests/test_order_money_protocol.py::test_f5_api_cost_actual_supported_entity_chart_disposition PASSED [ 13%]
+tests/test_refund_processing_protocol.py::test_refund_before_capture_partial_full_and_late_payment PASSED [ 13%]
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[delivered] PASSED [ 13%]
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[confirmed] PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[settled] PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_durable_admission_survives_failed_effects_and_retry PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_immutable_entity_rejects_clear_and_reassignment PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_readiness_detects_disabled_guard PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_admission_is_durable_and_blocks_every_money_guard_before_hold PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_common_order_lock_serializes_independent_connections PASSED [ 14%]
+tests/test_refund_processing_protocol.py::test_initial_entity_binding_then_immutable_reassignment PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_missing_reverse_link_refuses_admission PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_canonical_capture_route_without_customer_metadata PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_disabled_existing_settlement_writer_never_calls_provider PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_recovery_zero_matches_has_no_ttl_or_create PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_latest_confirmation_event_uses_pg_clock_not_updated_at PASSED [ 15%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[orders] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[transactions] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[order_money_states] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[payments] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[refunds] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[agent_api_keys] PASSED [ 16%]
+tests/test_refund_processing_protocol.py::test_event_admission_waits_for_own_event_before_order PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[multiple] PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[reversed] PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[wrong_amount] PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[wrong_metadata] PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[pagination_duplicate] PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_frozen_request_cannot_change_after_dispatch PASSED [ 17%]
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[success] PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[unknown_success] PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[refund_after_ownership] PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_refund_admission_wins_at_reserved_provider_barrier PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_finance_only_refund_complete_provider_set_no_order_authority PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_actual_effects_lock_trace_includes_agent_period_accounts_journal PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_partial_refund_retains_only_delivered_service_access[True] PASSED [ 18%]
+tests/test_refund_processing_protocol.py::test_partial_refund_retains_only_delivered_service_access[False] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts0] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts1] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts2] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_real_refund_fault_boundaries_rollback_or_replay_once[mid_effects] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_real_refund_fault_boundaries_rollback_or_replay_once[commit_before_ack] PASSED [ 19%]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[False-False] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[False-True] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[True-False] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[True-True] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[revoke-reserved-False] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[revoke-reserved-True] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[revoke-dispatching-False] PASSED [ 20%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[revoke-dispatching-True] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[dispute-reserved-False] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[dispute-reserved-True] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[dispute-dispatching-False] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[dispute-dispatching-True] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[refund-reserved-False] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[refund-reserved-True] PASSED [ 21%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[refund-dispatching-False] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[refund-dispatching-True] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[confirm-reserved-False] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[confirm-reserved-True] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[confirm-dispatching-False] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_payout_ownership_races_real_independent_transactions[confirm-dispatching-True] PASSED [ 22%]
+tests/test_refund_processing_protocol.py::test_real_canonical_delivery_and_confirmation_uses_actual_sync_trigger PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_pi_only_pending_admission_resolves_after_order_commit PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[buyer-False] PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[buyer-True] PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[system-False] PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[system-True] PASSED [ 23%]
+tests/test_refund_processing_protocol.py::test_quote_waits_for_parent_before_first_transaction_write PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[1000-False] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[1000-True] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[2500-False] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[2500-True] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_confirmation_and_refund_race_has_one_serial_outcome[False] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_confirmation_and_refund_race_has_one_serial_outcome[True] PASSED [ 24%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[fake_refund-Invalid provider identity] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[refund_currency-Provider refund binding mismatch] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[refund_amount-Provider refund binding mismatch] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[unknown_status-Unknown provider refund status] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[wrong_gross-Authoritative capture gross mismatch] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[wrong_currency-Authoritative capture identity/scope mismatch] PASSED [ 25%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[wrong_owner-Provider order metadata mismatch] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[wrong_entity-Authoritative capture identity/scope mismatch] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[truncated-Truncated refund pagination] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[changed_snapshot-Provider snapshot changed during pagination] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_provider_fault_matrix_keeps_admission_retryable_without_effects[duplicate_refund-Duplicate identity across refund pages] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[pending] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[failed] PASSED [ 26%]
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[canceled] PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_capture_foreign_key_reference_wait_does_not_take_gl_early[users] PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_capture_foreign_key_reference_wait_does_not_take_gl_early[billing_entities] PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_agent_update_lock_precedes_accounting_period_on_actual_effects PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_actual_provider_pagination_applies_all_pages_once PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_duplicate_payment_intent_order_binding_refuses_before_admission PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[full_refund] PASSED [ 27%]
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[independent_revoke] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[pending_refund] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_downgrade_with_protocol_history_refuses_without_schema_or_data_change PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[reference] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[broker] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[raw] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[partial] PASSED [ 28%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[full] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[revoked] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[disputed] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[cancelled] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[expired] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[partial] PASSED [ 29%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[full] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[revoked] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[disputed] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[cancelled] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[expired] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[True-True] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[True-False] PASSED [ 30%]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[False-True] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[False-False] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[revoked-request] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[revoked-callback] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[full-request] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[full-callback] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[refunded-request] PASSED [ 31%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[refunded-callback] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[disputed-request] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[disputed-callback] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[cancelled-request] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[cancelled-callback] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[expired-request] PASSED [ 32%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[expired-callback] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[window-request] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[window-callback] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[limit-request] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[limit-callback] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_unavailable-request] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_unavailable-callback] PASSED [ 33%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_quarantined-request] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_quarantined-callback] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_foreign-request] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[version_foreign-callback] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[object-request] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[object-callback] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[no_delivery-request] PASSED [ 34%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[no_delivery-callback] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[missing_evidence-request] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[missing_evidence-callback] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[foreign_evidence-request] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_request_and_callback_closure_matrix[foreign_evidence-callback] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[seller] PASSED [ 35%]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[listing] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[request] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[device] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[generation] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-True-complete] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-True-token] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-False-complete] PASSED [ 36%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-False-token] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-True-complete] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-True-token] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-False-complete] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-False-token] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_actual_sync_trigger_does_not_guard_late_delivery PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_agent_duplicate_and_mcp_actual_selects[False] PASSED [ 37%]
+tests/test_refund_processing_protocol.py::test_f4_agent_duplicate_and_mcp_actual_selects[True] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[timestamp] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[delivered] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[confirmed] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[settled] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[False-GET] PASSED [ 38%]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[False-POST] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[True-GET] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[True-POST] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[partial-available] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[partial-expired] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[partial-zero] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[partial-exhausted] PASSED [ 39%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[delivered-available] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[delivered-expired] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[delivered-zero] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[delivered-exhausted] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[completed-available] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[completed-expired] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[completed-zero] PASSED [ 40%]
+tests/test_refund_processing_protocol.py::test_f4_nondevice_s3_get_real_builder[completed-exhausted] PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[True-payment] PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[True-journal] PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[False-payment] PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[False-journal] PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_wrong_buyer_http_refresh PASSED [ 41%]
+tests/test_refund_processing_protocol.py::test_f4_normal_additional_partial_between_request_callback PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-data] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-request] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-artifact] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-data] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-request] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-artifact] PASSED [ 42%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[revoked-issue] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[revoked-file] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[undelivered-issue] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[undelivered-file] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[refunded-issue] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[refunded-file] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[disputed-issue] PASSED [ 43%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[disputed-file] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[cancelled-issue] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[cancelled-file] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[expired-issue] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f4_workspace_existing_shared_guard_refusal[expired-file] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[missing_header] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[malformed_bearer] PASSED [ 44%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[empty_bearer] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[invalid_token] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[invalid_signature] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[invalid_type] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[absent_subject] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[malformed_subject] PASSED [ 45%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[nonuuid_subject] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[unknown_user] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_actual_oauth_loader_signed_inputs[valid_user] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_workspace_positive_partial_issue_file PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[available] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[expired] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[zero] PASSED [ 46%]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[exhausted] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[closed] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-partial-GET] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-partial-POST] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-paid-GET] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-paid-POST] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-in_escrow-GET] PASSED [ 47%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-in_escrow-POST] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-pending_delivery-GET] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-pending_delivery-POST] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-delivered-GET] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-delivered-POST] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-completed-GET] PASSED [ 48%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[single-completed-POST] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-partial-GET] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-partial-POST] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-paid-GET] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-paid-POST] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-in_escrow-GET] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-in_escrow-POST] PASSED [ 49%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-pending_delivery-GET] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-pending_delivery-POST] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-delivered-GET] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-delivered-POST] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-completed-GET] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_selected-completed-POST] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-partial-GET] PASSED [ 50%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-partial-POST] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-paid-GET] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-paid-POST] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-in_escrow-GET] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-in_escrow-POST] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-pending_delivery-GET] PASSED [ 51%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-pending_delivery-POST] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-delivered-GET] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-delivered-POST] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-completed-GET] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[multi_missing-completed-POST] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-partial-GET] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-partial-POST] PASSED [ 52%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-paid-GET] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-paid-POST] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-in_escrow-GET] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-in_escrow-POST] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-pending_delivery-GET] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-pending_delivery-POST] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-delivered-GET] PASSED [ 53%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-delivered-POST] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-completed-GET] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[foreign_path-completed-POST] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-partial-GET] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-partial-POST] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-paid-GET] PASSED [ 54%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-paid-POST] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-in_escrow-GET] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-in_escrow-POST] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-pending_delivery-GET] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-pending_delivery-POST] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-delivered-GET] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-delivered-POST] PASSED [ 55%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-completed-GET] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[outside_version-completed-POST] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-partial-GET] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-partial-POST] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-paid-GET] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-paid-POST] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-in_escrow-GET] PASSED [ 56%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-in_escrow-POST] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-pending_delivery-GET] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-pending_delivery-POST] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-delivered-GET] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-delivered-POST] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-completed-GET] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_raw_source_signature_nonce_audit[workspace-completed-POST] PASSED [ 57%]
+tests/test_refund_processing_protocol.py::test_f5_mcp_actual_initiate_duplicate_preserves_purchase[False] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_mcp_actual_initiate_duplicate_preserves_purchase[True] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-revoked_by] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-dispute_resolved_by] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-credit_entity] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-event_entity] PASSED [ 58%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-revoked_by] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-dispute_resolved_by] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-credit_entity] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-event_entity] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-seller_id] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-listing_id] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-data_request_id] PASSED [ 59%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-party_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-api_key_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-order_transaction_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[True-purchased_version_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-seller_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-listing_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-data_request_id] PASSED [ 60%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-party_id] PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-api_key_id] PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-order_transaction_id] PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_actual_creation_fk_barriers[False-purchased_version_id] PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_reference_public_link_retains_uncounted_contract PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[True-users] PASSED [ 61%]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[True-billing_entities] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[False-users] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[False-billing_entities] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[stale] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[unlinked] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[nonstale] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[paid] PASSED [ 62%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[refund_admitted] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[partial] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[full] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[binding] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[reconciliation] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_actual_task_revalidation[no_pi] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[False-refund] PASSED [ 63%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[False-listener] PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[True-refund] PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[True-listener] PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_binding_changes_under_transaction_lock_refuse_without_order_reentry[True] PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_binding_changes_under_transaction_lock_refuse_without_order_reentry[False] PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_multicandidate_releases_previous_lock_chain PASSED [ 64%]
+tests/test_refund_processing_protocol.py::test_f6_cached_cleanup_candidate_normal_capture_and_listener_completion[True] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f6_cached_cleanup_candidate_normal_capture_and_listener_completion[False] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f6_task_blocks_at_order_without_owning_transaction PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f7_late_refund_callback_preserves_exact_state[fail] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f7_late_refund_callback_preserves_exact_state[finalize] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f7_first_parent_is_order[token] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f7_first_parent_is_order[idempotency] PASSED [ 65%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-full] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-revoked] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-partial_no_prior] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-partial_closed] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-expired] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[create-exhausted] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-full] PASSED [ 66%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-revoked] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-partial_no_prior] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-partial_closed] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-expired] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[token-exhausted] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-full] PASSED [ 67%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-revoked] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-partial_no_prior] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-partial_closed] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-expired] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[validate-exhausted] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-full] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-revoked] PASSED [ 68%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-partial_no_prior] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-partial_closed] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-expired] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[progress-exhausted] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-full] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-revoked] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-partial_no_prior] PASSED [ 69%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-partial_closed] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-expired] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[finalize-exhausted] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-full] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-revoked] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-partial_no_prior] PASSED [ 70%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-partial_closed] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-expired] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[fail-exhausted] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-full] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-revoked] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-partial_no_prior] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-partial_closed] PASSED [ 71%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-expired] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[confirm-exhausted] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-full] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-revoked] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-partial_no_prior] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-partial_closed] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-expired] PASSED [ 72%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dispute-exhausted] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-full] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-revoked] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-partial_no_prior] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-partial_closed] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-expired] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[retry-exhausted] PASSED [ 73%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-full] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-revoked] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-partial_no_prior] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-partial_closed] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-expired] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[idempotency-exhausted] PASSED [ 74%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-full] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-revoked] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-partial_no_prior] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-partial_closed] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-expired] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_current_access_refuses_without_effects[dlq-exhausted] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[wrong_buyer] PASSED [ 75%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[foreign_route] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[forged] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[malformed] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[foreign_claim] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[stale_attempt] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[stale_jti] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[expired] PASSED [ 76%]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_prior_completion[False] PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_prior_completion[True] PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_actual_dlq_retry_quarantine_and_normal_retry PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_genuine_unlinked_delivery_no_fabricated_authority PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[complete] PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_admission] PASSED [ 77%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[after_admission] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[between_chunks] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[before_finalize] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[send_error] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[disconnect_refunded] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[cancel] PASSED [ 78%]
+tests/test_refund_processing_protocol.py::test_f7_actual_asgi_stream_owned_sessions[oversized] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-token] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-idempotency] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-replay] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-helper] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-fail_dlq] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-dlq_retry] PASSED [ 79%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[True-dlq_quarantine] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-token] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-idempotency] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-replay] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-helper] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-fail_dlq] PASSED [ 80%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-dlq_retry] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_real_refund_both_orderings[False-dlq_quarantine] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[missing_reverse] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[ambiguous_reverse] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[changed_link] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[unlinked_becomes_linked] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[foreign_order] PASSED [ 81%]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[duplicate_payment] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_real_enqueue_commit_publication_and_revalidation[False] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_real_enqueue_commit_publication_and_revalidation[True] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[normal] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[replay] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[refund] PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_genuine_signed_payment_webhook_delivery_entry PASSED [ 82%]
+tests/test_refund_processing_protocol.py::test_f7_actual_authenticated_token_route[False] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_authenticated_token_route[True] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[16384] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[32768] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[65536] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[131072] PASSED [ 83%]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[262144] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-progress] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-finalize] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-fail] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-progress] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-finalize] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-fail] PASSED [ 84%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-progress] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-finalize] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-fail] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[replay] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[payload] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[event] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[transaction] PASSED [ 85%]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[order] PASSED [ 86%]
+tests/test_refund_processing_protocol.py::test_f7_exhausted_new_attempt_preserves_active_credential PASSED [ 86%]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_dispute_remains_a_restriction[False] PASSED [ 86%]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_dispute_remains_a_restriction[True] PASSED [ 86%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_replay_and_current_role_binding PASSED [ 86%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[source] PASSED [ 86%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[role] PASSED [ 86%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[seller] PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[listing] PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[amount] PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[unknown] PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[digest] PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_f1_failed_p_release_is_separate_and_revokes PASSED [ 87%]
+tests/test_refund_webhook_protocol.py::test_signed_n_endpoint_actual_refund_posting PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_p_is_excluded_from_negative_authority PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_n_missing_async_preserves_durable_admission PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_invalid_signature_never_admits PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[W] PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[swapped_buyer] PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[partial] PASSED [ 88%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[zero] PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[negative] PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[connected] PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[live] PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[fake_role] PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_private_cli_stdin_rejects_duplicate_json_and_unknown_arguments PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_signed_failed_p_release_uses_normal_refund_processor PASSED [ 89%]
+tests/test_refund_webhook_protocol.py::test_failed_role_signed_refund_without_boot_listing_then_replay[P] PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_failed_role_signed_refund_without_boot_listing_then_replay[N] PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_registration_cannot_self_authorize_foreign_or_ambiguous_listing PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_immutable_receipt_hash_rejects_changed_stored_listing_binding[receipt] PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_immutable_receipt_hash_rejects_changed_stored_listing_binding[listing] PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[missing_environment] PASSED [ 90%]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[missing_spec] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[wrong_environment] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[wrong_spec] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[readiness] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[after_admission] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[mid_effects] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[before_commit] PASSED [ 91%]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[after_commit] PASSED [ 92%]
+tests/test_finance_phase2.py::TestPolicyEngineClassification::test_auto_tools_classified PASSED [ 92%]
+tests/test_finance_phase2.py::TestPolicyEngineClassification::test_propose_tools_classified PASSED [ 92%]
+tests/test_finance_phase2.py::TestPolicyEngineClassification::test_blocked_tools_classified PASSED [ 92%]
+tests/test_finance_phase2.py::TestPolicyEngineClassification::test_unknown_tool_is_blocked PASSED [ 92%]
+tests/test_finance_phase2.py::TestPolicyEngineClassification::test_policy_engine_is_blocked_method PASSED [ 92%]
+tests/test_finance_phase2.py::TestApproveRejectFlow::test_create_proposal PASSED [ 92%]
+tests/test_finance_phase2.py::TestApproveRejectFlow::test_approve_proposal PASSED [ 93%]
+tests/test_finance_phase2.py::TestApproveRejectFlow::test_reject_proposal PASSED [ 93%]
+tests/test_finance_phase2.py::TestApproveRejectFlow::test_approve_non_pending_raises PASSED [ 93%]
+tests/test_finance_phase2.py::TestApproveRejectFlow::test_approve_not_found_raises PASSED [ 93%]
+tests/test_finance_phase2.py::TestPricingService::test_calculate_with_single_tier PASSED [ 93%]
+tests/test_finance_phase2.py::TestPricingService::test_calculate_selects_highest_applicable_tier PASSED [ 93%]
+tests/test_finance_phase2.py::TestPricingService::test_calculate_no_tiers_raises PASSED [ 94%]
+tests/test_finance_phase2.py::TestPricingService::test_calculate_integer_cents_no_floats PASSED [ 94%]
+tests/test_finance_phase2.py::TestPricingService::test_create_tier PASSED [ 94%]
+tests/test_finance_phase2.py::TestCouponService::test_validate_valid_coupon PASSED [ 94%]
+tests/test_finance_phase2.py::TestCouponService::test_validate_expired_coupon PASSED [ 94%]
+tests/test_finance_phase2.py::TestCouponService::test_validate_max_redemptions_reached PASSED [ 94%]
+tests/test_finance_phase2.py::TestCouponService::test_validate_nonexistent_coupon PASSED [ 94%]
+tests/test_finance_phase2.py::TestCouponService::test_validate_not_yet_active PASSED [ 95%]
+tests/test_finance_phase2.py::TestCouponService::test_redeem_percentage_coupon PASSED [ 95%]
+tests/test_finance_phase2.py::TestCouponService::test_redeem_fixed_coupon_capped PASSED [ 95%]
+tests/test_finance_phase2.py::TestSubscriptionService::test_create_subscription FAILED [ 95%]
+tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_at_period_end FAILED [ 95%]
+tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_immediate FAILED [ 95%]
+tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_already_canceled_raises FAILED [ 95%]
+tests/test_finance_phase2.py::TestAuditLog::test_auto_execution_creates_audit_log PASSED [ 96%]
+tests/test_finance_phase2.py::TestAuditLog::test_proposal_creates_audit_log PASSED [ 96%]
+tests/test_finance_phase2.py::TestAuditLog::test_approval_creates_audit_log PASSED [ 96%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_agent_proposal_no_float_columns PASSED [ 96%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_pricing_tier_no_float_columns PASSED [ 96%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_coupon_no_float_columns PASSED [ 96%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_coupon_redemption_discount_is_biginteger PASSED [ 97%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_subscription_no_float_columns PASSED [ 97%]
+tests/test_finance_phase2.py::TestIntegerCentsPhase2::test_pricing_calculation_uses_integer_division PASSED [ 97%]
+tests/test_finance_phase2.py::TestMultiEntityPhase2::test_agent_proposal_has_entity_id PASSED [ 97%]
+tests/test_finance_phase2.py::TestMultiEntityPhase2::test_pricing_tier_has_entity_id PASSED [ 97%]
+tests/test_finance_phase2.py::TestMultiEntityPhase2::test_coupon_has_entity_id PASSED [ 97%]
+tests/test_finance_phase2.py::TestMultiEntityPhase2::test_subscription_has_entity_id PASSED [ 97%]
+tests/test_finance_phase2.py::TestStripeEventProcessing::test_payment_intent_succeeded PASSED [ 98%]
+tests/test_finance_phase2.py::TestStripeEventProcessing::test_unknown_event_type_ignored PASSED [ 98%]
+tests/test_finance_phase2.py::TestStripeEventProcessing::test_missing_customer_id_skipped PASSED [ 98%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_agent_command_base PASSED [ 98%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_propose_refund_command PASSED [ 98%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_pricing_tier_create PASSED [ 98%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_coupon_create PASSED [ 98%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_subscription_create PASSED [ 99%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_agent_command_result PASSED [ 99%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_proposal_response PASSED [ 99%]
+tests/test_finance_phase2.py::TestPhase2Schemas::test_audit_log_entry PASSED [ 99%]
+tests/test_finance_phase2.py::TestFinanceAgentRouter::test_router_imports PASSED [ 99%]
+tests/test_finance_phase2.py::TestFinanceAgentRouter::test_router_has_expected_routes PASSED [ 99%]
+tests/test_finance_phase2.py::test_dormant_direct_refund_route_refuses_before_any_db_write PASSED [100%]
+
+=================================== FAILURES ===================================
+_______________ TestSubscriptionService.test_create_subscription _______________
+
+self = <test_finance_phase2.TestSubscriptionService object at 0x10ba7e7b0>
+
+    @pytest.mark.asyncio
+    async def test_create_subscription(self):
+>       from app.services.finance.subscription_service import SubscriptionService
+E       ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+
+tests/test_finance_phase2.py:553: ModuleNotFoundError
+________ TestSubscriptionService.test_cancel_subscription_at_period_end ________
+
+self = <test_finance_phase2.TestSubscriptionService object at 0x10ba7f3e0>
+
+    @pytest.mark.asyncio
+    async def test_cancel_subscription_at_period_end(self):
+>       from app.services.finance.subscription_service import SubscriptionService
+E       ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+
+tests/test_finance_phase2.py:575: ModuleNotFoundError
+__________ TestSubscriptionService.test_cancel_subscription_immediate __________
+
+self = <test_finance_phase2.TestSubscriptionService object at 0x10ba7a7b0>
+
+    @pytest.mark.asyncio
+    async def test_cancel_subscription_immediate(self):
+>       from app.services.finance.subscription_service import SubscriptionService
+E       ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+
+tests/test_finance_phase2.py:600: ModuleNotFoundError
+_________ TestSubscriptionService.test_cancel_already_canceled_raises __________
+
+self = <test_finance_phase2.TestSubscriptionService object at 0x10b853800>
+
+    @pytest.mark.asyncio
+    async def test_cancel_already_canceled_raises(self):
+>       from app.services.finance.subscription_service import SubscriptionService
+E       ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+
+tests/test_finance_phase2.py:622: ModuleNotFoundError
+=============================== warnings summary ===============================
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[1000]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[2110]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[4000]
+tests/test_order_money_protocol.py::test_migration_missing_account_reseed_preserves_other_accounts[5100]
+  tests/test_order_money_protocol.py:137: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[refund]
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[payout_refund]
+tests/test_order_money_protocol.py::test_actual_marketplace_ledger_observation_orders[refund_recovery]
+  tests/test_order_money_protocol.py:157: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_capture_replay_validates_source_and_exact_allocation
+  tests/test_order_money_protocol.py:190: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[name-Wrong]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[normal_balance-debit]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[is_active-False]
+tests/test_order_money_protocol.py::test_runtime_rejects_conflicting_chart[allow_manual_posting-True]
+  tests/test_order_money_protocol.py:204: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_runtime_rejects_legacy_entity
+  tests/test_order_money_protocol.py:215: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[0]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[-1]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[True]
+tests/test_order_money_protocol.py::test_integer_positive_capture_amount[2500.0]
+  tests/test_order_money_protocol.py:221: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_journals_do_not_commit_caller_transaction
+  tests/test_order_money_protocol.py:230: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[9007199254740992]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[-9007199254740992]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[1.0]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[nan]
+tests/test_order_money_protocol.py::test_f1_hash_refuses_noncanonical_values[value4]
+  tests/test_order_money_protocol.py:238: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize('value',[9007199254740992,-9007199254740992,1.0,float('nan'),{'x':'é'}])
+
+tests/test_order_money_protocol.py::test_f1_hash_numeric_key_golden_bytes
+  tests/test_order_money_protocol.py:245: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_f1_hash_numeric_key_golden_bytes():
+
+tests/test_order_money_protocol.py::test_lock_order_assertion_rejects_every_reversed_adjacent_edge
+  tests/test_order_money_protocol.py:253: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_lock_order_assertion_rejects_every_reversed_adjacent_edge():
+
+tests/test_order_money_protocol.py::test_real_finance_lock_order_before_posting[accounting_periods]
+tests/test_order_money_protocol.py::test_real_finance_lock_order_before_posting[gl_accounts]
+  tests/test_order_money_protocol.py:261: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_marketplace_journal_lock_follows_accounts
+  tests/test_order_money_protocol.py:301: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f2_historical_body_normalization_is_exact
+  tests/test_order_money_protocol.py:346: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_f2_historical_body_normalization_is_exact():
+
+tests/test_order_money_protocol.py::test_f2_recognized_upgrade_preserves_all_other_guards[old]
+tests/test_order_money_protocol.py::test_f2_recognized_upgrade_preserves_all_other_guards[corrected]
+  tests/test_order_money_protocol.py:358: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py: 30 warnings
+  tests/test_order_money_protocol.py:411: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[commission]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[credit_purchase]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[subscription_payment]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[stripe_fee]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[refund]
+tests/test_order_money_protocol.py::test_f2_six_shared_callers_actual_posting_and_immutability[api_cost]
+  tests/test_order_money_protocol.py:458: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f2_manual_post_timestamp_and_actual_trigger_status
+  tests/test_order_money_protocol.py:476: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f2_draft_edit_delete_and_balance_period_entity_guards
+  tests/test_order_money_protocol.py:488: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[name-foreign account]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[account_type-expense]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[normal_balance-debit]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[is_active-False]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[system_managed-False]
+tests/test_order_money_protocol.py::test_migration_conflicting_chart_is_never_rewritten[allow_manual_posting-True]
+  tests/test_order_money_protocol.py:512: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f2_each_old_immutability_condition_independently[status='posted']
+tests/test_order_money_protocol.py::test_f2_each_old_immutability_condition_independently[posted_at=clock_timestamp()]
+  tests/test_order_money_protocol.py:528: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py: 12 warnings
+  tests/test_order_money_protocol.py:546: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_full_participating_fk_and_trigger_lock_inventory
+  tests/test_order_money_protocol.py:606: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_order_money_protocol.py::test_f5_api_cost_actual_supported_entity_chart_disposition
+  tests/test_order_money_protocol.py:629: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_refund_before_capture_partial_full_and_late_payment
+  tests/test_refund_processing_protocol.py:68: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[delivered]
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[confirmed]
+tests/test_refund_processing_protocol.py::test_full_refund_trigger_uses_actual_prior_state_including_local_refunded[settled]
+  tests/test_refund_processing_protocol.py:106: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_durable_admission_survives_failed_effects_and_retry
+  tests/test_refund_processing_protocol.py:120: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_immutable_entity_rejects_clear_and_reassignment
+  tests/test_refund_processing_protocol.py:137: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_readiness_detects_disabled_guard
+  tests/test_refund_processing_protocol.py:150: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_admission_is_durable_and_blocks_every_money_guard_before_hold
+  tests/test_refund_processing_protocol.py:160: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_common_order_lock_serializes_independent_connections
+  tests/test_refund_processing_protocol.py:176: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_initial_entity_binding_then_immutable_reassignment
+  tests/test_refund_processing_protocol.py:210: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_missing_reverse_link_refuses_admission
+  tests/test_refund_processing_protocol.py:225: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_canonical_capture_route_without_customer_metadata
+  tests/test_refund_processing_protocol.py:234: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_disabled_existing_settlement_writer_never_calls_provider
+  tests/test_refund_processing_protocol.py:250: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_recovery_zero_matches_has_no_ttl_or_create
+  tests/test_refund_processing_protocol.py:265: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  tests/test_refund_processing_protocol.py:291: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:162: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:226: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderSafeResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:285: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderListResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:451: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderEventResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+tests/test_refund_processing_protocol.py::test_revoke_and_confirmation_share_authority
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/dateutil/tz/tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+tests/test_refund_processing_protocol.py::test_latest_confirmation_event_uses_pg_clock_not_updated_at
+  tests/test_refund_processing_protocol.py:305: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[orders]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[transactions]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[order_money_states]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[payments]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[refunds]
+tests/test_refund_processing_protocol.py::test_actual_common_lock_chain_waits_at_each_owned_node[agent_api_keys]
+  tests/test_refund_processing_protocol.py:322: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_event_admission_waits_for_own_event_before_order
+  tests/test_refund_processing_protocol.py:372: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[multiple]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[reversed]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[wrong_amount]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[wrong_metadata]
+tests/test_refund_processing_protocol.py::test_recovery_reconciles_contradictions_never_creates[pagination_duplicate]
+  tests/test_refund_processing_protocol.py:403: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_frozen_request_cannot_change_after_dispatch
+  tests/test_refund_processing_protocol.py:442: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[success]
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[unknown_success]
+tests/test_refund_processing_protocol.py::test_actual_dispatch_crash_recovery_and_late_refund[refund_after_ownership]
+  tests/test_refund_processing_protocol.py:485: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_refund_admission_wins_at_reserved_provider_barrier
+  tests/test_refund_processing_protocol.py:525: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_finance_only_refund_complete_provider_set_no_order_authority
+  tests/test_refund_processing_protocol.py:562: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_actual_effects_lock_trace_includes_agent_period_accounts_journal
+  tests/test_refund_processing_protocol.py:600: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_partial_refund_retains_only_delivered_service_access[True]
+tests/test_refund_processing_protocol.py::test_partial_refund_retains_only_delivered_service_access[False]
+  tests/test_refund_processing_protocol.py:631: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts0]
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts1]
+tests/test_refund_processing_protocol.py::test_agent_partial_full_replay_exact_delta_and_posted_balances[amounts2]
+  tests/test_refund_processing_protocol.py:655: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_real_refund_fault_boundaries_rollback_or_replay_once[mid_effects]
+tests/test_refund_processing_protocol.py::test_real_refund_fault_boundaries_rollback_or_replay_once[commit_before_ack]
+  tests/test_refund_processing_protocol.py:688: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[False-False]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[False-True]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[True-False]
+tests/test_refund_processing_protocol.py::test_both_existing_payout_writers_real_post_or_default_disabled[True-True]
+  tests/test_refund_processing_protocol.py:720: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 16 warnings
+  tests/test_refund_processing_protocol.py:765: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_real_canonical_delivery_and_confirmation_uses_actual_sync_trigger
+  tests/test_refund_processing_protocol.py:845: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  tests/test_refund_processing_protocol.py:866: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/agent_auth.py:24: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AgentIdentity(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/action.py:119: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ActionLogEntry(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/listing.py:347: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/listing.py:449: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingListResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/listing.py:485: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SchemaOrgDataset(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/listing.py:622: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingPreviewResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_partial_refund_refresh_route_manifest_blocker
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/disclosure_snapshot.py:46: UserWarning: Field name "schema" in "DisclosureApprovedFields" shadows an attribute in parent "BaseModel"
+    class DisclosureApprovedFields(BaseModel):
+
+tests/test_refund_processing_protocol.py: 309 warnings
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/jose/jwt.py:311: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = timegm(datetime.utcnow().utctimetuple())
+
+tests/test_refund_processing_protocol.py::test_pi_only_pending_admission_resolves_after_order_commit
+  tests/test_refund_processing_protocol.py:873: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[buyer-False]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[buyer-True]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[system-False]
+tests/test_refund_processing_protocol.py::test_generic_refund_refused_without_any_write_event_or_commit[system-True]
+  tests/test_refund_processing_protocol.py:918: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_quote_waits_for_parent_before_first_transaction_write
+  tests/test_refund_processing_protocol.py:950: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[1000-False]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[1000-True]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[2500-False]
+tests/test_refund_processing_protocol.py::test_simultaneous_partial_and_reordered_full_serialize_once[2500-True]
+  tests/test_refund_processing_protocol.py:983: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_confirmation_and_refund_race_has_one_serial_outcome[False]
+tests/test_refund_processing_protocol.py::test_confirmation_and_refund_race_has_one_serial_outcome[True]
+  tests/test_refund_processing_protocol.py:1037: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 11 warnings
+  tests/test_refund_processing_protocol.py:1084: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[pending]
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[failed]
+tests/test_refund_processing_protocol.py::test_non_succeeded_provider_refund_has_zero_money_or_spend_delta[canceled]
+  tests/test_refund_processing_protocol.py:1131: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_capture_foreign_key_reference_wait_does_not_take_gl_early[users]
+tests/test_refund_processing_protocol.py::test_capture_foreign_key_reference_wait_does_not_take_gl_early[billing_entities]
+  tests/test_refund_processing_protocol.py:1144: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_agent_update_lock_precedes_accounting_period_on_actual_effects
+  tests/test_refund_processing_protocol.py:1186: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_actual_provider_pagination_applies_all_pages_once
+  tests/test_refund_processing_protocol.py:1224: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_duplicate_payment_intent_order_binding_refuses_before_admission
+  tests/test_refund_processing_protocol.py:1248: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[full_refund]
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[independent_revoke]
+tests/test_refund_processing_protocol.py::test_dispute_won_replay_cannot_erase_money_restriction[pending_refund]
+  tests/test_refund_processing_protocol.py:1259: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_downgrade_with_protocol_history_refuses_without_schema_or_data_change
+  tests/test_refund_processing_protocol.py:1282: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[reference]
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[broker]
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[raw]
+  tests/test_refund_processing_protocol.py:1309: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[broker]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-request]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/fulfillment_broker.py:318: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "exp": datetime.utcnow() + timedelta(hours=1),
+
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[broker]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-request]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/fulfillment_broker.py:319: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow(),
+
+tests/test_refund_processing_protocol.py::test_f4_actual_retained_access_surfaces[broker]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-request]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/fulfillment_broker.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "estimated_ready_at": datetime.utcnow().isoformat(),
+
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[partial]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[full]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[revoked]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[disputed]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[cancelled]
+tests/test_refund_processing_protocol.py::test_f4_staged_late_complete_refuses[expired]
+  tests/test_refund_processing_protocol.py:1353: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[partial]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[full]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[revoked]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[disputed]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[cancelled]
+tests/test_refund_processing_protocol.py::test_f4_staged_token_current_access[expired]
+  tests/test_refund_processing_protocol.py:1375: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[True-True]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[True-False]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[False-True]
+tests/test_refund_processing_protocol.py::test_f4_s3_http_refresh_decrypted_callback_and_redeem[False-False]
+  tests/test_refund_processing_protocol.py:1476: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 30 warnings
+  tests/test_refund_processing_protocol.py:1525: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[seller]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[listing]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[request]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[device]
+tests/test_refund_processing_protocol.py::test_f4_callback_tuple_refusals[generation]
+  tests/test_refund_processing_protocol.py:1582: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-True-complete]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-True-token]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-False-complete]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[333-False-token]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-True-complete]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-True-token]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-False-complete]
+tests/test_refund_processing_protocol.py::test_f4_listener_refund_serial_barriers[2500-False-token]
+  tests/test_refund_processing_protocol.py:1604: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_sync_trigger_does_not_guard_late_delivery
+  tests/test_refund_processing_protocol.py:1670: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_agent_duplicate_and_mcp_actual_selects[False]
+tests/test_refund_processing_protocol.py::test_f4_agent_duplicate_and_mcp_actual_selects[True]
+  tests/test_refund_processing_protocol.py:1683: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[timestamp]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[delivered]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[confirmed]
+tests/test_refund_processing_protocol.py::test_f4_get_information_and_reverse_evidence[settled]
+  tests/test_refund_processing_protocol.py:1716: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[False-GET]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[False-POST]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[True-GET]
+tests/test_refund_processing_protocol.py::test_f4_raw_http_nonce_audit_single_use[True-POST]
+  tests/test_refund_processing_protocol.py:1734: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 96 warnings
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/core/security.py:37: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    issued_at = datetime.utcnow()
+
+tests/test_refund_processing_protocol.py: 12 warnings
+  tests/test_refund_processing_protocol.py:1777: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[True-payment]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[True-journal]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[False-payment]
+tests/test_refund_processing_protocol.py::test_f4_actual_legacy_credit_nullable_fk_barriers[False-journal]
+  tests/test_refund_processing_protocol.py:1826: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_wrong_buyer_http_refresh
+  tests/test_refund_processing_protocol.py:1867: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_normal_additional_partial_between_request_callback
+  tests/test_refund_processing_protocol.py:1877: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-data]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-request]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-artifact]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-data]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-request]
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-artifact]
+  tests/test_refund_processing_protocol.py:1893: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-data]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/agent/router.py:138: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DatasetEvaluation(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-data]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/agent/router.py:981: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AccessRequestResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[True-data]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/agent/router.py:1009: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ArtifactUrlResponse(BaseModel):
+
+tests/test_refund_processing_protocol.py: 17 warnings
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/oauth_service.py:367: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+tests/test_refund_processing_protocol.py: 17 warnings
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/oauth_service.py:374: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "iat": datetime.utcnow(),
+
+tests/test_refund_processing_protocol.py::test_f4_actual_agent_routes_oauth_and_broker[False-data]
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/agent/router.py:896: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+
+tests/test_refund_processing_protocol.py: 12 warnings
+  tests/test_refund_processing_protocol.py:1929: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 11 warnings
+  tests/test_refund_processing_protocol.py:1972: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_workspace_positive_partial_issue_file
+  tests/test_refund_processing_protocol.py:2011: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[available]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[expired]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[zero]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[exhausted]
+tests/test_refund_processing_protocol.py::test_f5_device_s3_get_informational[closed]
+  tests/test_refund_processing_protocol.py:2113: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 72 warnings
+  tests/test_refund_processing_protocol.py:2133: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_mcp_actual_initiate_duplicate_preserves_purchase[False]
+tests/test_refund_processing_protocol.py::test_f5_mcp_actual_initiate_duplicate_preserves_purchase[True]
+  tests/test_refund_processing_protocol.py:2193: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-revoked_by]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-dispute_resolved_by]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-credit_entity]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[True-event_entity]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-revoked_by]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-dispute_resolved_by]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-credit_entity]
+tests/test_refund_processing_protocol.py::test_f5_actual_nullable_legacy_assignments[False-event_entity]
+  tests/test_refund_processing_protocol.py:2271: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 14 warnings
+  tests/test_refund_processing_protocol.py:2304: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_reference_public_link_retains_uncounted_contract
+  tests/test_refund_processing_protocol.py:2355: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[True-users]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[True-billing_entities]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[False-users]
+tests/test_refund_processing_protocol.py::test_f5_capture_reference_both_orderings[False-billing_entities]
+  tests/test_refund_processing_protocol.py:2370: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 10 warnings
+  tests/test_refund_processing_protocol.py:2467: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[False-refund]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[False-listener]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[True-refund]
+tests/test_refund_processing_protocol.py::test_f6_cleanup_refund_listener_order_barriers[True-listener]
+  tests/test_refund_processing_protocol.py:2503: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f6_binding_changes_under_transaction_lock_refuse_without_order_reentry[True]
+tests/test_refund_processing_protocol.py::test_f6_binding_changes_under_transaction_lock_refuse_without_order_reentry[False]
+  tests/test_refund_processing_protocol.py:2586: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f6_multicandidate_releases_previous_lock_chain
+  tests/test_refund_processing_protocol.py:2625: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f6_cached_cleanup_candidate_normal_capture_and_listener_completion[True]
+tests/test_refund_processing_protocol.py::test_f6_cached_cleanup_candidate_normal_capture_and_listener_completion[False]
+  tests/test_refund_processing_protocol.py:2653: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f6_task_blocks_at_order_without_owning_transaction
+  tests/test_refund_processing_protocol.py:2728: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_late_refund_callback_preserves_exact_state[fail]
+tests/test_refund_processing_protocol.py::test_f7_late_refund_callback_preserves_exact_state[finalize]
+  tests/test_refund_processing_protocol.py:2794: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_first_parent_is_order[token]
+tests/test_refund_processing_protocol.py::test_f7_first_parent_is_order[idempotency]
+  tests/test_refund_processing_protocol.py:2817: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 66 warnings
+  tests/test_refund_processing_protocol.py:2858: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[wrong_buyer]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[foreign_route]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[forged]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[malformed]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[foreign_claim]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[stale_attempt]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[stale_jti]
+tests/test_refund_processing_protocol.py::test_f7_signed_credential_refusals[expired]
+  tests/test_refund_processing_protocol.py:2902: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_prior_completion[False]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_prior_completion[True]
+  tests/test_refund_processing_protocol.py:2933: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_actual_dlq_retry_quarantine_and_normal_retry
+  tests/test_refund_processing_protocol.py:2963: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_genuine_unlinked_delivery_no_fabricated_authority
+  tests/test_refund_processing_protocol.py:2982: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 10 warnings
+  tests/test_refund_processing_protocol.py:2999: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py: 14 warnings
+  tests/test_refund_processing_protocol.py:3105: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[missing_reverse]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[ambiguous_reverse]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[changed_link]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[unlinked_becomes_linked]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[foreign_order]
+tests/test_refund_processing_protocol.py::test_f7_binding_refusal_no_new_authority[duplicate_payment]
+  tests/test_refund_processing_protocol.py:3189: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_real_enqueue_commit_publication_and_revalidation[False]
+tests/test_refund_processing_protocol.py::test_f7_real_enqueue_commit_publication_and_revalidation[True]
+  tests/test_refund_processing_protocol.py:3226: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[normal]
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[replay]
+tests/test_refund_processing_protocol.py::test_f7_actual_payment_helper_omitted_order_id[refund]
+  tests/test_refund_processing_protocol.py:3269: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_genuine_signed_payment_webhook_delivery_entry
+  tests/test_refund_processing_protocol.py:3293: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_actual_authenticated_token_route[False]
+tests/test_refund_processing_protocol.py::test_f7_actual_authenticated_token_route[True]
+  tests/test_refund_processing_protocol.py:3312: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[16384]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[32768]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[65536]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[131072]
+tests/test_refund_processing_protocol.py::test_f7_actual_reader_concrete_bound[262144]
+  tests/test_refund_processing_protocol.py:3338: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-progress]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-finalize]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[attempt-fail]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-progress]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-finalize]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[jti-fail]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-progress]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-finalize]
+tests/test_refund_processing_protocol.py::test_f7_stale_callbacks_preserve_every_snapshot[expired-fail]
+  tests/test_refund_processing_protocol.py:3350: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[replay]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[payload]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[event]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[transaction]
+tests/test_refund_processing_protocol.py::test_f7_idempotency_conflict_and_omitted_parent_replay[order]
+  tests/test_refund_processing_protocol.py:3373: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_exhausted_new_attempt_preserves_active_credential
+  tests/test_refund_processing_protocol.py:3397: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_dispute_remains_a_restriction[False]
+tests/test_refund_processing_protocol.py::test_f7_normal_and_partial_dispute_remains_a_restriction[True]
+  tests/test_refund_processing_protocol.py:3410: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_f1_registration_replay_and_current_role_binding
+  tests/test_refund_webhook_protocol.py:63: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[source]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[role]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[seller]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[listing]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[amount]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[unknown]
+tests/test_refund_webhook_protocol.py::test_f1_registration_rejects_mutated_receipt[digest]
+  tests/test_refund_webhook_protocol.py:76: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_f1_failed_p_release_is_separate_and_revokes
+  tests/test_refund_webhook_protocol.py:92: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_signed_n_endpoint_actual_refund_posting
+  tests/test_refund_webhook_protocol.py:146: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_signed_p_is_excluded_from_negative_authority
+  tests/test_refund_webhook_protocol.py:158: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_signed_n_missing_async_preserves_durable_admission
+  tests/test_refund_webhook_protocol.py:169: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_invalid_signature_never_admits
+  tests/test_refund_webhook_protocol.py:180: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[W]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[swapped_buyer]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[partial]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[zero]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[negative]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[connected]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[live]
+tests/test_refund_webhook_protocol.py::test_signed_n_authority_cannot_admit_other_scope[fake_role]
+  tests/test_refund_webhook_protocol.py:189: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_private_cli_stdin_rejects_duplicate_json_and_unknown_arguments
+  tests/test_refund_webhook_protocol.py:222: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_private_cli_stdin_rejects_duplicate_json_and_unknown_arguments():
+
+tests/test_refund_webhook_protocol.py::test_signed_failed_p_release_uses_normal_refund_processor
+  tests/test_refund_webhook_protocol.py:232: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_failed_role_signed_refund_without_boot_listing_then_replay[P]
+tests/test_refund_webhook_protocol.py::test_failed_role_signed_refund_without_boot_listing_then_replay[N]
+  tests/test_refund_webhook_protocol.py:246: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_registration_cannot_self_authorize_foreign_or_ambiguous_listing
+  tests/test_refund_webhook_protocol.py:264: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_immutable_receipt_hash_rejects_changed_stored_listing_binding[receipt]
+tests/test_refund_webhook_protocol.py::test_immutable_receipt_hash_rejects_changed_stored_listing_binding[listing]
+  tests/test_refund_webhook_protocol.py:290: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[missing_environment]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[missing_spec]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[wrong_environment]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[wrong_spec]
+tests/test_refund_webhook_protocol.py::test_matched_authority_deployment_failure_retry_same_signed_event[readiness]
+  tests/test_refund_webhook_protocol.py:313: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[after_admission]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[mid_effects]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[before_commit]
+tests/test_refund_webhook_protocol.py::test_signed_endpoint_fault_and_ack_loss_retries_once[after_commit]
+  tests/test_refund_webhook_protocol.py:348: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.asyncio
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/money-final.xml -
+=========================== short test summary info ============================
+FAILED tests/test_finance_phase2.py::TestSubscriptionService::test_create_subscription - ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+FAILED tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_at_period_end - ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+FAILED tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_subscription_immediate - ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+FAILED tests/test_finance_phase2.py::TestSubscriptionService::test_cancel_already_canceled_raises - ModuleNotFoundError: No module named 'app.services.finance.subscription_service'
+=========== 4 failed, 665 passed, 1079 warnings in 325.79s (0:05:25) ===========

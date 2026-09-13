@@ -1,0 +1,21 @@
+{
+  "at": "2026-09-12T23:25:06.542138+00:00",
+  "scope": "Design amendment approval only; implementation/deployment/full release remain required",
+  "accepted_candidate": "0644140c6d6d3076cc07edd6231d21122882cad4",
+  "amendment_sha256": "06953bc1058c7a1e8acc83f9f8ae6d9cb81cc9de38169cd3a0f42205f9d1ca0f",
+  "authority": "User: If GLM and Deepseek agree that is approval. CC waived, not approved.",
+  "votes": {
+    "GLM": {
+      "verdict": "APPROVE_WITH_NITS",
+      "file": "GLM-RESPONSE.md",
+      "sha256": "6080e654bf0f8aec9031eaeb038b73aa339c796ff26ed7679f9503f0f622a07a"
+    },
+    "DEEPSEEK": {
+      "verdict": "APPROVE_WITH_NITS",
+      "file": "DEEPSEEK-RESPONSE.md",
+      "sha256": "cd1518f9228ae6b7cbac4c6635426a22b63d4300990116e5a6fd496ea64aec44"
+    }
+  },
+  "next_action": "Implement accepted design with all parent obligations after current sole MP250 terminal; no duplicate active builder, no new Max approval.",
+  "documentary_fold": "Current AMENDMENT.md adds nonblocking documentation clarifications only; exact approved design retained in APPROVED-AMENDMENT-0644140.md. No implementation or deployment approval claimed."
+}

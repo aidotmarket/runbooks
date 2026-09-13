@@ -1,0 +1,614 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-9.0.3, pluggy-1.6.0 -- /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python
+rootdir: /Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests
+plugins: Faker-40.15.0, cov-7.1.0, timeout-2.4.0, langsmith-0.7.32, asyncio-1.3.0, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 15 items
+
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhooks.py::test_payment_succeeded_billing_failure_leaves_failed_checkpoint FAILED [  6%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_e2e_stripe_isolation.py::test_stripe_webhook_suppresses_e2e_metadata_before_handlers PASSED [ 13%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_07_idempotency_concurrent_only_one_processes PASSED [ 20%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_08_payload_sha256_stored_in_dedup PASSED [ 26%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_09_checkout_completed_order_paid FAILED [ 33%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_10_dispute_created_flagged_revoked FAILED [ 40%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_11_dispute_closed_won_restored FAILED [ 46%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_12_refund_full_revoked FAILED [ 53%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_13_refund_partial_access_kept FAILED [ 60%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_14_payout_failed_seller_flagged PASSED [ 66%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_16_db_error_critical_returns_500 PASSED [ 73%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_17_db_error_non_critical_returns_200 PASSED [ 80%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_18_dedup_row_inserted_before_processing FAILED [ 86%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_19_return_codes_per_section_5 PASSED [ 93%]
+../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_20_checkout_completed_calls_handle_payment_when_canonical_tx FAILED [100%]
+
+=================================== FAILURES ===================================
+_______ test_payment_succeeded_billing_failure_leaves_failed_checkpoint ________
+
+payment_succeeded_checkpoint = namespace(event={'id': 'evt_purchase', 'type': 'payment_intent.succeeded', 'livemode': False, 'data': {'object': {'id'...ooks' from '/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/endpoints/webhooks.py'>)
+
+    def test_payment_succeeded_billing_failure_leaves_failed_checkpoint(payment_succeeded_checkpoint):
+        from fastapi import HTTPException
+    
+        ctx = payment_succeeded_checkpoint
+        # S1681 G14.17: paid-order finance and delivery failures require Stripe retries.
+        assert "payment_intent.succeeded" in ctx.webhooks.CRITICAL_EVENT_TYPES
+        ctx.billing.side_effect = RuntimeError("finance unavailable")
+    
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(ctx.webhooks.stripe_webhook(_webhook_request(), BackgroundTasks(), ctx.db))
+    
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.detail == "Processing failed for critical event"
+        statements = [str(call.args[0]) for call in ctx.db.execute.call_args_list]
+        assert "WHERE stripe_events.status = 'failed'" in statements[0]
+        assert any("status = 'failed', error_message = 'finance_pending'" in sql for sql in statements)
+        assert not any("status = 'completed'" in sql for sql in statements)
+        assert " ".join(statements[-1].split()) == (
+            "INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, "
+            "stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES "
+            "(:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), "
+            ":sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE "
+            "SET status = 'failed', error_message = EXCLUDED.error_message "
+            "WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'"
+        )
+        failure_params = ctx.db.execute.call_args.args[1]
+        assert failure_params["event_id"] == ctx.event["id"]
+        assert failure_params["err"] == "finance unavailable"
+        assert ctx.db.commit.call_count == 2
+        ctx.db.rollback.assert_called_once()
+        ctx.billing.assert_awaited_once_with(ctx.event, ctx.async_db)
+        ctx.async_db.rollback.assert_awaited_once()
+        ctx.async_db.commit.assert_not_awaited()
+        ctx.delivery.assert_not_awaited()
+    
+        # The failed row is admitted by the dedup UPDATE on the next delivery.
+        ctx.db.execute.return_value.fetchone.return_value = (ctx.event["id"], failure_params["err"])
+        ctx.billing.side_effect = None
+        retry_start = len(ctx.db.execute.call_args_list)
+        response = asyncio.run(ctx.webhooks.stripe_webhook(_webhook_request(), BackgroundTasks(), ctx.db))
+        assert response == {"status": "success"}
+        retry_sql = str(ctx.db.execute.call_args_list[retry_start].args[0])
+>       assert "SET status = 'processing', processed_at = NOW()" in retry_sql
+E       assert "SET status = 'processing', processed_at = NOW()" in "\n            INSERT INTO stripe_events\n                (stripe_event_id, event_type, stripe_created, livemode,\n                 stripe_account, processed_at, payload_sha256, status, payload_json, signature_valid)\n            VALUES\n                (:event_id, :event_type, :stripe_created, :livemode,\n                 :stripe_account, NOW(), :sha256, 'processing', cast(:signed_payload as jsonb), true)\n            ON CONFLICT (stripe_event_id) DO UPDATE\n                SET status = CASE WHEN EXCLUDED.event_type='charge.refunded' AND stripe_events.status='completed' THEN stripe_events.status ELSE 'processing' END, processed_at = NOW()\n                WHERE stripe_events.status = 'failed' OR EXCLUDED.event_type = 'charge.refunded'\n            RETURNING stripe_event_id, error_message\n        "
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhooks.py:1405: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:21,725 [ERROR] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_purchase", "event_type": "payment_intent.succeeded", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 28, "result": "error", "error_class": "RuntimeError"}
+2026-09-12 18:52:21,725 [ERROR] app.api.v1.endpoints.webhooks: CRITICAL_WEBHOOK_FAILURE: payment_intent.succeeded evt_purchase — RuntimeError
+2026-09-12 18:52:21,731 [INFO] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_purchase", "event_type": "payment_intent.succeeded", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 2, "result": "processed", "error_class": null}
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_purchase", "event_type": "payment_intent.succeeded", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 28, "result": "error", "error_class": "RuntimeError"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:834 CRITICAL_WEBHOOK_FAILURE: payment_intent.succeeded evt_purchase — RuntimeError
+INFO     app.api.v1.endpoints.webhooks:webhooks.py:169 stripe_webhook: {"event_id": "evt_purchase", "event_type": "payment_intent.succeeded", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 2, "result": "processed", "error_class": null}
+____________________ test_09_checkout_completed_order_paid _____________________
+
+    def test_09_checkout_completed_order_paid():
+        """9. checkout.session.completed → real order uses async OrderService paid flow."""
+        order_id = str(uuid4())
+        listing_id = str(uuid4())
+        session_obj = {
+            "id": "cs_test_09",
+            "payment_status": "paid",
+            "payment_intent": "pi_test_09",
+            "metadata": {"order_id": order_id},
+            "amount_total": 10000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+        order_row = {"id": order_id, "status": "created", "listing_id": listing_id,
+                     "amount_cents": 10000, "currency": "USD"}
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT * FROM orders" in sql:
+                return _result(order_row)
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        order_service = MagicMock()
+        order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+        async_db = MagicMock()
+    
+        with _patch_construct(return_value=event), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db", return_value=_async_db_gen(async_db)), \
+             patch("app.api.v1.endpoints.webhooks.OrderService", return_value=order_service):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:278: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:22,304 [ERROR] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_732dd7800d3c485cb439680a", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 8, "result": "error", "error_class": "RuntimeError"}
+2026-09-12 18:52:22,304 [ERROR] app.api.v1.endpoints.webhooks: CRITICAL_WEBHOOK_FAILURE: checkout.session.completed evt_732dd7800d3c485cb439680a — RuntimeError
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_732dd7800d3c485cb439680a", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 8, "result": "error", "error_class": "RuntimeError"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:834 CRITICAL_WEBHOOK_FAILURE: checkout.session.completed evt_732dd7800d3c485cb439680a — RuntimeError
+___________________ test_10_dispute_created_flagged_revoked ____________________
+
+    def test_10_dispute_created_flagged_revoked():
+        """10. charge.dispute.created → order flagged, access revoked."""
+        order_id = str(uuid4())
+        dispute = {"id": "dp_10", "payment_intent": "pi_10", "reason": "fraudulent"}
+        event = _evt("charge.dispute.created", data_object=dispute)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed"})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:308: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:23,556 [ERROR] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_a074ad73e5b644ea89c51a49", "event_type": "charge.dispute.created", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 1210, "result": "error", "error_class": "OrderMoneyConflict"}
+2026-09-12 18:52:23,556 [ERROR] app.api.v1.endpoints.webhooks: CRITICAL_WEBHOOK_FAILURE: charge.dispute.created evt_a074ad73e5b644ea89c51a49 — OrderMoneyConflict
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_a074ad73e5b644ea89c51a49", "event_type": "charge.dispute.created", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 1210, "result": "error", "error_class": "OrderMoneyConflict"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:834 CRITICAL_WEBHOOK_FAILURE: charge.dispute.created evt_a074ad73e5b644ea89c51a49 — OrderMoneyConflict
+_____________________ test_11_dispute_closed_won_restored ______________________
+
+    def test_11_dispute_closed_won_restored():
+        """11. charge.dispute.closed (won) → access restored."""
+        order_id = str(uuid4())
+        dispute = {"id": "dp_11", "payment_intent": "pi_11", "status": "won"}
+        event = _evt("charge.dispute.closed", data_object=dispute)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status FROM orders" in sql:
+                return _result({"id": order_id, "status": "disputed"})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:339: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:23,621 [ERROR] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_9d65634920fe4d8ea55094fe", "event_type": "charge.dispute.closed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 19, "result": "error", "error_class": "OrderMoneyConflict"}
+2026-09-12 18:52:23,621 [ERROR] app.api.v1.endpoints.webhooks: CRITICAL_WEBHOOK_FAILURE: charge.dispute.closed evt_9d65634920fe4d8ea55094fe — OrderMoneyConflict
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_9d65634920fe4d8ea55094fe", "event_type": "charge.dispute.closed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 19, "result": "error", "error_class": "OrderMoneyConflict"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:834 CRITICAL_WEBHOOK_FAILURE: charge.dispute.closed evt_9d65634920fe4d8ea55094fe — OrderMoneyConflict
+_________________________ test_12_refund_full_revoked __________________________
+
+    def test_12_refund_full_revoked():
+        """12. charge.refunded (full) → status=refunded, access revoked."""
+        order_id = str(uuid4())
+        charge = {"id": "ch_12", "payment_intent": "pi_12",
+                  "amount": 10000, "amount_refunded": 10000}
+        event = _evt("charge.refunded", data_object=charge)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status, amount_cents FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:371: AssertionError
+______________________ test_13_refund_partial_access_kept ______________________
+
+    def test_13_refund_partial_access_kept():
+        """13. charge.refunded (partial) → status=partially_refunded, access kept."""
+        order_id = str(uuid4())
+        charge = {"id": "ch_13", "payment_intent": "pi_13",
+                  "amount": 10000, "amount_refunded": 2500}
+        event = _evt("charge.refunded", data_object=charge)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status, amount_cents FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = <Response [400 Bad Request]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:403: AssertionError
+_________________ test_18_dedup_row_inserted_before_processing _________________
+
+    def test_18_dedup_row_inserted_before_processing():
+        """18. Dedup row INSERT happens before handler logic."""
+        order_id = str(uuid4())
+        session_obj = {
+            "id": "cs_18", "payment_status": "paid",
+            "payment_intent": "pi_18",
+            "metadata": {"order_id": order_id},
+            "amount_total": 5000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+    
+        call_order = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            if "INSERT INTO stripe_events" in sql:
+                call_order.append("dedup_insert")
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_test", None)
+                return r
+            elif "SELECT * FROM orders" in sql:
+                call_order.append("handler_select")
+                return _result({"id": order_id, "status": "created",
+                                "listing_id": None, "amount_cents": 5000, "currency": "USD"})
+            elif "UPDATE orders" in sql:
+                call_order.append("handler_update")
+            return _result(None)
+    
+        order_service = MagicMock()
+        order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+        async_db = MagicMock()
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db", return_value=_async_db_gen(async_db)), \
+             patch("app.api.v1.endpoints.webhooks.OrderService", return_value=order_service):
+            resp = _post()
+>       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:535: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:23,867 [ERROR] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_7c5f00692b7a4288b58c1bd1", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 6, "result": "error", "error_class": "RuntimeError"}
+2026-09-12 18:52:23,868 [ERROR] app.api.v1.endpoints.webhooks: CRITICAL_WEBHOOK_FAILURE: checkout.session.completed evt_7c5f00692b7a4288b58c1bd1 — RuntimeError
+------------------------------ Captured log call -------------------------------
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_7c5f00692b7a4288b58c1bd1", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 6, "result": "error", "error_class": "RuntimeError"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:834 CRITICAL_WEBHOOK_FAILURE: checkout.session.completed evt_7c5f00692b7a4288b58c1bd1 — RuntimeError
+______ test_20_checkout_completed_calls_handle_payment_when_canonical_tx _______
+
+    def test_20_checkout_completed_calls_handle_payment_when_canonical_tx():
+        """20. checkout.session.completed with ENABLE_CANONICAL_TX stores payment metadata via direct SQL."""
+        order_id = str(uuid4())
+        tx_id = str(uuid4())
+        session_obj = {
+            "id": "cs_gate3",
+            "payment_status": "paid",
+            "payment_intent": "pi_gate3",
+            "metadata": {"order_id": order_id, "transaction_id": tx_id},
+            "amount_total": 10000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+        order_row = {"id": order_id, "status": "created", "listing_id": str(uuid4()),
+                     "amount_cents": 10000, "currency": "USD"}
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT * FROM orders" in sql:
+                return _result(order_row)
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+    
+        # Mock the async fulfillment path to avoid "MagicMock can't be used in await"
+        mock_fulfillment_svc = MagicMock()
+    
+        async def mock_request_fulfillment(*args, **kwargs):
+            return {"status": "ok"}
+    
+        mock_fulfillment_svc.request_fulfillment = mock_request_fulfillment
+    
+        with _patch_construct(return_value=event), \
+             patch.object(settings, "ENABLE_CANONICAL_TX", True), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db") as mock_async_db, \
+             patch("app.api.v1.endpoints.webhooks.OrderService") as order_service_cls, \
+             patch("app.services.fulfillment_service.get_fulfillment_service",
+                   return_value=mock_fulfillment_svc):
+    
+            # Mock async db generator
+            mock_db_instance = MagicMock()
+            order_service = MagicMock()
+            order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+            order_service_cls.return_value = order_service
+    
+            async def async_db_gen():
+                yield mock_db_instance
+    
+            mock_async_db.return_value = async_db_gen()
+    
+            resp = _post()
+    
+        assert resp.status_code == 200
+    
+        sqls = [s for s, _ in calls]
+        # Canonical TX: UPDATE transactions with payment metadata
+>       assert any("UPDATE transactions" in s and "paid_at" in s for s in sqls), \
+            "Canonical TX must UPDATE transactions with paid_at"
+E       AssertionError: Canonical TX must UPDATE transactions with paid_at
+E       assert False
+E        +  where False = any(<generator object test_20_checkout_completed_calls_handle_payment_when_canonical_tx.<locals>.<genexpr> at 0x126b6b850>)
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:661: AssertionError
+----------------------------- Captured stdout call -----------------------------
+2026-09-12 18:52:23,998 [WARNING] app.api.v1.endpoints.webhooks: Checkout binding mismatch for order 95fdd9a4-3362-4c9f-884b-5c7ff6b12d85
+2026-09-12 18:52:24,000 [INFO] app.api.v1.endpoints.webhooks: stripe_webhook: {"event_id": "evt_27b28db20e214cbeb643226d", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 7, "result": "processed", "error_class": null}
+------------------------------ Captured log call -------------------------------
+WARNING  app.api.v1.endpoints.webhooks:webhooks.py:1362 Checkout binding mismatch for order 95fdd9a4-3362-4c9f-884b-5c7ff6b12d85
+INFO     app.api.v1.endpoints.webhooks:webhooks.py:169 stripe_webhook: {"event_id": "evt_27b28db20e214cbeb643226d", "event_type": "checkout.session.completed", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 7, "result": "processed", "error_class": null}
+=============================== warnings summary ===============================
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+app/schemas/order.py:162
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/order.py:162: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderResponse(BaseModel):
+
+app/schemas/order.py:226
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/order.py:226: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderSafeResponse(BaseModel):
+
+app/schemas/order.py:285
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/order.py:285: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderListResponse(BaseModel):
+
+app/schemas/order.py:451
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/order.py:451: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderEventResponse(BaseModel):
+
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/dateutil/tz/tz.py:37
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/dateutil/tz/tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+app/schemas/agent_auth.py:24
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/agent_auth.py:24: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AgentIdentity(BaseModel):
+
+app/schemas/listing.py:347
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/listing.py:347: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingResponse(BaseModel):
+
+app/schemas/listing.py:449
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/listing.py:449: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingListResponse(BaseModel):
+
+app/schemas/listing.py:485
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/listing.py:485: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SchemaOrgDataset(BaseModel):
+
+app/schemas/listing.py:622
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/listing.py:622: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ListingPreviewResponse(BaseModel):
+
+app/schemas/aim_seller.py:42
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/aim_seller.py:42: UserWarning: Field name "schema" in "ToolDetail" shadows an attribute in parent "BaseModel"
+    class ToolDetail(BaseModel):
+
+app/schemas/user.py:149
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/user.py:149: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class UserResponse(UserBase):
+
+app/schemas/action.py:119
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/action.py:119: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ActionLogEntry(BaseModel):
+
+app/schemas/dataset.py:63
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/dataset.py:63: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DatasetResponse(DatasetBase):
+
+app/schemas/dataset.py:82
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/dataset.py:82: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DatasetListResponse(BaseModel):
+
+app/schemas/dataset.py:100
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/dataset.py:100: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class CategoryResponse(BaseModel):
+
+app/schemas/organization.py:28
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/organization.py:28: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrganizationResponse(BaseModel):
+
+app/schemas/organization.py:68
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/organization.py:68: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrganizationDomainResponse(BaseModel):
+
+app/schemas/quality_attestation.py:213
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/quality_attestation.py:213: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class Proof(BaseModel):
+
+app/schemas/quality_attestation.py:225
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/quality_attestation.py:225: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DataQualityAttestation(BaseModel):
+
+app/schemas/disclosure_snapshot.py:46
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/disclosure_snapshot.py:46: UserWarning: Field name "schema" in "DisclosureApprovedFields" shadows an attribute in parent "BaseModel"
+    class DisclosureApprovedFields(BaseModel):
+
+app/schemas/inquiry.py:72
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/inquiry.py:72: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class MessageResponse(BaseModel):
+
+app/schemas/inquiry.py:104
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/inquiry.py:104: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class InquiryResponse(BaseModel):
+
+app/schemas/inquiry.py:144
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/inquiry.py:144: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class InquiryListResponse(BaseModel):
+
+app/schemas/rating.py:45
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/rating.py:45: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class RatingResponse(BaseModel):
+
+app/schemas/rating.py:76
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/rating.py:76: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class RatingListItem(BaseModel):
+
+app/schemas/allai_preferences.py:109
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/allai_preferences.py:109: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AllAIPreferencesResponse(AllAIPreferencesBase):
+
+app/schemas/profile.py:68
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/profile.py:68: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SellerProfileResponse(BaseModel):
+
+app/schemas/profile.py:113
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/profile.py:113: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SellerPublicProfile(BaseModel):
+
+app/schemas/profile.py:147
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/profile.py:147: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class BuyerProfileResponse(BaseModel):
+
+app/schemas/pubsub.py:19
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/pubsub.py:19: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class PubSubMessage(BaseModel):
+
+app/schemas/session.py:117
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/session.py:117: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SessionState(BaseModel):
+
+app/api/v1/endpoints/oauth_clients.py:60
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/endpoints/oauth_clients.py:60: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ClientResponse(BaseModel):
+
+app/schemas/jwt_schema.py:13
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/jwt_schema.py:13: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('exp')
+
+app/schemas/jwt_schema.py:28
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/jwt_schema.py:28: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    @validator('exp')
+
+app/schemas/pii.py:13
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/pii.py:13: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class PIIConfigInDB(PIIConfigBase):
+
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/pydantic/_internal/_config.py:386
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:
+  * 'orm_mode' has been renamed to 'from_attributes'
+    warnings.warn(message, UserWarning)
+
+app/api/v1/agent/router.py:138
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/agent/router.py:138: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class DatasetEvaluation(BaseModel):
+
+app/api/v1/agent/router.py:981
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/agent/router.py:981: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AccessRequestResponse(BaseModel):
+
+app/api/v1/agent/router.py:1009
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/agent/router.py:1009: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ArtifactUrlResponse(BaseModel):
+
+app/schemas/oauth.py:35
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/oauth.py:35: PydanticDeprecatedSince20: `min_items` is deprecated and will be removed, use `min_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    redirect_uris: List[str] = Field(..., min_items=1)
+
+app/schemas/agent_manifest.py:53
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/agent_manifest.py:53: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class EndpointMap(BaseModel):
+
+app/schemas/agent_manifest.py:109
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/agent_manifest.py:109: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AgentManifestResponse(BaseModel):
+
+app/schemas/agent_manifest.py:136
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/agent_manifest.py:136: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class AgentManifestPublic(BaseModel):
+
+app/schemas/transaction.py:46
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/transaction.py:46: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class TransactionResponse(BaseModel):
+
+app/schemas/transaction.py:78
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/schemas/transaction.py:78: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class TransactionEventResponse(BaseModel):
+
+app/api/webhooks.py:28
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/webhooks.py:28: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class TelegramCallbackQuery(BaseModel):
+
+app/api/webhooks.py:38
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/webhooks.py:38: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class TelegramWebhookPayload(BaseModel):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-proposed-compatibility-audit-c3-s1712/result.xml -
+=========================== short test summary info ============================
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhooks.py::test_payment_succeeded_billing_failure_leaves_failed_checkpoint - assert "SET status = 'processing', processed_at = NOW()" in "\n            INSERT INTO stripe_events\n                (stripe_event_id, event_type, stripe_created, livemode,\n                 stripe_account, processed_at, payload_sha256, status, payload_json, signature_valid)\n            VALUES\n                (:event_id, :event_type, :stripe_created, :livemode,\n                 :stripe_account, NOW(), :sha256, 'processing', cast(:signed_payload as jsonb), true)\n            ON CONFLICT (stripe_event_id) DO UPDATE\n                SET status = CASE WHEN EXCLUDED.event_type='charge.refunded' AND stripe_events.status='completed' THEN stripe_events.status ELSE 'processing' END, processed_at = NOW()\n                WHERE stripe_events.status = 'failed' OR EXCLUDED.event_type = 'charge.refunded'\n            RETURNING stripe_event_id, error_message\n        "
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_09_checkout_completed_order_paid - assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_10_dispute_created_flagged_revoked - assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_11_dispute_closed_won_restored - assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_12_refund_full_revoked - assert 400 == 200
+ +  where 400 = <Response [400 Bad Request]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_13_refund_partial_access_kept - assert 400 == 200
+ +  where 400 = <Response [400 Bad Request]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_18_dedup_row_inserted_before_processing - assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+FAILED ../../../../../../Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py::test_20_checkout_completed_calls_handle_payment_when_canonical_tx - AssertionError: Canonical TX must UPDATE transactions with paid_at
+assert False
+ +  where False = any(<generator object test_20_checkout_completed_calls_handle_payment_when_canonical_tx.<locals>.<genexpr> at 0x126b6b850>)
+================== 8 failed, 7 passed, 50 warnings in 23.33s ===================

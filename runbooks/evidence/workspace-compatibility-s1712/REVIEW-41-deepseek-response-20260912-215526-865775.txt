@@ -1,0 +1,102 @@
+# COUNCIL REVIEW — BATCH 3/3 DISPATCH (`response-20260912-215526`), READ-ONLY
+
+**Request under review:** the batch-3 coverage dispatch, whose standing block pins `aidotmarket/runbooks@9645601d50c10a5fe42f38e7972b8c159dc69b04` (base `e3b8b08813f1476910422c4233fee92360409cb7`) at `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-agent-attempt-s1712`. Nothing was modified. No tests, providers, migrations, locks or runtime state were touched. Turn budget: ~10 of 30 used.
+
+**Identity verified before review.** `git rev-parse HEAD` → `9645601d…` (match); branch `docs/seller-workspace-agent-attempt-s1712` (match); base is an ancestor (`merge-base --is-ancestor` → YES); diff command runs. Manifest `SELLER-WORKSPACE-AGENT-ATTEMPT-FULL-REVIEW-MANIFEST-S1712.json` exists (19,535 B) and its head reads `status: COMPLETE_PACKET_UNDISPATCHED_NOT_ACCEPTED`, `candidate 9645601d…`, `base e3b8b088…`, `backend_base 817f7331…`, `spec_bytes 247866`, packet `5419c9ad…`. All eight historical bodies' SHA256 reproduce exactly against `REVIEW-HISTORY.json` (§Q1).
+
+---
+
+## 1. Verdict
+
+**REVISE**
+
+The dispatch's *substance* is sound and correctly conservative: no historical vote is carried, the candidate stays unaccepted, F1 is retained, and the batch is explicitly not a whole-history vote. But three preamble-mandatory elements are missing or wrong (§F1–F3), and one work order (§Q4) demands a precision the underlying record cannot supply — which is the same falsifiability defect that already failed once in batch 2. The dispatch needs correction before it is re-dispatched; the artifact verdict on `9645601d…` is unchanged and remains **REVISE** on retained F1.
+
+---
+
+## 2. Findings (highest severity first)
+
+### F1 — MEDIUM (blocking for the dispatch) — item 4 demands "exact … line/character intervals omitted from REVIEW12–19", a fact no record contains; complying would require fabricating a coverage receipt
+- **Repo@SHA / evidence:** dispatch item 4 (`…215526` body, "identify exact filenames and line/character intervals omitted from REVIEW12–19"); the only prior statement on this is `response-20260912-215106-131871.md` §F5 ("a residue of repeated appendix/verbatim-citation text was not re-read line-by-line") — which names **no file and no interval**. Independent structural checks I ran on all eight files: `grep -in appendix REVIEW-1[2-9]` → 0 hits; within-file duplicate lines ≥40 chars → 0; paragraphs ≥200 chars shared between any two of the eight → 0.
+- **Observed vs expected:** Observed — "repeated appendices" does not exist as a locatable object in REVIEW-12…19; the omitted intervals were never recorded. Expected — either a recorded reading standard with per-file byte intervals, or an explicit statement that 12–19 are unclosed and must be re-read.
+- **Reproduction:** static evidence only; commands above run from the pinned checkout.
+- **Impact:** a reviewer following item 4 literally must invent intervals to appear compliant; that is a governance defect, not a coverage gap.
+- **Smallest required outcome:** replace item 4 with a re-read receipt requirement (file, sha256, byte interval covered, chunk boundaries) plus one recorded reading standard; and state plainly that 12–19 remain unclosed until that receipt exists.
+- **Verification criterion:** the next batch's record contains per-file byte intervals that third parties can re-derive from the files, with zero unaccounted bytes.
+
+### F2 — MEDIUM (blocking for the dispatch) — the standing block omits preamble-mandatory identity/re-review fields
+- **Repo@SHA / evidence:** the controller block gives pinned checkout, HEAD, requested SHA, repository, branch, one verify command, one diff command. It gives **no changed-file enumeration**, **no prior candidate**, **no prior verdict**, and **no statement of the exact change since** — all required by the preamble for a re-review. I derived the missing facts: `git diff --name-status e3b8b088…9645601d…` = **18 files (15 A / 3 M)**, insertions 1771 / deletions 6; modified paths are `runbooks/seller-workspace-live-release.md`, `runbooks/seller-workspace-operator-guide.md`, `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`.
+- **Observed vs expected:** Observed — the reviewer re-derives the identity block. Expected — changed files, prior candidate/verdict, and the delta stated up front.
+- **Reproduction:** the `git diff --name-status` command above; static evidence only.
+- **Impact:** exactly the discovery work the controller block exists to prevent; it also feeds F3 (without a named prior verdict, "retain the raw HIGH upgrade" is unanchored).
+- **Smallest required outcome:** add `changed_files: 18 (15A/3M) → [paths]`, `prior_candidate: e3b8b088…` (or whichever was last reviewed), `prior_verdict: REVISE (F1 retained)`, and `delta: 15 evidence files added + 3 docs modified; no app/test source`.
+- **Verification criterion:** the next block reproduces `diff --name-status` without the reviewer running it.
+
+### F3 — MEDIUM (blocking for the dispatch) — the request contains no "three to six numbered questions" naming feared failure modes and blocking criteria
+- **Repo@SHA / evidence:** the preamble mandates such a set; the dispatch's five numbered items are **work orders** ("List…", "Identify…", "Retain…", "State…"), not questions, and none states what would make an answer *blocking*. Batch 2 recorded the same defect (`…215106` §4: "The dispatch contains no numbered question list (F2 …)"), and it was not repaired in batch 3.
+- **Observed vs expected:** Observed — the same framing defect recurs a second time. Expected — 3–6 questions of the form "if X, this blocks."
+- **Reproduction:** compare the dispatch's items 1–5 against the preamble clause; static evidence only.
+- **Impact:** the batch cannot be scored pass/fail against stated failure modes; reviewers and owners disagree on what constitutes closure (this is already visible in F5).
+- **Smallest required outcome:** add the question set, e.g. (1) does any body target the current SHA? (2) is the retained blocker closable here? (3) is coverage certifiable byte-wise? each with its blocking condition.
+- **Verification criterion:** the next dispatch carries a numbered question set with explicit blocking tests.
+
+### F4 — LOW (non-blocking) — "preserved backend817f checkouts exist" is not locatable under the stated work root
+- **Repo@SHA / evidence:** dispatch environment line. `ls /Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work | grep -iE 'backend|market|817f'` returns only two scripts (`deploy_bootstrap_backend_s1712.py`, `deploy_result_wire_backend_s1712.py`) among 164 entries — no backend checkout directory. `REVIEW-27` (disk, `workspace-agent-attempt-s1712/REVIEW-27-cc-response-20260912-204046-397140.txt:10`) asserts `817f7331…` "exists and is present in local checkouts", but names no path.
+- **Observed vs expected:** Observed — the environment-truth claim is **UNVERIFIED** and not resolvable from the stated root. Expected — either the checkout path, or the claim dropped.
+- **Reproduction:** the `ls`/`grep` above; static evidence only.
+- **Impact:** low — this batch forbids backend work, so no downstream step depends on it. It is an environment-truth inaccuracy, which the preamble makes reportable.
+- **Smallest required outcome:** name the backend checkout path or delete the claim.
+- **Verification criterion:** the stated path exists and contains object `817f7331…`.
+
+### F5 — LOW (non-blocking) — the retained HIGH is not reconciled with a prior-generation body in the same packet that classified the same substance NIT(mandate)
+- **Repo@SHA / evidence:** the dispatch instructs "retain raw HIGH upgrade but same two-assertion conflict". In the frozen packet (`outputs/SELLER-WORKSPACE-AGENT-ATTEMPT-FULL-REVIEW-REQUEST-S1712.md`, sha `5419c9ad…`) an embedded prior-generation body at `packet:30521` reads **"F-5 — NIT (mandate). `expected_binding` makes previously valid `mark_paid` callers refuse"**, with remedy "a build-time caller-enumeration gate" — which is now text at `specs/…GATE2.md:647` (D4). Attribution of that block to a specific reviewer file is **UNVERIFIED**. Separately, my own batch-2 citation `packet:11730` is wrong: line 11730 is blank; `"pi_gate3"` is at `packet:11655`/`:11663`.
+- **Observed vs expected:** Observed — the same design element carries HIGH (this panel) and NIT-mandate (prior panel), and the dispatch asks for retention without reconciling. Expected — both classifications stated, with the reason for the escalation.
+- **Reproduction:** `sed -n '30515,30528p'` and `sed -n '4004,4013p;11340p;11714p'` on the packet; static evidence only.
+- **Impact:** a second reviewer or owner cannot tell whether the retained blocker is a known dispositioned item or a new escalation; it also weakens the record that F1 is *not* a re-discovery.
+- **Smallest required outcome:** one line in the standing block recording both labels (`HIGH, escalated by DeepSeek batch 2; prior generation: NIT-mandate`).
+- **Verification criterion:** the record shows both classifications and the surviving evidence for HIGH.
+
+**Verified non-findings (so they are not re-litigated):** the dispatch's correction that `response-20260912-213939-513843.md` existed before batch 2 is **correct** (birth 21:42:02 vs batch-2 name 21:51:06 / birth 21:53:19); "no changed source/tests" is **correct** (no `app/`/`tests/` path in the 18-file diff); all eight body paths, byte counts and SHA256 reproduce exactly (§Q1).
+
+---
+
+## 3. Coverage
+
+**Reviewed.** Dispatch text in full; preamble compliance element-by-element; checkout identity, ancestry, and full `base→candidate` name-status/diffstat; manifest head; both prior responses of mine in full (`…213939`, `…215106`), including their F5 admissions; the eight historical bodies 20–27 read end-to-end in bounded chunks (mid-read truncation refilled — see Q1); `REVIEW-HISTORY.json` (both evidence roots); item-4 structural checks (appendix headers, within-file and cross-file duplication); F1's frozen evidence: spec `:227`, `:433-435`, `:622`, `:626`, `:647`, `:655-660` on disk at the candidate, and packet `:4007-4010`, `:11340`, `:11714`, `:30521`, with packet SHA256 `5419c9ad…` matching the manifest.
+
+**Not reviewed / UNVERIFIED.** (a) The interval-level contents of REVIEW-12…19 — deliberately *not* re-read (this batch is batch 3's primary task; §Q4). (b) One ~1.2 KB fragment inside REVIEW-24 lines 28–120 (coverage/identity bullets) remains unrefilled. (c) Manifest per-position hash records for 20–27 not cross-read (files did match `REVIEW-HISTORY.json`). (d) The backend `817f7331` checkout (F4). (e) "batch2 is owner-read" and "prior213939 fully owner-read" — no observable receipts; **UNVERIFIED** (only “existence” is verified). (f) No tests, migrations, PG/ASGI, providers, credentials, locks or runtime were executed — forbidden and unavailable. (g) The 2.2 MB packet was consulted at cited lines only, not read in full. (h) Attribution of packet block ~30485–30528 to a named reviewer file.
+
+---
+
+## 4. Answers to the numbered items
+
+**1) Eight exact filenames / target SHAs / bytes / hashes / full-read coverage.** All eight exist as stated (20–26 in `runbooks/evidence/workspace-canonical-pi-s1712/`, 27 in `…/workspace-agent-attempt-s1712/`); all eight SHA256 match `REVIEW-HISTORY.json` exactly; **none mentions `9645601d`** (grep across the eight → NONE; across every `REVIEW-*` on disk → none).
+
+| # | file | body target SHA | bytes | sha256 | lines | body verdict | my coverage |
+|---|---|---|---|---|---|---|---|
+| 20 | REVIEW-20-glm-response-20260912-184756-332575.txt | `a4e06c08f6d1cc9406dab658530a5a1292524e5a` | 19619 | `c895670d…42ae3b` | 302 | APPROVE_WITH_NITS | complete (4 chunks) |
+| 21 | REVIEW-21-deepseek-response-20260912-184755-944151.txt | `a4e06c08f6d1cc9406dab658530a5a1292524e5a` | 27993 | `a2fc9742…2e89bd5` | 159 | **REVISE** (F1 HIGH, F2/F3 MEDIUM, F4 LOW, F5 NIT) | complete |
+| 22 | REVIEW-22-cc-response-20260912-191524-175920.txt | `55690c7a1fb48c87849a387f7fef79d7008385a9` | 15207 | `cd339ad4…d33cbe2` | 74 | APPROVE_WITH_NITS | complete |
+| 23 | REVIEW-23-deepseek-response-20260912-191750-833374.txt | `55690c7a1fb48c87849a387f7fef79d7008385a9` | 14788 | `9ae77c16…c56c61135` | 65 | APPROVE_WITH_NITS | complete |
+| 24 | REVIEW-24-cc-response-20260912-192808-747577.txt | `55690c7a1fb48c87849a387f7fef79d7008385a9` | 31926 | `798c33bc…c22627f1` | 140 | APPROVE_WITH_NITS | complete **minus one ~1.2 KB fragment (lines 28–120)** |
+| 25 | REVIEW-25-glm-response-20260912-191750-465420.txt | `55690c7a1fb48c87849a387f7fef79d7008385a9` | 24390 | `588d24d1…9d7461094` | 335 | APPROVE_WITH_NITS (LOW + NIT) | complete |
+| 26 | REVIEW-26-deepseek-response-20260912-192617-104271.txt | `55690c7a1fb48c87849a387f7fef79d7008385a9` | 19570 | `462c7359…eace155b` | 86 | APPROVE_WITH_NITS | complete |
+| 27 | REVIEW-27-cc-response-20260912-204046-397140.txt | `e3b8b08813f1476910422c4233fee92360409cb7` (= current **base**) | 21898 | `a973ba9c…bc69e69bff` | 104 | APPROVE_WITH_NITS | complete |
+
+*Method disclosure (material, and the reason F1 is a finding):* every one of my eight single-shot reads was **truncated by the tool's output cap** (even a 5,518-token file); full coverage was only reached after a second, line-ranged pass. I therefore report coverage **by interval**, not as an assertion. The dispatch's standard ("hashes/extraction are not body reading") is correct; the instrument makes the naïve form unattainable, which is exactly why item 4 should be a receipt requirement (F1).
+
+**2) New obligations, earlier findings, and the current surviving blocker.** *New obligations against `9645601d`: none.* None of the eight bodies targets or mentions the current candidate, and no `REVIEW-*` file on disk does — the current candidate is wholly unreviewed by this corpus. *Earlier findings:* R21 (DeepSeek, `a4e06c08`) is the only REVISE in the range — F1 HIGH (stable discovery tuple does not close registered drift), F2 MEDIUM (MATCH-SIMPLE parent-NULL escape), F3 MEDIUM (migration not repeatable), F4 LOW (whitespace 14,243 vs summary), F5 NIT ("no migration target added" self-contradiction); R12/R14/R17-class items lie outside this batch's range. The three a4 blockers were then closed at `55690c7a` per R26 §§Q1–Q2, with R22/R24/R25 independently AWN on `55690c7a` — read as the bodies state it, not re-derived by me (static). *Current surviving blocker:* retained **F1** (the `expected_binding` call convention vs the two frozen `mark_paid` assertions), which **no body touches**; I re-verified its basis myself this batch (spec `:622`/`:626`/`:647` and authorization-limited `:227`/`:433-435`; packet `:4007-4010` two positionals and no kwargs; packet `:11340`/`:11714` full-signature assertions). Also note the accepted correction mechanism in this corpus: R24 **explicitly retracts its own prior Q1 wording** — the precedent for record repair is a documented retraction, not silence.
+
+**3) Retain unresolved F1 and the scope limits; no changed source/tests.** Retained: F1 is **not closed** and cannot be closed by this batch — the diff contains no `app/`/`tests/` path (18 files: 15A/3M), so no fix and no counter-evidence exist here. Scope limits preserved: read-only; no tests/providers/migrations/locks/runtime; no source, spec or evidence byte written; no historical vote carried into `9645601d`.
+
+**4) The batch-2 "repeated appendices" omission.** I **cannot** produce the requested exact filenames and line/character intervals, and I decline to mark 12–19 complete. Reasons, with evidence: batch-2's §F5 recorded a residue but named no file or interval; independently, REVIEW-12…19 contain **zero** `appendix` section headings, **zero** within-file duplicate lines ≥40 chars, and **zero** paragraphs ≥200 chars shared between any two files. The nearest things to the described "repeated/verbatim" text — and therefore the regions most plausibly skimmed — are the recurring citation inventories: REVIEW-12 §56–171 and §334–366; REVIEW-14 §35–194 and §405–442; REVIEW-17 §65–124 (plus the smaller inventories in 13/15/16/18/19). Recovering the true omitted intervals requires a **full re-read of 12–19**, which I did not perform in this batch; until that receipt exists, 12–19 are unclosed and no whole-history vote is available. I have not relaxed the standard.
+
+**5) Remaining gaps after this batch.** (a) REVIEW-12…19 intervals — unclosed, unrecoverable from the record (items 4/F1); (b) one ~1.2 KB unrefilled fragment in REVIEW-24 lines 28–120; (c) no execution of anything (forbidden); (d) dispatch identity block still missing changed files, prior candidate/verdict, and delta, and still has no failure-mode question set (F2/F3); (e) backend `817f7331` checkout not located (F4); (f) "owner-read" claims for `…215106`/`…213939` UNVERIFIED; (g) manifest per-position hash cross-check for 20–27 outstanding; (h) **F1 open**, and its HIGH-vs-NIT-mandate divergence unreconciled (F5). No whole-history vote while (a) stands.
+
+### SIMPLER
+**For the dispatch (concrete, and it preserves every requirement):** replace "full personal verbatim reading" with a **per-file reading receipt** — `{file, sha256, bytes, interval_start, interval_end, chunk_boundaries, verdict_paras}` — plus one recorded standard, and delete item 4's interval archaeology. That removes the unfalsifiable "full-body" claim that has now failed twice (batch-2 §F5; this batch's tool truncation on all eight files), removes F1 entirely, and converts coverage into a checkable artifact; cost is one five-field template and no extra reading. For the artifact's F1, the simplest form remains batch-2's: one contract sentence fixing the covered call convention **plus** explicit authorization for the two assertion lines — one sentence, two lines, no other caller touched. What I tried and could not remove: the `expected_binding` requirement (`:626`), the closed 12-field schema (`:655`), and the retained money assertions (`:647`) — dropping any one reopens the drift hole.
+
+### BETTER
+**For the dispatch:** put F1's three frozen artefacts *inside the standing block* (call-site excerpt `packet:4007-4010`, both assertion lines `packet:11340`/`:11714`, and the authorization clause `spec:433-435`), so the retained blocker is settleable statically in one turn by any reviewer — this is the batch-2 BETTER, now with a verified packet hash (`5419c9ad…`) to guard staleness. Failure mode: a stale excerpt (guarded by the hash); cost: four quoted lines; rollback: delete them. Stronger still, and materially better against the *root cause* of this whole thread: have the **producer emit** the coverage receipt mechanically (a read-only script that prints per-file intervals consumed), because tool truncation — not reviewer honesty — is what has generated three batches of "full-read" disputes; its failure mode is a buggy emitter (caught by re-deriving one file), and it retires F1, item 4, and the F5 class permanently.
+
+**Bottom line:** the batch-3 reading is real, the eight identities and bodies verify, and the dispatch's conservatism (no carried votes, candidate unaccepted, F1 open, no whole-history vote) is correct. But the block still omits preamble-mandatory identity/re-review fields, has no failure-mode question set, and asks for intervals no record contains; and the retained HIGH sits unreconciled with a prior-generation NIT-mandate on the same element. **REVISE** the dispatch; `9645601d…` stays **REVISE** on F1.

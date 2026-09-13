@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-12T19:42:19.797661+00:00",
+  "response": "/Users/max/council/glm/response-20260912-212610-077478.md",
+  "sha256": "dcedca8b78997ce3dda2df896f5cfac1ef11f0b38d5ddba61ca3da2a88c08804",
+  "bytes": 15794,
+  "candidate": "9645601d50c10a5fe42f38e7972b8c159dc69b04",
+  "verdict": "APPROVE_WITH_NITS",
+  "full_owner_read": true,
+  "coverage": "All33hash/headings;27\u201333directreview; full01\u201326prosebodycoverage unestablished, completionneeded",
+  "findings": [
+    "N1 enumerate/classify alltransactions.metadata writers andproveattempt/revisionpreservedbydelivery/settlement",
+    "N2 D4explicitagent_attempt_completionclassification"
+  ],
+  "owner_source_check": "delivery_service1280\u20131295 wholeJSONreplacement and1433\u20131440decodefallbackverified; normalcurrentlossnotdemonstrated. Corrects DSclaimnoexistingwholeobjectwriter. No newtable/servicepatch inferred.",
+  "accepted": false
+}

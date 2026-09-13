@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="9.468" timestamp="2026-09-12T20:11:06.964095+02:00" hostname="Koskadeux.local"><testcase classname="tests.test_workspace_test_refund_admission" name="test_selected_public_checkout_signed_capture_bind_full_refund" time="8.449"><failure message="AssertionError: ('{&quot;detail&quot;:&quot;Processing failed for critical event&quot;}', ('failed', 'Order/transaction reverse binding mismatch'))&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">db = &lt;sqlalchemy.ext.asyncio.session.AsyncSession object at 0x10c173c50&gt;
+test_config = {'backend_local_image_id': 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'backend_sha': '...label': 'cccccccccccccccccccccccccccccccccccccccc', 'environment_sha': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x10c46acf0&gt;
+tmp_path = PosixPath('/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/evidence/public-lifecycle-diagnosis/tmp/test_selected_public_checkout_0')
+
+    @pytest.mark.asyncio
+    async def test_selected_public_checkout_signed_capture_bind_full_refund(db, test_config, monkeypatch, tmp_path):
+        from unittest.mock import AsyncMock
+        from app.core import stripe_async
+        from app.services import fulfillment_service
+        from test_refund_processing_protocol import refund
+        case = await _fresh_public_checkout_case(db, test_config, monkeypatch, tmp_path, True, defer_open=True)
+        # The source-construction purchase is explicitly pre-window fixture history.
+        # This new delta is created by the real public canonical checkout.
+        order = (await db.execute(text("select id,transaction_id,stripe_checkout_session_id,amount_cents from orders where seller_id=:seller and buyer_id=:buyer and id&lt;&gt;:old"), dict(seller=w.SELLER_ID, buyer=w.BUYER_ID, old=case.oid))).mappings().one()
+        oid, tid = order["id"], order["transaction_id"]
+        pi = dict(case.pi, id="pi_" + uuid4().hex, metadata=dict(order_id=str(oid), transaction_id=str(tid)))
+        ch = dict(case.ch, id="ch_" + uuid4().hex, payment_intent=pi["id"])
+        pi["latest_charge"] = ch["id"]
+        async def provider(fn, *args, **kwargs):
+            if fn.__name__ == "list":
+                return dict(data=[refund(ch, 2500, "public" + oid.hex)] if ch["amount_refunded"] else [], has_more=False)
+            return pi if args[0] == pi["id"] else ch
+        monkeypatch.setattr(stripe_async, "run_stripe", provider)
+        # Delivery scheduling is outside this payment proof; checkout, paid
+        # transition, capture, admission and refund processors remain actual.
+        fulfillment = SimpleNamespace(request_fulfillment=AsyncMock(return_value={"success": True}))
+        monkeypatch.setattr(fulfillment_service, "get_fulfillment_service", lambda db: fulfillment)
+        event = dict(id="evt_" + uuid4().hex, object="event", livemode=False, type="checkout.session.completed",
+                     data=dict(object=dict(id=order["stripe_checkout_session_id"], payment_status="paid", payment_intent=pi["id"],
+                                           amount_total=2500, currency="usd", metadata=pi["metadata"])))
+        await db.rollback()
+        response = await signed_post(db, monkeypatch, event)
+        assert response.status_code == 200, response.text
+        paid = (await db.execute(text("select o.status,t.status,t.paid_at from orders o join transactions t on t.id=o.transaction_id where o.id=:id"), {"id": oid})).one()
+        assert paid[0:2] == ("pending_delivery", "fulfilling") and paid[2]
+        await db.rollback()
+        capture_event = dict(id="evt_" + uuid4().hex, object="event", livemode=False,
+                             type="payment_intent.succeeded", data=dict(object=pi))
+        response = await signed_post(db, monkeypatch, capture_event)
+        checkpoint = (await db.execute(text("select status,error_message from stripe_events where stripe_event_id=:id"), {"id": capture_event["id"]})).one()
+        print("PUBLIC_CAPTURE_CHECKPOINT", checkpoint)
+&gt;       assert response.status_code == 200, (response.text, checkpoint)
+E       AssertionError: ('{"detail":"Processing failed for critical event"}', ('failed', 'Order/transaction reverse binding mismatch'))
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+tests/test_workspace_test_refund_admission.py:967: AssertionError</failure></testcase></testsuite></testsuites>

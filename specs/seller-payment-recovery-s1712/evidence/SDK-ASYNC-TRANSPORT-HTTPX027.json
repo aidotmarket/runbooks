@@ -1,0 +1,36 @@
+{
+  "stripe_version": "15.4.0",
+  "httpx_version": "0.27.2",
+  "configured_retries": 2,
+  "retry": {
+    "calls": [
+      {
+        "body_sha256": "cb6dd39ae78c45dae2cffcefbff958af6c0323ba237cb97c517c263a0fa183d5",
+        "idempotency_key": "local-original-request"
+      },
+      {
+        "body_sha256": "cb6dd39ae78c45dae2cffcefbff958af6c0323ba237cb97c517c263a0fa183d5",
+        "idempotency_key": "local-original-request"
+      },
+      {
+        "body_sha256": "cb6dd39ae78c45dae2cffcefbff958af6c0323ba237cb97c517c263a0fa183d5",
+        "idempotency_key": "local-original-request"
+      }
+    ],
+    "elapsed_s": 1.3121851249597967,
+    "outcome": "pi_local_test",
+    "socket_closed": false
+  },
+  "cancel": {
+    "calls": [
+      {
+        "body_sha256": "cb6dd39ae78c45dae2cffcefbff958af6c0323ba237cb97c517c263a0fa183d5",
+        "idempotency_key": "local-original-request"
+      }
+    ],
+    "elapsed_s": 0.25303175020962954,
+    "outcome": null,
+    "socket_closed": true
+  },
+  "scope": "localhost only; accelerated0.25s cancellation, not full20s workflow proof"
+}

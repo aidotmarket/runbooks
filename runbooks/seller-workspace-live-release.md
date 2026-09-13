@@ -16,11 +16,17 @@ error_signatures:
 
 The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
+## Current project authority — 12 September 2026
+
+Max explicitly authorized continuation without CC. Owner event e4c7e041-4eee-4217-8be5-6591157274ca records this exception for the current S1714 ai.market production objective including Workspace only. Max further clarified: “If GLM and Deepseek agree that is approval.” Agreement by GLM and DeepSeek approving the exact candidate is sufficient approval; no additional CC or user approval is required. This supersedes older prospective CC requirements for this objective. CC is USER-WAIVED and unavailable, never approved. Existing CC findings, complete raw responses and terminal quota failure remain evidence. Historical three-voter receipts below are preserved as history; their CC requirement does not govern current acceptance. No prior vote carries. Sole Mars MP dispatch, full 1990+new testing and source freeze, environment integration, combined review, genuine phases, cutover and enabled AWS S3/Cloudflare R2 proof remain required within the cumulative USD100 authorization. No global Council policy is changed.
+
 For architecture, normal operations, exact API sequencing, diagnosis, safe teardown, upgrades and future-instance handoff, use the [Seller Workspace operator guide](seller-workspace-operator-guide.md). The dated batches below preserve historical authority and failure evidence; the current $100 cumulative authority supersedes older incremental allowances.
 
 ## September12 implementation and review boundary
 
 Backendc3 and corrected environment43d67264 have complete implementation acceptance; runbooks PR188 merge0ec6bac7 records those final source/spec pins. Workspace Gate2 candidateb444332a now has unanimous full CC/GLM/DeepSeek design approval with nits and the exact owner decision recorded. The accepted build sequence is backend MP fromc3, then environment43d67264 against actual new backend source. This documentation fold does not claim fixture implementation, an owner window, protected-runtime repin or live acceptance. Read the [current operator procedure and immutable contract](seller-workspace-operator-guide.md#workspace-fixture-design-review-and-recovery-status) for the two-stage order authority, retained credential custody, reset preservation, response collection and future-instance diagnosis.
+
+MP247 has confirmed a fresh-start checkout expectation conflict: inherited canonical-default routing returns200 with both E2E flag values, while the accepted test required false403. The [documentary correction](seller-workspace-operator-guide.md#checkout-branch-correction-under-review) is under review with full raw failure evidence; no product/runtime edit or implementation acceptance follows from it. Independent backend qualification continues.
 
 The dates and earliest-window estimates in historical entries below are not current activation permission. Protected run25 and every required genuine hold/phase remain governed by Mars's explicit lifecycle transition. Current work continues under the existing cumulative $100 authority; no future handoff extension is inferred.
 
@@ -421,3 +427,13 @@ Workspace and AIM Data/VZ share marketplace listings and versions, with origin-s
 Confirm the deployed AIM Data contract and the smallest meaningful cross-interface proof with Mars. Existing focused integration results do not constitute joint sign-off; their broader legacy serial-fixture failure remains disclosed. The proposed buyer-download unification is separately gated and does not expand this release work.
 
 Full completion requires evidence for both provider journeys, successful actual profiling, exact deployment identities, permissions and cleanup, joint compatibility and current indexed documentation. Report each requirement honestly; do not promote a passing intermediate check into full release completion.
+
+
+### Proposed recovery and verification revision after c6bae
+
+The complete checkout-correction panel requires revision; no new implementation/runtime is accepted. The [current design appendix](../specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md) proposes an exact registered-Order discovery reference to prevent terminal suppression after binding drift, explicit pending/unknown refund closure refusal and a narrowly scoped three-test compatibility repair (seventeen total backend targets only after acceptance). The original forged-N suppression behavior and all paid-rights/hold/provider requirements remain. See the [detailed diagnostic evidence runbook](evidence/workspace-gate2-s1712/MP247-DIAGNOSTIC-EVIDENCE-RUNBOOK.txt) for exact source identities, baseline diagnosis, archive handling, remaining checks and continuation instructions. Raw historical failures stay preserved; full fresh review and execution precede any release claim.
+
+
+## Current continuation status
+
+Read the [authoritative operator continuation status](seller-workspace-operator-guide.md#authoritative-continuation-status) for the current candidate, qualification and remaining gates, and the [complete design contract](../specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md) for implementation/recovery rules. Apply this release procedure only after its required source, review, environment, genuine-phase and provider evidence is verified.
