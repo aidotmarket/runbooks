@@ -1,0 +1,93 @@
+# Council Review — S1712 Workspace activation + TEST refund amendment (Gate1 design, **Round 2**)
+
+Reviewer: CC (independent). Read-only; nothing modified. Design-only re-review of the **committed** amendment; no implementation, provider, or live proof performed or expected. Budget used: 8 tool calls, well within the 60-call / 30-min bound.
+
+**Re-review context.** R1 was reviewed as inline (uncommitted) text: CC **APPROVE_WITH_MANDATES** (M1 Mars-interface not bindable, M2 webhooks.py co-edit undecided); GLM **REQUEST_CHANGES** (HIGH: 4096/4097 + event `99af61fd` authority unsupported; + artifact-identity/dependency-advance/TOTP-transport/pin-route MEDIUMs); DeepSeek **APPROVE_WITH_NITS**. R2 is the fold of all three, now **committed** with a new authority-receipt file.
+
+---
+
+## 1. Verdict
+
+**APPROVE_WITH_NITS**
+
+The R2 fold faithfully incorporates every R1 finding from all three reviewers; the artifact is now committed with verified identity; the previously unsupported authority is now committed **and** independently corroborated outside the builder's own commit. No HIGH or MEDIUM survives verification. One LOW (a stale contradicting paragraph in an allowlisted sibling runbook) and three NITs remain — none blocks a design-only Gate1. This design satisfies **no** Gate2/Gate3/activation approval; the Gate2 requirements below must precede any MP implementation or `webhooks.py` integration, and I reject any reading that treats those gates as already met.
+
+---
+
+## 2. Findings (highest severity first)
+
+### L1 — LOW — The operator guide still asserts "no authority decision present; do not start the filed work," contradicting the now-authorized amendment.
+- **Evidence.** `aidotmarket/runbooks@1ff494ac:runbooks/seller-workspace-operator-guide.md:233` still reads: *"Mars message 4085 sought Max's decision on only these narrow release dependencies. **No subsequent authority decision was present in the recovered bus history at this update. Do not start the excluded filed work until that decision arrives.**"* The amendment's fold (`specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md`, "GLM Round1 fold" para 1) disposes of this as *"a dated observation superseded by these messages, not current authority"* — but the guide file itself is **not edited** in this candidate (diff = spec + JSON only), and the guide is inside the proposed allowlist.
+- **Observed vs expected.** Observed: the repo contains an internal contradiction — the spec says the corrections are authorized (event `99af61fd`, Mars4096), the sibling runbook says no decision arrived and to hold. Expected: the guide's stale paragraph reconciled, or explicitly stamped superseded in-file, so a reader of the guide alone is not misled.
+- **Reproduction:** static evidence only (`git show 1ff494ac:runbooks/seller-workspace-operator-guide.md`).
+- **Impact.** Low. The design contract under review is correct; the authority is published and corroborated; the "excluded filed work" is Mars's (who holds the direct authorization per his own handoff), and this design-only commit starts nothing. Residual risk is a reader acting on stale guidance.
+- **Smallest required outcome.** Reconcile the paragraph when the guide is next touched (it is in the allowlist) — either delete the "no decision / do not start" sentence or annotate it superseded by event `99af61fd` / Mars4096. Gate2 must not ship the guide carrying the contradiction. **Non-blocking for this design-only Gate1.**
+- **Verification criterion.** At the Gate2/implementation candidate, the guide no longer asserts an unresolved authority hold for these release dependencies.
+
+### N1 — NIT — The receipt covers only 4096/4097, but the doc leans on 4085/4090/4103.
+- **Evidence.** `specs/evidence/S1712-workspace-authority-4096-4097.json` (name and content) captures only #4096 (twice) and #4097. The spec additionally cites Mars4085 (filed-ownership), Mars4090 (run25 pending-hold), and **Mars4103** ("places Workspace W in a separate post-money-proof evidence namespace/window"). 4103 is **corroborated as present** independently (`koskadeux-state/handoffs/MARS-S1714-CONTINUATION-2026-09-12.md`, `koskadeux-state/s1656/s1714-gate2-source-inventory.md`), but I did not read its exact text to confirm the "W namespace" wording, and it is not in the committed receipt.
+- **Impact.** Provenance precision only; the W-namespace decision is sound regardless of message attribution, and 4090's pending-hold is separately verified (see Coverage). **Non-blocking.**
+- **Smallest outcome.** Either widen the receipt to include the cited messages, or footnote that 4085/4090/4103 live in separate retained files.
+
+### N2 — NIT — The authority receipt is a builder-side peer-bus self-capture, not an independent signed ledger.
+- **Evidence.** The JSON is a verbatim "PEER MESSAGES AT TURN START" capture committed by the builder into its own spec tree. It is not cryptographically attributable on its own.
+- **Why non-blocking.** It is externally corroborated: `koskadeux-state/handoffs/MARS-S1714-CONTINUATION-2026-09-12.md:45-46` records the **verbatim** 4096 authorization ("I am authorizing you to do whatever it takes to get this done… required refund/settlement dependencies and reviewed acceptance redesign are AUTHORIZED… Event `99af61fd`; bus4096… Earlier pending-authority entries are superseded"), and `koskadeux-state/s1656/s1714-refund-spec-pr.md:3` records the same event as Max's authorization. This is what resolves GLM's R1 HIGH. **Non-blocking.**
+
+### N3 — NIT — The `livemode`/Accounts-v1 correction is design-safe but not re-verified against live Stripe docs here.
+- **Evidence.** R2 correctly replaces the R1 requirement *"Verify explicit provider livemode=false"* (a factually dubious requirement — the Accounts object is not documented to carry `livemode`) with a conservative posture: *"do not require an invented field or equate absence with false; reject an explicit true value if returned,"* TEST provenance = bound test-mode credential + authenticated retrieval, and `livemode=false` still required on event/charge/payment objects "where their schemas provide it," with provider mode/shape "contract-tested against the pinned SDK/API… before fixture projection."
+- **Why non-blocking.** The posture is safe whether or not Accounts exposes `livemode`, and the exact field behavior is correctly **deferred to a pinned-SDK contract test** — the right place to resolve it. I did not re-fetch `docs.stripe.com/api/accounts/object` (design-only; not load-bearing given the conservative posture + deferred test). **Non-blocking; this is an improvement the fold made over R1.**
+
+*(No HIGH/MEDIUM. The Gate2 items in §4 are the design's own forward conditions, not defects against it.)*
+
+---
+
+## 3. Coverage
+
+**Re-verified for R2 (the delta) — all confirmed at the pinned checkout:**
+- **Artifact identity.** `HEAD == 1ff494acc79245e8481ece2e985eda902fbf5207`; `git status` clean; base `9aa91d48…` is ancestor of candidate; `diff --name-status` = exactly `M specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE1.md` + `A specs/evidence/S1712-workspace-authority-4096-4097.json` — matches the request.
+- **Blob/hash binding.** Doc SHA256 = `4055fb41983dc5b36a887d003a5e5512dc96d1bf7e104d7924945d2ae44410c6` (**matches**); authority JSON SHA256 = `8b300ea2ce2be4b6c2431d0910c6409389b0f1575680a7a0dcca26e2c8449c9c` (**matches**). Base doc blob = `cd984a66…` = **exactly the blob DeepSeek reviewed at 9aa91d48 in R1** → R1→R2 continuity confirmed.
+- **Authority content.** JSON contains #4096 (×2, the requires-ack repetition), #4097, and event `99af61fd-db46-42fd-a18d-1d0698e457d1`. Independently corroborated in two koskadeux-state files (N2).
+- **Doc diff (39 ins / 5 del).** 5 in-place edits (scaffold-README wording; webhooks serialized-integration decision; livemode correction; fail-closed-refund-processor clause; retained-evidence message list + authority-JSON name) + 4 appended fold sections ("Prepared review fold: concrete Gate2 conditions", "GLM Round1 fold", "Round1 CC mandates and dispositions", and the blocking-criteria for the review questions). Read in full.
+- **Dependency re-pin target.** `runbooks-s1714-refund-release-spec@a016107478…` exists, is a **child of** `f1a5ccbf…`, and its `specs/BQ-REFUND-SAFE-PRODUCTION-S1714-GATE1.md:65` (§8) selects **all-revoked exclusion "including bare access revocation"** and **explicitly rejects CC's R1 M1 "bare-revoked-but-pays" case**; `:79` fixes writer ownership to Mars/MP with Vulcan serialized-after-accepted-candidate and enumerates the writer inventory. The amendment binds to this correctly.
+- **Operator-guide contradiction** (L1) and the **$100 cap** (guide `:36`, cumulative $100 authority — corroborates the spec's "cumulative100USD project cap remains unchanged," previously DS-UNVERIFIED).
+
+**Relied on from R1 cross-verification (unchanged by this diff — the candidate touches only the runbooks spec + JSON):** the backend `d766b8e4` and env `03d3f30`/`c6b8770e` facts — three source hashes (`9c29e6e3…`/`161bd06d…`/`58749e7c…`), path-based `--lock`/guarded-name-set/`inherited_lock` protocol, the S1681 `s1681-delivery-leg.ts:255-257/267/269` revoke-then-expect-completion conflict, public-Connect synthetic refusal, `charge.refunded` suppression, seed clears-seller02/refuses-gained-readiness, and fixture IDs (`961bd48a`/`7d662d0e`). All three R1 reviewers (incl. me) independently reproduced these; I did not re-burn budget re-verifying unchanged backend/env source for a doc-only R2 change.
+
+**Not reviewed / limits:**
+- No tests run; no provider/DB/lock/live operation. All findings static.
+- Mars4103 exact text (ID corroborated, content unread — N1); the retained JSONs beyond the committed receipt; the exact live Accounts-v1 field set (N3).
+- I did not re-audit the full PR27 scaffold or the parent S1656 spec beyond the sections bearing on this delta.
+
+---
+
+## 4. Answers to the numbered questions (with the fold's blocking criteria applied)
+
+**Q1 — Packaged identity binding + TEST-only provider/refund admission strict enough without weakening public guards? — Yes.** *(Blocking if it permits a live/foreign/ambiguous actor or event — it does not.)* Multi-factor packaged binding (role+secret-name pair, DB-ID equality, synthetic classification, reserved email; explicit IDs), full-refund-only with exact amount/currency, and rejection of request-IDs/runtime-registrations/metadata as identity. Public guards untouched (seed-side fixture path, not the public onboarding endpoint). The R2 **livemode correction improves** strictness posture (reject explicit-true, require object-level `livemode=false` where schemas provide it, contract-test the provider shape) — this closes the R1 Q1 tightening DS/GLM raised. Residual is deferred to the pinned-SDK contract test (N3).
+
+**Q2 — Shared-lock/inner-guard preserves run25 and fails closed on every error, incl. inheritance and interrupted audit? — Yes.** *(Blocking if any pre-guard write or a bypassed nonzero refusal is possible — neither is.)* The protocol matches `check-settlement`'s path-based `--lock` + mandatory inner `--guard seed` (re-validates inherited lock; exit 2 on pending). R2 adds the explicit **lock→successful guard→first write** ordering, treats **both exit 1 and exit 2** as refusal, requires a crash-before-guard to leave no audit phase/provider/DB change, and states pure `status` creates no token/audit. run25 is preserved by three independent facts (opt-in overlay; S1681 harness not edited; run25 at immutable `03d3f30` with verified pending-hold exit 2).
+
+**Q3 — Before-state custody / idempotent creation / recovery / deactivation sufficient? — Yes, with Gate2 protocol detail.** *(Blocking if it loses before-state, reassigns a foreign provider identity, or duplicates/deletes unowned resources — it does not.)* R2 now enumerates the **exact restored readiness fields** (`totp_enabled`, `totp_verified_at`, `totp_secret_enc`/`backup_codes_hash` baseline-null, `stripe_account_id`, `stripe_onboarding_complete`, `stripe_payouts_enabled`, `stripe_details_submitted`), keeps ciphertext on the backend with a digest/version discriminator, removes only the exact newly-owned `stripe_connect` row after locked equality (never `upsert` on another party's account), and makes **ownership-marker reconciliation authoritative after idempotency-key expiry** (my R1 N2) so a late resume cannot mint a second Connect account. Concrete secret UUID/version + DB discriminator correctly deferred to Gate2.
+
+**Q4 — Interface with Mars complete, and what must precede MP? — Interface is correctly *held pending*, and the concrete Gate2 list is now specified.** *(Blocking if it allowed implementation/activation without the exact accepted dependency/interface/pins — it does not; it forbids exactly that.)* R2 makes the dependency **non-transferable**: it inspects `a016107` for direction but requires Gate2 to **rebind to Mars's *accepted* candidate** (a016107 is under debate, **not** accepted). It resolves my R1 M1 (bind to the frozen predicate — now the all-revoked §8 policy, which Mars's design confirms and which rejects my own bare-revoke hypothesis) and M2 (serialized integration selected; matches Mars a016107 §8:79). **Concrete Gate2 requirements that must precede MP work** (consolidated, confirmed complete):
+1. **Rebind** the dependency from `a016107` to Mars's **unanimously accepted** S1714 Gate2/product candidate SHA, and re-review the exact seam at that SHA (this review does not transfer).
+2. **Authentic-refund admission seam** in `webhooks.py` — the exact handoff point after Mars's atomic-async restructure.
+3. **Order-based settlement exclusion** covering refunded/revoked/disputed/pending **including bare access revocation**, reading **order** state (not tx.status alone), across both direct `settle` and the scheduler.
+4. **Event + per-refund idempotency** behavior against the `stripe_events` pipeline (duplicate / different-event-ID-same-refund).
+5. **Retry contract** — no `finally:break` suppression; finance/outer failure returns non-2xx/requeue, not false success.
+6. **Schema/status/signatures** — any new finance model/migration + the exact transaction status-transition target the "consistent Payment/Refund/order/transaction/event state" assertion binds to.
+7. **Participating-writer enumeration + common lock order** (settlement/scheduler, `order_service.confirm_order` legacy Transfer, auto-confirm callers, revoke/dispute writers, refund webhook) — Mars a016107 §8:79 already lists these.
+8. **Acceptance fixtures** — exact P/N TEST-order set (eligible positive + refunded/revoked negative), authority, cleanup; and the **separate W evidence namespace/window** (do not add W to S1681's P/N receipt set).
+   **Named preconditions coupled to the settlement-exclusion deploy:** the **S1681 acceptance-harness redesign** (the `255-257/267/269` conflict is real); the **versions.env / acceptance-pin transition** (Mars-owned) with the final integration manifest naming versions.env + accepted backend SHA + built image/source identity + both spec SHAs + reviewed redeploy sequence, and **activation auditing the running image/source and refusing on mismatch with zero mutations**; the **seller02 TOTP private-stdin transport** (docker exec -i, no `-e`, no Compose secret mapping, canary test proving absence from argv/receipts/logs).
+   *Additions I recommend:* reconcile the operator-guide paragraph (L1) at Gate2, and land the Accounts-v1 `livemode` contract test (N3).
+
+**Q5 — Simpler or better? — See below.** *(Blocking if a simplification drops normal signed proof or any production requirement — none proposed does.)*
+
+### SIMPLER
+My R1 SIMPLER (reuse the S1656 §2.3 conjunctive synthetic-admission gate rather than a bespoke bypass) **is now folded in** ("Reuse the existing S1656 test-shape conjuncts and add only exact Workspace/full-refund bindings"). The remaining candidate is DeepSeek's R1 SIMPLER — collapse `seed/workspace-host.py` into `bin/workspace-fixture` (one fewer file/allowlist surface). This is now **weaker** than in R1: the R2 private-stdin transport gives the host helper a distinct role (retrieve custody + `docker exec -i` the in-container fixture mode), so the split is better justified. **Advisory only** — no scope violation or material risk supports a mandate; the fold's file separation is defensible.
+
+### BETTER
+My R1 BETTER (invert the webhooks.py collision into a single Mars-owned admission-hook seam) is **superseded and correctly not selected**. Mars's `a016107` §8 restructures the whole refund branch to an **atomic async processor** and delegates all financial effects there; the admission only gates entry before durable synchronous pending-admission. With no shared mutable region beyond the suppression-bypass point, a generic hook framework adds coupling without reducing risk, whereas **serialized rebase onto Mars's accepted candidate** (what the fold chose, and what Mars's §8:79 requires) is the smaller, safer surface. The fold explicitly declines the generic hook "unless Mars's accepted interface already provides that seam" — the right condition. **None materially better found**, given Mars's confirmed direction. (Companion still holds: Gate 6 must assert settlement blocks *because it read order refund/revoke state*, not merely "no Transfer" — R2 now states this.)
+
+---
+
+*Do not treat this design-only Gate1 approval as approval of any Gate2/Gate3/activation gate. The §4 Gate2 requirements — foremost the rebind to Mars's **accepted** candidate — must be satisfied before MP implementation or any `webhooks.py` integration. Live activation additionally requires an explicit owner window and TEST transaction/refund authority.*

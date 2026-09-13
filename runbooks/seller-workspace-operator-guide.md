@@ -391,3 +391,12 @@ Backend completion is followed by the environment component using actual stage i
 ## Review and diagnostic continuation after a4 panel
 
 The a4 panel is terminal REVISE, not accepted. Follow the current specification section "Full a4 panel disposition and execution-grounded clarification" for the explicit Transaction comparison table, FK NULL evidence, fail-closed repeat-migration preflight, locking cutover obligations, three-field closure checks and all eight newly reached webhook failures. Evidence is retained under runbooks/evidence/workspace-gate2-s1712 as CHECKOUT-R3-*, PG17-FK-* and WEBHOOK-MINIMUM-PATCH-EXPLORATION-*. The22-case toy probe passed and was cleaned; the15-node minimum patch experiment yielded7pass/8fail and is not complete-module qualification. Preserve all1990 prior node identities, distinguish revoked from linked-refunded scheduled proof, and require actual final backend/environment/provider evidence before release.
+
+
+## September12 canonical payment binding continuation
+
+MP248 ended with timeout at817f7331a07d07929a67198b28a82ed9b98baa56, preserved and pushed. It is not qualified for release. Its complete public checkout/capture test found Order payment intent populated while the linked Transaction dedicated field remained NULL. The proposed successor contract specifies normal producer binding, strict initial-recovery rules, nullable native uniqueness constraints and fresh full review. It does not authorize operator backfill, validator bypass, synthetic Payment/journal insertion or runtime activation.
+
+The final Workspace cohort contains1009passes,1capture failure and44database-template setup errors; the money cohort contains665passes and4retained subscription-module failures. Both final source vectors differ from817f in the W migration. Preserve all results and rerun qualification on one frozen source. The prior inventory accounts for1988/1990 original names; both renamed checkout cases require explicit reconciliation. Complete source/evidence receipts are retained in evidence/workspace-canonical-pi-s1712, including the archive index and all26 full historical reviewer responses.
+
+Follow specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md for the full proposed successor. All original environment integration, combined review, protected runtime phases, real scheduled execution, production cutover and enabled AWS S3/Cloudflare R2 release proofs remain open until independently verified.

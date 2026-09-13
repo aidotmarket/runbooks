@@ -1,0 +1,145 @@
+# Council Review — Gate2 source-grounded canonical checkout contract correction
+
+Reviewer: DeepSeek (independent). Read-only: no file, repo, runtime, provider, DB, lock or test was modified or executed. Shell reads via `rtk`/`git` only. Turn budget ~8 of 30 read-only rounds; comfortably within bound.
+
+---
+
+## 1. Verdict
+
+**REVISE**
+
+The checkout correction itself is genuine, correctly grounded in source I independently reproduced, and honestly scoped: the canonical early return does precede the legacy guard at every pinned revision, `ENABLE_CANONICAL_TX` really defaults true and is really not overridden by accepted Compose, the original false403 expectation really is contradicted by the real branch, and the packet discloses rather than conceals the probe's limits. I found **no reason to reject the narrow checkout proposal or to demand a new canonical guard** (Q on adequacy: the private cooperating-owner boundary plus fail-closed W authority is adequate for this decision).
+
+But the packet does not stand on the checkout correction alone — it bundles an "adjacent N-to-W classifier repair" and offers it as evidence that the fourteen-target scope is preserved without waiving an expectation. That repair, as evidenced byte-exactly in this candidate, **returns False (→ terminal 200 suppression) before consulting the W authority store**, which contradicts the candidate's own stated invariant at spec:310. That is one MEDIUM finding; under this rubric MEDIUM blocks. Everything else is LOW/NIT.
+
+---
+
+## 2. Findings
+
+### F1 — MEDIUM (blocking) — The evidenced classifier repair cannot satisfy the candidate's own invariant: a registered W charge with a damaged binding is terminally suppressed, not raised.
+
+**repo@SHA / evidence**
+- `aidotmarket/runbooks@c6bae734aa7faf5645f3cd724ab3460c7ac2f49f:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:310` — *"missing readiness or binding uncertainty for a genuine/registered W charge must not be converted to completed suppression"*; and `:308` — *"final tests must also ensure classification cannot silently discard a previously registered W charge when a later binding is damaged."*
+- Same candidate, committed evidence file `runbooks/evidence/workspace-gate2-s1712/ADJACENT-CLASSIFICATION-SOURCE.txt` (SHA256 `57bc414d4488044a6a3729300a21e9b34cbde3de934c2d21eb9b694e8ba584da`, 12198 bytes — matches request), lines 141–142:
+  ```
+  ids = db.execute(select(Order.id).join(Transaction, Transaction.order_id == Order.id).join(Listing, Listing.id == Order.listing_id).where(Listing.seller_id == SELLER_ID, ..., Transaction.api_key_id.is_(None), Transaction.buyer_type == "human", Transaction.origin == "listing_purchase", Transaction.surface == "browser")).scalars().all()
+  if not ids:
+      return False
+  ```
+  The authority lookup (`assert_workspace_test_authority_ready_sync`, `WorkspaceRefundTestAuthority`, lines 143+) runs **only after** this early return.
+- I independently reproduced the quoted implementation: `git show "HEAD:app/services/workspace_refund_test_admission.py"` in worktree `/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b` (HEAD `e621c760509bde085d5ef784bb14ffa90810d92b`) hashes to `6f80022c39fd440c8a6b2e267a3e6f205f05fb683b7db9ea0d1d0565e208eee8` — the exact hash declared at ADJACENT-CLASSIFICATION-SOURCE.txt:128 — and contains that join and `if not ids: return False`.
+- Delegate path: the shared seam returns **HTTP 200** `e2e synthetic event suppressed` and sets `stripe_events.status='completed'` when the predicate returns False. This is not inferred — it is the observed outcome of the same candidate's own adjacent run (`ADJACENT-money-core-final-W-node.xml`, SHA256 `1951740e…`, 290 bytes, pass) whose forged fixed-pair case only succeeds because the predicate returns False.
+
+**Observed vs expected.** Observed: a genuinely registered W charge (authority row present) whose `Listing`/`Transaction` shape later fails the join — e.g. `Transaction.surface`, `origin`, `buyer_type` changed or `api_key_id` set, none of which any quoted DB guard protects — produces an empty `ids`, returns False *before* the authority store is read, and the signed `charge.refunded` is acknowledged 200 and terminally completed local-only suppression. Stripe does not redeliver; the local refund/event effects never occur; the window can then no longer close (`recovery_required_unregistered_refund`). Expected (per the candidate's own text at spec:310): an existing registration must be resolved before any suppression decision, and binding uncertainty for a registered charge must raise `WorkspaceTestAuthorityUnavailable` into the durable-failed/non-2xx path.
+
+**Reproduction.** Static evidence only (read-only sandbox; classifier not executed).
+
+**Impact.** Irreversible loss of a paid (TEST) refund's local effect on the only existing path, plus a permanently un-closeable window. This is the same failure class the owner upheld as blocking at R3 (sibling teardown MEDIUM) and the same class the packet itself instructs reviewers to reject ("Reject any final implementation that makes a retained registered refund disappear into terminal suppression").
+
+**Smallest required outcome.** Make the precedence contract explicit in the spec: a fixed-pair `Order`+`payment_intent` match must consult the registration/authority store (or raise when the store is unavailable) **before** any suppression decision; only actor-non-matching traffic may be cheaply rejected with False. State that the listing/transaction shape discriminator produces *ambiguity* (raise), never False, whenever a fixed-pair order or an authority row exists — or state plainly that binding drift is out of contract and prove the drift surface is unreachable.
+
+**Verification criterion.** An ASGI test with the authority store available and one registered authority, whose `Transaction` shape is mutated, asserts **not** 200 `e2e synthetic event suppressed` but a durable failed event plus same-ID convergence after restoration; and the forged-non-W node still returns its original 200 with zero optional-W schema/mount lookups.
+
+---
+
+### F2 — LOW — Builder verification overstates: `git diff --check` does not pass on the reviewed range.
+
+**Evidence.** `runbooks@c6bae734`, range `56665b4e…c6bae734…`: `git diff --check` reports trailing whitespace at `runbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:258,260,286,370,372,398` and `…CHECKOUT-fresh-public-third.xml:91,93,119`. The request states *"git diff --check passes."*
+
+**Observed vs expected.** Observed: the stated check fails; the packet's later clause *"all15 complete historical responses… byte-exact"* shows the whitespace is intentional payload inside byte-exact pytest captures. Expected: an accurate result statement, since the preamble requires exact commands and results.
+
+**Impact.** Low — files are defensible (their hashes match the retained raw run byte-for-byte, verified below); the defect is the verification claim, which a re-runner cannot reconcile.
+
+**Smallest required outcome.** Replace with the exact command and its actual output, e.g. "`git diff --check <base> <candidate> --` reports trailing whitespace only inside the two byte-exact captured-log evidence files; byte-exactness to the retained raw run is required and all declared hashes reproduce."
+
+**Verification criterion.** The stated result matches the observed output of the stated command.
+
+---
+
+### F3 — LOW — The corrected contract inverts an assertion that still exists inside one of the fourteen frozen backend targets, while the packet says "no assertion was changed".
+
+**Evidence.** `…GATE2.md:75` now requires flag=false and flag=true to both return 200 on the default canonical path and states *"This new requirement explicitly corrects the previously required default false403."* The selected target `tests/test_workspace_test_refund_admission.py` — one of the fourteen backend targets listed in the spec's scope section — still contains `assert response.status_code==403` (verified at line 610 in the MP247 worktree). The packet's header says *"no assertion was changed"* and *"no edits to tests/test_refund_webhook_protocol.py or its original expectation are selected."*
+
+**Observed vs expected.** Observed: the two statements are individually true of different tests but jointly misleading; the file whose expectation must now be inverted is never named. Expected: name the superseded node/file explicitly so the Gate3 binding is unambiguous.
+
+**Impact.** Low (documentation/traceability). Note the adjacent repair is unaffected: `tests/test_refund_webhook_protocol.py` SHA256 `59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077` — unchanged, verified.
+
+**Smallest required outcome.** One sentence naming `tests/test_workspace_test_refund_admission.py` and the node whose 403 expectation is replaced by the corrected matrix, while the failed historical run stays retained as discovered evidence.
+
+**Verification criterion.** The build packet names the amended node, and the original failing case remains retained.
+
+---
+
+### F4 — LOW — The corrected text makes load-bearing a production-isolation property of the canonical path that it does not test: the legacy mixed-synthetic refusals never execute on the default path.
+
+**Evidence.** `…GATE2.md:285` (canonical return at `checkout.py149–171` precedes legacy `190–195`) — independently reproduced at `aca73e88`, `c3a62af8`, `d766b8e4` (all three `checkout.py` SHA256 = `7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf`). In the embedded full source, the legacy branch is the only caller of `_refuse_mixed_synthetic_purchase` (line 82 → called at 190), which raises 403 `synthetic_buyer_real_listing_refused` and 404 `synthetic_listing_purchase_refused`. With default canonical routing, those refusals do not execute. `…GATE2.md:295` concedes only that *"This proposal does not certify all inherited synthetic checkout behavior safe in every production configuration."*
+
+**Observed vs expected.** Observed: no requirement in the corrected matrix exercises a synthetic-buyer / real-listing case on the canonical path, and no evidence is offered that `transaction_service.initiate`/`create_checkout` reproduces the mixed-synthetic refusal. Expected: the item is either tested or explicitly recorded as an out-of-scope inherited dependency with its production exposure bounded.
+
+**Impact.** Low and UNVERIFIED (I could not inspect `transaction_service`; production impact depends on whether any `is_test` principal can authenticate there). It is a real production-marker item under Q1.
+
+**Smallest required outcome.** Add the canonical-path mixed-synthetic case to the final matrix, or record the bounding argument (no `is_test` principal can authenticate in production) as a named dependency.
+
+**Verification criterion.** The final matrix exercises the canonical path with a synthetic buyer against a real-seller listing and preserves the measured result, or the bounding argument is bound as a tested invariant.
+
+---
+
+### F5 — NIT — Remaining builder-verification text is not reproducible as written.
+
+`"Local check.py and index.py:123runbooks each"` is unparsable; `scripts/check.py` and `scripts/index.py` exist (`git ls-tree`), but I did not run them (they may write index output; read-only mandate) → **UNVERIFIED**. The two CI tuples (`34704289226`, `34704287827`, both success, head `c6bae734…`) are **UNVERIFIED** — no network. Also UNVERIFIED: that `cda99ee` was "HELD" (the commit exists; `git cat-file -t cda99ee` → commit). None is load-bearing. Required outcome: embed `{run id, conclusion, head_sha}` for CI and replace the index clause with a literal command+result.
+
+---
+
+## 3. Coverage
+
+**Independently verified at the pinned revisions**
+- Artifact identity: checkout HEAD = `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f`, clean worktree, base `56665b4e…` is an ancestor; exactly 13 changed files (10 added evidence + 2 runbooks + 1 spec), +1019/−2; no backend/environment/runtime file.
+- Spec identity: blob `ef7cd807…` → SHA256 `acd4f0e9220f2e9f0af7c490591647a08bd3addb52565eba76871cbf5a2ccacb`, size `116324` — exact match.
+- All ten evidence-file hashes and byte counts match the request exactly (`ADJACENT-*`, `CHECKOUT-*`), including the failure-log excerpt hash `b55418ec…` and the two W-node XMLs.
+- All six retained raw-run artifacts under `…/outputs/mp247-adjacent-classification-evidence/` exist (mode 0400) and hash exactly as declared in `ADJACENT-CLASSIFICATION-RECONCILIATION.json` (`398f19a9…`, `051c04a2…`, `0824df34…`, `ab39eb10…`, `57097ee5…`, `686d0ef9…`).
+- Source grounding, all byte-exact: `checkout.py` `7bdfd482…` at `aca73e88`, `c3a62af8`, `d766b8e4`; `config.py:101 ENABLE_CANONICAL_TX: bool = True`; `config.py:535/546/547` E2E flag/max-window/armed-at; canonical return at 149–171 preceding legacy 173/190/195; `_refuse_mixed_synthetic_purchase` at 82.
+- Backend evidence hashes: `webhooks.py:256–288` = `c437df09…`; `tests/test_refund_webhook_protocol.py` = `59873181…` (unchanged); `tests/test_refund_processing_protocol.py` = `7e5a871f…`; `alembic/versions/20260908_002_seller_listing_publications.py` = `e00f396b…`; `workspace_refund_test_admission.py` = `55966117…` at aca73 and `6f80022c…` at the MP247 worktree (both declared values reproduce).
+- Environment: accepted repo `money-path-test-environment-s1714-refund-proof`, `compose.yaml` contains **neither** `E2E_TEST_ROUTES_ENABLED` **nor** `ENABLE_CANONICAL_TX` (supports "accepted Compose does not override", and the fresh-literal requirement in the spec); `versions.env:14 BACKEND_RC_SHA=c3a62af8…`.
+- Provenance: R4 owner-decision response hashes (`037b5f82…`, `0e19ec0e…`, `c4319813…`) and R3 DS (`5aac00b5…`) match both the request and the retained files; `runbooks/evidence/workspace-gate2-s1712/R4-OWNER-DECISION.json` and `R4-REVIEW-INDEX.json` exist at the path the spec links.
+
+**Not verified / limits**
+- No test, harness, ASGI request, DB, provider, lock, container, fixture or reset/teardown was executed; **all findings are static**.
+- **UNVERIFIED:** the two CI tuples and their conclusions (no network); the garbled index/check clause; that `cda99ee` was "HELD"; cryptographic authority behind Mars/owner event `99af61fd…`; whether `transaction_service` reproduces the legacy mixed-synthetic refusal (F4); the six "inherited baseline failures" and the product/environment Gate3 counts (accepted as retained dependency evidence only).
+- I did not re-audit the full 42-target product or 14-file environment diffs, the S1681 harness, or any runtime/release evidence; those are outside this documentary candidate and no implementation or release acceptance is offered.
+- Budget note: I stopped reading when returns flattened; the classifier semantics in F1 rest on the candidate's own committed evidence file plus one direct read of the pinned worktree file, not on the builder's narrative.
+
+---
+
+## 4. Answers to the numbered questions
+
+**Q1 — Does the corrected contract preserve TEST-only W authority and production/non-W isolation without claiming source equality or that the E2E flag alone proves either?**
+
+**Mostly yes, with one gap (F4).** The contract now states correctly, and I confirmed in source, that the E2E flag gates only the legacy branch (spec:69 region; `checkout.py:149` precedes `190/195`), that canonical routing is default (`config.py:101`), and that the flag is *"neither a canonical purchase stop nor a universal production emergency switch"* (spec:293). It nowhere claims the flag proves TEST-only authority; W mutation/admission still requires `ENVIRONMENT=test`, strict `STRIPE_TEST_MODE=true`, the fixed pair, immutable purchased source, owner/runtime/protected/pin state and readiness, and the existing shape helper's production-marker refusals run before optional W access (spec:73, spec:310). The W-last optional-lookup boundary is stated and testable (spec:73, 75, 310). The gap: with canonical default routing, the legacy mixed-synthetic 403/404 refusals never execute, and the packet explicitly declines to certify inherited synthetic checkout behavior in every production configuration without bounding it (spec:295). That is disclosed, not proven — F4.
+
+**Q2 — Are the branch and default/no-override tests precise and sufficient, with public checkout200 distinct from real signed capture/registered refund? Is retained legacy behavior adequately bounded without manufacturing a green paid path?**
+
+**Yes, and unusually careful.** The corrected matrix separates three things the old paragraph conflated: (a) default/flag-false/flag-true canonical checkout → 200 with a created order/transaction and the measured default (spec:75), explicitly *"rather than claiming the old failed test passed"*; (b) an auxiliary, clearly-labelled `ENABLE_CANONICAL_TX=false` legacy test, with flag=false → 403 `synthetic_purchase_requires_e2e_guard` before any checkout/provider/financial effect, and an express prohibition on treating the auxiliary override as final Compose proof; (c) the paid proof — public checkout → normal signed capture → committed registration → normal signed full refund/replay — with *"merely obtaining a checkout URL is not this paid proof."* The probe evidence cannot manufacture green: the false case remains a retained failure (`CHECKOUT-fresh-public-third.txt`/`.xml`, hashes `8e5654ea…`/`d7f0b059…`), and `CHECKOUT-CORRECTION-INDEX.json` records `product_code_changed:false`, `implementation_accepted:false`, and the explicit probe limit that inherited-override absence was not attested and must be asserted. One imprecision: the frozen target whose 403 assertion must flip is not named (F3).
+
+**Q3 — Are all original paragraph71/75 requirements and historical R3/R4 dispositions explicitly reconciled, and are unchanged true/[]/[] settings, service guards, monitor alert and upgrade inventory preserved?**
+
+**Yes.** The diff is exactly two in-place paragraph replacements plus an appended correction section (spec:268–310); the original operative text is preserved verbatim in `CHECKOUT-CORRECTION-INDEX.json` and the historical R3(line259)/R4(line274) dispositions are named as read-with-correction rather than silently rewritten. I verified the unchanged items are preserved: the three runtime settings as literals (spec:69 region), the "host checks exactly these three keys" rule (spec:73), both account-cleanup service guards and the shared four-UUID refusal, the expected isolated-TEST monitor alert with `E2E_ARMED_AT` absent, and the upgrade inventory of canonical-vs-legacy branching, router registration, harness-bypass helper and monitor.
+
+**Q4 — Does the complete lifecycle/cardinality/immutable authority/private custody/retained refund/cleanup design remain coherent after this correction?**
+
+**Yes at design level.** Nothing in this candidate touches the two-stage authority, the immutable registration table, the SHORT `orders` SHARE binding lock, retained-custody-no-DELETE, the incident dispositions, or B09/B13/B14 closure obligations; the corrected paragraphs are the runtime-configuration and branch-rationale paragraphs only. The one coherence defect introduced by the adjacent section is F1: the evidenced classifier's early return conflicts with the preserved invariant at spec:310.
+
+**Q5 — Blockers versus low/nits, with exact source/contract references (no implementation/environment/runtime acceptance inferred).**
+
+Blocking: **F1 (MEDIUM)** — `ADJACENT-CLASSIFICATION-SOURCE.txt:141–142` (hash `6f80022c…`) returns False before the authority lookup, defeating spec:308/310 for a registered charge with damaged binding; required outcome is an explicit precedence contract plus a drift test. Non-blocking: **F2** (`git diff --check` claim false), **F3** (unnamed superseded assertion in a frozen target), **F4** (untested canonical-path mixed-synthetic isolation), **F5** (garbled/unverifiable verification text). I specifically do **not** find the checkout correction itself deficient: its branch rationale, default resolution, Compose non-override and expectation inversion are all source-verified, and rejecting it in favour of a new canonical guard would be a scope widening unsupported by the evidence. Nothing here accepts MP247, the paid lifecycle, the owner window, or any AWS/R2 release.
+
+---
+
+### SIMPLER
+
+**None found for the checkout correction itself** — the change *is* the simplification: it deletes a false requirement (flag=false → 403 on the canonical path), deletes the claim that the E2E flag is a canonical arming control, and replaces both with the actual branch order plus an explicitly labelled auxiliary legacy test. Nothing further is removable without losing a requirement; I tried to remove (a) the auxiliary `ENABLE_CANONICAL_TX=false` test — rejected, it is the only remaining way to exercise the legacy 403 carrier; (b) the probe-limit paragraph — rejected, it is what makes the evidence honest; (c) the two-runbook edits — rejected, the operator guide is where the stale "arming" reading would otherwise persist.
+
+For the classifier, the simplest concrete alternative that preserves every requirement is a **two-step predicate**: (1) cheap actor/PI rejection on the `Order` tuple alone (seller02 + buyer01 + payment_intent), returning False only for non-matching traffic; (2) for a matching fixed-pair charge, resolve registration — existing authority ⇒ validate; absent authority with available and compatible store ⇒ terminal suppression; unavailable/incompatible ⇒ raise. Quantified effect: it removes the join-based discriminator (4 columns), removes the "return False before authority" branch, and preserves both the forged-non-W 200 and the registered-drift non-suppression. It costs one extra query ordering constraint and the drift test in F1's verification criterion.
+
+### BETTER
+
+**One materially better approach: make the whole classifier decision a function of the registry, not of row shape.** Store the exact `(payment_intent, charge)` pair in the registration row (it already is: `workspace_refund_test_authorities.payment_intent_id`, `charge_id`, both UNIQUE) and drive the predicate as: lookup by provider IDs first; if exactly one row → validate immutable bindings and return the authoritative answer (raise on any mismatch); if no row → apply the cheap fixed-pair rejection; if the store is unavailable → raise for fixed-pair traffic only. Compared with F1's current failure mode, it removes the possibility that a dangling join silently converts a registered refund into terminal suppression, and it makes "unregistered 200" and "registered-with-uncertainty 500" structurally disjoint rather than ordering-dependent. Cost is a re-ordering of two reads (plus a bounded index lookup already required) and the same tests; rollback is a predicate revert with authority and financial rows untouched. Its own new failure mode — an extra read on non-W traffic if the ordering is done carelessly — is contained by gating the authority lookup behind the cheap actor/PI tuple, which the spec's Q1/W-last boundary already requires. I record this as a recommendation; only F1's precedence statement and test are mandates.

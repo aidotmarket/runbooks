@@ -1,0 +1,256 @@
+APPROVE_WITH_MANDATES
+
+## Findings
+
+### 1. MEDIUM — The surgical-reset guard leaves accepted P/N protected history destructible while a Workspace lineage exists
+
+- **Severity:** MEDIUM — blocking implementation until the design is corrected.
+- **Evidence:**
+  - `aidotmarket/runbooks@793e79153d9eac5c2d57536982d3f793b04d2c19:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:95` deliberately applies the new backend reset guard only when the reset target is seller02 or buyer01 and explicitly says unrelated targets retain existing behavior.
+  - The same specification at `:101` defines the protected comparison as including seller01, buyer01, buyer02, all seller01 P/N orders and linked financial/event rows. Closure at `:91` requires preserved P/N/device comparisons.
+  - Actual accepted source at `aidotmarket/ai-market-backend@c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2:app/e2e/surgical_reset.py:262-269` deletes `order_events`, `orders`, `transactions`, and `listings` by either buyer or seller target.
+  - The reset route is real and allowlist-driven at `aidotmarket/ai-market-backend@c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2:app/api/v1/endpoints/e2e_reset.py:111-120`; allowlist membership comes from configurable settings at `app/e2e/teardown_guard.py:60-67` and `:169-175`. It has no global Workspace-lineage check today.
+- **Observed behavior under the proposed design:** an authorized reset targeting seller01 or buyer02 while a W authority/audit lineage exists would not encounter the proposed fixed-pair guard. It could delete protected P/N order/transaction/listing history. The later protected-state comparison would correctly refuse closure, but the paid evidence would already have been destroyed and the W lifecycle would be unrecoverable without out-of-band restoration.
+- **Expected behavior:** once any Workspace authority, audit, custody lineage, or issued owner operation is present, every destructive reset target capable of changing the declared protected collections must refuse before database or object-store side effects. Targets genuinely unrelated to those collections may retain existing behavior when no Workspace lineage exists.
+- **Reproduction:** static evidence only. Configure the existing signed E2E reset path for seller01 or buyer02 while any `workspace_test_windows` row or host Workspace lineage exists; the proposed target test at spec line 95 would not fire, while source lines 262–269 identify P/N rows for deletion.
+- **Impact:** this does not show false W refund admission, but it defeats the required preservation/recovery obligation and can drop accepted paid P/N history. The design currently turns the result into a stuck terminal comparison rather than preventing destruction.
+- **Smallest required outcome:** amend the design and `tests/test_e2e_surgical_reset.py` contract so the guard covers all four protected fixture identities—seller01, buyer01, buyer02, and seller02—whenever any Workspace authority/audit/custody lineage is present. Alternatively, prove by an exact join that a target cannot affect any protected collection before allowing it. This is a conditional widening, not a generic reset redesign.
+- **Verification criterion:** isolated PostgreSQL tests demonstrate, for active, closed, no-purchase, and pre-open owner-lineage states as applicable, that signed resets targeting seller01 and buyer02 perform zero SQL deletes and zero object-deleter calls when Workspace lineage exists, while unrelated targets without Workspace lineage retain current behavior.
+
+### 2. LOW — The exact meaning and derivation of `custody_sha256` and `connect_marker` are not frozen
+
+- **Severity:** LOW — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@793e79153d9eac5c2d57536982d3f793b04d2c19:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:117` requires `custody_sha256` and an “exact derivation” for `connect_marker`, but gives neither preimage nor marker grammar.
+  - `:129-133` makes those values load-bearing for conflict reconciliation, retained-generation reuse, and drift detection.
+- **Observed:** an implementer could hash raw decoded TOTP bytes or the ASCII base32 representation, and could choose different provider marker strings. Both choices might pass local tests yet fail host/backend or future recovery interoperation.
+- **Expected:** one canonical preimage and marker definition, with golden cross-boundary examples.
+- **Reproduction:** static evidence only.
+- **Impact:** likely safe refusal on mismatch, but avoidable activation/recovery failure and ambiguous ownership evidence.
+- **Smallest required outcome:** state, for example, whether `custody_sha256 = SHA256(decoded_20_bytes)` or `SHA256(ASCII_base32_without_padding)`, and define the complete nonsecret marker string and its canonical encoding.
+- **Verification criterion:** host and backend tests use one golden generated secret and marker; every mutation of preimage, encoding, marker, UUID, version, scope, or name refuses.
+
+### 3. LOW — `environment_sha` does not explicitly distinguish accepted candidate `606267af` from merge `43d67264`
+
+- **Severity:** LOW — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@793e79153d9eac5c2d57536982d3f793b04d2c19:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:23` says W inherits accepted environment merge `43d67264`; the dependency statement names accepted candidate `606267af` and merge `43d67264` with identical tree `e553476a`.
+  - The exact pin definition at `:69` explains backend extraction in detail but does not say which commit object is `environment_sha`.
+- **Observed:** both 40-hex identities are legitimate descriptions of the same tree, so two implementations could produce different owner/runtime pins without a source-tree difference.
+- **Expected:** the pin names exactly one accepted runtime identity and its tree.
+- **Reproduction:** static evidence only; I independently verified both commit objects have tree `e553476a38e0948d3a57da60872e406048a0d391`.
+- **Impact:** provenance ambiguity and false mismatch, not behavior drift in the identical-tree case.
+- **Smallest required outcome:** specify, for example, `environment_sha = 43d67264...` as the accepted merge/runtime identity and record tree `e553476a...`, or consistently select candidate `606267af...`.
+- **Verification criterion:** pin-mismatch tests reject the alternate accepted-tree commit as well as every changed tree.
+
+### 4. NIT — The categorical “no secret in environment” canary conflicts with the already accepted container environment
+
+- **Severity:** NIT — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@793e79153d9eac5c2d57536982d3f793b04d2c19:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:51-53` prohibits credential-bearing environment assignment and says the child-boundary canary must show no secret in environment.
+  - The accepted environment already supplies Stripe keys and fixture credentials through Compose at `aidotmarket/money-path-test-environment@606267af80470b1d61c07d91cda30a0dc5200224:compose.yaml:76-89`.
+- **Observed:** a literal whole-environment assertion would fail on accepted dependencies. The intended boundary is almost certainly the newly transported seller02 TOTP/custody material, not every pre-existing application secret.
+- **Expected:** explicitly scope the canary to `E2E_SYNTHETIC_SELLER_02_TOTP`, its plaintext/digest material, and any new Workspace custody secret, while separately acknowledging pre-existing application credentials.
+- **Reproduction:** static evidence only.
+- **Impact:** ambiguous test mandate; no unsafe behavior is introduced by the design.
+- **Smallest required outcome:** clarify that no Workspace credential may be added through Compose, argv, tempfile, or inherited environment, and drive the canary with a unique Workspace secret.
+- **Verification criterion:** the real `docker exec` child and audit/output contain no canary Workspace secret while accepted application-only secrets remain governed by their existing contracts.
+
+## Coverage
+
+### Exact artifact and dependency identity verified
+
+- Repository checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-gate2-s1712`.
+- Candidate HEAD: `793e79153d9eac5c2d57536982d3f793b04d2c19`.
+- Branch: `docs/seller-workspace-gate2-s1712`.
+- Worktree was clean.
+- Base `0ec6bac7afa66def9a5f51385443ff215b51fc3f` is an ancestor.
+- Diff from base to candidate is exactly:
+  - `A specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`
+- Candidate blob: `0348384f51a7bc8f679d5c289a6230bc83a6d7f3`.
+- Candidate file SHA256: `9885f42481b947e901c991c5827346f4df77fd7461b0fe4253bca6ede547a16e`.
+- Candidate bytes: `83,163`.
+- `git diff --check` passed.
+- Predecessor continuity: candidate parent is `e138f16a6068ebc0214f7f11baa936f1dc4e689c`; predecessor file SHA256 is `07d527adca88e485b30429182bf65654a05f0c37da247ef10da5899028974456`. The revision changes one file, +103/−36 relative to the predecessor.
+
+I read the complete revised specification, including the owner-artifact, schema, concurrency, reset, custody, audit, deactivation, implementation, verification, diagnosis, release, upgrade, and historical sections.
+
+Independently verified dependency identities and hashes included:
+
+- Backend checkout at `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2`, descended from `d766b8e4...`.
+- Environment checkout at `606267af...`; candidate and merge `43d67264...` both have tree `e553476a...`.
+- Money Gate2 spec at `26588d3571efc3a19d1a9b591fb51991690e3f62`, SHA256 `1e3c9783575db778301d0b7ec8a66f1dadca0b855ce59cf0cff9bdaf8cfd6806`.
+- Product owner decision SHA256 `ed425ff091bebc41a879f3b4167a7816e0f23c47d94211a17426e5b5fd9b190f`.
+- Environment owner decision SHA256 `b3e7880bd6d574cd3ce9abba87990fa872017879b7ec8bf2e896158046ed6f2b`.
+- PR188 pin receipt SHA256 `4c134f79fc0230cdb1542c45260ea46eefee9ee31ebd355e877547c22aac13c4`.
+- PR188 candidate and merge have identical tree `85a710ea5972a5e2999f214f783ef7f654d1b4e6`.
+- Current protected active-run pointer SHA256 `cbbfe3278d4ed6933a254c2c4a24f345a84bbb1a3e44ec5045892509f49889a5`.
+- Owner interface files and predecessor decision hashes matched the request.
+
+Source interfaces checked at the exact pins included:
+
+- Webhook signature, event dedup, immutable refund-event payload, and synthetic-suppression seam.
+- Mars `_admits` lock behavior and exact persisted S1681 authority lookup.
+- Order/publication/approval/DeliveryAuthority/CloudConnection fields and owner constraints.
+- User Stripe/TOTP field types.
+- TOTP encryption coupling.
+- Surgical reset SQL and object deletion behavior.
+- `/transactions/{id}/confirm → OrderService.confirm_order`.
+- Four-fixture environment seed and seller02 baseline.
+- Existing lock/guard and receiver invocation pattern.
+- Compose source label and local image identity machinery.
+- Alembic parent `s1714_order_money_v1`; no existing child at `c3a62af8`.
+- All proposed new implementation files are absent at the accepted dependency pins, as claimed.
+
+### Not reviewed, run, or certified
+
+- No implementation exists; no proposed test was run.
+- No product, environment, PostgreSQL, wrapper, Docker, provider, credential, DB, lock, fixture, deployment, or production operation was executed.
+- The two final GitHub CI tuples are **UNVERIFIED** because I did not access GitHub or the action logs.
+- Existing product/environment test counts, six inherited product failures, the separate clean-environment `--pins` execution, and PR169 CI conclusions are accepted only as retained dependency evidence; I did not reproduce them.
+- Live running image/container identity, current production triggers, scheduled Beat execution, provider reconciliation, AWS/R2 transport, buyer bytes/denials, production quiescence, and cutover state are **UNVERIFIED**.
+- Installed Infisical response/write behavior and current online documentation are **UNVERIFIED**. The no-CAS premise is nevertheless acknowledged by the specification itself.
+- Cryptographic provenance of Max’s event and peer-bus records is **UNVERIFIED** beyond the retained hashes and corroborating records.
+- I did not reread all full Gate3 reviewer bodies or audit every file in the 42-target product candidate and 14-file environment candidate. I read the load-bearing source interfaces named by this design.
+- Turn budget used: 25 of 30 tool turns.
+
+## Answers to the six required questions
+
+### 1. Can an old same-pair W order, another window/order, P/N, or altered canonical purchase binding gain signed TEST refund admission?
+
+**No, not under the revised design.**
+
+The two-stage design closes the predecessor’s purchase-scope gap:
+
+- Stage A durably records the complete fixed seller02/buyer01 order-ID baseline before activation/purchase under `LOCK TABLE orders IN SHARE MODE NOWAIT`.
+- Stage B recomputes the complete fixed-pair set, requires every baseline ID to remain present, and requires the entire delta to be exactly one order. It accepts no caller order ID or host snapshot.
+- The selected order is validated against the actual source chain: order → purchased version → publication → approval → DeliveryAuthority → seller-owned CloudConnection, with source-backed `review_hash`, `manifest_hash`, and `immutable_scope_hash` fields.
+- The registration table uniquely binds window, order, transaction, Payment, PaymentIntent, charge, actors, publication/version/authority/connection, amount, currency, protocol, pins, and canonical receipt.
+- Its immutable trigger rejects UPDATE/DELETE.
+- The webhook exception is at the actual signature/dedup/suppression seam: `aidotmarket/ai-market-backend@c3a62af8:app/api/v1/endpoints/webhooks.py:476-576`.
+- P/N uses different persisted authorities and actor/provider identities; Mars’s accepted product spec explicitly requires separate exact persisted authorities.
+- A closed/recovery window retains only the originally registered provider identities; it cannot bind a second order.
+- Changed source bindings or receipt hashes fail comparison against the immutable registration.
+
+This is a design conclusion only. The required real ASGI and PostgreSQL tests must prove old order, wrong window, P/N crossover, altered binding, revoked connection, post-close replay, and same-ID convergence.
+
+### 2. Can concurrent purchase, duplicate binder, or surgical reset defeat baseline, cardinality, or history preservation?
+
+**Concurrency design: no. Reset design: not fully, as shown by Finding 1.**
+
+For public writers and duplicate binders:
+
+- PostgreSQL `SHARE` conflicts with the `ROW EXCLUSIVE` lock taken by order INSERT/UPDATE/DELETE. `NOWAIT` causes an active writer to refuse immediately; after SHARE is acquired, a later writer cannot change order cardinality before commit.
+- A preexisting `SELECT FOR UPDATE` holds compatible `ROW SHARE`; the design correctly handles that case with later `NOWAIT` row locks.
+- The complete delta cannot silently exclude an unpaid extra order.
+- Duplicate binders serialize on the window row with `FOR UPDATE NOWAIT` and database uniqueness.
+- The accepted transaction→money-state→Payment→Refund row order is preserved, orders are never updated during binding, and no table-lock upgrade is allowed.
+- Bounded timeouts, rollback, complete retry, and exact immutable reconciliation cover deadlock, timeout, and uncertain commit.
+- The required two-session PostgreSQL tests explicitly cover writer-active, writer-arriving, preexisting row lock, duplicate binder, timeout/deadlock, and extra-order cases.
+
+For reset, seller02/buyer01 W orders are protected by the advisory lock, window-row inspection, strict SQL path, RESTRICT FKs, and default seed/reset/up refusal. However, the design expressly leaves seller01/buyer02 surgical resets unchanged even though those targets can destroy protected P/N history. That is Finding 1 and is blocking.
+
+### 3. Can credential/provider activation or recovery overwrite another generation, reassign a Party, or duplicate a resource?
+
+**No, as revised, within the honestly stated private-operator boundary.**
+
+The design removes the predecessor’s unsafe destructive race:
+
+- It performs no provider DELETE, PATCH, or upsert, including recovery.
+- First creation requires authenticated 404 and a durably recorded generation before POST.
+- Conflict, timeout, 403, or empty parse never means absence.
+- Uncertain create is reconciled against exact scope/name/marker/digest/UUID/version.
+- A changed, deleted/recreated, or unverifiable retained generation refuses; it does not re-enroll.
+- Reuse requires exact retained UUID/version/digest/marker/scope/name and no unresolved operation.
+- An external write after the last GET cannot be erased because no destructive operation follows.
+- Connect account creation uses complete pagination, marker uniqueness, durable idempotency identity, and no fresh account after expiry/uncertainty.
+- Foreign Party ownership is proved before projection; the known dangerous reassigning upsert is forbidden.
+- Provider accounts and custody remain retained; deactivation explicitly means `inactive_with_retained_custody` or `deactivation_incomplete`, not secret absence.
+
+Actual source confirms the hazardous cases the design guards: User Stripe readiness fields are strings, `TOTPService` encryption is unchanged, and the existing Connect upsert can reassign ownership. Finding 2 notes that digest/marker derivations still need exact golden definitions.
+
+### 4. Can an unauthenticated caller, wrapper bypass, substituted host artifact, wrong image/pin, or secret transport gain authority or leak secrets?
+
+**No public/wrapper bypass is visible in the design; the trusted operator limit is honest.**
+
+- The receiver is private `docker exec` infrastructure, not an HTTP route.
+- Every mutation enters the existing absolute-command lock path and unchanged `--guard seed`; both exit 1 and 2 refuse before first write.
+- `status` is read-only and creates no lock, token, audit, or credential.
+- Owner selection uses only a guarded `current.json`, not directory listing/latest selection.
+- Owner authorization, protected evidence, and runtime artifacts are canonical, hashed, write-once, regular files under guarded private directories.
+- Backend compares stdin operation identity, mounted artifact bytes, persisted copies, test environment flags, and spec pins.
+- The host independently discovers the current backend container and local Docker Image ID, source SHA, source label, versions.env hash, and accepted spec identities. OCI index/manifest digests are excluded.
+- The design does not pretend the mounted artifact authenticates a malicious operator; it explicitly says the authenticated local operator is the trust boundary.
+- Workspace secret transport is one bounded UTF-8 JSON stdin object with strict nested schema and duplicate-key/trailing-data rejection, no TTY, and only nonsecret `PYTHONPATH=/app`.
+- Required canary tests inspect the actual child boundary.
+
+I did not verify a running container because no implementation or runtime action was permitted. Finding 4 asks for the secret-environment canary wording to be scoped to Workspace credentials rather than the accepted application environment.
+
+### 5. Are lifecycle/recovery transitions and implementation targets concrete?
+
+**Yes, except for the reset-target correction in Finding 1.**
+
+The revised contract now names:
+
+- backend migration, models, model import, service, webhook disjunct, reset guard, and tests;
+- environment wrapper, host helper, receiver mode, seed/reset/up guards, Compose mount, tests, and documentation;
+- exact owner pointer, owner authorization, protected-evidence, and runtime schemas;
+- exact window and registration columns, constraints, unique indexes, RESTRICT FKs, state machine, immutability triggers, and readiness checks;
+- separate opening, binding, closing, recovery, deactivation, and no-purchase transitions;
+- canonical baseline/opening/registration/terminal receipts;
+- crash reconciliation through immutable persisted rows and inspect-after-commit behavior;
+- protected-state capture and exact comparisons;
+- retained custody/account lifecycle;
+- finite PostgreSQL and subprocess acceptance cases.
+
+Opening, binding, closing, and deactivation are correctly distinct. A closed row cannot reopen or be deleted. A no-purchase window can close only on an empty complete delta. A paid window closes only after normal full refund, cannot-settle proof, cardinality preservation, and protected comparisons. Deactivation restores only enumerated seller02 fields and the exact owned Connect identity row.
+
+### 6. Are support, upgrade, runbook, and real release obligations complete and honest?
+
+**Mostly yes, and the design does not claim implementation or release success.**
+
+The specification clearly separates:
+
+- design approval;
+- accepted product/environment source dependencies;
+- future implementation tests;
+- owner issuance;
+- protected lifecycle completion;
+- runtime repin/deployment;
+- public W purchase/refund;
+- final release verification;
+- production quiescence/cutover.
+
+It correctly says:
+
+- no owner window is issued by the document;
+- the current active run pointer is pending observation, not authority;
+- future run IDs and hashes are not fabricated;
+- owner attestation is trusted operator evidence, not independent verification;
+- scheduled exit 2 or a manually run wrapper is not scheduled success;
+- actual launchd, stable release, Gate4/BQ, and protected evidence are resolved at issuance;
+- production trigger freeze, old-writer quiescence, provider reconciliation, migration/adoption, AWS/R2 bytes/denials, and outside verification remain separate gates;
+- a design review does not prove release.
+
+The support bundle, diagnosis categories, upgrade compatibility checks, refusal states, and rollback direction are concrete. Current production/runtime facts were not independently verified and are not certified here.
+
+## SIMPLER
+
+**No simpler overall alternative preserves the exact signed proof, persisted authority, protected state, retained custody, recovery, and release obligations.** I tried to remove:
+
+- the backend window/registration state machine — rejected because it is what closes cross-window and old-order admission;
+- retained custody — rejected because deletion reintroduces the unprovable external-writer race;
+- owner/runtime artifact verification — rejected because caller strings cannot authenticate the deployment;
+- complete order-delta proof — rejected because a row lock/READ COMMITTED query alone does not exclude phantoms;
+- the separate host helper — rejected because custody/docker orchestration and in-container DB mutation have different trust and filesystem roles.
+
+The simplest correction for Finding 1 is to reuse the already specified advisory-lock/reset guard for all four protected fixture identities whenever Workspace lineage exists. It removes the two unprotected seller01/buyer02 destructive routes without adding a table, provider operation, or generic reset framework.
+
+## BETTER
+
+A materially better narrow structure is a single backend **Workspace protected-lineage guard** that maps a reset/teardown target to the declared protected collections and refuses whenever any W window, audit lineage, or custody lineage is present.
+
+- **Compared with the current fixed-pair-only test:** it prevents destruction rather than merely detecting drift at closure; it also avoids duplicating actor-specific checks in each destructive path.
+- **Failure modes:** broader false refusal if the target mapping is too conservative. That is safer than irreversible paid-history loss and can be relieved only by a reviewed collection map.
+- **Cost:** one small shared predicate plus tests for seller01, buyer01, buyer02, seller02, unrelated targets, no-lineage, active, closed, and no-purchase states.
+- **Rollback:** revert to the fixed-pair guard only with an explicit reviewed acceptance that P/N evidence may be damaged but later refusal is acceptable; the current requirements do not support that rollback.

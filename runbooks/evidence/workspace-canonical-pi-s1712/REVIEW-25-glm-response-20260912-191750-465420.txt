@@ -1,0 +1,335 @@
+1. **APPROVE_WITH_NITS**
+
+2. **Numbered findings**
+
+1. **LOW — the migration cutover lock bounds are less exact than the already-specified Stage B bounds.**  
+   - **Severity:** LOW, nonblocking.  
+   - **Evidence:** `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9/specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:93` specifies `lock_timeout=250ms`, `statement_timeout=2000ms`, `idle_in_transaction_session_timeout=2000ms`, and a host-enforced five-second Stage B deadline. By contrast, `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:446` requires “bounded lock/statement waits” for the `ACCESS EXCLUSIVE` parent-key migration but does not name the exact timeout, deadline, contention-abort, or evidence thresholds.  
+   - **Observed vs expected:** The design correctly identifies the lock and makes cutover qualification mandatory, but leaves the numeric migration bounds implicit. Expected: one exact reviewed bound set for schema DDL, including timeout/deadline behavior on contention and the fields to record.  
+   - **Reproduction:** Static evidence only; tests and migrations were intentionally not run.  
+   - **Impact:** An implementation or owner could choose materially different DDL wait bounds, discovering avoidable cutover blocking or late rollback behavior only during release qualification. This does not undermine the design because no implementation or cutover is accepted.  
+   - **Smallest required outcome:** Add explicit DDL `lock_timeout`, `statement_timeout`, whole-operation deadline, and abort-on-timeout semantics, or explicitly bind them to the already reviewed Stage B values.  
+   - **Verification criterion:** An owned PostgreSQL cutover rehearsal injects contention, proves timeout rollback with no partial constraint/index state, and records lock mode, wait, duration, size, and successful post-install normal writes.
+
+2. **NIT — the closure union would be safer with explicit SQL precedence and field-to-identity mapping.**  
+   - **Severity:** NIT, nonblocking.  
+   - **Evidence:** `aidotmarket/runbooks@55690c7a1fb48c87849a387f7fef79d7008385a9/specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:371-375` describes relevant events as `charge.refunded` records matching normal linkage columns **OR** signed payload fields; `:448` then adds the three-state conjunction. The intended predicate is discernible, but it is not shown as one fully parenthesized expression.  
+   - **Observed vs expected:** Observed prose can be translated incorrectly as an `AND ... OR ...` expression with the event-type or identity constraint applied too narrowly. Expected an explicit predicate equivalent to:  
+     `event_type='charge.refunded' AND (normal order/PI/charge linkage OR (signature_valid AND payload payment_intent maps to registered PI AND payload object id maps to registered charge))`.  
+   - **Reproduction:** Static evidence only.  
+   - **Impact:** Ambiguity could admit an unrelated signed event or omit a NULL-linkage signed sibling during implementation. The required contradictory-field, NULL-linkage, and malformed-payload tests should catch either error, so this is advisory.  
+   - **Smallest required outcome:** Add the parenthesized predicate and explicitly say `.payment_intent` compares with the registered PI while `.id` compares with the registered charge.  
+   - **Verification criterion:** The final SQL test includes a NULL-linkage signed `charge.refunded` sibling that must be included and a non-`charge.refunded` payload carrying matching IDs that must be excluded.
+
+There are **no HIGH or MEDIUM findings**.
+
+3. **Coverage**
+
+**Artifact integrity and request completeness**
+
+- The review request was substantively complete: repository, pinned cwd, base, candidate, branch, spec path/blob/hash, changed-file manifest, runnable diff/check commands, test-execution restrictions, finite 30-turn budget, prior candidates/votes, and builder results were supplied.
+- The six requested decision questions are compound rather than literally numbered at package line 11, but all six feared failure modes are identifiable and answered numbered below. I do not regard that formatting omission as substantive.
+- Verified package identity:
+  - Package: `SELLER-WORKSPACE-CHECKOUT-GATE2-R4-CORRECTED-REQUEST-S1712.md`
+  - SHA256: `f7d81100d068ba81e597e3b133ea97dc1f7b8bbc6d1e2977a1a0e0591bb4c8d4`
+  - Size: `1,348,677` bytes, 15,417 lines.
+- Verified current specification:
+  - SHA256 `9b15ceebd63d0197c88a5012ab340edf21f519f96c464257a219a27353909972`
+  - Blob `ba30c2d1f39a40e3de29ba964a47823ff452c03d`
+  - Size `160,188` bytes.
+- Verified repository checkout:
+  - HEAD and remote branch tip: `55690c7a1fb48c87849a387f7fef79d7008385a9`
+  - Base: `56665b4e8db7dbf83085bdf88ec35b2a41ce93a7`
+  - Base is an ancestor of candidate.
+  - Working tree was clean apart from the branch/status output; no file was modified.
+- The candidate changes 44 files: 41 added evidence artifacts and three modified prose documents. There is no backend/environment/runtime implementation change in this candidate.
+- All 44 manifest file sizes, SHA256 hashes, and Git blob object identities were independently verified.
+- Candidate parent is the undispatched predecessor `46752d04c805750037202b6fe344381239adf3ba`. The exact successor delta was inspected:
+  - Added `CHECKOUT-R4-NODE20-OWNER-FINDING.json`.
+  - Corrected the false403 inventory sentence.
+  - Replaced the incorrect Node20 diagnosis.
+  - Added the supersession statement.
+  - Net spec delta from predecessor: four insertions, two deletions.
+- No prior vote was carried forward.
+
+**Verification reproduced**
+
+- Full review-range `git diff --check`:
+  - exit `2`
+  - exactly `14,324` trailing-whitespace findings
+  - caused by retained raw evidence, not authored prose.
+- Scoped diff check over the spec, operator guide, and live-release guide:
+  - exit `0`
+  - zero findings.
+- Authored prose diff:
+  - live release: 7 insertions
+  - operator guide: 57 insertions
+  - spec: 204 insertions, 3 deletions.
+- The full 477-line current specification was read in bounded chunks, including lifecycle, custody, cleanup, authority, migration, closure, checkout, test, release, and historical-disposition sections.
+- The two relevant operator/live runbook additions were reviewed.
+
+**Historical record**
+
+- All 21 full response files were independently rehashed; every size and SHA256 matched the manifest.
+- All 21 response bodies were confirmed as exact contiguous embeddings in the frozen package, not merely verdict summaries.
+- Their verdicts, findings, question mappings, coverage limits, and owner dispositions were parsed and considered. The latest predecessor panel was CC `APPROVE_WITH_NITS`, GLM `APPROVE_WITH_NITS`, DeepSeek `REVISE`; no vote carries into this decision.
+- The retained R2/R3 owner decisions, whitespace counts, adjacent reconciliation, minimum-patch receipt, patch, Node20 owner counterevidence, and PG probe receipts were read.
+
+**Backend source and database evidence**
+
+- The exact backend repository objects were available locally and resolved:
+  - `e621c760509bde085d5ef784bb14ffa90810d92b`
+  - `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2`
+  - `aca73e881ca77ae8e29b77c45f293ad5fa56395d`
+  - `d766b8e4e66d7803ebe48f8a3132521abbebe957`
+- Independently verified the SHA256 of the load-bearing exact-revision sources, including:
+  - `workspace_refund_test_admission.py`
+  - `20260912_002_workspace_test_authority.py`
+  - `workspace_test_authority.py`
+  - three proposed test modules
+  - `order_money_service.py`
+  - `refund_processing_service.py`
+  - `webhooks.py`
+  - seller-publication migration
+  - order-money migration
+  - checkout source at `aca73`.
+- Verified the current e621 classifier defect: `workspace_refund_test_admission.py:355-357` still applies mutable Transaction filters before authority lookup and returns terminally when no Order survives. The candidate explicitly supersedes that implementation sketch.
+- Verified all W registration child columns are currently declared NOT NULL and that registration UPDATE/DELETE is trigger-refused.
+- Verified the existing published-Listing guard:
+  - publication rows are immutable;
+  - published `listings.seller_id` is protected from mutation;
+  - listing/version/authority identity fields are protected while published.
+- Verified the retained PostgreSQL 17.11 probe:
+  - network disabled
+  - no published port
+  - no persistent volume
+  - rolled back
+  - resource absence verified
+  - 22/22 expected cases
+  - constraint/index/RI-trigger facts present.
+- This probe proves native composite-FK semantics only. It is not product migration, signed-refund, catalog, Gate3, or release qualification.
+
+**Raw failure traces**
+
+- Parsed every failure element in both multi-megabyte XML files:
+  - `WEBHOOK-BASELINE-C3-FULL.xml`: 15 cases, 15 failures, 0 errors/skips.
+  - `WEBHOOK-MP247-FULL.xml`: 164 cases, 15 failures, 0 errors/skips.
+- The 15 identities are exactly:
+  1. `test_payment_succeeded_billing_failure_leaves_failed_checkpoint`
+  2. `test_stripe_webhook_suppresses_e2e_metadata_before_handlers`
+  3. `test_07_idempotency_concurrent_only_one_processes`
+  4. `test_08_payload_sha256_stored_in_dedup`
+  5. `test_09_checkout_completed_order_paid`
+  6. `test_10_dispute_created_flagged_revoked`
+  7. `test_11_dispute_closed_won_restored`
+  8. `test_12_refund_full_revoked`
+  9. `test_13_refund_partial_access_kept`
+  10. `test_14_payout_failed_seller_flagged`
+  11. `test_16_db_error_critical_returns_500`
+  12. `test_17_db_error_non_critical_returns_200`
+  13. `test_18_dedup_row_inserted_before_processing`
+  14. `test_19_return_codes_per_section_5`
+  15. `test_20_checkout_completed_calls_handle_payment_when_canonical_tx`
+- Parsed the exploratory proposed-copy result:
+  - 15 selected cases
+  - 7 passed
+  - 8 failed
+  - failure identities and messages match the candidate’s eight-row repair disposition.
+- Verified the actual e621 source facts supporting those eight diagnoses:
+  - dedup returns and reads two fields;
+  - the critical retry upsert carries signed payload, signature validity, and applied-refund protection;
+  - checkout uses multiple async DB acquisitions;
+  - dispute handlers require coherent locked money state;
+  - old refund fixtures omit the charge livemode/coherent provider facts required by the current refund processor;
+  - Node20’s original paid_at UPDATE and transaction-event INSERT remain valid;
+  - Node20 failed because the mocked stored Order lacked `transaction_id` and the reverse transaction binding result, not because those SQL assertions were obsolete.
+
+**Not run, accessed, or independently verified**
+
+- No tests, migrations, database containers, providers, credentials, runtimes, production systems, or state were accessed or mutated.
+- GitHub Actions execution is **UNVERIFIED**: the two exact-head tuples are manifest evidence, but network/provider access was prohibited. Documentation CI is not application qualification.
+- Builder-run `scripts/check.py` and `scripts/index.py` outputs are **UNVERIFIED** because this review did not execute them.
+- The complete 1,990-node MP247 regression execution and its 22 total failures were not rerun; the retained targeted evidence and candidate’s non-acceptance statements were reviewed.
+- Provider/API documentation behavior, live custody behavior, release transport, and production cutover remain **UNVERIFIED**.
+- This is design review only. It does not accept implementation, migration execution, backend dispatch, environment deployment, runtime activation, owner-window issuance, or release.
+
+4. **Answers to the numbered questions**
+
+**Q1 — Does the exact composite Order discovery reference plus the existing published Listing guard preserve forged non-W optional isolation and registered-W drift retry/refusal?**
+
+**Yes, at design level.**
+
+- The current mutable Transaction join at e621 `workspace_refund_test_admission.py:355-357` is correctly identified as defective: a registered W Order can disappear before authority lookup and become terminal suppression.
+- The successor requires the cheap classifier to query only Order plus Listing, using the fixed pair, exact PI, and Listing seller; mutable Transaction and product fields move to post-registration validation (`specs:331-345`, `:419-432`).
+- The proposed parent key and child FK are structurally correct:
+  - parent: `orders(id,seller_id,buyer_id,listing_id,stripe_payment_intent_id)`
+  - child: `workspace_refund_test_authorities(order_id,seller_id,buyer_id,listing_id,payment_intent_id)`
+  - all child columns are NOT NULL
+  - `MATCH SIMPLE` cannot bypass the FK because no child key value is NULL
+  - nullable parent PI is harmless for unrelated unpaid Orders
+  - updates/deletes of a referenced tuple are RESTRICTed.
+- The existing publication migration protects the published Listing seller and related identity fields while a publication exists; the candidate requires the genuinely published registered Listing case rather than a generic lookalike.
+- Forged non-W isolation remains:
+  - production/live/account markers are checked before optional W access at e621 `webhooks.py:256-284`;
+  - W is last in the existing admission OR chain at `webhooks.py:559-565`;
+  - the unchanged forged-N fixture retains a seller01 generic Listing, so the Listing-owner discriminator rejects it before optional W schema/mount access;
+  - the adjacent evidence confirms the original 200 expectation was restored without adding `test_refund_webhook_protocol.py` to scope.
+- Registered drift is not silently discarded:
+  - authority resolution and locking precede mutable Transaction validation;
+  - each of the six Transaction mutations must produce durable failed HTTP 500, no financial effect, and same-ID convergence after restoration.
+- Actual execution of those mutations remains a mandatory implementation test, not a claim in this documentary candidate.
+
+**Q2 — Are RI enforcement, readiness, catalog, and lock proofs sufficient and precise?**
+
+**The specified proof obligations are sufficient and precise; actual implementation proof remains unexecuted.**
+
+- The design requires exact catalog recognition of:
+  - relation and column order
+  - referenced and referencing keys
+  - MATCH SIMPLE
+  - RESTRICT actions
+  - nondeferrability
+  - validation
+  - unique index validity/readiness/immediacy
+  - enabled RI triggers and attachment
+  - existing publication guards and immutable publication objects.
+- It rejects same-name unknown objects, disabled RI, unvalidated constraints, wrong actions, wrong column order, and invalid parent indexes.
+- It requires fresh full ancestry and a direct repeat-body no-op test rather than treating an Alembic head no-op as sufficient.
+- The 22-case probe independently establishes the decisive native NULL/MATCH/RESTRICT semantics and disproves the earlier parent-NULL escape concern.
+- Stage B continues to use the bounded `orders SHARE NOWAIT` design, and the candidate identifies normal FK waits and partial-effect rollback.
+- The ordinary parent UNIQUE requires an `ACCESS EXCLUSIVE` lock; the design correctly requires quiescence, timeout/rollback evidence, size/lock metrics, post-install normal writes, and an unchanged accepted money-readiness fingerprint.
+- The only deficiency is the LOW advisory above: exact numeric DDL timeout/deadline values are not spelled out.
+
+**Q3 — Does terminal closure correctly include NULL-linkage signed siblings, one-sided ambiguity, finite READ COMMITTED cutoff, and multiple valid replay events without extra effects or reversed locks?**
+
+**Yes.**
+
+- Relevant events are explicitly included through normal linkage **or** retained signed payload, so a failed-pre-admission event with all normal linkage columns NULL cannot disappear.
+- Contradictory, malformed, one-sided, pending, reconciliation, or incomplete associations refuse closure.
+- Every relevant applied event must satisfy all three actual finance fields:
+  - `status='completed'`
+  - `refund_phase='applied'`
+  - `processed_status='processed'`.
+- Those are not invented fields: the accepted refund processor writes exactly that conjunction on admission-pending failure and successful application (`refund_processing_service.py:348-352`, `:529-532`, `:617`).
+- Final observation is:
+  - read-only
+  - sorted by `stripe_event_id`
+  - bounded to 4096 plus sentinel refusal
+  - performed under existing Order/financial locks
+  - never taking event locks after money/order locks.
+- READ COMMITTED boundaries are honest: uncommitted or later rows are late deliveries, not a timeless exhaustiveness claim.
+- Multiple valid replay event IDs may represent the same sole applied Refund and cannot create another financial effect.
+- The terminal representative is deterministic, smallest under COLLATE “C”, and immutable after first close.
+- Required synchronization cases cover all requested failure modes and late replay convergence.
+
+**Q4 — Are the exact 17-target amendment and all eight newly reachable repair dispositions scope-safe, assertion-preserving, and correctly diagnosed?**
+
+**Yes.**
+
+- The original accepted scope had 14 backend targets. The amendment adds exactly:
+  1. `tests/test_webhook_audit.py`
+  2. `tests/test_e2e_stripe_isolation.py`
+  3. `tests/test_webhooks.py`
+- Total proposed backend targets: 17.
+- No application source, normal money processor, webhook implementation, provider, environment, configuration, or migration target is added by the test amendment.
+- `tests/test_refund_webhook_protocol.py` remains outside scope, and its 200 forged-N expectation is not waived.
+- The exact 15 original failure identities are retained in both full XMLs; no six-baseline exception is expanded.
+- The minimum patch result really was 7 pass / 8 fail, and the eight new failures are:
+  1. stale retry SQL expectation
+  2. single-use async DB generator in Node09
+  3. incomplete locked money fixture in Node10
+  4. incomplete won-dispute money fixture in Node11
+  5. incomplete live/refund fixture in Node12
+  6. incomplete partial-refund fixture in Node13
+  7. single-use async DB generator in Node18
+  8. missing stored/reverse canonical binding in Node20.
+- The repair matrix preserves business outcomes:
+  - Node09/18 require fresh generators, explicit fulfillment result, exact once-only service calls, ordering, HTTP 200, and completion.
+  - Node10/11 require real handlers with coherent typed money state and retain disputed/revoked/restored behavior and negative guards.
+  - Node12/13 replace obsolete inline writer assertions with stronger actual normal-processor/database outcome assertions, exact Refund/journal identity, cumulative amount, revoked/retained-access distinction, and replay-once behavior.
+  - The retry SQL expectation is strengthened to the actual CASE, signed payload, WHERE, and two-field RETURNING contract.
+- The corrected Node20 diagnosis is independently confirmed:
+  - exact e621 `webhooks.py:693-726` still performs the transactions paid_at UPDATE and transaction_events INSERT;
+  - `_handle_checkout_completed` rejects metadata transaction_id when stored Order transaction_id is absent and checks the reverse transaction-to-Order binding;
+  - the old fixture omitted both facts;
+  - the repair correctly retains both raw SQL assertions plus once-only `OrderService.mark_paid` and adds an owned PostgreSQL companion.
+- This corrects the predecessor’s false “obsolete SQL” diagnosis without weakening either valid SQL assertion.
+
+**Q5 — Does lifecycle, custody, cleanup, default canonical/legacy checkout, mixed-synthetic, route, and monitor design remain coherent?**
+
+**Yes, with the production dependencies explicitly left open.**
+
+- Lifecycle:
+  - owner artifacts and runtime pins remain write-once and host/DB cross-checked;
+  - one nonclosed W window remains enforceable;
+  - registration is immutable;
+  - close/recovery distinctions are preserved;
+  - pre-registration refund and extra-order incidents have distinct non-closing dispositions.
+- Custody:
+  - no DELETE/PATCH/upsert remains central;
+  - retained custody is explicit;
+  - create uncertainty, external drift, and response loss remain recovery states;
+  - plaintext and provider response leakage remain prohibited.
+- Cleanup:
+  - both backend cleanup services must refuse the exact four fixture identities through one shared pure helper;
+  - refusal is independent of W lineage/schema/mount existence;
+  - unrelated targets retain existing semantics;
+  - environment reset/up/seed must refuse when retained W lineage exists.
+- Checkout:
+  - source and probe confirm `ENABLE_CANONICAL_TX` defaults true and canonical returns before the legacy-only guard;
+  - the prior false403 expectation is correctly retained as failed evidence rather than relabeled;
+  - E2E flag is not represented as a canonical purchase stop;
+  - creating a checkout URL is not capture, registration, or refund authority.
+- Mixed synthetic:
+  - the design honestly states that the canonical branch bypasses the legacy mixed-synthetic guard;
+  - both canonical mixed-synthetic directions and actual effects remain mandatory final integration evidence;
+  - no production safety is inferred from the documentary correction.
+- Routes and monitor:
+  - armed route presence and unarmed absence from fresh startup remain required;
+  - exact three runtime literals remain;
+  - expected `e2e_armed_window` P1 alert remains attributed and unsuppressed;
+  - full flag-effect inventory remains.
+- The candidate does not implement or release any of these obligations.
+
+**Q6 — Are there remaining HIGH/MEDIUM blockers, and is implementation/runtime/release accepted?**
+
+- **No HIGH or MEDIUM design blocker remains in this exact candidate.**
+- The two findings above are LOW/NIT and nonblocking.
+- This decision accepts only the documentary design contract. It does **not**:
+  - accept the current e621 implementation;
+  - dispatch MP;
+  - execute the migration;
+  - waive any B01-B18 obligation;
+  - expand the six historical exceptions;
+  - waive genuine holds or provider reconciliation;
+  - issue an owner window;
+  - apply runtime pins;
+  - accept backend/environment Gate3;
+  - accept production cutover or complete AWS S3/Cloudflare R2 release.
+
+**SIMPLER**
+
+**None found that preserves every invariant.**
+
+I tried to remove two concrete pieces:
+
+1. **Remove the redundant five-column parent UNIQUE and reference `orders.id` directly.**  
+   That removes one core index, but it no longer declaratively protects seller, buyer, listing, and PI discovery fields. Replacing that with a hand-written Order trigger adds a core Order model/migration trigger and a less declarative failure mode.
+
+2. **Return from 17 targets to the original 14.**  
+   That removes exactly three test targets, but it leaves all 15 retained failures and cannot resolve the eight failures newly reachable after the minimum fixture repair.
+
+3. **Drop the explicit closure-event union in favor of the earlier successful-refund query.**  
+   That removes the OR predicate and payload scan, but it reintroduces the NULL-linkage and one-sided-ambiguity blind spot.
+
+These are advisory removal attempts, not mandates.
+
+**BETTER**
+
+A materially better implementation-validation structure would add owned-PostgreSQL companions for every one of the eight repaired legacy nodes, not only the refund and Node20 outcomes.
+
+- **Compared with the candidate:** the candidate already requires actual PostgreSQL for refund outcomes and canonical paid persistence, but permits coherent typed unit fixtures at the dispute money-lock boundary and fresh mocked async generators for checkout-shaped nodes. Full companions would catch another stale schema/fixture assumption sooner.
+- **Failure modes:** mocks can drift again; real PostgreSQL companions can instead conflate a product defect with a test-fixture defect and require more reconciliation.
+- **Cost:** approximately eight additional owned database companions plus setup/maintenance, while retaining the mocked unit assertions. No application target or product writer is needed.
+- **Rollback:** companions can be removed independently; the three test modules and original unit/behavior assertions remain.
+- This is advisory because the candidate already separates mocked compatibility repair from actual signed/database qualification and does not claim the mocked subset is release proof.

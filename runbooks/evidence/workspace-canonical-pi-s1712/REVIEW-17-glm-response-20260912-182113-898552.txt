@@ -1,0 +1,231 @@
+APPROVE_WITH_NITS
+
+## Numbered findings
+
+### 1. LOW — The stated `git diff --check` result is not reproducible for the review range, although the unqualified working-tree command does pass
+
+- **Evidence:**  
+  `aidotmarket/runbooks@c6bae734aa7faf5645f3cd724ab3460c7ac2f49f:runbooks/evidence/workspace-gate2-s1712/CHECKOUT-fresh-public-third.txt:258,260,286,370,372,398` and `CHECKOUT-fresh-public-third.xml:91,93,119` retain trailing whitespace in byte-exact raw evidence.
+  
+  Reproduction:
+  ```sh
+  rtk proxy git -C /Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-checkout-contract-s1712 \
+    diff --check \
+    56665b4e8db7dbf83085bdf88ec35b2a41ce93a7 \
+    c6bae734aa7faf5645f3cd724ab3460c7ac2f49f
+  ```
+  exits `2` with eight trailing-whitespace findings. By contrast, the unqualified working-tree `git diff --check` exits `0` because the checkout is clean.
+
+- **Observed:** The request says “`git diff --check` passes,” but does not distinguish the clean-working-tree command from the base-to-candidate review diff. The latter does not pass.
+- **Expected:** Builder verification should name the exact command and its expected result. If the trailing spaces are required for byte-exact retained logs, the verification record should say that the range check intentionally reports them.
+- **Impact:** Procedural/evidence integrity only. The whitespace appears to come from preserved raw output, and removing it would change the declared evidence hashes. I found no functional effect.
+- **Smallest required outcome:** Correct the dispatch/verification wording to one of:
+  1. unqualified clean-tree check passes; or
+  2. range check intentionally reports trailing whitespace in byte-exact evidence.
+- **Verification criterion:** Running the exact published command gives the exact published result at the same SHAs.
+
+### 2. LOW — The adjacent classifier contract states the right fail-closed outcome, but the observed core-discovery implementation sketch can still hide a registered W authority behind a terminal false return
+
+- **Evidence:**  
+  `aidotmarket/runbooks@c6bae734:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:310` correctly requires:
+  - forged non-W: `200` terminal suppression with zero optional-W schema/mount lookups;
+  - genuine/registered or claimed W with missing readiness/binding uncertainty: durable failed `500`;
+  - same event-ID recovery after restoration;
+  - available authority with exact absence of registration: terminal `200`.
+
+  But the embedded evolving observation at `runbooks/evidence/workspace-gate2-s1712/ADJACENT-CLASSIFICATION-SOURCE.txt:139-146` performs the order/transaction/listing discovery first and returns `False` before authority lookup if that query yields no IDs. The same evidence at `:57-72` shows the existing publication guards protect listed immutable source fields, but do not by themselves enumerate all order and transaction bindings used by the early query.
+
+- **Observed:** A post-registration mutation that makes the early order/transaction/listing discovery return no rows could follow the `False` path and produce terminal synthetic suppression, rather than durable `WorkspaceTestAuthorityUnavailable`, unless final implementation adds a discriminator, authority-preserving lookup order, or database immutability for the registered source bindings.
+- **Expected:** For an already registered/claimed W charge, damaged binding must remain retryable fail-closed evidence and the same signed event ID must converge after restoration. A truly forged seller01-owned generic lookalike must still return `200` without touching optional W schema/mount.
+- **Reproduction:** Static evidence only. The source snippet at evidence lines 141-146 is sufficient to expose the ordering risk; no final implementation test was run or accepted.
+- **Impact:** The candidate explicitly says MP247 is not accepted and line 310 requires the correct final distinctions, so this does not invalidate the documentary policy. It remains the most important Gate3 failure mode: a retained registered refund must not disappear into suppression merely because its mutable core join no longer matches.
+- **Smallest required outcome:** Make the final qualification matrix explicitly mutate each post-registration binding used by early classification—order seller/buyer/listing/payment-intent and transaction seller/buyer/origin/surface/buyer-type/api-key, plus the protected publication/source fields—and require either:
+  1. database-level refusal of those mutations for registered W authority, or
+  2. an authority-preserving mismatch path after a non-W discriminator that still performs no optional-W lookup for the seller01 generic lookalike.
+- **Verification criterion:** Real signed tests separately prove:
+  - forged adjacent lookalike: `200`, no optional W lookup;
+  - registered W with each damaged binding: durable failed `500`, no refund effect yet;
+  - restoration/reconciliation: same event ID converges exactly once;
+  - available schema plus exact no-registration: `200` terminal suppression.
+
+### 3. NIT — The revised prose should preserve both armed and unarmed router-registration assertions explicitly
+
+- **Evidence:**  
+  `aidotmarket/runbooks@c6bae734:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:75` explicitly requires both destructive routes to be registered when armed. The observed fresh-start probe additionally checks that route presence matches the armed boolean.
+- **Observed:** The corrected paragraph states the armed case but does not spell out the complementary unarmed-absence assertion, although the historical probe and existing runtime tests already point toward it.
+- **Expected:** Final startup/router tests should assert both:
+  - `E2E_TEST_ROUTES_ENABLED=true` ⇒ both destructive routes are imported;
+  - `false` ⇒ neither destructive route is imported.
+- **Impact:** Minimal; source and existing test intent are clear.
+- **Smallest required outcome:** Include both directions in the final configuration matrix.
+- **Verification criterion:** Fresh application startup demonstrates armed and unarmed route sets, not merely a post-import settings value.
+
+No HIGH or MEDIUM finding survives. The verdict agrees with these findings.
+
+## Coverage
+
+### Independently verified
+
+- **Artifact identity**
+  - Repository checkout exists at the stated path and is clean on `docs/seller-workspace-checkout-contract-s1712`.
+  - Local and remote branch point to `c6bae734aa7faf5645f3cd724ab3460c7ac2f49f`.
+  - Base `56665b4e8db7dbf83085bdf88ec35b2a41ce93a7` is an ancestor.
+  - Exact base-to-candidate diff contains exactly the stated thirteen documentary/evidence files: ten additions and three modifications, with no backend/environment/runtime file.
+  - Candidate spec blob is `ef7cd807a81a67cafb3c7eb5f2b8d251e66f9dce`, SHA256 `acd4f0e9220f2e9f0af7c490591647a08bd3addb52565eba76871cbf5a2ccacb`, and 116324 bytes.
+  - Candidate parent is the disclosed unreviewed `cda99ee459e708d9619d7f5750fb348cb2999a94`; the exact `cda→c6` change is the adjacent-classifier material, while the full review range was used for the verdict.
+
+- **Embedded evidence integrity**
+  - Recomputed all declared hashes for:
+    - adjacent reconciliation/source/failure extracts and both XML node extracts;
+    - checkout conflict receipt, correction index, JSON command receipt, raw text log, and XML.
+  - Verified the external retained raw checkout artifacts exist with the declared bytes/hashes.
+  - Verified all six adjacent raw JSON/log/XML artifacts and both extracted testcase elements against their declared hashes and sizes.
+  - Verified the adjacent unchanged test source hash is exactly `59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077`.
+  - Parsed the adjacent XML:
+    - initial/source run: 669 tests, five failures, including the W lookalike `500`;
+    - rerun: 669 tests, eight failures, with the unchanged W lookalike passing;
+    - remaining failures are exactly four subscription-module failures plus four missing-account-reseed failures, matching the retained limits.
+
+- **Checkout source grounding**
+  - At the immutable backend context, `checkout.py` has SHA256 `7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf` at all three stated revisions: `d766b8e4`, `c3a62af8`, and `aca73e88`.
+  - Verified canonical return at `checkout.py:149-171` precedes the legacy-only synthetic guard at `:190-195`.
+  - Verified `config.py:100-101` defaults `ENABLE_CANONICAL_TX=True`.
+  - Verified accepted environment `606267af` Compose backend environment does not set `ENABLE_CANONICAL_TX`.
+
+- **W/production isolation**
+  - Verified `_stripe_event_has_s1656_test_shape` rejects:
+    - `prod`/`production`;
+    - production frontend URL;
+    - `RAILWAY_ENVIRONMENT`;
+    - `PRODUCTION`;
+    - non-test environment;
+    - non-strict-boolean test mode;
+    - live events;
+    - connected-account event context;
+    - normalized connected account.
+  - Verified webhook signature/scope/dedup code precedes the admission disjunction.
+  - Verified the W predicate is last after both S1681 predicates.
+  - Verified `E2E_TEST_ROUTES_ENABLED` imports the destructive E2E reset router.
+  - Verified the real monitor returns the documented P1 `e2e_routes_over_armed` result when armed without `E2E_ARMED_AT`.
+
+- **Historical evidence**
+  - Recomputed the hashes of all fifteen complete historical response files; every one matches the packet.
+  - Verified the R4 owner decision hash `8bb18a5a19e1fd10de5564b2a3b0cff4fd86b321817868f47a917eb816077136` and its three review bindings.
+  - Read the complete current specification and correction/runbook sections supplied in the packet, and checked the operative replacement against the original `b444332` paragraphs preserved in the correction index.
+
+### Not run or not verified
+
+- **UNVERIFIED:** The two GitHub documentation-CI run tuples. I did not access GitHub or action logs.
+- **UNVERIFIED:** The local `check.py` and `index.py` “123 runbooks each” claims. I did not execute scripts that might regenerate files in a read-only review.
+- **No tests were run.** In particular, I did not run the fresh application probe, PostgreSQL suites, money suites, docs checkers, provider calls, locks, containers, migrations, or runtime operations.
+- **UNVERIFIED:** The claim that the probe environment positively forbids all non-owned network access. Mocked providers and local ASGI are visible, but the raw output alone does not independently prove the network enforcement mechanism.
+- The evolving MP247 checkout was inspected only as factual evidence, exactly as requested. It is not treated as a pinned final implementation or Gate3 candidate.
+- I did not re-audit every file of the accepted 42-target product candidate or 14-file environment candidate. I inspected the source interfaces load-bearing for this correction.
+
+## Answers to the review questions
+
+### 1. Does the corrected contract preserve TEST-only W authority and production/non-W isolation without overclaiming source equality or E2E-flag equivalence?
+
+**Yes.**
+
+The policy distinction is now accurate:
+
+- default canonical checkout is not the legacy synthetic branch;
+- `E2E_TEST_ROUTES_ENABLED` is not a canonical purchase-stop switch;
+- creating a canonical order/transaction is not owner-window issuance, immutable registration, signed capture, or refund admission;
+- W mutation/admission still requires the exact TEST environment, strict boolean Stripe TEST mode, fixed pair, immutable purchase source, owner/runtime/protected artifacts, pins, readiness, and registration;
+- production markers, live mode, and connected-account scope are rejected before optional W access;
+- S1681 predicates remain before W;
+- final behavioral isolation is required through real signed ASGI tests, not inferred from source shape alone.
+
+The private cooperating-operator boundary is adequately stated. The candidate does not pretend that a hash or mounted file authenticates a malicious operator, and it preserves independent host/runtime/pin checks. A new canonical checkout guard is not required for this TEST authority model: canonical purchases without matching runtime authority either remain outside a window, become cardinality incidents, or fail W checks. Production quiescence remains separate.
+
+### 2. Are the branch/default/no-override tests precise and sufficient, with checkout 200 distinguished from signed capture/registered refund?
+
+**Yes at contract level.**
+
+The revised matrix properly requires:
+
+- `ENABLE_CANONICAL_TX` absent from Compose and test-process overrides;
+- actual default resolution to true;
+- canonical public checkout under E2E flag false and true both returning real successful checkout/order/transaction outcomes;
+- measured response, database identities, and effects retained;
+- legacy-only behavior tested separately under a clearly labeled `ENABLE_CANONICAL_TX=false` auxiliary case;
+- false legacy flag returning `403 synthetic_purchase_requires_e2e_guard` before provider/financial effects;
+- true legacy behavior retained without calling synthetic mock payment a real canonical paid capture;
+- selected flag-true canonical path proving checkout → normal signed capture → committed Workspace registration → normal signed full refund/replay;
+- mismatched runtime settings remaining retryable for qualifying registered W;
+- service guards and monitor behavior retained;
+- non-W/production-shaped signed traffic unchanged with no optional-W lookup.
+
+The historical third probe correctly remains a failed test rather than being rewritten. Its limitation—the inability of historical stdout alone to prove absence of an inherited canonical override—is explicitly retained and converted into a final assertion requirement.
+
+### 3. Are the original paragraph 71/75 requirements and historical R3/R4 dispositions explicitly reconciled?
+
+**Yes.**
+
+The candidate:
+
+- preserves the complete original operative paragraphs in `CHECKOUT-CORRECTION-INDEX.json`;
+- identifies the exact historical error: legacy guard behavior was incorrectly generalized to default canonical checkout;
+- does not reinterpret the prior unanimous R4 approval as approving these new bytes;
+- keeps exact runtime literals `true/[]/[]`;
+- keeps host/application runtime comparison;
+- keeps both four-UUID cleanup-service guards;
+- keeps the expected isolated TEST monitor P1 alert;
+- keeps W-last short-circuit ordering and non-W isolation tests;
+- keeps the upgrade inventory over checkout, router import, harness-bypass helper, and monitor effects;
+- leaves B01–B18, genuine holds, final source/image transition, and AWS/R2 release open.
+
+### 4. Does the full lifecycle/cardinality/immutable authority/private custody/refund/cleanup design remain coherent?
+
+**Yes, with the adjacent-drift caveat in Finding 2.**
+
+The two-stage baseline/window/registration model remains coherent:
+
+- window opening precedes purchase;
+- exactly one post-baseline paid canonical W order can register;
+- authority rows are immutable and uniquely bound;
+- canonical checkout alone grants nothing;
+- extra orders do not gain authority and invalidate terminal cardinality;
+- false current runtime remains retryable rather than suppressing a registered refund;
+- unregistered-but-available fixed-pair traffic remains terminal suppression;
+- close/deactivate requires terminal financial and protected-state proof;
+- custody is retained rather than deleted;
+- B09 proposal/version distinction and B13/B14 pending-refund closure remain outside this design acceptance.
+
+The current MP247 repair is factual context only. One unchanged adjacent test passing does not prove classifier correctness, and the remaining eight failures are accurately not waived or labeled inherited.
+
+### 5. Which items are blockers and which are low/nits?
+
+- **No HIGH or MEDIUM blocker.**
+- Finding 1 is LOW: verification wording does not match the base-to-candidate range check.
+- Finding 2 is LOW but is the key Gate3 acceptance condition: post-registration binding drift must be proven fail-closed and recoverable, not terminal suppression.
+- Finding 3 is a NIT: state both armed and unarmed router assertions explicitly.
+
+## SIMPLER
+
+The simplest preserving alternative is already selected for the canonical policy:
+
+- no new checkout flag;
+- no canonical override in final Compose;
+- no production configuration change;
+- no fifteenth backend target;
+- no change to `tests/test_refund_webhook_protocol.py` or its original expectation;
+- preserve the existing fourteen backend targets and add the required classification distinctions in existing Workspace tests.
+
+Quantitatively, this avoids one production-relevant checkout setting, one checkout code branch, and one additional test-file target. I tried to remove the auxiliary legacy-override matrix and the appended adjacent evidence, but doing so would lose the only precise boundary between canonical 200, legacy 403, and real paid authority; it would not preserve the invariants.
+
+## BETTER
+
+One materially better final qualification approach is to turn Finding 2 into an explicit classifier decision table:
+
+| Input | Optional W lookup? | Expected result |
+|---|---:|---|
+| seller01-owned generic forged lookalike | No | `200` terminal suppression |
+| fixed-pair genuine W, schema/readiness unavailable | Yes | durable failed `500`, same-ID recovery |
+| claimed/registered W, any binding drift | Yes | durable failed `500`, same-ID recovery |
+| fixed-pair available store, exact no registration | Yes, after valid current owner/runtime proof | `200` terminal suppression |
+| production/live/account-scope event | No | existing unchanged rejection |
+
+Compared with the observed early-query sketch, this makes registered-authority drift impossible to confuse with unrelated traffic. Its cost is a small set of existing-target tests plus, if needed, binding-immutability in the already-scoped Workspace migration. Rollback is documentary/test-only until implementation is accepted; no new checkout flag or production route is required.

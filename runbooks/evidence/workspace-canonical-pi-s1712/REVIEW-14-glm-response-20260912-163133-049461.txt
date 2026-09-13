@@ -1,0 +1,443 @@
+# Verdict
+
+APPROVE_WITH_NITS
+
+# Findings
+
+## 1. LOW — The reviewed runtime-arming contract omits the existing `E2E_ARMED_AT` sysadmin health semantics
+
+- **Severity:** LOW — non-blocking.
+- **Evidence:**
+  - `aidotmarket/runbooks@b444332af4ec86c4258ae62d7c0c1e12f3f2645d:specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md:69-75` defines `runtime_settings` as exactly:
+    - `E2E_TEST_ROUTES_ENABLED=true`
+    - `E2E_RESET_ALLOWED_ACCOUNT_IDS=[]`
+    - `E2E_TEARDOWN_ALLOWED_ACCOUNT_IDS=[]`
+  - The same section requires the host to check exactly those three nonsecret environment keys and gives no disposition for the existing armed-window monitor.
+  - Actual source at `aidotmarket/ai-market-backend@c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2:app/core/config.py:535,546-547` defines not only `E2E_TEST_ROUTES_ENABLED`, but also:
+    - `E2E_MAX_ARMED_WINDOW_MINUTES=15`
+    - `E2E_ARMED_AT: Optional[str]=None`
+  - `app/allai/agents/sysadmin/monitors.py:718-747` makes `E2E_TEST_ROUTES_ENABLED=true` with a missing or malformed `E2E_ARMED_AT` return `ok:false`, `status:"alert"`, severity P1, `failure_class:"e2e_routes_over_armed"`.
+  - `monitors.py:761-772` alerts after the configured maximum armed age.
+  - Existing regressions confirm this behavior:
+    - `tests/test_sysadmin_operating_model_s1086.py:1099-1116` proves empty reset/teardown allowlists do **not** neutralize the over-age alert.
+    - `tests/test_sysadmin_operating_model_s1086.py:1120-1134` proves a missing or malformed `E2E_ARMED_AT` fails closed.
+- **Observed behavior:** The design persists the route flag true for the final Workspace TEST runtime but neither binds/checks the existing arming timestamp and maximum-window settings nor explicitly records that the sysadmin contract will report a P1 alert in that environment.
+- **Expected behavior:** The final runtime contract should either:
+  1. bind and verify the existing nonsecret arming-monitor inputs and define the disarm transition after registered-refund closure; or
+  2. explicitly document that the final isolated TEST environment is expected to produce this monitor alert and must not treat broad sysadmin health as a Workspace readiness or release-success signal.
+- **Reproduction:** Static evidence only. A fresh application configured exactly as specified at spec lines 69-75 has `E2E_TEST_ROUTES_ENABLED=true` and no reviewed `E2E_ARMED_AT`; `e2e_armed_window_status()` therefore returns the tested P1 alert immediately.
+- **Impact:** This does not defeat the checkout guard, W authority, cleanup guards, custody, or refund admission. It is an operational-health/support gap: the final runtime can emit a persistent P1 alert, obscure genuine alerts, or cause a broader health gate to fail even though the reviewed three-key W configuration is correct.
+- **Smallest required outcome:** Add one reviewed runtime/monitor disposition and one corresponding fresh-start assertion. It may extend the exact nonsecret runtime settings, define a monitored short-lived arming window, or explicitly classify the isolated TEST monitor result as non-authoritative.
+- **Verification criterion:** Starting the application with the exact final reviewed Compose representation produces a documented, asserted `e2e_armed_window` result. If healthy, the arming timestamp/max-window inputs are bound and checked; if intentionally alerting, support and release procedures identify that alert as expected and do not use sysadmin health as false W or release proof.
+
+No HIGH or MEDIUM finding survives. The verdict agrees with the findings.
+
+# Coverage
+
+## Independently verified
+
+All shell access was read-only through `rtk proxy`. No file, repository, database, provider, credential, container, runtime, lock, fixture, or production state was modified.
+
+### Exact artifact identity
+
+- Checkout: `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/work/runbooks-gate2-s1712`
+- Branch and remote branch: `docs/seller-workspace-gate2-s1712`
+- HEAD and remote candidate: `b444332af4ec86c4258ae62d7c0c1e12f3f2645d`
+- Base/current `origin/main`: `8f58ec24153beb4c7f467e4ce30e7363305b3380`
+- Base is an ancestor of candidate.
+- Worktree was clean.
+- Full base-to-candidate diff is exactly:
+  - `A specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`
+- Candidate blob:
+  - `36e2a09133e32352eee73b57d57e041f4475016c`
+- Candidate file SHA256:
+  - `38bc8a84c1458336300e32535243a1703fad08faa613eca0d0595ccbb46e386f`
+- Candidate size:
+  - `101555` bytes
+- `git diff --check` passed.
+- Immediate predecessor `87bc6d09b6551b2d0b0c381ffa8c78a4ba988658` is an ancestor.
+- Immediate predecessor delta is one file, 26 insertions and 9 deletions, concentrated in:
+  - explicit runtime checkout arming;
+  - both account-cleanup guards;
+  - immutable owner/runtime columns;
+  - peer-shaped W admission signature;
+  - distinct terminal incidents;
+  - explicit ListingVersion binding;
+  - updated target/test manifest.
+
+### Dependencies and retained records
+
+- Backend checkout is clean at `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2`.
+- `d766b8e4e66d7803ebe48f8a3132521abbebe957` is an ancestor.
+- Environment checkout is at `606267af80470b1d61c07d91cda30a0dc5200224`.
+- Environment candidate and merge `43d67264ab7a3a7e47d6cc6911737273ce1c94cc` have identical tree:
+  - `e553476a38e0948d3a57da60872e406048a0d391`
+- Money spec is at `26588d3571efc3a19d1a9b591fb51991690e3f62`; its SHA256 is exactly:
+  - `1e3c9783575db778301d0b7ec8a66f1dadca0b855ce59cf0cff9bdaf8cfd6806`
+- Product decision SHA256 reproduced:
+  - `ed425ff091bebc41a879f3b4167a7816e0f23c47d94211a17426e5b5fd9b190f`
+- Environment decision SHA256 reproduced:
+  - `b3e7880bd6d574cd3ce9abba87990fa872017879b7ec8bf2e896158046ed6f2b`
+- R4 owner-review SHA256 reproduced:
+  - `212673226d69fcefadafabdcbd10abecbc2b7bd652a1913ed3c8863ae4d145c5`
+- R3 panel/source-grounding hashes reproduced:
+  - `6cbf346a54cd4dca2ad086339f8de3d6e6406b330364ad7303dddb6ef818bb5a`
+  - `93f6ddfdc4ac53b6953e5328fda0767fee3dc69231ab0b82a69770157eaed4a8`
+- PR188 reviewed candidate `ef015581...` and merge `0ec6bac7...` have identical tree `85a710ea...`; both recording specs name environment final head `43d67264...`.
+- Protected active-run pointer hash and content reproduced:
+  - SHA256 `cbbfe3278d4ed6933a254c2c4a24f345a84bbb1a3e44ec5045892509f49889a5`
+  - run `20260911T233041Z`
+  - state `pending_settlement`
+  - environment `03d3f30acf854537edd76fdb19e1cf521b577c9a`
+  - both delivery/A2 pins `519b1d5893dc410392cc66051dad0902572dcef9`
+  - purchase receipt hash `529aaeb02271ea2e41568fea51bbba4165705272890c92c3e62a98851d8b03a9`
+
+### Load-bearing backend source
+
+Verified at backend `c3a62af8`:
+
+- Checkout synthetic-purchase guard:
+  - `checkout.py:190-195`
+- E2E reset/teardown router import:
+  - `router.py:148-151`
+- Actual surgical-reset flow:
+  - `surgical_reset.py:100-124`
+  - guard/auth at 112-117
+  - request/apply review at 118-123
+  - destructive `_execute` begins at 124
+- Surgical reset deletes orders/order events/transactions/listings:
+  - `surgical_reset.py:255-300`
+- Actual teardown flow:
+  - `teardown.py:137-199`
+  - catalog at 147
+  - guard/context at 148-155
+  - inventory at 156
+  - hitlist at 158
+  - destructive execution at 179-182
+  - commit/audit at 185-199
+- Teardown route/background/durable-status behavior:
+  - `e2e_reset.py:69-108`
+  - reset route at 111-148
+  - teardown route at 151-207
+- Shared guard canonicalizes an existing DB user ID and validates UUID/allowlist/token/test identity:
+  - `teardown_guard.py:162-205`
+- Webhook signature and dedup precede admission/suppression:
+  - `webhooks.py:476-576`
+- `charge.refunded` is critical:
+  - `webhooks.py:79-87`
+- Predicate exception takes the durable failed/non-2xx path:
+  - `webhooks.py:824-870`
+- S1681 peer signature is `event, db, *, normalized_stripe_account`:
+  - `s1681_refund_test_admission.py:266-271`
+- `lock_order_money_sync` inserts a missing `OrderMoneyState`:
+  - `order_money_service.py:124-153`
+- Payout eligibility reads actual order/refund/revoke/dispute state:
+  - `order_money_service.py:177-223`
+  - dispatch path at 385-425
+- Purchase-rights fields exist:
+  - `DeliveryAuthority.authority_kind`, `legacy_serial_id`, `connection_id`, and `immutable_scope_hash`
+  - publication `approval_id`, `authority_id`, `listing_version_id`, and `review_hash`
+  - approval `review_hash`, distinct from `request_hash`
+  - `ListingVersion.manifest_hash`
+  - `Order.purchased_version_id`
+  - `Payment.stripe_payment_intent_id` and `stripe_charge_id`
+- Migration parent is real:
+  - `s1714_order_money_v1 <- f0e47ebd81ee`
+  - no existing child named in the checkout
+- Packaged identities match the four proposed constants:
+  - seller01 `32f8e9c1-a779-459c-b49b-d6db464133b5`
+  - buyer01 `7d662d0e-22f2-4b87-bbc5-80984ba808ac`
+  - buyer02 `4b10c456-5936-49d7-be3f-d9c68c9a263e`
+  - seller02 `961bd48a-3018-43f4-a7ad-6871720fd806`
+- seller02 currently has no `totp_secret_name`, while the packaged schema supports a name-only field.
+- `User` has the specified TOTP/Stripe fields and no mapped `updated_at`.
+- Synthetic TOTP golden reproduced independently:
+  - SHA256 of 32 uppercase ASCII `A` bytes is `22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153`.
+
+### Environment source
+
+Verified at environment `606267af`:
+
+- Current Compose does not set the three proposed Workspace runtime literals; they are explicit future reviewed additions, not falsely claimed to exist.
+- Existing read-only `/s1656` seed mount is present.
+- Backend source label comes from `BACKEND_RC_SHA`.
+- `bin/up` records local Docker image IDs, not registry indexes.
+- `bin/check-settlement` compares the running container image with the recorded local ID.
+- `bin/seed` and `bin/reset` enter the inherited lock and guard before later writes/cleanup.
+- `bin/reset` eventually performs the separately guarded `docker compose down --volumes`, consistent with the design's explicit exclusion of Docker-volume destruction from the backend row-guard claim.
+- Proposed Workspace helper, service, model, migration, host wrapper, and tests are absent, confirming design-only status.
+
+### Static destructive-path search
+
+A bounded static search for supported E2E account-destruction entrypoints found the two addressed services/routes:
+
+- `SurgicalResetService` through `/e2e/reset/account`
+- `TeardownService` through `/e2e/teardown/account`
+
+I found no third currently reachable E2E account-destruction service in the searched backend route/service surfaces. This is not whole-graph certification of future code, privileged SQL, direct ORM deletion elsewhere, or administrative Docker operations.
+
+## Not reviewed, run, or certified
+
+- No implementation tests, PostgreSQL tests, ASGI requests, subprocess wrapper tests, Docker inspections, lock acquisitions, provider calls, credential reads, database queries, migrations, runtime operations, release operations, or production checks were executed.
+- The two GitHub CI tuples are **UNVERIFIED**:
+  - `gh` was unauthenticated.
+  - direct API DNS resolution failed.
+  - The request correctly labels them documentation checks, not implementation tests.
+- Current remote environment `main` and the GitHub merge object are **UNVERIFIED** beyond the local repository objects and retained owner evidence; the local environment remote ref still pointed to the older `c6b8770e` merge.
+- Installed Infisical response shape and permissions are **UNVERIFIED**. The design itself says documentation is insufficient and requires owned receipts.
+- I did not re-run the accepted product or environment suites and make no all-green claim.
+- I did not re-audit every file in the 42-target product candidate or 14-file environment candidate. I inspected the interfaces load-bearing for this design.
+- I did not cryptographically authenticate the Max event or peer-bus records.
+- I did not rehash all twelve historical response bodies; their dispositions were read from the packet, but no prior approval was carried forward.
+- Full future protected-evidence artifacts, launchd provenance, stable release, Gate4/BQ, provider reconciliation, production trigger state, AWS/R2 transport, and buyer byte/denial evidence remain future execution gates.
+- The stated finite review budget was exhausted after the source verification above; no additional reads were attempted.
+
+# Answers to the six required questions
+
+## 1. Can old/other-window/P/N/changed-purchase authority gain signed W admission, or can a terminal unregistered refund be fabricated into convergence?
+
+**No, not under the revised design.**
+
+The two-stage design now binds authority to a persisted immutable registration:
+
+- Stage A records the complete fixed seller02/buyer01 order-ID baseline under a short `orders SHARE NOWAIT` transaction.
+- Stage B recomputes the complete current fixed-pair set and requires:
+  - every baseline ID to remain present;
+  - exactly one new-order delta entry;
+  - that order to be genuinely paid;
+  - unique canonical transaction/Payment/PI/charge/capture bindings;
+  - exact actors, amount, and currency;
+  - no unregistered refund or ambiguous authority.
+- `workspace_refund_test_authorities` uniquely binds window, order, transaction, Payment, PI, and charge, with all columns NOT NULL and UPDATE/DELETE refused by trigger.
+- The webhook predicate is after real signature, scope, dedup, and immutable refund-event binding.
+- It uses the peer-shaped `admits_workspace_refund(event, db, *, normalized_stripe_account)` interface.
+- It locates authority by provider IDs and revalidates all immutable scalar bindings and canonical hashes.
+- It locks existing order→transaction→money-state→Payment→Refund rows without calling the inserting `lock_order_money_sync` helper.
+- It performs no DML, provider call, or window-table lock.
+- A closed/recovery window retains authority only for the original registered charge/order.
+
+A pre-registration refund cannot be converted into authority:
+
+- Stage B rejects an order with an existing unregistered refund.
+- The signed pre-registration event is explicitly terminal `completed/e2e_scope_suppressed`, not retryable readiness and not registration.
+- The unregistered-refund incident is distinct from the extra-order incident.
+- No retroactive bind, extra registration, baseline rewrite, deletion, or automatic closure escape is provided.
+
+P/N cannot satisfy W authority: their actors, persisted authorities, and delivery authority semantics are separate. A changed purchase, scope hash, approval hash, ListingVersion manifest, PI, charge, or pin changes the immutable comparison and refuses. The ListingVersion ambiguity is explicitly tested against `AgentProposal.manifest_hash`, closing the prior model-column shortcut.
+
+Blocking would require a source-backed path where one of those old, cross-window, P/N, changed, or unregistered objects reaches normal W processing or is silently registered later. None was found statically.
+
+## 2. Can either cleanup service or concurrent purchase/binder destroy history/cardinality?
+
+**No for the two current reachable supported backend account-cleanup services; concurrency protection is concrete but remains implementation-untested.**
+
+The R4 correction covers both actual services:
+
+- `SurgicalResetService.reset`
+  - Existing auth/allowlist/request/review validation occurs first.
+  - The proposed fixed-UUID refusal precedes `_execute`, `_reset_database_rows`, and object deletion.
+- `TeardownService.teardown`
+  - The guard follows `build_guard_context` and canonical claims/target assignment.
+  - It precedes `validate_inventory`, `_collect_hitlist`, and `_execute_deletes`.
+  - The existing catalog snapshot remains read-only and need not be redesigned.
+- One pure normalized-UUID helper owns exactly the four packaged identities.
+- No configuration, lineage, mount, owner pointer, audit, window state, or all-synthetic role shortcut can bypass it.
+- Direct service calls and actual routes receive the same protection.
+- Dry-run and apply both refuse with the existing exception text/audit carrier.
+- The reset route remains HTTP 400.
+- The teardown route honestly remains HTTP 202, with the background task and durable status carrying `refusal/workspace_protected_fixture` and empty executed counts.
+- Actual runtime empty allowlists are not treated as the protection mechanism; isolated tests must deliberately populate allowlists and mint valid tokens.
+
+This closes the R3 sibling-teardown gap. Static search found no third current supported E2E account-destruction path. The design does not claim protection from arbitrary SQL, future unguarded routes, or environment-level `down --volumes`; those exclusions are explicit and honest.
+
+For purchase/binder concurrency:
+
+- `orders SHARE` conflicts with public INSERT/UPDATE/DELETE `ROW EXCLUSIVE`.
+- `NOWAIT` immediately refuses an already active writer.
+- A writer arriving later cannot alter order cardinality before the binding commit.
+- The complete delta cannot silently exclude an unpaid order.
+- Window-row and unique constraints serialize duplicate binders.
+- Existing money rows are locked in accepted order without helper insertion or order UPDATE.
+- Extra orders are retained as incidents and cannot gain authority or be deleted/synthetically refunded.
+- Real two-session PostgreSQL tests are required and remain unexecuted.
+
+## 3. Does final TEST synthetic checkout work under explicit reviewed settings while both cleanup services remain protective?
+
+**Yes, with the LOW armed-monitor caveat.**
+
+Actual source proves:
+
+- Flag false refuses a synthetic public purchase at `checkout.py:190-195` with `synthetic_purchase_requires_e2e_guard`.
+- Flag true permits the checkout guard to proceed.
+- The same flag imports both account-cleanup routes at `router.py:148-151`.
+
+The R4 contract explicitly binds:
+
+- literal Compose values rather than caller interpolation;
+- the immutable owner-issued `runtime.json` preimage/hash;
+- persisted window copies;
+- host-side running-container `Config.Env` comparison;
+- actual application settings comparison;
+- duplicate/missing/conflicting-key refusal;
+- fresh application startup/router import rather than post-import settings mutation;
+- flag=false 403 and flag=true real purchase tests;
+- destructive-route registration under flag=true;
+- isolated populated allowlists proving the service guards independently of actual empty allowlists;
+- ordinary non-W and production-shaped ASGI regressions.
+
+The only source-backed omission is Finding 1: existing `E2E_ARMED_AT` monitor semantics are not dispositioned. That does not block checkout or admission, but should be documented or bound before implementation/support acceptance.
+
+## 4. Can activation/recovery or substitution duplicate resources, overwrite generation/Party, or leak a new Workspace secret?
+
+**No within the honestly stated trusted private-operator boundary.**
+
+Custody/provider protection is structurally conservative:
+
+- no DELETE, PATCH, or upsert anywhere in the Workspace custody lifecycle, including recovery;
+- authenticated 404 required before first creation;
+- durable generation and provider request identity recorded before POST;
+- timeout/403/empty parse never treated as absence;
+- uncertain creation reconciled against exact scope/name/marker/digest/ID/version;
+- changed, deleted/recreated, or unverifiable retained custody refuses;
+- future reuse requires exact retained-generation agreement;
+- an unseen post-read external writer cannot have its value erased because no destructive operation follows the final GET;
+- retained custody ends in `inactive_with_retained_custody` or `deactivation_incomplete`, never false secret-absence success.
+
+Provider account handling requires complete pagination, exact marker uniqueness, no fresh account after expired/uncertain idempotency, and no repair-by-assumption. Foreign Connect ownership is proved and locked before projection; the known party-reassigning upsert is forbidden before that proof. Party/auth_user identity is never deleted.
+
+The host/backend boundary is also honest:
+
+- the authenticated local operator is the trust boundary;
+- owner attestation is not misdescribed as cryptographic external verification;
+- the backend does not claim to measure Docker from caller strings;
+- the host independently discovers source, label, and local image ID;
+- OCI index/manifest digests cannot substitute for the local image ID;
+- owner/runtime artifacts are mounted, canonical, hashed, write-once, guarded files;
+- stdin is bounded and strictly parsed;
+- `PYTHONPATH=/app` is the sole nonsecret environment exception;
+- the canary is scoped to a new synthetic Workspace secret rather than falsely claiming the entire pre-existing application environment is secret-free.
+
+A malicious operator with Docker/custody authority remains explicitly outside the authentication guarantee, which is the correct boundary disclosure.
+
+## 5. Are schema/lifecycle/readiness/recovery/target files and immutable columns concrete, with no invented money field or inserting helper?
+
+**Yes.**
+
+The two-table model is concrete:
+
+- `workspace_test_windows` has exact owner/runtime/baseline/opening preimage and hash columns.
+- Every owner/runtime preimage and corresponding prefixed hash is explicitly immutable.
+- Only `state`, `revision`, `closed_at`, and paired terminal fields may transition.
+- Closed rows are entirely immutable.
+- One partial unique index enforces one nonclosed W window.
+- Forward transitions, revision increment, terminal pairing, and insert-state constraints are explicit.
+- `workspace_refund_test_authorities` is all-NOT-NULL, RESTRICT-bound, uniquely keyed, and fully UPDATE/DELETE immutable.
+- Registration JSON is compared to every scalar field on every use.
+- No refund outcome is written into the authority row.
+
+The implementation targets are named and coherent:
+
+- model/import/service/migration;
+- webhook disjunct;
+- both cleanup services and shared helper;
+- account-pool TOTP binding;
+- environment wrapper/host/receiver/guards/mount/tests;
+- real PostgreSQL migration/concurrency tests;
+- real ASGI isolation tests;
+- wrapper stdin/canary/recovery tests.
+
+The source bindings are real, not invented:
+
+- `immutable_scope_hash`
+- `approval_id`
+- approval/publication `review_hash`
+- `ListingVersion.manifest_hash`
+- `Order.purchased_version_id`
+- Payment PI/charge uniqueness
+- User TOTP/Stripe fields
+- migration parent
+
+The normal financial processor remains the sole financial writer. Workspace does not seed chart/merchant authority, manufacture capture, or invoke the money-state-inserting helper. Missing state refuses rather than repairs.
+
+All proposed implementation files are absent at the dependency pins, so this remains a design verdict rather than implementation certification.
+
+## 6. Are support/upgrade/release obligations honest and complete?
+
+**Yes, with the LOW armed-monitor support caveat and normal runtime-evidence limits.**
+
+The design clearly separates:
+
+- accepted product/environment dependencies;
+- this design review;
+- future implementation;
+- final W source/spec recording and pins;
+- owner authorization;
+- protected run25 completion;
+- corrected P/N lifecycle and genuine holds;
+- final TEST deployment;
+- real public purchase/refund;
+- close/deactivate;
+- production quiescence;
+- production verification;
+- AWS/R2 buyer bytes and denials.
+
+It retains:
+
+- run25 on original environment and pins;
+- the pending-settlement observation as non-authority;
+- genuine 48-hour P/N holds;
+- scheduled versus manually invoked proof;
+- launchd provenance;
+- stable release and Gate4/BQ evidence;
+- production trigger freeze;
+- old-writer quiescence;
+- provider reconciliation;
+- actual final source/image refresh;
+- VC/raw-HMAC transport limits;
+- the inherited `BillingEntity.doppler_key_prefix` defect;
+- six exact inherited product failures;
+- no all-green claim;
+- no invented future run IDs or owner window.
+
+The support map, receipt allowlist, upgrade compatibility requirements, and forward-only rollback direction are concrete. A design review, fixture, health check, or CI documentation pass is not represented as final release proof.
+
+The two CI runs are **UNVERIFIED** here and are documentation checks only. All live release and provider evidence remains unexecuted and uncertified.
+
+# SIMPLER
+
+For the cleanup correction, **the simplest concrete alternative is already selected**: one pure normalized fixed-four-UUID helper consumed by both actual services.
+
+Compared with the rejected R2/R3 approaches, this removes:
+
+- the reset/open advisory-lock serialization fiction;
+- the strict protected-destructive database branch;
+- lineage/mount/owner-pointer dependence from the refusal;
+- duplicate per-service identity sets;
+- any generic database-trigger policy.
+
+It adds only one small helper, two service call sites, and focused service/ASGI/PostgreSQL tests. It preserves unrelated target behavior and leaves the separately authorized environment lifecycle untouched.
+
+For the overall authority/lifecycle design, **no simpler alternative preserves every invariant**. I tried to remove:
+
+- the immutable registration table — this reopens old/other-window admission;
+- the persisted complete baseline — this makes exact one-order cardinality unprovable to the backend;
+- `orders SHARE NOWAIT` — this leaves a concurrent phantom-order hole;
+- owner/runtime artifacts — this turns authority back into caller-supplied strings;
+- retained custody — this reintroduces the unsafe name-based destructive cleanup race;
+- the two-table split — this entangles an immutable authority with lifecycle mutation.
+
+Each is load-bearing.
+
+# BETTER
+
+**Advisory only: decouple synthetic public checkout from destructive E2E mutation-route arming.**
+
+A narrower reviewed synthetic-purchase setting could allow the W checkout while leaving `E2E_TEST_ROUTES_ENABLED=false`, so reset/teardown routes remain structurally absent in the final runtime. The shared four-UUID service guard would remain as defense in depth.
+
+- **Failure-mode comparison:**
+  - Current R4: one existing flag arms checkout and imports both destructive routes; safety depends on empty allowlists plus service guards, and the existing armed-window monitor needs an explicit disposition.
+  - Narrow flag: destructive account routes stay absent by default; checkout failure is isolated. New failure modes are a newly reviewed checkout setting and possible confusion with the existing broad E2E flag.
+- **Cost:** one additional setting/router branch and focused checkout/ASGI tests; more scope than R4’s explicit “no new checkout flag” decision.
+- **Rollback:** disable the narrow purchase flag or remove the branch; immutable authority, financial rows, custody, and provider history remain unchanged.
+
+This is not a mandate. R4’s choice avoids a new production setting and the required empty-allowlist/service-guard tests materially reduce the imported-route risk. The LOW monitor finding can be resolved either within R4’s selected design or through this narrower future alternative.

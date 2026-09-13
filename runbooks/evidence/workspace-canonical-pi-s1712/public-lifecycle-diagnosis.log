@@ -1,0 +1,272 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-9.0.3, pluggy-1.6.0 -- /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python
+rootdir: /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0
+configfile: pyproject.toml
+plugins: Faker-40.15.0, cov-7.1.0, timeout-2.4.0, langsmith-0.7.32, asyncio-1.3.0, anyio-4.13.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 223 items / 222 deselected / 1 selected
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund FAILED [100%]
+
+=================================== FAILURES ===================================
+________ test_selected_public_checkout_signed_capture_bind_full_refund _________
+
+db = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x10c173c50>
+test_config = {'backend_local_image_id': 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'backend_sha': '...label': 'cccccccccccccccccccccccccccccccccccccccc', 'environment_sha': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ...}
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c46acf0>
+tmp_path = PosixPath('/Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/evidence/public-lifecycle-diagnosis/tmp/test_selected_public_checkout_0')
+
+    @pytest.mark.asyncio
+    async def test_selected_public_checkout_signed_capture_bind_full_refund(db, test_config, monkeypatch, tmp_path):
+        from unittest.mock import AsyncMock
+        from app.core import stripe_async
+        from app.services import fulfillment_service
+        from test_refund_processing_protocol import refund
+        case = await _fresh_public_checkout_case(db, test_config, monkeypatch, tmp_path, True, defer_open=True)
+        # The source-construction purchase is explicitly pre-window fixture history.
+        # This new delta is created by the real public canonical checkout.
+        order = (await db.execute(text("select id,transaction_id,stripe_checkout_session_id,amount_cents from orders where seller_id=:seller and buyer_id=:buyer and id<>:old"), dict(seller=w.SELLER_ID, buyer=w.BUYER_ID, old=case.oid))).mappings().one()
+        oid, tid = order["id"], order["transaction_id"]
+        pi = dict(case.pi, id="pi_" + uuid4().hex, metadata=dict(order_id=str(oid), transaction_id=str(tid)))
+        ch = dict(case.ch, id="ch_" + uuid4().hex, payment_intent=pi["id"])
+        pi["latest_charge"] = ch["id"]
+        async def provider(fn, *args, **kwargs):
+            if fn.__name__ == "list":
+                return dict(data=[refund(ch, 2500, "public" + oid.hex)] if ch["amount_refunded"] else [], has_more=False)
+            return pi if args[0] == pi["id"] else ch
+        monkeypatch.setattr(stripe_async, "run_stripe", provider)
+        # Delivery scheduling is outside this payment proof; checkout, paid
+        # transition, capture, admission and refund processors remain actual.
+        fulfillment = SimpleNamespace(request_fulfillment=AsyncMock(return_value={"success": True}))
+        monkeypatch.setattr(fulfillment_service, "get_fulfillment_service", lambda db: fulfillment)
+        event = dict(id="evt_" + uuid4().hex, object="event", livemode=False, type="checkout.session.completed",
+                     data=dict(object=dict(id=order["stripe_checkout_session_id"], payment_status="paid", payment_intent=pi["id"],
+                                           amount_total=2500, currency="usd", metadata=pi["metadata"])))
+        await db.rollback()
+        response = await signed_post(db, monkeypatch, event)
+        assert response.status_code == 200, response.text
+        paid = (await db.execute(text("select o.status,t.status,t.paid_at from orders o join transactions t on t.id=o.transaction_id where o.id=:id"), {"id": oid})).one()
+        assert paid[0:2] == ("pending_delivery", "fulfilling") and paid[2]
+        await db.rollback()
+        capture_event = dict(id="evt_" + uuid4().hex, object="event", livemode=False,
+                             type="payment_intent.succeeded", data=dict(object=pi))
+        response = await signed_post(db, monkeypatch, capture_event)
+        checkpoint = (await db.execute(text("select status,error_message from stripe_events where stripe_event_id=:id"), {"id": capture_event["id"]})).one()
+        print("PUBLIC_CAPTURE_CHECKPOINT", checkpoint)
+>       assert response.status_code == 200, (response.text, checkpoint)
+E       AssertionError: ('{"detail":"Processing failed for critical event"}', ('failed', 'Order/transaction reverse binding mismatch'))
+E       assert 500 == 200
+E        +  where 500 = <Response [500 Internal Server Error]>.status_code
+
+tests/test_workspace_test_refund_admission.py:967: AssertionError
+----------------------------- Captured stdout call -----------------------------
+STRIPE_TEST_MODE is ENABLED — all Stripe operations use test keys
+INTERNAL_AGENT_KEY not set — all agent-key auth attempts will be rejected
+/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/aim_seller.py:42: UserWarning: Field name "schema" in "ToolDetail" shadows an attribute in parent "BaseModel"
+  class ToolDetail(BaseModel):
+/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/disclosure_snapshot.py:46: UserWarning: Field name "schema" in "DisclosureApprovedFields" shadows an attribute in parent "BaseModel"
+  class DisclosureApprovedFields(BaseModel):
+/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+SecretsService: SECRETS_ENCRYPTION_KEY not set
+2026-09-12 20:11:13,219 [INFO] app.main: Marketplace MCP Server disabled (MARKETPLACE_MCP_ENABLED=false)
+2026-09-12 20:11:13,301 [INFO] app.main: AIM Discovery MCP Server mounted at /mcp/aim-discovery/
+[LIFESPAN] Entering startup sequence
+Seller schema readable; no migration or row read performed.
+[LIFESPAN] Entering startup sequence
+2026-09-12 20:11:13,347 [WARNING] app.core.gcp_credentials: GCP_SERVICE_ACCOUNT_JSON not set. KMS and other GCP services may fail unless using local ADC.
+2026-09-12 20:11:13,347 [WARNING] app.main: GCP credentials not configured - KMS features may fail
+2026-09-12 20:11:13,347 [ERROR] app.main: KMS is not ready; KMS-dependent operations will fail closed
+2026-09-12 20:11:13,347 [INFO] app.main: === LIFESPAN START ===
+2026-09-12 20:11:13,347 [INFO] app.main: Scheduler mode: apscheduler
+2026-09-12 20:11:13,359 [INFO] app.main: Checking Alembic migration heads...
+2026-09-12 20:11:13,626 [INFO] app.main: Migration head check passed: single head 's1712_workspace_authority_v1'
+2026-09-12 20:11:13,626 [INFO] app.main: Running database migrations...
+2026-09-12 20:11:13,626 [INFO] app.main: Starting database migrations via Alembic...
+2026-09-12 20:11:13,626 [INFO] app.main: Working directory: /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0
+2026-09-12 20:11:13,626 [INFO] app.main: Python executable: /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python
+2026-09-12 20:11:14,392 [INFO] app.main: Database migrations completed successfully.
+2026-09-12 20:11:14,426 [INFO] app.main: S97: Ensured 11 columns exist across CRM tables
+2026-09-12 20:11:14,428 [INFO] app.main: Seeding permission templates...
+2026-09-12 20:11:14,435 [INFO] app.main: Bootstrapping ai.market platform manifest...
+2026-09-12 20:11:14,570 [INFO] app.core.bootstrap: Creating system user for ai.market platform
+2026-09-12 20:11:14,574 [INFO] app.core.bootstrap: Created ai.market platform manifest
+2026-09-12 20:11:14,577 [INFO] app.main: Seeding global policies...
+2026-09-12 20:11:14,590 [INFO] app.services.policy_engine_service: Global default policy already exists
+2026-09-12 20:11:14,590 [INFO] app.core.bootstrap: Global policies seeded/verified: System Default Policy (id=a0000000-0000-0000-0000-000000000001)
+2026-09-12 20:11:14,593 [INFO] app.main: Seeding agent registry...
+2026-09-12 20:11:14,605 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'allai-brain' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,607 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'crm-steward' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,609 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'sysadmin' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,610 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'matchmaker' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,612 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'agent-log' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,613 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'listing-enricher' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,615 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'ralph' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,616 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'marketing-ops' (v1, online) with 0 tool policies
+2026-09-12 20:11:14,617 [INFO] app.seeds.seed_agents: seed_agents: Done — created 8 agents
+2026-09-12 20:11:14,617 [INFO] app.main: Seeded 8 new agents into agent table
+2026-09-12 20:11:14,623 [INFO] app.main: Seeded ActionPolicy for run_backup
+2026-09-12 20:11:14,625 [INFO] app.main: Seeded ActionPolicy for cold_start_warmup
+2026-09-12 20:11:14,625 [WARNING] app.main: SKIP_SERVICES=1 — skipping scheduler, worker, telegram, agents
+2026-09-12 20:11:14,625 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager started
+2026-09-12 20:11:14,626 [INFO] app.main: AIM Discovery MCP server session manager started
+2026-09-12 20:11:14,626 [INFO] app.main: === LIFESPAN READY ===
+2026-09-12 20:11:14,632 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {"endpoint": "transaction-initiate", "event": "terms_acceptance_would_block", "measurement_skipped": "test_environment", "mode": "shadow", "org_id": null, "party_id": null, "terms_version": "1.0", "timestamp": "2026-09-12T18:11:14.632700+00:00", "user_id": "7d662d0e-22f2-4b87-bbc5-80984ba808ac"}
+2026-09-12 20:11:14,657 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {"endpoint": "order-create", "event": "terms_acceptance_would_block", "measurement_skipped": "test_environment", "mode": "shadow", "org_id": null, "party_id": null, "terms_version": "1.0", "timestamp": "2026-09-12T18:11:14.657084+00:00", "user_id": "7d662d0e-22f2-4b87-bbc5-80984ba808ac"}
+FRESH_CHECKOUT={"armed": true, "canonical": true, "status": 200, "body": {"checkout_url": "https://checkout.stripe.test/isolated", "session_id": null, "order_id": "fdafb0ef-3ff8-466a-8e5d-ae73cb924f99", "order_number": "ORD-2026-60F28105", "expires_at": null, "transaction_id": "d6666579-8e8b-4130-8e8e-94733efedf8f"}}
+2026-09-12 20:11:14,699 [INFO] app.main: === LIFESPAN SHUTDOWN ===
+2026-09-12 20:11:14,699 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager shutting down
+
+PUBLIC_CAPTURE_CHECKPOINT ('failed', 'Order/transaction reverse binding mismatch')
+------------------------------ Captured log call -------------------------------
+WARNING  app.services.kms_service:kms_service.py:80 GCP_PROJECT_ID not set. KMS features will be unavailable.
+ERROR    app.services.notification_service:notification_service.py:227 Notification emission failed (non-fatal)
+Traceback (most recent call last):
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 546, in _prepare_and_execute
+    self._rows = await prepared_stmt.fetch(*parameters)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/asyncpg/prepared_stmt.py", line 176, in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/asyncpg/prepared_stmt.py", line 241, in __bind_execute
+    data, status, _ = await self.__do_execute(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/asyncpg/prepared_stmt.py", line 230, in __do_execute
+    return await executor(protocol)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "asyncpg/protocol/protocol.pyx", line 207, in bind_execute
+asyncpg.exceptions.ForeignKeyViolationError: insert or update on table "notifications" violates foreign key constraint "notifications_user_id_fkey"
+DETAIL:  Key (user_id)=(961bd48a-3018-43f4-a7ad-6871720fd806) is not present in table "users".
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 130, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 195, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 509, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.IntegrityError: <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table "notifications" violates foreign key constraint "notifications_user_id_fkey"
+DETAIL:  Key (user_id)=(961bd48a-3018-43f4-a7ad-6871720fd806) is not present in table "users".
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/notification_service.py", line 216, in emit_notification
+    await svc.create(
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/notification_service.py", line 68, in create
+    await self.db.flush()
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/session.py", line 802, in flush
+    await greenlet_spawn(self.sync_session.flush, objects=objects)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 202, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4312, in flush
+    self._flush(objects)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4447, in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4408, in _flush
+    flush_context.execute()
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py", line 1227, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 517, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2344, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 580, in execute
+    self._adapt_connection.await_(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 130, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 195, in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 558, in _prepare_and_execute
+    self._handle_exception(error)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 509, in _handle_exception
+    self._adapt_connection._handle_exception(error)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py", line 797, in _handle_exception
+    raise translated_error from error
+sqlalchemy.exc.IntegrityError: (sqlalchemy.dialects.postgresql.asyncpg.IntegrityError) <class 'asyncpg.exceptions.ForeignKeyViolationError'>: insert or update on table "notifications" violates foreign key constraint "notifications_user_id_fkey"
+DETAIL:  Key (user_id)=(961bd48a-3018-43f4-a7ad-6871720fd806) is not present in table "users".
+[SQL: INSERT INTO notifications (id, user_id, type, title, body, metadata, link_url, read_at, archived_at, updated_at) VALUES ($1::UUID, $2::UUID, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::JSONB, $7::VARCHAR, $8::TIMESTAMP WITH TIME ZONE, $9::TIMESTAMP WITH TIME ZONE, $10::TIMESTAMP WITH TIME ZONE) RETURNING notifications.created_at]
+[parameters: (UUID('94889745-bf1f-4815-ad54-77df898b5109'), UUID('961bd48a-3018-43f4-a7ad-6871720fd806'), 'order_payment_received', 'Payment received for S1714 disposable', None, '{"order_id": "fdafb0ef-3ff8-466a-8e5d-ae73cb924f99", "listing_title": "S1714 disposable", "amount_cents": 2500}', '/dashboard/orders/fdafb0ef-3ff8-466a-8e5d-ae73cb924f99', None, None, None)]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:167 stripe_webhook: {"event_id": "evt_d43bff0ce5c04427aaf5025228699a3d", "event_type": "payment_intent.succeeded", "livemode": false, "stripe_account": null, "request_id": "", "processing_ms": 58, "result": "error", "error_class": "OrderMoneyConflict"}
+ERROR    app.api.v1.endpoints.webhooks:webhooks.py:836 CRITICAL_WEBHOOK_FAILURE: payment_intent.succeeded evt_d43bff0ce5c04427aaf5025228699a3d — OrderMoneyConflict
+=============================== warnings summary ===============================
+../../../s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/starlette/formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/dateutil/tz/tz.py:37: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(timestamp, datetime.UTC).
+    EPOCH = datetime.datetime.utcfromtimestamp(0)
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:162: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:226: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderSafeResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:285: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderListResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/schemas/order.py:451: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class OrderEventResponse(BaseModel):
+
+tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund
+  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/max/koskadeux-state/s1656/s1714-workspace-final-67392781/public-lifecycle-diagnosis.xml -
+=========================== short test summary info ============================
+FAILED tests/test_workspace_test_refund_admission.py::test_selected_public_checkout_signed_capture_bind_full_refund - AssertionError: ('{"detail":"Processing failed for critical event"}', ('failed', 'Order/transaction reverse binding mismatch'))
+assert 500 == 200
+ +  where 500 = <Response [500 Internal Server Error]>.status_code
+================ 1 failed, 222 deselected, 7 warnings in 9.47s =================

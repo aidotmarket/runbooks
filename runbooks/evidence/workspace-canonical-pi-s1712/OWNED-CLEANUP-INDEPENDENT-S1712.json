@@ -1,0 +1,9 @@
+{
+  "at": "2026-09-12T18:35:14.613094+00:00",
+  "container": "df1d6a2205627fc9ff640c467417ef1879b473803d4aa6173f5b32f7815bbacb",
+  "volume": "642a7ebfe8daddb805aa0aa5522281dbd5e125ee393e48c1b4b1697c0792c5d4",
+  "independent_container_absent": true,
+  "independent_volume_absent": true,
+  "verification": "Direct docker inspect / volume inspect both exit1 with exact no-such-object/no-such-volume responses; no mutation by Vulcan",
+  "qualification": false
+}

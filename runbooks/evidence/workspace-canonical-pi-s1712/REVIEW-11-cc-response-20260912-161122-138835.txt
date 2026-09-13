@@ -1,0 +1,124 @@
+COUNCIL REVIEW — STANDARD PREAMBLE
+
+You are an independent reviewer. The builder does not review its own work. Work read-only: modify nothing.
+
+The request must provide:
+
+- Exact artifact identity: repository, full base and candidate SHAs, pinned checkout, changed files, and runnable diff command.
+- Environment truth: available repositories and tools, whether tests can run, and the finite turn budget.
+- Brief ground truth, explicit scope boundaries, and prior rejected approaches.
+- Builder verification: exact commands and results, including failures, skips, inherited failures, and signals not to trust.
+- For re-reviews: prior candidate, prior verdict, and the exact change since.
+- Three to six numbered questions naming the feared failure modes and what would make each blocking.
+
+If required information is missing or wrong, report that first. Review the exact artifact, not the builder’s narrative. Read whatever you judge necessary; nothing is off limits. Verify every load-bearing claim independently. Mark anything you cannot verify as UNVERIFIED.
+
+Track your turn budget. If it runs out, stop reading and return your verdict anyway, naming everything left uncovered. Silence is not approval.
+
+Respond in this order:
+
+1. Exactly one verdict:
+
+APPROVE | APPROVE_WITH_NITS | APPROVE_WITH_MANDATES | REVISE | REQUEST_CHANGES | REJECT
+
+2. Numbered findings, highest severity first. Each finding must include severity; exact repo@SHA and file:line evidence; observed and expected behavior; reproduction or “static evidence only”; impact; smallest required outcome; and verification criterion. HIGH and MEDIUM block; LOW and NIT do not. The verdict must agree with the findings.
+
+3. Coverage: what you reviewed, what you did not, and why.
+
+4. Answer every numbered question, then:
+
+- SIMPLER: Name the simplest concrete alternative that preserves every requirement and invariant. Quantify what it removes. If none, say “none found” and identify what you tried to remove.
+- BETTER: Name one materially better approach and compare its failure modes, cost, and rollback. If none, say “none found.”
+
+Simplification and alternative approaches are mandates only when supported by evidence of a scope violation or material risk; otherwise record them as advisory.
+
+---
+
+# Council Review — S1712 Workspace Gate2 **Round 3** (complete design review: unconditional four-fixture surgical-reset refusal + retained two-stage authority)
+
+Fresh voter. No prior CC vote carried forward; §2 re-derives authority from source. Read-only. Design review only — not implementation or release approval.
+
+## 1. Verdict
+
+**APPROVE_WITH_NITS**
+
+R3 is a sound, well-grounded design that **resolves GLM's R2 blocking MEDIUM** (seller01/buyer02 paid history remained destructible). It replaces R2's fragile advisory-lock/strict-destructive/lineage-lookup construction with an **unconditional, identity-bound refusal of surgical reset for exactly the four packaged fixture UUIDs**, placed at a provably safe choke point. I independently verified every load-bearing source claim the design rests on; all are accurate. No HIGH or MEDIUM findings. The residual items are LOW/NIT and are already constrained by the spec's own test requirements. This is a design-acceptance verdict; it does not certify implementation, build, or release, and every runtime/release gate the spec itself names remains outstanding.
+
+Artifact identity verified exact: `aidotmarket/runbooks` HEAD `87bc6d09b6551b2d0b0c381ffa8c78a4ba988658` on `docs/seller-workspace-gate2-s1712`; sole changed file `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`; blob `6ac4cfac13c7fd095463b7e439ee7cfa7d8ada73`; SHA256 `c903ec9d7877634097190dcdc05ceeaafb7779cf2866ea643b42dfd253d59ee3`; **91103 bytes** — all match the packet. Backend dependency `c3a62af8…` (root `d766b8e4…` confirmed ancestor) and environment `606267af…` checkouts verified at the stated heads.
+
+## 2. Findings (highest severity first)
+
+**F1 — LOW (advisory).** Shared webhook seam: the W disjunct must never raise or return true for a non-W event.
+- Evidence: backend@`c3a62af8` `app/api/v1/endpoints/webhooks.py:559-561` — `s1681_test_refund = (admits_s1681_negative_refund(event,db,normalized_stripe_account=stripe_account) or admits_s1681_failed_run_refund(event,db,normalized_stripe_account=stripe_account))`; suppression at `:563-575` sets `status='completed', error_message='e2e_scope_suppressed'`; critical failure raises 500 at `:870`. Spec (runbooks@`87bc6d09` `specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md`) adds `admits_workspace_refund(db,event)` as a third `or` disjunct here.
+- Observed vs expected: because the disjunct sits on the exact seam that S1656 payin/purchase, S1681 negative/failed-run, unrelated synthetic and production `charge.refunded` traffic all flow through, a W predicate that raises `WorkspaceTestAuthorityUnavailable` (or returns true) on a non-W event would convert a normally-suppressed-or-processed event into a durable 500/retry. The spec already mandates the correct behavior ("A definitely unrelated/non-W event returns false without consulting optional W tables/mount"; ASGI regressions in `tests/test_workspace_test_refund_admission.py`).
+- Reproduction: static evidence only (predicate is unimplemented).
+- Impact: mis-scoped raise would degrade unrelated/production webhook handling; the single most delicate integration point.
+- Smallest outcome: keep as specified; the implementation test must assert **zero W-schema/mount lookups and zero W exceptions** for S1656/S1681/unrelated-synthetic/**production-shaped** events, evaluated *before* the cheap TEST/event/actor rejection returns false.
+- Verification: run the required ASGI regressions and confirm identical status/body vs baseline for all four non-W traffic classes.
+
+**F2 — NIT.** W predicate signature diverges from its S1681 peers.
+- Evidence: peers are `admits_s1681_negative_refund(event,db,*,normalized_stripe_account)` / `admits_s1681_failed_run_refund(...)` (`app/services/s1681_refund_test_admission.py:266,270`); spec specifies `admits_workspace_refund(db,event)` — reversed arg order, no `normalized_stripe_account`.
+- Impact: none functional; a consistency/readability wart and a latent foot-gun at the call site (the W actor/provider-shape check needs the normalized account).
+- Smallest outcome: either align the signature with the S1681 predicates or have `admits_workspace_refund` derive/normalize the Connect account internally; state which in the build.
+- Verification: signature review at integration.
+
+**F3 — NIT.** `manifest_hash` is defined on two models; the join must name `ListingVersion` explicitly.
+- Evidence: `app/models/marketplace.py:227 manifest_hash = Column(Text, nullable=False)` and `app/models/agent_proposal.py:88 manifest_hash = Column(Text, nullable=True)`. Spec: "listing_manifest_hash is ListingVersion.manifest_hash for Order.purchased_version_id."
+- Impact: none if bound correctly; ambiguity risk in implementation.
+- Smallest outcome: registration test asserts `listing_manifest_hash` is read from the `ListingVersion` row joined via `Order.purchased_version_id`, not any other `manifest_hash`.
+- Verification: registration-receipt PostgreSQL test.
+
+**F4 — NIT (advisory / coverage).** The unconditional refusal permanently removes surgical-reset capability for the four fixtures; confirm and document.
+- Evidence: sole production caller of `SurgicalResetService.reset` is `app/api/v1/endpoints/e2e_reset.py:123`; `_reset_database_rows`/`_reset_objects`/`_execute` have no other callers (grep across `app/`, `seed/`). Accepted environment `606267af` has **no** reference to `reset/account`/`SurgicalReset`/`surgical_reset` (uses settlement-guarded `bin/reset`).
+- Impact: none found in-tree — no automated flow depends on surgically resetting these four; the money proof's inter-run reset uses the separate clean lifecycle. But the capability change is permanent and operator-visible.
+- Smallest outcome: operator guide records that surgical reset of the four is henceforth refused and that any future need requires the separately reviewed reconciliation/archival procedure (the spec already states this); no code change required.
+- Verification: docs update at implementation; `test_e2e_surgical_reset.py` asserts refusal for all four (already required by spec).
+
+No finding rises to MEDIUM/HIGH; the verdict agrees.
+
+## 3. Coverage
+
+**Reviewed (independently verified):**
+- Artifact identity — HEAD/branch/base/candidate existence, sole-file diff, blob SHA, spec SHA256, byte count (all exact).
+- True R2→R3 textual delta (`git diff 793e79153d:…  87bc6d09:…`): the change set is (a) surgical-reset section rewritten from shared `pg_try_advisory_xact_lock(1712,17002)` + seller02/buyer01-only strict-destructive branch → **unconditional four-UUID refusal**; (b) advisory-lock/strict-branch removal; (c) added named preservation-incident procedure; (d) added registration-receipt-before-refund + terminal-suppression paragraph; (e) added custody/marker encoding (base32 TOTP, `custody_sha256`, Infisical/connect markers, idempotency key); (f) expanded `environment_sha` definition; (g) backend-target label change; (h) added ASGI-regression + all-four/UUID-normalization test requirements. All coherent with the stated R3 intent.
+- **Surgical reset (the crux):** `app/e2e/surgical_reset.py` control flow — `reset()` (`:100`) → `build_guard_context` (auth) → `_validate_request` (allowlist, `:183`) → `_validate_apply_review` (apply only, `:195`) → `_execute` (`:124/:234`) → `_reset_database_rows`/`_reset_objects` (sole deletion paths). Confirmed an unconditional raise *before* `_execute` provably yields zero destructive SQL and zero object-deleter calls; confirmed `reset()` is the **sole** production entry and `_execute` the sole path to deletion; confirmed `_safe_scalar/_safe_execute` (`:306/:316`) rollback-and-continue-on-missing-table is untouched and unreachable for the four (so the R2 advisory-lock-loss hazard I flagged is genuinely eliminated, not papered over).
+- The **four fixture identities** in `e2e/account_pool.json`: seller01=`32f8e9c1…`(L36), buyer01=`7d662d0e…`(L4), buyer02=`4b10c456…`(L10), seller02=`961bd48a…`(L42) — role mapping exact; seller02 indeed has no `totp_secret_name` (the field R3 adds).
+- Golden custody digest: `printf 'AAAA…'(32) | sha256` = `22a48051594c1949deed7040850c1f0f8764537f5191be56732d16a54c1d8153` — exact.
+- Allowlist is config-driven (`settings.E2E_RESET_ALLOWED_ACCOUNT_IDS`, `teardown_guard.py:60`) → the destroy-history threat is real and config-dependent; the code-level unconditional refusal is the defense that does not rely on config hygiene.
+- `checkout.py:97-111/204-215` — refuses `completed/delivered/pending_delivery`, permits `created`; exact. (DS "MCP-only checkout" rebutted by this HTTP source.)
+- Suppression seam / critical path (`webhooks.py:536-575, 870`); `admits_s1681_*` predicates (`s1681_refund_test_admission.py:266,270`); `lock_order_money_sync` creates missing `OrderMoneyState` (`order_money_service.py:124,150-152`) → "don't call it" is meaningful; `order_payout_eligibility`(`:177`)/`dispatch_order_payout`(`:385`) exist; `TOTPService._encrypt_secret/verify_setup/setup_2fa` exist; schema bindings `immutable_scope_hash`/`authority_kind`/`legacy_serial_id`/`workspace_connection` (`seller_workspace.py:706/696/697/79,662-669`), `review_hash`/`approval_id`/`authority_id`/`listing_version_id` (`seller_listing_approval.py:20`, `seller_listing_publication.py:14,16,17,21`); migration `s1714_order_money_v1`←`f0e47ebd81ee` exact (`alembic/versions/20260912_001_order_money_protocol.py:9-10`); `User` has no `updated_at` (correct negative claim); new W files (`workspace_refund_test_admission.py`, `workspace_test_authority.py`, `20260912_002…`, `admits_workspace_refund`) correctly absent.
+- Environment `606267af` = accepted head; no surgical-reset endpoint dependency (Mars4483 claim holds).
+
+**Not reviewed / UNVERIFIED (why):**
+- CI runs `34697671443`/`34697669460` SUCCESS — GitHub state not reachable read-only here; immaterial (documentation checks, per packet).
+- Cryptographic authenticity of upstream owner/panel decisions, bus messages, and event `99af61fd…` — accepted as packet context, not re-authenticated (consistent with all prior reviewers).
+- Deep re-derivation of the *unchanged* two-stage-authority lock ordering, canonical-digest golden, and custody/no-DELETE lifecycle — spot-checked only; these are carried from R2 (which I reviewed) and the backend dependency is byte-identical (`c3a62af8`), so my R2 verification still holds. The migration `20260912_002` and both new services/tables are unimplemented by design; I verified the *anchors* (parent revision, model fields, seam) they will bind to, not runtime behavior.
+- Environment/product full contract suites — dependency evidence only; not rerun.
+- Turn budget: comfortably within 30; no area was cut for budget.
+
+## 4. Answers to the six feared-failure questions
+
+**Q1 — Can an old/other-window W order, P/N, or altered purchase gain signed refund admission?** No, by design, and the design is grounded. Admission requires an immutable `workspace_refund_test_authorities` row bound at bind-purchase with UNIQUE `order_id`(PK)/`window_id`/`transaction_id`/`payment_id`/`payment_intent_id`/`charge_id`, RESTRICT FKs, fixed-actor CHECKs, and canonical `registration_json` capturing `immutable_scope_hash`, `approval_review_hash`(=`SellerListingApproval.review_hash`=`SellerListingPublication.review_hash`, never `request_hash`), `listing_manifest_hash`, and full pins. Bind requires the persisted baseline's complete fixed-pair set to still exist and the new-order delta to contain **exactly one** paid order (never "latest", never silently filtered). The webhook predicate only *locks and compares* existing rows (order→transaction→order_money_states→Payment→Refund, sorted IDs, SELECT FOR UPDATE NOWAIT), performs no DML, does not create missing state, and requires runtime-pin match; an old same-pair unregistered order, P/N, another window's order, changed scope, or mismatched pins is rejected before W processing. Post-close/recovery windows retain authority only for their originally registered charge/order. Verified anchors: schema fields, `lock_order_money_sync` genuinely inserts (so "do not call it" is load-bearing), suppression seam converges the same signed event ID normally once ready.
+
+**Q2 — Can public purchase, duplicate binder, or reset destroy protected history or defeat exact cardinality?** No. **Reset vector (the R3 fix): verified closed.** `SurgicalResetService` unconditionally refuses the four normalized UUIDs after auth/allowlist/apply-review and before `_execute`; since `reset()` is the sole entry and `_execute`→`_reset_database_rows`/`_reset_objects` the sole deletion path, the four cannot reach deletion at all — independent of W table/mount/pointer/audit/window state, in both dry-run and apply, and immune to the `_safe_scalar/_safe_execute` rollback-and-continue that defeated R2's advisory lock. No host-file/advisory serialization fiction remains, and none is needed (there is nothing to serialize against a path that cannot delete). **Cardinality/duplicate-binder:** `LOCK TABLE orders IN SHARE MODE NOWAIT` before row locks conflicts with public order ROW EXCLUSIVE writers (bounded, TEST-only), the `namespace where state<>closed` partial unique index enforces one nonclosed window, and same-window `SELECT FOR UPDATE NOWAIT` + unique constraints serialize duplicate binders. An extra paid order after bind cannot gain authority and forces the named preservation-incident (retain `recovery_required_extra_order`, converge only the registered refund, no silent deletion, no auto-close). Bounds require the specified PostgreSQL two-session tests (measured, not sleep-based) — UNVERIFIED at runtime by design.
+
+**Q3 — Can activation/recovery overwrite a generation/Party or duplicate provider resources?** No, by design. No DELETE/PATCH/upsert on TOTP custody (Infisical raw API has no atomic versioned DELETE; a local lock excludes no external writer — acknowledged); create-once with exact GET reconciliation, `recovery_required`/`abandoned` states, timeout≠absence. Connect: complete pagination, foreign-Connect-binding proof and Party/auth_user lock **before** projection, with the explicit warning that the existing upsert reassigns party ownership and must not run first; expired/uncertain idempotency never authorizes a fresh account. Restoration restores only the enumerated seller02 readiness fields and removes only the exact newly-owned Connect row; never deletes Party/auth_user; `User.updated_at` correctly not touched (unmapped — verified). Typed readiness restoration and drift→`deactivation_incomplete` are specified. Provider-stub tests (pagination, duplicate-marked, uncertain create, aged idempotency) required — UNVERIFIED at runtime.
+
+**Q4 — Can caller/bypass/artifact/image substitution gain authority or leak a new Workspace credential?** Not beyond the honestly-declared trust boundary. The design explicitly states the authenticated local operator is the trust boundary and that a hash/actor/UID/flock does not authenticate a malicious operator, an owner attestation is **not** cryptographic external verification, and the backend cannot self-measure its image (host's separate Docker verification, retained as evidence). Runtime pins bind `backend_local_image_id`(running `container.Image`), `backend_source_label`(`Config.Labels[...]`), `versions_env_sha256`, both spec pins and `workspace_spec_sha`; a registry/OCI index digest is explicitly never a substitute (test mutates local image ID and OCI index with matching labels). Credential transport: `PYTHONPATH=/app` the only env assignment; no credential env/argv/tempfile/Compose mapping; the child-boundary canary uses a **synthetic** W TOTP secret and must appear nowhere in argv/output/audit/exception/env. The design does not overclaim application-wide secret-freedom (the R1 CC over-assumption is explicitly disavowed). This is the correct honest posture; residual exposure is the trusted-operator assumption, stated plainly.
+
+**Q5 — Are lifecycle transitions, immutable schema/readiness, locks, and implementation files concrete and complete?** Yes, at design altitude. Two new tables with immutable triggers (reject DELETE and mutation of opening/baseline/identity), forward-only transitions (open→bound/closing/recovery, bound→…, closing→closed/recovery, recovery→closing) with `revision`+1 and paired terminal fields + nonnull `closed_at` set together, closed fully immutable; readiness verifies tables/columns/FKs/CHECKs/unique indexes and enabled trigger definitions alongside order-money readiness, with sync-admission and async-processor both rejecting drift. Commit/receipt uncertainty is reconciled by immutable identity; missing money state refuses without auto-create. Concrete file list is complete and matches real anchors (service/model/migration/webhooks/account_pool/surgical_reset + tests). Actual TOTP/model/provider interfaces exist as named; ASGI routes for S1656/S1681/non-W/production are required to be regression-tested unchanged. Real behavior is unimplemented (design review) — UNVERIFIED at runtime.
+
+**Q6 — Are support/release obligations and current-versus-future evidence honest?** Yes. The spec consistently separates the accepted **design** dependency binding (`0ec6bac7` recording, env `43d67264`/`606267af`, product `c3a62af8`) from deferred **runtime** installation, and forbids substituting same-tree commit IDs (`43d67264` "cannot falsely claim to contain those new files"). It names every open release gate: four GitHub triggers frozen before merge, old-writer quiescence/warm-drain absence, provider reconciliation, scheduled Beat/launchd provenance, stable-release + money Gate4/BQ, owner post-settlement window, and external AWS/R2 buyer-byte/denial proof. It acknowledges inherited limitations without narrowing scope: `BillingEntity.doppler_key_prefix` still unmapped (bounded inspection only), the wallet loader out of build, the §17.3 transport gap, six inherited failures / no all-green, and the $100 cap with $84.84 retained exposure. Protected run25 (`03d3f30…`/pins `519b1d5…`, backend `d766b8e4…`) is preserved and not repinned/reset. Honest.
+
+## SIMPLER
+
+For the **reset vector specifically, none simpler found** — and this is the point: R3 *is* the simplification. It removed a per-namespace `pg_try_advisory_xact_lock`, a strict-destructive fixed-party branch, and per-target lineage inspection (workspace_test_windows lookups on the reset path), replacing all of it with a normalized four-constant membership check before `_execute`. What remains is near-minimal. The only micro-reduction available: place the guard *before* the allowlist check rather than after, so protection is a single unconditional constant-set test that does not depend on allowlist ordering or on the four being allowlisted for the `workspace_protected_fixture` category to appear — removes one ordering dependency, zero behavior change. Advisory, marginal.
+
+For the **overall two-stage authority**, none found without losing a requirement: the persisted baseline + unique registration + immutable-hash comparison + bounded synchronized locks are each load-bearing for "exactly one registered order, old/other orders excluded, paid history preserved." Dropping the registration table (the previously rejected no-table option) reopens Q1; timestamp-only cardinality or disabling registered-refund convergence are explicitly out (and correctly so).
+
+## BETTER
+
+**Considered and rejected as a mandate: database-level protection of the fixture rows** (a row trigger or non-deletable flag on the four users and their paid order/refund/transaction history, refusing deletion at the DB layer regardless of code path). It would beat the app-level guard on one axis — it protects against a *future/forgotten* deletion path, not just the one known surgical-reset endpoint (the app guard's blast radius is exactly one service). **But its failure mode is disqualifying here:** the money proof's own clean lifecycle (`bin/reset`, settlement-guarded) legitimately resets seller01/buyer01/buyer02 between P/N runs before W; a blanket DB-level deletion block on those identities would break that authorized reset, and scoping a trigger to "paid history only, not readiness fields" is fragile and easy to get wrong. Cost: a migration + trigger + careful carve-outs; rollback: drop trigger (but any interim break of `bin/reset` stalls the proof). The design already keeps RESTRICT FKs as defense-in-depth and correctly locates the *conservative* block at the surgical-reset service — the one path that must never touch these fixtures — while leaving the settlement-guarded lifecycle free. So the app-level scoping is arguably the right layer, and I record the DB-trigger alternative as **advisory, not recommended**. No materially better approach found that preserves the clean-lifecycle reset requirement.
+
+---
+*Design-review acceptance only. No implementation, build, or release is approved. All HIGH/MEDIUM would block implementation; none were found. Findings F1–F4 are non-blocking and must be honored/tested at build time. MP dispatch requires all three R3 reviews to accept this exact candidate and its scoped clarifications, per the packet.*

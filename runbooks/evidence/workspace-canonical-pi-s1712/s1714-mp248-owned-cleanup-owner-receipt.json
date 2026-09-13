@@ -1,0 +1,21 @@
+{
+  "observed_at": "2026-09-12T18:31:26.566841+00:00",
+  "container": "df1d6a2205627fc9ff640c467417ef1879b473803d4aa6173f5b32f7815bbacb",
+  "volume": "642a7ebfe8daddb805aa0aa5522281dbd5e125ee393e48c1b4b1697c0792c5d4",
+  "owner": "67392781811a",
+  "client_sessions_before": 0,
+  "absence": {
+    "container": {
+      "exit": 1,
+      "stderr": "Error response from daemon: No such container: df1d6a2205627fc9ff640c467417ef1879b473803d4aa6173f5b32f7815bbacb\n"
+    },
+    "volume": {
+      "exit": 1,
+      "stderr": "Error response from daemon: get 642a7ebfe8daddb805aa0aa5522281dbd5e125ee393e48c1b4b1697c0792c5d4: no such volume\n"
+    }
+  },
+  "cleanup_note": "Prior removal succeeded; first verification assertion had case-sensitive no-such-volume comparison. This independent read confirms both absent. No second removal.",
+  "dump_sha256": "7ecab9141b095cf8f85b7bd9453684beb45e7c1f3cffffecc3cf69e6512f75e7",
+  "evidence_manifest_sha256": "7da33287707519bc487bd79275d5620b308c6c16bdb53780979c881d7fa17e0e",
+  "implementation_accepted": false
+}

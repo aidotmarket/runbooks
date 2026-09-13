@@ -1,0 +1,1152 @@
+STRIPE_TEST_MODE is ENABLED — all Stripe operations use test keys
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 000_initial, Mechanical initial schema bootstrap.
+INFO  [alembic.runtime.migration] Running upgrade 000_initial -> 001_baseline, baseline - existing schema
+INFO  [alembic.runtime.migration] Running upgrade 001_baseline -> 002_oauth_clients, Add oauth_clients table for agent authentication
+INFO  [alembic.runtime.migration] Running upgrade 002_oauth_clients -> 003_listings_composite_indexes, TD-006: Add composite indexes for listings table
+INFO  [alembic.runtime.migration] Running upgrade 003_listings_composite_indexes -> 004_partition_api_usage, TD-004: Partition api_usage table for scale
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.api_usage ddl_class=partition_parent comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.api_usage_2025 ddl_class=partition_child comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.api_usage_2026 ddl_class=partition_child comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.api_usage_2027 ddl_class=partition_child comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.api_usage_default ddl_class=partition_child comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_api_usage_created_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_api_usage_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_api_usage_service ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 004_partition_api_usage -> 005_policy_and_manifest, TD-005 & TD-007: PolicyEngine and AgentManifest tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policy_rules ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_manifests ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_agent_manifests_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_agent_manifests_is_public ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_agent_manifests_pricing_model ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 005_policy_and_manifest -> 006_crm, CRM Phase 6.B - AI-First Relationship Management
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_organizations ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_organizations_name ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_organizations_domain ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_people ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_people_email ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_relationships ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_interactions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_tasks ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 006_crm -> 007_crm_v2, CRM Phase 6.B v2 - AI-First Relationship Graph with Polymorphic Inheritance
+INFO  [alembic.runtime.migration] Running upgrade 007_crm_v2 -> 20260127_008, add platform_settings table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.platform_settings ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_platform_settings_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260127_008 -> 20260127_009, add telegram_user_links table
+INFO  [alembic.runtime.migration] Running upgrade 20260127_009 -> 010_policy_engine, Add policy engine tables (TD-005)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policyscope ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policydecision ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policies ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policy_rules ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.policy_evaluation_logs ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_policies_scope_priority ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_policy_rules_policy_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_policy_evaluation_logs_evaluated_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 010_policy_engine -> 011_seed_global_policies, Seed global default policies for content validation (S51)
+INFO  [alembic.runtime.migration] Running upgrade 011_seed_global_policies -> 012_policy_rules_updated_at, Add updated_at column to policy_rules table
+INFO  [alembic.runtime.migration] Running upgrade 012_policy_rules_updated_at -> 013_policy_eval_escalation, Add escalation columns to policy_evaluation_logs
+INFO  [alembic.runtime.migration] Running upgrade 013_policy_eval_escalation -> 014_auto_approve_high_trust, Add auto-approve rule for high-trust listings (S56)
+INFO  [alembic.runtime.migration] Running upgrade 014_auto_approve_high_trust -> 015_correlation_id, Add correlation_id column to allai_action_log (S57)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_action_log.correlation_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_action_log_correlation_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 015_correlation_id -> s58_pending_fulfillments, S58: Add pending_fulfillments table for non-custodial delivery
+INFO  [alembic.runtime.migration] Running upgrade s58_pending_fulfillments -> s58_trust_outbound_messages, S58: Add trust_outbound_messages table for async WebSocket delivery
+INFO  [alembic.runtime.migration] Running upgrade s58_trust_outbound_messages -> s58_user_display_name, S58: Add display_name column to users table
+INFO  [alembic.runtime.migration] Running upgrade s58_user_display_name -> 016_audit_trails, Add latency_ms, cost_usd, agent_id to allai_action_log (S62)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_action_log.latency_ms ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_action_log.cost_usd ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_action_log.agent_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_action_log_agent_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_action_log_latency_action ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 016_audit_trails -> 20260130_017, Chief of Staff v1 - AI-native Relationship Intelligence Schema
+INFO  [alembic.runtime.migration] Running upgrade 20260130_017 -> 20260130_018, CRM Pipeline Stages - Chief of Staff Phase 2.1
+INFO  [alembic.runtime.migration] Running upgrade 20260130_018 -> 20260130_019, Gmail Pub/Sub Support
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gmail_tokens.last_history_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260130_019 -> 20260130_020, CRM Dedup - Add unique constraint on email
+INFO  [alembic.runtime.migration] Running upgrade 014_auto_approve_high_trust -> 015_trust_level_display, Add trust level display fields to listings (P5.6)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.trust_level ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.quality_score ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.verification_status ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 015_trust_level_display -> 021_quality_attestation, Add quality attestation support to listings
+INFO  [alembic.runtime.migration] Running upgrade 021_quality_attestation -> 022_sample_verification, Add sample verification tables for P5.4a.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listing_sample_verifications ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.sample_row_verifications ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listing_sample_verifications.listing_sample_verifications_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.sample_row_verifications.sample_row_verifications_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listing_sample_verifications.listing_sample_verifications_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.sample_row_verifications.sample_row_verifications_sample_verification_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_listing_sample_verifications_listing_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_listing_sample_verifications_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_sample_row_verifications_sample_verification_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 022_sample_verification -> 023_build_queue, Add build queue tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_status ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_items ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_history ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_items.build_queue_items_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_items.build_queue_items_code_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_history.build_queue_history_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_history.build_queue_history_item_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 023_build_queue, 20260130_020 -> 024_merge_heads, Merge migration heads — BQ-091 Consolidation
+INFO  [alembic.runtime.migration] Running upgrade 024_merge_heads -> s76_comms_feed, S76: Create comms_feed table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.comms_feed ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.comms_feed.comms_feed_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_comms_feed_timestamp ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_comms_feed_session_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_comms_feed_source ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_comms_feed_timestamp_desc ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s76_comms_feed -> s76_bq_notes, S76: Add notes column to build_queue_items
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_items.notes ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s76_bq_notes -> s78_comms_notify, S78: Add NOTIFY trigger to comms_feed for real-time SSE streaming
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notify_comms_new() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.comms_feed.comms_feed_notify ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s78_comms_notify -> s79_comms_message_types, S79: Add new message_types: build_progress, review, override
+INFO  [alembic.runtime.migration] Running upgrade s79_comms_message_types -> s79_bq046_blocked, BQ-046: Add 'blocked' to build_queue_status enum
+INFO  [alembic.runtime.migration] Running upgrade s79_bq046_blocked -> s94_credit_deductions, S94: credit_deductions audit table for BQ-073
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_deductions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_deductions.credit_deductions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_deductions.credit_deductions_idempotency_key_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_deductions_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_deductions_created_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_deductions_user_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s94_credit_deductions -> s94_user_preferences, S94: Create user_preferences table with encrypted API key columns (BQ-066)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.user_preferences_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.user_preferences_user_id_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.user_preferences_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_user_preferences_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s94_user_preferences -> s98_crm_conversation_states, S98: Create crm_conversation_states table for CRM Steward conversation backup (BQ-076)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_conversation_states ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_conversation_states.crm_conversation_states_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_conversation_states.crm_conversation_states_chat_id_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_conv_states_chat_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_conv_states_flow ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s98_crm_conversation_states -> s99_stripe_events, Add stripe_events table for webhook idempotency
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.stripe_events_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_stripe_events_stripe_event_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s99_stripe_events -> s99_comms_acknowledged, Add acknowledged column to comms_feed
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.comms_feed.acknowledged ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s99_comms_acknowledged -> s99_user_preferences_cloud, Add Azure and AWS columns to UserPreferences
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.azure_endpoint ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.azure_deployment ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.aws_region ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.aws_access_key_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.aws_secret_access_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.user_preferences.aws_role_arn ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s99_user_preferences_cloud -> bq129_allie_proxy, BQ-129 Phase 1: Allie API Proxy
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reservation_status_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_reservations ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_reservations.credit_reservations_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_reservations.credit_reservations_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_reservations_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_reservations_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq129_allie_proxy -> bq129_phase2_cost, BQ-129 Phase 2: Cost control settings
+INFO  [alembic.runtime.migration] Running upgrade bq129_phase2_cost -> bq129_fix_key, BQ-129 fix: rename allie_max_tokens_per_request → allie_max_tokens
+INFO  [alembic.runtime.migration] Running upgrade bq129_fix_key -> s132_allai_byok, Add BYOK columns to allai_preferences
+INFO  [alembic.runtime.migration] Running upgrade s132_allai_byok -> s132_allai_byok_fix, Add BYOK columns to allai_preferences (retry)
+INFO  [alembic.runtime.migration] Running upgrade s99_user_preferences_cloud -> s100_gmail_drafts, BQ-095: Gmail drafts table for Claude Mobile workflow
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gmail_draft_status ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gmail_drafts ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gmail_drafts.gmail_drafts_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_gmail_drafts_contact_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_gmail_drafts_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s100_gmail_drafts -> bq096_crm_dedup_hash, BQ-096: CRM dedup composite indexes for description_hash
+INFO  [alembic.runtime.migration] Running upgrade bq096_crm_dedup_hash -> bq102_device_ed25519, BQ-102: Add Ed25519/X25519 columns to devices table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.keytype ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.devices.key_type ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.devices.ed25519_public_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.devices.x25519_public_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq102_device_ed25519 -> s116_vulcan_spec, Add vulcan_spec JSONB column to build_queue_items
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.build_queue_items.vulcan_spec ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s99_user_preferences_cloud, s132_allai_byok_fix -> s134_bq_obs_p3_observability, BQ-OBS Phase 3: Self-healing observability tables + seed data
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incidents ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incident_actions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies.action_policies_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies.action_policies_action_type_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies.action_policies_confidence_threshold_check ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies.action_policies_cooldown_seconds_check ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.action_policies.action_policies_retry_limit_check ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incidents.incidents_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incidents.incidents_severity_check ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incidents.incidents_status_check ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incident_actions.incident_actions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.incident_actions.incident_actions_incident_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.service_registry_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.service_registry_service_name_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incidents_correlation_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incidents_alert_fingerprint ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incidents_status_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incidents_severity_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incidents_fingerprint_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_incident_actions_incident_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s134_bq_obs_p3_observability -> s134_obs_p3_audit_fixes, BQ-OBS P3 audit fixes: unique fingerprint index + explicit indexes
+INFO  [alembic.runtime.migration] Running upgrade s134_obs_p3_audit_fixes -> p5_svc_registry, BQ-OBS P5: Extend service_registry with business context + dependencies
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.criticality_tier ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.description ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.owner ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.revenue_impact ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.depends_on ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.depended_by ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.serves_agents ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.serves_humans ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.service_registry.health_endpoint ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade p5_svc_registry -> 20260325_001_bq_meet_records_crm_m1, BQ-MEET-RECORDS-CRM M1: Drive watch state and Meet notes ingest tables.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_processed ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.drive_watch_state ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_unmatched ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_processed.meet_notes_processed_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_processed.uq_meet_notes_processed_drive_file_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.drive_watch_state.drive_watch_state_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.drive_watch_state.ck_drive_watch_state_singleton ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_unmatched.meet_notes_unmatched_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.meet_notes_unmatched.fk_meet_notes_unmatched_drive_file_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_meet_notes_processed_drive_file_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_meet_notes_unmatched_drive_file_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade p5_svc_registry -> bq124c_janitor_gov, BQ-124 Phase C: Janitor Governance — extend state_janitor_proposals
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.proposed_action ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.rule_name ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.similarity_score ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.related_entity_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.expires_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_proposals_expires ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq124c_janitor_gov -> bq124d_evt_archive, BQ-124 Phase D: Event Archival — state_events_archive table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_events_archive ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_events_archive.state_events_archive_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_events_archive_ts ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_events_archive_entity_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq124d_evt_archive -> s145_stripe_evt_status, S145: Add status column to stripe_events for two-phase idempotency
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.status ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s145_stripe_evt_status -> s146_mcp_oauth, S146: MCP OAuth 2.1 tables for Claude.ai connector auth
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_auth_codes ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_auth_codes.mcp_auth_codes_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_refresh_tokens ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_refresh_tokens.mcp_refresh_tokens_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s146_mcp_oauth -> s147_beta_signups, S147: beta_signups table for vectorAIz beta access applications
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.beta_signups ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.beta_signups.beta_signups_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_beta_signups_email ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s147_beta_signups -> s148_partner_inquiries, S148: partner_inquiries table for partner applications
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.partner_inquiries ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.partner_inquiries.partner_inquiries_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_partner_inquiries_email ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s148_partner_inquiries -> bq_feedback_beta_feedback, BQ-FEEDBACK: beta_feedback table for feedback pipeline
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.beta_feedback ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.beta_feedback.beta_feedback_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_beta_feedback_instance_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_beta_feedback_user_email ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq_feedback_beta_feedback -> 20260221_001_create_agent_hitl_request, Create agent_hitl_request table for HITL workflow (CF1)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_hitl_request ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_hitl_request.agent_hitl_request_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_hitl_request_agent_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_hitl_request_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260221_001_create_agent_hitl_request -> 20260221_002_agent_framework_schema_updates, Add skill_name to agent_invocation, semver to agent_version
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.skill_name ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version.semver ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260221_002_agent_framework_schema_updates -> 20260221_003_rename_action_log_to_agent_log, Rename action-log to agent-log in agent table
+INFO  [alembic.runtime.migration] Running upgrade 20260221_003_rename_action_log_to_agent_log -> 20260221_004_deprecate_removed_agents, Deprecate allai-super and quality-attestation agents
+INFO  [alembic.runtime.migration] Running upgrade 20260221_004_deprecate_removed_agents -> 20260222_001_mcp_api_keys_and_idempotency, Create mcp_api_keys and mcp_idempotency_keys tables (BQ-MCPB-PACKAGING)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_api_keys ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_api_keys.mcp_api_keys_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_api_keys.mcp_api_keys_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys.mcp_idempotency_keys_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys.mcp_idempotency_keys_api_key_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_conversations.mcp_conversations_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_conversations.mcp_conversations_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_conversations.mcp_conversations_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_messages.mcp_messages_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_messages.mcp_messages_conversation_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mcp_api_keys_key_hash ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mcp_api_keys_user_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260222_001_mcp_api_keys_and_idempotency -> 20260222_002_idempotency_key_scoping, Gate 3: Idempotency key scoping — composite unique, wider key column (BQ-MCPB-PACKAGING)
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys.id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys.mcp_idempotency_keys_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_idempotency_keys.uq_idempotency_scope ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mcp_idempotency_keys_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260222_002_idempotency_key_scoping -> 20260222_003_listing_slug_unique_index, BQ-SSR-NEXTJS: Add partial unique index on listing slug, backfill UUID suffixes
+INFO  [alembic.runtime.migration] Running upgrade 20260222_003_listing_slug_unique_index -> 20260222_004_searchability_backfill, Backfill searchability_score for all listings (BQ-JSONLD-ENGINE §2.3).
+INFO  [alembic.runtime.migration] Running upgrade 20260222_004_searchability_backfill -> 20260223_001_webhook_audit_stripe_events, BQ-WEBHOOK-AUDIT: Expand stripe_events table for full audit spec.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.event_type ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.livemode ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.stripe_account ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.processed_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.payload_sha256 ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.error_message ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260223_001_webhook_audit_stripe_events -> 20260223_002_stripe_events_created_col, BQ-WEBHOOK-AUDIT: Add `created` column to stripe_events.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.stripe_events.stripe_created ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260223_002_stripe_events_created_col -> 20260223_003_ledger_tx_unique_constraint, BQ-WEBHOOK-AUDIT Gate 3: unique constraint on ledger_transactions.
+INFO  [alembic.runtime.migration] Running upgrade 20260223_003_ledger_tx_unique_constraint -> 20260223_004_bq_d1_transfer_sessions_download_tokens, BQ-D1: Transfer sessions and fulfillment download tokens.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transfer_sessions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_tokens ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transfer_sessions.transfer_sessions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transfer_sessions.transfer_sessions_order_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transfer_sessions.transfer_sessions_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transfer_sessions.transfer_sessions_seller_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_tokens.fulfillment_download_tokens_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_tokens.fulfillment_download_tokens_order_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_tokens.fulfillment_download_tokens_buyer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_transfer_sessions_transfer_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_transfer_sessions_order_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_transfer_sessions_seller_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_transfer_sessions_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_fulfillment_download_tokens_order_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_fulfillment_download_tokens_transfer_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_fulfillment_download_tokens_buyer_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_fulfillment_download_tokens_token ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260223_004_bq_d1_transfer_sessions_download_tokens -> 20260223_005_bq_d1_gate3_token_hash_rate_limit, BQ-D1 Gate 3: token hashing + download rate limit log.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_log.fulfillment_download_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fulfillment_download_log.fulfillment_download_log_order_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260223_005_bq_d1_gate3_token_hash_rate_limit -> 20260223_006_bq_serial_tables, BQ-SERIAL: Create serials + serial_usage tables.
+INFO  [alembic.runtime.migration] Running upgrade 20260223_006_bq_serial_tables -> 20260223_007_bq_marketing_agent_tables, BQ-MARKETING-AGENT: Create marketing_campaigns, marketing_drafts, marketing_brand_rules tables.
+INFO  [alembic.runtime.migration] Running upgrade 20260223_007_bq_marketing_agent_tables -> 20260224_008_bq_d2_listing_source_linking, BQ-D2: Add source_device_id, source_dataset_id to listings for idempotent publish.
+INFO  [alembic.runtime.migration] Running upgrade 20260224_008_bq_d2_listing_source_linking -> 20260224_009_bq_b1a_ai_enrichment_columns, BQ-B1A: Add ai_* metadata enrichment columns to listings table.
+INFO  [alembic.runtime.migration] Running upgrade 20260224_009_bq_b1a_ai_enrichment_columns -> 20260224_010_bq_e2_datasets_query_scope, BQ-E2: Backfill datasets:query scope to existing MCP API keys.
+INFO  [alembic.runtime.migration] Running upgrade 20260224_010_bq_e2_datasets_query_scope -> 20260224_011_bq_ops_marketing_tab, BQ-OPS-MARKETING-TAB: Add marketing ops tables.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_targets ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_snapshots ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_content_weeks ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms.marketing_platforms_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms.marketing_platforms_platform_key_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms.ck_platform_tier ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms.ck_platform_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_platforms.ck_platform_automation ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_targets.marketing_metric_targets_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_targets.marketing_metric_targets_metric_key_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_snapshots.marketing_metric_snapshots_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_metric_snapshots.uq_mms_metric_date ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_content_weeks.marketing_content_weeks_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_content_weeks.uq_mcw_start_date ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_content_weeks.ck_mcw_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config.marketing_config_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config.uq_mc_singleton ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config.ck_mc_hitl_phase ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mms_metric_captured ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260224_011_bq_ops_marketing_tab -> 20260225_012_bq_allai_brain_phase_a, BQ-ALLAI-BRAIN Phase A: allai_decision + allai_mediation tables.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_decision ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_mediation ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_decision.allai_decision_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_mediation.allai_mediation_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_mediation.uq_mediation_idempotency ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_mediation.ck_mediation_state ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_allai_decision_correlation ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_allai_decision_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_allai_decision_event_type ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_mediation_buyer_listing ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_mediation_state ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_mediation_expires ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260224_011_bq_ops_marketing_tab -> 20260225_012_bq082_model_provider_column, BQ-082: Add model_provider column to listings table.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.model_provider ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260225_012_bq082_model_provider_column, 20260225_012_bq_allai_brain_phase_a -> ed07c695f327, merge_heads_s184
+INFO  [alembic.runtime.migration] Running upgrade ed07c695f327 -> 20260227_001_bq_agent_console_build1, BQ-AGENT-CONSOLE Build 1 — agent_capabilities + capability_audit_log
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.capability_audit_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities.agent_capabilities_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities.agent_capabilities_agent_key_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities.ck_agent_capabilities_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities.ck_agent_capabilities_monitor_keys ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.capability_audit_log.capability_audit_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.capability_audit_log.capability_audit_log_capability_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.capability_audit_log.ck_capability_audit_log_action ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_capabilities_unique_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_capabilities_agent_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_capability_audit_log_cap_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_capability_audit_log_agent_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fn_agent_capabilities_updated_at() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.fn_capability_audit_log_immutable() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_capabilities.trg_agent_capabilities_updated_at ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.capability_audit_log.trg_capability_audit_log_immutable ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260227_001_bq_agent_console_build1 -> 20260301_001, BQ-MARKETING-QUEUE Phase 1+2: marketing_tasks table + MarketingConfig token budget columns
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config.daily_token_spend ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_config.daily_token_reset_date ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.marketing_tasks_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.fk_mt_draft ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.fk_mt_parent ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.uq_mt_instance ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.ck_mt_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.ck_task_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mt_scheduled ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mt_platform ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.trg_marketing_tasks_updated_at() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.marketing_tasks.trg_marketing_tasks_updated_at ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260301_001 -> 20260302_001_bq_mktg_queue, BQ-MARKETING-QUEUE: marketing_tasks table for daily action queue
+INFO  [alembic.runtime.migration] Running upgrade 20260302_001_bq_mktg_queue -> 20260302_002_bq_mktg_token, BQ-MARKETING-QUEUE Phase 3A: add token budget columns to marketing_config
+INFO  [alembic.runtime.migration] Running upgrade 20260302_002_bq_mktg_token -> 20260303_001, BQ-MARKETING-QUEUE Phase 3B/C: expand ck_task_source to include 'instruct'
+INFO  [alembic.runtime.migration] Running upgrade 20260303_001 -> 20260303_002, BQ-B2-CONTACT-STRIPPING: Create message_audit table for rewrite audit trail
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.message_audit ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.message_audit.message_audit_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_message_audit_sender_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260303_002 -> 20260303_003, Make serials.email nullable for anonymous provisioning.
+INFO  [alembic.runtime.migration] Running upgrade 20260303_003 -> 20260303_004, instance_id UUID to VARCHAR(64)
+INFO  [alembic.runtime.migration] Running upgrade 20260303_004 -> 20260303_005, Collapse serial dual-bucket credits to single $4 pool.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.serials.credit_usd ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.serials.used_usd ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.serials.ck_serials_used_gte_0 ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.serials.ck_serials_credit_gte_0 ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.serials.ck_serials_used_lte_credit ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260303_005 -> 20260304_001, BQ-VZ-RAW-LISTINGS Phase 2: Add listing_type, raw_metadata, file_hash to listings.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.listing_type ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.ck_listings_listing_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.raw_metadata ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.file_hash ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_listings_listing_type ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260304_001 -> 20260304_002, Fix marketing_tasks status CHECK constraint.
+INFO  [alembic.runtime.migration] Running upgrade 20260304_002 -> 20260304_003, fix marketing_tasks remaining broken constraints (ck_mt_type, ck_mt_template_date)
+INFO  [alembic.runtime.migration] Running upgrade 20260304_003 -> 20260304_004, Add railway_audit_log table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.railway_audit_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.railway_audit_log.railway_audit_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.railway_audit_log.ck_railway_audit_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_railway_audit_correlation_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_railway_audit_idempotency ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260304_004 -> 20260304_005, Add railway_service_quarantine table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.railway_service_quarantine ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.railway_service_quarantine.railway_service_quarantine_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.uq_quarantine_railway_service_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_quarantine_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260304_005 -> 20260304_006, Add MODERATION_FAILED to moderation_flag enum
+INFO  [alembic.runtime.migration] Running upgrade 20260304_006 -> 20260305_001, Unify conversations → inquiries: data copy, migrated_to column, partial unique index
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.conversations.migrated_to_inquiry_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_inquiries_active_per_listing_buyer ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260305_001 -> 20260305_002, Remove orphan agent registry entries not in canonical AGENTS dict
+INFO  [alembic.runtime.migration] Running upgrade 20260305_002 -> 20260307_001, BQ-C9: Data Request Board — new tables + email_verified on users.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.users.email_verified ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.users.email_verified_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_messages ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.data_requests_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.data_requests_slug_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.data_requests_buyer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.chk_price_range ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.chk_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.request_responses_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.request_responses_request_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.request_responses_seller_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.request_responses_linked_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.chk_response_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_messages.request_messages_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_messages.request_messages_request_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_messages.request_messages_response_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_messages.request_messages_sender_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.request_responses.uq_request_seller_client_response ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_data_requests_buyer ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_data_requests_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_data_requests_slug ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_data_requests_categories ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_data_requests_expires ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_request_responses_request ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_request_responses_seller ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_request_responses_listing ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_request_messages_request ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_request_messages_response ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260307_001 -> 20260310_001, BQ-VZ-PUBLISH: Create vz_installs table for Ed25519 trust tokens
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.vz_installs ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.vz_installs.vz_installs_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.vz_installs.vz_installs_seller_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_vz_installs_install_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_vz_installs_seller_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260310_001 -> s100_financial_system_phase1, BQ-FINANCIAL-SYSTEM Phase 1: 19 tables + 5 triggers + seed data
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.billing_entities ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.billing_entities.billing_entities_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.billing_entities.ck_billing_entities_tax_id_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts.gl_accounts_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts.gl_accounts_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts.ck_gl_accounts_account_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts.gl_accounts_parent_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.gl_accounts.uq_gl_accounts_entity_code ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.accounting_periods ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.accounting_periods.accounting_periods_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.accounting_periods.accounting_periods_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.accounting_periods.ck_accounting_periods_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.accounting_periods.uq_accounting_periods_entity_ym ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_entry_number_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.ck_journal_entries_source_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_source_ref_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_reversal_of_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.journal_entries_period_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.journal_lines_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.journal_lines_entry_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.journal_lines_account_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.ck_journal_lines_positive ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.ck_journal_lines_one_side ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.invoices_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.invoices_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.invoices_invoice_number_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.invoices_customer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.ck_invoices_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoices.invoices_journal_entry_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoice_lines ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoice_lines.invoice_lines_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoice_lines.invoice_lines_invoice_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invoice_lines.invoice_lines_gl_account_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.payments_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.payments_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.payments_stripe_payment_intent_id_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.payments_customer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.ck_payments_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payments.payments_journal_entry_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations.payment_allocations_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations.payment_allocations_payment_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations.payment_allocations_invoice_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.subscriptions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.subscriptions.subscriptions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.subscriptions.subscriptions_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.subscriptions.subscriptions_customer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.subscriptions.ck_subscriptions_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.pricing_tiers ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.pricing_tiers.pricing_tiers_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.pricing_tiers.pricing_tiers_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons.coupons_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons.coupons_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons.coupons_code_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons.ck_coupons_discount_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupons.ck_coupons_applies_to ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.coupon_redemptions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.coupon_redemptions_coupon_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.coupon_redemptions_customer_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.coupon_redemptions_invoice_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_rules ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_rules.tax_rules_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_rules.tax_rules_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items.tax_line_items_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items.tax_line_items_invoice_line_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items.tax_line_items_tax_rule_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_filing_periods ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_filing_periods.tax_filing_periods_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_filing_periods.tax_filing_periods_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_filing_periods.ck_tax_filing_periods_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records.reconciliation_records_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records.reconciliation_records_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records.reconciliation_records_period_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records.reconciliation_records_journal_entry_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.reconciliation_records.ck_reconciliation_records_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.intercompany_transactions_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.intercompany_transactions_from_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.intercompany_transactions_to_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.ck_intercompany_transactions_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.intercompany_transactions_journal_entry_from_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.intercompany_transactions.intercompany_transactions_journal_entry_to_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log.finance_agent_audit_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log.ck_finance_agent_audit_log_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.prevent_posted_entry_mutation() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.trg_immutable_posted_entries ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.prevent_posted_line_mutation() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.trg_immutable_posted_lines ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.check_balanced_on_post() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.trg_balanced_on_post ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.prevent_closed_period_posting() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.trg_closed_period_guard ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.validate_line_entity_consistency() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_lines.trg_line_entity_consistency ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s100_financial_system_phase1 -> s101_financial_system_phase3a, BQ-FINANCIAL-SYSTEM Phase 3a: entity_id on 3 tables + approval hardening
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations.entity_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.payment_allocations.payment_allocations_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.entity_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.coupon_redemptions.coupon_redemptions_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items.entity_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.tax_line_items.tax_line_items_entity_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.approver_type ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.ck_journal_entries_approver_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.journal_entries.approval_token ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log.approver_type ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log.ck_audit_log_approver_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.finance_agent_audit_log.approval_token ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s101_financial_system_phase3a -> s102_fix_agent_status_enum, Fix: ensure agent_status_enum includes all required values
+INFO  [alembic.runtime.migration] Running upgrade s102_fix_agent_status_enum -> 20260313_001, Create agent_telemetry table (partitioned by date)
+INFO  [alembic.runtime.migration] Running upgrade 20260313_001 -> s103_canonical_transaction, BQ-BIZ-CANONICAL-TX Phase 1: Transaction + TransactionEvent tables, PG trigger
+INFO  [alembic.runtime.migration] Running upgrade s103_canonical_transaction -> s104_fix_transactions_schema, Fix transactions table: ALTER legacy schema to canonical columns
+INFO  [alembic.runtime.migration] Running upgrade s99_user_preferences_cloud -> bq122_agent_control_panel, BQ-122 Phase 1: Agent Control Panel tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_status_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version_state_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invocation_mode_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invocation_status_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.invocation_event_type_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent.agent_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent.agent_did_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_agent_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version.agent_version_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version.agent_version_agent_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_version.uq_agent_version_agent_id_version ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_version_agent_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_version_one_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_version_agent_state ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy.agent_tool_policy_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy.agent_tool_policy_agent_version_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy.ck_agent_tool_policy_max_calls_positive ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy.ck_agent_tool_policy_timeout_positive ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_tool_policy.ck_agent_tool_policy_max_cost_nonneg ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_tool_policy_agent_version_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.agent_invocation_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.agent_invocation_agent_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.agent_invocation_agent_version_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.ck_agent_invocation_budget_nonneg ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.ck_agent_invocation_cost_nonneg ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.ck_agent_invocation_timeout_positive ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation.ck_agent_invocation_finished_after_started ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_invocation_correlation_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_invocation_agent_started ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_invocation_status_started ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation_event ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation_event.agent_invocation_event_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation_event.agent_invocation_event_agent_invocation_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_invocation_event.uq_agent_invocation_event_invocation_seq ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq122_agent_control_panel, s116_vulcan_spec -> bq124_allai_memory_state, BQ-124 Phase 1: allAI Memory & State System tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_entities ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_entities.state_entities_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_state_entities_kind ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_events ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_events.state_events_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_entity_history ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_entity_history.state_entity_history_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.state_janitor_proposals.state_janitor_proposals_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.qdrant_sync_outbox ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.qdrant_sync_outbox.qdrant_sync_outbox_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq124_allai_memory_state -> bq122p2_guardrails_shadow, BQ-122 Phase 2: Guardrails + Shadow Mode
+INFO  [alembic.runtime.migration] B3 guarded enum values no-op: object=public.invocation_mode_enum comparison_tier=tier_1_pg_catalog definition=advanced_equivalent
+INFO  [alembic.runtime.migration] B3 guarded column default no-op: object=public.agent_invocation.mode comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B3 guarded enum values no-op: object=public.agent_version_state_enum comparison_tier=tier_1_pg_catalog definition=advanced_equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent.config ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.agent_security_finding_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.agent_security_finding_agent_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.agent_security_finding_agent_version_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.chk_severity ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.chk_finding_category ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_security_finding.chk_finding_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_finding_agent ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.idx_finding_severity ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq122p2_guardrails_shadow -> bq122_phase3_proposals, BQ-122 Phase 3: Agent Factory — HITL Proposals
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.proposal_source_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.proposal_status_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.risk_level_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.review_decision_enum ddl_class=enum_type comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.agent_proposal_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.agent_proposal_superseded_by_proposal_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.agent_proposal_minted_agent_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.agent_proposal_minted_agent_version_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.ck_proposal_budget_range ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.ck_proposal_reviewed_fields ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal.ck_proposal_submitted_fields ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_proposal_status_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_proposal_reviewed_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_proposal_minted_agent ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal_review ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal_review.agent_proposal_review_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal_review.agent_proposal_review_agent_proposal_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_proposal_review.uq_proposal_review_one_per_reviewer ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_review_proposal_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_review_reviewer_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s104_fix_transactions_schema -> s105_fix_transactions_fk_constraints, Fix transactions FK constraints: buyer_id → users.id, seller_id → users.id
+INFO  [alembic.runtime.migration] Running upgrade s105_fix_transactions_fk_constraints -> d26a8da6de3e, BQ-CRM-V2 Phase 1 party foundation.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_identity ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_role_binding ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party.party_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_identity.party_identity_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_identity.party_identity_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_identity.ix_party_identity_provider_ext ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_role_binding.party_role_binding_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_role_binding.party_role_binding_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_role_binding.party_role_binding_context_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_type_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_identity_party ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_role_binding_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_display_name_trgm ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade d26a8da6de3e -> afc55463d3f0, BQ-CRM-V2 Phase 1 dual-write columns
+INFO  [alembic.runtime.migration] Running upgrade afc55463d3f0 -> bq_crm_v2_phase_2, BQ-CRM-V2 Phase 2 agent registry + quality scoring tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent.party_agent_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent.party_agent_owner_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent.party_agent_billing_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent.party_agent_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_agent.uq_party_agent_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_system_map ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_system_map.agent_system_map_agent_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_system_map.agent_system_map_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_event ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_event.party_score_event_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_event.party_score_event_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_snapshot ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_snapshot.party_score_snapshot_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_snapshot.party_score_snapshot_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_infraction ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_infraction.party_infraction_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_infraction.party_infraction_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_agent_owner ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_system_map_agent ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_score_event_party_time ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_score_snapshot_composite ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_party_infraction_party ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq_crm_v2_phase_2 -> bq_crm_v2_phase_3, BQ-CRM-V2 Phase 3 commercial + revenue tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity.crm_opportunity_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity.crm_opportunity_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity.crm_opportunity_owner_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity.crm_opportunity_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agreement ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agreement.agreement_buyer_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agreement.agreement_seller_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agreement.agreement_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_plan ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_plan.commission_plan_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_rule ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_rule.commission_rule_plan_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_rule.commission_rule_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_override ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_override.commission_override_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_override.commission_override_plan_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_override.commission_override_approved_by_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_override.commission_override_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.commission_accrual_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.commission_accrual_transaction_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.commission_accrual_rule_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.commission_accrual_override_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.commission_accrual_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_opportunity_stage ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_opportunity_party ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_opportunity_owner ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agreement_buyer ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agreement_seller ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agreement_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_commission_rule_plan ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_commission_override_party ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_commission_accrual_status ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_commission_accrual_party ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade bq_crm_v2_phase_3 -> gate3_settlement_attempt_at, Add last_settlement_attempt_at column to transactions table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transactions.last_settlement_attempt_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade gate3_settlement_attempt_at -> gate3_party_id_external, BQ-CRM-V2 Gate 3: dual-write party_id on external tables
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transactions.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.transactions.fk_transactions_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_transactions_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.fk_orders_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_orders_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.fk_listings_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_listings_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.data_requests.fk_data_requests_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_data_requests_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_api_keys.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.mcp_api_keys.fk_mcp_api_keys_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_mcp_api_keys_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_ledger.party_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.credit_ledger.fk_credit_ledger_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_credit_ledger_party_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade gate3_party_id_external -> crm_v2_audit_log, BQ-CRM-V2 crm_audit_log table
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_audit_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_audit_log.crm_audit_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_audit_log.crm_audit_log_party_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_audit_log.crm_audit_log_actor_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_audit_log_party_time ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade crm_v2_audit_log -> crm_opp_tx_link, Add transaction_id to crm_opportunity for TX-CRM linking
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_opportunity.transaction_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_opportunity_transaction_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade crm_opp_tx_link -> crm_v2_unique_constraints, Add unique constraints to commission_accrual.transaction_id and party_score_snapshot.party_id
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.commission_accrual.uq_commission_accrual_transaction_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.party_score_snapshot.uq_party_score_snapshot_party_id ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade crm_v2_unique_constraints -> bq_vz_balance_claim, BQ-VZ-BALANCE-CLAIM: accounts table, magic_link_tokens, device_serials.account_id
+INFO  [alembic.runtime.migration] Running upgrade bq_vz_balance_claim -> bq_marketplace_scoring, BQ-MARKETPLACE-SCORING Phase 1: scoring columns + scoring_snapshots table
+INFO  [alembic.runtime.migration] Running upgrade bq_marketplace_scoring -> bq_financial_gate2_phase1, BQ-FINANCIAL-SYSTEM Gate 2 Phase 1 core ledger + Stripe integration.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.account_balances ddl_class=materialized_view comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_account_balances_entity_account_balance_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s104_fix_transactions_schema -> 20260318_001_bq_biz_delivery_confidence_phase1, BQ-BIZ-DELIVERY-CONFIDENCE Phase 1 core delivery schema.
+INFO  [alembic.runtime.migration] Running upgrade 20260318_001_bq_biz_delivery_confidence_phase1, bq_financial_gate2_phase1 -> 02caf245d088, merge bq_financial_gate2_phase1 and 20260318_001_bq_biz_delivery_confidence_phase1
+INFO  [alembic.runtime.migration] Running upgrade 02caf245d088 -> 20260319_001_alert_triage_gate3, alert triage gate 3 incident status expansion
+INFO  [alembic.runtime.migration] Running upgrade 20260319_001_alert_triage_gate3 -> 20260319_002, Add llm_analysis column to email_drafts
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.email_drafts.llm_analysis ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260319_002, bq122_phase3_proposals -> merge_heads_s305, merge bq122_phase3_proposals and 20260319_002 heads
+INFO  [alembic.runtime.migration] Running upgrade merge_heads_s305 -> 20260320_001_bq_allai_evolution_phase1, BQ-ALLAI-EVOLUTION Phase 1 foundation tables.
+INFO  [alembic.runtime.migration] Running upgrade merge_heads_s305 -> 20260319_004, add password reset tokens table
+INFO  [alembic.runtime.migration] Running upgrade 20260319_004 -> 001_auth_modernize_phase1, Phase 1 auth modernization schema changes.
+INFO  [alembic.runtime.migration] Running upgrade 001_auth_modernize_phase1 -> 002_auth_modernize_phase2, Phase 2 auth modernization schema changes.
+INFO  [alembic.runtime.migration] Running upgrade 002_auth_modernize_phase2, 20260320_001_bq_allai_evolution_phase1 -> 595e8b4bb47a, merge auth_phase2 and allai_evolution heads
+INFO  [alembic.runtime.migration] Running upgrade 595e8b4bb47a -> 20260321_001_auth_phase3_totp, BQ-AUTH-MODERNIZE Phase 3: TOTP 2FA.
+INFO  [alembic.runtime.migration] Running upgrade 20260321_001_auth_phase3_totp -> 20260322_001_publish_wizard_m1, BQ-PUBLISH-WIZARD M1: publish_operations, publish_audit_log, hitl_tokens, pii_findings.
+INFO  [alembic.runtime.migration] Running upgrade 20260322_001_publish_wizard_m1 -> 20260322_002_replay_nonces, BQ-PUBLISH-WIZARD M1 Gate 3: replay_nonces table for PostgreSQL fallback.
+INFO  [alembic.runtime.migration] Running upgrade 20260322_002_replay_nonces -> 20260322_003_publish_wizard_m2_enrichment_jsonld, BQ-PUBLISH-WIZARD M2: enriching state, retry fields, listing jsonld, synthetic queries.
+INFO  [alembic.runtime.migration] Running upgrade 20260322_003_publish_wizard_m2_enrichment_jsonld -> 20260322_004_publish_wizard_m3_wizard_state, BQ-PUBLISH-WIZARD M3: persisted wizard state and resume step.
+INFO  [alembic.runtime.migration] Running upgrade 20260322_004_publish_wizard_m3_wizard_state -> 20260323_001_bq_notifications_m1, BQ-NOTIFICATIONS M1: notifications and notification preferences.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notifications ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notification_preferences ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notifications.notifications_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notifications.notifications_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notifications.ck_notifications_type ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notification_preferences.notification_preferences_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.notification_preferences.notification_preferences_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_notifications_user_read_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260323_001_bq_notifications_m1 -> 20260323_002_bq_notifications_unread_indexes, BQ-NOTIFICATIONS Gate 3: add partial indexes for unread and active lists.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_notifications_unread ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_notifications_user_active_created_at_desc ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260323_002_bq_notifications_unread_indexes -> 20260323_003_001_agent_audit_log, Create agent_audit_log table.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.api_key_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.listing_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.transaction_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.created_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.action ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.ip ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.payload ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.agent_audit_log_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.agent_audit_log_listing_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.agent_audit_log.agent_audit_log_transaction_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_audit_log_api_key_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_audit_log_listing_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_audit_log_transaction_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_agent_audit_log_created_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260323_003_001_agent_audit_log -> 20260323_004_publish_wizard_m3_concurrency, BQ-PUBLISH-WIZARD M3 Gate 3 R2: wizard state optimistic concurrency.
+INFO  [alembic.runtime.migration] Running upgrade 20260323_004_publish_wizard_m3_concurrency -> 20260323_004_agent_api_keys, Create agent_api_keys table.
+INFO  [alembic.runtime.migration] Running upgrade 20260323_004_agent_api_keys -> 20260323_005_transaction_agent_fields, Add agent transaction fields and statuses.
+INFO  [alembic.runtime.migration] Running upgrade 20260323_005_transaction_agent_fields -> 20260323_006_trust_channel_v2_m1, trust channel v2 milestone 1
+INFO  [alembic.runtime.migration] Running upgrade 20260323_006_trust_channel_v2_m1 -> 20260323_007_trust_channel_v2_m2, trust channel v2 milestone 2
+INFO  [alembic.runtime.migration] Running upgrade 20260323_007_trust_channel_v2_m2 -> 20260323_008_trust_channel_v2_m3, trust channel v2 milestone 3
+INFO  [alembic.runtime.migration] Running upgrade 20260323_008_trust_channel_v2_m3 -> 20260324_001_allai_event_ledger, add allai event ledger
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_event_ledger ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_event_ledger.allai_event_ledger_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_event_ledger_agent_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_event_ledger_correlation_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_event_ledger_created_at ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_event_ledger_event_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_allai_event_ledger_event_type ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_ledger_agent_outcome ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_ledger_event_type_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260324_001_allai_event_ledger, 20260325_001_bq_meet_records_crm_m1 -> 20260325_002_merge_heads_search_discovery, merge heads before search discovery indexes
+INFO  [alembic.runtime.migration] Running upgrade 20260325_002_merge_heads_search_discovery -> 20260325_003_listing_search_trgm_indexes, add trigram indexes for listing search fallback
+INFO  [alembic.runtime.migration] Running upgrade 20260325_003_listing_search_trgm_indexes -> 20260325_004_health_alert_service_registry_backfill, Backfill ServiceRegistry health endpoints for health-alert remediation
+INFO  [alembic.runtime.migration] Running upgrade 20260325_004_health_alert_service_registry_backfill -> 20260325_005_bq_vz_sso_m1, Add organization, SSO, domain verification, and auth session tables.
+INFO  [alembic.runtime.migration] Running upgrade 20260325_005_bq_vz_sso_m1 -> 20260325_006_bq_vz_sso_m1_auth_session_completion, Complete auth_sessions schema for SSO Gate 3.
+INFO  [alembic.runtime.migration] Running upgrade 20260325_006_bq_vz_sso_m1_auth_session_completion -> 20260330_001_bq_seoai_botanalytics, Add AI crawler analytics event storage.
+INFO  [alembic.runtime.migration] Running upgrade 20260330_001_bq_seoai_botanalytics -> 20260330_002_add_listing_license_column, Add missing license column to listings.
+INFO  [alembic.runtime.migration] Running upgrade 20260330_002_add_listing_license_column -> 20260330_003_add_fulfillment_type, Add missing fulfillment_type enum and column to listings.
+INFO  [alembic.runtime.migration] Running upgrade 20260330_003_add_fulfillment_type -> 20260330_004_fix_fulfillment_type_enum_case, Fix fulfillment_type_enum case mismatch (uppercase → lowercase).
+INFO  [alembic.runtime.migration] Running upgrade 20260330_004_fix_fulfillment_type_enum_case -> 20260330_005_add_search_submission_jobs, Add search_submission_jobs table.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs.ck_ssj_provider ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs.ck_ssj_kind ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs.ck_ssj_event ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs.ck_ssj_status ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.search_submission_jobs.search_submission_jobs_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_search_submission_jobs_listing_id ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_ssj_dedup ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_ssj_runnable ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260330_005_add_search_submission_jobs -> 20260330_006_ssj_add_sitemap_refresh_event, Add sitemap_refresh to search_submission_jobs event_type CHECK.
+INFO  [alembic.runtime.migration] Running upgrade 20260330_006_ssj_add_sitemap_refresh_event -> 20260330_007_add_crm_referrals, Add crm_referrals table.
+INFO  [alembic.runtime.migration] Running upgrade 20260330_007_add_crm_referrals -> 20260331_001_backfill_raw_fulfillment_type, Backfill fulfillment_type for existing raw listings.
+INFO  [alembic.runtime.migration] Running upgrade 20260331_001_backfill_raw_fulfillment_type -> a1b2c3d4e5f6, Add missing columns to email_drafts table
+INFO  [alembic.runtime.migration] Running upgrade a1b2c3d4e5f6 -> b2c3d4e5f6a7, Add lifecycle columns to crm_tasks
+INFO  [alembic.runtime.migration] Running upgrade b2c3d4e5f6a7 -> c3d4e5f6a7b8, Add summary, raw_transcript, and key_takeaways to crm_interactions
+INFO  [alembic.runtime.migration] Running upgrade c3d4e5f6a7b8 -> 20260401_004, Add CRM partial unique indexes for active records
+INFO  [alembic.runtime.migration] Running upgrade 20260401_004 -> 20260401_005, Normalize CRM relationship types to the canonical vocabulary.
+INFO  [alembic.runtime.migration] Running upgrade 20260401_005 -> 20260401_006, Add deleted_at soft-delete column to crm_tasks
+INFO  [alembic.runtime.migration] Running upgrade 20260401_006 -> 20260402_001, Create x402_payments table.
+INFO  [alembic.runtime.migration] Running upgrade 20260402_001 -> 20260402_002, Add access_token columns to x402_payments.
+INFO  [alembic.runtime.migration] Running upgrade 20260402_002 -> 20260402_003, Add partial unique index for one-pending-per-buyer-listing on x402_payments.
+INFO  [alembic.runtime.migration] Running upgrade 20260402_003 -> 20260402_004, BQ-PIPELINE-LISTINGS: Add pipeline_invocation/model_access fulfillment types and structured_metadata column
+INFO  [alembic.runtime.migration] Running upgrade 20260402_004 -> 20260403_bq_aim_node_core, BQ-AIM-NODE-CORE schema.
+INFO  [alembic.runtime.migration] Running upgrade 20260403_bq_aim_node_core -> 20260405_bq_aim_registry_discovery, BQ-AIM-REGISTRY-DISCOVERY Slice A schema.
+INFO  [alembic.runtime.migration] Running upgrade 20260405_bq_aim_registry_discovery -> 20260405_fix_aim_tool_status_enum, Add suspended to aim_tool_status_enum
+INFO  [alembic.runtime.migration] Running upgrade 20260405_fix_aim_tool_status_enum -> 46cbdea46866, bq_aim_session_connectivity
+INFO  [alembic.runtime.migration] Running upgrade 46cbdea46866 -> 20260405_bq_aim_security_trust, bq_aim_security_trust
+INFO  [alembic.runtime.migration] Running upgrade 20260405_bq_aim_security_trust -> 20260405_gate3_trust, gate3_trust_updated_at_and_trust_score_index
+INFO  [alembic.runtime.migration] Running upgrade 20260405_gate3_trust -> 20260405_bq_vz_request_engine_slice_b, bq_vz_request_engine_slice_b
+INFO  [alembic.runtime.migration] Running upgrade 20260405_bq_vz_request_engine_slice_b -> 20260405_slice_c_draft_audit_log, slice_c_draft_audit_log
+INFO  [alembic.runtime.migration] Running upgrade 20260405_slice_c_draft_audit_log -> 20260406_slice_d_client_response_id, Slice D: add client_response_id idempotency to request responses
+INFO  [alembic.runtime.migration] Running upgrade 20260406_slice_d_client_response_id -> 20260406_slice_e_attestation_binding, Slice E: attestation binding persistence
+INFO  [alembic.runtime.migration] Running upgrade 20260406_slice_e_attestation_binding -> 20260406_slice_a_aim_observability, Slice A: AIM observability models and schemas
+INFO  [alembic.runtime.migration] Running upgrade 20260406_slice_a_aim_observability -> 20260406_slice_b_aim_node_metrics_constraints, Slice B: finalize AIM node metric constraints and indexes
+INFO  [alembic.runtime.migration] Running upgrade 20260406_slice_b_aim_node_metrics_constraints -> 20260406_bq_aim_metering_slice_a_pricing_reservation, bq_aim_metering_slice_a_pricing_reservation
+INFO  [alembic.runtime.migration] Running upgrade 20260406_bq_aim_metering_slice_a_pricing_reservation -> 20260407_bq_aim_metering_slice_b_usage_events, bq_aim_metering_slice_b_usage_events
+INFO  [alembic.runtime.migration] Running upgrade 20260407_bq_aim_metering_slice_b_usage_events -> 20260407_bq_aim_metering_slice_c_settlement, bq_aim_metering_slice_c_settlement
+INFO  [alembic.runtime.migration] Running upgrade 20260407_bq_aim_metering_slice_c_settlement -> c8f7228bf418, bq_crm_fts_slice_1
+INFO  [alembic.runtime.migration] Running upgrade c8f7228bf418 -> 2b3f0e5d0df1, update four model listings to model_access fulfillment type
+INFO  [alembic.runtime.migration] Running upgrade 20260130_020, 20260225_012_bq_allai_brain_phase_a, 20260320_001_bq_allai_evolution_phase1, 20260325_001_bq_meet_records_crm_m1, 2b3f0e5d0df1, bq122_phase3_proposals, bq_financial_gate2_phase1, s116_vulcan_spec, s132_allai_byok_fix, a1b2c3d4e5f6 -> merge_all_heads, merge all migration heads into single lineage
+INFO  [alembic.runtime.migration] Running upgrade merge_all_heads -> 20260410_backfill_missing_parties, Backfill missing party + auth_user identities for existing users.
+INFO  [alembic.runtime.migration] Running upgrade 20260410_backfill_missing_parties -> 20260410_backfill_parties_v2, Backfill missing party + auth_user identities (fix for asyncpg temp table).
+INFO  [alembic.runtime.migration] Running upgrade 20260410_backfill_parties_v2 -> 20260413_add_tool_archived_status, Add archived to aim_tool_status_enum
+INFO  [alembic.runtime.migration] Running upgrade 20260413_add_tool_archived_status -> 20260413_002_add_seller_api_query_indexes, Add query indexes for seller API endpoints.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_aim_sessions_node_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_settlement_records_seller_node_settled ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_metering_seller_node_created ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_aim_trace_events_seller_node_observed ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 20260413_002_add_seller_api_query_indexes -> s149_crm_data_integrity_indexes, S149: CRM data integrity indexes and soft-delete columns
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.ix_crm_entities_active ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_learned_preferences.updated_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_contact_pipeline.deleted_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_pipeline_history.deleted_at ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s149_crm_data_integrity_indexes -> s150_crm_data_integrity_backfill, S150: CRM data integrity backfill
+INFO  [alembic.runtime.migration] Running upgrade s150_crm_data_integrity_backfill -> s151_crm_created_by_user_id, Add created_by_user_id ownership columns to CRM tables.
+INFO  [alembic.runtime.migration] Running upgrade s151_crm_created_by_user_id -> s152_crm_user_roles, Add CRM user roles for CRM-specific RBAC.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_user_roles ddl_class=table comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_user_roles.crm_user_roles_pkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_user_roles.crm_user_roles_user_id_key ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_user_roles.crm_user_roles_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.crm_user_roles.ck_crm_user_roles_role_valid ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s152_crm_user_roles -> s153_stripe_connect_party_identity, Backfill stripe_connect party identities from users and seller_profiles.
+INFO  [alembic.runtime.migration] Running upgrade s153_stripe_connect_party_identity -> s154_crm_support_workflows, Add CRM support workflow dispute and escalation tables.
+INFO  [alembic.runtime.migration] Running upgrade s154_crm_support_workflows -> s155_crm_sales_surface_outbox, Add CRM entity event outbox table.
+INFO  [alembic.runtime.migration] Running upgrade s155_crm_sales_surface_outbox -> 20260424_001_add_allai_event_ledger_dedupe_key, Add dedupe_key to allai_event_ledger.
+INFO  [alembic.runtime.migration] Running upgrade 20260424_001_add_allai_event_ledger_dedupe_key, 20260324_001_allai_event_ledger -> 20260425_001_repair_allai_event_ledger_chain, Repair allai_event_ledger dedupe_key chain: tuple-merge broken revision with ledger-branch head.
+INFO  [alembic.runtime.migration] Running upgrade 20260425_001_repair_allai_event_ledger_chain -> 20260424_002_crm_user_scoping_backfill, Backfill CRM user scoping ownership fields.
+INFO  [alembic.runtime.migration] Running upgrade 20260424_002_crm_user_scoping_backfill -> 20260425_002_email_draft_external_send_ids, Add external send identifiers to legacy email drafts.
+INFO  [alembic.runtime.migration] Running upgrade 20260425_002_email_draft_external_send_ids -> 20260425_003_bq_briefing_pipeline_remediation_audit, Create CRM briefing run audit table.
+INFO  [alembic.runtime.migration] Running upgrade 20260425_003_bq_briefing_pipeline_remediation_audit -> 20260507_001_drop_bq_legacy, Drop legacy build_queue_items + build_queue_history tables.
+INFO  [alembic.runtime.migration] Running upgrade 20260507_001_drop_bq_legacy -> s621_001_build_entity_extension, Foundation pour for state_entities build-promoted columns.
+INFO  [alembic.runtime.migration] Running upgrade s621_001_build_entity_extension -> s621_002_session_handoff_kind, Session-handoff kind promoted columns on state_entities.
+INFO  [alembic.runtime.migration] Running upgrade s621_002_session_handoff_kind -> s621_003_field_acl_table, field_acl table with R1.1 v3 PK shape inline + 27-row warn-mode seed.
+INFO  [alembic.runtime.migration] Running upgrade s621_003_field_acl_table -> s621_004_mirror_column_triggers, Mirror-column recompute triggers on state_entities (G1 §2.5).
+INFO  [alembic.runtime.migration] Running upgrade s621_004_mirror_column_triggers -> s621_005_legacy_compat_view, legacy_compat_view over state_entities (G1 §8 dashboard read-surface).
+INFO  [alembic.runtime.migration] Running upgrade s621_005_legacy_compat_view -> s621_010, dashboard read-surface schema (eligibility cols + indexes + ACL rows).
+INFO  [alembic.runtime.migration] Running upgrade s621_010 -> s621_011, mismatch_log telemetry table for dual-read comparator.
+INFO  [alembic.runtime.migration] Running upgrade s621_011 -> 20260522_001_relax_nullable_privacy_quality_s691, Relax nullable listing privacy/quality scores and track scan status.
+INFO  [alembic.runtime.migration] Running upgrade 20260522_001_relax_nullable_privacy_quality_s691 -> 20260525_001_s621_lifecycle_acl_paths, canonicalize lifecycle eligibility ACL paths.
+INFO  [alembic.runtime.migration] Running upgrade 20260525_001_s621_lifecycle_acl_paths -> s621_006_state_request_dedupe, s621_006 state_request dedupe table.
+INFO  [alembic.runtime.migration] Running upgrade s621_006_state_request_dedupe -> s763_listings_scoring_cols, S763: add 12 read-only scoring input columns to listings (additive, nullable, idempotent)
+INFO  [alembic.runtime.migration] Running upgrade s763_listings_scoring_cols -> s776_seller_first_publish_claim, S776: add seller first-publish setup claim timestamp.
+INFO  [alembic.runtime.migration] Running upgrade s776_seller_first_publish_claim -> s736_allai_monthly_cap, Add allAI monthly free cap fields to api_credits.
+INFO  [alembic.runtime.migration] Running upgrade s736_allai_monthly_cap -> 20260606_001_s782_platform_fee_5pct, Reconcile platform fee defaults to 5 percent.
+INFO  [alembic.runtime.migration] Running upgrade 20260606_001_s782_platform_fee_5pct -> 20260606_002_s778_reference_listings_chunk1, S778 reference listings public URL delivery wedge.
+INFO  [alembic.runtime.migration] Running upgrade 20260606_002_s778_reference_listings_chunk1 -> 20260606_003_s621_worker_pickup_claim_columns, Worker pickup claim columns and ACL rows.
+INFO  [alembic.runtime.migration] Running upgrade 20260606_002_s778_reference_listings_chunk1 -> 20260606_003_free_listing_price_floor, Allow free or paid listing prices.
+INFO  [alembic.runtime.migration] Running upgrade 20260606_003_free_listing_price_floor, 20260606_003_s621_worker_pickup_claim_columns -> 11809e0ac834, merge free_listing_price_floor and s621_worker_pickup heads
+INFO  [alembic.runtime.migration] Running upgrade 11809e0ac834 -> 20260606_005_orders_allow_free_amount_cents, Allow free or paid order amounts.
+INFO  [alembic.runtime.migration] Running upgrade 20260606_005_orders_allow_free_amount_cents -> 20260607_001_crm_v2_block1, BQ-CRM-V2 Block 1 party detail shape.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_001_crm_v2_block1 -> 20260607_002_crm_v2_block3a_chunk1, CRM V2 Block 3a Chunk 1 party playbook and interaction tables.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_002_crm_v2_block3a_chunk1 -> 20260607_003_crm_v2_block3a_chunk2, CRM V2 Block 3a Chunk 2 party task table.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_003_crm_v2_block3a_chunk2 -> 20260607_004_crm_v2_block3a_chunk3, CRM V2 Block 3a Chunk 3 party email drafts and learned preferences.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_004_crm_v2_block3a_chunk3 -> 20260607_005_crm_v2_block3a_chunk4, CRM V2 Block 3a Chunk 4 party conversation states.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_005_crm_v2_block3a_chunk4 -> 20260607_006_crm_v2_block3a_chunk5, CRM V2 Block 3a Chunk 5 party referrals.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_006_crm_v2_block3a_chunk5 -> 20260607_007_crm_v2_block3a_chunk7, CRM V2 Block 3a Chunk 7 identity and role-binding backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260607_007_crm_v2_block3a_chunk7 -> 20260610_001_bq_seo_submission_orchestrator_s804, Extend search submission jobs for SEO submission orchestrator S804.
+INFO  [alembic.runtime.migration] Running upgrade 20260610_001_bq_seo_submission_orchestrator_s804 -> 20260610_002_bq_seo_disclosure_snapshot_s804, Add immutable disclosure snapshots for SEO disclosure S804.
+INFO  [alembic.runtime.migration] Running upgrade 20260610_002_bq_seo_disclosure_snapshot_s804 -> d6eb7a7eb6ab, Peer message bus schema and approval columns for S805 Ch1.
+INFO  [alembic.runtime.migration] Running upgrade d6eb7a7eb6ab -> 9e5b6d7c8a90, Add peer message escalation idempotency timestamp.
+INFO  [alembic.runtime.migration] Running upgrade 9e5b6d7c8a90 -> crm_v2_phase_b_report, Create CRM V2 Phase-B quarantine/report table.
+INFO  [alembic.runtime.migration] Running upgrade crm_v2_phase_b_report -> 20260611_001_crm_referrals_deleted_at, Add deleted_at to legacy CRM referrals.
+INFO  [alembic.runtime.migration] Running upgrade crm_v2_phase_b_report -> 4e699c98366d, s805 approval backfill
+INFO  [alembic.runtime.migration] Running upgrade 4e699c98366d, 20260611_001_crm_referrals_deleted_at -> 20260611_002_merge_heads_s808, Merge forked heads: s805 approval backfill + crm referrals deleted_at (S808)
+INFO  [alembic.runtime.migration] Running upgrade 20260611_002_merge_heads_s808 -> 20260611_003_support_ticket_s811, Add support ticket core tables for BQ-SUPPORT-TICKET-SYSTEM-S811.
+INFO  [alembic.runtime.migration] Running upgrade 20260611_003_support_ticket_s811 -> 20260611_004_i18n_s811_ch1, Add multilingual listing translation schema for BQ-I18N S811 Ch1.
+INFO  [alembic.runtime.migration] Running upgrade 20260611_004_i18n_s811_ch1 -> 20260611_005_support_email_durability_s811_c2b, Add support email durability tables for BQ-SUPPORT-TICKET-SYSTEM-S811 C2b.
+INFO  [alembic.runtime.migration] Running upgrade 20260611_005_support_email_durability_s811_c2b -> 20260611_006_support_message_body_fts_s811_c3a, Add support message body FTS index for BQ-SUPPORT-TICKET-SYSTEM-S811 C3a.
+INFO  [alembic.runtime.migration] Running upgrade 20260611_006_support_message_body_fts_s811_c3a -> 20260612_001_allai_domain_activation_s826, Add allAI domain activation policy table.
+INFO  [alembic.runtime.migration] Running upgrade 20260612_001_allai_domain_activation_s826 -> 20260612_002_allai_activation_windback_s826_ch2, Seed allAI activation domains to shadow.
+INFO  [alembic.runtime.migration] Running upgrade 20260612_002_allai_activation_windback_s826_ch2 -> 20260613_001_s826_ch3_agree, Persist allAI shadow agreement comparisons.
+INFO  [alembic.runtime.migration] Running upgrade 20260613_001_s826_ch3_agree -> 20260614_001_s826_ch4_cost_daily, Add reconciled allAI daily cost rollup.
+INFO  [alembic.runtime.migration] Running upgrade 20260614_001_s826_ch4_cost_daily -> 20260618_001_s937, Add immutable delivery type discriminator to orders.
+INFO  [alembic.runtime.migration] Running upgrade 20260618_001_s937 -> 20260622_001_s621_queue_overlay_c8_acl, Seed ACL row for preserved parallel-worker-queue config surface.
+INFO  [alembic.runtime.migration] Running upgrade 20260622_001_s621_queue_overlay_c8_acl -> 20260622_002_s621_008_residue_schema_r11, Schema R1.1 s621_008 residue surfaces.
+INFO  [alembic.runtime.migration] Running upgrade 20260622_002_s621_008_residue_schema_r11 -> 20260624_001_crm_v2_phase_d_m5, CRM V2 Phase D party-write M5 FK rewires.
+INFO  [alembic.runtime.migration] Running upgrade 20260624_001_crm_v2_phase_d_m5 -> 20260624_001_bq_homepage_activity_ticker_s1016, Add featured placement table for homepage activity ticker.
+INFO  [alembic.runtime.migration] Running upgrade 20260624_001_bq_homepage_activity_ticker_s1016 -> 20260627_001_bq_account_capability_s1044, Add user capabilities table.
+INFO  [alembic.runtime.migration] Running upgrade 20260627_001_bq_account_capability_s1044 -> s1064_meet_notes_crm_briefing, S1064 meet-notes CRM interaction and briefing integration.
+INFO  [alembic.runtime.migration] Running upgrade s1064_meet_notes_crm_briefing -> s1077_drop_publish_wizard_tables, Drop retired publish wizard tables.
+INFO  [alembic.runtime.migration] Running upgrade s1077_drop_publish_wizard_tables -> s1078_carry_notes_party_model, Carry legacy CRM notes into party person/org detail rows.
+INFO  [alembic.runtime.migration] Running upgrade s1078_carry_notes_party_model -> s1099_drop_mcp_oauth_tables, Drop retired MCP OAuth tables.
+INFO  [alembic.runtime.migration] Running upgrade s1099_drop_mcp_oauth_tables -> s1097_versions_access_window, Add listing versioning and access window columns.
+INFO  [alembic.runtime.migration] Running upgrade s1097_versions_access_window -> s1113_meet_notes_mapping, S1113 meet-notes backfill mapping scaffold.
+INFO  [alembic.runtime.migration] Running upgrade s1113_meet_notes_mapping -> s1113_fail_closed_backfills, S1113 fail-closed Telegram and meet-notes party backfills.
+INFO  [alembic.runtime.migration] Running upgrade s1113_fail_closed_backfills -> s1113_drop_legacy_fks, S1113 drop legacy CRM external FKs and zero-row columns.
+INFO  [alembic.runtime.migration] Running upgrade s1113_drop_legacy_fks -> s1113_drop_legacy_crm_tables, S1113 drop legacy CRM tables.
+INFO  [alembic.runtime.migration] Running upgrade s1113_drop_legacy_crm_tables -> bq_ttpa_s1126_c1, BQ-TTPA S1126 C1 support ticket probe columns.
+INFO  [alembic.runtime.migration] Running upgrade bq_ttpa_s1126_c1 -> bq_ttpa_s1126_c1b, BQ-TTPA S1126 C1b support ticket probe canary/ROT columns.
+INFO  [alembic.runtime.migration] Running upgrade bq_ttpa_s1126_c1b -> bq_vz_serial_link_s1133, BQ-VZ publish serial ownership linkage S1133.
+INFO  [alembic.runtime.migration] Running upgrade bq_ttpa_s1126_c1b -> bq_listing_share_s1131_c1, BQ-LISTING-SHARE-S1131 C1 listing share tables.
+INFO  [alembic.runtime.migration] Running upgrade bq_listing_share_s1131_c1 -> bq_listing_share_s1131_c3, BQ-LISTING-SHARE-S1131 C3 share card assets.
+INFO  [alembic.runtime.migration] Running upgrade bq_listing_share_s1131_c3, bq_vz_serial_link_s1133 -> 9f4888486c2d, merge listing_share_c3 and vz_serial_link_s1133 heads
+INFO  [alembic.runtime.migration] Running upgrade 9f4888486c2d -> bq_terms_acceptance_s1137, terms acceptance records for S1137.
+INFO  [alembic.runtime.migration] Running upgrade bq_terms_acceptance_s1137 -> t200_email_ingest_receipt, email ingest idempotency receipt — T-2026-000200.
+INFO  [alembic.runtime.migration] Running upgrade t200_email_ingest_receipt -> 20260710_001_kaggle_dataworld_search_submission, Allow Kaggle and data.world search submission providers.
+INFO  [alembic.runtime.migration] Running upgrade 20260710_001_kaggle_dataworld_search_submission -> 20260710_002_bq_account_teardown_t1, BQ-ACCOUNT-TEARDOWN-S1165 t1 synthetic-account identity.
+INFO  [alembic.runtime.migration] Running upgrade 20260710_002_bq_account_teardown_t1 -> 20260710_003_bq_account_teardown_t2, BQ-ACCOUNT-TEARDOWN-S1165 t2 audit sink and trigger wiring.
+INFO  [alembic.runtime.migration] Running upgrade 20260710_003_bq_account_teardown_t2 -> s1163_p2_quarantine, BQ-DB-SCHEMA-RATIONALIZATION-S1163 P2 one-shot quarantine.
+INFO  [alembic.runtime.migration] Running upgrade s1163_p2_quarantine -> 20260712_001_s1194_qdrant_alarm_columns, S1194 P0 Qdrant alarm columns and SLI indexes.
+INFO  [alembic.runtime.migration] Running upgrade 20260712_001_s1194_qdrant_alarm_columns -> 20260712_002_s1194_qdrant_consumer_claims, S1194 P1 Qdrant outbox consumer claim columns and indexes.
+INFO  [alembic.runtime.migration] Running upgrade 20260712_002_s1194_qdrant_consumer_claims -> 962ac1151ac6, Mirror pickup-ownership objects to their instance scalar.
+INFO  [alembic.runtime.migration] Running upgrade 962ac1151ac6 -> t260_qdrant_legacy_requeue, Enqueue canonical Qdrant refreshes for unverifiable legacy entities.
+INFO  [alembic.runtime.migration] Running upgrade t260_qdrant_legacy_requeue -> 20260712_003_s1194_qdrant_producer_admission, S1194 P2 Qdrant producer admission and quarantine.
+INFO  [alembic.runtime.migration] Running upgrade 20260712_003_s1194_qdrant_producer_admission -> s1299_c1_corpus_control_plane, S1299 Chunk 1 corpus contracts and PostgreSQL control plane.
+INFO  [alembic.runtime.migration] Running upgrade s1299_c1_corpus_control_plane -> s1488_money_path_tables, S1488: restore the model-backed money-path tables.
+INFO  [alembic.runtime.migration] Running upgrade s1488_money_path_tables -> s1548_lifecycle_email_sends, S1548 Phase B: add the signup lifecycle email outbox.
+INFO  [alembic.runtime.migration] Running upgrade s1548_lifecycle_email_sends -> s1299_c2_admission_boundary, S1299 Chunk 2 admission boundary and notification isolation.
+INFO  [alembic.runtime.migration] Running upgrade s1299_c2_admission_boundary -> s1396_b_schema, S1396 B-schema: inert metadata-corpus storage and class checks.
+INFO  [alembic.runtime.migration] Running upgrade s1396_b_schema -> s1590_verification_epochs, S1590 Chunk 1: inert data-verification epoch store.
+INFO  [alembic.runtime.migration] Running upgrade s1590_verification_epochs -> s1396_c_admission_parity, S1396 Chunk C admission-parity prerequisite.
+INFO  [alembic.runtime.migration] Running upgrade s1396_c_admission_parity -> s1590_payment_state, S1590 Chunk 3: manual-capture payment state.
+INFO  [alembic.runtime.migration] Running upgrade s1590_payment_state -> s1590_corpus_events, S1590 Chunk 4 immutable artifacts and minimized S1396 events.
+INFO  [alembic.runtime.migration] Running upgrade s1590_corpus_events -> s1595_s1396_c_durability, S1595 additive durability for S1396 Chunk C.
+INFO  [alembic.runtime.migration] Running upgrade s1590_corpus_events -> s1590_publication, S1590 Chunk 6 immutable publication and listing projection.
+INFO  [alembic.runtime.migration] Running upgrade s1590_publication, s1595_s1396_c_durability -> e639f1569e02, merge s1590_publication and s1595_s1396_c_durability heads
+INFO  [alembic.runtime.migration] Running upgrade e639f1569e02 -> s1599_agent_audit_repair, Repair the production ``agent_audit_log`` schema from one frozen state.
+INFO  [alembic.runtime.migration] Running upgrade s1599_agent_audit_repair -> s1599_listing_attest_repair, Restore the missing listings attestation verification column.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.listings.attestation_verified ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1599_listing_attest_repair -> s1511_issue_channel_queue, Create the isolated issue-channel state and pull queue.
+INFO  [alembic.runtime.migration] Running upgrade s1511_issue_channel_queue -> s1622_allai_ledger_dedupe, Restore the active-baseline allAI event-ledger dedupe contract.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.allai_event_ledger.dedupe_key ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.uq_allai_event_ledger_dedupe_key_not_null ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1622_allai_ledger_dedupe -> s1396_trust_decisions, S1396 semantic trust decisions remain separate from safe admission.
+INFO  [alembic.runtime.migration] Running upgrade s1396_trust_decisions -> s1632_request_publication, Add the authoritative Buyer Request publication projection and outbox.
+INFO  [alembic.runtime.migration] Running upgrade s1632_request_publication -> s1632_request_matching, Add durable Buyer Request seller matching and delivery state.
+INFO  [alembic.runtime.migration] Running upgrade s1632_request_matching -> t2026_000727_provider_num_turns, Expand issue-channel completion telemetry to provider_num_turns.
+INFO  [alembic.runtime.migration] Running upgrade t2026_000727_provider_num_turns -> s1647_seller_workspace_w2, Add the disabled-by-default Seller Workspace W2 data foundation.
+INFO  [alembic.runtime.migration] Running upgrade s1647_seller_workspace_w2 -> s1646_payin_primary_identity, Add S1646 ordinary Stripe pay-in setup lineage and primary identity rule.
+INFO  [alembic.runtime.migration] Running upgrade s1646_payin_primary_identity -> s1648_issue_channel_repair, Repair a fully missing issue-channel schema on an already-stamped database.
+INFO  [alembic.runtime.migration] Running upgrade s1648_issue_channel_repair -> s1650_seller_workspace_w3, Additive Seller Workspace W3 profiling control schema.
+INFO  [alembic.runtime.migration] Running upgrade s1650_seller_workspace_w3 -> s1659_aim_data_oauth, S1659 additive public-client schema; retain all objects on downgrade.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients_client_id_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_authorization_codes_code_hash_key ddl_class=index comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.owner_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.redirect_uris ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.allowed_scopes ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.oauth_clients_user_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_clients.oauth_clients_owner_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.oauth_authorization_codes.oauth_authorization_codes_source_session_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1659_aim_data_oauth -> s1665_aim_data_oauth_activate, S1665 activate the owned AIM Data public client; retain data on rollback.
+INFO  [alembic.runtime.migration] Running upgrade s1659_aim_data_oauth -> seller_listing_drafts, Private seller working drafts; no change to listing publication or delivery.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_drafts -> seller_assistant_requests, Durable starter-credit holds for seller listing assistance.
+INFO  [alembic.runtime.migration] Running upgrade seller_assistant_requests -> seller_listing_sources, Encrypted working source bindings independent of profiling.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_sources -> seller_listing_approvals, Immutable exact seller review/source approval, not publication.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_approvals -> seller_listing_publications, Immutable seller publication/version/authority mapping, no endpoint enablement.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_publications -> seller_download_sessions, One purchased allowance with on-demand, single-issuance file grants.
+INFO  [alembic.runtime.migration] Running upgrade seller_download_sessions -> seller_listing_search_outbox, Durable marketplace search updates for approved seller listings.
+INFO  [alembic.runtime.migration] Running upgrade seller_listing_search_outbox -> seller_download_file_grants, Index immutable encrypted grants by session and file, preserving old grants.
+INFO  [alembic.runtime.migration] Running upgrade seller_download_file_grants -> seller_approved_source_chunks, Immutable encrypted chunks for bounded approved-file delivery lookup.
+INFO  [alembic.runtime.migration] Running upgrade seller_approved_source_chunks, s1665_aim_data_oauth_activate -> s1678_seller_release_merge, Join seller delivery and inherited AIM Data activation histories.
+INFO  [alembic.runtime.migration] Running upgrade s1678_seller_release_merge -> s1707_seller_r2_credentials, Permit approved R2 credentials in the existing encrypted connection store.
+INFO  [alembic.runtime.migration] Running upgrade s1707_seller_r2_credentials -> 50ca6386a0e4, Repair the existing order/transaction contract on drifted databases.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transaction_id ddl_class=column comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.orders_transaction_id_fkey ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.sync_order_status_to_transaction() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trg_sync_order_to_transaction ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade 50ca6386a0e4 -> f0e47ebd81ee, Restore the historical order creation defaults and generated order number.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.id ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.currency ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.status ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.revoked ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.max_downloads ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.downloads_used ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.auto_confirm_days ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transfer_status ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.transfer_attempts ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.escrow_hold_hours ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.created_at ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.updated_at ddl_class=column_default comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.generate_order_number() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.set_order_number() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.update_orders_updated_at() ddl_class=function comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trigger_set_order_number ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trigger_orders_updated_at ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade f0e47ebd81ee -> s1714_order_money_v1, S1714 order money protocol; bounded chart seed, retain history on rollback.
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_state ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_success ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_entity_binding ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_dispatch_binding ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_origin ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_version ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.order_money_states.ck_oms_counters ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_failure ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_amount ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_distinct ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_negative ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_scope ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.uq_s1681_authority_run ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.s1681_refund_test_authorities.ck_s1681_digests ddl_class=constraint comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] B1 guarded DDL no-op: object=public.orders.trg_sync_order_to_transaction ddl_class=trigger comparison_tier=tier_1_pg_catalog definition=equivalent
+INFO  [alembic.runtime.migration] Running upgrade s1714_order_money_v1 -> s1712_workspace_authority_v1, Persist immutable Workspace TEST authority without changing money writers.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/__main__.py", line 4, in <module>
+    main(prog="alembic")
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 641, in main
+    CommandLine(prog=prog).main(argv=argv)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 631, in main
+    self.run_cmd(cfg, options)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/config.py", line 608, in run_cmd
+    fn(
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/command.py", line 403, in upgrade
+    script.run_env()
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/script/base.py", line 583, in run_env
+    util.load_python_file(self.dir, "env.py")
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 95, in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/util/pyfiles.py", line 113, in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap_external>", line 999, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 117, in <module>
+    asyncio.run(run_migrations_online())
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 109, in run_migrations_online
+    await connection.run_sync(do_run_migrations)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/engine.py", line 891, in run_sync
+    return await greenlet_spawn(fn, self._proxied, *arg, **kw)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py", line 202, in greenlet_spawn
+    result = context.switch(value)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/env.py", line 92, in do_run_migrations
+    context.run_migrations()
+  File "<string>", line 8, in run_migrations
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/runtime/environment.py", line 948, in run_migrations
+    self.get_context().run_migrations(**kw)
+  File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/alembic/runtime/migration.py", line 627, in run_migrations
+    step.migration_fn(**kw)
+  File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/alembic/versions/20260912_002_workspace_test_authority.py", line 163, in upgrade
+    timer = threading.Timer(5.0, raw.cancel)
+                                 ^^^^^^^^^^
+AttributeError: 'Connection' object has no attribute 'cancel'. Did you mean: '_cancel'?
+S691 privacy backfill summary: 0 positive-score listings marked scanned; 0 audit rows present; 0 null-origin audit rows present.
+S1113 telegram_user_links preimage: []
+S1113 meet_notes_interactions preimage: []
+S1113 legacy CRM drop row_count crm_referrals=0
+S1113 legacy CRM drop row_count crm_pipeline_history=0
+S1113 legacy CRM drop row_count crm_contact_pipeline=0
+S1113 legacy CRM drop row_count crm_pipeline_stages=0
+S1113 legacy CRM drop row_count crm_email_drafts=0
+S1113 legacy CRM drop row_count crm_learned_preferences=0
+S1113 legacy CRM drop row_count crm_tasks=0
+S1113 legacy CRM drop row_count crm_interactions=0
+S1113 legacy CRM drop row_count crm_relationships=0
+S1113 legacy CRM drop row_count crm_playbooks=0
+S1113 legacy CRM drop row_count crm_conversation_states=0
+S1113 legacy CRM drop row_count crm_people=0
+S1113 legacy CRM drop row_count crm_organizations=0
+S1113 legacy CRM drop row_count crm_entities=0

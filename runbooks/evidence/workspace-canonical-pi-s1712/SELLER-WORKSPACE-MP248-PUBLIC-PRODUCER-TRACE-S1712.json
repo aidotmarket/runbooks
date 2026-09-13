@@ -1,0 +1,49 @@
+{
+  "finding": "Product-path PI persistence omission in exercised canonical human browser checkout, not missing checkout Session.payment_intent fixture data",
+  "evidence": [
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/endpoints/checkout.py",
+      "sha256": "7bdfd4821db7043465d1f6f51893376147086557e4136f839c3789f58fd90ddf"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/api/v1/endpoints/webhooks.py",
+      "sha256": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/transaction_service.py",
+      "sha256": "245f6aae5bf1826318296bc16262e903dcbf2b8955c72df80228a26da35c1761"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/order_service.py",
+      "sha256": "8043a9e285594b311c35d629c0d3ff71b8d0cf08db4364fe390f1a4ef4f2cf5f"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/app/services/order_money_service.py",
+      "sha256": "03d52fb58a7fe52ed6ba95eeab44fb7741d71afc7dce6febff0759a5f2a3e521"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_workspace_test_refund_admission.py",
+      "sha256": "8ad5969c794f995620671f03a3ed47547eac3df1ad1b11b31ee5d3fd586ea43a"
+    },
+    {
+      "path": "/var/tmp/koskadeux/minimal-bridge-worktrees/67392781811a-bb22b0/tests/test_refund_webhook_protocol.py",
+      "sha256": "59873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077"
+    }
+  ],
+  "trace": [
+    "checkout.create invokes real TransactionService.initiate and create_checkout.",
+    "create_checkout creates Order with reverse Transaction link, requests Stripe Session with Order/Transaction metadata, then reads only checkout_session.id and .url; it never reads Session.payment_intent, so enriching the mocked Session cannot populate the missing column through this code.",
+    "Fresh-process provider mock replaces only external Stripe create; it does not replace TransactionService/OrderService or money persistence.",
+    "signed_post supplies real HMAC and independent sync/async DB sessions to actual webhook router; no payment or binding helper is mocked.",
+    "checkout.session.completed calls actual mark_paid, which sets Order PI, and writes Transaction PI only in JSON metadata; TransactionService.handle_payment also only metadata.",
+    "The dedicated Transaction PI assignments elsewhere in TransactionService are in create_agent_checkout, which is not this browser path.",
+    "Actual signed payment_intent.succeeded then calls billing and strict order money validation; retained DB tuple proves Transaction PI NULL while Order PI and all remaining bindings match."
+  ],
+  "required_next": [
+    "Keep financial validator fail-closed.",
+    "Repair canonical PI persistence under validated Order/Transaction ownership and compatible existing PI rules; refuse conflicting nonnull identities.",
+    "Exercise both relevant signed event orders, duplicate/recovery paths and original failed capture retry, retaining actual Payment/journal then bind/refund/replay/close.",
+    "Do not infer precise implementation target set until owner review of event-order/recovery behavior; webhooks is within current17, TransactionService/OrderService/order_money_service are not."
+  ],
+  "qualification": false
+}
