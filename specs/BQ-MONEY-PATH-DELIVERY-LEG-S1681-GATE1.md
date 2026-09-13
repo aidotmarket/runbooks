@@ -525,3 +525,12 @@ The candidate advances to environment final head `c016e44d876ccfd69db3537ec3db6a
 ### MP254 final native SDK qualification candidate
 
 Environment final head `1e7592370baffbccd1e41ac8b6a7169adc360b69` binds terminal backend `5643fc2bfe2473ea0948adac824078a99d173836`, tree `beadb3a20115a3f205964bed381b47146cbc746d`. Only backend reference literals changed from c016e44; host logic remains a4456c86ac2292bd906247b9f4013826603083224cb84af76bc24b48be277f9b. The final eleven-file manifest is `5a8f20e84c70e008d54152980dcbbbf46cebc5795590afbb2467309a4338df86`. All72 seed checks and the Compose contract passed with unchanged source maps. Frontend remains `ffd54077bf115bbcb09882150c37f17ce4c672d5`; AIM Data remains `51e2740f6972c008626e186d8b265601c58eca32` and `v1.23.3-rc.2@sha256:67fd600590e2608c2019cef6f802488bd04ed69474b896c803e878c352c55925`. These pins support isolated final paid qualification and the pending combined GLM/DeepSeek review. Protected runtime and production adoption remain separate and unchanged.
+
+
+### MP255 corrected qualification candidate
+
+Environment final head `a0e028f4e0fa9ab6e53510909e7e8ddd725f20ae` binds backend `2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50`. The environment adds ten exact-category unused-request database refusal cases and two native database-backed host retry cases, while host logic stays `a4456c86ac2292bd906247b9f4013826603083224cb84af76bc24b48be277f9b`. All 24 native plus five current-host shared cases passed before the backend pin-only fold. The final eleven-file manifest is `2139f35d0f7912eafd0760abeb1f25f6b16b2651c74f880bd55437808bc6b572`. Seed 72 and the Compose contract pass with the final backend references.
+
+The backend qualification executed all 2,537 cases: 2,531 passes and the six exact retained baseline failures, preserving all 2,529 prior cases plus eight B04 boundary cases. The wrapper timed out but the original test child completed; its archive and owned cleanup were independently verified. The accepted runtime amendment c9e719ec7a3853685830a02bebef8bf6912ea84f4d3da022f69f97a8a6b5d96f changes only the Stripe qualification literal to exact 15.6.1, retaining HTTPX 0.28.1 and all other runtime requirements.
+
+These pins are for final private qualification and the same GLM/DeepSeek implementation review. Agreement from those two reviewers is approval; CC is waived. Protected run25, production adoption, genuine settlement phases, public AWS S3/R2 delivery and profiling remain separate requirements. Prior pin sections remain historical evidence.
