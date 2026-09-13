@@ -1,0 +1,47 @@
+{
+  "status": "PROPOSED_CORRECTION_UNDER_REVIEW_NOT_ACCEPTED",
+  "base": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7",
+  "original_reviewed_candidate": "b444332af4ec86c4258ae62d7c0c1e12f3f2645d",
+  "original_spec_sha256": "38bc8a84c1458336300e32535243a1703fad08faa613eca0d0595ccbb46e386f",
+  "original_complete_operative_paragraphs": {
+    "runtime_rationale": "Synthetic public checkout arming is explicit in the final reviewed TEST Workspace environment only. compose.yaml backend.environment sets E2E_TEST_ROUTES_ENABLED: \"true\", E2E_RESET_ALLOWED_ACCOUNT_IDS: \"[]\" and E2E_TEARDOWN_ALLOWED_ACCOUNT_IDS: \"[]\" as literal values, not caller interpolation. The unchanged synthetic checkout guard requires the first flag; the same flag imports both account cleanup routes, so the unconditional shared four-UUID service refusal remains mandatory even if an isolated test deliberately populates the allowlists. Empty allowlists are the accepted actual Workspace runtime state, not a substitute for service protection. Do not add a new checkout flag or modify production configuration. The protected run25 is not recreated or armed; only the later owner-approved final TEST runtime uses this reviewed configuration.",
+    "configuration_asgi": "Required configuration/ASGI tests use the exact reviewed Compose representation and isolated fresh application startup: flag=false rejects synthetic public checkout with403 synthetic_purchase_requires_e2e_guard; flag=true permits the actual valid fixed-pair purchase through normal processing with all financial/readiness prerequisites, without stubbing the checkout guard or claiming a later unrelated error is success. Verify both destructive routes are registered when armed and each fixed-identity service guard still refuses with valid isolated tokens/allowlists, including missing Workspace lineage. Verify actual runtime_settings matches host environment and application values and wrong/missing/duplicate flags, changed allowlist, altered manifest/preimage/hash refuse before W writes. Exercise ordinary non-W/production-shaped traffic unchanged. Existing runtime_settings tests belong to tests/test-workspace-fixture.py and tests/test_workspace_test_refund_admission.py; no new production route or settings file target is needed."
+  },
+  "historical_dispositions_to_read_with_correction": {
+    "R3": "b444332 line259; legacy guard generalized to synthetic checkout",
+    "R4": "56665b4e8db7dbf83085bdf88ec35b2a41ce93a7 line274; checkout flag inventory is legacy-specific; monitor disposition unchanged"
+  },
+  "artifacts": [
+    {
+      "file": "CHECKOUT-fresh-public-third.json",
+      "sha256": "ea4c72d5440f533e05b18412715d324956280ebe56e36fbf10fb5bca5baef13f",
+      "bytes": 672
+    },
+    {
+      "file": "CHECKOUT-fresh-public-third.txt",
+      "sha256": "8e5654ea7b7e6eb4d30eaec9024fdf29f3d1a86f65e4606fa7f2ec7e45863ede",
+      "bytes": 39449
+    },
+    {
+      "file": "CHECKOUT-fresh-public-third.xml",
+      "sha256": "d7f0b0594e2f49eadce37510de0e5085456dcf33595ad8e62451acae9779da7c",
+      "bytes": 23501
+    },
+    {
+      "file": "CHECKOUT-CONFLICT-RECEIPT.json",
+      "sha256": "06fbef44a1c52db78130a26e9233099c6b6a763af571bd3c7954963f3b0d5e6a",
+      "bytes": 2756
+    }
+  ],
+  "product_code_changed": false,
+  "runtime_changed": false,
+  "implementation_accepted": false,
+  "probe_limit": "Actual canonical=true recorded; no explicit override in probe source, but inherited environment absence not captured in historical stdout and must be asserted in final qualification.",
+  "probe_controls_and_limits": [
+    "Actual app.main lifespan/routes and disposable PostgreSQL; supported framework",
+    "Controlled KMS/provider/telemetry/authenticated-user resolution and SKIP_SERVICES=1; not fleet startup/provider readiness",
+    "Non-owned network forbidden; earlier missing provider double failures retained outside this focused third-probe bundle",
+    "Raw third log retains all lifecycle warnings; one failed assertion remains failed",
+    "Created checkout/order/transaction is not signed paid capture or registered refund proof"
+  ]
+}

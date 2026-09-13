@@ -1,0 +1,60 @@
+{
+  "status": "PROPOSED_NOT_APPLIED_NOT_REVIEWED",
+  "base": "e621c760509bde085d5ef784bb14ffa90810d92b",
+  "files": [
+    {
+      "path": "tests/test_webhook_audit.py",
+      "original_sha256": "2d5bcb49ab8a4bc6fc31ce24de4f4047a93cb28a3441d4c9bcf5db59759f0faa",
+      "proposed_sha256": "84494c5815d5a5f8eb5cce39707a18d5cc2791fd3d7a15863886b69fcf843531"
+    },
+    {
+      "path": "tests/test_e2e_stripe_isolation.py",
+      "original_sha256": "d4cd1cbacef043f80c5de92111460de6077d3ede3a139cd5183f8da26863a766",
+      "proposed_sha256": "894a11dfe3b2605e2479c78726f0a67d2f7a654e3b52cb30c4d179dcfa9bf17d"
+    },
+    {
+      "path": "tests/test_webhooks.py",
+      "original_sha256": "3564c4b6d88bd407c8cb84b918033d1475bc02fecdf99de0d2921c23a8fbb312",
+      "proposed_sha256": "61945e848a82d99c007e4aa7b964b70f2809da26c48382ebd64f2dfa1749970e"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/baseline-c3/receipt.json",
+      "sha256": "4b580d3c9e17bb39d89b687fc81ae2023817fea5317563f3af90eebcde11407e",
+      "bytes": 4168
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/baseline-c3/result.xml",
+      "sha256": "00ddf599eeb5eda5e7b68eb776ff3fce6411137932fc32c62c539631043c8811",
+      "bytes": 2270669
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/baseline-c3/reference.xml",
+      "sha256": "719311d9f18c0bd8c09bb50978aabf1ab49c9a78b221687b4b4b193020c27dff",
+      "bytes": 2292482
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/baseline-c3/reconciliation.json",
+      "sha256": "4eec71e641046e3a9cc92202341f7797c52d080a53d8dc352333620273954a62",
+      "bytes": 9212
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/baseline-c3/run.log",
+      "sha256": "4e49cf94c73d4c1578065827b4aad88da1c1be83e18de5e11e78a0f29bd351a1",
+      "bytes": 2262807
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/mp247/webhook-regressions-final.xml",
+      "sha256": "719311d9f18c0bd8c09bb50978aabf1ab49c9a78b221687b4b4b193020c27dff",
+      "bytes": 2292482
+    },
+    {
+      "path": "/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/evidence/mp247/webhook-regressions-final.log",
+      "sha256": "8b4bcb748fde2dd8e6c89561311a639948742f801b84770a9c49977fb0bf6154",
+      "bytes": 2281180
+    }
+  ],
+  "scope_disposition_sha256": "7fb56724f39c0371c166d0e22359209859cbe66623dfbee5c0cd6f7c08bc4d21",
+  "patch_sha256": "6609d8b83f80cebdad2a1b6affdc9540ab419d37406b397685a431fb98317748"
+}

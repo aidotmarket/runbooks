@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-12T17:08:55.522350+00:00",
+  "head": "e621c760509bde085d5ef784bb14ffa90810d92b",
+  "source_hashes": {
+    "app/api/v1/endpoints/webhooks.py": "e363b0ecaf8795f9d181537ec53a545899282667152a2acf6eff9e68f076dbde",
+    "tests/test_webhook_audit.py": "2d5bcb49ab8a4bc6fc31ce24de4f4047a93cb28a3441d4c9bcf5db59759f0faa"
+  },
+  "draft_disposition": "SELLER-WORKSPACE-CHECKOUT-R4-DISPOSITION-S1712.md mutable pre-freeze",
+  "finding": "Node20 source diagnosis falsely calls raw UPDATE transactions paid_at obsolete. Exact handler693-726 retains the write;1355-1365 rejects metadata transaction_id if fixture Order lacks transaction_id, and1367-1372 checks reverse canonical binding.",
+  "correction": "Preserve original raw paid_at update and payment event assertions, supply coherent Order/Transaction binding fixtures and actual DB companion; do not remove still-valid assertion.",
+  "runtime_limit": "Source-grounded causal diagnosis; corrected tests still require actual execution.",
+  "peer_bus": 4617
+}

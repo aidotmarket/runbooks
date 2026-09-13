@@ -1,0 +1,21 @@
+{
+  "command": [
+    "rtk",
+    "proxy",
+    "/var/tmp/s1714-f7-venv-24bd4a9d/bin/python",
+    "-m",
+    "pytest",
+    "tests/test_workspace_test_refund_admission.py",
+    "-k",
+    "fresh_main_lifespan",
+    "-vv",
+    "-s",
+    "--tb=long",
+    "--junitxml=/Users/max/koskadeux-state/s1656/s1714-workspace-continuation-c74898dc/fresh-public-third.xml"
+  ],
+  "cwd": "/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b",
+  "exit": 1,
+  "duration": 17.106885194778442,
+  "log": "/Users/max/koskadeux-state/s1656/s1714-workspace-continuation-c74898dc/fresh-public-third.log",
+  "log_sha256": "8e5654ea7b7e6eb4d30eaec9024fdf29f3d1a86f65e4606fa7f2ec7e45863ede"
+}

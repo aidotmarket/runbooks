@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="8" skipped="0" tests="15" time="23.319" timestamp="2026-09-12T18:52:00.708796+02:00" hostname="Koskadeux.local"><testcase classname="test_webhooks" name="test_payment_succeeded_billing_failure_leaves_failed_checkpoint" time="0.180"><failure message="assert &quot;SET status = 'processing', processed_at = NOW()&quot; in &quot;\n            INSERT INTO stripe_events\n                (stripe_event_id, event_type, stripe_created, livemode,\n                 stripe_account, processed_at, payload_sha256, status, payload_json, signature_valid)\n            VALUES\n                (:event_id, :event_type, :stripe_created, :livemode,\n                 :stripe_account, NOW(), :sha256, 'processing', cast(:signed_payload as jsonb), true)\n            ON CONFLICT (stripe_event_id) DO UPDATE\n                SET status = CASE WHEN EXCLUDED.event_type='charge.refunded' AND stripe_events.status='completed' THEN stripe_events.status ELSE 'processing' END, processed_at = NOW()\n                WHERE stripe_events.status = 'failed' OR EXCLUDED.event_type = 'charge.refunded'\n            RETURNING stripe_event_id, error_message\n        &quot;">payment_succeeded_checkpoint = namespace(event={'id': 'evt_purchase', 'type': 'payment_intent.succeeded', 'livemode': False, 'data': {'object': {'id'...ooks' from '/private/var/tmp/koskadeux/minimal-bridge-worktrees/6fc522aa7477-02a0ec/app/api/v1/endpoints/webhooks.py'&gt;)
+
+    def test_payment_succeeded_billing_failure_leaves_failed_checkpoint(payment_succeeded_checkpoint):
+        from fastapi import HTTPException
+    
+        ctx = payment_succeeded_checkpoint
+        # S1681 G14.17: paid-order finance and delivery failures require Stripe retries.
+        assert "payment_intent.succeeded" in ctx.webhooks.CRITICAL_EVENT_TYPES
+        ctx.billing.side_effect = RuntimeError("finance unavailable")
+    
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(ctx.webhooks.stripe_webhook(_webhook_request(), BackgroundTasks(), ctx.db))
+    
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.detail == "Processing failed for critical event"
+        statements = [str(call.args[0]) for call in ctx.db.execute.call_args_list]
+        assert "WHERE stripe_events.status = 'failed'" in statements[0]
+        assert any("status = 'failed', error_message = 'finance_pending'" in sql for sql in statements)
+        assert not any("status = 'completed'" in sql for sql in statements)
+        assert " ".join(statements[-1].split()) == (
+            "INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, "
+            "stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES "
+            "(:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), "
+            ":sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE "
+            "SET status = 'failed', error_message = EXCLUDED.error_message "
+            "WHERE stripe_events.status &lt;&gt; 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'"
+        )
+        failure_params = ctx.db.execute.call_args.args[1]
+        assert failure_params["event_id"] == ctx.event["id"]
+        assert failure_params["err"] == "finance unavailable"
+        assert ctx.db.commit.call_count == 2
+        ctx.db.rollback.assert_called_once()
+        ctx.billing.assert_awaited_once_with(ctx.event, ctx.async_db)
+        ctx.async_db.rollback.assert_awaited_once()
+        ctx.async_db.commit.assert_not_awaited()
+        ctx.delivery.assert_not_awaited()
+    
+        # The failed row is admitted by the dedup UPDATE on the next delivery.
+        ctx.db.execute.return_value.fetchone.return_value = (ctx.event["id"], failure_params["err"])
+        ctx.billing.side_effect = None
+        retry_start = len(ctx.db.execute.call_args_list)
+        response = asyncio.run(ctx.webhooks.stripe_webhook(_webhook_request(), BackgroundTasks(), ctx.db))
+        assert response == {"status": "success"}
+        retry_sql = str(ctx.db.execute.call_args_list[retry_start].args[0])
+&gt;       assert "SET status = 'processing', processed_at = NOW()" in retry_sql
+E       assert "SET status = 'processing', processed_at = NOW()" in "\n            INSERT INTO stripe_events\n                (stripe_event_id, event_type, stripe_created, livemode,\n                 stripe_account, processed_at, payload_sha256, status, payload_json, signature_valid)\n            VALUES\n                (:event_id, :event_type, :stripe_created, :livemode,\n                 :stripe_account, NOW(), :sha256, 'processing', cast(:signed_payload as jsonb), true)\n            ON CONFLICT (stripe_event_id) DO UPDATE\n                SET status = CASE WHEN EXCLUDED.event_type='charge.refunded' AND stripe_events.status='completed' THEN stripe_events.status ELSE 'processing' END, processed_at = NOW()\n                WHERE stripe_events.status = 'failed' OR EXCLUDED.event_type = 'charge.refunded'\n            RETURNING stripe_event_id, error_message\n        "
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhooks.py:1405: AssertionError</failure></testcase><testcase classname="test_e2e_stripe_isolation" name="test_stripe_webhook_suppresses_e2e_metadata_before_handlers" time="0.021" /><testcase classname="test_webhook_audit" name="test_07_idempotency_concurrent_only_one_processes" time="0.030" /><testcase classname="test_webhook_audit" name="test_08_payload_sha256_stored_in_dedup" time="0.018" /><testcase classname="test_webhook_audit" name="test_09_checkout_completed_order_paid" time="0.023"><failure message="assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">def test_09_checkout_completed_order_paid():
+        """9. checkout.session.completed → real order uses async OrderService paid flow."""
+        order_id = str(uuid4())
+        listing_id = str(uuid4())
+        session_obj = {
+            "id": "cs_test_09",
+            "payment_status": "paid",
+            "payment_intent": "pi_test_09",
+            "metadata": {"order_id": order_id},
+            "amount_total": 10000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+        order_row = {"id": order_id, "status": "created", "listing_id": listing_id,
+                     "amount_cents": 10000, "currency": "USD"}
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT * FROM orders" in sql:
+                return _result(order_row)
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        order_service = MagicMock()
+        order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+        async_db = MagicMock()
+    
+        with _patch_construct(return_value=event), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db", return_value=_async_db_gen(async_db)), \
+             patch("app.api.v1.endpoints.webhooks.OrderService", return_value=order_service):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:278: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_10_dispute_created_flagged_revoked" time="1.230"><failure message="assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">def test_10_dispute_created_flagged_revoked():
+        """10. charge.dispute.created → order flagged, access revoked."""
+        order_id = str(uuid4())
+        dispute = {"id": "dp_10", "payment_intent": "pi_10", "reason": "fraudulent"}
+        event = _evt("charge.dispute.created", data_object=dispute)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed"})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:308: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_11_dispute_closed_won_restored" time="0.035"><failure message="assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">def test_11_dispute_closed_won_restored():
+        """11. charge.dispute.closed (won) → access restored."""
+        order_id = str(uuid4())
+        dispute = {"id": "dp_11", "payment_intent": "pi_11", "status": "won"}
+        event = _evt("charge.dispute.closed", data_object=dispute)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status FROM orders" in sql:
+                return _result({"id": order_id, "status": "disputed"})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:339: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_12_refund_full_revoked" time="0.019"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_12_refund_full_revoked():
+        """12. charge.refunded (full) → status=refunded, access revoked."""
+        order_id = str(uuid4())
+        charge = {"id": "ch_12", "payment_intent": "pi_12",
+                  "amount": 10000, "amount_refunded": 10000}
+        event = _evt("charge.refunded", data_object=charge)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status, amount_cents FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:371: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_13_refund_partial_access_kept" time="0.016"><failure message="assert 400 == 200&#10; +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code">def test_13_refund_partial_access_kept():
+        """13. charge.refunded (partial) → status=partially_refunded, access kept."""
+        order_id = str(uuid4())
+        charge = {"id": "ch_13", "payment_intent": "pi_13",
+                  "amount": 10000, "amount_refunded": 2500}
+        event = _evt("charge.refunded", data_object=charge)
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT id, status, amount_cents FROM orders" in sql:
+                return _result({"id": order_id, "status": "completed", "amount_cents": 10000})
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 400 == 200
+E        +  where 400 = &lt;Response [400 Bad Request]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:403: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_14_payout_failed_seller_flagged" time="0.057" /><testcase classname="test_webhook_audit" name="test_16_db_error_critical_returns_500" time="0.017" /><testcase classname="test_webhook_audit" name="test_17_db_error_non_critical_returns_200" time="0.024" /><testcase classname="test_webhook_audit" name="test_18_dedup_row_inserted_before_processing" time="0.022"><failure message="assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">def test_18_dedup_row_inserted_before_processing():
+        """18. Dedup row INSERT happens before handler logic."""
+        order_id = str(uuid4())
+        session_obj = {
+            "id": "cs_18", "payment_status": "paid",
+            "payment_intent": "pi_18",
+            "metadata": {"order_id": order_id},
+            "amount_total": 5000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+    
+        call_order = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            if "INSERT INTO stripe_events" in sql:
+                call_order.append("dedup_insert")
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_test", None)
+                return r
+            elif "SELECT * FROM orders" in sql:
+                call_order.append("handler_select")
+                return _result({"id": order_id, "status": "created",
+                                "listing_id": None, "amount_cents": 5000, "currency": "USD"})
+            elif "UPDATE orders" in sql:
+                call_order.append("handler_update")
+            return _result(None)
+    
+        order_service = MagicMock()
+        order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+        async_db = MagicMock()
+    
+        _use_db(_mock_db(execute_fn))
+        with _patch_construct(return_value=event), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db", return_value=_async_db_gen(async_db)), \
+             patch("app.api.v1.endpoints.webhooks.OrderService", return_value=order_service):
+            resp = _post()
+&gt;       assert resp.status_code == 200
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:535: AssertionError</failure></testcase><testcase classname="test_webhook_audit" name="test_19_return_codes_per_section_5" time="0.082" /><testcase classname="test_webhook_audit" name="test_20_checkout_completed_calls_handle_payment_when_canonical_tx" time="0.021"><failure message="AssertionError: Canonical TX must UPDATE transactions with paid_at&#10;assert False&#10; +  where False = any(&lt;generator object test_20_checkout_completed_calls_handle_payment_when_canonical_tx.&lt;locals&gt;.&lt;genexpr&gt; at 0x126b6b850&gt;)">def test_20_checkout_completed_calls_handle_payment_when_canonical_tx():
+        """20. checkout.session.completed with ENABLE_CANONICAL_TX stores payment metadata via direct SQL."""
+        order_id = str(uuid4())
+        tx_id = str(uuid4())
+        session_obj = {
+            "id": "cs_gate3",
+            "payment_status": "paid",
+            "payment_intent": "pi_gate3",
+            "metadata": {"order_id": order_id, "transaction_id": tx_id},
+            "amount_total": 10000,
+            "currency": "usd",
+        }
+        event = _evt("checkout.session.completed", data_object=session_obj)
+        order_row = {"id": order_id, "status": "created", "listing_id": str(uuid4()),
+                     "amount_cents": 10000, "currency": "USD"}
+    
+        calls = []
+    
+        def execute_fn(stmt, params=None):
+            sql = str(stmt)
+            calls.append((sql, params))
+            if "INSERT INTO stripe_events" in sql:
+                r = MagicMock()
+                r.fetchone.return_value = ("evt_ok", None)
+                return r
+            if "SELECT * FROM orders" in sql:
+                return _result(order_row)
+            return _result(None)
+    
+        _use_db(_mock_db(execute_fn))
+    
+        # Mock the async fulfillment path to avoid "MagicMock can't be used in await"
+        mock_fulfillment_svc = MagicMock()
+    
+        async def mock_request_fulfillment(*args, **kwargs):
+            return {"status": "ok"}
+    
+        mock_fulfillment_svc.request_fulfillment = mock_request_fulfillment
+    
+        with _patch_construct(return_value=event), \
+             patch.object(settings, "ENABLE_CANONICAL_TX", True), \
+             patch("app.api.v1.endpoints.webhooks.get_async_db") as mock_async_db, \
+             patch("app.api.v1.endpoints.webhooks.OrderService") as order_service_cls, \
+             patch("app.services.fulfillment_service.get_fulfillment_service",
+                   return_value=mock_fulfillment_svc):
+    
+            # Mock async db generator
+            mock_db_instance = MagicMock()
+            order_service = MagicMock()
+            order_service.mark_paid = AsyncMock(return_value={"id": order_id})
+            order_service_cls.return_value = order_service
+    
+            async def async_db_gen():
+                yield mock_db_instance
+    
+            mock_async_db.return_value = async_db_gen()
+    
+            resp = _post()
+    
+        assert resp.status_code == 200
+    
+        sqls = [s for s, _ in calls]
+        # Canonical TX: UPDATE transactions with payment metadata
+&gt;       assert any("UPDATE transactions" in s and "paid_at" in s for s in sqls), \
+            "Canonical TX must UPDATE transactions with paid_at"
+E       AssertionError: Canonical TX must UPDATE transactions with paid_at
+E       assert False
+E        +  where False = any(&lt;generator object test_20_checkout_completed_calls_handle_payment_when_canonical_tx.&lt;locals&gt;.&lt;genexpr&gt; at 0x126b6b850&gt;)
+
+/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/webhook-test-compatibility-proposal-s1712/proposed/tests/test_webhook_audit.py:661: AssertionError</failure></testcase></testsuite></testsuites>

@@ -24,6 +24,14 @@ The separate empty-ref bridge correction is deployed at `22a0deac` with unanimou
 
 The baseline below is dated historical evidence. Preserve protected run25 and Mars's owner-controlled transition, genuine P/N hold periods, production trigger freeze before merge, old-writer quiescence and the separate fresh Workspace joint-proof gate.
 
+## Checkout branch correction under review
+
+MP246 produced partial backend candidateaca73e88; MP247 continues the complete required qualification in FastAPI0.110.1/Starlette0.37.2. Its actual fresh public checkout test exposed an inherited contract error: default ENABLE_CANONICAL_TX=true succeeds with E2E_TEST_ROUTES_ENABLED either false or true because canonical routing returns before the legacy-only guard. The original false403 expectation remains a retained failure, not a passing test. Read the [proposed correction and production-isolation assessment](../specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md#proposed-canonical-checkout-correction--review-required) and [full evidence index](evidence/workspace-gate2-s1712/CHECKOUT-CORRECTION-INDEX.json). It is awaiting unanimous review; no implementation acceptance is implied.
+
+For diagnosis, record actual canonical/route settings and the real checkout branch before interpreting a403 or200. The E2E switch is not a canonical purchase-stop switch, and creating a checkout URL is not capture, Workspace registration or refund authority. The selected TEST true/empty/empty settings, mounted exact configuration, permanent four-account cleanup refusal and expected TEST monitor alert remain unchanged. Production-shaped/non-W isolation and the full canonical public paid lifecycle require execution evidence. Preserve the original failed test and revised source/result separately; do not change canonical only in a test and present that result as final Compose behavior.
+
+The adjacent N-to-W actor-substitution test also failed during qualification. It uses a seller01-owned generic listing, so merely changing two actor IDs does not make it a valid Workspace purchase. The builder restored its original200 suppression through core source classification, without changing the existing test; see the [adjacent reconciliation evidence](evidence/workspace-gate2-s1712/ADJACENT-CLASSIFICATION-RECONCILIATION.json). Genuine registered-W readiness failures must still retain retryable500 and same-event recovery. Other regression failures remain open; do not label this or new failures inherited.
+
 ## Workspace fixture design, review and recovery status
 
 The accepted design is candidate `b444332af4ec86c4258ae62d7c0c1e12f3f2645d`, reviewed spec SHA256 `38bc8a84c1458336300e32535243a1703fad08faa613eca0d0595ccbb46e386f`. All three fresh reviews approve with nits and no HIGH/MEDIUM. The [exact owner decision](evidence/workspace-gate2-s1712/R4-OWNER-DECISION.json) and [full response index](evidence/workspace-gate2-s1712/R4-REVIEW-INDEX.json) retain the actual evidence. Read the [current implementation contract and accepted dispositions](../specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md), distinguishing the original reviewed candidate from the subsequent documentation recording. These commands/tables are not installed by design approval.
@@ -334,3 +342,52 @@ Before handing off, state exact deployed identity, active feature gates, last su
 ## Retained access after refunds
 
 Use the [partial-refund access diagnosis runbook](seller-refund-access-diagnosis.md) for the full route, service, device callback, raw token and agent/MCP map. It separates actual delivery eligibility from independent access restrictions and records pending corrections without treating source review as runtime proof.
+
+
+### Proposed recovery and verification revision after c6bae
+
+The complete checkout-correction panel requires revision; no new implementation/runtime is accepted. The [current design appendix](../specs/SELLER-WORKSPACE-ACTIVATION-S1712-GATE2.md) proposes an exact registered-Order discovery reference to prevent terminal suppression after binding drift, explicit pending/unknown refund closure refusal and a narrowly scoped three-test compatibility repair (seventeen total backend targets only after acceptance). The original forged-N suppression behavior and all paid-rights/hold/provider requirements remain. See the [detailed diagnostic evidence runbook](evidence/workspace-gate2-s1712/MP247-DIAGNOSTIC-EVIDENCE-RUNBOOK.txt) for exact source identities, baseline diagnosis, archive handling, remaining checks and continuation instructions. Raw historical failures stay preserved; full fresh review and execution precede any release claim.
+
+
+## Evidence diagnosis and continuation after MP247
+
+Updated 2026-09-12. This local operational supplement records active diagnosis, not accepted implementation or live release. Canonical published runbooks are seller-workspace-operator-guide.md and seller-workspace-live-release.md in aidotmarket/runbooks; current draft correction PR190 is separately under full review and must remain immutable while that panel runs. Use the accepted contract and exact owner decision for any builder/runtime action. Mars owns the umbrella/runtime and single builder; S1712 owns Workspace documentation and component verification.
+
+## Current identities and what they prove
+
+MP247 backend e621c760509bde085d5ef784bb14ffa90810d92b is clean and normally pushed on build/bq-workspace-authority-s1712, based on aca73e881ca77ae8e29b77c45f293ad5fa56395d; money dependency c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2. It is explicitly incomplete. The full final matrix has1990 unique executed cases,1968pass22fail: six previously accepted bounded historical failures,15 newly observed legacy test mismatches reproduced separately on c3, and the original Workspace false403 checkout assertion. None of these counts proves complete contract coverage or release readiness.
+
+S1712 independently checked all4163 MP247 manifest entries and14 source hashes, clean/remote Git identity and actual absence of owned disposable PostgreSQL container76ec06d1b90a144ba6499f0d4465248ef31353776311d9f54594888f1a1ae130 and volumef8f9159c513a051926780960c4d08c4f24a37f12c6dc822639acd43a34f4b5ce. The preserved archive is outputs/mp247-terminal-retained-s1712/INDEX.json. No protected runtime resources were used or removed.
+
+## How to inspect evidence safely
+
+Every shell command uses rtk. Start from the named primary contract, owner decision, remaining-requirements.md and scope-findings.md; supporting source/logs follow the specific question. Read report.json and requirement-matrix.json as structured data, selecting relevant keys. The matrix has large expanded node lists; do not dump it with a low output limit and call a truncated response a full review.
+
+The builder manifest contains4056 regular files,104 symlink test artifacts and3 special FIFO test artifacts. Use lstat first. Hash/copy only regular files. Compare symlink target with readlink and retain as metadata; compare special-file mode without opening it. A byte-reader blocks indefinitely on the intentional FIFO fixtures. S1712 encountered this while archiving, interrupted only its own reader, then verified and retained the nonregular entries as metadata. Never recreate or dereference those test links/FIFOs in the archival copy. Retain byte-exact raw logs/XML; intentional trailing whitespace inside them is not grounds to silently rewrite evidence. Report the actual exact-range diff--check result and separately verify edited prose if needed.
+
+## Diagnosing the fifteen legacy webhook failures
+
+Use outputs/webhook-baseline-audit-c3-s1712-r2/receipt.json, reconciliation.json, result.xml, reference.xml and run.log. The script outputs/run-webhook-baseline-audit-s1712-r2.py pins c3 and verifies source hashes before/after. Runtime is /var/tmp/s1714-f7-venv-24bd4a9d/bin/python, read-only, FastAPI0.110.1/Starlette0.37.2/SQLAlchemy2.0.25. It runs exact selected mocked/SQLite nodes, disables bytecode and pytest cache, isolates temp/audit directories, and installs an audit hook denying all DNS/connect calls. No DB/container/provider resource is involved.
+
+The first attempt in outputs/webhook-baseline-audit-c3-s1712 stopped during collection because importing the application tried to download tokenizer data. No completed test result was inferred. The second attempt copies the already-present cl100k_base tokenizer data from /tmp/data-gym-cache/9b5ad71b2ce5302211f9c61530b329a4922fc6a4 with SHA256223921b76ee99bde995b7ff738513eef100fb51d18c93597a113bcffe865b2a7 into its own cache. Network denial remains unchanged. If that verified cache is absent in a future instance, resolve the dependency explicitly; do not drop network isolation or invent a successful result.
+
+All15 node identities and failure messages match MP247:14 one-column dedup mock rows fail at webhooks.py index1 before W admission; one old exact checkpoint SQL assertion omits signed payload/signature retention and completed/applied protection. This proves pre-W provenance, not permission to ignore failures. outputs/webhook-test-compatibility-proposal-s1712 contains exact3-file proposed patch, original/proposed source, scope decision and7 complete evidence files. It is not applied or approved; after explicit scope review it would increase backend targets14to17. Preserve existing behavioral assertions and record any newly reachable failure honestly.
+
+## Diagnosing checkout and registered refund recovery
+
+Canonical checkout returns before the legacy synthetic flag guard and defaults enabled. The original flagfalse403 assertion therefore failed on real fresh startup and valid controlled checkout; flagtrue passed. The current documentary correction proposes measured canonical200/200 plus separate legacy guard checks, never a claim that obtaining checkout URL proves capture/refund. The exact failure remains retained. A fresh final test must prove absence of inherited canonical override, not merely that the test file did not set one.
+
+The second active defect is registered refund classification. Mutable Transaction/Order shape filters can returnFalse before reading retained authority, leading to terminal200 suppression for a charge that should fail durably and recover with the same event ID. Do not fix this by forcing all fixed-pair traffic through optional W schema: the unchanged forged N regression has fixed actors but requires200 without optional dependencies. Review an exact discriminator/invariant design satisfying both cases, with actual SQL and signed restoration evidence. Existing Listing publication immutability alone does not freeze the Order/Transaction tuple. No new invariant is accepted merely because described here.
+
+The close path separately filters succeeded Refund/completed applied event positives without proving no coexisting pending/unknown related work. Mandatory continuation requires actual adversarial DB rows, no terminal close/receipt on refusal, preserved original authority/history and normal recovery. A passing happy-path close is insufficient.
+
+## Continuation and upgrade checklist
+
+Read outputs/SELLER-WORKSPACE-MP247-MANDATORY-CONTINUATION-S1712.md for every pending requirement, including old/other-window/coherent identity substitutions and deterministic private-file races. Bind all actual full panel responses and explicit owner decisions into the next builder request. Do not alter currently dispatched source, silently change assertions, reuse predecessor databases or treat terminal clean_exit as acceptance. Supported dependency versions, immutable source identities, command exits, complete collected/executed node IDs and owned resource absence must accompany final evidence.
+
+Backend completion is followed by the environment component using actual stage interfaces and final backend pin, then unanimous combined integration review. Host credentials/custody, private mount, image/source-label discovery, exact TEST settings, genuine paid capture/refund, protected history, real scheduled paths, production cutover and full enabled AWS S3 plus R2 release remain distinct requirements. The protected run25 and its hold phases remain owner-controlled. The approved100-dollar ceiling is cumulative; the retained84.8369454546 exposure is historical, not a current bill or available balance.
+
+
+## Review and diagnostic continuation after a4 panel
+
+The a4 panel is terminal REVISE, not accepted. Follow the current specification section "Full a4 panel disposition and execution-grounded clarification" for the explicit Transaction comparison table, FK NULL evidence, fail-closed repeat-migration preflight, locking cutover obligations, three-field closure checks and all eight newly reached webhook failures. Evidence is retained under runbooks/evidence/workspace-gate2-s1712 as CHECKOUT-R3-*, PG17-FK-* and WEBHOOK-MINIMUM-PATCH-EXPLORATION-*. The22-case toy probe passed and was cleaned; the15-node minimum patch experiment yielded7pass/8fail and is not complete-module qualification. Preserve all1990 prior node identities, distinguish revoked from linked-refunded scheduled proof, and require actual final backend/environment/provider evidence before release.

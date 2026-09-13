@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="16.097" timestamp="2026-09-12T17:43:52.313609+02:00" hostname="Koskadeux.local"><testcase classname="tests.test_workspace_test_refund_admission" name="test_fresh_main_lifespan_public_checkout_reviewed_settings[False]" time="8.015"><failure message="AssertionError: STRIPE_TEST_MODE is ENABLED — all Stripe operations use test keys&#10;  INTERNAL_AGENT_KEY not set — all agent-key auth attempts will be rejected&#10;  /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/app/schemas/aim_seller.py:42: UserWarning: Field name &quot;schema&quot; in &quot;ToolDetail&quot; shadows an attribute in parent &quot;BaseModel&quot;&#10;    class ToolDetail(BaseModel):&#10;  /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/app/schemas/disclosure_snapshot.py:46: UserWarning: Field name &quot;schema&quot; in &quot;DisclosureApprovedFields&quot; shadows an attribute in parent &quot;BaseModel&quot;&#10;    class DisclosureApprovedFields(BaseModel):&#10;  /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:&#10;  * 'orm_mode' has been renamed to 'from_attributes'&#10;    warnings.warn(message, UserWarning)&#10;  SecretsService: SECRETS_ENCRYPTION_KEY not set&#10;  2026-09-12 17:43:58,661 [INFO] app.main: Marketplace MCP Server disabled (MARKETPLACE_MCP_ENABLED=false)&#10;  2026-09-12 17:43:58,741 [INFO] app.main: AIM Discovery MCP Server mounted at /mcp/aim-discovery/&#10;  [LIFESPAN] Entering startup sequence&#10;  Seller schema readable; no migration or row read performed.&#10;  [LIFESPAN] Entering startup sequence&#10;  2026-09-12 17:43:58,789 [WARNING] app.core.gcp_credentials: GCP_SERVICE_ACCOUNT_JSON not set. KMS and other GCP services may fail unless using local ADC.&#10;  2026-09-12 17:43:58,789 [WARNING] app.main: GCP credentials not configured - KMS features may fail&#10;  2026-09-12 17:43:58,789 [ERROR] app.main: KMS is not ready; KMS-dependent operations will fail closed&#10;  2026-09-12 17:43:58,789 [INFO] app.main: === LIFESPAN START ===&#10;  2026-09-12 17:43:58,789 [INFO] app.main: Scheduler mode: apscheduler&#10;  2026-09-12 17:43:58,801 [INFO] app.main: Checking Alembic migration heads...&#10;  2026-09-12 17:43:59,047 [INFO] app.main: Migration head check passed: single head 's1712_workspace_authority_v1'&#10;  2026-09-12 17:43:59,047 [INFO] app.main: Running database migrations...&#10;  2026-09-12 17:43:59,047 [INFO] app.main: Starting database migrations via Alembic...&#10;  2026-09-12 17:43:59,047 [INFO] app.main: Working directory: /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b&#10;  2026-09-12 17:43:59,047 [INFO] app.main: Python executable: /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python&#10;  2026-09-12 17:43:59,764 [INFO] app.main: Database migrations completed successfully.&#10;  2026-09-12 17:43:59,798 [INFO] app.main: S97: Ensured 11 columns exist across CRM tables&#10;  2026-09-12 17:43:59,802 [INFO] app.main: Seeding permission templates...&#10;  2026-09-12 17:43:59,808 [INFO] app.main: Bootstrapping ai.market platform manifest...&#10;  2026-09-12 17:43:59,938 [INFO] app.core.bootstrap: Creating system user for ai.market platform&#10;  2026-09-12 17:43:59,942 [INFO] app.core.bootstrap: Created ai.market platform manifest&#10;  2026-09-12 17:43:59,945 [INFO] app.main: Seeding global policies...&#10;  2026-09-12 17:43:59,958 [INFO] app.services.policy_engine_service: Global default policy already exists&#10;  2026-09-12 17:43:59,958 [INFO] app.core.bootstrap: Global policies seeded/verified: System Default Policy (id=a0000000-0000-0000-0000-000000000001)&#10;  2026-09-12 17:43:59,961 [INFO] app.main: Seeding agent registry...&#10;  2026-09-12 17:43:59,973 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'allai-brain' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,975 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'crm-steward' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,976 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'sysadmin' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,978 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'matchmaker' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,980 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'agent-log' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,981 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'listing-enricher' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,983 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'ralph' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,984 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'marketing-ops' (v1, online) with 0 tool policies&#10;  2026-09-12 17:43:59,985 [INFO] app.seeds.seed_agents: seed_agents: Done — created 8 agents&#10;  2026-09-12 17:43:59,985 [INFO] app.main: Seeded 8 new agents into agent table&#10;  2026-09-12 17:43:59,990 [INFO] app.main: Seeded ActionPolicy for run_backup&#10;  2026-09-12 17:43:59,992 [INFO] app.main: Seeded ActionPolicy for cold_start_warmup&#10;  2026-09-12 17:43:59,992 [WARNING] app.main: SKIP_SERVICES=1 — skipping scheduler, worker, telegram, agents&#10;  2026-09-12 17:43:59,992 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager started&#10;  2026-09-12 17:43:59,992 [INFO] app.main: AIM Discovery MCP server session manager started&#10;  2026-09-12 17:43:59,992 [INFO] app.main: === LIFESPAN READY ===&#10;  2026-09-12 17:43:59,998 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {&quot;endpoint&quot;: &quot;transaction-initiate&quot;, &quot;event&quot;: &quot;terms_acceptance_would_block&quot;, &quot;measurement_skipped&quot;: &quot;test_environment&quot;, &quot;mode&quot;: &quot;shadow&quot;, &quot;org_id&quot;: null, &quot;party_id&quot;: null, &quot;terms_version&quot;: &quot;1.0&quot;, &quot;timestamp&quot;: &quot;2026-09-12T15:43:59.998916+00:00&quot;, &quot;user_id&quot;: &quot;7d662d0e-22f2-4b87-bbc5-80984ba808ac&quot;}&#10;  2026-09-12 17:44:00,024 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {&quot;endpoint&quot;: &quot;order-create&quot;, &quot;event&quot;: &quot;terms_acceptance_would_block&quot;, &quot;measurement_skipped&quot;: &quot;test_environment&quot;, &quot;mode&quot;: &quot;shadow&quot;, &quot;org_id&quot;: null, &quot;party_id&quot;: null, &quot;terms_version&quot;: &quot;1.0&quot;, &quot;timestamp&quot;: &quot;2026-09-12T15:44:00.024889+00:00&quot;, &quot;user_id&quot;: &quot;7d662d0e-22f2-4b87-bbc5-80984ba808ac&quot;}&#10;  FRESH_CHECKOUT={&quot;armed&quot;: false, &quot;canonical&quot;: true, &quot;status&quot;: 200, &quot;body&quot;: {&quot;checkout_url&quot;: &quot;https://checkout.stripe.test/isolated&quot;, &quot;session_id&quot;: null, &quot;order_id&quot;: &quot;e2c9fdb9-d375-4a67-9247-49cd40fe2f70&quot;, &quot;order_number&quot;: &quot;ORD-2026-2407D76C&quot;, &quot;expires_at&quot;: null, &quot;transaction_id&quot;: &quot;2967c335-c954-400c-9c8c-c79536aa5a47&quot;}}&#10;  2026-09-12 17:44:00,066 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager shutting down&#10;  2026-09-12 17:44:00,071 [ERROR] asyncio: unhandled exception during asyncio.run() shutdown&#10;  task: &lt;Task finished name='Task-57' coro=&lt;&lt;async_generator_athrow without __name__&gt;()&gt; exception=RuntimeError('Attempted to exit cancel scope in a different task than it was entered in')&gt;&#10;  Traceback (most recent call last):&#10;    File &quot;/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 803, in __aexit__&#10;      raise exc_val&#10;    File &quot;/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/mcp/server/streamable_http_manager.py&quot;, line 145, in run&#10;      yield  # Let the application run&#10;      ^^^^^&#10;  asyncio.exceptions.CancelledError&#10;  &#10;  During handling of the above exception, another exception occurred:&#10;  &#10;  Traceback (most recent call last):&#10;    File &quot;/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/mcp/server/streamable_http_manager.py&quot;, line 140, in run&#10;      async with anyio.create_task_group() as tg:&#10;                 ^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 805, in __aexit__&#10;      if self.cancel_scope.__exit__(type(exc), exc, exc.__traceback__):&#10;         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py&quot;, line 455, in __exit__&#10;      raise RuntimeError(&#10;  RuntimeError: Attempted to exit cancel scope in a different task than it was entered in&#10;  Traceback (most recent call last):&#10;    File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;&#10;    File &quot;/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py&quot;, line 195, in run&#10;      return runner.run(main)&#10;             ^^^^^^^^^^^^^^^^&#10;    File &quot;/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py&quot;, line 118, in run&#10;      return self._loop.run_until_complete(task)&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^&#10;    File &quot;/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py&quot;, line 691, in run_until_complete&#10;      return future.result()&#10;             ^^^^^^^^^^^^^^^&#10;    File &quot;/private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/tests/test_workspace_test_refund_admission.py&quot;, line 599, in _fresh_public_checkout_probe&#10;      assert response.status_code==403,response.text&#10;             ^^^^^^^^^^^^^^^^^^^^^^^^^&#10;  AssertionError: {&quot;checkout_url&quot;:&quot;https://checkout.stripe.test/isolated&quot;,&quot;session_id&quot;:null,&quot;order_id&quot;:&quot;e2c9fdb9-d375-4a67-9247-49cd40fe2f70&quot;,&quot;order_number&quot;:&quot;ORD-2026-2407D76C&quot;,&quot;expires_at&quot;:null,&quot;transaction_id&quot;:&quot;2967c335-c954-400c-9c8c-c79536aa5a47&quot;}&#10;  &#10;assert 1 == 0&#10; +  where 1 = &lt;Process 85352&gt;.returncode">db = &lt;sqlalchemy.ext.asyncio.session.AsyncSession object at 0x10f982360&gt;
+test_config = {'backend_local_image_id': 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'backend_sha': '...label': 'cccccccccccccccccccccccccccccccccccccccc', 'environment_sha': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ...}
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x10f884200&gt;
+tmp_path = PosixPath('/Users/max/koskadeux-state/s1656/s1714-workspace-continuation-c74898dc/tmp/pytest-of-max/pytest-7/test_fresh_main_lifespan_publi0')
+armed = False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("armed",[False,True])
+    async def test_fresh_main_lifespan_public_checkout_reviewed_settings(db,test_config,monkeypatch,tmp_path,armed):
+        import asyncio,sys
+        case=await workspace_case(db,test_config,monkeypatch,tmp_path,public=True)
+        party=await db.scalar(text("select party_id from party_identity where provider='auth_user' and external_id=:id"),{"id":str(w.SELLER_ID)})
+        await db.execute(text("insert into party_identity(party_id,provider,external_id) values (:id,'stripe_connect',:account)"),{"id":party,"account":"acct_"+uuid4().hex})
+        await db.commit()
+        env=os.environ.copy()
+        env.update(E2E_TEST_ROUTES_ENABLED=str(armed).lower(),E2E_RESET_ALLOWED_ACCOUNT_IDS="[]",E2E_TEARDOWN_ALLOWED_ACCOUNT_IDS="[]",SKIP_SERVICES="1",PYTHONPATH=os.environ["PYTHONPATH"]+os.pathsep+str(Path("tests").resolve()))
+        env.update(SELLER_WORKSPACE_ENABLED="true",SELLER_WORKSPACE_AWS_CONNECT_ENABLED="true",SELLER_WORKSPACE_AWS_DELIVERY_ENABLED="true",SELLER_WORKSPACE_AWS_DISCOVERY_ENABLED="true",SELLER_WORKSPACE_AWS_PRINCIPAL_ARN="arn:aws:iam::123456789012:role/isolated-workspace",GCP_PROJECT_ID="isolated-workspace",GCP_KMS_LOCATION="global",GCP_KMS_KEYRING="isolated",GCP_KMS_ENCRYPTION_KEY_NAME="isolated")
+        code="import asyncio; from test_workspace_test_refund_admission import _fresh_public_checkout_probe; asyncio.run(_fresh_public_checkout_probe("+repr(str(case.listing))+","+repr(str(case.version))+"))"
+        proc=await asyncio.create_subprocess_exec("rtk","proxy",sys.executable,"-B","-c",code,env=env,stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT)
+        try:
+            stdout,_=await asyncio.wait_for(proc.communicate(),90)
+        except BaseException:
+            proc.kill();await proc.wait();raise
+        print(stdout.decode())
+&gt;       assert proc.returncode==0,stdout.decode()
+E       AssertionError: STRIPE_TEST_MODE is ENABLED — all Stripe operations use test keys
+E         INTERNAL_AGENT_KEY not set — all agent-key auth attempts will be rejected
+E         /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/app/schemas/aim_seller.py:42: UserWarning: Field name "schema" in "ToolDetail" shadows an attribute in parent "BaseModel"
+E           class ToolDetail(BaseModel):
+E         /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/app/schemas/disclosure_snapshot.py:46: UserWarning: Field name "schema" in "DisclosureApprovedFields" shadows an attribute in parent "BaseModel"
+E           class DisclosureApprovedFields(BaseModel):
+E         /private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/pydantic/_internal/_config.py:386: UserWarning: Valid config keys have changed in V2:
+E         * 'orm_mode' has been renamed to 'from_attributes'
+E           warnings.warn(message, UserWarning)
+E         SecretsService: SECRETS_ENCRYPTION_KEY not set
+E         2026-09-12 17:43:58,661 [INFO] app.main: Marketplace MCP Server disabled (MARKETPLACE_MCP_ENABLED=false)
+E         2026-09-12 17:43:58,741 [INFO] app.main: AIM Discovery MCP Server mounted at /mcp/aim-discovery/
+E         [LIFESPAN] Entering startup sequence
+E         Seller schema readable; no migration or row read performed.
+E         [LIFESPAN] Entering startup sequence
+E         2026-09-12 17:43:58,789 [WARNING] app.core.gcp_credentials: GCP_SERVICE_ACCOUNT_JSON not set. KMS and other GCP services may fail unless using local ADC.
+E         2026-09-12 17:43:58,789 [WARNING] app.main: GCP credentials not configured - KMS features may fail
+E         2026-09-12 17:43:58,789 [ERROR] app.main: KMS is not ready; KMS-dependent operations will fail closed
+E         2026-09-12 17:43:58,789 [INFO] app.main: === LIFESPAN START ===
+E         2026-09-12 17:43:58,789 [INFO] app.main: Scheduler mode: apscheduler
+E         2026-09-12 17:43:58,801 [INFO] app.main: Checking Alembic migration heads...
+E         2026-09-12 17:43:59,047 [INFO] app.main: Migration head check passed: single head 's1712_workspace_authority_v1'
+E         2026-09-12 17:43:59,047 [INFO] app.main: Running database migrations...
+E         2026-09-12 17:43:59,047 [INFO] app.main: Starting database migrations via Alembic...
+E         2026-09-12 17:43:59,047 [INFO] app.main: Working directory: /private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b
+E         2026-09-12 17:43:59,047 [INFO] app.main: Python executable: /private/var/tmp/s1714-f7-venv-24bd4a9d/bin/python
+E         2026-09-12 17:43:59,764 [INFO] app.main: Database migrations completed successfully.
+E         2026-09-12 17:43:59,798 [INFO] app.main: S97: Ensured 11 columns exist across CRM tables
+E         2026-09-12 17:43:59,802 [INFO] app.main: Seeding permission templates...
+E         2026-09-12 17:43:59,808 [INFO] app.main: Bootstrapping ai.market platform manifest...
+E         2026-09-12 17:43:59,938 [INFO] app.core.bootstrap: Creating system user for ai.market platform
+E         2026-09-12 17:43:59,942 [INFO] app.core.bootstrap: Created ai.market platform manifest
+E         2026-09-12 17:43:59,945 [INFO] app.main: Seeding global policies...
+E         2026-09-12 17:43:59,958 [INFO] app.services.policy_engine_service: Global default policy already exists
+E         2026-09-12 17:43:59,958 [INFO] app.core.bootstrap: Global policies seeded/verified: System Default Policy (id=a0000000-0000-0000-0000-000000000001)
+E         2026-09-12 17:43:59,961 [INFO] app.main: Seeding agent registry...
+E         2026-09-12 17:43:59,973 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'allai-brain' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,975 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'crm-steward' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,976 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'sysadmin' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,978 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'matchmaker' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,980 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'agent-log' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,981 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'listing-enricher' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,983 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'ralph' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,984 [INFO] app.seeds.seed_agents: seed_agents: Created agent 'marketing-ops' (v1, online) with 0 tool policies
+E         2026-09-12 17:43:59,985 [INFO] app.seeds.seed_agents: seed_agents: Done — created 8 agents
+E         2026-09-12 17:43:59,985 [INFO] app.main: Seeded 8 new agents into agent table
+E         2026-09-12 17:43:59,990 [INFO] app.main: Seeded ActionPolicy for run_backup
+E         2026-09-12 17:43:59,992 [INFO] app.main: Seeded ActionPolicy for cold_start_warmup
+E         2026-09-12 17:43:59,992 [WARNING] app.main: SKIP_SERVICES=1 — skipping scheduler, worker, telegram, agents
+E         2026-09-12 17:43:59,992 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager started
+E         2026-09-12 17:43:59,992 [INFO] app.main: AIM Discovery MCP server session manager started
+E         2026-09-12 17:43:59,992 [INFO] app.main: === LIFESPAN READY ===
+E         2026-09-12 17:43:59,998 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {"endpoint": "transaction-initiate", "event": "terms_acceptance_would_block", "measurement_skipped": "test_environment", "mode": "shadow", "org_id": null, "party_id": null, "terms_version": "1.0", "timestamp": "2026-09-12T15:43:59.998916+00:00", "user_id": "7d662d0e-22f2-4b87-bbc5-80984ba808ac"}
+E         2026-09-12 17:44:00,024 [WARNING] app.services.terms_acceptance_service: terms_acceptance_would_block {"endpoint": "order-create", "event": "terms_acceptance_would_block", "measurement_skipped": "test_environment", "mode": "shadow", "org_id": null, "party_id": null, "terms_version": "1.0", "timestamp": "2026-09-12T15:44:00.024889+00:00", "user_id": "7d662d0e-22f2-4b87-bbc5-80984ba808ac"}
+E         FRESH_CHECKOUT={"armed": false, "canonical": true, "status": 200, "body": {"checkout_url": "https://checkout.stripe.test/isolated", "session_id": null, "order_id": "e2c9fdb9-d375-4a67-9247-49cd40fe2f70", "order_number": "ORD-2026-2407D76C", "expires_at": null, "transaction_id": "2967c335-c954-400c-9c8c-c79536aa5a47"}}
+E         2026-09-12 17:44:00,066 [INFO] mcp.server.streamable_http_manager: StreamableHTTP session manager shutting down
+E         2026-09-12 17:44:00,071 [ERROR] asyncio: unhandled exception during asyncio.run() shutdown
+E         task: &lt;Task finished name='Task-57' coro=&lt;&lt;async_generator_athrow without __name__&gt;()&gt; exception=RuntimeError('Attempted to exit cancel scope in a different task than it was entered in')&gt;
+E         Traceback (most recent call last):
+E           File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 803, in __aexit__
+E             raise exc_val
+E           File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/mcp/server/streamable_http_manager.py", line 145, in run
+E             yield  # Let the application run
+E             ^^^^^
+E         asyncio.exceptions.CancelledError
+E         
+E         During handling of the above exception, another exception occurred:
+E         
+E         Traceback (most recent call last):
+E           File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/mcp/server/streamable_http_manager.py", line 140, in run
+E             async with anyio.create_task_group() as tg:
+E                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 805, in __aexit__
+E             if self.cancel_scope.__exit__(type(exc), exc, exc.__traceback__):
+E                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/private/var/tmp/s1714-f7-venv-24bd4a9d/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 455, in __exit__
+E             raise RuntimeError(
+E         RuntimeError: Attempted to exit cancel scope in a different task than it was entered in
+E         Traceback (most recent call last):
+E           File "&lt;string&gt;", line 1, in &lt;module&gt;
+E           File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+E             return runner.run(main)
+E                    ^^^^^^^^^^^^^^^^
+E           File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+E             return self._loop.run_until_complete(task)
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "/opt/homebrew/Cellar/python@3.12/3.12.12/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+E             return future.result()
+E                    ^^^^^^^^^^^^^^^
+E           File "/private/var/tmp/koskadeux/minimal-bridge-worktrees/c74898dc7dc8-f79e3b/tests/test_workspace_test_refund_admission.py", line 599, in _fresh_public_checkout_probe
+E             assert response.status_code==403,response.text
+E                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+E         AssertionError: {"checkout_url":"https://checkout.stripe.test/isolated","session_id":null,"order_id":"e2c9fdb9-d375-4a67-9247-49cd40fe2f70","order_number":"ORD-2026-2407D76C","expires_at":null,"transaction_id":"2967c335-c954-400c-9c8c-c79536aa5a47"}
+E         
+E       assert 1 == 0
+E        +  where 1 = &lt;Process 85352&gt;.returncode
+
+tests/test_workspace_test_refund_admission.py:623: AssertionError</failure></testcase><testcase classname="tests.test_workspace_test_refund_admission" name="test_fresh_main_lifespan_public_checkout_reviewed_settings[True]" time="7.230" /></testsuite></testsuites>

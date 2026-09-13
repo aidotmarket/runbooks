@@ -1,0 +1,164 @@
+[
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "image",
+      "inspect",
+      "postgres:17-alpine",
+      "--format",
+      "{{.Id}}"
+    ],
+    "exit": 0,
+    "stdout": "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "run",
+      "--detach",
+      "--pull",
+      "never",
+      "--network",
+      "none",
+      "--name",
+      "pg17-fk-null-probe-s1712-05464389",
+      "--label",
+      "workspace.owner=pg17-fk-null-probe-s1712-05464389",
+      "--tmpfs",
+      "/var/lib/postgresql/data:rw",
+      "--env",
+      "POSTGRES_HOST_AUTH_METHOD=trust",
+      "sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73"
+    ],
+    "exit": 0,
+    "stdout": "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "exec",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da",
+      "pg_isready",
+      "-U",
+      "postgres"
+    ],
+    "exit": 2,
+    "stdout": "/var/run/postgresql:5432 - no response\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "exec",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da",
+      "pg_isready",
+      "-U",
+      "postgres"
+    ],
+    "exit": 2,
+    "stdout": "/var/run/postgresql:5432 - no response\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "exec",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da",
+      "pg_isready",
+      "-U",
+      "postgres"
+    ],
+    "exit": 0,
+    "stdout": "/var/run/postgresql:5432 - accepting connections\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "exec",
+      "-i",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da",
+      "psql",
+      "-X",
+      "-U",
+      "postgres",
+      "-d",
+      "postgres",
+      "-v",
+      "ON_ERROR_STOP=1"
+    ],
+    "exit": 2,
+    "stdout": "",
+    "stderr": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: No such file or directory\n\tIs the server running locally and accepting connections on that socket?\n"
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "inspect",
+      "--format",
+      "{{index .Config.Labels \"workspace.owner\"}}",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da"
+    ],
+    "exit": 0,
+    "stdout": "pg17-fk-null-probe-s1712-05464389\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "rm",
+      "-f",
+      "-v",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da"
+    ],
+    "exit": 0,
+    "stdout": "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "inspect",
+      "36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da"
+    ],
+    "exit": 1,
+    "stdout": "[]\n",
+    "stderr": "error: no such object: 36bae7aaa6f9b030f3a1254b1c7096739b7b9da8d0d5252225317d6eddbbc3da\n"
+  },
+  {
+    "command": [
+      "rtk",
+      "proxy",
+      "docker",
+      "ps",
+      "-a",
+      "--filter",
+      "label=workspace.owner=pg17-fk-null-probe-s1712-05464389",
+      "--format",
+      "{{.ID}}"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

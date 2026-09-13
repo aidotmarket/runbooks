@@ -1,0 +1,161 @@
+aca73 tests/test_refund_webhook_protocol.py lines20-60; full-sourceSHA25659873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077
+
+async def f1_pair(db,monkeypatch):
+    from app.e2e.account_pool import account_pool_entry_for_localpart
+    parties={name:uuid.UUID(account_pool_entry_for_localpart(name).account_id) for name in ('buyer-01','buyer-02','seller-01')}
+    for name,uid in parties.items():
+        await db.execute(text('''insert into users (id,email,is_test,role) values (:id,:email,true,:role)
+            on conflict(id) do nothing'''),{'id':uid,'email':name+'@e2e-test.ai.market','role':name.split('-')[0]})
+    facts,roles={},{}
+    listing=await db.scalar(text('select id from listings where seller_id=:seller'), {'seller':parties['seller-01']})
+    for role,buyer in [('P','buyer-01'),('N','buyer-02')]:
+        oid,tid,pi,ch=await purchase(db)
+        current=await db.scalar(text('select listing_id from orders where id=:id'),{'id':oid})
+        listing=listing or current
+        await db.execute(text('update listings set seller_id=:seller where id=:id'),{'id':listing,'seller':parties['seller-01']})
+        for table in ('orders','transactions'):
+            await db.execute(text(f'update {table} set buyer_id=:buyer,seller_id=:seller,listing_id=:listing where id=:id'),
+                {'id':oid if table=='orders' else tid,'buyer':parties[buyer],'seller':parties['seller-01'],'listing':listing})
+        roles[role]=dict(order_id=str(oid),transaction_id=str(tid),buyer_id=str(parties[buyer]),seller_id=str(parties['seller-01']),
+            listing_id=str(listing),payment_intent_id=pi['id'],charge_id=ch['id'],amount_cents=2500,currency='usd')
+        facts[pi['id']]=pi
+        facts[ch['id']]=ch
+    monkeypatch.setenv('S1681_ENVIRONMENT_SHA','a'*40)
+    monkeypatch.setenv('S1681_SPEC_SHA','b'*40)
+    monkeypatch.delenv('S1681_FIXTURE_LISTING_ID',raising=False)
+    from app.core.config import settings
+    monkeypatch.setattr(settings,'FRONTEND_URL','http://localhost:3000')
+    monkeypatch.setattr(settings,'STRIPE_TEST_MODE',True)
+    monkeypatch.setattr(settings,'ENVIRONMENT','test')
+    monkeypatch.setattr(settings,'STRIPE_SECRET_KEY','sk_test_s1714_disposable')
+    monkeypatch.delenv('RAILWAY_ENVIRONMENT',raising=False)
+    monkeypatch.delenv('PRODUCTION',raising=False)
+    from app.core import stripe_async
+    async def provider(fn,*args,**kwargs):
+        if fn.__name__=='list':
+            ch=facts[kwargs['charge']]
+            return {'data':[refund(ch,2500,'f1'+ch['id'][3:])] if ch['amount_refunded'] else [],'has_more':False}
+        return facts[args[0]]
+    monkeypatch.setattr(stripe_async,'run_stripe',provider)
+    await db.commit()
+    receipt=dict(schema_version=2,run_id=uuid.uuid4().hex,phase='online',environment_sha='a'*40,spec_sha='b'*40,roles=roles)
+    return {'receipt':receipt,'sha256':canonical_digest(receipt)},facts
+
+aca73 tests/test_refund_webhook_protocol.py lines187-221; full-sourceSHA25659873181ee3113640268dde1b2cb0e98edfd3e7369c14349eb4d3ffdaa596077
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('mutation',['W','swapped_buyer','partial','zero','negative','connected','live','fake_role'])
+async def test_signed_n_authority_cannot_admit_other_scope(db,monkeypatch,mutation):
+    from app.e2e.account_pool import account_pool_entry_for_localpart
+    envelope,facts=await f1_pair(db,monkeypatch)
+    await register_test_authority(db,envelope,purpose='negative')
+    event=event_for(envelope,facts,'N')
+    role=envelope['receipt']['roles']['N']
+    if mutation=='W':
+        uid=uuid.UUID(account_pool_entry_for_localpart('seller-02').account_id)
+        await db.execute(text("insert into users (id,email,role,is_test) values (:id,'seller-02@e2e-test.ai.market','seller',true) on conflict(id) do nothing"),{'id':uid})
+        for table,key in [('orders','order_id'),('transactions','transaction_id')]:
+            await db.execute(text(f'update {table} set seller_id=:seller,buyer_id=:buyer where id=:id'),{'seller':uid,'buyer':uuid.UUID(envelope['receipt']['roles']['P']['buyer_id']),'id':uuid.UUID(role[key])})
+        await db.commit()
+    elif mutation=='swapped_buyer':
+        for table,key in [('orders','order_id'),('transactions','transaction_id')]:
+            await db.execute(text(f'update {table} set buyer_id=:buyer where id=:id'),{'buyer':uuid.UUID(envelope['receipt']['roles']['P']['buyer_id']),'id':uuid.UUID(role[key])})
+        await db.commit()
+    elif mutation in ('partial','zero','negative'):
+        event['data']['object']['amount_refunded']={'partial':100,'zero':0,'negative':-1}[mutation]
+    elif mutation=='connected':event['account']='acct_other'
+    elif mutation=='live':
+        event['livemode']=event['data']['object']['livemode']=True
+    else:
+        # Provider metadata claiming N on P never supplies authority.
+        event=event_for(envelope,facts,'P')
+        event['data']['object']['metadata']={'role':'N'}
+    response=await signed_post(db,monkeypatch,event)
+    assert response.status_code==200,response.text
+    assert response.json()['message']=='e2e synthetic event suppressed'
+    assert await db.scalar(text('select refund_phase from stripe_events where stripe_event_id=:id'),{'id':event['id']}) is None
+
+
+
+aca73 tests/test_refund_processing_protocol.py lines22-46; full-sourceSHA2567e5a871fb2a165fe9280a1fd7f810a7a47477a5d1947eafa121c55604aa4cad4
+async def purchase(db, status='confirmed', *, synthetic=False):
+    key = uuid.uuid4().hex
+    buyer,seller,listing,oid,tid = [uuid.uuid4() for _ in range(5)]
+    for uid,role in [(buyer,'buyer'),(seller,'seller')]:
+        await db.execute(text("insert into users (id,email,is_test,status) values (:id,:email,:synthetic,'active')"),
+            {'id':uid,'email':f'{role}-{key}@'+('e2e-test.ai.market' if synthetic else 'example.invalid'),'synthetic':synthetic})
+    await db.execute(text('''insert into listings (id,seller_id,slug,title,description,price,category,schema_info)
+        values (:id,:seller,:slug,'S1714 disposable','Service test',25,'other','{}')'''),
+        {'id':listing,'seller':seller,'slug':key})
+    await db.execute(text('''insert into orders (id,order_number,buyer_id,seller_id,listing_id,listing_snapshot,
+        amount_cents,platform_fee_cents,seller_amount_cents,currency,stripe_payment_intent_id,status)
+        values (:id,:number,:buyer,:seller,:listing,'{}',2500,125,2375,'USD',:pi,'completed')'''),
+        {'id':oid,'number':'O'+key[:18],'buyer':buyer,'seller':seller,'listing':listing,'pi':'pi_'+key})
+    await db.execute(text('''insert into transactions (id,tx_number,origin,surface,buyer_type,buyer_id,seller_id,
+        listing_id,order_id,amount_cents,platform_fee_cents,seller_amount_cents,currency,stripe_payment_intent_id,status)
+        values (:id,:number,'listing_purchase','browser','human',:buyer,:seller,:listing,:oid,2500,125,2375,'USD',:pi,:status)'''),
+        {'id':tid,'number':'TX-'+str(int(key[:7],16)),'buyer':buyer,'seller':seller,'listing':listing,'oid':oid,'pi':'pi_'+key,'status':status})
+    await db.execute(text('update orders set transaction_id=:tid where id=:oid'), {'tid':tid,'oid':oid})
+    pi = {'id':'pi_'+key,'latest_charge':'ch_'+key,'amount':2500,'amount_received':2500,
+          'status':'succeeded','livemode':False,'currency':'usd','customer':'cus_'+key,
+          'metadata':{'order_id':str(oid),'transaction_id':str(tid)}}
+    charge = {'id':'ch_'+key,'payment_intent':pi['id'],'amount':2500,'amount_captured':2500,
+        'amount_refunded':0,'paid':True,'captured':True,'livemode':False,'currency':'usd',
+        'customer':pi['customer'],'created':int(datetime.now(timezone.utc).timestamp()),'metadata':{}}
+    return oid,tid,pi,charge
+
+aca73 alembic/versions/20260908_002_seller_listing_publications.py lines57-74; full-sourceSHA256e00f396bed2914ea6bc8ca815f554f5fddc817bb877b2029bf3ecf3b00045be6
+    # Generic listing/version writes cannot replace the approved offer or scope.
+    # Lifecycle status and active flags remain mutable for explicit revocation.
+    guards = {
+        'listings': ('listing_id', ['seller_id','title','description','category','tags','price','license','source_delivery','raw_metadata','fulfillment_type','listing_type']),
+        'listing_versions': ('listing_version_id', ['listing_id','version_label','prefix','manifest_hash','object_count','total_size_bytes']),
+        'delivery_authorities': ('authority_id', ['seller_id','listing_version_id','authority_kind','legacy_serial_id','connection_id','immutable_scope_hash','version']),
+    }
+    for table, (column, fields) in guards.items():
+        changed = ' OR '.join(f'to_jsonb(NEW.{field}) IS DISTINCT FROM to_jsonb(OLD.{field})' for field in fields)
+        op.execute(f"""CREATE FUNCTION guard_workspace_{table}() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM seller_listing_publications WHERE {column} = OLD.id)
+               AND ({changed}) THEN RAISE EXCEPTION 'published seller approval must not be changed'; END IF;
+            RETURN NEW;
+        END $$""")
+        op.execute(f'CREATE TRIGGER guard_workspace_{table} BEFORE UPDATE ON {table} FOR EACH ROW EXECUTE FUNCTION guard_workspace_{table}()')
+
+def downgrade():
+
+EVOLVING MP247 SERVICE observation 2026-09-12T16:07:06.431934+00:00, full-sourceSHA2566f80022c39fd440c8a6b2e267a3e6f205f05fb683b7db9ea0d1d0565e208eee8, not final candidate qualification:
+
+def admits_workspace_refund(event, db, *, normalized_stripe_account):
+    from app.api.v1.endpoints.webhooks import _stripe_event_has_s1656_test_shape
+    if not _stripe_event_has_s1656_test_shape(event, normalized_stripe_account=normalized_stripe_account) or event.get("type") != "charge.refunded":
+        return False
+    ch = (event.get("data") or {}).get("object") or {}
+    if (ch.get("livemode") is not False or ch.get("currency") != "usd" or ch.get("paid") is not True or ch.get("captured") is not True or
+        any(type(ch.get(k)) is not int or ch[k] <= 0 or ch[k] > 9007199254740991 for k in ("amount","amount_captured","amount_refunded")) or
+        ch["amount"] != ch["amount_captured"] or ch["amount"] != ch["amount_refunded"]):
+        return False
+    # Core order discovery is permitted; optional W schema/mount starts only
+    # after the fixed actor pair. P/N and unrelated traffic stop here.
+    ids = db.execute(select(Order.id).join(Transaction, Transaction.order_id == Order.id).join(Listing, Listing.id == Order.listing_id).where(Listing.seller_id == SELLER_ID, Transaction.seller_id == SELLER_ID, Transaction.buyer_id == BUYER_ID, Order.stripe_payment_intent_id == ch.get("payment_intent"), Order.seller_id == SELLER_ID, Order.buyer_id == BUYER_ID, Transaction.api_key_id.is_(None), Transaction.buyer_type == "human", Transaction.origin == "listing_purchase", Transaction.surface == "browser")).scalars().all()
+    if not ids:
+        return False
+    try:
+        assert_workspace_test_authority_ready_sync(db)
+        authorities = db.execute(select(WorkspaceRefundTestAuthority).where(WorkspaceRefundTestAuthority.payment_intent_id == ch.get("payment_intent"), WorkspaceRefundTestAuthority.charge_id == ch.get("id"))).scalars().all()
+        if not authorities:
+            # Fixed-pair traffic is qualifying W traffic even before binding.
+            # Only available, compatible authority may be terminally suppressed.
+            pointer, _, _ = _read_artifact(AUTHORITY_ROOT / "current.json", 16384)
+            _mounted_operation(pointer["operation_id"], current=True)
+            return False
+        if len(authorities) != 1 or ids != [authorities[0].order_id]:
+            raise WorkspaceTestAuthorityUnavailable("workspace_ambiguous_authority")
+        authority = authorities[0]
+        window = db.get(WorkspaceTestWindow, authority.window_id)
+        if window is None:
+            raise WorkspaceTestAuthorityUnavailable("workspace_window_missing")
+        owner, owner_raw, _, runtime_raw, _, _ = _mounted_operation(window.operation_id, current=False)
+        if owner_raw != window.owner_authorization_json or runtime_raw != window.runtime_json:
+            raise WorkspaceTestAuthorityUnavailable("workspace_retained_runtime_changed")

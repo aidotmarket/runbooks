@@ -1,0 +1,38 @@
+<testcase classname="tests.test_refund_webhook_protocol" name="test_signed_n_authority_cannot_admit_other_scope[W]" time="0.861"><properties><property name="provider_guard_self_test" value="fail-fast passed" /><property name="unmocked_provider_attempts" value="0" /></properties><failure message="AssertionError: {&quot;detail&quot;:&quot;Processing failed for critical event&quot;}&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code">db = &lt;sqlalchemy.ext.asyncio.session.AsyncSession object at 0x11b4ebbc0&gt;
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x115f9bb60&gt;
+mutation = 'W'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('mutation',['W','swapped_buyer','partial','zero','negative','connected','live','fake_role'])
+    async def test_signed_n_authority_cannot_admit_other_scope(db,monkeypatch,mutation):
+        from app.e2e.account_pool import account_pool_entry_for_localpart
+        envelope,facts=await f1_pair(db,monkeypatch)
+        await register_test_authority(db,envelope,purpose='negative')
+        event=event_for(envelope,facts,'N')
+        role=envelope['receipt']['roles']['N']
+        if mutation=='W':
+            uid=uuid.UUID(account_pool_entry_for_localpart('seller-02').account_id)
+            await db.execute(text("insert into users (id,email,role,is_test) values (:id,'seller-02@e2e-test.ai.market','seller',true) on conflict(id) do nothing"),{'id':uid})
+            for table,key in [('orders','order_id'),('transactions','transaction_id')]:
+                await db.execute(text(f'update {table} set seller_id=:seller,buyer_id=:buyer where id=:id'),{'seller':uid,'buyer':uuid.UUID(envelope['receipt']['roles']['P']['buyer_id']),'id':uuid.UUID(role[key])})
+            await db.commit()
+        elif mutation=='swapped_buyer':
+            for table,key in [('orders','order_id'),('transactions','transaction_id')]:
+                await db.execute(text(f'update {table} set buyer_id=:buyer where id=:id'),{'buyer':uuid.UUID(envelope['receipt']['roles']['P']['buyer_id']),'id':uuid.UUID(role[key])})
+            await db.commit()
+        elif mutation in ('partial','zero','negative'):
+            event['data']['object']['amount_refunded']={'partial':100,'zero':0,'negative':-1}[mutation]
+        elif mutation=='connected':event['account']='acct_other'
+        elif mutation=='live':
+            event['livemode']=event['data']['object']['livemode']=True
+        else:
+            # Provider metadata claiming N on P never supplies authority.
+            event=event_for(envelope,facts,'P')
+            event['data']['object']['metadata']={'role':'N'}
+        response=await signed_post(db,monkeypatch,event)
+&gt;       assert response.status_code==200,response.text
+E       AssertionError: {"detail":"Processing failed for critical event"}
+E       assert 500 == 200
+E        +  where 500 = &lt;Response [500 Internal Server Error]&gt;.status_code
+
+tests/test_refund_webhook_protocol.py:217: AssertionError</failure></testcase>

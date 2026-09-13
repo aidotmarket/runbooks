@@ -1,0 +1,99 @@
+{
+  "status": "EXACT_15_FAILURE_IDENTITIES_REPRODUCED_ON_C3",
+  "baseline_head": "c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2",
+  "baseline_xml_sha256": "00ddf599eeb5eda5e7b68eb776ff3fce6411137932fc32c62c539631043c8811",
+  "reference_xml_sha256": "719311d9f18c0bd8c09bb50978aabf1ab49c9a78b221687b4b4b193020c27dff",
+  "rows": [
+    {
+      "node": "tests.test_webhooks::test_payment_succeeded_billing_failure_leaves_failed_checkpoint",
+      "reference_message": "assert \"INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'\" == \"INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message\"\n  \n  - INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message\n  + INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'\n  ?                                                                                                                                                      +++++++++++++++++++++++++++++++                                                                                                             +++++++++++++++++++++++++++++++ +++++++++++++++++++                                                                                                      ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+      "baseline_message": "assert \"INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'\" == \"INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message\"\n  \n  - INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message\n  + INSERT INTO stripe_events (stripe_event_id, event_type, stripe_created, livemode, stripe_account, processed_at, payload_sha256, status, error_message, payload_json, signature_valid) VALUES (:event_id, :event_type, :stripe_created, :livemode, :stripe_account, NOW(), :sha256, 'failed', :err, cast(:signed_payload as jsonb), :signature_valid) ON CONFLICT (stripe_event_id) DO UPDATE SET status = 'failed', error_message = EXCLUDED.error_message WHERE stripe_events.status <> 'completed' AND stripe_events.refund_phase IS DISTINCT FROM 'applied'\n  ?                                                                                                                                                      +++++++++++++++++++++++++++++++                                                                                                             +++++++++++++++++++++++++++++++ +++++++++++++++++++                                                                                                      ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+      "both_dedup_row_1": false
+    },
+    {
+      "node": "tests.test_e2e_stripe_isolation::test_stripe_webhook_suppresses_e2e_metadata_before_handlers",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_07_idempotency_concurrent_only_one_processes",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_08_payload_sha256_stored_in_dedup",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_09_checkout_completed_order_paid",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_10_dispute_created_flagged_revoked",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_11_dispute_closed_won_restored",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_12_refund_full_revoked",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_13_refund_partial_access_kept",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_14_payout_failed_seller_flagged",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_16_db_error_critical_returns_500",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_17_db_error_non_critical_returns_200",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_18_dedup_row_inserted_before_processing",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_19_return_codes_per_section_5",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    },
+    {
+      "node": "tests.test_webhook_audit::test_20_checkout_completed_calls_handle_payment_when_canonical_tx",
+      "reference_message": "IndexError: tuple index out of range",
+      "baseline_message": "IndexError: tuple index out of range",
+      "both_dedup_row_1": true
+    }
+  ],
+  "limits": "Separate bounded baseline execution; no expansion of six accepted exceptions, no test edits or regression waiver. Initial collection failure retained separately. No network or database/container resources."
+}

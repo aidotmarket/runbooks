@@ -1,0 +1,1 @@
+<testcase classname="tests.test_refund_webhook_protocol" name="test_signed_n_authority_cannot_admit_other_scope[W]" time="0.608"><properties><property name="provider_guard_self_test" value="fail-fast passed" /><property name="unmocked_provider_attempts" value="0" /></properties></testcase>
