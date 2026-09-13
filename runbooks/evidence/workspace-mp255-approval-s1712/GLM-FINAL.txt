@@ -1,0 +1,256 @@
+APPROVE_WITH_NITS
+
+## Findings
+
+1. **LOW — Residual package prose still reports pip freeze line counts as distribution counts; the authoritative correction is 217/221, not 218/222**
+   - **Evidence:** package `seller-combined-implementation-review-final-mp255-v2-s1712@FINAL-MANIFEST:308b82c71802fe2a923f8acbb18437488d4fcf3695f5981df275cbc9490fbe91`:
+     - `evidence/private-runtime/RESULT.json:61` says `package_entries: 218`.
+     - `release/SELLER-WORKSPACE-DIAGNOSTIC-EVIDENCE-RUNBOOK-S1712.md:666` says “218-entry pip freeze”; `:672` repeats “full218-entry inventory”.
+     - The retained `evidence/effective-runtime/receiver-freeze.txt` has 218 physical lines, but only 217 match `name==version`; line 218 is the pip-cache warning. `native-freeze.txt` similarly has 222 lines and 221 distributions.
+     - `/Users/max/koskadeux-state/s1656/s1714-mp255-effective-runtime-owner.json:2-11` records the controlling correction: receiver 217, native 221, warning line included, and exactly four added test distributions.
+   - **Observed:** stale prose/summary counts conflate output lines with distributions. **Expected:** prose reports 217 receiver distributions and 221 native-mode distributions, and separately explains the one warning line.
+   - **Reproduction:** static evidence only: count regex lines matching `^[A-Za-z0-9_.-]+==` in the two freeze files and compare with the one-line JSON `distributions` arrays.
+   - **Impact:** documentary confusion and possible image-inventory mixing; no source, raw output, hash, or dependency result changes.
+   - **Smallest required outcome:** in the next documentary-only fold, replace 218/222 with “218/222 output lines including one warning = 217/221 unique distributions”. Do not alter retained raw files.
+   - **Verification criterion:** all narrative counts agree with the distribution JSON and explicitly identify the warning line; both pip-check exit-0 receipts remain unchanged.
+
+2. **LOW — Two secondary release documents still label the prior MP254 candidate as “current” although the current diagnostic runbook records MP255**
+   - **Evidence:** documentary `24da40e953109eb71996f1a2ed27116bb84167d0`:
+     - `release/SELLER-PRODUCTION-RELEASE-PLAN-S1712.md:5-13` calls MP254/backend `5643fc2…` the “Current implementation checkpoint” and describes 2,529 cases.
+     - `release/SELLER-WORKSPACE-CURRENT-OPERATIONS-S1712.md:3` likewise says MP254/`5643fc2…` is current.
+     - In contrast, `release/SELLER-WORKSPACE-DIAGNOSTIC-EVIDENCE-RUNBOOK-S1712.md:658-676` records the exact MP255 candidate, 2,537 nodes, final environment/documentary identities, final private qualification, cleanup, and remaining production gates.
+   - **Observed:** an operator reading only the two secondary documents can select the superseded candidate. **Expected:** those documents should either be updated to MP255 or prominently marked as historical/superseded by the diagnostic evidence runbook.
+   - **Reproduction:** static evidence only: search those two files for `MP255`, `2a2e7ae`, `a0e028f`, or `2537`; there are no matches, while the diagnostic runbook contains all of them.
+   - **Impact:** operational/documentary ambiguity only. The current package and primary runbook still fail closed against production overclaiming and identify the correct review candidate.
+   - **Smallest required outcome:** add a supersession banner or current-candidate paragraph to both secondary documents.
+   - **Verification criterion:** no document calling itself “current” omits backend `2a2e7ae…`, environment `a0e028f…`, documentary `24da40e…`, and the 2,537/2,531/six-failure result unless explicitly marked historical.
+
+3. **LOW — The in-repository shared-boundary test still defaults to and hard-pins host `1dc340a6…`; the current host `a4456c86…` boundary is proven by the separately bound private harness receipt**
+   - **Evidence:** `ai-market-backend@2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50:tests/test_workspace_test_refund_admission.py:30-35` defaults to `environment-host-frozen-1dc340a6d29b` and asserts host hash `1dc340a6…`.
+   - The final private run binds `private-paid-mp255-001/harness-snapshot/test_corrected_shared_boundary.py` at SHA-256 `519b70e7…` in `private-paid-mp255-001/RESULT.json:1791`; its `:20-24` asserts current host `a4456c86…`. The bound `fixture/native-final.xml` contains the five passing boundary cases with `host_source_before["seed/workspace-host.py"] = a4456c86…`.
+   - **Observed:** repository test reproducibility is split across the old host pin and the bound supplement. **Expected:** the in-repo test should point at the final host, or the supplement/supersession should be cited directly beside the row.
+   - **Reproduction:** static evidence only; compare the source pin with the private XML property.
+   - **Impact:** low. The digest-validation code path is unchanged between the two host revisions, and the current host boundary actually passed in the final 29-case receipt.
+   - **Smallest required outcome:** in a next test-only revision, parameterize/rebind the test to the final host or make the current-host supplement the canonical reproducer in the row documentation.
+   - **Verification criterion:** the executing boundary receipt records host `a4456c86…`, and its reproducer is available from the repository or hash-bound supplement without following historical prose.
+
+4. **NIT — One runtime-sensitive source comment still says “Stripe 15.4” after the accepted 15.6.1-only amendment**
+   - **Evidence:** `ai-market-backend@2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50:app/services/transaction_service.py:733-735`.
+   - **Observed:** the qualified runtime and accepted amendment are Stripe 15.6.1/HTTPX 0.28.1. **Expected:** operational comments should refer to the pinned qualified runtime rather than an untested minor version.
+   - **Reproduction:** static evidence only (`rg '15\.4'` over backend source).
+   - **Impact:** comment-level confusion only; no dependency constraint or runtime behavior changes.
+   - **Smallest required outcome:** change “Stripe 15.4” to “the pinned qualified Stripe SDK” in a later documentation/source-comment-only revision.
+   - **Verification criterion:** surviving operator-facing comments do not assert qualification on 15.4.
+
+No HIGH or MEDIUM finding remains. The verdict agrees with these non-blocking findings.
+
+## Coverage
+
+### Exact artifact identity independently verified
+
+- Backend repository: `aidotmarket/ai-market-backend`.
+  - Review base: `c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2`.
+  - Candidate: `2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50`, tree `b4cbfd77985e7878896735ee2e041a6184814c38`.
+  - Direct parent: `f581e21195c6dda41510f5bf221a50fb9b2367fd`; the prior reviewed `5643fc2…` is an ancestor. The `c3a…` base is the accepted full-contract diff base, not the immediate parent.
+  - Runnable verified command:  
+    `git -C /Users/max/Projects/ai-market/ai-market-backend diff --no-ext-diff c3a62af8ccf60929a8e7cec3d62c9d30e0adefd2..2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50`
+  - Result: exactly 37 files, 7,950 insertions, 911 deletions; output is byte-identical to package `source/BACKEND-FULL-DIFF.patch` SHA-256 `52e9cbaee45e3ff249b550392da48132e93fec2db3a9bd6940ab1e4dbc901627`.
+  - I recomputed all 3,033 Git blob IDs, sizes, SHA-256s, and Git modes from the extracted candidate source against `SOURCE-BLOB-MANIFEST.json`, then reconstructed the Git tree hash as `b4cbfd7…`. The source archive SHA is `2ab9ca7ff450e66652b8953c9d21900166b7d8a3dc293ff465551b43dca29dc1`.
+
+- Environment repository: `aidotmarket/money-path-test-environment`.
+  - Base `43d67264ab7a3a7e47d6cc6911737273ce1c94cc`; candidate `a0e028f4e0fa9ab6e53510909e7e8ddd725f20ae`, tree `39f305a9dfe919d19895a17a66064d3608a56b07`, direct parent `1e759237…`.
+  - Runnable verified command produces the package environment patch exactly; 12 scoped files changed.
+  - The worktree is clean at the candidate. Host SHA is `a4456c86…`; environment test SHA is `77eba3ee…`.
+
+- Documentary repository: `aidotmarket/runbooks`, candidate `24da40e953109eb71996f1a2ed27116bb84167d0`, tree `86af90ec5c5c11229b15e27cbe15c3472c5294b8`; worktree clean.
+
+- Package `FINAL-MANIFEST.json` SHA-256 is `308b82c71802fe2a923f8acbb18437488d4fcf3695f5981df275cbc9490fbe91`; all 232 manifest entries match bytes and sizes. All 142 external evidence hashes match. Owner receipts agree on 232 package files, 142 external files, 3,033 backend blobs, 48 environment blobs, and 43 matrix rows.
+
+- Since prior reviewed backend `5643fc2…`, the backend product files are unchanged; only `tests/test_workspace_test_refund_admission.py` changed. Since prior environment `1e759237…`, only the unused tests and backend pin literals changed; `seed/workspace-host.py` remains byte-identical at `a4456c86…`.
+
+### Execution and evidence verified from retained raw artifacts; nothing was rerun
+
+- Parsed the six selected final XML cohorts:
+  - workspace-native 939 pass;
+  - money 1,019 pass/four baseline failures;
+  - canonical 55 pass;
+  - webhooks 164 pass;
+  - adjacent 284 pass/two baseline failures;
+  - compatibility 70 pass.
+  - Union: 2,537 unique nodes, exactly matching the 43-row matrix union; 2,531 pass, six failures, zero errors/skips/xfails.
+- Compared the prior 2,529-node inventory to the current matrix: zero removed, exactly the eight new B04 nodes added.
+- `FINAL-1990-NODE-RECONCILIATION.json` maps all 1,990 original nodes one-to-one; six fail, all the exact historical baseline set.
+- Verified the wrapper timeout is retained as history, the child was observed alive, the child later completed, and owner cleanup found the actual containers/volumes/image absent.
+- Verified the 29-case environment/private XML: 24 native PostgreSQL cases plus five current-host shared-boundary cases, zero failures.
+- Verified ten unused refusal properties and two retry/fault properties, including exact error categories, repeated refusals, 304-table fingerprint equality, zero provider calls, two fresh database proofs, retained receipt hashes, and identical final archive bytes.
+- Verified eight B04 XML properties at 4096/4097 across fixed orders, protected capture, row locks, and coherent refund events.
+- Verified the accepted runtime amendment manifest is exactly SHA `c9e719ec7a3853685830a02bebef8bf6912ea84f4d3da022f69f97a8a6b5d96f`, with explicit GLM and DeepSeek acceptance.
+- Verified runtime identities separately:
+  - instrumented full-cohort image `2a83590d…`: Stripe 15.6.1, HTTPX 0.28.1, 221 unique freeze entries, pip check exit 0;
+  - private image `dc0051cb…`: 217 receiver distributions, 221 native-mode distributions after readonly `/testdeps`, both pip checks exit 0, financial imports from `/opt/venv`, and all 209 mounted dependency hashes verified.
+- Verified seed72 and Compose contract raw logs both exit 0.
+- Verified worker evidence: 27 passes, 500 processed, 20 expired excluded on every pass, 26 real 60-second continuations, 1,000 distinct GET requests, zero creates, final deferred count zero.
+- Verified final private lifecycle: inspect/open/activate/bind, signed refund processed twice with applied event/refunded order, close, database restoration, unchanged source, 73 hashed logs, process canary, negatives, and cleanup.
+
+### Not reviewed or not reobserved
+
+- I did not run tests, allocate a container, contact a database/provider, mutate source/state, or dispatch agents, as instructed.
+- I did not reobserve the removed original runtime containers. The effective-runtime evidence is accepted only as a later read-only reproduction of the immutable image and unchanged mounts, not as a retroactive observation.
+- I did not access GitHub live; the three-workflow/six-job success evidence is retained raw evidence.
+- I did not body-inspect every one of the 2,537 test functions. I reviewed the full product delta, key source paths, all requirement mappings, prior substantive GLM/DeepSeek analyses, raw XML/properties, and focused bodies for the changed B04/unused predicates.
+- Genuine settlement/offline/stable/scheduled production phases, real custody/archive, public checkout, deployed production writer controls, cutover, and enabled AWS S3/Cloudflare R2 remain outside this implementation qualification and are not approved here.
+
+## Numbered questions
+
+### 1. Do the corrected real PostgreSQL unused refusal/retry cases and eight B04 boundary cases close the prior GLM and DeepSeek findings without masking an earlier guard or truncating a result?
+
+**Yes.**
+
+- The ten real PostgreSQL refusal cases are present and green:
+  - paid open, registration, refunded, extra order, open without terminal, changed baseline, inactive Party, Connect identity, damaged artifact, and wrong pin.
+  - Each refuses twice with the exact expected category and leaves the complete 304-table fingerprint unchanged.
+  - `stripe.StripeClient`, `CustodyVault.from_host`, and `ConnectProvider` are guarded and receive zero calls.
+- The two real host retry cases are present and green:
+  - lost proof response;
+  - archive publication failure.
+  - Both retry with the sequence `inspect → deactivate` twice, produce equal database-restored proofs, preserve the original baseline/opening/terminal bytes, leave the database fingerprint unchanged, and publish the identical archive bytes on retry.
+- Earlier guards are not masked:
+  - `receiver_projection` validates mounted operation, protocol readiness, short transaction, retained window, active Party, closed state, terminal cardinality/financial state, protected rows, and baseline before returning restoration.
+  - Wrong pin fails in artifact binding; damaged artifacts fail guarded reads; paid/refunded states fail terminal/cardinality checks before the unused branch.
+- B04 now directly proves both sides:
+  - `_fixed_orders`: 4096 exact sorted IDs accepted; 4097 raises `workspace_order_cardinality_overflow`.
+  - `capture_protected_state`: 4096 accepted with complete records; 4097 raises protected overflow.
+  - `_lock_protected_rows`: at 4096 a second PostgreSQL session observes every row locked; at 4097 the guard fires before locks and the observer can lock all rows.
+  - `_resolved_refund_events`: exactly 4096 coherent event IDs accepted; 4097 refuses ambiguity. Each event has its own ID-bearing digest and valid applied-refund linkage, so truncation cannot masquerade as success.
+- Therefore prior GLM findings 2/3 and DeepSeek’s B04 MEDIUM finding are closed on the exact current candidate.
+
+### 2. Does all retained source and current execution evidence satisfy every requirement, including original financial behavior, authority/retry semantics, deadline/cleanup/worker behavior, accepted runtime amendment, and full test preservation?
+
+**Yes for implementation qualification within its stated local scope; no production release is approved.**
+
+#### Requirement-by-requirement result
+
+Legend: matrix references are to `evidence/backend/FINAL-EXECUTION-MATRIX.json`.
+
+| ID | Result | Decisive implementation/evidence |
+|---|---|---|
+| B01 | YES | Matrix `:54`; `tests/test_workspace_test_authority.py:54` proves repeated migration/readiness and guard/drift refusals from the frozen catalog. |
+| B02 | YES | Matrix `:111`; `tests/test_workspace_test_authority.py:111` plus registration-substitution tests prove immutable columns/delete refusal and no partial update. |
+| B03 | YES | Matrix `:220`; `tests/test_workspace_test_authority.py:140` exercises the transition matrix, revision rules, and one-nonclosed-window invariant. |
+| B04 | YES | Matrix `:325`; `tests/test_workspace_test_refund_admission.py:1613-1790` plus the eight passing 4096/4097 XML properties close the prior gap. |
+| B05 | YES | Matrix `:376`; `tests/test_workspace_test_refund_admission.py:779` proves exact one-order delta/refusals and retained registration. |
+| B06 | YES | Matrix `:499`; real synchronized sessions/barriers in `test_workspace_test_authority.py:179` and binder tests prove lock ordering, rollback, and recovery. |
+| B07 | YES | Matrix `:616`; `tests/test_refund_processing_protocol.py:375` proves event-first existing-row lock ordering and unavailable-vs-refused behavior. |
+| B08 | YES | Matrix `:748`; guarded artifact tests at `tests/test_workspace_test_refund_admission.py:21-122` plus final current-host five-case private XML. |
+| B09 | YES | Matrix `:984`; `_purchase_binding` at `workspace_refund_test_admission.py:303-335` and mutation tests at `:877`. |
+| B10 | YES | Matrix `:1107`; non-W zero-call tests `:494-529` and signed regression tests prove W remains last. |
+| B11 | YES | Matrix `:1195`; fixed-W authority failures and same-event recovery tests at `:530-542,714-755`. |
+| B12 | YES | Matrix `:1336`; fresh process/main/public checkout tests at `:697-708,1036-1094`. |
+| B13 | YES | Matrix `:1375`; full real open/bind/refund/close lifecycle at `:656-694` and public checkout path `:1041`. |
+| B14 | YES | Matrix `:1499`; unregistered refund/extra-order incident tests at `:779-819` and close predicates at `workspace_refund_test_admission.py:762-779`. |
+| B15 | YES for backend finite protected state | Matrix `:1544`; `capture_protected_state`/comparison at `:424-477`; physical environment proof remains explicitly separate as required. |
+| B16 | YES | Matrix `:1676`; `tests/test_e2e_surgical_reset.py:497` exercises normalized UUID/auth/review ordering and zero destructive effects. |
+| B17 | YES | Matrix `:2903`; actual ASGI/refusal and durable background refusal outcome tests prove exact messages and empty counts. |
+| B18 | YES | Matrix `:4130`; `tests/test_workspace_test_refund_admission.py:926` drives real direct and scheduled settlement callers. |
+| PI01 | YES | Matrix `:4165`; canonical PI extension/catalog/collision/deadline tests in `test_order_money_protocol.py:660` onward. |
+| PI02 | YES | Matrix `:4390`; exact 12-field immutable binding tests at `test_order_money_protocol.py:795`. |
+| PI03 | YES | Matrix `:4567`; narrow signed failed-capture recovery matrix at `test_refund_processing_protocol.py:3882`. |
+| PI04 | YES | Matrix `:4610`; four helper modes and every binding-field refusal at `:3847-3877`. |
+| PI05 | YES | Matrix `:4695`; committed 28-key attempt, one-shot create, concurrency, and crash-boundary tests. |
+| PI06 | YES | Matrix `:4788`; signed fourth-mode recovery at `test_refund_processing_protocol.py:3511`. |
+| PI07 | YES | Matrix `:4849`; all eight provider-status rows at `:3473-3506`, with exact evidence/release structures. |
+| PI08 | YES | Matrix `:5108`; once-only release and stale/duplicate observation tests at `:4274-4321`. |
+| PI09 | YES | Matrix `:5180`; scheduled, async, and signed-failure spend-writer paths plus old-cleanup exclusion tests. |
+| PI10 | YES | Matrix `:5303`; authenticate-first read-only reconciliation in `transaction_service.py:523-547` and completed-state tests. |
+| PI11 | YES | Matrix `:5413`; real integration/notification/legacy reverse-absence modules are present and green. |
+| PI12 | YES | Matrix `:5631`; full caller inventory reconciles the whole corpus with no unclassified/missing path. |
+| PI13 | YES | Matrix `:10663`; owned-client cleanup and next-clone regression at `test_workspace_test_refund_admission.py:1422`. |
+| PI14 | YES | Matrix `:10696`; full source/archive/raw phase evidence, cleanup, workflow evidence, and runbook binding are present. |
+| R01 | YES | Matrix `:15820`; authority predicates at `transaction_service.py:617-628`, shared service `:807`, and mounted command tests. |
+| R02 | YES | Matrix `:15889`; original terms/provenance co-commit at `transaction_service.py:564-615` and matrix `:4469`. |
+| R03 | YES | Matrix `:15946`; immutable same-key request and 23-hour/30-second tests, including concurrency and lost response. |
+| R04 | YES under accepted amendment | Matrix `:16003`; 5/20/5 budget and native client at `transaction_service.py:54-107,686-738`; actual runtime is Stripe 15.6.1/HTTPX 0.28.1 with full freeze/check. |
+| R05 | YES | Matrix `:16172`; provider-read-only completion and atomic financial effects at `transaction_service.py:719-804`; no fabricated Stripe event. |
+| R06 | YES | Matrix `:16341`; shared audit/cursor and truthful `audit_recording_pending`/`outcome_unknown` behavior. |
+| R07 | YES | Matrix `:16419`; separate recovery pass at `scheduled.py:667-771`; 500/20/600/60-second behavior has raw worker proof. |
+| R08 | YES | Matrix `:16499`; known PI read/complete after cutoff, zero create after cutoff, one-shot cancel retained. |
+| R09 | YES local qualification | Matrix `:16580`; real broker/Beat/worker test plus 27-pass/500-item/1,000-GET raw evidence. Deployed production proof remains explicitly separate. |
+| R10 | YES | Matrix `:16631`; 1,990→2,529→2,537 preservation, exact six failures, and actual synchronized race winner. |
+| R11 | YES with LOW documentary nit | Matrix `:21755`; current diagnostic runbook `:658-676` records outcomes and open production gates; stale secondary docs are finding 2. |
+
+Financial behavior is preserved by the exact delta: no backend product file changed after prior reviewed `5643fc2…`, only the B04 test file changed; no host product logic changed in the environment delta. The accepted amendment changes only the Stripe version literal, not HTTPX, dependency checks, deadlines, cleanup, worker, or other row semantics.
+
+### 3. Is unused closure/archive behavior sound under its exact predicate and fresh retry checks, with no provider/custody writes?
+
+**Yes, within the stated authenticated-local-operator trust boundary.**
+
+- Exact request validation accepts only:
+  - the ordinary owned-restoration shape; or
+  - the unused variant `{before_state: exact eight-field BASELINE_STATE}` at `money-path-test-environment@a0e028f…/seed/workspace-host.py:411-422`.
+- The receiver first requires:
+  - exact mounted operation/pins;
+  - schema/migration/catalog readiness;
+  - active Party and identity cardinality;
+  - closed window;
+  - exact no-purchase terminal, null registration, empty delta, resolved financial state, protected comparison, and row locks (`:480-501,548-608`).
+- Host selection requires:
+  - custody, provider, and projection all null;
+  - exactly baseline/opening/terminal resources (`:995-997`).
+  - Any started or uncertain provider/custody resource excludes the path and enters the ordinary recovery branch.
+- Completion requires:
+  - phase `preparing`, `last_completed_step=deactivate`, no failure, null resource groups, and exact terminal resources (`:1000-1012`);
+  - archive validation of all resource identities/hashes and explicit `disposition=unused` (`:1015-1042`).
+- Retry behavior:
+  - proof-response loss records `receiver_outcome_unknown`;
+  - archive failure records `receipt_persistence_failed`;
+  - both re-enter through inspect and a fresh native deactivate proof, then publish byte-identical archive data;
+  - next-operation rollover verifies the completed unused archive and creates a fresh audit without vault/provider calls (`:1045-1067`).
+- Terminal semantics:
+  - status exposes the native closed window plus legacy phase/last step;
+  - the completed archive’s explicit `disposition=unused` prevents any retained-custody claim;
+  - default seed/reset/up call `--preserve-check` before effects and cannot erase lineage.
+- No provider/custody write occurs on the unused path; raw properties record zero attempts.
+- The remaining trust boundary is explicit: a malicious local operator who can alter guarded history is outside this proof.
+
+### 4. Does the package accurately distinguish implementation qualification from still-required genuine settlement/offline, stable/scheduled, and deployed production proof?
+
+**Yes.**
+
+- The current diagnostic runbook states that all 2,537 cases, 2,531 passes, six baseline failures, 29 environment/shared cases, wrapper-timeout history, final private qualification, and cleanup establish local qualification only (`:658-676`).
+- It explicitly preserves as open: protected settlement phases, production cutover, real AWS S3/R2 delivery/profiling, real custody/archive, and joint release confirmation.
+- Final private evidence is labeled synthetic-provider/private-transport evidence, not public checkout, real custody, or production.
+- Effective-runtime inspections are explicitly later reproductions of the immutable image and unchanged mounts, not observations of the removed original containers.
+- The stale secondary-document and count wording above are non-blocking documentary nits; they do not convert local evidence into a production claim.
+
+## SIMPLER
+
+**None found that preserves every requirement and removes more than the current correction already removes.**
+
+The current correction is already minimal:
+
+- zero backend product-file changes since prior reviewed `5643fc2…`;
+- backend change confined to one test file;
+- environment host logic unchanged;
+- environment delta confined to unused tests and backend pin literals;
+- no runtime/provider/schema redesign.
+
+I attempted to remove:
+
+- one side of each 4096/4097 pair: not removable because B04 explicitly requires accepted and refusal sides plus no truncation;
+- one of proof-loss/archive-failure retry: not removable because the clarification requires both;
+- the legacy `preparing` phase: replacing it would add a new phase/schema and broader semantic change for no invariant gain; `last_completed_step=deactivate` plus archive `disposition=unused` already carries the meaning;
+- the separate private/MP runtime inventories: not removable because they are different image identities and substituting either for the other would break exact dependency proof.
+
+The only simpler immediate change is documentation-only: apply the 217/221 correction and supersession banners, with zero source/raw-output changes.
+
+## BETTER
+
+**Advisory: add a machine-readable obligation/proof manifest and validator.**
+
+Map every semantic obligation to required tagged evidence: each B04 path/count, each unused fault/retry, image ID, unique distribution count versus warning-aware raw line count, pip check, mounted-file manifest, 1,990/2,529/2,537 reconciliations, worker metrics, private lifecycle step, cleanup, and each still-open production gate.
+
+- **Failure-mode comparison:** hand-assembled narrative can leave a stale “current” document or 218/222 count; the validator fails packaging immediately when a required tag is absent or conflicts with raw data.
+- **Cost:** one small additive validator and manifest; no product or runtime change.
+- **Rollback:** remove the additive validator/receipt without touching source or qualification behavior.
+
+This is advisory, not a mandate: no scope violation or material implementation risk was established by the current candidate.

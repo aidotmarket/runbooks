@@ -1,7 +1,7 @@
 ---
 title: Seller Workspace live release operations
 owner: vulcan
-last_verified: '2026-09-12'
+last_verified: '2026-09-13'
 aliases:
   - Seller Workspace production release
   - AWS profiling cleanup
@@ -13,6 +13,30 @@ error_signatures:
 ---
 
 # Seller Workspace live release operations
+
+
+## Current approved implementation and published harness — 13 September 2026
+
+GLM and DeepSeek both approved the final implementation with advisory nits and no high or medium findings. Their agreement is approval under the explicit project rule; CC is waived. The [complete owner decision](evidence/workspace-mp255-approval-s1712/OWNER-IMPLEMENTATION-DECISION.json), [raw review and coverage manifest](evidence/workspace-mp255-approval-s1712/MANIFEST.json), and [documentary dispositions](evidence/workspace-mp255-approval-s1712/DOCUMENTARY-DISPOSITION.txt) retain the evidence. DeepSeek's full coverage combines its prior semantic review with the latest corrective review; the latest response alone is not a new review of every requirement.
+
+Backend `2a2e7ae8ec1c2e5cc3f517057533ff637ca20e50` remains the approved candidate, not a claim about deployed production. Environment PR37 is published at `fe02fa858d650e702bd8bcef8e1d195e348cdb33`, with tree `39f305a9dfe919d19895a17a66064d3608a56b07` identical to reviewed candidate `a0e028f4e0fa9ab6e53510909e7e8ddd725f20ae`. Reviewed documentary snapshot `24da40e953109eb71996f1a2ed27116bb84167d0` remains immutable; the later publication records source linkage without changing executed receipts. Earlier dated status and pending-review statements below are historical and superseded by this section.
+
+Qualification reconciled 2,537 backend cases to 2,531 passes and six exact inherited baseline failures, with no missing cases. Final private qualification passed 29 native/shared cases and eight negative custody/mount checks, refund replay, database restoration and owned-resource absence. Final host unit tests passed 55 checks; seed 72 and Compose checks passed. Receiver and test runtimes contain 217 and 221 distributions respectively, with Stripe15.6.1, HTTPX0.28.1 and successful dependency checks. Older 218/222 counts include a warning line. Environment has no hosted workflow; do not report absent CI as a passing hosted run.
+
+The full enabled release remains unfinished. Mars owns the protected settlement sequence and window issuance. Protected run25 must keep its current checkout and pins. Subsequent obligations are genuine settlement/hold phases, exact four-service production cutover, actual AWS profiling, both AWS S3 and credential-based R2 connection/publication/delivery journeys, and joint AIM Data confirmation. R2 profiling is explicitly unavailable and is not required for this release. The USD100 authorization is cumulative; the historical84.8369454546 exposure is not a current bill or new allowance.
+
+### Diagnose, support and upgrade from this checkpoint
+
+Start by separating approved source, published environment and actual deployed identity. Read the [published host procedure](https://github.com/aidotmarket/money-path-test-environment/blob/fe02fa858d650e702bd8bcef8e1d195e348cdb33/workspace/README.md) for the exact command interface, lock, custody and recovery mechanics. Its dated construction/test-count paragraphs are historical; the current qualification and approval above supersede them. Use the [production cutover runbook](seller-production-payment-cutover.md) for deployment controls. Never substitute the published harness merge for an executed protected-runtime pin.
+
+From the actual adopted environment checkout, `rtk proxy bin/workspace-fixture status` reads the fixed authority pointer, journal and backend window without creating authority. Record the checkout SHA, actual versions.env, container/image/source identity, read-only mounts and returned operation/window before interpreting an error. No fixture mutation is authorized merely because status succeeds or a deadline passes. After owner issuance, the normal sequence is open-window, activate, normal authorized public purchase, bind-purchase, normal signed refund, close-window, deactivate; registration must precede refund.
+
+The host journal `.state/workspace-fixture.json` and original receipts under `.state/workspace-windows/<windowUUID>/` retain baseline, opening, registration and terminal evidence. Preserve them for support. A lost receiver response may follow a committed transaction: reconcile the original operation and retry with the same identities, never enroll a replacement credential or reconstruct a baseline. If activation is incomplete or uncertain, keep the window open for recovery; closing first prevents that recovery. A provider denial, timeout or malformed response is not proof of absence. Deactivation restores the owned readiness projection but retains credential custody and financial history. Seed/reset/up deliberately refuse retained lineage; deleting the journal to unblock them is not a supported repair.
+
+For a future upgrade, preserve the accepted contract, full source archive, all original test identities and prior failures. Recheck protected-account cleanup, canonical/legacy caller routing, nullable unique payment binding, signed-event replay, reserved-spend recovery, migration/readiness definitions, bounded provider calls and SDK behavior. Run the complete backend qualification and the environment seed, Compose and host suites at one frozen source, then actual private database/container lifecycle and negative custody/mount checks. Record exact runtime distributions, source hashes, commands, all test phases and owned-resource absence. Compare complete named cases rather than totals alone; advisory documentation fixes do not authorize changing assertions or financial behavior.
+
+The durable raw execution archive remains in `/Users/max/Documents/Codex/2026-09-11/seller-workspace-final-release-continuation/outputs/`. Begin at `SELLER-ENVIRONMENT-IMPLEMENTATION-CURRENT-S1712.json`, the detailed `SELLER-WORKSPACE-DIAGNOSTIC-EVIDENCE-RUNBOOK-S1712.md`, and `seller-combined-implementation-review-final-mp255-v2-s1712/FINAL-MANIFEST.json` (SHA256 `308b82c71802fe2a923f8acbb18437488d4fcf3695f5981df275cbc9490fbe91`). Preserve full raw receipts and use their manifests to retrieve and verify evidence on a future host; the compact committed review records do not replace the complete source/test archives. Do not restore deleted qualification resources using stale container IDs or ports.
+
 
 The September11 baseline includes successful AWS S3 and Cloudflare R2 seller publication and real paid browser downloads, actual AWS profiling through the normal production application, and verified test cleanup. Those retained results do not establish fresh provider availability or complete the release. The full ordered joint AIM Data/Workspace proof and remaining production gates are still open; refresh actual capabilities and source/image identity before operating. This page supersedes historical W1/W2 availability statements in [the architecture runbook](../seller-workspace-cloud-listing-delivery.md), while preserving its non-custodial and immutable-approval requirements.
 
