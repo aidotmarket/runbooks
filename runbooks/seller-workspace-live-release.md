@@ -1,7 +1,7 @@
 ---
 title: Seller Workspace live release operations
 owner: vulcan
-last_verified: '2026-09-13'
+last_verified: '2026-09-14'
 aliases:
   - Seller Workspace production release
   - AWS profiling cleanup
@@ -14,6 +14,16 @@ error_signatures:
 
 # Seller Workspace live release operations
 
+
+## Archive helper merged; settlement recovery remains open — 14 September 2026
+
+[Environment PR39](https://github.com/aidotmarket/money-path-test-environment/pull/39) is merged as `3c35d5958682c2744088eb85fffc08b9b952ff88`. The separately reviewed helper is `99640c805aca45c9db138fafacc08efcdc060267`, tree `4ac87c4a485b98799be2a0d7ae1e0e1e0966b37d`. Both GLM and DeepSeek returned APPROVE_WITH_NITS with no HIGH/MEDIUM findings; their agreement is approval and CC is USER_WAIVED_NOT_APPROVED. The [exact owner decision](evidence/workspace-helper-r4-s1712/OWNER-DECISION.json) and [review hashes/publication record](evidence/workspace-helper-r4-s1712/PUBLICATION.json) bind the actual candidate. The merge does not silently substitute its SHA into an exact candidate decision.
+
+The final owner qualification reports 117 archive, 13 normal supervision, 14 fault groups covering 28 processes (19 with native children and nine without), 15 capture, 10 lifecycle and nine full-graph tests. Both reviewers checked hashed raw logs and candidate bytes; neither reran the suites. These are helper qualification results, not executed original settlement, actual capture/archive, scheduled success or full release proof. Protected run `20260911T233041Z` still uses environment `03d3f30acf854537edd76fdb19e1cf521b577c9a` and both original `519b1d5893dc410392cc66051dad0902572dcef9` spec pins. Earlier `77f720...` remains the historical financial source base, not current environment main.
+
+The original authenticated settlement attempt failed at a native Stripe object mapping boundary before the scheduler, with no settlement receipt or ACTIVE advance. Do not rerun the broken original, reset/refund, fabricate compatibility evidence or patch its frozen checkout. The separate recovery design is unapproved and unimplemented. R2 was returned for a concrete R3 revision: the original snapshot collector launches a Docker container for read-only PostgreSQL, which is outside its proposed six tracked exec slots, and its temporary snapshot path needs explicit publication rules. Diagnosis must inventory actual remote calls and distinguish local process exit from remote completion. No provider or financial operation is authorized by this documentary update.
+
+For support, start with the current owner decision, actual selected checkout and immutable request/evidence hashes before invoking any helper. A guardian quarantine retains the real environment lock even after a bounded caller return; do not kill it or infer release from an empty local process list. Preserve exact failure/output receipts. Recovery implementation needs its own agreed design and exact implementation approval, genuine holds, honest corrected-executor provenance and both original phases. Upgrade in a new reviewed checkout and retain the protected historical source and raw failures. USD100 remains cumulative, September15 authority is unextended, and strictly greater than10% quota must be verified at full completion. Mars owns implementation and protected lifecycle; Vulcan owns coordinated Workspace evidence. Full AWS S3 and credential-based R2 release remains unfinished.
 
 ## Current production milestone — 13 September 2026
 

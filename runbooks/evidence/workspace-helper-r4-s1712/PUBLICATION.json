@@ -1,0 +1,30 @@
+{
+  "at": "2026-09-14T00:33:08.221865+00:00",
+  "candidate": "99640c805aca45c9db138fafacc08efcdc060267",
+  "tree": "4ac87c4a485b98799be2a0d7ae1e0e1e0966b37d",
+  "reviews": {
+    "glm": {
+      "path": "/Users/max/council/glm/response-20260914-021008-351704.md",
+      "sha256": "260c6bca9658eeffc5f3189139d52521957ee06a6d02bd71a9a4b55bbffe1be1",
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": 0,
+      "read_full_by_vulcan": true
+    },
+    "deepseek": {
+      "path": "/Users/max/council/deepseek/response-20260914-021008-723258.md",
+      "sha256": "b7716553b636293734599ba7cc1e4550798dceda926809db92da909f0ca672da",
+      "verdict": "APPROVE_WITH_NITS",
+      "high_medium": 0,
+      "read_full_by_vulcan": true
+    }
+  },
+  "approval_rule": "GLM + DeepSeek agreement sufficient; CC USER_WAIVED_NOT_APPROVED",
+  "scope": "helper R4 approval only; neither reviewer reran tests, both inspected hashed owner logs; recovery amendment not approved by these votes; no operational/full release claim",
+  "environment_merge": "3c35d5958682c2744088eb85fffc08b9b952ff88",
+  "merge_verified_remote_at": "2026-09-14T00:40Z",
+  "pr": "https://github.com/aidotmarket/money-path-test-environment/pull/39",
+  "owner_decision_sha256": "dd0cde54f11f07677c107a246be3179f24cfd241c5e701b099541f79367332c2",
+  "recovery_design_status": "R2 returned for R3 revision; no approval or implementation",
+  "protected_environment": "03d3f30acf854537edd76fdb19e1cf521b577c9a",
+  "protected_specs": "519b1d5893dc410392cc66051dad0902572dcef9"
+}
