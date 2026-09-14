@@ -947,9 +947,9 @@
 
 ## Seller Workspace live release operations
 - Path: `runbooks/seller-workspace-live-release.md`
-- Purpose: The four-service production cutover is now complete on exact merge `525751775bbff2d87d6f2858166854bb5df8f292` (accepted tree `0b335a79b2a1ada12be75aa497f31037f5a774ee`). The private-network migration and both original capture reconciliations succeeded; final report has all16 issue buckets zero, purchased rights and original ingress preserved, and payout dispatch remains false. All four actual runtimes were verified, both public API health origins are healthy on the new schema, the temporary operator is removed, and original deployment triggers are restored. See the complete cutover, diagnosis, support and upgrade procedure and its evidence manifest.
+- Purpose: Environment PR39 is merged as `3c35d5958682c2744088eb85fffc08b9b952ff88`. The separately reviewed helper is `99640c805aca45c9db138fafacc08efcdc060267`, tree `4ac87c4a485b98799be2a0d7ae1e0e1e0966b37d`. Both GLM and DeepSeek returned APPROVE_WITH_NITS with no HIGH/MEDIUM findings; their agreement is approval and CC is USER_WAIVED_NOT_APPROVED. The exact owner decision and review hashes/publication record bind the actual candidate. The merge does not silently substitute its SHA into an exact candidate decision.
 - Owner: `vulcan`
-- Last verified: `2026-09-13`
+- Last verified: `2026-09-14`
 - Aliases: Seller Workspace production release, AWS profiling cleanup
 - Error signatures: CannotPullContainerError, runtime_image_identity_mismatch, worker_step_limit_exceeded, profile_result_invalid
 - Status: current

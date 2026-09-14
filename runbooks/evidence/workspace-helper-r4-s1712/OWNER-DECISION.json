@@ -1,0 +1,21 @@
+{
+  "schema": "ai.market/s1714-original-helper-gate3/v1",
+  "status": "APPROVED",
+  "helper_environment_sha": "99640c805aca45c9db138fafacc08efcdc060267",
+  "helper_tree": "4ac87c4a485b98799be2a0d7ae1e0e1e0966b37d",
+  "glm": {
+    "verdict": "APPROVE_WITH_NITS",
+    "response": {
+      "path": "/Users/max/council/glm/response-20260914-021008-351704.md",
+      "sha256": "260c6bca9658eeffc5f3189139d52521957ee06a6d02bd71a9a4b55bbffe1be1"
+    }
+  },
+  "deepseek": {
+    "verdict": "APPROVE_WITH_NITS",
+    "response": {
+      "path": "/Users/max/council/deepseek/response-20260914-021008-723258.md",
+      "sha256": "b7716553b636293734599ba7cc1e4550798dceda926809db92da909f0ca672da"
+    }
+  },
+  "cc": "USER_WAIVED_NOT_APPROVED"
+}
