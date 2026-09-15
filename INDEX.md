@@ -317,9 +317,9 @@
 
 ## Celery Infrastructure Deployment
 - Path: `celery-infrastructure-deployment.md`
-- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+- Purpose: Production Celery for `ai-market-backend` runs as a four-service Railway topology built from the same Dockerfile (three services until the S1712 cutover on 2026-09-11 added the dedicated seller profile worker; the current inventory is `runbooks/seller-production-payment-cutover.md`). Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 - Owner: `unassigned`
-- Last verified: `2026-04-19`
+- Last verified: `2026-09-08`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -961,6 +961,15 @@
 - Last verified: `2026-09-13`
 - Aliases: Seller Workspace diagnosis support and upgrades, Seller AWS and R2 operating procedure
 - Error signatures: stale_version, DELETE_IN_PROGRESS
+- Status: current
+
+## Seller Workspace provider verification
+- Path: `seller-workspace-provider-verification.md`
+- Purpose: **Historical evidence, 8–9 September 2026 (S1667–S1693). Superseded for current status by the S1712 cutover.** Every status, blocker, flag or migration statement below was true at the date it names and is retained as development evidence. For what is live today read `runbooks/seller-workspace-live-release.md` and `runbooks/seller-production-payment-cutover.md`: the seller migration is applied, the core AWS and R2 flags are on, and the four-service Celery fleet (including the profile worker) is deployed.
+- Owner: `unassigned`
+- Last verified: `2026-09-08`
+- Aliases: none
+- Error signatures: HTTP 403 / Cloudflare error 1010 at oauth2/token
 - Status: current
 
 ## SEO Infrastructure Runbook
