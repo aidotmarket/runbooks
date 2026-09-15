@@ -19,7 +19,7 @@ error_signatures:
 
 # Data verification — seller journey and operator checks
 
-The feature built under `BQ-DATA-VERIFICATION-S1590` (specs `specs/BQ-DATA-VERIFICATION-S1590-GATE1.md`, `-GATE2.md`, `-PAYIN-ONBOARDING-AMENDMENT.md`, `-GENERAL-AVAILABILITY-AMENDMENT.md`) lets a seller pay for a point-in-time structural scan that AIM Data executes inside the seller's environment. What crosses to ai.market is exactly the approved aggregate manifest (the signed shape report), the sanitized structural context and the owner consent/launch envelope; no raw cell values, sample rows, locators or credentials ever leave the seller's environment (Gate 1 §6). This page is the operating view: what the seller sees, what ai.market does at each step, and how an operator confirms the path is live without spending money or touching a customer. Design rules live in the specs; do not restate or amend them here.
+The feature built under `BQ-DATA-VERIFICATION-S1590` (specs `specs/BQ-DATA-VERIFICATION-S1590-GATE1.md`, `-GATE2.md`, `-PAYIN-ONBOARDING-AMENDMENT.md`, `-GENERAL-AVAILABILITY-AMENDMENT.md`) lets a seller pay for a point-in-time structural scan that AIM Data executes inside the seller's environment. What crosses to ai.market is the approved aggregate manifest (the signed shape report), the sanitized structural context, the owner consent/launch envelope and, on failure, fixed-enum terminal errors; no raw cell values, sample rows, locators or credentials ever leave the seller's environment (Gate 1 §6). This page is the operating view: what the seller sees, what ai.market does at each step, and how an operator confirms the path is live without spending money or touching a customer. Design rules live in the specs; do not restate or amend them here.
 
 ## A. What "live" means and where it stands
 
@@ -29,8 +29,8 @@ Verified 2026-09-15 (S1717) against production:
 | --- | --- | --- |
 | Service flag | Railway `ai-market` / `production` / `ai-market-backend`: `DATA_VERIFICATION_ENABLED` | `true` |
 | Pay-in flag | same service: `STRIPE_PAYIN_ONBOARDING_ENABLED` | `true` |
-| Pilot allowlist | `STRIPE_PAYIN_ONBOARDING_PILOT_PARTY_IDS` | retired from code (GA amendment, backend GA merge `229689c8`); variable absent. A seller can add a card when the pay-in gate and platform-account pin are valid and the account has seller-provisioning permission, an `auth_user` party and TOTP on. |
-| Quote endpoint reachable | `POST https://api.ai.market/api/v1/data-verification/quote` with `{}` | `422` field errors. Reachability only: schema validation runs before the flag check, so this cannot show whether the feature is enabled; the flag read above is the enablement evidence. A `404 "data verification is disabled"` appears only on a valid, install-signed request when the flag is off. |
+| Pilot allowlist | `STRIPE_PAYIN_ONBOARDING_PILOT_PARTY_IDS` | retired from code (GA amendment, backend GA merge `229689c8`); variable absent. A seller can add a card only from an authenticated application session, when the pay-in gate and platform-account pin are valid and the account has seller-provisioning permission, exactly one active, undeleted `auth_user` party mapping, and TOTP on. |
+| Quote endpoint reachable | `POST https://api.ai.market/api/v1/data-verification/quote` with `{}` | `422` field errors. Reachability only: schema validation runs before the flag check, so this cannot show whether the feature is enabled; the flag read above is the enablement evidence. A `404 "data verification is disabled"` appears once schema validation lets a request enter the route, before install signing is checked; the flag read above is the enablement evidence. |
 | Card-setup readiness reachable | `GET https://api.ai.market/api/v1/data-verification/payment-method/readiness` signed out | `401`. Reachability only: authentication runs before the gate. Signed-in ineligible callers (flag off included) get an indistinguishable `404 PAYIN_ONBOARDING_DISABLED`. |
 | Explainer | `https://ai.market/verified` | `200` (frontend PR #48) |
 | AIM Data | stable image default `DATA_VERIFICATION_ENABLED=true` (`docker-compose.aim-data.yml`); flow rendered by `frontend/src/components/DataVerificationFlow.tsx` on the dataset page | present since v1.22.7 |
@@ -70,7 +70,7 @@ psql "$PUB" -c "select count(*) quotes from verification_quotes"
 psql "$PUB" -c "select l.slug, ve.state, ve.published_at from listings l join verification_epochs ve on ve.epoch_id = l.public_verification_epoch_id"
 ```
 
-Active installs (production, 2026-09-15): `vz_installs` rows exist for `max@kisa.cat` (install registered 2026-09-08 from the `aim-data-fresh-s1665` container on Koskadeux, `http://127.0.0.1:8080`, v1.23.2, signed in, TOTP on) and for Sergey (`eolymp.com`, install 2026-06-17, TOTP on). Neither yet satisfies every precondition of §B from that install: Max's install holds no dataset, and Sergey's one published listing is from June and its dataset state in his install is unknown to us. The daily E2E seller (`e2e-test.ai.market`, `is_test = true`, TOTP off) can reach the quote but never the card surface.
+Active installs (production, 2026-09-15): `vz_installs` rows exist for `max@kisa.cat` (install registered 2026-09-08 from the `aim-data-fresh-s1665` container on Koskadeux, `http://127.0.0.1:8080`, v1.23.2, signed in, TOTP on) and for Sergey (`eolymp.com`, install 2026-06-17, TOTP on). Neither is yet confirmed to satisfy every precondition of §B from that install: Max's install holds no dataset, and Sergey's one published listing is from June and its dataset state in his install is unknown to us. The daily E2E seller (`e2e-test.ai.market`, `is_test = true`, TOTP off) can reach the quote but never the card surface.
 
 ## When it breaks
 
