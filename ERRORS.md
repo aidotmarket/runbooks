@@ -76,6 +76,10 @@
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
 
+## `AIM Data install registration is unavailable`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
 ## `alerts unavailable`
 
 - [Alerts at session open (S1529)](runbooks/alerts-at-open.md)
