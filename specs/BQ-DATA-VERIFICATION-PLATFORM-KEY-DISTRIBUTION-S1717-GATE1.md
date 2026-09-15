@@ -1,6 +1,6 @@
 # S1717 Gate 1 — Data verification platform key distribution (R2)
 
-**Status:** R2 fold candidate; independent approval pending. No implementation or deployment approval.
+**Status:** Gate 1 APPROVED 2026-09-15 (GLM APPROVE_WITH_NITS R2 + R3 confirm, DeepSeek APPROVE_WITH_NITS R2; nits folded). Implementation authorized per chunk plan; no deployment approval.
 **Authority:** Max decision event `8fa786ba-61cb-4185-913a-7ece3d7d3880`; Mars binding R1 → R2 fold, 2026-09-15.
 **Base:** runbooks main `607b2f78c58211713029c73fbd65e0676ceb8a5b` (R2 rebased; R1 base was `7a918d40eef541b787ebd18ecbf5570ec4563184`, R1 candidate `91c1aba0ae75bca9414009956c4ff8d30c463c1e`, MP fold `e6c29f3ec43c35bb9200f9113e4ef8460b994bee`).
 **Review panel:** GLM + DeepSeek must approve the exact candidate; CC waived; builder MP excluded.
@@ -14,7 +14,7 @@ Ordinary installs are reported to fail before verification because the platform 
 Static cause verified: AIM Data `app/routers/data_verification.py:50-62` reads the override and refuses when unset; `:82-120` constructs the scanner eagerly.
 The quote handler at `:156-168` only needs `runtime.client`, yet reaches that key read; start is at `:171-194`.
 The live production failure was supplied by the orchestrator and was **not re-run in this documentation fold**; deployed identities and live outcomes remain unverified here.
-Scope is authenticated scan-spec key delivery, lazy verification, process-memory key identity checks, and the later stable release.
+Scope is authenticated scan-spec key delivery, lazy verification, per-response key validation, and the later stable release.
 No new public endpoint, sign-in/registration enrichment, or persisted platform key file is part of this design.
 Compose/installer PEM injection and per-install seeding are rejected because the product must work for every ordinary customer install.
 No signing scheme, private-key export, customer allowlist, new feature gate, connector, payment contract, or customer-to-cloud manifest change is authorized.
