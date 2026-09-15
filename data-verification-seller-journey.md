@@ -11,6 +11,7 @@ aliases:
 - STRIPE_PAYIN_ONBOARDING_ENABLED
 - pay-in card
 error_signatures:
+- platform verification key is not configured
 - data verification is disabled
 - PAYIN_ONBOARDING_DISABLED
 - Data verification unavailable.
@@ -37,7 +38,7 @@ Verified 2026-09-15 (S1717) against production:
 | Production usage | `verification_quotes`, `verification_epochs`, `data_verification_payin_setup_attempt`, `data_verification_corpus_events` | **0 rows each** — no seller has ever requested a quote in production |
 | End-to-end proof | S1656 test environment (`money-path-test-environment.md`), GA acceptance bundle `koskadeux-state/s1656/acceptance-evidence/20260906T174901Z` and run 25 | one paid epoch `PUBLISHED` ($25.00 hold, $1.00 captured, Stripe test mode) and `listings.public_verification_epoch_id` set on the test listing |
 
-So the machinery is complete and proven on the test environment, and every production switch is on, but the Definition of DONE ("verified from outside") is not met until one real seller completes a paid run in production. The first production run is the remaining step, not more code.
+So the machinery is complete and proven on the test environment and every production switch is on, but the Definition of DONE ("verified from outside") is not met, and the first real attempt (Max, 2026-09-15, install 9c51517b) showed why: **no customer install can pass the free probe.** AIM Data verifies the platform-signed scan spec with a public key it reads from `DATA_VERIFICATION_PLATFORM_PUBLIC_KEY_PEM` (`aim-data:app/routers/data_verification.py:50-61`), and nothing ships or fetches that key — the customer compose file and installers never set it, the backend returns it only on the RSA device-registration path that AIM Data does not use, and only the S1656 test environment injected it by hand. The product fix is `build:bq-data-verification-platform-key-distribution-s1717` (P0): the platform serves its signing public key and AIM Data fetches and persists it. Per Max (CORE §3) there is no per-install workaround; the first production run follows that build.
 
 ## B. The seller's path, step by step
 
@@ -76,6 +77,7 @@ Active installs (production, 2026-09-15): `vz_installs` rows exist for `max@kisa
 
 | Symptom | Meaning | Action |
 | --- | --- | --- |
+| "platform verification key is not configured" after **Run free probe and request quote** | AIM Data has no platform signing public key; today no customer install has one | Blocked on `build:bq-data-verification-platform-key-distribution-s1717`; do not hand-set `DATA_VERIFICATION_PLATFORM_PUBLIC_KEY_PEM` on a customer install (Max, CORE §3) |
 | Panel shows "Data verification unavailable." | AIM Data `DATA_VERIFICATION_ENABLED` false or the install is not signed in | Check the container env and `aim-data-sign-in-with-ai-market.md` |
 | Quote returns `404 data verification is disabled` | backend flag off | Rollback order is service flag first, pay-in flag second (GA amendment §5); do not re-enable without the recorded authority |
 | Card surface hidden / "Card setup for this paid service is unavailable." | Caller is ineligible: no seller capability, no `auth_user` party, TOTP off, flag off or platform account pin invalid — all return the same `404 PAYIN_ONBOARDING_DISABLED` on purpose | Check `users.totp_enabled` and seller capability for that account before suspecting the server; never disclose which check failed to the customer |

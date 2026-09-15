@@ -501,7 +501,7 @@
 - Owner: `mars`
 - Last verified: `2026-09-15`
 - Aliases: verified label, verified shape label, scan findings badge, data verification, DATA_VERIFICATION_ENABLED, STRIPE_PAYIN_ONBOARDING_ENABLED, pay-in card
-- Error signatures: data verification is disabled, PAYIN_ONBOARDING_DISABLED, Data verification unavailable., Card setup for this paid service is unavailable
+- Error signatures: platform verification key is not configured, data verification is disabled, PAYIN_ONBOARDING_DISABLED, Data verification unavailable., Card setup for this paid service is unavailable
 - Status: current
 
 ## data-requests — Buyer-initiated Data Request Surface
