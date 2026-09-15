@@ -495,6 +495,15 @@
 - Error signatures: none
 - Status: archived
 
+## Data verification — seller journey and operator checks
+- Path: `data-verification-seller-journey.md`
+- Purpose: The feature built under `BQ-DATA-VERIFICATION-S1590` (specs `specs/BQ-DATA-VERIFICATION-S1590-GATE1.md`, `-GATE2.md`, `-PAYIN-ONBOARDING-AMENDMENT.md`, `-GENERAL-AVAILABILITY-AMENDMENT.md`) lets a seller pay for a point-in-time structural scan that AIM Data executes inside the seller's environment. Only the signed shape report crosses to ai.market; the raw data never does. This page is the operating view: what the seller sees, what ai.market does at each step, and how an operator confirms the path is live without spending money or touching a customer. Design rules live in the specs; do not restate or amend them here.
+- Owner: `mars`
+- Last verified: `2026-09-15`
+- Aliases: verified label, verified shape label, scan findings badge, data verification, DATA_VERIFICATION_ENABLED, STRIPE_PAYIN_ONBOARDING_ENABLED, pay-in card
+- Error signatures: data verification is disabled, PAYIN_ONBOARDING_DISABLED, Data verification unavailable., Card setup for this paid service is unavailable
+- Status: current
+
 ## data-requests — Buyer-initiated Data Request Surface
 - Path: `data-requests.md`
 - Purpose: The data-request feature lets a buyer post a "I'm looking for X kind of data" listing and receive responses from sellers. Lifecycle: a buyer drafts a request, submits it for publication, eligible requests become public, sellers reply with proposals, the buyer picks a winning response and the flow proceeds to payment + fulfillment via the standard listing/order pipeline.
