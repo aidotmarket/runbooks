@@ -72,7 +72,7 @@ DATABASE_URL_AUTHOR; that field is not evidence about AUTHOR_DISPATCH_DATABASE_U
 The heartbeat inspector checks the latter name correctly on the worker only.
 No production role/ACL or KMS certification is implied.
 
-All three services build from the same backend Dockerfile. Railway differentiates process role by `deploy.startCommand`; verify each resulting image independently.
+All three original services (the S1712 cutover added a fourth, the dedicated seller profile worker; see `runbooks/seller-production-payment-cutover.md`, which the Service Inventory and Runtime Topology tables below predate) build from the same backend Dockerfile. Railway differentiates process role by `deploy.startCommand`; verify each resulting image independently.
 
 ```text
 Git push to aidotmarket/ai-market-backend main
