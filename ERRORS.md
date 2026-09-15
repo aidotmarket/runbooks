@@ -196,6 +196,10 @@
 
 - [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
 
+## `Card setup for this paid service is unavailable`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
 ## `cc_verdict_parse_failure`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
@@ -287,6 +291,14 @@
 ## `cutover_admission_unknown`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `data verification is disabled`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
+## `Data verification unavailable.`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
 
 ## `decision returns HTTP 403`
 
@@ -839,6 +851,10 @@
 ## `participant_config_missing`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
+
+## `PAYIN_ONBOARDING_DISABLED`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
 
 ## `peer_message_silently_deduped`
 
