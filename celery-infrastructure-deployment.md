@@ -10,11 +10,12 @@ error_signatures: []
 
 ## What it does
 
-Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. (Dated note, 2026-09-15: the S1712 cutover added a fourth service, the dedicated seller profile worker; see `runbooks/seller-production-payment-cutover.md`.) Each service has its own image digest; do not assume image-byte equality from the shared source commit:
+Production Celery for `ai-market-backend` runs as a four-service Railway topology built from the same Dockerfile (three services until the S1712 cutover on 2026-09-11 added the dedicated seller profile worker; the current inventory is `runbooks/seller-production-payment-cutover.md`). Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 
 - Web service: FastAPI via `uvicorn`, with HTTP healthcheck on `/health`
 - Worker service: Celery worker consuming `default`, `scheduled`, `emails`, and `vectoraiz`
 - Beat service: singleton Celery Beat scheduler publishing due tasks to Redis
+- Profile worker service (since S1712): isolated Celery worker for the seller profiling queue; see `runbooks/seller-production-payment-cutover.md`
 
 This runbook covers the live production deployment shipped by BQ-CELERY-INFRASTRUCTURE-DEPLOYMENT Gate 3 Chunks A-D on `aidotmarket/ai-market-backend` `origin/main`:
 

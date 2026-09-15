@@ -317,7 +317,7 @@
 
 ## Celery Infrastructure Deployment
 - Path: `celery-infrastructure-deployment.md`
-- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. (Dated note, 2026-09-15: the S1712 cutover added a fourth service, the dedicated seller profile worker; see `runbooks/seller-production-payment-cutover.md`.) Each service has its own image digest; do not assume image-byte equality from the shared source commit:
+- Purpose: Production Celery for `ai-market-backend` runs as a four-service Railway topology built from the same Dockerfile (three services until the S1712 cutover on 2026-09-11 added the dedicated seller profile worker; the current inventory is `runbooks/seller-production-payment-cutover.md`). Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 - Owner: `unassigned`
 - Last verified: `2026-09-08`
 - Aliases: none

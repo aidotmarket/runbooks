@@ -1,5 +1,7 @@
 # S1656 A2: seller02 Workspace activation and TEST refund amendment
 
+> **Historical Gate1 record (S1712, 2026-09-11–12). Superseded.** The status line and blockers below describe this amendment as proposed and not yet approved or implemented; that was true when written. The Workspace activation it proposes was subsequently approved, implemented and cut over to production; the current authority is `runbooks/seller-workspace-live-release.md` and `runbooks/seller-production-payment-cutover.md`. Body retained verbatim as history (fold S1715).
+
 Status: proposed Gate1 contract; not dispatched, approved, implemented or activated. Vulcan S1712 owns this amendment; Mars S1714 owns S1656 and S1681. This document supersedes the append-only draft retained in SELLER-INTEROP-GATE1-AMENDMENT-HISTORY-S1712.md. Preparing this amendment independently is authorized by Mars4069/4070. Implementation and live-operation gates remain separate.
 
 ## Exact baseline and release objective
