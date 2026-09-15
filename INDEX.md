@@ -317,9 +317,9 @@
 
 ## Celery Infrastructure Deployment
 - Path: `celery-infrastructure-deployment.md`
-- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology from one shared Docker image:
+- Purpose: Production Celery for `ai-market-backend` runs as a three-service Railway topology built from the same Dockerfile. Each service has its own image digest; do not assume image-byte equality from the shared source commit:
 - Owner: `unassigned`
-- Last verified: `2026-04-19`
+- Last verified: `2026-09-08`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -961,6 +961,15 @@
 - Last verified: `2026-09-13`
 - Aliases: Seller Workspace diagnosis support and upgrades, Seller AWS and R2 operating procedure
 - Error signatures: stale_version, DELETE_IN_PROGRESS
+- Status: current
+
+## Seller Workspace provider verification
+- Path: `seller-workspace-provider-verification.md`
+- Purpose: Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
+- Owner: `unassigned`
+- Last verified: `2026-09-08`
+- Aliases: none
+- Error signatures: HTTP 403 / Cloudflare error 1010 at oauth2/token
 - Status: current
 
 ## SEO Infrastructure Runbook

@@ -13,6 +13,12 @@ error_signatures: []
 > **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326`
 > **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 
+## Operating rule: check runbooks first
+
+**Always check for a relevant runbook. If none exists, create one. If it is inaccurate, update it.**
+
+Before advising on secret names, project/environment selection, access, verification or rotation, search the runbooks and read this document and the relevant provider/service runbook. For credential operations, also read [local-secops.md](local-secops.md). Use current evidence to resolve outdated or conflicting instructions; do not invent project names or assume a password manager is the secret store.
+
 ## Source of Truth & Propagation (READ FIRST)
 
 **Infisical is the single source of truth for backend secrets.** As of S1125 the native **Infisical→Railway sync is LIVE** (sync `railway-backend-prod`, auto-sync ON, **disable-deletion ON**, initial behaviour "prioritize Infisical"). A change to a secret in Infisical `ai-market-backend`/`prod` now mirrors to the Railway `ai-market-backend` service automatically — no manual Railway set + redeploy for routine changes.
@@ -34,6 +40,25 @@ error_signatures: []
 ## Environments
 
 Each project has three environments: `dev`, `staging`, `prod`.
+
+## Seller Cloudflare development credentials (Max decision, 2026-09-08)
+
+Use the existing **ai-market-backend** project (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), **prod** environment (dashboard label Production), root folder **/**. Max requested that these development credentials be distinguished in their names instead of creating a project or switching environments:
+
+| Name | Purpose |
+|---|---|
+| `STAGING_CLOUDFLARE_SELLER_OAUTH_CLIENT_SECRET` | Provider-issued private development OAuth client secret; never include its value in documentation |
+| `STAGING_CLOUDFLARE_SELLER_OAUTH_CLIENT_ID` | Client ID `db7c0057a307855bb73914fb58723ad8` |
+
+This prefix records development intent; it is not environment or access isolation. Because prod is documented as synced, these names may propagate to Railway. The development integration must explicitly select these names; production must not use them as fallback credentials. This storage decision does not authorize enabling R2 or deploying the integration.
+
+CLI verification on September 8 found a nonempty, correctly formatted secret, while the client ID lookup returned empty. This is a dated observation, not a permanent status; recheck both before use. A successful CLI exit alone does not prove a value exists.
+
+## Safe CLI verification
+
+Use the CLI for routine verification, with explicit `--domain=https://secrets.ai.market/api`, `--projectId`, `--env=prod`, and `--path=/`. Use the documented machine-identity authentication for unattended work; keep tokens out of arguments and outputs. Query only the requested names. Capture output inside a local process and emit only existence/nonempty checks and, where appropriate, a comparison result. Never print raw secret values into chat or logs.
+
+Verify exact identity values against the provider registration. A secret format check establishes neither an exact match nor successful provider authentication. If a lookup returns empty, check the explicit target and metadata before declaring the stored value blank; wrong-project and missing-key lookups can return exit code zero.
 
 ## SMTP Configuration
 
@@ -110,14 +135,14 @@ No gateway restart needed — the next scheduled refresh / next launch picks it 
 
 ## Secret Rotation
 
-**App-read secrets are NOT loaded from Infisical at runtime** (see Known Gotchas). The FastAPI app on `ai-market-backend` reads secrets from the **Railway variable store**. Updating Infisical alone does NOT reach production. For any app-read secret:
+The backend reads its process environment, populated through the documented native Infisical→Railway sync. The earlier manual-sync procedure is superseded by **Source of Truth & Propagation** above.
 
-1. Update the value in Infisical (dashboard or API). Env slug is `prod` (not "production"). Infisical stays the canonical record for humans/agents.
-2. Set the same value in Railway: `railway variables --service ai-market-backend --set "KEY=VALUE" --skip-deploys` (never echo the value).
-3. Redeploy so the new container boots with it: `railway redeploy --service ai-market-backend --yes`.
-4. Verify the service is healthy and, where possible, that the new value actually works (Stripe example below). Only THEN revoke the old credential.
+1. Confirm the exact key, project, environment and intended consumer; use Local SecOps for supported credential operations.
+2. Update the canonical Infisical entry within the authorized scope.
+3. Verify the sync result and the consuming service's effective configuration. Catalog storage, Railway propagation and successful provider authentication are separate checks.
+4. Verify the new credential works before revoking the old one. Restart/redeploy only when needed and authorized; do not manually overwrite Railway as the routine path.
 
-Until `BQ-RAILWAY-INFISICAL-SYNC` lands (tracked; ticket `T-2026-000048`), steps 2-4 are mandatory, not optional. A future auto-sync will collapse this to "update Infisical, redeploy."
+A failed sync requires investigation, not an assumed manual push. Never enable or trigger a sync using stale shared values.
 
 ### Stripe API keys (`acct_1SuHQHRucxd97j0A`)
 
@@ -132,7 +157,7 @@ Do NOT hunt for them in the Infisical `staging` env: an S1603 handoff note claim
 On a Stripe-flagged compromise of the secret key:
 1. Stripe -> Developers -> API keys -> **Roll** the secret key with a short grace window (do NOT pick "now" until the new key is deployed, or the live backend errors). Optionally roll the publishable key too (hygiene; harmless, it's unused client-side). Copy the new value(s); never paste into chat.
 2. Save the new value(s) in Infisical `prod` (`STRIPE_SECRET_KEY`, and `STRIPE_PUBLISHABLE_KEY` if rolled).
-3. Apply to Railway + redeploy per the general procedure above.
+3. Verify native sync propagation and the consuming service per the general procedure above.
 4. **Verify the new secret authenticates BEFORE revoking the old one:**
    `railway run --service ai-market-backend -- .venv/bin/python -c "import os,stripe; stripe.api_key=os.environ['STRIPE_SECRET_KEY']; print(stripe.Account.retrieve().id)"`
    Expect `acct_1SuHQHRucxd97j0A`; an invalid key raises `AuthenticationError`.
@@ -197,7 +222,7 @@ As of S533, three Infisical secret names hold (or have held) the same Vertex Exp
 
 Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
 
-- **App-read secrets live in the Railway env, not loaded from Infisical at runtime (S942).** Infisical is wired only for the SysAdmin agent skill (`infisical_ops.py`); the FastAPI app reads secrets such as `GITHUB_WEBHOOK_SECRET` from its process env = a Railway variable on `ai-market-backend`. A value placed only in Infisical will NOT reach the app — also set the Railway variable, then redeploy. (BQ-RAILWAY-INFISICAL-SYNC manual-sync class.) See `reconciliation-github-webhook.md` How to operate.
+- **App-read secrets are read from the process environment.** The historical S942 manual-sync gap was closed by the S1125 native sync. Follow Source of Truth & Propagation and Secret Rotation above; verify propagation rather than assuming a catalog write proves runtime adoption.
 
 ### `INFISICAL_PROJECT_ID` on Titan-1 points at koskadeux-mcp, not the backend (S964)
 
