@@ -61,7 +61,7 @@ Signer ID/algorithm and canonical signing are at `app/services/data_verification
 No new payload field is needed: signing serializes the entire payload, so this existing ID is signature-covered. Populate it from the same effective signer selection.
 Signing and public-key lookup currently use version `1` (`app/services/kms_service.py:197-225`, `:238-246`, `:275-287`).
 Share the concrete ID/version/algorithm selection between signing and delivery; never label a PEM using an independently selected latest version.
-Return a key matching the particular spec, including idempotent responses; never pair an outstanding spec with a newly rotated, unrelated key.
+Return a key matching the particular spec, including idempotent responses; never pair an outstanding spec with a newly rotated, unrelated key. Record the issued `key_id`/`key_version` on the epoch beside `signed_spec_payload` so an idempotent replay re-serves the same pair; this requires `get_signing_public_key` to accept the recorded version (the existing `key_version` parameter pattern of `get_encryption_public_key`, `app/services/kms_service.py:255`).
 Validate the pair before successful issue; preserve existing payment failure handling and never create another paid start to repair key delivery.
 Configuration/KMS/key inconsistency fails closed with HTTP 503 and `{"detail":"platform verification key is unavailable"}`; expose no provider detail.
 Feature-off remains HTTP 404, `{"detail":"data verification is disabled"}`, before KMS work (`app/api/v1/endpoints/data_verification.py:56-58`).
@@ -79,12 +79,9 @@ Keep canonical hash, RSA signature, freshness, cancellation, nonce replay, sourc
 Parsing/key errors use fixed display-safe refusals through the existing client/local error transport; never silently start scanning.
 
 For platform-delivered keys, require `spec.payload.platform_key_id == platform_key.key_id` and `spec.signature_algorithm == platform_key.algorithm` before acceptance.
-Maintain an in-memory, per-process cache keyed by `(origin, key_id, key_version, algorithm)`; store validated RSA public numbers with that tuple.
-Insertion/comparison must be atomic across concurrent starts. The same tuple with different RSA numbers is an integrity error; reject without replacing it.
-Equivalent PEM encodings with identical RSA numbers are not a key change. A distinct tuple is validated independently.
-Every issued spec carries its key; verification uses that response's tuple, not the most recently seen cache entry.
+No key cache: every issued spec carries its own key, and verification uses exactly that response's key (GLM R2 nit 2 adopted; a cross-start collision check has no operational justification). Equivalent PEM encodings with identical RSA numbers are the same key.
 No refresh loop or signature-triggered reissue is needed. A signature failure terminates closed on the first verification attempt.
-Restart clears this cache; it has no key history, version high-water mark, or cross-process rollback-detection promise.
+There is no key history, version high-water mark, or rollback-detection promise.
 
 `DATA_VERIFICATION_PLATFORM_PUBLIC_KEY_PEM` remains an exceptional PEM-only operator override: when nonempty it wins for start verification.
 Preserve existing literal/escaped-newline/base64-wrapped PEM input compatibility (`app/routers/data_verification.py:50-62`); validate the decoded value as one RSA public key.
@@ -95,7 +92,7 @@ Document the variable as exceptional operator control; normal onboarding, upgrad
 
 ## 4. Trust and rotation
 
-TLS certificate/hostname validation to the configured `AIM_DATA_AI_MARKET_URL` HTTPS origin binds the delivered key to ai.market.
+TLS certificate/hostname validation binds the delivered key to the configured HTTPS platform origin (`AIM_DATA_AI_MARKET_URL`, default `https://api.ai.market`); it proves the key came from that configured origin, not literal hostname pinning to ai.market.
 Origin means scheme, hostname, and effective port; reject userinfo, non-HTTPS origins, and redirects for this authenticated response. Never follow a key URL from the response.
 A hostile platform could sign anything anyway: this establishes platform authorship, not protection from the platform; a hostile customer host remains outside the guarantee.
 Rotation switches signer and delivered key together; outstanding specs drain by expiry while retaining their matching delivered verification key.
@@ -106,7 +103,7 @@ There is no immediate revocation promise. Existing disable/expiry controls remai
 
 Log key source `scan_spec_response` or `operator_override`, fixed result/reason, safe key ID/version when applicable, and existing request correlation ID.
 Log successful signature verification separately from key receipt; quote must not claim a key was acquired.
-Never log PEM, response bodies, signatures, auth headers, tokens, install secrets, customer locators, or raw provider exceptions.
+Never log PEM, response bodies, signatures, auth headers, tokens, install secrets, customer locators, or raw provider exceptions on the new delivery/verification log surfaces (backend envelope assembly and 503 path; AIM Data key selection, binding and verification). Chunk A is authorized to sanitize the two existing `kms_service` lines that log the raw provider exception (`app/services/kms_service.py:249`, `:305`) to a fixed reason plus exception class name, because the scan-spec issue path exercises them.
 Use fixed reason enums for metrics; exceptional override logs have no fabricated identity metadata.
 
 | Suite | Required evidence |
@@ -117,21 +114,20 @@ Use fixed reason enums for metrics; exceptional override logs have no fabricated
 | Backend failures/rotation | Invalid key/KMS/configuration refuses; coordinated version switch and idempotent response preserve spec/key pairing and existing payment cleanup. |
 | AIM Data quote | Unset or invalid override does not trigger any key read; free probe/quote succeeds with no scanner construction. |
 | AIM Data start | Client unwraps v2; start verifies with delivered key; bare/unknown-version/extra-field responses refuse before scan. |
-| AIM Data binding | Signed payload ID mismatch or algorithm mismatch rejects; same tuple/different RSA numbers rejects, including concurrent starts. |
-| AIM Data cache | Identical numbers accepted; different tuple and restart work from each response; no signature-failure refresh/reissue. |
+| AIM Data binding | Signed payload ID mismatch or algorithm mismatch rejects; each start verifies with its own response key; no signature-failure refresh/reissue. |
 | AIM Data override | Valid PEM wins over a different delivered key without ID/version bookkeeping; invalid PEM refuses without fallback; quote unaffected. |
-| Regression/redaction | Existing hash, signature, expiry, nonce, scope, receipt, sign-in and payment tests pass; captured success/failure logs contain no prohibited material. |
+| Regression/redaction | Existing hash, signature, expiry, nonce, scope, receipt, sign-in and payment tests pass; captured success/failure logs from the surfaces named in §5, including the backend 503 path, contain no prohibited material. |
 
 ## 6. Chunks and acceptance
 
 **Chunk A — backend:** strict envelope/key model, shared signing selection, authenticated issue integration, failure behavior and backend tests.
-**Chunk B — AIM Data:** strict client parsing, lazy scanner/verifier, response-key binding/cache, override documentation and client tests.
+**Chunk B — AIM Data:** strict client parsing, lazy scanner/verifier, response-key binding, override documentation and client tests.
 **Chunk C — stable release:** publish reviewed image, confirm installer/default Compose pulls its digest, and execute both AC-finals against production.
 Preserve existing customer volume and install identity on upgrade; record backend deployed SHA, AIM Data source SHA, stable tag/digest, installer version, and redacted evidence.
 Rollback disables verification before reverting incompatible code and preserves customer state under the parent rollback rules; an older broken image cannot satisfy acceptance.
 
 - **AC1:** Backend envelope, KMS equality, signature-covered ID binding, feature-off and quote isolation tests pass.
-- **AC2:** Lazy client integration, tuple integrity, override and unchanged verifier protections pass without a key bootstrap step.
+- **AC2:** Lazy client integration, per-response key binding, override and unchanged verifier protections pass without a key bootstrap step.
 - **AC3:** Log-redaction and regression tests pass; privacy, payment and customer-to-cloud contracts remain unchanged.
 - **AC4:** GLM + DeepSeek independently approve the exact Gate 1 candidate; retain verdict/model/evidence references, CC waiver and MP exclusion.
 - **AC-final:** Fresh stable-image install, empty persistent volume, no extra environment: sign-in, free probe and quote succeed against production.
@@ -142,7 +138,7 @@ Rollback disables verification before reverting incompatible code and preserves 
 
 ## 7. Review packet, verification, and risks
 
-The candidate diff against the base must list exactly this spec; the seller-journey hunk is removed because runbooks PR #200 updated that page separately.
+The candidate diff against the base must list exactly this spec; the seller-journey hunk is removed because runbooks PR #200 updated that page separately. That page's sentence "AIM Data fetches and persists it" is superseded by this R2 (no persistence); it is corrected in a follow-up docs edit after Gate 1 approval.
 Reproduce with `git diff --name-status 607b2f78c58211713029c73fbd65e0676ceb8a5b <R2_SHA>` and `git show <R2_SHA>:specs/BQ-DATA-VERIFICATION-PLATFORM-KEY-DISTRIBUTION-S1717-GATE1.md`.
 The next review packet must name exact SHA/checkout, sole changed file, both source pins, available tools, finite review turn budget, and builder command/results/failures/skips.
 Attach `python3 scripts/check.py` and diff-check results; distinguish static source verification from the unverified live diagnosis. Do not invent missing production logs or claim the AC-finals ran.
