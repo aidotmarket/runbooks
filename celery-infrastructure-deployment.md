@@ -57,7 +57,7 @@ documented below. The seller candidate's railway.beat.json adds
 DATABASE_URL even with Workspace off. Running the exact reviewed local ARM image
 `sha256:7b6cf73a4c706dfc4d46e3c7497dbe1fe4856238086ee396579fa43ba8d61228`
 with that command, a synthetic SECRET_KEY, no DATABASE_URL and network disabled
-refused startup with exit1 before Beat. The deployment is therefore NOT ready to
+refused startup with exit1 before Beat. The deployment was therefore (as of 8 September) NOT ready to
 use the seller candidate with unchanged Beat configuration. Do not remove the
 shared billing migration floor, grant production access, or change provider
 configuration merely to make the probe pass. Resolve scheduler admission and
@@ -452,6 +452,10 @@ References backend implementation at `464398c`, `f1e9665`, `b539d8f`, and `e908c
 
 Use the On-Call Playbook and Verification Checks above when the deployed Celery topology fails.
 
+
+## Historical pre-cutover evidence (S1682–S1689, 8–9 September 2026)
+
+> The sections below record the seller worker/scheduler evidence as it stood before the S1712 cutover. Statements such as "not ready" or "no profile worker" were true on the dates named and are superseded by `runbooks/seller-production-payment-cutover.md`, which records the four-service deployment.
 
 ## S1684 seller admission design disposition
 

@@ -9,9 +9,11 @@ error_signatures:
 
 # Seller Workspace provider verification
 
+> **Historical evidence, 8–9 September 2026 (S1667–S1693). Superseded for current status by the S1712 cutover.** Every status, blocker, flag or migration statement below was true at the date it names and is retained as development evidence. For what is live today read `runbooks/seller-workspace-live-release.md` and `runbooks/seller-production-payment-cutover.md`: the seller migration is applied, the core AWS and R2 flags are on, and the four-service Celery fleet (including the profile worker) is deployed.
+
 Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
 
-## S1691 production catalog preflight — seller migration not applied
+## S1691 production catalog preflight — seller migration not applied (as of 9 September; applied at the S1712 cutover)
 
 At September 9 01:23 UTC, bounded catalog-only checks through the existing web
 and normal-worker application DSNs independently found all nine seller release
@@ -115,7 +117,7 @@ A bounded ListBuckets(Prefix=aimarket-e2e-, MaxBuckets=20) returned no buckets a
 2. Preserve the completed dedicated AWS fixture, exact-prefix restrictions, browser CORS and two-file native Chrome transfers recorded below. Its authorization covers the prepared bucket, read role and three tiny synthetic files only.
 3. Preserve the completed S1667 local integrated-candidate and search-worker evidence below. Complete independent review, remaining R2 implementation and authorized release-environment evidence. The completed synthetic 22,000-file native Chrome transfer does not establish real-cloud bulk transfer or production readiness.
 
-Keep AWS/R2 product flags off until release evidence and authorization are complete. Never expose credentials or signed URLs in runbooks, support messages or test outputs.
+As of 8 September, AWS/R2 product flags were kept off pending release evidence and authorization (they were enabled at the S1712 cutover; see the release pages above). Never expose credentials or signed URLs in runbooks, support messages or test outputs.
 
 ## When it breaks
 

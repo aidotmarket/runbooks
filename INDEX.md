@@ -965,7 +965,7 @@
 
 ## Seller Workspace provider verification
 - Path: `seller-workspace-provider-verification.md`
-- Purpose: Read seller-workspace-cloud-listing-delivery.md, infisical-secrets.md and the provider runbook before work. This document records development evidence, not public availability or permission to change provider settings.
+- Purpose: **Historical evidence, 8–9 September 2026 (S1667–S1693). Superseded for current status by the S1712 cutover.** Every status, blocker, flag or migration statement below was true at the date it names and is retained as development evidence. For what is live today read `runbooks/seller-workspace-live-release.md` and `runbooks/seller-production-payment-cutover.md`: the seller migration is applied, the core AWS and R2 flags are on, and the four-service Celery fleet (including the profile worker) is deployed.
 - Owner: `unassigned`
 - Last verified: `2026-09-08`
 - Aliases: none
