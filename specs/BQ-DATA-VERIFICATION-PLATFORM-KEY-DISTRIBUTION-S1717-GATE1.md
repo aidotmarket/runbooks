@@ -2,7 +2,7 @@
 
 **Status:** R2 fold candidate; independent approval pending. No implementation or deployment approval.
 **Authority:** Max decision event `8fa786ba-61cb-4185-913a-7ece3d7d3880`; Mars binding R1 → R2 fold, 2026-09-15.
-**Base:** runbooks `7a918d40eef541b787ebd18ecbf5570ec4563184`; R1 `91c1aba0ae75bca9414009956c4ff8d30c463c1e`.
+**Base:** runbooks main `607b2f78c58211713029c73fbd65e0676ceb8a5b` (R2 rebased; R1 base was `7a918d40eef541b787ebd18ecbf5570ec4563184`, R1 candidate `91c1aba0ae75bca9414009956c4ff8d30c463c1e`, MP fold `e6c29f3ec43c35bb9200f9113e4ef8460b994bee`).
 **Review panel:** GLM + DeepSeek must approve the exact candidate; CC waived; builder MP excluded.
 **Source trace:** `aim-data@51e2740f6972c008626e186d8b265601c58eca32` and `ai-market-backend@2846e6def5e734980fcc3a48ffab5fd976f28b3e`; all code citations below were re-read with `git show` at these SHAs, not inferred from working trees or production.
 
@@ -143,7 +143,7 @@ Rollback disables verification before reverting incompatible code and preserves 
 ## 7. Review packet, verification, and risks
 
 The candidate diff against the base must list exactly this spec; the seller-journey hunk is removed because runbooks PR #200 updated that page separately.
-Reproduce with `git diff --name-status 7a918d40eef541b787ebd18ecbf5570ec4563184 <R2_SHA>` and `git show <R2_SHA>:specs/BQ-DATA-VERIFICATION-PLATFORM-KEY-DISTRIBUTION-S1717-GATE1.md`.
+Reproduce with `git diff --name-status 607b2f78c58211713029c73fbd65e0676ceb8a5b <R2_SHA>` and `git show <R2_SHA>:specs/BQ-DATA-VERIFICATION-PLATFORM-KEY-DISTRIBUTION-S1717-GATE1.md`.
 The next review packet must name exact SHA/checkout, sole changed file, both source pins, available tools, finite review turn budget, and builder command/results/failures/skips.
 Attach `python3 scripts/check.py` and diff-check results; distinguish static source verification from the unverified live diagnosis. Do not invent missing production logs or claim the AC-finals ran.
 Gate 2 pins implementation files and test commands; Gate 3 reviews implementation; Gate 4 requires both live AC-finals. This fold grants no implementation/release approval.
