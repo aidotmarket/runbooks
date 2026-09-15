@@ -11,6 +11,7 @@ aliases:
 - STRIPE_PAYIN_ONBOARDING_ENABLED
 - pay-in card
 error_signatures:
+- AIM Data install registration is unavailable
 - platform verification key is not configured
 - platform verification key is invalid
 - ai.market returned an invalid scan-spec response
@@ -81,6 +82,7 @@ Active installs (production, 2026-09-15): `vz_installs` rows exist for `max@kisa
 | Symptom | Meaning | Action |
 | --- | --- | --- |
 | "platform verification key is not configured" after **Run free probe and request quote** | AIM Data image older than the S1717 Chunk B release: it still expects the key from the environment | Upgrade the install to the stable image that carries S1717 Chunk B (backend Chunk A must be live first); do not hand-set `DATA_VERIFICATION_PLATFORM_PUBLIC_KEY_PEM` on a customer install (Max, CORE §3, decision event `8fa786ba-61cb-4185-913a-7ece3d7d3880`) |
+| "AIM Data install registration is unavailable" on the free probe | The install was registered before serial binding (pre-1.23.3) and the client could not re-register it — on images before the S1717 rebind fix this was a permanent dead end | Upgrade AIM Data to the stable image carrying `build:bq-vz-install-serial-rebind-on-upgrade-s1717` (backend must be live first); the install re-registers once and keeps its id. If it persists on the fixed image, read the AIM Data log for `re-registering to bind the serial` / `returned a different install_id` and the backend `/vz/register` response |
 | "platform verification key is invalid" at paid start | Delivered key failed binding (`platform_key_id`/algorithm mismatch) or a malformed operator override is set | Check for a stray `DATA_VERIFICATION_PLATFORM_PUBLIC_KEY_PEM`; otherwise the backend served a mispaired key — check the backend 503/`platform_key` logs by correlation id |
 | Backend answers `503 platform verification key is unavailable` at paid start (AIM Data shows its fixed start failure) | ai.market could not pair its signing key with the spec: KMS lookup/signing fault, `GCP_KMS_PLATFORM_KEY_VERSION` mismatch, or a legacy epoch with no recorded key pair on replay | Read the backend `platform_key source=scan_spec_response result=failed` record by correlation id; check Railway `GCP_KMS_PLATFORM_KEY_NAME`/`GCP_KMS_PLATFORM_KEY_VERSION` and KMS readiness; never re-sign or repeat a paid start by hand — the seller's retry replays the same spec |
 | "ai.market returned an invalid scan-spec response" at paid start | AIM Data (Chunk B) talking to a backend without Chunk A, or a non-v2 envelope | Confirm the production backend deployed SHA includes Chunk A before releasing/upgrading AIM Data |
