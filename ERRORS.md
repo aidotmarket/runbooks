@@ -884,6 +884,10 @@
 
 - [Session Open Protocol](session-open-protocol.md)
 
+## `platform verification key is not configured`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
 ## `policy_kernel_enforcement_setting_invalid`
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
