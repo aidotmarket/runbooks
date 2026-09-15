@@ -1,6 +1,6 @@
 # S1717 Gate 2 — Data verification platform key distribution
 
-**Status:** AUTHORED_PENDING_REVIEW; implementation specification, no deployment approval or live acceptance claim.
+**Status:** Gate 2 APPROVED 2026-09-15 (GLM APPROVE_WITH_NITS glm/response-20260915-201715-736662.md; DeepSeek APPROVE_WITH_NITS deepseek/response-20260915-201724-064872.md; nits folded); implementation specification, no deployment approval or live acceptance claim.
 **Binding authority:** [Gate 1](BQ-DATA-VERIFICATION-PLATFORM-KEY-DISTRIBUTION-S1717-GATE1.md), APPROVED 2026-09-15; all §§1–7 apply unchanged.
 **Runbooks base:** `e1009593160a98449724ccf20b8a2520d453c0e4`; branch `spec/bq-data-verification-platform-key-distribution-s1717-gate2`.
 **Backend source pin:** `ai-market-backend@2846e6def5e734980fcc3a48ffab5fd976f28b3e`, `/Users/max/Projects/ai-market/ai-market-backend`.
@@ -26,11 +26,11 @@ All paths in this section are relative to the backend pin; new symbols/files are
 | Exact file | Symbols and required change |
 | --- | --- |
 | `app/schemas/data_verification.py` | Add `PlatformKey(StrictModel)` and `ScanSpecIssueResponse(StrictModel)` using `StrictModel` at :109–110; preserve `SignedScanSpec` at :347–351. |
-| `app/services/data_verification_signing.py` | Extend `DataVerificationSigningService` (:55–75): new immutable `SigningSelection` and `effective_selection` expose concrete `(key_id, key_version, algorithm)`; `sign` consumes that same selection. |
+| `app/services/data_verification_signing.py` | Extend `DataVerificationSigningService` (:55–75): new immutable `SigningSelection` and `effective_selection` expose concrete `(key_id, key_version, algorithm)`; `sign` consumes that same selection. `key_version` comes from a new setting `GCP_KMS_PLATFORM_KEY_VERSION: str = "1"` in `app/core/config.py` beside `GCP_KMS_PLATFORM_KEY_NAME` (:567), validated against `^[1-9][0-9]*$` at startup; signing and public-key lookup both pass it, so a version switch is an explicit configuration change, never an inferred KMS primary. |
 | `app/services/kms_service.py` | `get_signing_public_key(*, key_version="1")` mirrors `get_encryption_public_key` (:255); extend `sign_data` with the same optional version, passed to `_get_key_version_path`. Preserve existing callers' version-1 default. |
 | `app/services/data_verification_service.py` | `issue_scan_spec` (:745 onward) returns the envelope on first issue and cached replay; add `PlatformVerificationKeyUnavailable` and a pair-validation/assembly helper `build_scan_spec_issue_response`. |
 | `app/api/v1/endpoints/data_verification.py` | `create_scan_spec` (:148–189) changes response model/type to `ScanSpecIssueResponse`, still HTTP 201; map the new key failure to the fixed 503 after existing payment cleanup. |
-| `app/models/data_verification.py` | `VerificationEpoch` adds nullable `key_id = Column(String(128))`, `key_version = Column(Text)` beside `signed_spec_payload` (:200); existing `signature_algorithm` (:192) records algorithm. |
+| `app/models/data_verification.py` | `VerificationEpoch` adds nullable `key_id = Column(String(128))`, `key_version = Column(Text)` beside `signed_spec_payload` (:201); existing `signature_algorithm` (:192) records algorithm. |
 | `alembic/versions/20260915_002_s1717_verification_signing_pair.py` (new) | Revision `s1717_verification_signing_pair`, `down_revision="s1716_s1294_foundation"`; add only those two nullable columns. |
 
 `ScanSpecIssueResponse` requires exactly `wire_version`, `scan_spec`, `platform_key`; `wire_version` is literal `data-verification-scan-spec-response-v2`.
@@ -42,15 +42,15 @@ Use one immutable selection for payload, signing and lookup; verify the signatur
 Persist `key_id`, `key_version`, existing `signature_algorithm` and unchanged inner `signed_spec_payload` together in the existing epoch transaction; do not persist PEM or an envelope inside the signed document.
 On replay (:804–826), preserve all existing request/payment binding checks, load the recorded pair, fetch its recorded version and return the unchanged signed spec with the matching key.
 Never re-sign, relabel an outstanding spec, create a second paid start, or use a newly selected version to repair replay; mismatched/unavailable recorded ID fails closed.
-Missing historical pair metadata is an inconsistency: return the fixed 503 without guessing version 1 or backfilling from current configuration; drain issuance/replay obligations before rotation.
+Missing historical pair metadata is an inconsistency: return the fixed 503 without guessing version 1 or backfilling from current configuration; drain issuance/replay obligations before rotation. Disposition of a paid epoch issued before Chunk A deploys (NULL pair): it is never re-signed and never gets a second paid start; it surfaces through the existing refusal/expiry controls and is reconciled under the parent payment-preservation rules (Gate 1 §6, S1590 Gate 1 §10 terminals). Production has zero such epochs today (`verification_epochs` count 0 on 2026-09-15), so this is a contract, not an expected event.
 Migration decision: new nullable columns, not reuse of `policy_versions` JSONB; legacy rows remain unchanged and payment-only epochs may retain NULL until issuance.
 The pinned migration graph has one head, `s1716_s1294_foundation`, declared in `alembic/versions/20260915_001_s1294_listing_enrichment.py:16–17`.
 Use idempotent `ADD COLUMN IF NOT EXISTS`; test empty/legacy/partially applied schemas and repeated upgrade. Downgrade uses existence guards; normal operational rollback retains the additive columns and recorded pairs.
 If the implementation base has another head, stop and reconcile/review the migration parent explicitly; do not silently create a second head or edit historical revisions.
-Configuration/KMS/PEM/pair failure returns HTTP 503, `{"detail":"platform verification key is unavailable"}`; no raw exception, validation input or provider body escapes.
+Configuration/KMS/PEM/pair failure returns HTTP 503, `{"detail":"platform verification key is unavailable"}`; no raw exception, validation input or provider body escapes. `PlatformVerificationKeyUnavailable` must not subclass `DataVerificationRefused` (whose handler at `app/api/v1/endpoints/data_verification.py:188-189` maps to 422); its 503 mapping is a separate `except` clause placed before the 422 handler.
 Retain `authorize` and `fail_our_fault` behavior: new pre-persistence failures use existing authorized-payment cleanup; replay failures must not void issued work or repeat financial operations.
 Feature-off remains HTTP 404, `{"detail":"data verification is disabled"}`, before KMS; quote (:126–145) makes zero public-key calls even if lookup would fail.
-Sanitize exactly the existing raw-provider logs at `kms_service.py:249` (`get_signing_public_key`) and :305 (`sign_data`) to fixed reason plus exception class; do not broaden into unrelated logging cleanup.
+Sanitize exactly the existing raw-provider logs at `kms_service.py:249` (`get_signing_public_key`, `logger.error("KMS signing GetPublicKey failed: %s", e)`) and :306 (`sign_data`, `logger.error("KMS Sign failed: %s", e)`) to fixed reason plus exception class; do not broaden into unrelated logging cleanup.
 
 ### A tests, commands and MP brief
 
@@ -100,11 +100,11 @@ Extend `tests/test_data_verification_scanner.py` for delivered/override RSA veri
 Required rows: quote/free probe/status with absent or invalid override invoke no platform-key reader/scanner; valid v2 verifies; bare/unknown/extra/missing/malformed responses refuse before scan; ID/algorithm mismatch refuses.
 Also test independent response keys across starts, no signature-failure reissue, valid override precedence without tuple metadata, invalid override without fallback, supported PEM encodings and forbidden key forms.
 Cover HTTPS/userinfo/redirect refusal, existing signed auth, hash/signature/expiry/cancellation/nonce/scope/receipt/payment recovery and success/failure log redaction with hostile sentinel values.
-From AIM Data checkout: `rtk proxy python -m pytest -q tests/test_data_verification_router.py tests/test_data_verification_local_service.py tests/test_data_verification_scanner.py tests/test_data_verification_resolver.py tests/test_data_verification_sanitizer.py tests/test_data_verification_enabled_default.py`
-Sign-in regressions: `rtk proxy python -m pytest -q tests/test_aim_market_oauth.py tests/test_aim_market_oauth_call_inventory.py tests/test_aim_market_oauth_deployment.py tests/test_device_registration.py tests/test_trust_registration_oauth.py`.
+From AIM Data checkout (project interpreter, `.venv/bin/python` if present, else the interpreter the existing test runbook names): `rtk proxy .venv/bin/python -m pytest -q tests/test_data_verification_router.py tests/test_data_verification_local_service.py tests/test_data_verification_scanner.py tests/test_data_verification_resolver.py tests/test_data_verification_sanitizer.py tests/test_data_verification_enabled_default.py`
+Sign-in regressions: `rtk proxy .venv/bin/python -m pytest -q tests/test_aim_market_oauth.py tests/test_aim_market_oauth_call_inventory.py tests/test_aim_market_oauth_deployment.py tests/test_device_registration.py tests/test_trust_registration_oauth.py`.
 Frontend `frontend/src/components/DataVerificationFlow.tsx` and `DataVerificationFlow.test.tsx` remain unchanged; no frontend command/copy change is required.
 Runbooks touch validation: `rtk proxy python3 scripts/check.py` and `rtk git diff --check` in runbooks.
-MP B brief: implement the six application files, three extended test files and one runbook touch above; provide AC2/AC3 evidence and unchanged frontend diff, submit exact candidates to Gate 3, and do not release before verified A deployment.
+MP B brief: implement the five application files (six table rows; `app/routers/data_verification.py` appears twice), three extended test files and one runbook touch above; provide AC2/AC3 evidence and unchanged frontend diff, submit exact candidates to Gate 3, and do not release before verified A deployment.
 
 ## 4. Chunk C — release and production acceptance
 
