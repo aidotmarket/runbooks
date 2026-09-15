@@ -222,7 +222,7 @@ As of S533, three Infisical secret names hold (or have held) the same Vertex Exp
 
 Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch_ag_server.sh` to read the canonical name, and removes the duplicates.
 
-- **App-read secrets are read from the process environment.** The historical S942 manual-sync gap was closed by the S1125 native sync. Follow Source of Truth & Propagation and Secret Rotation above; verify propagation rather than assuming a catalog write proves runtime adoption.
+- **App-read secrets are read from the process environment.** The historical S942 manual-sync gap was closed by the S1125 native sync. (`reconciliation-github-webhook.md` still carries the pre-S1125 wording that Infisical-only values do not reach the app; that wording is stale.) Follow Source of Truth & Propagation and Secret Rotation above; verify propagation rather than assuming a catalog write proves runtime adoption.
 
 ### `INFISICAL_PROJECT_ID` on Titan-1 points at koskadeux-mcp, not the backend (S964)
 

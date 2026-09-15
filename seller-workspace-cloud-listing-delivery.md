@@ -29,7 +29,7 @@ Seller contract (September 8, reconciled in S1668): selection and listing do not
 
 The two products provide equivalent marketplace outcomes through stable contracts. They do not share a runtime, Docker deployment, local database, filesystem, installation identity, or user interface.
 
-Historical W2 status: foundation merged and deployed, default-off, with S1648 Gate 4 evidence satisfied in an explicitly controlled non-public environment. AWS connect was the only implemented W2 stage. Those observations do not describe the later seller drafts, Allai, source selection, review, approval, publication and direct-delivery candidate or claim it is released. R2 remains unimplemented. Existing `legacy_serial` behavior is preserved.
+Historical W2 status: foundation merged and deployed, default-off, with S1648 Gate 4 evidence satisfied in an explicitly controlled non-public environment. AWS connect was the only implemented W2 stage. Those observations do not describe the later seller drafts, Allai, source selection, review, approval, publication and direct-delivery candidate or claim it is released. R2 delivery was unimplemented at the W2 stage; current AWS and R2 production status is recorded in `runbooks/seller-workspace-live-release.md` and `runbooks/seller-production-payment-cutover.md`. Existing `legacy_serial` behavior is preserved.
 
 ## Decisions frozen by W1
 
