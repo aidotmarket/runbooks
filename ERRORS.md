@@ -72,6 +72,10 @@
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
+## `ai.market returned an invalid scan-spec response`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
 ## `alerts unavailable`
 
 - [Alerts at session open (S1529)](runbooks/alerts-at-open.md)
@@ -884,7 +888,15 @@
 
 - [Session Open Protocol](session-open-protocol.md)
 
+## `platform verification key is invalid`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
 ## `platform verification key is not configured`
+
+- [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
+## `platform verification key is unavailable`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
 
