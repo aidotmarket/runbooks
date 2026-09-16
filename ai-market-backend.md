@@ -27,7 +27,9 @@ Python 3.11, FastAPI, SQLAlchemy (async), Alembic, PostgreSQL, Redis, Qdrant (ve
 
 Railway auto-deploys from `main`. On startup, runs `alembic upgrade head` before the app starts.
 
-**Railway CLI targeting (S1654/S1655):** the repo checkout at `/Users/max/Projects/ai-market/ai-market-backend` is linked to the `verify-s1648` environment, not production. Every Railway command against production must pass `-e production -s ai-market-backend` explicitly; a bare `railway variables` or `railway deployment list` silently answers for the wrong environment. Postgres reads use `-e production -s Postgres` (see the connect snippet under "Customer data").
+**Railway CLI targeting (S1654/S1655, updated S1717):** the repo checkout at `/Users/max/Projects/ai-market/ai-market-backend` is linked to `production` since S1717 (`railway environment link production`; the former `verify-s1648` link is gone with that environment). Still pass `-e production -s ai-market-backend` explicitly on every command against production — a bare `railway variables` or `railway deployment list` answers for whatever the checkout happens to be linked to, and the link is local state. Postgres reads use `-e production -s Postgres` (see the connect snippet under "Customer data").
+
+**Stale verify environments (S1717):** the per-session `verify-*` environments are forks of production that auto-deploy from `main` and crash on every deploy once production-only config diverges (S1714 merchant-entity check), producing a "Deploy Crashed" email per push. `verify-s1648` and `verify-s1622` were deleted on 2026-09-16 with `railway environment delete <env> -y` after `railway status --json` confirmed which services belonged to them; the deletion removes the environment's service instances and volumes but leaves empty service shells in the project (the CLI cannot delete services — remove them in the dashboard). Before deleting, relink the checkout to `production`. A `verify-*` environment is disposable once its session's acceptance evidence is recorded; do not keep one running "just in case".
 
 **Verify deploy:**
 ```sh
