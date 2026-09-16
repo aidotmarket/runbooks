@@ -676,6 +676,10 @@
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
+## `listing_asset_access_denied`
+
+- [ai.market Listing-Asset Object Store (Cloudflare R2)](listing-asset-store.md)
+
 ## `live Stripe publishable-key prefix refused before network access`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -1083,6 +1087,10 @@
 ## `S3 version scan failed after assume-role propagation retries`
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
+## `sample_store_unavailable`
+
+- [ai.market Listing-Asset Object Store (Cloudflare R2)](listing-asset-store.md)
 
 ## `schema_validation_failure`
 
