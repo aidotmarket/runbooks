@@ -738,6 +738,15 @@
 - Error signatures: operator does not exist: userstatus = character varying
 - Status: current
 
+## Listing Enrichment Platform Signing Key (verified previews)
+- Path: `listing-enrichment-platform-signing-key.md`
+- Purpose: The backend signs verified-preview artefacts (transparency log checkpoints, preview platform envelopes, approval decisions under BQ-LISTING-ENRICHMENT-SELLER-TOOLS-S1294) with one Ed25519 key. The public half is served at `GET /api/v1/public/transparency/keys` so browsers verify the platform envelope before trusting any seller key. Without this key T-backend fails closed: the keys route returns 503 and every sample approval is refused. The key was first provisioned on 2026-09-18 (S1716, Max decision Event Ledger 040cc446).
+- Owner: `unassigned`
+- Last verified: `2026-09-18`
+- Aliases: platform signing key, preview signing key, LISTING_ENRICHMENT_SIGNING, transparency keys 503
+- Error signatures: transparency/keys HTTP 503 Preview unavailable, signing_configuration_unavailable, signing_key_unavailable, signing_key_invalid, signing_environment_not_allowed
+- Status: current
+
 ## Local SecOps Assistant (Titan-1)
 - Path: `local-secops.md`
 - Purpose: **Built**: S1115 (2026-07-04) **Host**: Titan-1 / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Titan-1 and no human has to type them. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.

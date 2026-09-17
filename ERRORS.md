@@ -1128,6 +1128,22 @@
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
 
+## `signing_configuration_unavailable`
+
+- [Listing Enrichment Platform Signing Key (verified previews)](listing-enrichment-platform-signing-key.md)
+
+## `signing_environment_not_allowed`
+
+- [Listing Enrichment Platform Signing Key (verified previews)](listing-enrichment-platform-signing-key.md)
+
+## `signing_key_invalid`
+
+- [Listing Enrichment Platform Signing Key (verified previews)](listing-enrichment-platform-signing-key.md)
+
+## `signing_key_unavailable`
+
+- [Listing Enrichment Platform Signing Key (verified previews)](listing-enrichment-platform-signing-key.md)
+
 ## `silent past 300s with status still running`
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
@@ -1267,6 +1283,10 @@
 ## `tr_truncation_false_negative`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `transparency/keys HTTP 503 Preview unavailable`
+
+- [Listing Enrichment Platform Signing Key (verified previews)](listing-enrichment-platform-signing-key.md)
 
 ## `trust returns HTTP 409`
 
