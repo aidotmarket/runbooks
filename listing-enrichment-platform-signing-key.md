@@ -16,8 +16,8 @@ The backend signs verified-preview artefacts (transparency log checkpoints, prev
 
 | Setting | Where | Value shape |
 |---|---|---|
-| `LISTING_ENRICHMENT_SIGNING_KEY_ID` | Infisical prod `/` (synced to Railway) | key id, `^[A-Za-z0-9._:-]+$`; current `aim-preview-platform-2026-09` |
-| `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS` | Infisical prod `/` (synced to Railway) | JSON object `{"<key_id>": "<base64url raw 32-byte public key>"}`; may hold several keys during rotation |
+| `LISTING_ENRICHMENT_SIGNING_KEY_ID` | Infisical prod `/` (synced to Railway) | key id: 1-255 chars matching `^[A-Za-z0-9._:-]+$`; MUST also be a key in `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS`; current `aim-preview-platform-2026-09` |
+| `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS` | Infisical prod `/` (synced to Railway) | JSON object `{"<key_id>": "<public key>"}` where each value is the raw 32-byte Ed25519 public key in UNPADDED base64url (43 chars, no `=`), every key id valid per the pattern, and no two ids carrying the same key bytes; may hold several keys during rotation |
 | `LISTING_ENRICHMENT_INFISICAL_SIGNING_KEY_NAME` | Infisical prod `/` (synced) | `LISTING_ENRICHMENT_SIGNING_PRIVATE_KEY_PEM` |
 | `LISTING_ENRICHMENT_INFISICAL_SECRET_PATH` | Infisical prod `/` (synced) | `/listing-enrichment-signing` |
 | `LISTING_ENRICHMENT_SIGNING_PRIVATE_KEY_PEM` | Infisical prod `/listing-enrichment-signing` only | PKCS8 PEM of the Ed25519 private key. This folder is outside the Infisical→Railway sync on purpose: the backend fetches the key from Infisical at signing time (`app/services/transparency_log_service.py`, `InfisicalEd25519Signer`) using the existing `INFISICAL_TOKEN` / `INFISICAL_PROJECT_ID`; the private key must never appear as a Railway variable |
@@ -42,7 +42,7 @@ Runbook rule: `infisical-secrets.md` (raw v3 API with `~/.config/infisical/sysad
    open(f"{KEY_ID}.pub","w").write(base64.urlsafe_b64encode(raw).rstrip(b"=").decode())
    PY
    ```
-2. Preflight first: `GET /api/v3/secrets/raw?workspaceId=<project>&environment=prod&secretPath=<path>` for each exact secret name. Then create only secrets that are confirmed absent with `POST /api/v3/secrets/raw/<NAME>` and update existing ones with `PATCH /api/v3/secrets/raw/<NAME>` (same workspaceId, environment, secretPath, type `shared`; build request bodies in memory, never in shell history). All rotation writes are updates unless the preflight proves absence. Private key: name `LISTING_ENRICHMENT_SIGNING_PRIVATE_KEY_PEM`, `secretPath` `/listing-enrichment-signing`. For rotation, first add the NEW public key to `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS` (keep the old one), let the sync land and the service redeploy, then switch `LISTING_ENRICHMENT_SIGNING_KEY_ID` and replace the private secret. Remove the old public key only after every checkpoint signed with it has been superseded (see the T contract, signer_keys rotation rules).
+2. Preflight first: `GET /api/v3/secrets/raw?workspaceId=<project>&environment=prod&secretPath=<path>&viewSecretValue=false` and match each secret by EXACT name (`secretKey` equality, not a substring). Then create only secrets that are confirmed absent with `POST /api/v3/secrets/raw/<NAME>` and update existing ones with `PATCH /api/v3/secrets/raw/<NAME>` (same workspaceId, environment, secretPath, type `shared`; build request bodies in memory, never in shell history). All rotation writes are updates unless the preflight proves absence. Private key: name `LISTING_ENRICHMENT_SIGNING_PRIVATE_KEY_PEM`, `secretPath` `/listing-enrichment-signing`. For rotation, first add the NEW public key to `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS` (keep the old one), let the sync land and the service redeploy, then switch `LISTING_ENRICHMENT_SIGNING_KEY_ID` and replace the private secret. Remove the old public key only after every checkpoint signed with it has been superseded (see the T contract, signer_keys rotation rules).
 3. Write (POST if absent, PATCH if present, per the same preflight) the four `/`-path settings with `secretPath` `/`. The Infisical→Railway sync (`railway-backend-prod`, auto-sync ON) pushes them; Railway redeploys the backend automatically on variable change (observed ~2 minutes).
 4. Verify:
    ```bash
@@ -52,8 +52,8 @@ Runbook rule: `infisical-secrets.md` (raw v3 API with `~/.config/infisical/sysad
 
 ## When it breaks
 
-- Keys route 503 `Preview unavailable`: `LISTING_ENRICHMENT_SIGNING_KEY_ID` unset or not present in `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS`, or a public key that is not 32 raw bytes.
-- `signing_configuration_unavailable`: one of key name / `INFISICAL_TOKEN` / `INFISICAL_PROJECT_ID` / key id missing at signing time.
+- Keys route 503 `Preview unavailable`: `LISTING_ENRICHMENT_SIGNING_KEY_ID` unset or not present in `LISTING_ENRICHMENT_SIGNING_PUBLIC_KEYS`; a key id failing the pattern or length; a public key that is padded, non-canonical base64url, or not exactly 32 raw bytes; or two ids carrying identical key bytes.
+- `signing_configuration_unavailable`: one of `LISTING_ENRICHMENT_INFISICAL_SIGNING_KEY_NAME`, `INFISICAL_TOKEN`, `INFISICAL_PROJECT_ID` or `LISTING_ENRICHMENT_SIGNING_KEY_ID` empty at signing time; check all four, the code tests them together.
 - `signing_environment_not_allowed`: `LISTING_ENRICHMENT_INFISICAL_ENVIRONMENT` not in `INFISICAL_ALLOWED_ENVS`.
 - `signing_key_unavailable` / `signing_key_invalid`: Infisical fetch failed, secret missing at the configured path, or the PEM is not Ed25519.
 
