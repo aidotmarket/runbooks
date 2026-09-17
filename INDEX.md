@@ -362,9 +362,9 @@
 
 ## Codex / MP — Council Primary Builder
 - Path: `codex-mp.md`
-- Purpose: **MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+- Purpose: **MP** is the Council name for OpenAI **Codex** (model `gpt-6-astra` as of 2026-09-17 — the bridge log header `model:` line is ground truth; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-09-17`
+- Last verified: `2026-09-18`
 - Aliases: none
 - Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
 - Status: current

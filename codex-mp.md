@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-17'
+last_verified: '2026-09-18'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -12,7 +12,7 @@ error_signatures:
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model `gpt-5.6-sol`, ChatGPT OAuth). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model `gpt-6-astra` as of 2026-09-17 — the bridge log header `model:` line is ground truth; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## Overview
 
@@ -129,6 +129,26 @@ error_signatures:
       cause: model not served on tier — revert config.toml model line (Repair-05 rollback)
   next_step_success: update infra:council-comms agent_frontier_models.mp + provider status with evidence; refresh this runbook Capabilities/Architecture & interactions rows + Maintenance
   next_step_failure: revert per Repair-05, keep ticket open
+- id: E-05
+  trigger: Any MP dispatch (build, continuation or Council fold) — cost discipline, Max decision 2026-09-18 (S1718)
+  pre_conditions:
+    - the task text cites file:line and the normative spec section for every item; it does NOT tell MP to read the spec, amendment or authority pages "in full" — every run is `--ephemeral` (no prompt cache between runs), so each re-read of the authority set is paid again (~100k tokens per fold observed 2026-09-16/17, 8.5M tokens over 58 jobs in two days)
+    - a Council fold folds ALL verdicts of the round in ONE run (never one run per reviewer)
+    - fold and continuation dispatches pass reasoning_effort=low (fold work is mechanical); first builds of a chunk stay at the default; raise per F-15 only after a fold introduced a new defect
+    - timeout_s sized so one run finishes the chunk — 3600 for a chunk that needed continuations before (each continuation re-orients from scratch: D backend 2026-09-17 took 4 runs / ~790k tokens); 1800 only for small folds
+  tool_or_endpoint: dispatch_mp_build(reasoning_effort=low|default, timeout_s=..., base_sha=<40-hex>, ...)
+  argument_sourcing:
+    reasoning_effort: literal "low" for folds/continuations; omit for first builds
+    token_evidence: 'grep -A1 "tokens used" /Users/max/koskadeux-state/ts-sockets/jobs/<task_id>.builder-output.log'
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: fold run reports well under 100k tokens; chunk completes in one run
+    verification: compare the "tokens used" line against the previous fold on the same chunk
+  expected_failures:
+    - signature: fold at low effort introduces a new defect (F-15)
+      cause: component too hard for low effort — re-dispatch that fold at default, note it in the report
+  next_step_success: as E-01
+  next_step_failure: F-15 / Repair-13
 ```
 
 ## When it breaks
@@ -151,6 +171,7 @@ error_signatures:
 | F-15 | MP repeatedly introduces new defects while fixing prior ones on a hard/safety-critical component (fix N creates defect N+1) | Default reasoning effort too low for the component's complexity | Count audit rounds: ≥2 REVISE rounds where the fix itself introduced a NEW defect (S1186 escalation spine: uuid4 dedup regression, ack leaks, benign-false storms) | Repair-13 | CONFIRMED (S1186) |
 | F-16 | Any git push refused with "GUARDRAIL: refusing malformed pre-push record" | Stale pre-push hook installed in that repository. The pre-fix copy rejects the local ref `HEAD`, so the ordinary `git push origin HEAD:refs/heads/<branch>` form is misread as a corrupted record. The message points at git or at credentials rather than at the hook's own field validation, which is why it reads like a security refusal (T-2026-000556, S1441) | `shasum -a 256 <repo>/.git/hooks/pre-push` against `koskadeux-mcp/githooks/pre-push`; any mismatch is a stale install. The fixed hook names the rejected field on refusal, the stale one does not | Repair-14 | CONFIRMED (S1441) |
 | F-17 | MP task ends early with `You've hit your usage limit` (Codex reports a reset date, e.g. "until Sep 15") | ChatGPT-account Codex quota exhausted; every further dispatch fails the same way until Max restores or upgrades the plan (S1681, task 9ed0d64ded9a, 2026-09-08) | `grep -l "hit your usage limit" /Users/max/koskadeux-state/ts-sockets/jobs/*.builder-output.log`; a trivial smoke dispatch returns the same string | Repair-15 | CONFIRMED (S1681) |
+| F-18 | Job report says `terminal_status: nothing_changed` / `push_status: nothing_to_push` with head_sha == base_sha, yet MP's final message says it pushed N commits | Bridge report bug: head_sha is read from the wrong ref after MP pushes on an existing branch (31 of 58 jobs 2026-09-16/17 misreported; e.g. task 27e2535c9f07 pushed 4 commits to 30524806) | `git fetch origin <branch> && git rev-parse origin/<branch>` vs the report's base_sha; read the last `codex` block of the builder-output log | — (report on koskadeux-mcp; never trust the status field alone) | CONFIRMED (S1718) |
 
 ## Repair
 
