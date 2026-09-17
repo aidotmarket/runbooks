@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-08-30'
+last_verified: '2026-09-17'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -240,7 +240,7 @@ error_signatures:
   component_ref: Koskadeux handler process (koskadeux_server.py) + Codex model config
   root_cause: model env/config loaded at handler start; a disk rollback does not reach a running process
   repair_entry_point: operator restart, then smoke
-  change_pattern: '1) Model identity smoke: council_request(agent=mp, mode=open_response, task="Reply with exactly one line MODEL_ACTUAL=<model>"); assert raw_completion.model_requested AND model_actual equal the intended model (currently gpt-5.6-sol per infra:council-comms model_policy.agent_frontier_models.mp — always read the registry, never a literal here; ignore the model's prose self-description, models misidentify themselves). 2) If wrong model, verify disk truth (grep model ~/.codex/config.toml; grep MP_MODEL koskadeux-mcp/.env; code fallbacks in tools/agents.py, mp_adapter.py, cost_estimator.py must agree), then restart the handler: launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp. Restart rule: peer must be idle/closed (check /Users/max/koskadeux-state/registry.db sessions.state; that is the canonical registry, the /var/tmp path is retired and normally absent); kickstart is safe mid-OWN-session (tools reconnect; expect one brief EMERGENCY LOCAL FALLBACK shell response during the bounce). 3) Re-run the smoke before dispatching real work.'
+  change_pattern: '1) Model identity smoke. MP accepts only mode=author or mode=build — the handler refuses mode=open_response for agent=mp with error_type mp_mode_not_supported (observed S1718, 2026-09-17). Direct smoke: cd ai-market-backend && echo "Reply with exactly: SMOKE_OK" | codex exec --model gpt-5.6-sol - (expect SMOKE_OK and no usage-limit string); then the handler-path evidence is the next real build via dispatch_mp_build — its report.json must reach terminal_status clean_exit or nothing_changed with builder_exit_code 0 and its builder-output.log must not contain "hit your usage limit". Assert model_requested AND model_actual equal the intended model (currently gpt-5.6-sol per infra:council-comms model_policy.agent_frontier_models.mp — always read the registry, never a literal here; ignore the model's prose self-description, models misidentify themselves). 2) If wrong model, verify disk truth (grep model ~/.codex/config.toml; grep MP_MODEL koskadeux-mcp/.env; code fallbacks in tools/agents.py, mp_adapter.py, cost_estimator.py must agree), then restart the handler: launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp. Restart rule: peer must be idle/closed (check /Users/max/koskadeux-state/registry.db sessions.state; that is the canonical registry, the /var/tmp path is retired and normally absent); kickstart is safe mid-OWN-session (tools reconnect; expect one brief EMERGENCY LOCAL FALLBACK shell response during the bounce). 3) Re-run the smoke before dispatching real work.'
   rollback_procedure: n/a (restart + config alignment)
   integrity_check: smoke returns success=true and model_matched=true. Post-S1205 this is REAL evidence: model_actual is read back from the Codex rollout file (~/.codex/sessions/**/rollout-*-<session_id>.jsonl), not the requested string echoed back, and it fails closed to false when the rollout is missing, unparseable, or disagrees with the CLI banner. Before S1205 model_matched was hardcoded true and proved nothing.
 - id: G-12
@@ -263,8 +263,8 @@ error_signatures:
   symptom_ref: F-17
   component_ref: Codex CLI + auth
   root_cause: 'Codex usage quota on the ChatGPT account is exhausted; the CLI refuses new work until the stated reset date'
-  repair_entry_point: 'Max restores the quota at https://chatgpt.com/codex/settings/usage (plan change or reset) - outside instance authority'
-  change_pattern: '1) Stop dispatching MP immediately; every further dispatch burns nothing but produces nothing. 2) Tell Max in the end-of-round summary with the exact reset date from the error string. 3) Do NOT hand-author code builds to route around it - MP remains the mandatory builder (CORE S4). 4) After Max confirms restoration, run one trivial smoke dispatch before redispatching real work.'
+  repair_entry_point: 'Max restores the quota at https://chatgpt.com/codex/settings/usage (plan change, reset, or re-login to a different ChatGPT account with quota — done 2026-09-17, S1718) - outside instance authority'
+  change_pattern: '1) Stop dispatching MP immediately; every further dispatch burns nothing but produces nothing. 2) Tell Max in the end-of-round summary with the exact reset date from the error string. 3) Do NOT hand-author code builds to route around it - MP remains the mandatory builder (CORE S4). 4) After Max confirms restoration, verify before believing any handoff or BQ note that says "quota returns <date>": grep -l "hit your usage limit" /Users/max/koskadeux-state/ts-sockets/jobs/*.builder-output.log and stat the newest hit; a job report newer than the newest hit with builder_exit_code 0 proves the quota is back. Then run the direct smoke of G-11 step 1 and redispatch. A quota statement carried in a handoff is a claim about the past account state, not ground truth (S1718 lost a round to a stale one).'
   rollback_procedure: n/a
   integrity_check: 'smoke dispatch reaches a terminal status with no usage-limit string in its builder-output log'
 ```
