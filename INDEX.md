@@ -121,7 +121,7 @@
 - Path: `aim-data-seller-publish-journey.md`
 - Purpose: This page fills the AIM Data seller-publish documentation gaps historically recorded as S1216-D3, S1219-D1, and their predecessors. Those identifiers are provenance, not current admission or close requirements. The procedure starts after the customer has an AIM Data install and follows the customer-visible path through ai.market sign-in, install registration, local listing preparation, explicit disclosure confirmation, signed publish, and live-listing verification.
 - Owner: `mars`
-- Last verified: `2026-07-15`
+- Last verified: `2026-09-18`
 - Aliases: none
 - Error signatures: POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying, VZ install registration auth failed (401 or 403), Accept all & continue remains disabled while title and description are populated and dataset.listing_id is null, Metadata generation failed, HTTP 409 VZ install registration not available — sign in with ai.market and try publishing again, HTTP 403 detail.error=capability_required capability=seller, HTTP 503 Publish unavailable: security services offline, Listing published, disclosure snapshot pending, runner/job failure before the Publish request
 - Status: current
@@ -508,7 +508,7 @@
 - Path: `data-verification-seller-journey.md`
 - Purpose: The feature built under `BQ-DATA-VERIFICATION-S1590` (specs `specs/BQ-DATA-VERIFICATION-S1590-GATE1.md`, `-GATE2.md`, `-PAYIN-ONBOARDING-AMENDMENT.md`, `-GENERAL-AVAILABILITY-AMENDMENT.md`) lets a seller pay for a point-in-time structural scan that AIM Data executes inside the seller's environment. What crosses to ai.market is the approved aggregate manifest (the signed shape report), the sanitized structural context, the owner consent/launch envelope and, on failure, fixed-enum terminal errors; no raw cell values, sample rows, locators or credentials ever leave the seller's environment (Gate 1 §6). This page is the operating view: what the seller sees, what ai.market does at each step, and how an operator confirms the path is live without spending money or touching a customer. Design rules live in the specs; do not restate or amend them here.
 - Owner: `mars`
-- Last verified: `2026-09-15`
+- Last verified: `2026-09-18`
 - Aliases: verified label, verified shape label, scan findings badge, data verification, DATA_VERIFICATION_ENABLED, STRIPE_PAYIN_ONBOARDING_ENABLED, pay-in card
 - Error signatures: AIM Data install registration is unavailable, platform verification key is not configured, platform verification key is invalid, ai.market returned an invalid scan-spec response, platform verification key is unavailable, data verification is disabled, PAYIN_ONBOARDING_DISABLED, Data verification unavailable., Card setup for this paid service is unavailable
 - Status: current
