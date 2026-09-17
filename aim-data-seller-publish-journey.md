@@ -1,7 +1,7 @@
 ---
 title: AIM Data Seller Publish Journey
 owner: mars
-last_verified: '2026-07-15'
+last_verified: '2026-09-18'
 aliases: []
 error_signatures:
 - 'POST /api/v1/vz/register returns 500 with operator does not exist: userrole <> character varying'
@@ -24,6 +24,44 @@ This runbook does not redefine the AIM Data product (`aim-data.md`), the one-rou
 ## Overview
 
 
+### Directory datasets (many files)
+
+The directory route is **SHIPPED, flag-gated, default off**: ai.market backend `MULTI_FILE_DATASETS_ENABLED` and the AIM Data install's `AIM_DATA_MULTI_FILE_DATASETS_ENABLED` must both be enabled for an authorized rollout. This edition verifies source, not deployment or a completed browser purchase/delivery run. Source pins: AIM Data `119f643b5fd25dc8fd61557649371c9832ca33c5`, ai-market-frontend `3f15c1566a8f9aee2c96af397ff1eaab30f34fbc`; the receiver's version refusal was checked at ai-market-backend `ea7e777c1ee2a9925db1b221430937cd38694ad5`.
+
+1. **Upload/import the folder as one dataset.** Preserve its nested paths, then register the folder visible to the install with `POST /api/datasets/register-directory {path}`. The flag-enabled server import route also registers one directory. Expect one dataset card, not a listing per file. Open it to see **Directory members**: File, Bytes, Type, Role, Sample, Status and Reason, with **Previous** / **Next** pages and Role / Status filters. Review the summary **profiled on N of M files** and bytes profiled; **not profiled (0 of M files)** and individual reasons describe coverage, not full-set verification.
+2. **Review roles and free samples before publishing.** The UI roles are `data`, `documentation` (docs), and `other`. “Sample” is a separate checkbox (`is_sample`), available only for `data`; it is not a fourth stored role. Mark only the files the seller intends to give away. They remain part of the purchased set. The app enforces per-file, file-count and total-byte sample limits and names the failing bound in its refusal (F-09–F-11); do not assume fixed limits. Keep at least one non-sample data member. Unsupported files remain visible with `unsupported_type`; inspect each member's Reason. Published member choices are frozen.
+3. **Publish one listing with a versioned manifest.** Approve the listing metadata and disclosure, choose **Publish selected sample files for free download**, then **Publish to ai.market**. The local-route sender signs `source_kind=aim_data_local`, the manifest hash and version metadata; it uploads member chunks and chosen sample bytes. A pending upload is not an active publication: **Pending members — upload is not complete. Retry publishing to resume.** Wait for **Published**. If only disclosure failed, use **Retry disclosure**, which retries the disclosure without creating another listing. The public listing shows **Free sample: N files**, filenames, sizes and download links; unavailable samples say **(sample unavailable)**. The manifest binding label is **verified: part of the published dataset**; this is a sample-to-manifest binding, not a paid verification result.
+4. **Check what the buyer receives.** On the buyer's order page, **Files in this dataset** lists member basenames and sizes. **Get download access** requests one order-scoped grant after the terms gate; each available member then has **Download**. The UI says **One download allowance gives access to the whole dataset. Renewing access uses another allowance.** **Renew download access** renews expiring access; the page shows remaining allowances and expiry. An unavailable member says **File unavailable — support notified.** See the refusal copy below. Confirm the purchased version's complete member set and hashes in an authorized end-to-end test before claiming delivery acceptance.
+
+**Pinned UI limitations:** `FileUploadModal.tsx` offers **Browse Folder**, but `UploadContext.tsx` still submits individual files; this is not evidence of one-directory browser upload. The server directory registration endpoint above is the verified grouping path. Also, `DatasetDetail.tsx:1457-1460` returns `DirectoryMembers` before `ListingPreparation`, so the directory detail route at this pin does not expose the publish controls described in step 3. Those controls exist in `DirectoryPublishControl` and have component tests; do not report a complete seller click-through until the UI wiring is fixed and verified. The server-import UI still expects a job response although the flag-enabled endpoint returns a dataset directly. These are application follow-ups, outside this runbook change.
+
+**Optional verification:** publishing, sampling and delivery never require opening verification, requesting a quote, adding a verification payment card or running a scan. The separate panel heading in `DatasetDetail.tsx:1222` is **Optional: add a verified shape label**. See `data-verification-seller-journey.md` §B for the seller-initiated procedure.
+
+**Minimum install version and updating:** the backend refuses local-route publish when `agent_version` is missing, invalid or below `MIN_AGENT_VERSION_LOCAL`. Its HTTP 409 code is `agent_upgrade_required`, with `minimum_version` and exact detail `Upgrade AIM Data to {MIN_AGENT_VERSION_LOCAL} or later`; the control renders `agent_upgrade_required: Upgrade AIM Data to {MIN_AGENT_VERSION_LOCAL} or later`. Follow AIM Data `docs/INSTALL.md` **Updating** from the install's compose directory: refresh the compose file first (it pins the image), then pull and recreate. Pulling alone retains the old pinned version. Data, settings and registration carry across versions; confirm the resulting image meets the receiver's reported minimum and retains the authorized flag configuration.
+
+```sh
+rtk proxy curl -O https://raw.githubusercontent.com/aidotmarket/aim-data/main/docker-compose.aim-data.yml
+rtk docker compose -f docker-compose.aim-data.yml pull
+rtk docker compose -f docker-compose.aim-data.yml up -d
+```
+
+Buyer refusal copy from `app/dashboard/orders/[id]/DatasetMembers.tsx` (alerts append the code in parentheses):
+
+| Code or state | Exact buyer-facing copy | Next step |
+|---|---|---|
+| `delivery_not_complete` | This dataset is still being delivered. Try again later. | Wait for delivery; do not treat the member list as proof of completion. |
+| `grant_rate_limit` | Too many access requests. Please wait before trying again. | Wait before requesting another grant. |
+| `download_limit_reached` | This order has no download allowances remaining. | Review order access with support. |
+| `grant_expiring` | Download access is expiring. Renew access to continue. | Use Renew download access. |
+| `invalid_grant` | Download access has expired. Renew access to continue. | Use Renew download access. |
+| `member_unavailable` | File unavailable — support notified. | Escalate the affected member; do not substitute another version. |
+| `byte_budget_exceeded` | The hourly download byte allowance (DOWNLOAD_GRANT_BYTES_PER_HOUR) has been reached. Try again next hour. | Wait until the next hour. |
+| `delivery_busy` | Delivery is busy. Please try again shortly. | Retry shortly. |
+| `delivery_retention_expired` | This dataset is no longer available for download. | Review retention with support. |
+| Order access expired | Download window expired. | Review the order's access window. |
+| Member-list fetch failed | Files unavailable. Please try again. | Use Retry loading files. |
+| Unknown refusal | Could not prepare this download. Please try again. | Retry; preserve the fixed `download_request_failed` code for support. |
+
 ### M1 — Dependencies & Credentials / Source-of-Truth
 
 | Dependency | Required state or credential | Source of truth | Journey use |
@@ -37,7 +75,7 @@ This runbook does not redefine the AIM Data product (`aim-data.md`), the one-rou
 | Canonical listing record | `listings` row keyed for this flow by `(seller_id, source_dataset_id=vz_raw_listing_id)` | `publish-paths.md`; ai-market-backend `app/services/vz_publish_service.py:create_or_update_listing` | Stores the published listing and returns `listing_id` plus `marketplace_url`. |
 | Browser verification | kd-browser runner at `127.0.0.1:8790`, driven by checked job scripts; both operating instances invoke jobs through `shell_request` | `e2e-browser-runner.md` operating pattern; the journey job script under the operator's browser-job workspace | Verifies the real customer sequence in Chrome. Never put credentials in the script; use the approved authenticated profile. Max approval is required for a production customer account or money-path mutation. |
 
-Verified source baselines for this edition: AIM Data `main` `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`; ai-market-backend `main` `dfd926ec`; runbooks `origin/main` `9e2c542`.
+Historical single-file source baselines (not re-verified in this directory refresh): AIM Data `main` `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`; ai-market-backend `main` `dfd926ec`; runbooks `origin/main` `9e2c542`.
 
 ## Capabilities
 
@@ -51,6 +89,12 @@ Verified source baselines for this edition: AIM Data `main` `56a3371d1f806d02e1c
 | AIM Data signs and proxies the publish payload | SHIPPED | `aim-data/app/routers/marketplace_publish.py:publish_via_signed_proxy` | `aim-data/tests/test_vz_publish_proxy.py`; `aim-data/tests/test_dataset_publish_signed_proxy.py`; S1219 | 2026-07-14 |
 | Canonical receiver enforces active seller and creates/updates the listing | SHIPPED | `ai-market-backend/app/routers/vz_publish.py:publish_listing` | `ai-market-backend/tests/test_vz_publish.py:TestPublishCapabilityGate`; S1219/S1220 | 2026-07-14 |
 | Browser journey reaches Accept all, Step 3, disclosure confirmation, and Publish | SHIPPED | `aim-data/frontend/src/pages/DatasetDetail.tsx:ListingPreparation` | kd-browser job via `127.0.0.1:8790` using the `shell_request` job-script pattern; S1219 real Chrome against build a13d9a4 | 2026-07-14 |
+| Directory registration, paged member roles and sample selection | SHIPPED (flag-gated; UI limitations above) | `aim-data/app/routers/datasets.py`; `app/services/directory_registration.py`; `frontend/src/pages/DatasetDetail.tsx:DirectoryMembers` | `aim-data/tests/test_directory_registration.py`; `tests/test_dataset_members_api.py`; `tests/test_directory_import.py`; `frontend/src/pages/DatasetDetail.test.tsx` | 2026-09-18 |
+| Bounded directory profiling and per-member reasons | SHIPPED (flag-gated) | `aim-data/app/services/directory_processing.py`; `frontend/src/pages/DatasetDetail.tsx:DirectoryMembers` | `aim-data/tests/test_directory_processing.py`; `frontend/src/pages/DatasetDetail.test.tsx` | 2026-09-18 |
+| One local-route versioned listing and selected sample-file upload | SHIPPED (flag-gated; publish control wiring gap above) | `aim-data/app/routers/marketplace_publish.py`; `app/services/marketplace_push_service.py:upload_member_chunks`; `app/services/sample_upload_client.py`; `frontend/src/components/PublishModal.tsx:DirectoryPublishControl` | `aim-data/tests/test_member_upload_client.py`; `frontend/src/pages/DatasetDetail.test.tsx` (publish without verification field, pending state, disclosure and upgrade refusal) | 2026-09-18 |
+| Buyer member list, one grant, per-member download and public samples | SHIPPED (flag-gated local route) | `ai-market-frontend/app/dashboard/orders/[id]/DatasetMembers.tsx`; `page.tsx`; `app/listings/[slug]/SampleFiles.tsx` | `ai-market-frontend/app/dashboard/orders/[id]/DatasetMembers.test.tsx`; `page.test.tsx`; `app/listings/[slug]/page.test.tsx` | 2026-09-18 |
+
+New directory rows record code and test-file inspection at the pins above; those application suites were not run for this documentation change. Earlier capability rows retain their historical verification dates.
 
 ## Architecture & interactions
 
@@ -192,6 +236,66 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
   next_step_failure: Separate browser-runner failures from product failures; for snapshot pending use Repair-05 without republishing.
 ```
 
+### Directory registration, publication and buyer handoff
+
+```yaml operate
+- id: E-05
+  trigger: A seller wants a folder with many files to become one dataset and one listing.
+  pre_conditions:
+    - Backend MULTI_FILE_DATASETS_ENABLED and install AIM_DATA_MULTI_FILE_DATASETS_ENABLED are enabled for the authorized rollout; both default off
+    - Seller is signed in and the complete folder is readable by the install
+    - The pinned browser upload and publish wiring limitations in Overview have been checked
+  tool_or_endpoint: "POST /api/datasets/register-directory {path}; GET /api/datasets/{dataset_id}/members?page={page}&role={role}&status={status}; PATCH /api/datasets/{dataset_id}/members/{index} {role?, is_sample?}"
+  argument_sourcing:
+    path: seller-selected folder visible inside the install
+    dataset_id: directory registration response
+    index: member page response; never infer an index from a filename
+    role_is_sample: explicit seller choices before publishing
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: "One dataset card; paged member table with roles data/documentation/other, separate Sample checkbox, Status and Reason; profiling coverage says profiled on N of M files or not profiled"
+    verification: "Compare registered member count with the whole source folder; inspect all pages and member failures; confirm sample choices by reading the member endpoint"
+  expected_failures:
+    - signature: "unsupported_type"
+      cause: "Member is retained but unsupported for profiling; see F-12"
+    - signature: "is_sample requires role=data"
+      cause: "Sample selection attempted on a non-data member; see F-13"
+    - signature: "Published member choices are frozen"
+      cause: "Member edits attempted after publish; see F-13"
+  next_step_success: Continue to E-06 after reviewing the complete set and sample exposure.
+  next_step_failure: Resolve the named member reason; preserve the folder and avoid creating per-file listings.
+- id: E-06
+  trigger: The seller has reviewed a directory manifest and wants to publish it and its chosen free sample files.
+  pre_conditions:
+    - E-05 complete; active seller capability, approved metadata and explicit disclosure confirmation
+    - At least one non-sample data member remains; the install meets MIN_AGENT_VERSION_LOCAL
+    - The directory publish control is reachable in the installed build; the pinned UI gap is not bypassed or claimed fixed
+  tool_or_endpoint: "DirectoryPublishControl -> POST /api/marketplace/publish -> signed POST /api/v1/vz/publish and /api/v1/vz/versions/{version_id}/members; selected samples use /api/v1/vz/versions/{version_id}/samples/{index}; disclosure follows publication"
+  argument_sourcing:
+    dataset_id: E-05 response
+    manifest: stored seller-reviewed members; sender freezes the version and manifest hash
+    sample_decision: Publish selected sample files for free download checkbox; member_files or none
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: "One listing and active versioned manifest; Published appears after disclosure succeeds; public listing exposes the chosen free samples; no verification field is needed"
+    verification: "Check active version rather than pending_members, then the listing samples and buyer Files in this dataset; Get download access grants the whole set and each available member has Download"
+  expected_failures:
+    - signature: "agent_upgrade_required"
+      cause: "Install below the receiver minimum, missing or invalid agent_version; see F-08"
+    - signature: "SAMPLE_MAX_FILE_BYTES"
+      cause: "Named sample member exceeds the per-file bound; see F-09"
+    - signature: "SAMPLE_MAX_FILES"
+      cause: "Too many selected sample members; see F-10"
+    - signature: "SAMPLE_MAX_TOTAL_BYTES"
+      cause: "Selected sample bytes exceed the aggregate bound; see F-11"
+    - signature: "paid_set_required: data_member_count - sample_member_count must be >= 1"
+      cause: "All data members were selected as free samples; see F-14"
+    - signature: "sample_store_unavailable"
+      cause: "Sample storage refused the write; version must remain inactive; see F-15"
+  next_step_success: Verify the authorized buyer journey against the purchased manifest and every member hash before claiming end-to-end acceptance.
+  next_step_failure: Use the named refusal below; resume pending publication or Retry disclosure as appropriate without opening verification.
+```
+
 ## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
@@ -203,6 +307,16 @@ Browser verification uses a job script, not ad hoc DOM driving. The script targe
 | F-05 | Registration/publish returns 401/403, or publish returns 503 `security services offline` | Expired/missing seller bearer for registration; invalid EdDSA publish JWT/body hash; revoked install; or Redis replay/rate-limit service unavailable. | Separate the hop: inspect AIM Data register status, then signed `/api/v1/vz/publish` status. For 503, verify backend Redis health; for auth failures, inspect token expiry/install active state without printing secrets. | Repair-04 | CONFIRMED |
 | F-06 | The listing URL exists but AIM Data shows `Listing published, disclosure snapshot pending` or `Disclosure status unknown` | Canonical publish succeeded; the distinct follow-up disclosure-snapshot request failed, or ai.market accepted it but AIM Data failed to persist the local audit record. | Preserve `publishedListingId` and `retrySnapshotPayload`; open the listing URL to prove publish succeeded; inspect only the disclosure-snapshot response. Do not call Publish again. | Repair-05 | CONFIRMED |
 | F-07 | A UUID dataset is `preview_ready` and its artifact exists at `/data/processed/<id>.parquet`, but the on-demand sketch or quality request reports `Dataset not found` | **FIXED IN AIM DATA MAIN, T-2026-000249; release/customer-path verification pending.** The old readiness code asked DuckDB to discover the UUID by scanning only direct files under `/data`, so it missed the canonical processed artifact. The customer effect is a missing Statistical Profile and Quality Scorecard on the Readiness tab; this is not a listing approval or publish blocker. | Read the canonical `ProcessingService` record for the UUID and confirm `record.processed_path` points to the existing processed Parquet file. Confirm the deployed sketch and quality services resolve that record instead of calling `DuckDBService.get_dataset_by_id`; then exercise both Readiness-tab panels. Do not diagnose the absence of these panels as a publish-path failure. | Repair-06 | CONFIRMED |
+| F-08 | HTTP 409 `agent_upgrade_required`, detail `Upgrade AIM Data to {MIN_AGENT_VERSION_LOCAL} or later` | Missing, malformed or old `agent_version`. | Read `minimum_version`; follow the Updating commands above, then retry on an image meeting that value. Do not override the reported version. | Updating above | CODE-VERIFIED |
+| F-09 | `{relative_path}: SAMPLE_MAX_FILE_BYTES: {configured_limit}` | A selected sample exceeds the app's per-file bound. | Uncheck Sample on the named member, or prepare a smaller intended sample before registering a new set. Recheck all sample choices before publish. | E-05 | CODE-VERIFIED |
+| F-10 | `SAMPLE_MAX_FILES: {configured_limit}` | Too many sample files selected. | Uncheck enough Sample boxes to satisfy the reported bound. | E-05 | CODE-VERIFIED |
+| F-11 | `SAMPLE_MAX_TOTAL_BYTES: {configured_limit}` | Total selected sample bytes exceed the app's bound. | Reduce the selected sample set; retry only after all bounds pass. | E-05 | CODE-VERIFIED |
+| F-12 | Member status `unsupported`, reason `unsupported_type` | The member's detected type is unsupported; this is a member profiling refusal, not whole-directory rejection. | Inspect the member and intended role. Keep documentation as `documentation`, other non-data content as `other`; supply a supported data format if profiling is needed. Never infer complete profiling from Ready to list. | E-05 | CODE-VERIFIED |
+| F-13 | `is_sample requires role=data` or `Published member choices are frozen` | Sample marking requires a data member; published choices cannot be edited in place. | Correct the role before marking an unpublished member. For a published set, preserve the purchased manifest and prepare a separately reviewed version rather than patching frozen choices. | E-05 | CODE-VERIFIED |
+| F-14 | `paid_set_required: data_member_count - sample_member_count must be >= 1` (snapshot), or `paid_set_required: at least one non-sample data member is required` (version emitter) | No paid data remains outside the sample selection. | Uncheck at least one data member's Sample box before publishing. | E-05 | CODE-VERIFIED |
+| F-15 | `sample_store_unavailable` or **Pending members — upload is not complete. Retry publishing to resume.** | Sample storage failed, or member/sample upload has not finished. | Restore the storage/transport dependency and retry the same publication to resume. Confirm active status; pending_members is not success. For **Retry disclosure**, retry only disclosure. | E-06 | CODE-VERIFIED |
+
+The braces in F-08–F-11 denote runtime values substituted by the code, not literal braces in the response.
 
 Read the exact first failing hop. A UI failure before `/api/marketplace/publish`, an AIM Data registration failure, a signed-receiver failure, and a post-publish disclosure failure have different owners and must not be collapsed into “publish broken.”
 
@@ -455,11 +569,12 @@ scenario_set:
 ## Maintenance
 
 ```yaml lifecycle
-last_refresh_session: S1229
-last_refresh_commit: 9e2c542
-last_refresh_date: 2026-07-15T15:45:03Z
+last_refresh_session: S1717
+last_refresh_commit: 14b3610dd353a64df776685e0ad83d942da9ba3e
+last_refresh_date: 2026-09-17T23:18:28Z
 owner_agent: mars
 refresh_triggers:
+  - directory UI wiring, member roles, sample bounds, version gate, buyer grants or feature flags change
   - any AIM Data sign-in, registration, listing-preparation, disclosure, or publish contract change
   - any ai-market-backend /api/v1/vz/register or /api/v1/vz/publish change
   - any seller-readiness or Stripe payouts-live gate change
@@ -469,4 +584,4 @@ scheduled_cadence: 90d
 first_staleness_detected_at: null
 ```
 
-Source commits captured by this lifecycle refresh: AIM Data `56a3371d1f806d02e1c9eb7ac1bac8c1ee788303`, ai-market-backend `dfd926ec`, and runbooks base `9e2c542`. The T-2026-000249 code fix has `tests/test_data_readiness.py` 18/18 passing and DeepSeek APPROVE; release and customer-path verification of both Readiness-tab panels remain before ticket closure. Capabilities evidence is current to 2026-07-14, so no row carries the `UNVERIFIED` overlay.
+This S1717 chunk F refresh covers the directory runbook and optional-verification wording against the source pins in Overview, from runbooks base `14b3610dd353a64df776685e0ad83d942da9ba3e`. Application test files were inspected for existence and relevant coverage, not executed. No rollout flags were changed; stable-image installation, full browser publication and buyer delivery/hash proof remain unverified. The pinned UI limitations above prevent claiming AC-final completion. Earlier single-file capabilities and their historical evidence have not been re-certified by this refresh.
