@@ -1,7 +1,7 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-09-01'
+last_verified: '2026-09-17'
 aliases:
 - Council dispatch
 - review transport
@@ -259,7 +259,7 @@ Chrome proof remain required before the cleanup can be called live.
 |---|---|---|---|---|---|
 | F-01 | `no response written after` | CLI failure or member did not write the named file | Read the launcher's bounded output and check the exact response path | G-01 | CONFIRMED |
 | F-02 | `GLM_z_AI_API_KEY is not set`, `MOONSHOT_API_KEY is not set`, or `DEEPSEEK_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
-| F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review holds the profile lock | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running | G-03 | CONFIRMED |
+| F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in`; **or** a submitted CC review never produces its response file while `council/cc/launcher-<stamp>.md.log` ends with `dedicated CC profile busy after bounded lock wait of 900s; holder: pid=<n>` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review (often the peer instance's) holds the profile lock; a detached dispatch that waits out the 900 s bound exits with only that launcher-log line — `council_request` already returned `submitted`, so nothing else reports the loss (S1718, request 20260917-142957) | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running; when polling for a CC response file, also read the launcher log — the busy line means re-dispatch once the holder's response file exists | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
 | F-05 | A required reviewer is missing from the live tool schema, or the deployed roster and the recorded roster disagree | Roster or model policy changed in Living State without a matching deployment, or a stale client schema is being read as truth | Compare the live callable `council_request` agent enum and the required-member constants in the deployed code against Living State `infra:council-comms` and the model registry, then against the deployed SHA | G-05 | CONFIRMED |
 | F-06 | Reviewer dispatch does not return `submitted` promptly, a second same-member dispatch creates another request, or `check_review` disagrees with the retained files | The pre-S1557 synchronous handler is still deployed, the member lock path drifted, the detached worker did not retain the lock, or the caller is using a stale tool schema without `check_review` | Require main, checkout, and deployed marker at `31c843b6`; require the live `council_request` action enum to contain `check_review`; submit one bounded canary, confirm immediate `request_id`, running then completed, unchanged response, and a concurrent dispatch returning busy with no new request file | G-06 | CONFIRMED |
@@ -289,7 +289,7 @@ Chrome proof remain required before the cleanup can be called live.
   component_ref: Member Launcher
   root_cause: The dedicated CC profile is missing, logged out, or currently locked by another review.
   repair_entry_point: cc_profile.py and scripts/setup_cc_profile.sh
-  change_pattern: Run scripts/setup_cc_profile.sh as Max when the profile is missing or logged out; wait for the live lock holder when status is cc_busy.
+  change_pattern: Run scripts/setup_cc_profile.sh as Max when the profile is missing or logged out; wait for the live lock holder when status is cc_busy. For a detached dispatch lost to the 900 s lock wait (launcher log line, no response file), re-submit the same request file after the holder finishes; the lock file's pid line may be stale (flock releases on process exit even though the text remains) — `ps -p <pid>` decides, not the file contents.
   rollback_procedure: Stop if the dedicated profile cannot be restored; never route CC through Max's personal Claude profile or inject an Anthropic API key.
   integrity_check: cc_profile.status reports isolated=true and credential_usable=true, then CC writes the response file.
 - id: G-04
