@@ -40,9 +40,9 @@ export PATH="/opt/homebrew/bin:$PATH" && cd ~/Projects/ai-market/aim-data && scr
 KD_ALLOW_MAIN_PUSH=1 git push --atomic origin main aim-data-vX.Y.Z
 ```
 
-Then confirm the stable workflow started (`gh run list --workflow aim-data-release.yml --limit 1`). Never push main and the tag separately: a tag without its release commit fails the label check.
+Then confirm the stable workflow started (`gh run list --workflow aim-data-release.yml --limit 1`). Push main and the tag in one atomic push so the release commit and its tag land together or not at all; a tag that lands without its release commit leaves the installer defaults on main pointing at the previous version until someone pushes main by hand.
 
-**Promotion window:** stable builds fresh from the tag, not from the RC image. Before `promote`, check `git log --oneline <rc-commit>..origin/main`; anything merged to main since the RC ships in the stable without having been in the RC smoke test. If that list is non-empty, either cut a new RC or record the decision to ship it (S1716: aim-data-v1.24.0 shipped S1717 B/C this way).
+**Promotion window:** stable builds fresh from the tag, not from the RC image. Before `promote`, run `git fetch origin` and then `git log --oneline <rc-commit>..origin/main` (an empty result only counts after that fetch, with local `main` at `origin/main`); anything merged to main since the RC ships in the stable without having been in the RC smoke test. If that list is non-empty, either cut a new RC or record the decision to ship it (S1716: aim-data-v1.24.0 shipped S1717 B/C this way).
 
 ## Release types
 
