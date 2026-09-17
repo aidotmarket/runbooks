@@ -85,7 +85,7 @@
 - Path: `listing-asset-store.md`
 - Purpose: **Purpose:** the one object store ai.market owns. It holds seller-chosen free-sample files (multi-file datasets, both routes) and — after the chunk D amendment of `specs/BQ-MULTI-FILE-DATASETS-S1717-GATE2.md` — delivery staging for AIM Data-route directory orders. Before it existed the backend had no store of its own: the rows sample lived in Postgres and fulfillment staging was `/tmp/fulfillment` on a Railway container with no volume (Gate 2 §2, §4.4). Decision D-G2-1: Max, 2026-09-16 ("Lets do the cloudflare bucket"), Event Ledger `cc3a2b7e`.
 - Owner: `mars`
-- Last verified: `2026-09-16`
+- Last verified: `2026-09-17`
 - Aliases: listing asset store, aimarket-listing-assets, sample file store, LISTING_ASSET_BUCKET
 - Error signatures: sample_store_unavailable, listing_asset_access_denied
 - Status: current
