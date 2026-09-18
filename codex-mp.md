@@ -139,7 +139,7 @@ error_signatures:
     - timeout_s sized so one run finishes the chunk — 3600 for a chunk that needed continuations before (each continuation re-orients from scratch: D backend 2026-09-17 took 4 runs / ~790k tokens); 1800 only for small folds
   tool_or_endpoint: dispatch_mp_build(reasoning_effort=low|default, timeout_s=..., base_sha=<40-hex>, ...)
   argument_sourcing:
-    reasoning_effort: literal "low" for folds/continuations; omit for first builds
+    reasoning_effort: literal "low" for folds/continuations; omit for first builds — WARNING (S1718, T-2026-000786): the bridge currently accepts this parameter and drops it; every job runs at the config default (log header `reasoning effort: medium`). Until the ticket is closed, the only working cost levers are the task-text rules above and the timeout; verify the header line of the builder-output log after dispatch
     token_evidence: 'grep -A1 "tokens used" /Users/max/koskadeux-state/ts-sockets/jobs/<task_id>.builder-output.log'
   idempotency: NOT_IDEMPOTENT
   expected_success:
