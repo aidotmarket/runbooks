@@ -12,7 +12,7 @@ error_signatures:
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model `gpt-6-astra` as of 2026-09-17 — the bridge log header `model:` line is ground truth; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model **`gpt-5.6-sol`** — Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## Overview
 
@@ -441,7 +441,7 @@ last_refresh_commit: d03c704
 last_refresh_date: 2026-07-11T12:40:00Z
 owner_agent: vulcan
 refresh_triggers:
-  - model swap (T-2026-000197 gpt-5.6 and any successor)
+  - model swap (T-2026-000197 gpt-5.6 and any successor) — a swap is only valid with a Max decision in the Event Ledger; config.toml drift is an incident (2026-09-06 → astra, reverted 2026-09-18)
   - any change to codex_cli_bridge.py, _handle_call_mp, or the structural middleware
   - any new MP failure signature observed in production (add When it breaks/Repair rows same session)
   - runbook lookup or dispatch-context behavior changes
