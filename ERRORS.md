@@ -876,6 +876,10 @@
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
+## `paid_set_required: data_member_count - sample_member_count must be >= 1`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
 ## `participant_config_missing`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
