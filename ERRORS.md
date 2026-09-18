@@ -568,6 +568,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `HTTP 409 agent_upgrade_required: Upgrade AIM Data to {MIN_AGENT_VERSION_LOCAL} or later`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
 ## `HTTP 409 VZ install registration not available — sign in with ai.market and try publishing again`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
@@ -627,6 +631,10 @@
 ## `is not set; source the credential first`
 
 - [Council](runbooks/council.md)
+
+## `is_sample requires role=data`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
 ## `job runs but stats.enabled=false`
 
@@ -699,6 +707,10 @@
 ## `Max declines or amends`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
+
+## `member status unsupported, reason unsupported_type`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
 ## `Metadata generation failed`
 
@@ -860,6 +872,10 @@
 
 - [Work Checkout (Enforced Ownership)](work-checkout.md)
 
+## `paid_set_required: at least one non-sample data member is required`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
 ## `participant_config_missing`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
@@ -875,6 +891,10 @@
 ## `peer_msg_silent_dedupe`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
+
+## `Pending members — upload is not complete. Retry publishing to resume.`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
 ## `pending or dead_letter rows deleted`
 
@@ -971,6 +991,10 @@
 ## `publish stops writing after the manifest edit`
 
 - [E2E Test-Status Publisher](runbooks/e2e-test-status-publisher.md)
+
+## `Published member choices are frozen`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
 ## `push_failed_but_landed`
 
@@ -1087,6 +1111,18 @@
 ## `S3 version scan failed after assume-role propagation retries`
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
+
+## `SAMPLE_MAX_FILE_BYTES: {configured_limit}`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `SAMPLE_MAX_FILES: {configured_limit}`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `SAMPLE_MAX_TOTAL_BYTES: {configured_limit}`
+
+- [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
 ## `sample_store_unavailable`
 
