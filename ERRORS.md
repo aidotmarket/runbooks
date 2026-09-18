@@ -612,6 +612,10 @@
 
 - [Session Registry Recovery](session-registry-recovery.md)
 
+## `Intentionally has no transport`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
+
 ## `interaction_type rejected`
 
 - [CRM](runbooks/crm.md)
@@ -916,6 +920,10 @@
 
 - [Failed TEST purchase refund and recovery](runbooks/seller-failed-test-refund-recovery.md)
 
+## `personal_data`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
+
 ## `pinned host-network browser-runner cannot reach all localhost origins`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -1036,6 +1044,10 @@
 
 - [GCP Auth](gcp-auth.md)
 
+## `registration_evidence_unavailable`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
+
 ## `relation "crm_entities" does not exist`
 
 - [CRM](runbooks/crm.md)
@@ -1075,6 +1087,10 @@
 ## `required reviewer missing from the live tool schema`
 
 - [Council](runbooks/council.md)
+
+## `rescan_required`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
 
 ## `residual weak-link rows`
 
