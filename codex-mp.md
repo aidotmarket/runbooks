@@ -135,6 +135,7 @@ error_signatures:
     - the task text cites file:line and the normative spec section for every item; it does NOT tell MP to read the spec, amendment or authority pages "in full" — every run is `--ephemeral` (no prompt cache between runs), so each re-read of the authority set is paid again (~100k tokens per fold observed 2026-09-16/17, 8.5M tokens over 58 jobs in two days)
     - a Council fold folds ALL verdicts of the round in ONE run (never one run per reviewer)
     - fold and continuation dispatches pass reasoning_effort=low (fold work is mechanical); first builds of a chunk stay at the default; raise per F-15 only after a fold introduced a new defect
+    - EXCEPTION (evidence S1718, 2026-09-18): on custody/money-path code (chunk D backend) two consecutive low-effort folds each introduced one new defect (an early return that leaked an admission slot; a lock-order inversion) while docs/frontend folds at low effort were clean at 43-63k tokens — for folds that touch locking, custody or money state use the default effort from the start
     - timeout_s sized so one run finishes the chunk — 3600 for a chunk that needed continuations before (each continuation re-orients from scratch: D backend 2026-09-17 took 4 runs / ~790k tokens); 1800 only for small folds
   tool_or_endpoint: dispatch_mp_build(reasoning_effort=low|default, timeout_s=..., base_sha=<40-hex>, ...)
   argument_sourcing:
