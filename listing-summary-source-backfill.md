@@ -25,7 +25,7 @@ Writing facts for a listing fires the existing source trigger, which invalidates
 
 ## Procedure (headless, from Titan-1)
 
-`DATABASE_URL` is the ONLY thing that selects the target database. Production is selected explicitly, never through the checkout's Railway link (`ai-market-backend.md`, Deployment): `railway variables` passes `-e production`; `railway status` has no `-e` flag, so its JSON (which lists every environment) is filtered on the environment named `production`. Use bash (step 2 uses process substitution). Never echo the URL. Run the three steps as three separate pastes; do not join them.
+`DATABASE_URL` is the ONLY thing that selects the target database. Production is selected explicitly, never through the checkout's Railway link (`ai-market-backend.md`, Deployment): `railway variables` passes `-e production`; `railway status` has no `-e` flag, so its JSON (which lists every environment) is filtered on the environment named `production`. Use bash (step 2 uses process substitution). Never echo the URL. Run the three steps as three separate pastes in the SAME persistent bash session (variables carry over); do not join them.
 
 ### Step 1 — set up and dry run (read-only)
 
@@ -60,6 +60,8 @@ tail -1 "$WT/../dryrun.jsonl"
 ### Step 2 — decide (stop here and read the output)
 
 ```bash
+set -euo pipefail
+: "${WT:?run step 1 in this same shell first}" "${DATABASE_URL:?run step 1 in this same shell first}"
 psql "$DATABASE_URL" -Atc "select state, count(*) from listing_summary_records group by state"
 python3 - "$WT/../dryrun.jsonl" <<'PY' > "$WT/../would-write.txt"
 import json,sys
@@ -78,7 +80,7 @@ The last command lists approved summaries that an apply would withdraw from the 
 set -euo pipefail
 cd "$WT"
 $PY scripts/backfill_listing_summary_sources.py --apply > "$WT/../apply.jsonl"; tail -1 "$WT/../apply.jsonl"
-$PY scripts/backfill_listing_summary_sources.py --dry-run | tail -1      # must report listings_with_missing_facts 0
+$PY scripts/backfill_listing_summary_sources.py --dry-run | tail -1 | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r); assert r["mode"]=="dry-run" and r["listings_with_missing_facts"]==0, "facts still missing: rerun apply or investigate"' 
 psql "$DATABASE_URL" -Atc "select count(*) from listing_summary_sources"
 unset DATABASE_URL SECRET_KEY
 cd ~/Projects/ai-market/ai-market-backend && git worktree remove "$WT"
@@ -103,6 +105,16 @@ Then the seller opens the listing editor, regenerates or previews At a glance, a
 
 ## History
 
-Evidence for the first run (Titan-1): `/var/tmp/koskadeux/backfill-dryrun-s1719.jsonl`, `/var/tmp/koskadeux/backfill-apply-s1719.jsonl`; `railway status` reported `Environment: production` and deployment `976c5a2bc1` SUCCESS before the run; Living State note on `build:bq-listing-enrichment-seller-tools-s1294` v9828.
+- 2026-09-18 (S1719, Vulcan): first production run after backend PR #417 deployed (`976c5a2bc16b5f30f6832f0c9ed8fdbd38dce76a`, Railway `ai-market-backend` production deployment SUCCESS). Receipt (values as returned by the commands; no URL or secret recorded):
 
-- 2026-09-18 (S1719, Vulcan): first production run after PR #417 deployed (`976c5a2bc`). 63 listings, 59 filled, 229 facts; confirming dry-run 0. No approved summaries existed, two pending drafts were invalidated and regenerate on next visit. `eolymp-problem-dataset-5ab53e16` now carries `row_count` and `format`.
+  | Check | Result | Where recorded |
+  |---|---|---|
+  | Dry run before apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "dry-run"}` | Titan-1 `/var/tmp/koskadeux/backfill-dryrun-s1719.jsonl`, sha256 `12d0c3e1381419da5aee121d0780a4d3108a186e15e12cc05f7513cf86122dc2` |
+  | Apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "apply"}` | Titan-1 `/var/tmp/koskadeux/backfill-apply-s1719.jsonl`, sha256 `bea59203e9c226cec03fde46ed57413402e9cf63558d98a6ce2c81528dc980e6` |
+  | Confirming dry run | `{"derived_facts": 0, "listings": 63, "listings_with_missing_facts": 0, "mode": "dry-run"}` | session transcript only (not written to a file) |
+  | `listing_summary_records` by state before apply | `pending 2`, no `approved` | session transcript only |
+  | Same query, re-run 2026-09-18 after apply | `invalidated 2` | re-queried while writing this page |
+  | `listing_summary_sources` rows | 2 before, 61 after | before: session transcript; after: re-queried while writing this page |
+  | `eolymp-problem-dataset-5ab53e16` fact keys after apply | `{format,row_count}` | session transcript only |
+
+  Files under `/var/tmp` are not durable; the hashes let a reader tell whether they are still the originals. Rows marked "session transcript only" were observed by the operator and are not independently re-checkable.
