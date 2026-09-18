@@ -96,6 +96,10 @@
 
 - [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
 
+## `At a glance preview empty for a listing published before P1`
+
+- [Listing Summary (At a glance) Source-Fact Backfill](listing-summary-source-backfill.md)
+
 ## `AUTH_FAILED or Device is inactive or revoked`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
@@ -259,6 +263,10 @@
 ## `confirmed missing point, source_version mismatch, or orphan count above threshold`
 
 - [Qdrant Sync Outbox](qdrant-sync-outbox.md)
+
+## `connect() got an unexpected keyword argument 'sslmode'`
+
+- [Listing Summary (At a glance) Source-Fact Backfill](listing-summary-source-backfill.md)
 
 ## `constitution_source_drift`
 
@@ -1379,6 +1387,10 @@
 ## `unsupported_target_repo`
 
 - [Build Queue Reconciliation](runbooks/build-queue-reconciliation.md)
+
+## `ValidationError: SECRET_KEY must be set`
+
+- [Listing Summary (At a glance) Source-Fact Backfill](listing-summary-source-backfill.md)
 
 ## `ValueError "field_acl already contains enforce rows`
 

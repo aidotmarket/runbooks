@@ -747,6 +747,15 @@
 - Error signatures: transparency/keys HTTP 503 Preview unavailable, signing_configuration_unavailable, signing_key_unavailable, signing_key_invalid, signing_environment_not_allowed
 - Status: current
 
+## Listing Summary (At a glance) Source-Fact Backfill
+- Path: `listing-summary-source-backfill.md`
+- Purpose: The seller "At a glance" summary (BQ-LISTING-ENRICHMENT-SELLER-TOOLS-S1294, Phase 1) is built only from facts stored in `listing_summary_sources`. Those facts were first captured at AIM Data publish time, so every listing published before Phase 1 had none and its seller preview came up empty (found by the first real seller, 2026-09-17). Since backend main `976c5a2bc` (PR #417) a regenerate derives the missing facts from the listing's own canonical metadata (`source_row_count`, `data_format`, `raw_metadata.file_size_bytes`, complete `schema_info.columns`, `privacy_score`), and `scripts/backfill_listing_summary_sources.py` fills them for every listing in one pass. It never invents licence, coverage or freshness, never generates text, never approves or publishes anything. Code-level detail lives in the backend repo at `docs/runbooks/listing-summary.md`.
+- Owner: `unassigned`
+- Last verified: `2026-09-18`
+- Aliases: At a glance empty, listing summary backfill, legacy source facts, backfill_listing_summary_sources, listing_summary_sources
+- Error signatures: At a glance preview empty for a listing published before P1, ValidationError: SECRET_KEY must be set, connect() got an unexpected keyword argument 'sslmode'
+- Status: current
+
 ## Local SecOps Assistant (Titan-1)
 - Path: `local-secops.md`
 - Purpose: **Built**: S1115 (2026-07-04) **Host**: Titan-1 / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Titan-1 and no human has to type them. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
