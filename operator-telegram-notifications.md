@@ -1,7 +1,7 @@
 ---
 title: Operator Telegram Notifications Runbook
 owner: unassigned
-last_verified: '2026-07-31'
+last_verified: '2026-09-19'
 aliases: []
 error_signatures: []
 ---
@@ -38,6 +38,12 @@ Operator Telegram is reserved for **emergency or human-required** only:
 - "Council review ready" (a review needs the operator).
 - "Autonomous work blocked / unrecoverable" (dispatch or sentinel).
 Everything else (subtask progress, item-started, drift, budget warnings, worker timeouts, daemon start/stop, routine CRM/ops) stays off Telegram — local logs / macOS only.
+
+**Ops-board rule (Max, S1721, 2026-09-19):** "Issues should go to the ops board unless they are urgent and need a human." Applied in ai-market-backend PR #426:
+- SysAdmin (`app/allai/agents/sysadmin/ops_ticket.py`): only `mcp_server_unhealthy`, `escalation_path_failed`, `e2e_routes_over_armed`, `railway_deploy_unhealthy` and `email_domain_unhealthy` page Telegram (`TELEGRAM_PAGE_FAILURE_CLASSES`). Every other failure class, including `monitor_unavailable`, `qdrant_index_integrity` and the memory-freshness lags, upserts ONE open AI-owned support ticket per failure class and check (subject `[auto] SysAdmin: <class> (<check>)`); repeats refresh that ticket. If the ticket cannot be written the escalation fails open to Telegram.
+- allAI Remediator (`app/services/remediator_service.py`, `OPS_BOARD_ONLY_PROVIDERS`): GitHub human-required incidents stay escalated on the ops board (needs-max feed) with no Telegram message.
+- Email worker (`app/services/worker_service.py`): a "requires human review" email is not reported when the mailbox owner has already sent a message in that thread (Max conducting the conversation himself; `EmailEvent.operator_replied_in_thread`).
+To make a new failure class page, add it to `TELEGRAM_PAGE_FAILURE_CLASSES` only if it is both urgent and needs a human; otherwise it belongs on the board.
 
 ## When it breaks
 - Suspected credential in logs: pull raw Railway deploymentLogs for the backend and grep `api.telegram.org/bot` plus `bot\d+:` — a match means the Changes and maintenance redaction layer regressed. Fix at the logging layer (see Changes and maintenance), then ROTATE the token via BotFather (Max is the bot owner) since a logged token is a compromised token.

@@ -814,7 +814,7 @@
 - Path: `operator-telegram-notifications.md`
 - Purpose: Both are distinct bot accounts (verified via `getMe`): the daemon token resolves to `@koskadeux_bot`, the backend to `@allai_agent_bot`.
 - Owner: `unassigned`
-- Last verified: `2026-07-31`
+- Last verified: `2026-09-19`
 - Aliases: none
 - Error signatures: none
 - Status: current
