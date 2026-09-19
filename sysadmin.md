@@ -149,6 +149,17 @@ For this agent, `RAILWAY_API_TOKEN` is project-scoped for project `ai-market`
 `Authorization: Bearer <project token>` returns Not Authorized. The token lives in Infisical project
 `ai-market`, env `prod`, and as a Railway service variable on `ai-market-backend`.
 
+**Known drift (verified S1721, 2026-09-19):** the backend reads ONE name, `RAILWAY_API_TOKEN`, for two
+incompatible consumers. The SysAdmin skill (`app/agents/sysadmin/skills/railway_ops.py`) sends it as
+`Project-Access-Token` and needs a project token; the allAI Railway clients (`app/allai/railway_client.py`,
+`app/allai/tools/railway_client.py`, used by `briefing_monitor`, `change_tracker`, `playbook_service`,
+`railway_monitoring`) send it as `Authorization: Bearer` and need an account token. Since Infisical
+`ai-market-backend`/`prod` version 4 (2026-09-15) the value is an account token: Bearer `me` and
+`project(e81dd66f…)` succeed, `projectToken` returns "Project Token not found", so `railway_read_status`
+and `railway_env_set_redeploy` bind-probe fail with Not Authorized and are disabled, and every
+`railway_status` cycle raises `monitor_unavailable`. Do not restore a project token into that name (it
+breaks the Bearer clients). The fix is code: give the two consumers separate names or one auth mode.
+
 All Railway CLI commands in this operating context must be prefixed with `unset RAILWAY_TOKEN &&`.
 After any deploy, verify the health endpoint responds. Infisical manages secrets for the `ai-market`
 project, not `ai-market-backend`, when the shipped deployment rule calls that out.
