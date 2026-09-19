@@ -158,7 +158,7 @@ incompatible consumers. The SysAdmin skill (`app/agents/sysadmin/skills/railway_
 `project(e81dd66f…)` succeed, `projectToken` returns "Project Token not found", so `railway_read_status`
 and `railway_env_set_redeploy` bind-probe fail with Not Authorized and are disabled, and every
 `railway_status` cycle raises `monitor_unavailable`. Do not restore a project token into that name (it
-breaks the Bearer clients). The fix is code: give the two consumers separate names or one auth mode.
+breaks the Bearer clients). Fixed in ai-market-backend PR #426: the skill uses optional `RAILWAY_PROJECT_TOKEN` with `Project-Access-Token`, otherwise the shared `RAILWAY_API_TOKEN` as `Authorization: Bearer`.
 
 All Railway CLI commands in this operating context must be prefixed with `unset RAILWAY_TOKEN &&`.
 After any deploy, verify the health endpoint responds. Infisical manages secrets for the `ai-market`
