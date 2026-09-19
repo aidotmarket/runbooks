@@ -44,6 +44,7 @@ Everything else (subtask progress, item-started, drift, budget warnings, worker 
 - allAI Remediator (`app/services/remediator_service.py`, `OPS_BOARD_ONLY_PROVIDERS`): GitHub human-required incidents, including release and default-branch failures, stay escalated on the ops board (needs-max feed) with no Telegram message and no `telegram_pending` row.
 - Email worker (`app/services/worker_service.py`): a "requires human review" email is not reported when the mailbox owner has already sent a message in that thread (Max conducting the conversation himself; `EmailEvent.operator_replied_in_thread`).
 To make a new failure class page, add it to `TELEGRAM_PAGE_FAILURE_CLASSES` only if it is both urgent and needs a human; otherwise it belongs on the board.
+The code is authoritative; the constant names and payload keys above are a snapshot as of backend PR #426. Owner ruling: Event Ledger `5c436a6f`. Railway writes (`railway_env_set_redeploy`) execute only with a project-scoped `RAILWAY_PROJECT_TOKEN`; reads may use the shared account token.
 
 ## When it breaks
 - Suspected credential in logs: pull raw Railway deploymentLogs for the backend and grep `api.telegram.org/bot` plus `bot\d+:` — a match means the Changes and maintenance redaction layer regressed. Fix at the logging layer (see Changes and maintenance), then ROTATE the token via BotFather (Max is the bot owner) since a logged token is a compromised token.
