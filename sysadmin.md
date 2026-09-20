@@ -167,6 +167,18 @@ calls to `backboard.railway.app` get HTTP 403 from the edge unless a `User-Agent
 Afterwards confirm the Railway service variable exists (name only), the backend deploy reaches SUCCESS, and
 `/internal/agent-compliance` shows `disabled_capabilities: []` with `railway_status` ok.
 
+Ids above verified 2026-09-19 (S1721). Re-derive before relying on them: project and environment ids from
+`query { projectToken { projectId environmentId } }` sent with the project token (or Bearer
+`project(id){ environments { edges { node { id name } } } }`), the backend service id from Bearer
+`project(id){ services { edges { node { id name } } } }`, and the token name from the Railway dashboard
+project settings, Tokens tab.
+
+Revoke and re-mint (token leaked, or `railway_read_status` probe errors show Not Authorized with the
+project token present): mint a new token by the procedure above under a new name, store it over
+`RAILWAY_PROJECT_TOKEN` in Infisical, wait for the sync redeploy, confirm `disabled_capabilities: []`, then
+delete the old token in the Railway dashboard (project settings, Tokens). Minting first keeps the skill
+working throughout; deleting first leaves it Not Authorized until the new value lands.
+
 All Railway CLI commands in this operating context must be prefixed with `unset RAILWAY_TOKEN &&`.
 After any deploy, verify the health endpoint responds. Infisical manages secrets for the `ai-market`
 project, not `ai-market-backend`, when the shipped deployment rule calls that out.
