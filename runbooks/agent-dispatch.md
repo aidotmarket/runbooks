@@ -85,7 +85,7 @@ CC/GLM/DeepSeek voter panel and explicit-name Kimi comparison seat from
 | `dispatch_mp_build` background build dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_dispatch_mp_build` | MP background dispatch smoke coverage | 2026-04-29 |
 | `council_hall` deliberation dispatch | DEPRECATED | — | Removed from the live tool surface in S1527 | 2026-08-12 |
 | Codex CLI backend for MP | SHIPPED | `koskadeux-mcp/dispatch_codex_cli.py` | Codex CLI dispatch path exercised by MP build tasks | 2026-04-29 |
-| Gemini/AG server backend | SHIPPED | `koskadeux-mcp/antigravity_client.py` | AG server health + task dispatch coverage | 2026-04-29 |
+| Gemini/AG server backend | RETIRED | removed by koskadeux-mcp f0c3eab03c (2026-08-11) | none | 2026-09-19 |
 | DeepSeek server/API backend | SHIPPED | `koskadeux-mcp/deepseek_server.py` | DeepSeek review-schema and server health coverage | 2026-04-29 |
 | Council reviewer launcher | SHIPPED | `koskadeux-mcp/scripts/council_dir.py` | Same one-file path for CC/GLM/DeepSeek voters and explicit-name Kimi comparison | 2026-09-02 |
 | XAI Grok dispatch | DEPRECATED | `koskadeux-mcp/xai_client.py` | Retired S528; cold-storage only, no active dispatch coverage | 2026-04-29 |
@@ -113,7 +113,7 @@ Per-agent:
 - **Kimi**: explicit-name, non-voting comparison reviewer with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no gate, write, shell, network, state, secret, restart, or deployment authority. Its observations are retained only in the separate audit field.
 - **DeepSeek**: required gate voter under S1651 via the bounded read-only Codex transport. Its verdict is required for every complete panel and cannot be substituted by Kimi, MP, or AG.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
-- **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
+- **AG is RETIRED IN CODE 2026-08-11 (koskadeux-mcp f0c3eab03c, 'Retire DeepSeek AG and XAI integrations'): ag_server.py and antigravity_client.py are gone, `council_request` has no `ag` member, and nothing listens on 8766 (verified S1721, 2026-09-19).** Every AG procedure, failure mode and schema note below is historical.
 - **XAI is RETIRED** (Max go, S994).
 - **Vulcan/Mars are never gate voters** (instance non-voter rule). Reversal condition: if Vulcan's model returns to any Anthropic model, the change is blocked until CC panel independence is re-reviewed (CORE 9.8).
 

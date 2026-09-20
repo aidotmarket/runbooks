@@ -43,13 +43,13 @@ Titan-1 is where **the company is actually built and operated**:
 |---|---|---|---|---|
 | Koskadeux MCP server | 8765 (all ifaces) | `koskadeux_server.py` | `com.koskadeux.mcp` | Agent tool interface (the MCP tools) |
 | Koskadeux gateway | 8767 (all ifaces) | `gateway_server.py` (under `infisical run`) | `com.koskadeux.gateway` | MCP gateway/proxy — public entry point |
-| AG (Gemini) server | 8766 (localhost) | `ag_server.py` | `com.koskadeux.ag_server` | Gemini FastAPI microservice for Council |
+| AG (Gemini) server | — | retired 2026-08-11 (koskadeux-mcp f0c3eab03c) | none | Removed; nothing listens on 8766 |
 | DeepSeek server | 8768 (localhost) | python (under `infisical run`) | `com.koskadeux.deepseek_server` | DeepSeek Council voter |
 | Council Hall | internal | python (under `infisical run`) | `com.koskadeux.council-hall` | Multi-agent deliberation backend |
 | XAI/Grok bridge | on-demand | `grok_cli_bridge.py` | (on-demand via Council) | Grok CLI bridge for XAI dispatch |
 | Antigravity IDE backend | — | `antigravity.py` | `com.max.antigravity` | IDE backend |
 
-Support agents (also launchd): `auto-continue`, `nosleep` (caffeinate), `lilly`, `mcp-probe`, `ide-health`, `fireflies-sync`, `eu_gemini_checker`, `infisical-token-refresh`.
+Support agents (also launchd): `auto-continue`, `nosleep` (caffeinate), `lilly`, `mcp-probe`, `ide-health`, `fireflies-sync`, `infisical-token-refresh`. `com.koskadeux.eu_gemini_checker` is still loaded but its script `scripts/check_eu_gemini_3_1.py` no longer exists, so every run fails (log `/var/tmp/koskadeux/eu_gemini_checker.log`, verified S1721); remove or replace it with the Gemini release checker.
 
 ## Public transport (how the outside reaches the gateway)
 - **Public path = Cloudflare Tunnel.** `cloudflared tunnel run koskadeux` (config `~/.cloudflared/config.yml`, LaunchAgent `com.koskadeux.cloudflared`) fronts the gateway at **mcp.ai.market**. **Do NOT remove `com.koskadeux.cloudflared`** — it is the live public path.
@@ -102,7 +102,7 @@ mcp.ai.market (tunnel up, origin :8767 down). Fix: `venv/bin/pip install -U mcp`
 
 **Rule — cold-start import canary:** after ANY dependency change in the koskadeux venv
 (pip install/upgrade/downgrade, requirements edit, venv rebuild), run:
-`for m in koskadeux_server gateway_server ag_server deepseek_server; do venv/bin/python -c "import $m" || echo "$m FAILS COLD-START"; done`
+`for m in koskadeux_server gateway_server; do venv/bin/python -c "import $m" || echo "$m FAILS COLD-START"; done`
 A running process proves nothing about the next reboot. Note: importing koskadeux_server
 applies pending registry migrations (side effect; idempotent).
 

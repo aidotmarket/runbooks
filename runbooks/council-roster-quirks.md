@@ -30,7 +30,7 @@ error_signatures:
 |---|---|---|---|---|
 | Live Roster | `state_request(action=get, key=infra:council-comms)` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
-| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, GLM, DeepSeek voters; Kimi comparison; retained AG backend | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused; Kimi supplies comparison only. |
+| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, GLM, DeepSeek voters; Kimi comparison; AG retired | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused; Kimi supplies comparison only. |
 
 ### Normative projection — CORE §4
 
@@ -56,7 +56,7 @@ Stable dispatch roles carried from CORE §§4–5:
 - MP is the mandatory builder and cannot vote on its own work.
 - CC, GLM, and DeepSeek are the gate voters; a valid gate requires the policy-defined complete panel.
 - Kimi is registered for explicit-name comparison only; its technically callable dispatch path does not confer voting authority.
-- AG is not assumed active. Consult live state before any explicit AG review.
+- AG (Gemini) is RETIRED IN CODE 2026-08-11 (koskadeux-mcp f0c3eab03c, 'Retire DeepSeek AG and XAI integrations'): ag_server.py and antigravity_client.py are gone, `council_request` has no `ag` member, and nothing listens on 8766 (verified S1721, 2026-09-19). Reinstating Gemini is new work: a fourth `council_dir.py` member, not a revival of the AG server.
 - Vulcan and Mars orchestrate and synthesize as peers; neither is a gate voter.
 - Max is final authority, not a Council voter.
 
@@ -70,7 +70,7 @@ These bullets are companion synthesis, not a new source of constitutional author
 | MP | Build approved work | `council_request agent=mp` | Repository write per dispatch | COMPLETE |
 | CC, GLM, DeepSeek | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
 | Kimi | Compare by explicit name | `council_request agent=kimi` | Read-only, non-voting | COMPLETE |
-| AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
+| AG | Retired 2026-08-11 (f0c3eab03c); not dispatchable | — | — | RETIRED |
 
 ## How to operate
 
