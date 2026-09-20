@@ -112,6 +112,17 @@ error_signatures:
       committed, then push both mains, then PATCH infra:constitution, then fast-forward /Users/max/koskadeux-mcp,
       then re-run load_boot_kernel against the constitution read back out of Living State. Discovered and first
       executed at S1370 (CORE v9.12 -> v9.13); prior to that it was documented nowhere.
+      CORRECTION (S1721, found by GLM in the CORE v9.17 review): that order does NOT avoid a drift
+      window, it only shortens it. Between the entity PATCH and the running tree's fast-forward and
+      reload, the live constitution is new while the running process still holds the old manifest, so
+      any session open in that interval fails closed with BOOT_KERNEL_SOURCE_DRIFT (tools/session.py
+      reads the constitution from Living State; tools/boot_kernel_v2.py compares it to the loaded
+      manifest; BOOT_KERNEL_V2_MODE defaults on in scripts/launch_mcp_server.sh). Treat the cutover as
+      a maintenance barrier: agree the window with the peer instance first and have neither instance
+      open a session during it, do the PATCH and the fast-forward plus handler reload back to back,
+      then verify load_boot_kernel against the constitution read back out of Living State BEFORE
+      either instance opens again. A peer mid-session is unaffected (the check runs at open), so the
+      only requirement is that no kd_session_open lands inside the window.
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: expected_version (a replayed patch fails on version conflict rather than double-applying)
   expected_success:
