@@ -81,12 +81,37 @@ Stable promotion does not retag the RC image. The stable tag triggers a fresh wo
 
 ## Testing an RC
 
-1. Wait for GHCR build to complete (check GitHub Actions)
-2. Pull and test locally:
+The image tag is the bare version, **without** the `aim-data-` prefix that the git
+tag carries: the git tag is `aim-data-v1.25.0-rc.1` and the image is
+`ghcr.io/aidotmarket/aim-data:v1.25.0-rc.1`. The release script prints the image
+line; use that rather than composing one from the tag.
+
+The container listens on **8000**, and health is at **`/api/health`**, not `/health`
+(corrected S1720 — the previous example said `-p 8080:8080` and `/health`, both of
+which silently fail: the port never binds anything and `/health` returns
+`{"detail":"Not Found"}`, which reads like a broken build rather than a wrong probe).
+
+1. Wait for the GHCR build. `gh run view <id>` works, but space the calls out — S1720
+   tripped GitHub's secondary rate limit polling a build every ten seconds and got
+   403s on the Actions API while `gh api rate_limit` still reported 5000 core
+   remaining. The registry is not affected by that limit, so
+   `docker manifest inspect ghcr.io/aidotmarket/aim-data:<version>` is a cheaper
+   readiness signal and also shows that both `linux/amd64` and `linux/arm64` landed.
+2. Pull and run it:
    ```bash
-   docker pull ghcr.io/aidotmarket/aim-data:aim-data-v0.0.2-rc.1
-   docker run -p 8080:8080 ghcr.io/aidotmarket/aim-data:aim-data-v0.0.2-rc.1
+   docker pull ghcr.io/aidotmarket/aim-data:v1.25.0-rc.1
+   CID=$(docker run -d -p 18080:8000 ghcr.io/aidotmarket/aim-data:v1.25.0-rc.1)
+   curl -s http://127.0.0.1:18080/api/health     # {"status":"ok","version":"v1.25.0-rc.1",...}
+   docker rm -f $CID
    ```
+   `/api/health` echoes the version it was built as, which is the cheapest proof that
+   the image is the code you think it is. Probe one route that only exists in this
+   release as well: a `401` says the route is there and authenticating, a `404` says
+   the build predates it.
+
+   **The container provisions a real serial against production on startup.** A test
+   run auto-provisions and activates an install (`Auto-provisioned serial: VZ-…`),
+   so every RC test leaves an activated install behind. Do not loop this.
 3. If good, promote: `scripts/release-aim-data.sh promote`
 
 ## Installer
@@ -119,6 +144,28 @@ The AIM Data product split off from the vectoraiz monorepo. Release machinery no
 | GHCR build fails | ARM64 QEMU issue | Re-run GitHub Actions workflow |
 | Docker pull fails | Image not built yet | Wait for GHA to complete |
 | Tag collision with VZ | Wrong script used | AIM Data uses `aim-data-v*` prefix, VZ uses `v*` |
+
+## Release history worth remembering
+
+- **aim-data-v1.25.0 (2026-09-20, S1720, Mars).** Shipped the S1294 Chunk 5B producer:
+  AIM Data signs unchanged-root re-attestations, so a seller whose data has not changed
+  can confirm a listing is still current instead of recomputing the whole Merkle root.
+  Cut as `rc minor` because it adds a capability — the convention here is minor for
+  features, patch for fixes, which is what v1.24.0 did for the S1717 chunks.
+  RC `aim-data-v1.25.0-rc.1` from `a90cda3`; nothing merged to main between the RC and
+  the promotion, so the promotion window was clean. The `promote` push hit the main
+  guardrail exactly as documented above and was completed with
+  `KD_ALLOW_MAIN_PUSH=1 git push --atomic origin main aim-data-v1.25.0`
+  (main `e52471f`, workflow run 35532165037 success).
+  Verified after the fact rather than assumed: both architectures in the manifest,
+  `latest` moved, `ci-release-integrity` green on `e52471f`, the GitHub Release published
+  with all three installer assets, the stable image's `/api/health` reporting `v1.25.0`,
+  the new re-attest route answering `401` rather than `404`, and — the one that actually
+  matters to a seller — the live installers at `get.ai.market/aim-data` and
+  `/aim-data/windows` both serving `v1.25.0`.
+  Build times for planning: the RC build took about 35 minutes and the stable about 40,
+  in line with the two releases before it. Do not treat twenty minutes of silence as a
+  stuck build.
 
 ## Related
 
