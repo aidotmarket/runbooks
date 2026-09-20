@@ -1084,7 +1084,7 @@
 - Path: `sysadmin.md`
 - Purpose: spec plus live backend code; this page is the operator map.
 - Owner: `sysadmin`
-- Last verified: `2026-07-12`
+- Last verified: `2026-09-19`
 - Aliases: none
 - Error signatures: 401 or 403, last_result missing or stale, Not Authorized
 - Status: current
