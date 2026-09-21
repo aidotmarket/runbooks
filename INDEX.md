@@ -112,7 +112,7 @@
 - Path: `aim-data-release-process.md`
 - Purpose: Builds and publishes new AIM Data versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds, and runs smoke tests.
 - Owner: `unassigned`
-- Last verified: `2026-08-14`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: none
 - Status: current
