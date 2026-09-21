@@ -1,7 +1,7 @@
 ---
 title: SysAdmin Operating Model (S1086)
 owner: sysadmin
-last_verified: '2026-07-12'
+last_verified: '2026-09-19'
 aliases: []
 error_signatures:
 - 401 or 403
@@ -143,22 +143,41 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
   next_step_failure: "Escalate credential recovery to Max."
 ```
 
-For this agent, `RAILWAY_API_TOKEN` is project-scoped for project `ai-market`
-(`e81dd66f-808c-412e-b32c-f6d910f0ac5d`) and env `production`
-(`23e322c3-b195-45d8-9151-c4c27a998c33`). It authenticates only with `Project-Access-Token`;
-`Authorization: Bearer <project token>` returns Not Authorized. The token lives in Infisical project
-`ai-market`, env `prod`, and as a Railway service variable on `ai-market-backend`.
+Two Railway credentials, two names (verified live S1721, 2026-09-19):
+- `RAILWAY_PROJECT_TOKEN` is the project token for project `ai-market`
+  (`e81dd66f-808c-412e-b32c-f6d910f0ac5d`), env `production`
+  (`23e322c3-b195-45d8-9151-c4c27a998c33`), Railway token name `sysadmin-skill-s1721`. It authenticates only
+  with `Project-Access-Token`; `Authorization: Bearer <project token>` returns Not Authorized. The SysAdmin
+  skill (`app/agents/sysadmin/skills/railway_ops.py`) uses it for reads when present and REQUIRES it for
+  `railway_env_set_redeploy` execute (fails closed without it; dry-run proposals report `execution_available`).
+- `RAILWAY_API_TOKEN` is an ACCOUNT token (since Infisical version 4, 2026-09-15), shared with the allAI Railway
+  clients (`app/allai/railway_client.py`, `app/allai/tools/railway_client.py`: `briefing_monitor`,
+  `change_tracker`, `playbook_service`, `railway_monitoring`), which send it as `Authorization: Bearer`. Do
+  not put a project token in this name. The SysAdmin skill falls back to it (Bearer) for reads only.
+Both live in Infisical `ai-market-backend` (`bd272d48-…`), env `prod`, and reach the Railway
+`ai-market-backend` service through the native Infisical→Railway sync, which also triggers a redeploy.
 
-**Known drift (verified S1721, 2026-09-19):** the backend reads ONE name, `RAILWAY_API_TOKEN`, for two
-incompatible consumers. The SysAdmin skill (`app/agents/sysadmin/skills/railway_ops.py`) sends it as
-`Project-Access-Token` and needs a project token; the allAI Railway clients (`app/allai/railway_client.py`,
-`app/allai/tools/railway_client.py`, used by `briefing_monitor`, `change_tracker`, `playbook_service`,
-`railway_monitoring`) send it as `Authorization: Bearer` and need an account token. Since Infisical
-`ai-market-backend`/`prod` version 4 (2026-09-15) the value is an account token: Bearer `me` and
-`project(e81dd66f…)` succeed, `projectToken` returns "Project Token not found", so `railway_read_status`
-and `railway_env_set_redeploy` bind-probe fail with Not Authorized and are disabled, and every
-`railway_status` cycle raises `monitor_unavailable`. Do not restore a project token into that name (it
-breaks the Bearer clients). Fixed in ai-market-backend PR #426: the skill uses optional `RAILWAY_PROJECT_TOKEN` with `Project-Access-Token`, otherwise the shared `RAILWAY_API_TOKEN` as `Authorization: Bearer`.
+Minting (E-03), headless, performed S1721: with the account token as Bearer, `mutation { projectTokenCreate(input:
+{projectId, environmentId, name}) }` returns the token string; verify with `query { projectToken { projectId
+environmentId } }` sent as `Project-Access-Token`; then `infisical secrets set RAILWAY_PROJECT_TOKEN=<value>
+--type=shared --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=prod --path=/
+--domain=https://secrets.ai.market/api` with `INFISICAL_TOKEN` from `~/.config/infisical/sysadmin-token` in the
+environment, and hash-compare a read-back. Keep the value inside one process; never print it. Python `urllib`
+calls to `backboard.railway.app` get HTTP 403 from the edge unless a `User-Agent` header is set (curl works).
+Afterwards confirm the Railway service variable exists (name only), the backend deploy reaches SUCCESS, and
+`/internal/agent-compliance` shows `disabled_capabilities: []` with `railway_status` ok.
+
+Ids above verified 2026-09-19 (S1721). Re-derive before relying on them: project and environment ids from
+`query { projectToken { projectId environmentId } }` sent with the project token (or Bearer
+`project(id){ environments { edges { node { id name } } } }`), the backend service id from Bearer
+`project(id){ services { edges { node { id name } } } }`, and the token name from the Railway dashboard
+project settings, Tokens tab.
+
+Revoke and re-mint (token leaked, or `railway_read_status` probe errors show Not Authorized with the
+project token present): mint a new token by the procedure above under a new name, store it over
+`RAILWAY_PROJECT_TOKEN` in Infisical, wait for the sync redeploy, confirm `disabled_capabilities: []`, then
+delete the old token in the Railway dashboard (project settings, Tokens). Minting first keeps the skill
+working throughout; deleting first leaves it Not Authorized until the new value lands.
 
 All Railway CLI commands in this operating context must be prefixed with `unset RAILWAY_TOKEN &&`.
 After any deploy, verify the health endpoint responds. Infisical manages secrets for the `ai-market`
