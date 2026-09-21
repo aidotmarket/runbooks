@@ -572,6 +572,10 @@
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
 
+## `gmail_login_`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
+
 ## `Google Chrome running: no`
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
@@ -1215,6 +1219,10 @@
 ## `sample_store_unavailable`
 
 - [ai.market Listing-Asset Object Store (Cloudflare R2)](listing-asset-store.md)
+
+## `saved Gmail login is not working`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
 
 ## `schema_validation_failure`
 
