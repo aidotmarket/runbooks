@@ -670,9 +670,9 @@
 - Path: `gcp-auth.md`
 - Purpose: GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 - Owner: `vulcan`
-- Last verified: `2026-08-30`
+- Last verified: `2026-09-21`
 - Aliases: Vertex authentication, Gmail OAuth, gcloud credentials, Trust Channel KMS
-- Error signatures: RefreshError: Reauthentication is needed. Please run gcloud auth application-default login, 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED, Reauthentication failed
+- Error signatures: invalid_grant: Bad Request, Failed to authenticate Gmail, RefreshError: Reauthentication is needed. Please run gcloud auth application-default login, 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED, Reauthentication failed
 - Status: current
 
 ## GitHub → Reconciliation Webhook

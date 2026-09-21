@@ -504,6 +504,10 @@
 
 - [Council Gate Process](runbooks/council-gate-process.md)
 
+## `Failed to authenticate Gmail`
+
+- [GCP Auth](gcp-auth.md)
+
 ## `FAILED_VOIDED`
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
@@ -663,6 +667,10 @@
 ## `invalid_grant`
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
+
+## `invalid_grant: Bad Request`
+
+- [GCP Auth](gcp-auth.md)
 
 ## `invalid_request`
 
