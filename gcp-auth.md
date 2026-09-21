@@ -99,7 +99,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   expected_success: {shape: gmail_tokens rows for max@ai.market and finance@ai.market hold fresh refresh tokens and the redeploy renews the Gmail watch, verification: briefing and drop pipeline resume; confirm rows updated_at is current}
   expected_failures:
     - {signature: "consent_screen_not_internal", cause: tokens re-expire in 7 days because User Type is still External/Testing}
-    - {signature: "db_unreachable_from_titan", cause: setup script cannot reach postgres.railway.internal directly; the token must be pushed via railway connect Postgres}
+    - {signature: "db_unreachable_from_titan", cause: DATABASE_URL left at the backend default or the private postgres.railway.internal host; set it to the Postgres service DATABASE_PUBLIC_URL and re-run the script (no manual UPDATE needed)}
   next_step_success: Verify briefing and drop pipeline resume on the next scheduled run.
   next_step_failure: Apply Repair-01 to fix the consent screen before re-issuing tokens.
 - id: E-03
@@ -158,7 +158,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
   component_ref: OAuth Consent Screen
   root_cause: The OAuth consent screen for aimarket-prod is External/Testing, so Gmail refresh tokens expire after 7 days and break briefings, the drop pipeline, and draft sending.
   repair_entry_point: GCP Console OAuth consent screen (project aimarket-prod)
-  change_pattern: Set User Type to Internal (use MAKE INTERNAL or edit), then re-issue Gmail tokens via E-02 (setup_gmail_auth.py then update gmail_tokens then redeploy). Only ai.market Workspace users (max@ai.market, ally@ai.market) can authorize.
+  change_pattern: Set User Type to Internal (use MAKE INTERNAL or edit), then re-issue Gmail tokens via E-02 (setup_gmail_auth.py <address> writes gmail_tokens directly). Only the live Workspace users max@ai.market and finance@ai.market authorize; allai@ai.market is an alias of finance@ and there is no ally@ai.market account.
   rollback_procedure: None required; Internal is the only correct setting. If re-issuance fails, retain the prior token rows until new tokens are confirmed written.
   integrity_check: Confirm User Type reads Internal and gmail_tokens rows for both addresses show a current updated_at, then confirm the next briefing run succeeds.
 - id: G-02
@@ -283,7 +283,7 @@ scenario_set:
     type: operate
     refs: [E-02, Architecture & interactions]
     scenario: |
-      id: E-02. trigger: Gmail jobs stopped because refresh tokens expired. tool_or_endpoint: setup_gmail_auth.py then update gmail_tokens via railway connect Postgres then railway redeploy. expected_success: fresh tokens for max@ai.market and ally@ai.market and the Gmail watch renewed. next_step_failure: apply G-01 to fix the consent screen first.
+      id: E-02. trigger: Gmail jobs stopped because refresh tokens expired. tool_or_endpoint: setup_gmail_auth.py <address> run with DATABASE_URL set to the Postgres DATABASE_PUBLIC_URL, which writes gmail_tokens directly; redeploy only if the Gmail watch has lapsed (no webhook notifications). expected_success: fresh tokens for max@ai.market and finance@ai.market. next_step_failure: apply G-01 to fix the consent screen first.
     expected_answers:
       - kind: human_action
         verb: reissue
@@ -403,9 +403,9 @@ scenario_set:
 Lifecycle metadata records this page's most recent operational refresh.
 
 ```yaml lifecycle
-last_refresh_session: S1606
-last_refresh_commit: 8843542562daf6bc3b5d80f6911d4136279da458
-last_refresh_date: 2026-08-25T09:56:13Z
+last_refresh_session: S1734
+last_refresh_commit: pending-merge-of-runbooks-pr-243
+last_refresh_date: 2026-09-21T17:40:00Z
 owner_agent: vulcan
 refresh_triggers:
   - OAuth consent-screen requirement or Gmail token flow changes

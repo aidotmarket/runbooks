@@ -1,7 +1,7 @@
 ---
 title: Gmail Drop Pipeline
 owner: unassigned
-last_verified: '2026-07-09'
+last_verified: '2026-09-21'
 aliases: []
 error_signatures: []
 ---
@@ -94,13 +94,9 @@ The GCP OAuth app (`aimarket-prod`) may still be in "Testing" mode. In testing m
 **If tokens expire (manual re-auth required):**
 ```bash
 cd ~/Projects/ai-market/ai-market-backend
-python3 scripts/setup_gmail_auth.py  # secrets loaded from Railway env vars
+python3 scripts/setup_gmail_auth.py <address>  # GOOGLE_OAUTH_CREDENTIALS_JSON + DATABASE_URL from Railway env
 ```
-This opens a browser for Google consent. The script saves the new refresh token, but it connects to `postgres.railway.internal` which isn't reachable from Titan-1. Push the token to Railway DB manually:
-```bash
-echo "UPDATE gmail_tokens SET refresh_token = '<NEW_TOKEN>', updated_at = NOW() WHERE email_address IN ('max@ai.market', 'ally@ai.market');" | railway connect Postgres
-```
-Then redeploy to renew the watch:
+Run it once per live account, `max@ai.market` and `finance@ai.market` (allai@ai.market is an alias of finance@; there is no ally@ai.market account), with `DATABASE_URL` set to the Postgres service's `DATABASE_PUBLIC_URL` so the script writes `gmail_tokens` directly (no manual UPDATE). It opens a browser: sign in as that account. Full procedure and the consent-screen prerequisite: `gcp-auth.md` E-02 / G-01. Redeploy only if the Gmail watch has lapsed (no webhook notifications arriving):
 ```bash
 railway redeploy --yes
 ```

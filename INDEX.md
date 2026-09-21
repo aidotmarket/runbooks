@@ -688,7 +688,7 @@
 - Path: `gmail-drop-pipeline.md`
 - Purpose: **Doc status:** content current as of S1162 (party model + T-2026-000200 restore). Full Overview–K structural retrofit (BQ-RUNBOOK-STANDARD.md) still pending.
 - Owner: `unassigned`
-- Last verified: `2026-07-09`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: none
 - Status: current
