@@ -542,7 +542,7 @@
 
 ## Delivery ACK-timeout monitor (trust-channel fulfilment, stalled transfers)
 - Path: `runbooks/delivery-ack-monitor.md`
-- Purpose: When a seller's AIM Data install streams a purchased dataset to ai.market over the trust channel, every accepted chunk is answered with an ACK. After each ACK the backend (`app/api/v1/endpoints/trust_websocket.py`, `_handle_fulfillment_action`) schedules a per-transfer monitor (`schedule_ack_monitor` in `app/services/fulfillment_listener_service.py`): if no further chunk arrives within 30 s it re-sends the ACK once, and after another 30 s it aborts the transfer (`FulfillmentListenerService.abort_transfer`, legacy or manifest route). The monitor is keyed by the canonical transfer UUID string; a non-UUID transfer id is never scheduled.
+- Purpose: When a seller's AIM Data install streams a purchased dataset to ai.market over the trust channel, accepted chunks are acknowledged in windows (every 4th chunk and the final chunk, `ACK_WINDOW = 4`, on both the legacy and manifest routes). After each ACK the backend (`app/api/v1/endpoints/trust_websocket.py`, `_handle_fulfillment_action`) schedules a per-transfer monitor (`schedule_ack_monitor` in `app/services/fulfillment_listener_service.py`): if no further chunk arrives within 30 s it re-sends the ACK once, and after another 30 s it aborts the transfer (`FulfillmentListenerService.abort_transfer`, legacy or manifest route). The monitor is keyed by the canonical transfer UUID string; a non-UUID transfer id is never scheduled.
 - Owner: `vulcan`
 - Last verified: `2026-09-21`
 - Aliases: ACK monitor, ack timeout, cancel_ack_monitor, schedule_ack_monitor, stalled delivery, transfer stuck receiving, T-2026-000779
