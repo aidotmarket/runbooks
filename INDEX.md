@@ -49,7 +49,7 @@
 - Path: `runbooks/agent-dispatch.md`
 - Purpose: **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole authority for CC, GLM, and DeepSeek voter dispatch and explicit-name Kimi comparison dispatch. All reviewer-wrapper, exact-SHA, package-validation, turn-budget, retry, parser, verdict-persistence, and Council Hall instructions below are historical and must not be executed. The only active reviewer path is `council_request` as a thin trigger over `scripts/council_dir.py`: one request file in, one response file out. This runbook remains authoritative only for the separate MP build path and general non-reviewer dispatch operations.
 - Owner: `vulcan`
-- Last verified: `2026-08-25`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: bootout_without_plist_patch, cutover_admission_unknown, default_cwd_false_positive, env_var_in_inherited_only, gateway_timeout, health_failure, mp_busy, progress_guard_timeout, schema_validation_failure, stale_task_state, strict_verdict_invalid, structural_gate_unknown, tr_truncation_false_negative, unsupported_line_claim
 - Status: current
@@ -409,16 +409,16 @@
 - Path: `runbooks/council.md`
 - Purpose: This runbook is maintained by Vulcan. Neither instance is senior to the other.
 - Owner: `vulcan`
-- Last verified: `2026-09-17`
-- Aliases: Council dispatch, review transport, glm-codex-transport, deepseek-codex-transport, glm-profile-isolation
-- Error signatures: Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, required reviewer missing from the live tool schema
+- Last verified: `2026-09-21`
+- Aliases: Council dispatch, review transport, glm-codex-transport, deepseek-codex-transport, glm-profile-isolation, gemini member, gemini-transport, gemini release checker, three-voter council
+- Error signatures: model_mismatch main=, gemini_home_unprovisioned, Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, required reviewer missing from the live tool schema
 - Status: current
 
 ## Council Gate Process
 - Path: `runbooks/council-gate-process.md`
 - Purpose: This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
 - Owner: `mp`
-- Last verified: `2026-07-27`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: authoring_distinction_trap, break_glass_left_enabled, chunk_scope_gap, cross_review_block, directional_evidence_missing, fabricated_line_reference, gate1_status_trap, harness_bound_to_stale_code, missing_design_artifact, unresolved_mandates
 - Status: current
@@ -445,7 +445,7 @@
 - Path: `runbooks/council-roster-quirks.md`
 - Purpose: **Fetch trigger:** before Council dispatch or voter validation.
 - Owner: `vulcan`
-- Last verified: `2026-07-27`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: stale_roster_snapshot
 - Status: current

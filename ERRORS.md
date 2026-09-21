@@ -536,6 +536,10 @@
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
 
+## `gemini_home_unprovisioned`
+
+- [Council](runbooks/council.md)
+
 ## `glm_page_path_hallucination`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
@@ -759,6 +763,10 @@
 ## `missing_design_artifact`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
+
+## `model_mismatch main=`
+
+- [Council](runbooks/council.md)
 
 ## `mp_busy`
 

@@ -1,7 +1,7 @@
 ---
 title: Council Roster and Quirks
 owner: vulcan
-last_verified: '2026-07-27'
+last_verified: '2026-09-21'
 aliases: []
 error_signatures:
 - stale_roster_snapshot
@@ -13,6 +13,14 @@ error_signatures:
 
 
 **Fetch trigger:** before Council dispatch or voter validation.
+
+> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
+> **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
+> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
+> Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
 **Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, sections 4 and 5. Normative extracts below name their CORE section and source SHA.
 
@@ -30,7 +38,7 @@ error_signatures:
 |---|---|---|---|---|
 | Live Roster | `state_request(action=get, key=infra:council-comms)` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
-| Dispatch Surface | `council_request` | Dispatch records | MP builder; CC, GLM, DeepSeek voters; Kimi comparison; retained AG backend | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused; Kimi supplies comparison only. |
+| Dispatch Surface | `council_request` | Dispatch records | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion; AG retired | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is retired and Kimi is removed; CC is a non-Council second opinion only. |
 
 ### Normative projection — CORE §4
 
@@ -47,16 +55,16 @@ separate current gateway tool.
 
 Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
 
-> The gate voter panel is exactly **CC, GLM, DeepSeek** — three voters. Kimi is an explicit-name, non-voting comparison seat. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
+> The gate voter panel is exactly **GLM, DeepSeek, Gemini** — three voters, unanimous 3/3, an unusable vote rerun once and then the gate fails. CC is an explicit-name, non-Council second opinion; Kimi is removed (S1721). All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
 
 > Vulcan and Mars are two cooperating frontier-model instances (current model strings live in the registry, not here), **peers of equal authority** over shell, git, dispatch, and Living State.
 
 Stable dispatch roles carried from CORE §§4–5:
 
 - MP is the mandatory builder and cannot vote on its own work.
-- CC, GLM, and DeepSeek are the gate voters; a valid gate requires the policy-defined complete panel.
-- Kimi is registered for explicit-name comparison only; its technically callable dispatch path does not confer voting authority.
-- AG is not assumed active. Consult live state before any explicit AG review.
+- GLM, DeepSeek, and Gemini are the gate voters; a valid gate requires the policy-defined complete panel.
+- CC is callable by explicit name as a non-Council second opinion only; its technically callable dispatch path does not confer voting authority. Kimi is removed.
+- AG (Gemini) is RETIRED IN CODE 2026-08-11 (koskadeux-mcp f0c3eab03c, 'Retire DeepSeek AG and XAI integrations'): ag_server.py and antigravity_client.py are gone, `council_request` has no `ag` member, and nothing listens on 8766 (verified S1721, 2026-09-19). Reinstating Gemini is new work: a fourth `council_dir.py` member, not a revival of the AG server.
 - Vulcan and Mars orchestrate and synthesize as peers; neither is a gate voter.
 - Max is final authority, not a Council voter.
 
@@ -68,9 +76,9 @@ These bullets are companion synthesis, not a new source of constitutional author
 |---|---|---|---|---|
 | Vulcan or Mars | Resolve roster before dispatch | `state_request action=get` | Living State read | COMPLETE |
 | MP | Build approved work | `council_request agent=mp` | Repository write per dispatch | COMPLETE |
-| CC, GLM, DeepSeek | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
-| Kimi | Compare by explicit name | `council_request agent=kimi` | Read-only, non-voting | COMPLETE |
-| AG | Explicit review when live state permits | `council_request agent=ag` | Read-only only when requested | COMPLETE |
+| GLM, DeepSeek, Gemini | Review and vote | `council_request` | Read-only review envelope | COMPLETE |
+| CC | Non-Council second opinion by explicit name; never counted | `council_request agent=cc` | Read-only, non-voting | COMPLETE |
+| AG | Retired 2026-08-11 (f0c3eab03c); not dispatchable | — | — | RETIRED |
 
 ## How to operate
 

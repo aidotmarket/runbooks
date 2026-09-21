@@ -1,7 +1,7 @@
 ---
 title: Agent Dispatch
 owner: vulcan
-last_verified: '2026-08-25'
+last_verified: '2026-09-21'
 aliases: []
 error_signatures:
 - bootout_without_plist_patch
@@ -30,6 +30,14 @@ error_signatures:
 > `scripts/council_dir.py`: one request file in, one response file out. This
 > runbook remains authoritative only for the separate MP build path and general
 > non-reviewer dispatch operations.
+
+> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
+> **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
+> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
+> Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
 > **CONSOLIDATION NOTICE (Mars S1348).** This document is the result of Max's option A decision on the `agent-dispatch.md` fork. The two divergent files of that name were merged into this one at `runbooks/agent-dispatch.md`, and the repo-root copy was deleted. The unmerged branch `docs/runbook-dispatch-owner-abandoned-s1338` was folded in and is superseded. Content was carried across by a content-preserving union and machine-verified for zero line loss.
 >
@@ -63,7 +71,7 @@ MP/AG/DeepSeek reviewer roster and Council-R1 approval rule are superseded and
 grant no current dispatch or voting authority. The only surviving operational
 point is that new dispatch failure surfaces are filed as revisions to this
 runbook rather than as new build-queue items. Current revisions follow the live
-CC/GLM/DeepSeek voter panel and explicit-name Kimi comparison seat from
+GLM/DeepSeek/Gemini voter panel and explicit-name non-Council CC path from
 `council_reviewers.py` and `infra:council-comms`.
 
 >
@@ -85,9 +93,9 @@ CC/GLM/DeepSeek voter panel and explicit-name Kimi comparison seat from
 | `dispatch_mp_build` background build dispatch | SHIPPED | `koskadeux-mcp/tools/agents.py:_handle_dispatch_mp_build` | MP background dispatch smoke coverage | 2026-04-29 |
 | `council_hall` deliberation dispatch | DEPRECATED | — | Removed from the live tool surface in S1527 | 2026-08-12 |
 | Codex CLI backend for MP | SHIPPED | `koskadeux-mcp/dispatch_codex_cli.py` | Codex CLI dispatch path exercised by MP build tasks | 2026-04-29 |
-| Gemini/AG server backend | SHIPPED | `koskadeux-mcp/antigravity_client.py` | AG server health + task dispatch coverage | 2026-04-29 |
+| Gemini/AG server backend | RETIRED | removed by koskadeux-mcp f0c3eab03c (2026-08-11) | none | 2026-09-19 |
 | DeepSeek server/API backend | SHIPPED | `koskadeux-mcp/deepseek_server.py` | DeepSeek review-schema and server health coverage | 2026-04-29 |
-| Council reviewer launcher | SHIPPED | `koskadeux-mcp/scripts/council_dir.py` | Same one-file path for CC/GLM/DeepSeek voters and explicit-name Kimi comparison | 2026-09-02 |
+| Council reviewer launcher | SHIPPED | `koskadeux-mcp/scripts/council_dir.py` | Same one-file path for GLM/DeepSeek/Gemini voters and the explicit-name non-Council CC path | 2026-09-02 |
 | XAI Grok dispatch | DEPRECATED | `koskadeux-mcp/xai_client.py` | Retired S528; cold-storage only, no active dispatch coverage | 2026-04-29 |
 | Structural-build no-loss retirement and recovery (staged; not deployed) | PLANNED | `koskadeux-mcp/tools/agents.py` | `tools/structural_quarantine.py:safe_retire_worktree`, `tests/unit/test_pre_push_gate_composition.py`, and `tests/unit/test_structural_quarantine_journal.py` | 2026-08-02 |
 
@@ -113,7 +121,7 @@ Per-agent:
 - **Kimi**: explicit-name, non-voting comparison reviewer with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no gate, write, shell, network, state, secret, restart, or deployment authority. Its observations are retained only in the separate audit field.
 - **DeepSeek**: required gate voter under S1651 via the bounded read-only Codex transport. Its verdict is required for every complete panel and cannot be substituted by Kimi, MP, or AG.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
-- **AG is PAUSED** (absent from active rosters; adapter/config and explicit review dispatch remain valid — pause, not deletion).
+- **AG is RETIRED IN CODE 2026-08-11 (koskadeux-mcp f0c3eab03c, 'Retire DeepSeek AG and XAI integrations'): ag_server.py and antigravity_client.py are gone, `council_request` has no `ag` member, and nothing listens on 8766 (verified S1721, 2026-09-19).** Every AG procedure, failure mode and schema note below is historical.
 - **XAI is RETIRED** (Max go, S994).
 - **Vulcan/Mars are never gate voters** (instance non-voter rule). Reversal condition: if Vulcan's model returns to any Anthropic model, the change is blocked until CC panel independence is re-reviewed (CORE 9.8).
 
@@ -128,7 +136,7 @@ Dispatch is a gateway-controlled routing layer. Operators submit a task, target 
 
 Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder.
 
-Current operational truth is the block above: MP is mandatory builder, CC/GLM/DeepSeek are the required gate voters, Kimi is explicit-name comparison-only, and AG is paused.
+Current operational truth is the block above: MP is mandatory builder, GLM/DeepSeek/Gemini are the required gate voters, CC is an explicit-name non-Council second opinion, Kimi is removed, and AG is retired.
 
 MP build base selection is independent of the mutable caller checkout. For
 `dispatch_mp_build`, an optional explicit `base_sha` must be a lower-case
@@ -318,7 +326,7 @@ Timeout knobs:
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
 | Kimi | dispatch through the shared provider read-only review loop | Kimi Code subscription transport / exact deployed registry model | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — exact-SHA read path covered; verify endpoint/model in the live contract and receipt |
-| GLM | dispatch through the shared provider read-only review loop | OpenRouter / z-ai/glm-5.2 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read, terminal repair, and binding-verdict proof `ff0f2f67` |
+| GLM | Council gate voter through the shared parameterized Codex transport (`glm_codex_transport.py`) | Codex CLI / glm-5.3 direct from z.ai, reasoning effort max (verified 2026-09-21; the OpenRouter z-ai/glm-5.2 provider loop is history) | `:read-only` Codex permission profile, `~/.codex` denied, API key excluded from the model's shell; no writes | COMPLETE |
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
@@ -362,7 +370,7 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
   expected_failures:
     - {signature: progress_guard_timeout, cause: AG backend stopped making progress}
     - {signature: unsupported_line_claim, cause: model cited a fabricated or stale line reference}
-  next_step_success: Attach the verified result as non-gate advisory evidence; obtain the required CC/GLM/DeepSeek votes separately.
+  next_step_success: Attach the verified result as non-gate advisory evidence; obtain the required GLM/DeepSeek/Gemini votes separately.
   next_step_failure: Use F-02 or narrow the prompt; do not substitute AG, MP, or Kimi for an active gate voter.
 - id: E-03
   trigger: A gate review needs DeepSeek's required voter coverage.
@@ -500,14 +508,14 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
   root_cause: A live-state-authorized non-gate AG advisory dispatch stopped making progress before returning advice.
   repair_entry_point: koskadeux-mcp/antigravity_client.py
   change_pattern: Re-read infra:council-comms; only if it still explicitly permits AG advisory work, narrow the prompt, require read-only mode, repair health if needed, and redispatch once as non-gate advice. Never use the result as voter coverage.
-  rollback_procedure: Cancel or supersede the timed-out advisory task id; preserve the gate as failed closed until CC/GLM/DeepSeek evidence is complete.
+  rollback_procedure: Cancel or supersede the timed-out advisory task id; preserve the gate as failed closed until GLM/DeepSeek/Gemini evidence is complete.
   integrity_check: Verify the replacement advice and citations, label it non-gate, and confirm it was not added to the voter set.
 - id: G-03
   symptom_ref: F-03
   component_ref: MP Backend
   root_cause: MP dispatches are queued behind the Codex CLI mutex.
   repair_entry_point: koskadeux-mcp/dispatch_codex_cli.py
-  change_pattern: Wait for the active MP build task; independent CC/GLM/DeepSeek review work may proceed in its own lane, but no voter may substitute for another and queueing alone is not failure.
+  change_pattern: Wait for the active MP build task; independent GLM/DeepSeek/Gemini review work may proceed in its own lane, but no voter may substitute for another and queueing alone is not failure.
   rollback_procedure: None unless a duplicate task was dispatched; then cancel the duplicate and keep the oldest valid task.
   integrity_check: Confirm task ordering and that the accepted result corresponds to the intended prompt digest.
 - id: G-04
@@ -745,7 +753,7 @@ scenario_set:
     type: operate
     refs: [E-02, Agent capabilities, council:I-02]
     scenario: |
-      id: E-02. trigger: A completed dispatch-gateway patch needs optional non-gate AG advice and infra:council-comms explicitly permits that advisory dispatch. pre_conditions: live-state AG advisory eligibility, commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: eligibility from current infra:council-comms; task from the advisory questions plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns non-gate read-only advice with no file writes, and cited lines are verified before attachment. expected_failures: missing live-state eligibility, progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, unhealthy AG backend, or counting AG toward a gate. next_step_success: attach the result as advisory evidence and obtain the required CC/GLM/DeepSeek votes separately. next_step_failure: preserve the advisory failure and fail closed for gate purposes; never substitute AG, MP, or Kimi for an active voter.
+      id: E-02. trigger: A completed dispatch-gateway patch needs optional non-gate AG advice and infra:council-comms explicitly permits that advisory dispatch. pre_conditions: live-state AG advisory eligibility, commit SHA, changed-file list, repo cwd, read-only scope, and AG server health are known. tool_or_endpoint: council_request(agent=ag, mode=review, task=<read_only_prompt>, cwd=<repo>). argument_sourcing: eligibility from current infra:council-comms; task from the advisory questions plus "READ-ONLY - DO NOT modify any files"; cwd from the checked-out repo; evidence refs from spec, commit, and diff. idempotency: IDEMPOTENT_WITH_KEY on ag + commit_sha + review_scope. expected_success: AG returns non-gate read-only advice with no file writes, and cited lines are verified before attachment. expected_failures: missing live-state eligibility, progress-guard timeout, MAX_TURNS exhaustion, unsupported line claim, unhealthy AG backend, or counting AG toward a gate. next_step_success: attach the result as advisory evidence and obtain the required GLM/DeepSeek/Gemini votes separately. next_step_failure: preserve the advisory failure and fail closed for gate purposes; never substitute AG, MP, or Kimi for an active voter.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -773,7 +781,7 @@ scenario_set:
     type: operate
     refs: [E-03, Agent capabilities, council:I-01]
     scenario: |
-      id: E-03. trigger: A gate review needs DeepSeek's required active-voter coverage. pre_conditions: DeepSeek provider is healthy, review scope is read-only, and the exact dispatch SHA is known. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; model and limits from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deepseek + dispatch_sha + review_scope. expected_success: DeepSeek returns a schema-valid binding verdict with complete exact-SHA evidence through its bounded read-only Codex path. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, or schema validation failure. next_step_success: add the DeepSeek vote to the CC/GLM/DeepSeek gate set; any Kimi response remains comparison-only. next_step_failure: fail the gate closed and retry DeepSeek without substituting MP, AG, or Kimi.
+      id: E-03. trigger: A gate review needs DeepSeek's required active-voter coverage. pre_conditions: DeepSeek provider is healthy, review scope is read-only, and the exact dispatch SHA is known. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; model and limits from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deepseek + dispatch_sha + review_scope. expected_success: DeepSeek returns a schema-valid binding verdict with complete exact-SHA evidence through its bounded read-only Codex path. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, or schema validation failure. next_step_success: add the DeepSeek vote to the GLM/DeepSeek/Gemini gate set; any Kimi response remains comparison-only. next_step_failure: fail the gate closed and retry DeepSeek without substituting MP, AG, or Kimi.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -786,7 +794,7 @@ scenario_set:
     type: isolate
     refs: [F-02, G-02, council:I-04]
     scenario: |
-      id: F-02. trigger: A live-state-authorized non-gate AG advisory dispatch stalls with a progress-guard timeout while checking a dispatch patch. pre_conditions: infra:council-comms explicitly permits the advisory dispatch, and the AG transcript, last progress marker, original prompt, repo cwd, and AG server health are available. tool_or_endpoint: AG transcript plus council_request task record. argument_sourcing: task id from gateway response; timeout marker from transcript; prompt size from payload; health from AG server check. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX before any advisory redispatch. expected_failures: treating it as a policy disagreement, losing the transcript, rerunning the same broad prompt, or counting AG toward a gate. next_step_success: use G-02 with a narrower read-only prompt only if live-state eligibility remains explicit. next_step_failure: preserve the AG non-response and fail closed for gate purposes; obtain CC/GLM/DeepSeek votes without substitution.
+      id: F-02. trigger: A live-state-authorized non-gate AG advisory dispatch stalls with a progress-guard timeout while checking a dispatch patch. pre_conditions: infra:council-comms explicitly permits the advisory dispatch, and the AG transcript, last progress marker, original prompt, repo cwd, and AG server health are available. tool_or_endpoint: AG transcript plus council_request task record. argument_sourcing: task id from gateway response; timeout marker from transcript; prompt size from payload; health from AG server check. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG progress-guard timeout and cite BQ-COUNCIL-AG-PROGRESS-GUARD-FIX before any advisory redispatch. expected_failures: treating it as a policy disagreement, losing the transcript, rerunning the same broad prompt, or counting AG toward a gate. next_step_success: use G-02 with a narrower read-only prompt only if live-state eligibility remains explicit. next_step_failure: preserve the AG non-response and fail closed for gate purposes; obtain GLM/DeepSeek/Gemini votes without substitution.
     expected_answers:
       - kind: human_action
         verb: classify
@@ -797,7 +805,7 @@ scenario_set:
     type: isolate
     refs: [F-02, G-02]
     scenario: |
-      id: F-02. trigger: A live-state-authorized non-gate AG advisory dispatch returns no verdict because review-mode MAX_TURNS=25 is exhausted. pre_conditions: infra:council-comms explicitly permits the advisory dispatch, and the AG transcript, max-turn marker, diff size, prompt body, and review_order are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; changed files from git diff; role expectation from infra:council-comms review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: accepting a partial non-verdict, widening timeout without narrowing scope, confusing it with gateway outage, or counting AG toward a gate. next_step_success: redispatch with G-02 using an ultra-tight diff-only prompt only if live-state eligibility remains explicit. next_step_failure: preserve AG non-response and fail closed for gate purposes; obtain CC/GLM/DeepSeek votes without substitution.
+      id: F-02. trigger: A live-state-authorized non-gate AG advisory dispatch returns no verdict because review-mode MAX_TURNS=25 is exhausted. pre_conditions: infra:council-comms explicitly permits the advisory dispatch, and the AG transcript, max-turn marker, diff size, prompt body, and review_order are available. tool_or_endpoint: council_request task transcript. argument_sourcing: max-turn evidence from transcript; changed files from git diff; role expectation from infra:council-comms review_order. idempotency: READ_ONLY_DIAGNOSTIC. expected_success: classify as AG review-mode budget exhaustion and cite BQ-COUNCIL-AG-MAX-TURNS-REVIEW-MODE. expected_failures: accepting a partial non-verdict, widening timeout without narrowing scope, confusing it with gateway outage, or counting AG toward a gate. next_step_success: redispatch with G-02 using an ultra-tight diff-only prompt only if live-state eligibility remains explicit. next_step_failure: preserve AG non-response and fail closed for gate purposes; obtain GLM/DeepSeek/Gemini votes without substitution.
     expected_answers:
       - kind: human_action
         verb: classify
@@ -819,7 +827,7 @@ scenario_set:
     type: repair
     refs: [G-02, F-02]
     scenario: |
-      id: G-02. trigger: A live-state-authorized non-gate AG advisory dispatch exhausts MAX_TURNS without a usable result. pre_conditions: infra:council-comms still explicitly permits the advisory retry, and the failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from How to operate. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns focused non-gate advisory evidence over only the dispatch diff. expected_failures: second timeout, broad architecture critique, fabricated file:line claim, or an attempt to count AG toward a gate. next_step_success: attach the replacement as advisory evidence and obtain CC/GLM/DeepSeek votes separately. next_step_failure: preserve AG non-response and fail closed for gate purposes; never use MP or Kimi as voter coverage.
+      id: G-02. trigger: A live-state-authorized non-gate AG advisory dispatch exhausts MAX_TURNS without a usable result. pre_conditions: infra:council-comms still explicitly permits the advisory retry, and the failed task id, original diff, changed-file list, exact review questions, and transcript are preserved. tool_or_endpoint: council_request(agent=ag, mode=review, task=<ultra_tight_diff_only_prompt>, cwd=<repo>). argument_sourcing: changed files from git diff --name-only; exact questions from the failed prompt; cwd from repo; read-only instruction from How to operate. idempotency: IDEMPOTENT_WITH_KEY on failed_task_id + narrowed_prompt_digest. expected_success: AG returns focused non-gate advisory evidence over only the dispatch diff. expected_failures: second timeout, broad architecture critique, fabricated file:line claim, or an attempt to count AG toward a gate. next_step_success: attach the replacement as advisory evidence and obtain GLM/DeepSeek/Gemini votes separately. next_step_failure: preserve AG non-response and fail closed for gate purposes; never use MP or Kimi as voter coverage.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -914,7 +922,7 @@ rounds:
 
 The former degraded-round rule allowed a primary verdict to carry after a
 terminal DeepSeek failure. It is not current gate authority. Current gate rounds
-require complete valid CC/GLM/DeepSeek participation; a missing, failed, malformed,
+require complete valid GLM/DeepSeek/Gemini participation; a missing, failed, malformed,
 model-mismatched, or incomplete active voter fails the gate closed.
 
 ## §M Sandbox-Based Review-Mode Tool Restriction
@@ -985,7 +993,7 @@ it as one of the exact three voters.
 
 Historical fanout regression coverage remains in
 `tests/integration/test_skip_fanout_regression.py`; it does not alter the current
-CC/GLM/DeepSeek roster or permit fallback.
+GLM/DeepSeek/Gemini roster or permit fallback.
 
 ## §O Historical Structural Middleware Wiring
 
@@ -1863,7 +1871,7 @@ At every session open, and again before any dispatch, merge, or close:
 The former MP/AG primary plus DeepSeek +1 process is retained only as history.
 It was superseded when Kimi replaced the DeepSeek seat at S1319 and again when
 S1651 made DeepSeek a required voter and Kimi comparison-only. Current gate
-completeness requires the exact active CC/GLM/DeepSeek panel from
+completeness requires the exact active GLM/DeepSeek/Gemini panel from
 infra:council-comms; MP is builder-only, AG is paused, and neither MP, AG, nor
 Kimi can satisfy or supplement a missing gate vote.
 Conflict events from historical rounds remain readable, but their roster does
@@ -1872,7 +1880,7 @@ not authorize a current dispatch.
 
 ## §Z Current gate-voter disagreement routing
 
-Complete the exact CC/GLM/DeepSeek panel required by current Council policy. Any
+Complete the exact GLM/DeepSeek/Gemini panel required by current Council policy. Any
 missing, malformed, model-mismatched, or disagreeing binding verdict keeps the
 gate closed and returns through the current Council process; unresolved
 disagreement escalates to Max. Do not substitute MP, AG, Kimi, XAI, a
@@ -1881,7 +1889,7 @@ reduced quorum, or a legacy conflict event for any required current vote.
 ### Historical DeepSeek Conflict Adjudication Procedure (superseded)
 
 This procedure applies only when interpreting legacy MP/AG plus DeepSeek rounds.
-It cannot unblock or authorize a current gate. Current CC/GLM/DeepSeek disagreement
+It cannot unblock or authorize a current gate. Current GLM/DeepSeek/Gemini disagreement
 returns through the current Council process and ultimately to Max.
 
 When a `verdict_conflict` event exists, dispatch remains blocked until one of
@@ -1933,7 +1941,7 @@ Precedent S691 (first complete codified application; predecessor durability gap 
 8. Verify env in BOTH the bash wrapper AND python child PIDs: `pstree -p <NEW_PID>`; for each PID, `ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING` (no tr pipe).
 9. Cross-check `launchctl print gui/$(id -u)/<service>` shows the env var in the canonical 'environment' Dict, NOT only 'inherited environment'.
 10. Smoke the MP lane only through an explicitly bounded build-mode diagnostic in a disposable test branch; MP open-response/review mode is not current gate or review authority.
-11. If reviewer routing also changed, run separate read-only smoke reviews through the active CC/GLM/DeepSeek paths at an exact test commit; never use MP, AG, or Kimi as replacement voter coverage.
+11. If reviewer routing also changed, run separate read-only smoke reviews through the active GLM/DeepSeek/Gemini paths at an exact test commit; never use MP or CC as replacement voter coverage.
 
 ### T-2026-000300 harness semantics (shipped 2026-07-21, koskadeux-mcp @ 57590559)
 

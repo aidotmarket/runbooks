@@ -1,14 +1,20 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-09-17'
+last_verified: '2026-09-21'
 aliases:
 - Council dispatch
 - review transport
 - glm-codex-transport
 - deepseek-codex-transport
 - glm-profile-isolation
+- gemini member
+- gemini-transport
+- gemini release checker
+- three-voter council
 error_signatures:
+- model_mismatch main=
+- gemini_home_unprovisioned
 - Error occurred during tool execution
 - Not logged in
 - OAuth session expired and could not be refreshed
@@ -22,6 +28,14 @@ error_signatures:
 ## Overview
 
 This runbook is maintained by Vulcan. Neither instance is senior to the other.
+
+> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
+> **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
+> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
+> Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
 ## Capabilities
 
@@ -40,7 +54,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 There is one Council reviewer path.
 
-1. Select `cc`, `kimi`, `glm`, or `deepseek`.
+1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` is available by explicit name as a non-Council second opinion only.
 2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
 3. Return `status=submitted` with the request path and response path immediately.
 4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
@@ -51,14 +65,14 @@ The standard preamble is the complete review contract approved in S1557. It requ
 
 The manual equivalent is:
 
-    scripts/council_dir.py ask <cc|kimi|glm|deepseek|all> <request_file>
-    scripts/council_dir.py run <cc|kimi|glm|deepseek|all>
+    scripts/council_dir.py ask <glm|deepseek|gemini|cc|all> <request_file>
+    scripts/council_dir.py run <glm|deepseek|gemini|cc|all>
     scripts/council_dir.py ask deepseek <request_file>
     scripts/council_dir.py run deepseek
 
-`ask all` and `run all` mean the three required reviewers, CC, GLM, and
-DeepSeek, processed in directory order. They never include Kimi. Use
-`ask kimi` or `run kimi` explicitly for a comparison review.
+`ask all` and `run all` mean the three required reviewers, GLM, DeepSeek, and
+Gemini (`REQUIRED_REVIEWER_ORDER`). They never include CC. Use `ask cc`
+explicitly for a non-Council second opinion; it is never counted.
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -68,17 +82,18 @@ The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is 
 
 A reviewer may return `REJECT` with no build mandates when its conclusion is to stop the proposed work. The response file and its explanation remain the complete verdict; the operator must not invent a mandate to satisfy a response shape. The directory transport does not schema-validate or discard that response.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC and Kimi receive the one-sentence pickup instruction. GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC (non-Council) receives the one-sentence pickup instruction; Gemini runs through `gemini_transport.py` (see Gemini member). GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-Roster since S1651 (CORE v9.16):
-the required gate voters are exactly CC, GLM, and DeepSeek. Kimi is the
-registered non-voting comparison seat for the remainder of its paid credit:
-dispatched by explicit name when its quota is active, its findings compared and
-recorded, never a vote. The shadow-seat mechanics below were built in S1649 for
-DeepSeek and now apply unchanged to Kimi. The canonical roster is
+Roster since S1721 (CORE v9.18): the required gate voters are exactly GLM,
+DeepSeek, and Gemini, unanimous 3/3. An unusable vote (no verdict, failed
+launch, or model mismatch) is rerun once; then the gate fails. CC is a
+non-Council second opinion by explicit name and is never counted. Kimi is
+removed. There is no shadow seat: the shadow-seat mechanics below were built in
+S1649, remain in code, and apply only if a seat is ever registered outside the
+required set (`SHADOW_REVIEWERS` is empty today). The canonical roster is
 `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER`, `SHADOW_REVIEWERS`).
 
-Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: Event Ledger ddb93d96-d06d-42fd-899f-157918581df4 (2026-09-02, verbatim: "I am superseding the Council to install DeepSeek as a gate voter in place of Kimi").
+Authority: Max S1721, Event Ledger 47804cc4, 51786409, c7edc37f, d3018462. Historical (S1651 roster, superseded): Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: Event Ledger ddb93d96-d06d-42fd-899f-157918581df4 (2026-09-02, verbatim: "I am superseding the Council to install DeepSeek as a gate voter in place of Kimi").
 
 The shadow reviewer is registered, audited, displayed, and dispatchable by explicit
 name only. It is outside the required-reviewer set and has no
@@ -90,7 +105,7 @@ process only the required-voter payload; any shadow payload, including a failed,
 model-mismatched, verdict-bearing, mandate-bearing, or malformed response, is
 retained only under the run's separate `shadow_observations` audit field. A
 shadow-only batch is treated like an empty submission and writes no transition.
-`service_health` reports the required voters (`glm`, `deepseek`) and contains
+`service_health` reports the required voters (`glm`, `deepseek`, `gemini`) and contains
 no shadow key; per-agent detailed telemetry still displays shadow activity.
 Single-voter gate submission rejects the shadow reviewer before either the atomic
 backend call or the local fallback.
@@ -99,14 +114,14 @@ Empty-range override acknowledgement is actor-authorized. `vulcan`, `mars`,
 `venus`, `mercury`, `jupiter`, `saturn`, `mp`, CC, GLM, and DeepSeek may acknowledge
 with `ack_role` absent, `peer`, or `council`; these already-authorized identities
 retain the exact base behavior regardless of which valid role they declare. A
-payload role never grants authority by itself: Kimi and unknown actors are
+payload role never grants authority by itself: unregistered and unknown actors are
 rejected regardless of their declared role. There is no automatic promotion path
 for a registered reviewer; DeepSeek's placement happened by Max's direct
 instruction S1651 (Event Ledger decision 1f6c9580) and a code change on
 `council_reviewers.py`. The next seat change is the same one-line change plus a
 CORE amendment.
 
-CC and Kimi may read local files and may write only inside their own Council member directory plus CLI housekeeping paths. GLM and DeepSeek receive the self-contained request over stdin and may use read-only shell commands to inspect the pinned checkout; Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
+CC (non-Council) may read local files and may write only inside its own Council member directory plus CLI housekeeping paths. Gemini runs in its own sandbox: read anything, write only its own home. GLM and DeepSeek receive the self-contained request over stdin and may use read-only shell commands to inspect the pinned checkout; Codex writes the named response file. No fence inspects, alters, or discards an accepted response.
 
 There is no admission control (Max, S1568: nothing that can check and block work). No member lock, no busy refusal, no waiting list, broker, retry, or daemon. The only lock anywhere is CC's profile lock, which exists to stop two Claude Code processes racing one OAuth token refresh — the mechanism that historically destroyed Max's own login — and never refuses a review; it serializes CC launches. The response file is the complete durable status record across client disconnects.
 
@@ -127,17 +142,21 @@ Credentials are launcher inputs only:
 - CC uses the dedicated isolated CC profile from F-03/G-03, never Max's personal Claude profile,
   and must run without `--bare`.
 - GLM uses `GLM_z_AI_API_KEY` from the launched MCP environment and a dedicated `CODEX_HOME` at `/Users/max/koskadeux-state/agents/glm/codex-home`; no credential is stored there.
-- Kimi uses `MOONSHOT_API_KEY` from the launched MCP environment.
+- Gemini uses `VERTEX_GEMINI_KEY` from the launched MCP environment (Vertex AI); the key is redacted from the model-controlled shell. See Gemini member.
 - DeepSeek uses `DEEPSEEK_API_KEY` from Infisical project `0943f641-faee-4324-b337-0d50c276e4a9`, environment `prod`, path `/`, and dedicated homes under `/Users/max/koskadeux-state/agents/deepseek/`; no credential is stored there.
 
-Council consumption is observed by the record-only `council_providers` source in the existing S1511 issue channel. It reads the launcher-injected DeepSeek balance, derives a seven-day USD burn rate from retained channel samples, summarizes Kimi launcher usage and explicit weekly-limit failures, records GLM usage as unavailable because no documented read-only coding-plan endpoint exists, and counts MP timeouts over 24 hours. Defaults warn below USD 10 or below seven projected days. Read the safe payloads from the issue-channel snapshot/export as described in `issue-channel.md`; never print or copy a provider credential.
+Council consumption is observed by the record-only `council_providers` source in the existing S1511 issue channel. It reads the launcher-injected DeepSeek balance, derives a seven-day USD burn rate from retained channel samples, records GLM usage as unavailable because no documented read-only coding-plan endpoint exists, and counts MP timeouts over 24 hours. Defaults warn below USD 10 or below seven projected days. Read the safe payloads from the issue-channel snapshot/export as described in `issue-channel.md`; never print or copy a provider credential.
 
-Kimi retained-session finalization uses `kimi --session <id> --prompt <text>`
-under the same member sandbox and a five-step reserve. Do not add `--auto` to
-that prompt-mode command: Kimi CLI 0.32.0 rejects `--auto` plus `--prompt`
-before it resolves the retained session. S1632 recovered the original 55-step
-review without resending its package, then merged the one-token repair as
-`koskadeux-mcp` PR 196 (`cbc27315868d14e9d5efb61bf53890a0174dc62a`).
+### Gemini member (S1721)
+
+- Transport: `gemini_transport.py`. One request in, one response file out, like every member. The pinned CLI runs headless inside `sandbox/gemini_member.sb` (read anything, write only its own home) with shell, file reads and Google web search at its own discretion.
+- Pinned CLI 0.60.0, installed for the Council only: `npm install --prefix /Users/max/koskadeux-state/agents/gemini/cli @google/gemini-cli@0.60.0`. Home is `/Users/max/koskadeux-state/agents/gemini/home`; the transport provisions its settings (Vertex AI auth, auto-update off, usage statistics off, `experimental.dynamicModelConfiguration: true`).
+- Dynamic model configuration must stay on: a stock CLI rewrites any `*flash` id to gemini-3.5-flash, and a voter must never change model silently.
+- Model pin: `infra:council-comms` `body.model_policy.agent_frontier_models.gemini` (`gemini-3.8-flash`, v76+; Max: "until 4 is available"). `GEMINI_REVIEW_MODEL` is the voter's runtime override only. The response file is written only when the CLI's own record shows the pinned model served every `main` (reasoning) turn; otherwise the launch fails with `model_mismatch main=<ids>` and there is no vote. The gate applies the same model check to every member against its pin.
+- Credential: `VERTEX_GEMINI_KEY` from the launched MCP environment. It reaches the CLI but is redacted from the model-controlled shell.
+- Failure codes: `cli_not_installed`, `gemini_home_unprovisioned`, `credential_unavailable`, `timeout` (7200 s), `cli_output_unreadable`, `model_mismatch`, `empty_response`. Each is an unusable vote: rerun once, then the gate fails.
+- Verified live configuration, 2026-09-21 (S1733): GLM = `glm-5.3` from z.ai, reasoning effort `max`; DeepSeek = `deepseek-v4-pro`, reasoning effort `xhigh`; both Codex CLI 0.153.4, `codex exec --ephemeral --skip-git-repo-check -o <response>`, `:read-only` permission profile, live web search, network on, `~/.codex` denied, provider key excluded from the model's shell, deployed `config.toml` byte-identical to the checked template. Gemini = `gemini-3.8-flash` on CLI 0.60.0; the release checker found no Gemini 4 id answering on Vertex at 07:15 UTC. Hardcoded fallback pins in `council_gate_runner.py` agree with all three. CC (non-Council) = `claude-opus-4-8`, effort max, inside `sandbox/council_member.sb`.
+- Release checker: launchd `com.koskadeux.gemini-release-checker`, daily 09:15 local, `scripts/check_gemini_release.py`. It follows the Living State pin (never the runtime override), probes candidate Gemini 4 ids with the free countTokens call, and opens one ops-board ticket when one answers or when the pinned model stops answering. It only reports; switching the pin is Max's decision. Exit 1 means it could not run or ran incompletely. Verify: `launchctl list | grep gemini-release-checker` (last exit 0). It replaces `com.koskadeux.eu_gemini_checker`, booted out in S1721 (plist in `~/Library/LaunchAgents/archive-s1721/`).
 
 The public agent/build surface has two names: `council_request` for review and
 `dispatch_mp_build` for builds. Build status and listing remain actions on
@@ -164,17 +183,17 @@ Chrome proof remain required before the cleanup can be called live.
 |---|---|---|---|---|
 | Reviewer Trigger | `tools/agents.py:_handle_council_member` and `_handle_check_council_member` | none | Directory Exchange | Submit returns `request_id` immediately; `check_review` returns running/completed/failed/not_found and unchanged completed text. |
 | Directory Exchange | `scripts/council_dir.py:submit_member` | `/Users/max/council/<member>/` and one fixed `.member.lock` | Member Launcher | One lock-before-write path for MCP and CLI; exact original-byte suffix; no queue, retry, or alternate transport. |
-| Member Launcher | `scripts/council_dir.py:start` | request and response files | CC, Kimi, GLM, DeepSeek CLIs | File-in/file-out. GLM and DeepSeek use the shared parameterized Codex transport with provider-specific homes and config. |
-| Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM, Kimi, and DeepSeek credentials | Credential values are never written to request files. |
+| Member Launcher | `scripts/council_dir.py:start` | request and response files | GLM, DeepSeek, Gemini CLIs; non-Council CC | File-in/file-out. GLM and DeepSeek use the shared parameterized Codex transport with provider-specific homes and config. |
+| Launch Environment | `scripts/launch_mcp_server.sh` | process environment | GLM, DeepSeek, and Gemini credentials | Credential values are never written to request files. |
 | MP Build Dispatch | `dispatch_mp_build` → `tools/agents.py:_handle_dispatch_mp_build` | existing MP task stores | Minimal bridge and Codex CLI | The separately advertised build route. |
 
 ## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| CC | Council review | Directory exchange | Own Council directory | COMPLETE |
-| Kimi | Council comparison review; not a required voter (S1651) | Directory exchange | Own Council directory | COMPLETE |
-| GLM | Council review | Directory exchange | Own Council directory | COMPLETE |
+| CC | Non-Council second opinion by explicit name; never counted (S1721) | Directory exchange | Own Council directory | COMPLETE |
+| Gemini | Council gate voter (S1721) | `gemini_transport.py` and directory exchange | Own sandbox (`sandbox/gemini_member.sb`); writes only its own home; launcher-injected Vertex key | COMPLETE |
+| GLM | Council gate voter | Directory exchange | Own Council directory | COMPLETE |
 | DeepSeek | Council gate voter (S1651) | Shared parameterized Codex transport and directory exchange | Dedicated `HOME`/`CODEX_HOME`; Infisical-injected DeepSeek key | REGISTERED |
 | MP | Mandatory build; never a voter | Separate MP build path | Explicit build/author workspace | COMPLETE |
 | Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
@@ -184,10 +203,10 @@ Chrome proof remain required before the cleanup can be called live.
 ```yaml operate
 - id: E-01
   trigger: An existing request file must be sent to one Council reviewer.
-  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, request_file_is_readable]
+  pre_conditions: [member_is_glm_deepseek_gemini_or_cc, request_file_is_readable]
   tool_or_endpoint: council_request(agent=<member>, review_package_path=<request_file>)
   argument_sourcing:
-    agent: cc, kimi, glm, or deepseek
+    agent: glm, deepseek, or gemini; cc only for a non-Council second opinion
     review_package_path: the exact file to copy into the member directory
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request path exists and the call returns without waiting for the response path}
@@ -197,10 +216,10 @@ Chrome proof remain required before the cleanup can be called live.
   next_step_failure: Poll the active_request_id; do not switch transports, add parsing, or re-dispatch.
 - id: E-02
   trigger: Plain task text must be sent to one Council reviewer.
-  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, task_text_is_present]
+  pre_conditions: [member_is_glm_deepseek_gemini_or_cc, task_text_is_present]
   tool_or_endpoint: council_request(agent=<member>, task=<text>)
   argument_sourcing:
-    agent: cc, kimi, glm, or deepseek
+    agent: glm, deepseek, or gemini; cc only for a non-Council second opinion
     task: exact text to write to the request file
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request file contains the task and the call does not require the response file to exist}
@@ -213,9 +232,9 @@ Chrome proof remain required before the cleanup can be called live.
   pre_conditions: [required_member_credentials_available, request_file_is_readable]
   tool_or_endpoint: scripts/council_dir.py ask all <request_file>
   argument_sourcing:
-    request_file: one plain file; the same bytes are copied once to CC, GLM, and DeepSeek only; use ask kimi explicitly for a separate comparison review
+    request_file: one plain file; the same bytes are copied once to GLM, DeepSeek, and Gemini only; use ask cc explicitly for a non-Council second opinion
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for Kimi}
+  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for CC}
   expected_failures:
     - {signature: member unavailable, cause: that member credential or CLI is unavailable}
     - {signature: member_busy plus active request, cause: that member already has one active request; no new request file is written}
@@ -223,7 +242,7 @@ Chrome proof remain required before the cleanup can be called live.
   next_step_failure: Poll a busy member's active request; a failed member does not prevent the other members from submitting.
 - id: E-04
   trigger: A submitted Council review must be checked without creating or retrying a request.
-  pre_conditions: [member_is_cc_kimi_glm_or_deepseek, request_id_was_returned_by_submit_or_busy]
+  pre_conditions: [member_is_glm_deepseek_gemini_or_cc, request_id_was_returned_by_submit_or_busy]
   tool_or_endpoint: council_request(action=check_review, agent=<member>, request_id=<request_id>)
   argument_sourcing:
     agent: the member that owns the returned request_id
@@ -365,8 +384,8 @@ Chrome proof remain required before the cleanup can be called live.
 - `council_request` is the only public Council reviewer trigger.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
-- CC, Kimi, GLM, and DeepSeek all use `scripts/council_dir.py`.
-- Kimi is registered for explicit-name comparison dispatch but affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision; batch observations use a separate non-blocking `shadow_observations` audit field, gate-voter submission rejects it before forwarding, and authorized override identities keep their base acknowledgement regardless of declared valid role.
+- GLM, DeepSeek, Gemini, and the non-Council CC path all use `scripts/council_dir.py`.
+- CC is dispatchable by explicit name as a non-Council second opinion and affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision. A missing, failed, non-canonical, or model-mismatched required vote fails closed after one rerun.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
@@ -415,17 +434,17 @@ scenario_set:
   - id: I-01
     type: operate
     refs: [E-01, H.1]
-    scenario: An existing request file is sent to Kimi through council_request.
+    scenario: An existing request file is sent to Gemini through council_request.
     expected_answers:
       - kind: tool_call
         tool: council_request
         argument_keys: [agent, review_package_path]
-        argument_values: {agent: kimi}
+        argument_values: {agent: gemini}
     weight: 0.25
   - id: I-02
     type: operate
     refs: [E-02, H.1]
-    scenario: The same task text is sent separately to CC, Kimi, GLM, and DeepSeek.
+    scenario: The same task text is sent separately to GLM, DeepSeek, Gemini, and CC.
     expected_answers:
       - kind: human_action
         verb: verify
