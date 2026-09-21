@@ -326,7 +326,7 @@ Timeout knobs:
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
 | CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
 | Kimi | dispatch through the shared provider read-only review loop | Kimi Code subscription transport / exact deployed registry model | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — exact-SHA read path covered; verify endpoint/model in the live contract and receipt |
-| GLM | dispatch through the shared provider read-only review loop | OpenRouter / z-ai/glm-5.2 | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — live exact-SHA read, terminal repair, and binding-verdict proof `ff0f2f67` |
+| GLM | Council gate voter through the shared parameterized Codex transport (`glm_codex_transport.py`) | Codex CLI / glm-5.3 direct from z.ai, reasoning effort max (verified 2026-09-21; the OpenRouter z-ai/glm-5.2 provider loop is history) | `:read-only` Codex permission profile, `~/.codex` denied, API key excluded from the model's shell; no writes | COMPLETE |
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 

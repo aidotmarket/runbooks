@@ -92,7 +92,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 | CC | non-Council second opinion only; never counted (S1721) | Claude Code read-only review path | repository read | COMPLETE |
 | DeepSeek | active gate voter | shared parameterized Codex transport / deepseek-v4-pro | read-only fence on the pinned checkout | COMPLETE |
 | Gemini | active gate voter (S1721) | `gemini_transport.py` / pinned Gemini CLI 0.60.0, gemini-3.8-flash | own sandbox; read anything, write only its own home | COMPLETE |
-| GLM | active gate voter | shared provider read-only review loop / z-ai/glm-5.2 | bounded read-only at-SHA repository tools | COMPLETE |
+| GLM | active gate voter | shared parameterized Codex transport / glm-5.3 direct from z.ai (`config/glm_codex/config.toml`, reasoning effort max; verified 2026-09-21) | `:read-only` Codex permission profile; Codex writes the one response file via `-o` | COMPLETE |
 | AG | retired in code 2026-08-11 (koskadeux-mcp f0c3eab03c); not dispatchable | Gemini / Vertex | — | RETIRED |
 | Vulcan | gate orchestrator and Living State operator | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 
