@@ -540,6 +540,15 @@
 - Error signatures: job status dead with 401/403 in last_error, job status dead with 400 in last_error (Kaggle), row stays pending > 10 min, status dead, first job dead with 4xx
 - Status: current
 
+## Delivery ACK-timeout monitor (trust-channel fulfilment, stalled transfers)
+- Path: `runbooks/delivery-ack-monitor.md`
+- Purpose: When a seller's AIM Data install streams a purchased dataset to ai.market over the trust channel, every accepted chunk is answered with an ACK. After each ACK the backend (`app/api/v1/endpoints/trust_websocket.py`, `_handle_fulfillment_action`) schedules a per-transfer monitor (`schedule_ack_monitor` in `app/services/fulfillment_listener_service.py`): if no further chunk arrives within 30 s it re-sends the ACK once, and after another 30 s it aborts the transfer (`FulfillmentListenerService.abort_transfer`, legacy or manifest route). The monitor is keyed by the canonical transfer UUID string; a non-UUID transfer id is never scheduled.
+- Owner: `vulcan`
+- Last verified: `2026-09-21`
+- Aliases: ACK monitor, ack timeout, cancel_ack_monitor, schedule_ack_monitor, stalled delivery, transfer stuck receiving, T-2026-000779
+- Error signatures: NameError: name 'uuid' is not defined, AUTHORIZATION_MISMATCH, MANIFEST_DELIVERY_REQUIRED
+- Status: current
+
 ## Dev Trouble-Ticket Lifecycle Runbook
 - Path: `dev-tickets.md`
 - Purpose: Owner: both instances. Scope: dev-class support tickets (T-YYYY-NNNNNN) — issues in existing systems. Created S1164 discharging debts S1164-D1/D2/D3. Not for BQs (new development) or customer tickets.
