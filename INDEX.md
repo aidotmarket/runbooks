@@ -229,8 +229,8 @@
 - Path: `aws.md`
 - Purpose: Parent runbook for ai.market's production AWS account and the isolated S1681 test account `157263244532` (profile `aimarket-sandbox`). Per-service detail lives in sub-runbooks: **aws-s3.md**.
 - Owner: `Vulcan-Primary`
-- Last verified: `2026-05-31`
-- Aliases: AWS test account 157263244532, aimarket-sandbox, aim-sandbox-cli, S1681 test S3, aimarket-connector-s1681-test
+- Last verified: `2026-09-21`
+- Aliases: aimarket-e2e-harness, E2E_AWS_ACCESS_KEY_ID rotation, AWS test account 157263244532, aimarket-sandbox, aim-sandbox-cli, S1681 test S3, aimarket-connector-s1681-test
 - Error signatures: none
 - Status: current
 
