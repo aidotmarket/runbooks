@@ -924,7 +924,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-21`
 - Aliases: run it as a seller, seller run, dogfood, seller-facing done, Gate 4 seller run, not contingent on a customer
-- Error signatures: registration_evidence_unavailable, rescan_required, personal_data, Intentionally has no transport
+- Error signatures: registration_evidence_unavailable, rescan_required, personal_data, Intentionally has no transport, contract_mismatch, Device not registered with ai.market, Dataset with id '<id>' not found.
 - Status: current
 
 ## Runbook: Dual-Brand System — vectorAIz / AIM Channel
