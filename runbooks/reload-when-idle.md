@@ -1,13 +1,15 @@
 ---
 title: Reload when idle (T-2026-000602)
 owner: mars
-last_verified: '2026-08-14'
+last_verified: '2026-09-21'
 aliases:
 - mcp-server-reload
 - reloader
 error_signatures:
 - background build(s) running/queued; deferring
 - background-build check failed
+- 'Gateway Error: upstream service unavailable'
+- 'RELOADED: bounced com.koskadeux.mcp'
 ---
 
 # Reload when idle (T-2026-000602)
@@ -65,19 +67,22 @@ Either instance (vulcan/mars) may merge to koskadeux-mcp main; the merge arms th
   `BUILD_STALE_SECONDS`, `KD_TS_SOCKET_DIR`, and `KD_TS_JOB_DIR` set as in the
   script. `0` = idle; any positive number or `ERR` = do not reload.
 - Full test suite: `bash tests/test_reload_build_guard.sh` from the repo root (expects 18/18).
-- MERGE DISCIPLINE: never merge to koskadeux-mcp main while a bridge build is running; the reload the merge arms is the very thing the guard protects against. Check fresh job specs under `koskadeux-state/ts-sockets/jobs/` and `ts` per socket first.
+- MERGE DISCIPLINE: never merge to koskadeux-mcp main while the peer is mid-close or mid-gate without announcing on the peer bus (see F-03). Never merge to koskadeux-mcp main while a bridge build is running; the reload the merge arms is the very thing the guard protects against. Check fresh job specs under `koskadeux-state/ts-sockets/jobs/` and `ts` per socket first.
 
 ## When it breaks
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | Reloader never fires; log shows `background-build check failed` persistently | Unreadable socket/job dir, missing `ts` binary, or a genuinely stuck fresh job record | Run the scanner by hand (How to operate); inspect the failing path it raises on | G-01 | CONFIRMED |
+| F-03 | `RELOADED: bounced com.koskadeux.mcp` in `/tmp/koskadeux_mcp_reload.log` while a session was open; the live session gets `Gateway Error: upstream service unavailable` mid-call (seen 2026-09-21 10:28Z and 10:30Z, killed a `kd_session_close`) | Session heartbeat not stamped: `registry.sessions.last_seen_at` is written only by `kd_session_open`, so step 4 counts every session older than `SESSION_LIVE_TTL_SECONDS` (1800) as provably dead. Regression of 2026-08-17: commit `048e59ad80` (early return in `gate_pipeline.check_pre_execution`) and `ea8a716d46` removed the only production caller of `stamp_last_seen`. Same false idle reaches `tools/registry.any_session_live` (kd_deploy, kd_monitor, kd_sentinel). Whether the merged change was code or text is irrelevant | `sqlite3 "file:/Users/max/koskadeux-state/registry.db?mode=ro" "SELECT instance,session_id,last_seen_at FROM sessions WHERE closed_at IS NULL"` and make a few tool calls: `last_seen_at` must advance (60 s throttle). `git grep stamp_last_seen -- ':!tests'` must show a caller in `koskadeux_server._dispatch_with_caller` | G-03 | CONFIRMED |
 | F-02 | Reload killed a running build, or log shows `background build(s) running/queued; deferring` while nothing is visibly building | Guard bypassed or scanner regression | Reproduce with `tests/test_reload_build_guard.sh`; if 18/18 pass, check whether the reload path actually calls the scanner | G-02 | CONFIRMED (design) |
 
 ## Repair
 
 - **G-01.** Fix the unreadable dir / install `ts` / remove the provably stale record (older than `BUILD_STALE_SECONDS`). Never "fix" by making an uncertain path print `0`; uncertainty must stay busy.
 - **G-02.** Restore the scanner call in the reload path and re-run the suite; any change here re-runs the mutation proof (delete the bridge scan, expect the 7 bridge assertions to fail).
+
+- **G-03.** Restore the per-call heartbeat in `koskadeux_server._dispatch_with_caller` (every tool except `gate_pipeline.HEARTBEAT_EXEMPT_TOOLS`, fail-open, instance from explicit `instance` argument or the bound MCP instance, skip when neither). Fix status: build `build/s1734-session-heartbeat` (koskadeux-mcp, S1734), folded under BQ-GATE-ESTATE-REDUCTION-S1472. Until it is live on main: announce on the peer bus before merging anything to koskadeux-mcp main while the peer is open, because the merge arms a bounce the idle guard cannot see. Do not paper over it by skipping reloads for doc-only diffs; that leaves code merges exposed.
 
 ## Changes and maintenance
 

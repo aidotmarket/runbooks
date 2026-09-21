@@ -904,9 +904,9 @@
 - Path: `runbooks/reload-when-idle.md`
 - Purpose: One shell script runs on a timer/trigger. It first sources `scripts/runtime_state_paths.sh`. The S1456 candidate fixes its CC task, deployment-marker, and secret-refresh-request paths beneath the one `KOSKADEUX_DURABLE_STATE_DIR` root (default `/Users/max/koskadeux-state`), exporting `KD_CC_TASKS_DIR`, `KD_DEPLOYED_SHA_FILE`, and `KD_SECRET_REFRESH_REQUEST_FILE`. Legacy `KOSKADEUX_STATE_DIR`, `KOSKADEUX_CC_TASKS_DIR`, and `KOSKADEUX_PROBE_STATE_DIR` cannot redirect those records. The independent reload lock remains `/var/tmp/koskadeux/reload_when_idle.lock.d`; only an explicit isolated-test contract can override it.
 - Owner: `mars`
-- Last verified: `2026-08-14`
+- Last verified: `2026-09-21`
 - Aliases: mcp-server-reload, reloader
-- Error signatures: background build(s) running/queued; deferring, background-build check failed
+- Error signatures: background build(s) running/queued; deferring, background-build check failed, Gateway Error: upstream service unavailable, RELOADED: bounced com.koskadeux.mcp
 - Status: current
 
 ## RTK Token Optimization
