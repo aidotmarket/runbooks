@@ -1,7 +1,7 @@
 ---
 title: Run It As A Seller (done means a seller can do it)
 owner: unassigned
-last_verified: '2026-09-18'
+last_verified: '2026-09-21'
 aliases: [run it as a seller, seller run, dogfood, seller-facing done, Gate 4 seller run, not contingent on a customer]
 error_signatures: ["registration_evidence_unavailable", "rescan_required", "personal_data", "Intentionally has no transport"]
 ---
