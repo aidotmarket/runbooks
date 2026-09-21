@@ -154,7 +154,7 @@ The first prod deploy of this work FAILED with `asyncpg DuplicateTableError: rel
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| Emails not appearing in CRM | Gmail OAuth refresh token expired (7-day expiry in Testing mode) | Re-run `setup_gmail_auth.py`, push token to Railway DB, redeploy |
+| Emails not appearing in CRM | Gmail OAuth refresh token expired or revoked (7-day expiry only if the consent screen is not Internal; also after a password change) | `gcp-auth.md` E-02: Max re-runs `setup_gmail_auth.py <address>` (writes `gmail_tokens` directly); redeploy only if the Gmail watch lapsed |
 | Emails not appearing in CRM | Gmail watch expired | Redeploy backend (watch renews on startup) |
 | Emails not appearing in CRM | Gmail filter deleted | Re-create filter in Gmail settings: `to:(drop@ai.market)` → Skip Inbox, Apply "CRM-Drop" |
 | Pub/Sub 403 errors | GCP auth token expired | `gcloud auth login --account=max@ai.market` |

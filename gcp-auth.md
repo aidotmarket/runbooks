@@ -63,11 +63,11 @@ Vertex client construction is `genai.Client(vertexai=True, api_key=settings.VERT
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Max | interactive gcloud login and OAuth consent-screen configuration | GCP Console plus browser | GCP owner (max@ai.market) | COMPLETE |
-| Vulcan/Mars | verify auth state, push refreshed Gmail token to Railway DB, redeploy, verify Vertex key prefix | shell plus railway plus infisical | repo plus Railway plus Infisical | COMPLETE |
+| Vulcan/Mars | verify auth state (direct refresh check per account), prepare the E-02 environment for Max's re-auth, redeploy only if the Gmail watch lapsed, verify Vertex key prefix | shell plus railway plus infisical | repo plus Railway plus Infisical | COMPLETE |
 | GmailService | programmatic send using stored refresh token | ai-market-backend | gmail_tokens read | COMPLETE |
 | GmailWatchService | inbox watch driving the drop pipeline | ai-market-backend | Gmail watch | COMPLETE |
 
-Only Max can perform the interactive gcloud browser login and change the OAuth consent-screen User Type; these cannot be done headlessly by an agent. Vulcan/Mars own the non-interactive recovery steps (token DB update, redeploy, key verification). The backend services consume the stored credentials at runtime.
+Only Max can perform the interactive gcloud browser login and change the OAuth consent-screen User Type; these cannot be done headlessly by an agent. Vulcan/Mars own the non-interactive recovery steps (setting up E-02's environment, per-account verification, a redeploy only if the Gmail watch lapsed, key verification); the token itself is written by setup_gmail_auth.py during Max's browser sign-in. The backend services consume the stored credentials at runtime.
 
 ## How to operate
 
@@ -94,9 +94,9 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   argument_sourcing:
     credentials: GOOGLE_OAUTH_CREDENTIALS_JSON sourced from Railway env (no local secret files)
     emails: every live gmail_tokens account - max@ai.market (crm_briefing) and finance@ai.market (allai_operations; allai@ai.market is an alias of finance@, not an account). There is no ally@ai.market account; its gmail_tokens row is a dead leftover that nothing authenticates (Max, 2026-09-21).
-    db_update: UPDATE gmail_tokens SET refresh_token then redeploy to renew the Gmail watch
+    db_update: none by hand; setup_gmail_auth.py writes gmail_tokens itself. Redeploy only if the Gmail watch has lapsed (no webhook notifications arriving)
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: gmail_tokens rows for max@ai.market and finance@ai.market hold fresh refresh tokens and the redeploy renews the Gmail watch, verification: briefing and drop pipeline resume; confirm rows updated_at is current}
+  expected_success: {shape: gmail_tokens rows for max@ai.market and finance@ai.market hold fresh refresh tokens and each passes a direct refresh check, verification: briefing and drop pipeline resume; confirm rows updated_at is current}
   expected_failures:
     - {signature: "consent_screen_not_internal", cause: tokens re-expire in 7 days because User Type is still External/Testing}
     - {signature: "db_unreachable_from_titan", cause: DATABASE_URL left at the backend default or the private postgres.railway.internal host; set it to the Postgres service DATABASE_PUBLIC_URL and re-run the script (no manual UPDATE needed)}
@@ -288,7 +288,7 @@ scenario_set:
       - kind: human_action
         verb: reissue
         object: Gmail refresh tokens
-        target: setup script then gmail_tokens update then redeploy
+        target: setup_gmail_auth.py <address> with DATABASE_URL at the Postgres public URL (direct write), then a direct refresh check; redeploy only if the Gmail watch lapsed
     weight: 0.08333333333333333
   - id: I-03
     type: operate
@@ -404,7 +404,7 @@ Lifecycle metadata records this page's most recent operational refresh.
 
 ```yaml lifecycle
 last_refresh_session: S1734
-last_refresh_commit: pending-merge-of-runbooks-pr-243
+last_refresh_commit: 0fe590601d725b10466c6c8388483ee677134541
 last_refresh_date: 2026-09-21T17:40:00Z
 owner_agent: vulcan
 refresh_triggers:
