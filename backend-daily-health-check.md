@@ -31,7 +31,7 @@ Fixed by ai-market-backend PR #438: the endpoint now reads `sizeMB`, `volume { n
 
 If a volume check goes `warning` or `critical` now, it is real:
 
-1. Confirm with the curl above; the message carries used, capacity and percent.
+1. Confirm with the curl above; the message carries used and capacity, and the percent when capacity is known.
 2. Grow the volume in Railway (service, Volumes) or reduce data following `qdrant.md` / `backup-and-recovery.md`.
 3. `capacity unknown` means Railway returned no `sizeMB`: query it by hand (Railway credentials in `sysadmin.md`, account token as Bearer, `User-Agent` header required) before assuming anything.
 
