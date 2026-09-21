@@ -1,7 +1,7 @@
 ---
 title: Issue Channel
 owner: mars
-last_verified: '2026-08-30'
+last_verified: '2026-09-21'
 aliases:
 - infrastructure failure channel
 - CI health board
@@ -520,6 +520,16 @@ Likely cause: watcher deployment failure, mirror poller failure, queue API outag
 Verify: compare mirror `generated_at`, Railway deployment time, watcher logs, queue snapshot response, and database status counts.
 
 Repair or rollback: restore the failing watcher or mirror component and wait for a fresh complete snapshot. Do not treat a stale mirror as provider authority.
+
+### safe snapshot exceeds size bound
+
+Symptom: Railway mails "Deployment crashed for issue-channel-watcher"; every watcher cycle ends with `koskadeux_mcp.issue_channel.storage.StorageSafetyError: safe snapshot exceeds size bound` from `reconcile_observation` → `_snapshot_payload` (`storage.py`, 1,000,000-byte cap); the mirror stops advancing and the open-items board says the channel is stale. Nothing customer-facing is affected.
+
+Likely cause (T-2026-000814, 2026-09-20 to 21): the snapshot projects every canonical row's full `safe_metadata`, so anything that makes rows grow without bound eventually crosses the cap. The instance that happened: `council_providers` stamped each poll's `native_id` with a full timestamp, so each poll was a new fingerprint appended to the day's episode row (~1,000 per row per day, ~70KB), and those reading rows never resolve. Fixed in koskadeux-mcp `270a0c1fc3` (PR #227): reading identity is per subject per UTC day, and `fingerprints` (internal matching state) is no longer projected. Council found and deliberately left two slower growth paths: reading rows still accumulate three per UTC day forever, and `links` is projected unbounded.
+
+Verify: `railway logs --service issue-channel-watcher -d | grep -c StorageSafetyError`; then, read-only, `SELECT status, count(*), sum(length(safe_metadata::text)) FROM issue_channel.canonical_issues GROUP BY 1` and `... ORDER BY length(safe_metadata::text) DESC LIMIT 3` to see which rows carry the bytes and which key inside them (`fingerprints`, `links`, `member_failures`).
+
+Repair or rollback: fix the producer of the growth (identity or projection) through MP and a Council gate; never raise the cap, hand-edit rows, or delete canonical issues to make the snapshot fit. After the deploy, confirm a fresh snapshot with every provider `ok` and `observation_complete: true`, the byte size well under the cap, and the mirror refreshed on the next 300-second poller tick.
 
 ### Stale sources.watcher marker
 
