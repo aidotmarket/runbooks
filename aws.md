@@ -1,8 +1,10 @@
 ---
 title: AWS Account — ai.market
 owner: Vulcan-Primary
-last_verified: '2026-05-31'
+last_verified: '2026-09-21'
 aliases:
+  - aimarket-e2e-harness
+  - E2E_AWS_ACCESS_KEY_ID rotation
   - AWS test account 157263244532
   - aimarket-sandbox
   - aim-sandbox-cli
@@ -206,6 +208,15 @@ G9 replaces the old static ExternalId assumption: activation creates a new seria
 | `svc-s1681-seed` | PutObject/GetObject/DeleteObject/GetObjectVersion/DeleteObjectVersion and `s3:AbortMultipartUpload` on `s1681/*`; ListBucket/ListBucketVersions with prefix `s1681/*`; `iam:GetRole` and `iam:UpdateAssumeRolePolicy` on exactly the fixture role; `sts:GetCallerIdentity` |
 
 Service keys live only in Infisical `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), `test-env`, path `/`, with no Railway sync. Keys are `S1681_S3_ACCOUNT_ID`, `S1681_S3_BUCKET`, `S1681_S3_ROLE_ARN`, `S1681_S3_REGION`, `S1681_S3_PREFIX` (= `s1681/fixtures/`), `S1681_S3_BROKER_ACCESS_KEY_ID`, `S1681_S3_BROKER_SECRET_ACCESS_KEY`, `S1681_S3_SEED_ACCESS_KEY_ID` and `S1681_S3_SEED_SECRET_ACCESS_KEY`. `S1681_S3_EXTERNAL_ID` is now per-run output; the run journal keeps its hash, never its value. Serial issuance/activation uses `S1681_SELLER01_SERIAL`, transient `S1681_SELLER01_SERIAL_BOOTSTRAP_TOKEN`, captured `S1681_SELLER01_SERIAL_INSTALL_TOKEN`, and a `SERIAL_TOKEN_SECRET` distinct from production. See [money-path activation](money-path-test-environment.md#s1681-s3-ownership-activation-and-spend). No credential value belongs in this page, logs or Git.
+
+`aimarket-e2e-harness` (E2E harness user; keys `E2E_AWS_ACCESS_KEY_ID` / `E2E_AWS_SECRET_ACCESS_KEY` in Infisical `ai-market-backend` **prod** and copied as literals to the Railway `ai-market-backend` service; no backend code reads them) cannot list or rotate its own keys. Rotate from Titan-1 with the `aimarket-sandbox` profile, never printing a secret:
+
+1. `aws --profile aimarket-sandbox iam create-access-key --user-name aimarket-e2e-harness` captured into a shell variable, not echoed.
+2. Write both values to Infisical prod (`infisical secrets set ... E2E_AWS_ACCESS_KEY_ID=... E2E_AWS_SECRET_ACCESS_KEY=...`) and to the Railway backend service (`railway variables --skip-deploys --set ...`; they apply at the next deploy).
+3. Prove the new key with `aws sts get-caller-identity` using it (expect `user/aimarket-e2e-harness`).
+4. `aws --profile aimarket-sandbox iam update-access-key --user-name aimarket-e2e-harness --access-key-id <old> --status Inactive`. Deactivate, do not delete, so it can be restored if a consumer was missed; delete it later once nothing has failed.
+
+Performed 2026-09-21 (Vulcan S1734, Max GO Event Ledger 2b92b2c2) after the key was exposed in a session's tool output: new key active 17:49Z, key created 2026-08-04 now Inactive. The same exposure covered `E2E_TEARDOWN_TOKEN_SECRET` (rotated to a new random value in Infisical prod and Railway) and the Railway literal `E2E_CLOUDFLARE_API_TOKEN`, which Cloudflare already rejects as invalid (error 1000) and nothing uses.
 
 ### E. Operate
 
