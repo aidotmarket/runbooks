@@ -108,6 +108,10 @@
 
 - [Council Gate Process](runbooks/council-gate-process.md)
 
+## `AUTHORIZATION_MISMATCH`
+
+- [Delivery ACK-timeout monitor (trust-channel fulfilment, stalled transfers)](runbooks/delivery-ack-monitor.md)
+
 ## `AWS CLI v2 is required for conditional S3 uploads`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -744,6 +748,10 @@
 
 - [Issue Channel](issue-channel.md)
 
+## `MANIFEST_DELIVERY_REQUIRED`
+
+- [Delivery ACK-timeout monitor (trust-channel fulfilment, stalled transfers)](runbooks/delivery-ack-monitor.md)
+
 ## `Max declines or amends`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
@@ -799,6 +807,10 @@
 ## `mp_lane_held`
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
+
+## `NameError: name 'uuid' is not defined`
+
+- [Delivery ACK-timeout monitor (trust-channel fulfilment, stalled transfers)](runbooks/delivery-ack-monitor.md)
 
 ## `Native host manifest does not exist`
 
