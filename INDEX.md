@@ -922,7 +922,7 @@
 - Path: `run-it-as-a-seller.md`
 - Purpose: Nothing seller-facing is done until Mars or Vulcan has run it **as a seller, on the released install, against production, from the first click to the buyer seeing the result**. Tests, reviews, green deploys and a customer's goodwill are not substitutes. Do not wait for a real customer to find out whether it works, and do not make progress contingent on one.
 - Owner: `unassigned`
-- Last verified: `2026-09-18`
+- Last verified: `2026-09-21`
 - Aliases: run it as a seller, seller run, dogfood, seller-facing done, Gate 4 seller run, not contingent on a customer
 - Error signatures: registration_evidence_unavailable, rescan_required, personal_data, Intentionally has no transport
 - Status: current
