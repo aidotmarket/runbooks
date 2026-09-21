@@ -245,11 +245,11 @@
 
 ## Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 - Path: `backend-daily-health-check.md`
-- Purpose: `ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Six independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
+- Purpose: `ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Seven independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
 - Owner: `vulcan`
 - Last verified: `2026-09-21`
 - Aliases: Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435
-- Error signatures: volume_unknown, Health Check CRITICAL, RAILWAY_API_TOKEN not set, Check crashed:
+- Error signatures: gmail_login_, saved Gmail login is not working, volume_unknown, Health Check CRITICAL, RAILWAY_API_TOKEN not set, Check crashed:
 - Status: current
 
 ## Backup & Recovery — ai.market

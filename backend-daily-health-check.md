@@ -3,14 +3,14 @@ title: Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issu
 owner: vulcan
 last_verified: '2026-09-21'
 aliases: [Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435]
-error_signatures: ["volume_unknown", "Health Check CRITICAL", "RAILWAY_API_TOKEN not set", "Check crashed:"]
+error_signatures: ["gmail_login_", "saved Gmail login is not working", "volume_unknown", "Health Check CRITICAL", "RAILWAY_API_TOKEN not set", "Check crashed:"]
 ---
 
 # Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 
 ## What it does
 
-`ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Six independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
+`ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Seven independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
 
 If any check is `critical` the workflow opens a GitHub issue titled `Health Check CRITICAL — <date>` with labels `health-check` and `urgent`. The open-items board counts those issues as one GitHub alert (`Health Check CRITICAL xN, <first>..<last>`), which is why the page headline can be one higher than the number of rows.
 
@@ -34,6 +34,10 @@ If a volume check goes `warning` or `critical` now, it is real:
 1. Confirm with the curl above; the message carries used and capacity, and the percent when capacity is known.
 2. Grow the volume in Railway (service, Volumes) or reduce data following `qdrant.md` / `backup-and-recovery.md`.
 3. `capacity unknown` means Railway returned no `sizeMB`: query it by hand (Railway credentials in `sysadmin.md`, account token as Bearer, `User-Agent` header required) before assuming anything.
+
+### `gmail_login_<name>` critical: "saved Gmail login is not working"
+
+Added 2026-09-21 (S1734, backend PR #442, Max decision) after finance@ai.market's saved login had been dead for about three months unnoticed. The endpoint checks each configured sending account (`settings.EMAIL_ACCOUNTS` OAuth accounts plus `GMAIL_SENDER_ADDRESS`; today `max@ai.market` and `finance@ai.market`) with `GmailService.authenticate()`, 15 s timeout, rollback on failure. It deliberately ignores the dead `ally@ai.market` row in `gmail_tokens`. A critical line means Google refused that account's saved login: follow `gcp-auth.md` E-02 (Max re-authorizes with `scripts/setup_gmail_auth.py <address>`, signing in as that account), after checking G-01 (Google Auth Platform > Audience > User type must be Internal). First manual run 35642271161: both logins ok, 0 critical.
 
 ### `railway_volumes` skipped: `RAILWAY_API_TOKEN not set`
 
