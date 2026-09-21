@@ -284,6 +284,10 @@
 
 - [Max Reporting — the End-of-Round Summary Discipline](max-reporting.md)
 
+## `contract_mismatch`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
+
 ## `correct false`
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
@@ -319,6 +323,10 @@
 ## `Data verification unavailable.`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
+## `Dataset with id '<id>' not found.`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
 
 ## `decision returns HTTP 403`
 
@@ -363,6 +371,10 @@
 ## `Device ID already registered to another user`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
+
+## `Device not registered with ai.market`
+
+- [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
 
 ## `directional_evidence_missing`
 
