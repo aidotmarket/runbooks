@@ -211,8 +211,9 @@ Service keys live only in Infisical `ai-market-backend` (`bd272d48-c5a1-4b52-9d2
 
 `aimarket-e2e-harness` (E2E harness user; keys `E2E_AWS_ACCESS_KEY_ID` / `E2E_AWS_SECRET_ACCESS_KEY` in Infisical `ai-market-backend` **prod** and copied as literals to the Railway `ai-market-backend` service; no backend code reads them) cannot list or rotate its own keys. Rotate from Titan-1 with the `aimarket-sandbox` profile, never printing a secret:
 
+0. Run the section E operator-identity preflight first (confirm `aws --profile aimarket-sandbox sts get-caller-identity` is `user/aim-sandbox-cli` in `157263244532`; use `rtk proxy aws` as section E requires).
 1. `aws --profile aimarket-sandbox iam create-access-key --user-name aimarket-e2e-harness` captured into a shell variable, not echoed.
-2. Write both values to Infisical prod (`infisical secrets set ... E2E_AWS_ACCESS_KEY_ID=... E2E_AWS_SECRET_ACCESS_KEY=...`) and to the Railway backend service (`railway variables --skip-deploys --set ...`; they apply at the next deploy).
+2. Write both values to Infisical prod (`infisical secrets set --projectId=bd272d48-c5a1-4b52-9d24-12066ae4403c --env=prod --path=/ --domain=https://secrets.ai.market/api E2E_AWS_ACCESS_KEY_ID=... E2E_AWS_SECRET_ACCESS_KEY=...`; see `infisical-secrets.md` for the scoping rules) and to the Railway backend service (`railway variables --skip-deploys --set ...`; they apply at the next deploy). If the Infisical-to-Railway sync also covers these names it will write the same values; the explicit Railway set makes the rotation independent of sync scope).
 3. Prove the new key with `aws sts get-caller-identity` using it (expect `user/aimarket-e2e-harness`).
 4. `aws --profile aimarket-sandbox iam update-access-key --user-name aimarket-e2e-harness --access-key-id <old> --status Inactive`. Deactivate, do not delete, so it can be restored if a consumer was missed; delete it later once nothing has failed.
 
