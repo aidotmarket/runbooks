@@ -38,7 +38,7 @@ error_signatures:
 |---|---|---|---|---|
 | Live Roster | `state_request(action=get, key=infra:council-comms)` | Living State and model registry | Council dispatch gateway | Canonical for current models, active members, tools, and prompt quirks. |
 | Stable Role Frame | `docs/core/CORE.md` sections 4 and 5 | Git and `infra:constitution` | Live Roster | CORE wins if stable role constraints conflict with live prose. |
-| Dispatch Surface | `council_request` | Dispatch records | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion; AG retired | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is paused; Kimi supplies comparison only. |
+| Dispatch Surface | `council_request` | Dispatch records | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion; AG retired | Validate agent, mode, model, roster eligibility, and read/write scope before accepting a result. AG is retired and Kimi is removed; CC is a non-Council second opinion only. |
 
 ### Normative projection — CORE §4
 
