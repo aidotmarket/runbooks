@@ -216,6 +216,10 @@
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
 
+## `Check crashed:`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
+
 ## `checkout differs from the recorded SHA`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -555,6 +559,10 @@
 ## `harness_bound_to_stale_code`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
+
+## `Health Check CRITICAL`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
 
 ## `health_failure`
 
@@ -1036,6 +1044,10 @@
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
+## `RAILWAY_API_TOKEN not set`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
+
 ## `rate_limit_exceeded`
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
@@ -1439,6 +1451,10 @@
 ## `view or dependency blocker`
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
+
+## `volume_unknown`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
 
 ## `VZ install registration auth failed (401 or 403)`
 
