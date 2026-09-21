@@ -1,6 +1,6 @@
 ---
 title: Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
-owner: unassigned
+owner: vulcan
 last_verified: '2026-09-21'
 aliases: [Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435]
 error_signatures: ["volume_unknown", "Health Check CRITICAL", "RAILWAY_API_TOKEN not set", "Check crashed:"]
@@ -23,22 +23,17 @@ Each critical line is `**<check name>** (<category>): <message>`. Open the linke
 
 ## When it breaks
 
-### `volume_unknown` ... `<serviceId>/<mountPath>: <n>MB` - false alarm by design (open as of 2026-09-21)
+### `volume_unknown` ... `<serviceId>/<mountPath>: <n>MB` - old false alarm, FIXED 2026-09-21 (S1734)
 
-Seen daily from 2026-09-16 (backend issue #435 and four before it): two criticals, `.../var/lib/postgresql/data: ~5549MB` and `.../qdrant/storage: ~8457MB`.
+Seen daily 2026-09-16..20 (backend issues #408, #411, #418, #428, #435): Postgres ~5549 MB and Qdrant ~8457 MB reported critical. Cause: `app/api/v1/endpoints/health_internal.py` judged used size alone (`>= 4096 MB` critical) without reading capacity, and returned no volume name. Real capacity, read 2026-09-21 from Railway GraphQL (`environment.volumeInstances.sizeMB`): every volume is 50000 MB; Postgres 11%, Qdrant 17%, Redis 2%.
 
-Cause, in `app/api/v1/endpoints/health_internal.py` (railway-volumes endpoint):
+Fixed by ai-market-backend PR #438: the endpoint now reads `sizeMB`, `volume { name }` and `service { name }` and decides on percentage of capacity (`>= 90%` critical, `>= 80%` warning, missing capacity = warning "capacity unknown"). Each check is named `volume_<volume name>` (for example `volume_postgres-volume`) and its message reads `postgres-volume (Postgres): 5592 / 50000 MB (11%)`.
 
-- The status is decided on used size alone: `currentSizeMB >= 4096` is `critical`, `>= 2048` is `warning`. The Railway GraphQL query asks only for `id`, `currentSizeMB`, `mountPath`, `serviceId`. It never reads the volume's capacity, so a healthy volume that has simply grown past 4 GB is reported critical every day, forever.
-- The name is always `volume_unknown`: `scripts/health_check.py` builds the check name from `vol.get('volume', 'unknown')`, and the endpoint never returns a `volume` key. Tell the volumes apart by the mount path in the message (`/var/lib/postgresql/data` = Postgres, `/qdrant/storage` = Qdrant).
+If a volume check goes `warning` or `critical` now, it is real:
 
-What to do when you see it:
-
-1. Do not treat it as an outage. Nothing is failing; the number is how much is stored, not how full the disk is.
-2. Check real headroom: read each volume's capacity in the Railway dashboard (service, Volumes) or through the Railway API using the credentials in `sysadmin.md`, and compare it with the reported MB. Act only if a volume is genuinely above about 80% of its capacity: grow the volume in Railway (Postgres, Qdrant), or reduce data following `qdrant.md` / `backup-and-recovery.md` first.
-3. Close the duplicate daily issues once headroom is confirmed, referencing this page.
-
-The product fix (not done, no owner as of S1733): have the endpoint also request the volume's capacity from Railway, decide `warning`/`critical` on percentage of capacity, and return a `volume` name (for example the mount path) so the check is no longer called `volume_unknown`. It touches production monitoring only, no customer data; a proportionate review is enough. Update this section when it ships.
+1. Confirm with the curl above; the message carries used, capacity and percent.
+2. Grow the volume in Railway (service, Volumes) or reduce data following `qdrant.md` / `backup-and-recovery.md`.
+3. `capacity unknown` means Railway returned no `sizeMB`: query it by hand (Railway credentials in `sysadmin.md`, account token as Bearer, `User-Agent` header required) before assuming anything.
 
 ### `railway_volumes` skipped: `RAILWAY_API_TOKEN not set`
 
