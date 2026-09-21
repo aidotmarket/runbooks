@@ -193,9 +193,9 @@
 - Path: `allai-agents.md`
 - Purpose: The intelligence layer inside ai-market-backend. Runs all autonomous agents (Brain, SysAdmin, CRM Steward, Matchmaker, etc.), the service bus for inter-agent communication, and the agent host that manages lifecycle, events, and subscriptions.
 - Owner: `unassigned`
-- Last verified: `2026-08-26`
+- Last verified: `2026-09-21`
 - Aliases: none
-- Error signatures: none
+- Error signatures: unexpected keyword argument 'event_bus', Admin access required, AgentHost: Failed to start
 - Status: current
 
 ## AlphaFold Reference Listings
