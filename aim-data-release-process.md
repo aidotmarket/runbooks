@@ -1,7 +1,7 @@
 ---
 title: AIM Data Release Process
 owner: unassigned
-last_verified: '2026-08-14'
+last_verified: '2026-09-21'
 aliases: []
 error_signatures: []
 ---
@@ -41,6 +41,20 @@ KD_ALLOW_MAIN_PUSH=1 git push --atomic origin main aim-data-vX.Y.Z
 ```
 
 Then confirm the stable workflow started (`gh run list --workflow aim-data-release.yml --limit 1`). Push main and the tag in one atomic push so the release commit and its tag land together or not at all; a tag that lands without its release commit leaves the installer defaults on main pointing at the previous version until someone pushes main by hand.
+
+**Installer URL lags the release by up to 24 hours unless you purge it (S1732, 2026-09-21):** `get.ai.market/aim-data`, `/aim-data/windows` and `/aim-data/docker-compose.yml` are served by the `get-ai-market` Worker from Workers KV (namespace `INSTALLERS`, id `6f25aeeb6a4a4cdcb31ccd45fc460605`, `KV_TTL = 86400` in `cf-get-worker/src/index.js`). The Worker only re-reads GitHub when a key is missing, so after a promote the installer keeps serving the previous stable version until the key expires. v1.25.1 was tagged at 09:45Z and `get.ai.market/aim-data` still said 1.25.0 an hour later, with the key due to expire at 20:10Z. After every `promote`, delete the three keys and re-check:
+
+```bash
+JWT=$(cat ~/.config/infisical/sysadmin-token | tr -d '\r\n')
+T=$(infisical secrets get CLOUDFLARE_API_TOKEN --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c --env prod --domain https://secrets.ai.market --token "$JWT" --plain --silent | tr -d '\r\n')
+ACC=d5346d3e0f8f344c5f4915aaca689adf; NS=6f25aeeb6a4a4cdcb31ccd45fc460605
+for k in aim-data/install.sh aim-data/install.ps1 aim-data/docker-compose.yml; do
+  curl -sS -X DELETE --oauth2-bearer "$T" "https://api.cloudflare.com/client/v4/accounts/$ACC/storage/kv/namespaces/$NS/values/$k"
+done
+for p in aim-data aim-data/windows aim-data/docker-compose.yml; do curl -sS "https://get.ai.market/$p" | grep -m1 -oE "1\.[0-9]+\.[0-9]+"; done   # all three must print the new version
+```
+
+`npx wrangler kv key list` is NOT a reliable check here: unauthenticated it silently prints `[]` for this namespace. Use the API listing (`.../namespaces/$NS/keys`) if you need to see the keys and their `expiration`. If the Infisical session has lapsed (`infisical` starts an interactive login), run `~/bin/infisical_auth_refresh.sh` first; see `infisical-secrets.md`.
 
 **Promotion window:** stable builds fresh from the tag, not from the RC image. Before `promote`, run `git fetch origin` and then `git log --oneline <rc-commit>..origin/main` (an empty result only counts after that fetch, with local `main` at `origin/main`); anything merged to main since the RC ships in the stable without having been in the RC smoke test. If that list is non-empty, either cut a new RC or record the decision to ship it (S1716: aim-data-v1.24.0 shipped S1717 B/C this way).
 
@@ -118,6 +132,7 @@ The AIM Data product split off from the vectoraiz monorepo. Release machinery no
 | `gh` not found | PATH not set | Add `export PATH="/opt/homebrew/bin:$PATH"` |
 | GHCR build fails | ARM64 QEMU issue | Re-run GitHub Actions workflow |
 | Docker pull fails | Image not built yet | Wait for GHA to complete |
+| `get.ai.market/aim-data` still shows the previous version after promote | Workers KV `INSTALLERS` key not expired (24h TTL) | Delete the three `aim-data/*` keys via the Cloudflare API (see Promotion section) and re-check |
 | Tag collision with VZ | Wrong script used | AIM Data uses `aim-data-v*` prefix, VZ uses `v*` |
 
 ## Related
