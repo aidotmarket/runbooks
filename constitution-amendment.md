@@ -112,6 +112,38 @@ error_signatures:
       committed, then push both mains, then PATCH infra:constitution, then fast-forward /Users/max/koskadeux-mcp,
       then re-run load_boot_kernel against the constitution read back out of Living State. Discovered and first
       executed at S1370 (CORE v9.12 -> v9.13); prior to that it was documented nowhere.
+      CORRECTION (S1721, found by GLM in the CORE v9.17 review): that order does NOT avoid a drift
+      window, it only shortens it. Between the entity PATCH and the running tree's fast-forward and
+      reload, the live constitution is new while the running process still holds the old manifest, so
+      any session open in that interval fails closed with BOOT_KERNEL_SOURCE_DRIFT (tools/session.py
+      reads the constitution from Living State; tools/boot_kernel_v2.py compares it to the loaded
+      manifest; BOOT_KERNEL_V2_MODE defaults on in scripts/launch_mcp_server.sh). Treat the cutover as
+      a maintenance barrier: agree the window with the peer instance first and have neither instance
+      open a session during it, do the PATCH and the fast-forward plus handler reload back to back,
+      then verify load_boot_kernel against the constitution read back out of Living State BEFORE
+      either instance opens again. A peer mid-session is unaffected (the check runs at open), so the
+      only requirement is that no kd_session_open lands inside the window.
+      ORDER INSIDE THE WINDOW (S1721, CORE v9.18 lesson): PATCH infra:constitution and confirm the
+      readback (version bumped, sha256 of the stored text equals the merged CORE.md) BEFORE reloading
+      the handler. In the v9.18 cutover the handler was reloaded first and the first PATCH then failed
+      on an empty INTERNAL_API_KEY in the reloaded process: a few minutes of drift with the running
+      tree new and the entity old. No session opened in it, but only by luck of the barrier. If the
+      PATCH fails, fix the credential and re-PATCH; do not reload until the readback is confirmed.
+      IF YOU LAND IN THE WINDOW (Mars, review of this change): a kd_session_open that fails with
+      BOOT_KERNEL_SOURCE_DRIFT during an announced cutover is the expected failure, not corruption.
+      Do not retry in a loop; tell the operator instance over the peer bus and wait. The open succeeds
+      once the entity is patched, the running tree fast-forwarded and the handler reloaded. If it
+      still fails after the operator reports the cutover complete, the tree and the entity have
+      genuinely diverged: escalate with both hashes rather than retrying.
+      SECOND WRITER (S1721 observation, traced S1733): between the two v9.18 PATCH attempts something
+      wrote backend CORE.md into infra:constitution as v30. The only write path to that entity outside
+      the session tooling is the ops console boot-content editor, PUT /ops/boot-content/constitution
+      (ai-market-backend app/api/v1/endpoints/ops_boot.py, used by ops-ai-market src/lib/bootApi.ts);
+      koskadeux-mcp only reads the entity and no workflow in any repo writes it. The entity keeps no
+      per-version author the tools can read back, so the v30 writer is not proven. During a barrier,
+      nobody saves the constitution from the ops console; read the entity version immediately before
+      the PATCH and pass it as expected_version so a concurrent write fails loudly instead of being
+      overwritten.
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: expected_version (a replayed patch fails on version conflict rather than double-applying)
   expected_success:
