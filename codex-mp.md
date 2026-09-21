@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-18'
+last_verified: '2026-09-21'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -137,7 +137,7 @@ error_signatures:
     - fold and continuation dispatches pass reasoning_effort=low (fold work is mechanical); first builds of a chunk stay at the default; raise per F-15 only after a fold introduced a new defect
     - EXCEPTION (evidence S1718, 2026-09-18): on custody/money-path code (chunk D backend) two consecutive low-effort folds each introduced one new defect (an early return that leaked an admission slot; a lock-order inversion) while docs/frontend folds at low effort were clean at 43-63k tokens — for folds that touch locking, custody or money state use the default effort from the start
     - timeout_s sized so one run finishes the chunk — 3600 for a chunk that needed continuations before (each continuation re-orients from scratch: D backend 2026-09-17 took 4 runs / ~790k tokens); 1800 only for small folds
-    - SINGLE BUILDER (Max decision 2026-09-19, Event 6f1fe05e, S1718): Mars is the only instance that calls dispatch_mp_build, for every BQ on the roster. A peer that needs a build sends Mars a peer_msg request carrying repo, branch, 40-hex base SHA, the numbered item list citing file:line, packet/review paths and timeout; Mars queues it behind its own work, ONE Codex job at a time, and replies with the resulting SHA + job id. The peer keeps its own Council dispatch, PRs, merges and deploys. Mars may trim or refuse a task that breaks the rules above. Evidence: 2026-09-16..18 two peers ran concurrent fold loops on one account — gpt-6-astra (config drift, 2.5x rate) drained the weekly plan allowance in ~30 h, after which every token was billed to purchased credits; Sep 18 on gpt-5.6-sol alone: 35 builds / 7.8M tokens (5.4M Vulcan, 2.4M Mars) and 5,000 credits (EUR 132.23) gone in one day. Usage page: https://chatgpt.com/codex/settings/usage (Max login; never enter credentials)
+    - BUILDER LANE (single-builder rule of 2026-09-19, Event 6f1fe05e, LIFTED by Max 2026-09-21, Event Ledger 4108d57b, S1734: "I am lifting the one builder rule"): either instance may call dispatch_mp_build again. Keep the cost discipline above. Before each dispatch, post a peer_msg status naming repo, branch and task_id, and never run two jobs on the same repo/branch. The lift followed a real stall: builds requested of an idle peer waited with no one to dispatch them. Background to the original rule — Evidence: 2026-09-16..18 two peers ran concurrent fold loops on one account — gpt-6-astra (config drift, 2.5x rate) drained the weekly plan allowance in ~30 h, after which every token was billed to purchased credits; Sep 18 on gpt-5.6-sol alone: 35 builds / 7.8M tokens (5.4M Vulcan, 2.4M Mars) and 5,000 credits (EUR 132.23) gone in one day. Usage page: https://chatgpt.com/codex/settings/usage (Max login; never enter credentials)
   tool_or_endpoint: dispatch_mp_build(reasoning_effort=low|default, timeout_s=..., base_sha=<40-hex>, ...)
   argument_sourcing:
     reasoning_effort: literal "low" for folds/continuations; omit for first builds — WARNING (S1718, T-2026-000786): the bridge currently accepts this parameter and drops it; every job runs at the config default (log header `reasoning effort: medium`). Until the ticket is closed, the only working cost levers are the task-text rules above and the timeout; verify the header line of the builder-output log after dispatch

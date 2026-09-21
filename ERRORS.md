@@ -528,6 +528,10 @@
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
 
+## `Gateway Error: upstream service unavailable`
+
+- [Reload when idle (T-2026-000602)](runbooks/reload-when-idle.md)
+
 ## `gateway timeout`
 
 - [CRM](runbooks/crm.md)
@@ -1095,6 +1099,10 @@
 ## `release reports success=true released=false reason=session_owner_changed`
 
 - [Work Checkout (Enforced Ownership)](work-checkout.md)
+
+## `RELOADED: bounced com.koskadeux.mcp`
+
+- [Reload when idle (T-2026-000602)](runbooks/reload-when-idle.md)
 
 ## `RepairExhaustedError: schema repair exhausted`
 

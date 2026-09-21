@@ -246,7 +246,7 @@
 ## Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 - Path: `backend-daily-health-check.md`
 - Purpose: `ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Six independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
-- Owner: `unassigned`
+- Owner: `vulcan`
 - Last verified: `2026-09-21`
 - Aliases: Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435
 - Error signatures: volume_unknown, Health Check CRITICAL, RAILWAY_API_TOKEN not set, Check crashed:
@@ -373,7 +373,7 @@
 - Path: `codex-mp.md`
 - Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-5.6-sol`** — Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-09-18`
+- Last verified: `2026-09-21`
 - Aliases: none
 - Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
 - Status: current
@@ -904,9 +904,9 @@
 - Path: `runbooks/reload-when-idle.md`
 - Purpose: One shell script runs on a timer/trigger. It first sources `scripts/runtime_state_paths.sh`. The S1456 candidate fixes its CC task, deployment-marker, and secret-refresh-request paths beneath the one `KOSKADEUX_DURABLE_STATE_DIR` root (default `/Users/max/koskadeux-state`), exporting `KD_CC_TASKS_DIR`, `KD_DEPLOYED_SHA_FILE`, and `KD_SECRET_REFRESH_REQUEST_FILE`. Legacy `KOSKADEUX_STATE_DIR`, `KOSKADEUX_CC_TASKS_DIR`, and `KOSKADEUX_PROBE_STATE_DIR` cannot redirect those records. The independent reload lock remains `/var/tmp/koskadeux/reload_when_idle.lock.d`; only an explicit isolated-test contract can override it.
 - Owner: `mars`
-- Last verified: `2026-08-14`
+- Last verified: `2026-09-21`
 - Aliases: mcp-server-reload, reloader
-- Error signatures: background build(s) running/queued; deferring, background-build check failed
+- Error signatures: background build(s) running/queued; deferring, background-build check failed, Gateway Error: upstream service unavailable, RELOADED: bounced com.koskadeux.mcp
 - Status: current
 
 ## RTK Token Optimization
