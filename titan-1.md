@@ -49,7 +49,7 @@ Titan-1 is where **the company is actually built and operated**:
 | XAI/Grok bridge | on-demand | `grok_cli_bridge.py` | (on-demand via Council) | Grok CLI bridge for XAI dispatch |
 | Antigravity IDE backend | — | `antigravity.py` | `com.max.antigravity` | IDE backend |
 
-Support agents (also launchd): `auto-continue`, `nosleep` (caffeinate), `lilly`, `mcp-probe`, `ide-health`, `fireflies-sync`, `infisical-token-refresh`. `com.koskadeux.eu_gemini_checker` is still loaded but its script `scripts/check_eu_gemini_3_1.py` no longer exists, so every run fails (log `/var/tmp/koskadeux/eu_gemini_checker.log`, verified S1721); remove or replace it with the Gemini release checker.
+Support agents (also launchd): `auto-continue`, `nosleep` (caffeinate), `lilly`, `mcp-probe`, `ide-health`, `fireflies-sync`, `infisical-token-refresh`. `com.koskadeux.gemini-release-checker` (daily 09:15, `koskadeux-mcp/scripts/check_gemini_release.py`) replaced `com.koskadeux.eu_gemini_checker` in S1721; the old job is booted out and its plist is in `~/Library/LaunchAgents/archive-s1721/` (verified 2026-09-21). See `runbooks/council.md`, Gemini member.
 
 ## Public transport (how the outside reaches the gateway)
 - **Public path = Cloudflare Tunnel.** `cloudflared tunnel run koskadeux` (config `~/.cloudflared/config.yml`, LaunchAgent `com.koskadeux.cloudflared`) fronts the gateway at **mcp.ai.market**. **Do NOT remove `com.koskadeux.cloudflared`** — it is the live public path.
