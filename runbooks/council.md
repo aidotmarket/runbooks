@@ -111,11 +111,11 @@ Single-voter gate submission rejects the shadow reviewer before either the atomi
 backend call or the local fallback.
 
 Empty-range override acknowledgement is actor-authorized. `vulcan`, `mars`,
-`venus`, `mercury`, `jupiter`, `saturn`, `mp`, CC, GLM, and DeepSeek may acknowledge
+`venus`, `mercury`, `jupiter`, `saturn`, `mp`, and the three Council voters GLM, DeepSeek and Gemini may acknowledge
 with `ack_role` absent, `peer`, or `council`; these already-authorized identities
 retain the exact base behavior regardless of which valid role they declare. A
 payload role never grants authority by itself: unregistered and unknown actors are
-rejected regardless of their declared role. There is no automatic promotion path
+rejected regardless of their declared role; CC is not in the set (code: `guard_direction_evidence.py` `EMPTY_RANGE_OVERRIDE_PEER_ACTORS | council_reviewers.REQUIRED_REVIEWERS`, checked S1734). There is no automatic promotion path
 for a registered reviewer; DeepSeek's placement happened by Max's direct
 instruction S1651 (Event Ledger decision 1f6c9580) and a code change on
 `council_reviewers.py`. The next seat change is the same one-line change plus a
