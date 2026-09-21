@@ -1,9 +1,9 @@
 ---
 title: allAI — Agent Intelligence Layer
 owner: unassigned
-last_verified: '2026-08-26'
+last_verified: '2026-09-21'
 aliases: []
-error_signatures: []
+error_signatures: ["unexpected keyword argument 'event_bus'", "Admin access required", "AgentHost: Failed to start"]
 ---
 
 # allAI — Agent Intelligence Layer
@@ -44,11 +44,11 @@ ServiceBus (service_bus.py)
 | MarketingOps | `agents/marketing_ops.py` | campaign management, draft generation | Marketing automation and content generation |
 | AgentLog | `agents/agent_log.py` | log writes, audit trail | Records all agent activity for accountability |
 | Ralph | `agents/ralph/agent.py` | sandbox, security, observability | Learning and experimentation agent |
-| Finance | `agents/finance/agent.py` | revenue tracking, transaction monitoring | Financial operations agent |
+| Finance | `agents/finance/agent.py` | read: `get_trial_balance`, `list_payments`; write: `run_reconciliation` (Stripe-to-ledger, `mutates_state`) | Financial operations agent. Dark 2026-07-02..09-21 (constructor rejected `event_bus`); restarted by backend PR #441 (`8310dd9f`, Max decision Event Ledger babe5015), now in the canonical registry (`app/core/agent_registry.py`) |
 
 ## Agent host lifecycle
 
-1. **Registration:** Agent classes registered in `app/allai/__init__.py` via `agent_host.register(AgentClass)`
+1. **Registration:** the default set is registered by `app/allai/default_agents.py` (used by `app/main.py`) via `agent_host.register(AgentClass)`. Every agent's `__init__` must accept `event_bus=` (AgentHost passes it; `sysadmin` also gets `probe_on_startup=False`) and every runtime agent needs an entry in `app/core/agent_registry.py` AGENTS, or canonical sync deletes its row on each restart
 2. **Startup:** `agent_host.start()` called from FastAPI lifespan — instantiates all registered agents
 3. **Subscriptions:** Each agent declares event subscriptions in its manifest. The host wires these to the service bus.
 4. **Event processing:** When an event fires, the host routes it to subscribed agents. Agents process via their `handle_event()` method.
@@ -102,11 +102,19 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 | Agent not responding to events | Subscription not wired | Check manifest `subscriptions` list, verify event type matches |
 | 500 on agent details endpoint | Pydantic validation error | Check Railway logs — usually schema mismatch (skills as dict vs list, datetime issues) |
 | Agent health all "critical" | Metrics all stale — no readings being written | Agent monitoring policy present but no metric collection running |
+| Log `AgentHost: Failed to start <agent>: ... unexpected keyword argument 'event_bus'` | Agent `__init__` does not accept `event_bus` | Accept `event_bus: EventBus = event_bus` and pass it to `super().__init__` (Finance was dark 11 weeks from this) |
+| Ordinary user gets `403 Admin access required` on `/cp/agents` or `/agents/{key}/request` | By design since PR #441 | Use an admin session or the internal key |
 | Inter-agent call permission denied | Service bus permission matrix | Check `permission_matrix` in `service_bus.py` |
 | Agent events accumulating but not processing | Event handler error or slow processing | Check agent `handle_event()` logs, look for exceptions |
 | Anonymous allAI answer truncates before covering the requested facts | Anonymous response output budget regressed below the supported default | For T-2026-000665, `ANON_CHAT_MAX_OUTPUT_TOKENS` defaults to `2048` (`fe1f127df`), guarded by `test_default_output_budget_allows_multi_fact_tool_envelopes` (`4c50a69c`). Run that focused regression, then the Titan-1 `allai-new-customer-questions` browser charter; a broader combined-query refusal is separate evidence. |
 | Public/anonymous allAI answers the basic marketplace overview with `answer_unverified` | Anonymous overview candidate validation was too weak for the supported broad public overview | T-2026-000702 was fixed at backend builder `e735412abce400eabc57c7e47b5342222334568b`, merged as `d784c6dea16e2d18b91144517beb94d874b2cfe2`, and deployed successfully on Railway as `b9ef6d51-f0db-4f02-8dd2-022f874e5770`; focused backend tests passed. The deployed implementation validates the overview against canonical public marketplace claims and remains fail closed when required claim grounding is absent. Operator/customer verification: run the exact Titan-1 charter `charters/allai-new-customer-questions.json` with isolated account `buyer-01`; live run `run-20260824T133239Z-94516f6f` passed all five questions exactly once with no manual intervention. The overview correctly covered the marketplace workflow, metadata-only listings, seller-hosted raw data, encrypted peer-to-peer delivery, billing, and the 5% seller commission; the existing buy, cost, privacy, and delivery answers remained correct. Separately, S1567 harness merge `4a552d1a2991958cdc2c66a36133f273dec97acc` permits only the exact empty-query read-only anonymous status GET required by this charter and leaves sibling GET routes denied. |
 | A combined anonymous question about data safety, the PII scan guarantee, and purchased-data delivery returns `answer_unverified` | The closed public fact set lacked an explicit statement that the seller-run PII scan is only a point-in-time signal and does not guarantee that data is PII-free | T-2026-000710 was fixed in backend PR #290, merged as `20711d196097607e65750247a1f09bec67c1888a`, and deployed successfully to the production `ai-market-backend` Railway deployment `fae24744-28a7-4da6-8fa3-748d31b8fc1f`. The change adds only the missing localized closed fact through the existing validator path; the focused suite passed 26 tests. Live Titan-1 verification through the isolated `kdbrowser` Chrome profile asked the exact combined question and returned the non-custodial metadata/raw-data fact, the PII-scan limitation, and transaction-token peer delivery with no safe-outcome refusal. If the refusal recurs, first verify the deployed backend is at or after that merge and that `platform.pii_scan_limit` is present in the public support snapshot; do not weaken the fail-closed validator. |
+
+## Who may call agents (authorization invariant, S1734)
+
+Every route under `/api/v1/cp/agents/*` (Agent Control and agent proposals: list, details, logs, manifest, monitors, findings, evaluate, shadow, invoke, versions, proposal review, promote) and `POST /api/v1/agents/{key}/request` (the natural-language loop mounted for each `rest_api` agent) requires an admin access token or `X-Internal-API-Key` (`get_admin_or_internal_key`). Ordinary marketplace tokens get `403`, no credentials `401`. `GET /api/v1/agents/{key}/manifest` stays open to any signed-in user and returns a redacted manifest. The ops console and koskadeux `tools/agent_request.py` send the internal key.
+
+Why this matters: `service_bus.PermissionMatrix` ends with an allow-all rule for non-mutating skills, so whoever passes these routes can run any read skill, including CRM contact lookups. Before backend PR #441 (merged `8310dd9f`, deployed 2026-09-21 19:39Z) any signed-in user, and for reads anyone at all, passed. `agent_invocation` showed no user-initiated rows. Verified after deploy with test account buyer-01: `/cp/agents/` 403, `/cp/agents/crm-steward/logs` 403, `/cp/agents/finance/invoke` 403, `/agents/crm-steward/request` 403, manifest 200; anonymous `/cp/agents/` 401. Tests: `tests/test_agent_control_auth_s1734.py`, `tests/test_agent_request_auth_s1734.py`, `tests/test_finance_agent_startup_t819.py`. Any new agent route must use the same dependency.
 
 ## Adding a new agent
 

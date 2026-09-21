@@ -72,6 +72,14 @@
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
+## `Admin access required`
+
+- [allAI — Agent Intelligence Layer](allai-agents.md)
+
+## `AgentHost: Failed to start`
+
+- [allAI — Agent Intelligence Layer](allai-agents.md)
+
 ## `ai.market returned an invalid scan-spec response`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
@@ -1443,6 +1451,10 @@
 ## `UndefinedTable`
 
 - [CRM](runbooks/crm.md)
+
+## `unexpected keyword argument 'event_bus'`
+
+- [allAI — Agent Intelligence Layer](allai-agents.md)
 
 ## `unknown entity_id`
 
