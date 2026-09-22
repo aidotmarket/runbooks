@@ -389,7 +389,7 @@
 
 ## Constitution Amendment — changing CORE.md
 - Path: `constitution-amendment.md`
-- Purpose: **The rule (CORE v9.16; voter roster updated S1651):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, GLM, DeepSeek — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Kimi is an explicit-name, non-voting comparison seat. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
+- Purpose: **The rule (CORE v9.19; Council roster per CORE v9.18):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (GLM, DeepSeek, Gemini — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. CC is a non-Council second opinion dispatched by explicit name and never counts toward the gate; Kimi is removed. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 - Owner: `mars`
 - Last verified: `2026-09-22`
 - Aliases: none
