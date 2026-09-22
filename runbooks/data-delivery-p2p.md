@@ -62,7 +62,7 @@ s3=boto3.client("s3",endpoint_url=d["LISTING_ASSET_ENDPOINT"],aws_access_key_id=
 b=d["LISTING_ASSET_BUCKET"]
 keys=[o["Key"] for pg in s3.get_paginator("list_objects_v2").paginate(Bucket=b) for o in pg.get("Contents",[])]
 print("delivery_objects", sum(k.startswith("orders/") for k in keys))
-print("delivery_multipart_uploads", len(s3.list_multipart_uploads(Bucket=b,Prefix="orders/").get("Uploads",[])))
+print("delivery_multipart_uploads", sum(len(pg.get("Uploads",[])) for pg in s3.get_paginator("list_multipart_uploads").paginate(Bucket=b,Prefix="orders/")))
 print("sample_objects (allowed)", sum(k.startswith(("samples/","samples-staging/")) for k in keys))
 print("other_prefix_objects", sum(not k.startswith(("orders/","samples/","samples-staging/")) for k in keys))'
 # 2. Container disk at the effective staging path (pass the remote command as ONE quoted string; `railway ssh -- sh -c ...` silently runs in the app directory instead)
