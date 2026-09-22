@@ -144,7 +144,8 @@ error_signatures:
       guardrail refuses a raw SHA as the local ref: "refusing malformed pre-push record ... local_ref");
       PATCH infra:constitution via localhost:8765/api/call with body {content, version_label, change,
       source, core_amendment_<session>} and expected_version (patch merges body keys; earlier
-      core_amendment_* records survive); readback via tools.session._constitution_entity_content and
+      core_amendment_* records survive); readback via tools.session._constitution_entity_content (the backend
+      GET with .env INTERNAL_API_KEY; `state_request get` truncates this entity's content, so never verify through it) and
       byte-compare to `git show origin/main:docs/core/CORE.md`; `git pull --ff-only` in
       /Users/max/koskadeux-mcp; load_boot_kernel(readback) PASS; CUTOVER DONE on the bus. Kernel
       text growth also moves `serialized_boot_kernel_chars` and `finalized_wire_chars` in the manifest
