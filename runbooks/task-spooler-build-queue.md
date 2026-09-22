@@ -1,7 +1,7 @@
 ---
 title: Task Spooler Build Queue
 owner: vulcan
-last_verified: '2026-08-10'
+last_verified: '2026-09-22'
 aliases:
 - build-queue-runner
 - codex-queue
@@ -72,9 +72,9 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan / Mars | Dispatch a build | `dispatch_mp_build` (enqueues via tsp_queue, returns a handle) | operator | COMPLETE |
-| Vulcan / Mars | Inspect, unblock or clear the queue | `ts -l`, `ts -c`, `ts -r`, `ts -K` per How to operate | operator | COMPLETE |
+| Vulcan / Mars | Inspect, reorder, unblock or clear the queue | `ts -l`, `ts -c`, `ts -U`, `ts -r`, `ts -K` per How to operate | operator | COMPLETE |
 | MP (Codex) | Build, including on this control surface (Max ruling S1488 event `6005ec17`: Codex may edit any builder control file; its only rule is that it cannot review its own work as a Council member, CORE S4) | minimal bridge | builder | COMPLETE |
-| Council (CC/GLM/DeepSeek voters; Kimi comparison) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
+| Council (GLM/DeepSeek/Gemini voters) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
 
 ## How to operate
 
@@ -163,7 +163,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
     verification: "The handle comes back immediately. `ts -l` shows the job. The call MUST NOT wait for the build."
   expected_failures:
     - signature: minimal_bridge_repo_unresolved
-      cause: "Pass the canonical org/repo key, e.g. aidotmarket/ai-market-backend, not a bare repo name"
+      cause: "Pass the canonical org/repo key, e.g. aidotmarket/ai-market-backend, not a bare repo name or an absolute checkout path (`/Users/max/Projects/ai-market/ai-market-backend` is refused; S1739)"
     - signature: minimal_bridge_base_unresolved
       cause: "The configured checkout's HEAD did not resolve to a 40-hex SHA"
   next_step_success: Poll the report path or `ts -l`; do not block
@@ -186,6 +186,25 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
       cause: "EXPECTED. ts holds the queue in the server process. Queued jobs do not survive a kill. This is the accepted trade for having no broker; the durable record of what was dispatched lives in the bridge outcomes DB, not in ts."
   next_step_success: Re-dispatch anything that was queued and had not started
   next_step_failure: See F-03
+- id: E-07
+  trigger: Two queued jobs on one repository socket must run in a different order (e.g. the agreed merge order needs a later-queued build first)
+  pre_conditions:
+    - Both jobs are in state `queued` (a `running` job cannot be moved)
+    - Both jobs are yours, or the peer instance that owns the other job has ACKed the swap on the peer bus
+  tool_or_endpoint: TS_SOCKET=<socket> ts -U <id1>-<id2>
+  argument_sourcing:
+    socket: "Socket files are hashed names under /Users/max/koskadeux-state/ts-sockets (ts-<hash>.socket). Find the repository's socket by running `ts -l` on each socket and matching the Command column's job spec (`jobs/<task_id>.json`, whose `queue_key` is the repository path)"
+    ids: ID column of `ts -l`
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: "Exit 0; the two rows exchange positions in `ts -l`"
+    verification: "Re-run `ts -l` and confirm the new order. Performed S1739: `ts -U 137-138` on the ai-market-backend socket moved the seller-gate build ahead of the counterparty build behind a running job"
+  expected_failures:
+    - signature: job is running
+      cause: "Only queued jobs can be swapped; let the running one finish"
+  next_step_success: Tell the peer the new order on the bus
+  next_step_failure: Leave the order as is; withdraw and re-dispatch only per E-03 and F-02
+
 ```
 
 ## When it breaks
@@ -198,6 +217,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 | F-04 | `ts` runs but behaves like a timestamp filter | `moreutils` is installed and shadows Task Spooler; both ship a `ts` | `brew list --formula \| grep -x moreutils` and `ts -h \| head -1` (Task Spooler prints `usage: ts [action] ...`) | G-03 | HYPOTHESIZED |
 | F-05 | Rows sit `queued` in the OLD SQLite queue while nothing is running | Legacy defect: the owner PID recorded is the shared MCP server, which never dies, so the sweep can never fire | `sqlite3 /var/tmp/koskadeux/control/codex_queue.sqlite3 "select ticket,state,pid from codex_queue where state in ('queued','running');"` then check whether that pid is the MCP server | G-02 | CONFIRMED |
 | F-06 | A build for one repository is not starting while an unrelated repository's build runs | Everything is sharing one socket instead of one socket per repository | Compare `TS_SOCKET` values used by the two dispatches | G-04 | CONFIRMED |
+| F-07 | `ts -l` shows the job `finished` with E-Level 0, yet the branch looks incomplete or untested | Task Spooler records the bridge runner's exit code, not the build outcome. The bridge report can say `terminal_status: timeout` and `tests_status: not_configured` while E-Level is 0 (job 135, task f4e6ebb80ace, S1739) | Read the report per E-06 and check `terminal_status` and `tests_status`, never E-Level alone | E-06 | CONFIRMED |
 
 ## Repair
 

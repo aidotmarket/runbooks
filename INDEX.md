@@ -1111,7 +1111,7 @@
 - Path: `runbooks/task-spooler-build-queue.md`
 - Purpose: S1456 does not relocate any Task Spooler socket, slot marker, job spec, report, builder/test transcript, or `bridge_outcomes.db`: those defaults are already durable and have their own `KD_TS_*` / `KD_BRIDGE_*` contracts. It also does not make Task Spooler's queue server state a member of the five-record migration.
 - Owner: `vulcan`
-- Last verified: `2026-08-10`
+- Last verified: `2026-09-22`
 - Aliases: build-queue-runner, codex-queue
 - Error signatures: Codex FIFO unavailable, dispatch refused before model execution, queued row with idle slot, tsp command not found, no such job, builder output artifact missing or incomplete, cannot remove a running job, minimal_bridge_repo_unresolved, minimal_bridge_base_unresolved, jobs lost on kill
 - Status: current
