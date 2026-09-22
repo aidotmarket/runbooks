@@ -35,13 +35,13 @@ Create:
 
 - `.github/workflows/preview-contract-cross-repo.yml` — exact workflow in §5.1.
 - `preview-contract-backend.lock.json` — exact schema in §3.1.
-- `scripts/preview_contract_gate.py` — `lock`, `verify-manifest`, `coverage`, `compare`, and `aim-transition` subcommands.
+- `scripts/preview_contract_gate.py` — `lock`, `verify-manifest`, `coverage`, `compare`, `aim-transition`, and `deleted-consumers` subcommands. The last takes no arguments, prints each checked deleted name and its zero executable-reference count, and exits nonzero on any hit as defined in §7.
 - `tests/preview_contract_runner.py` — AIM dispatch for every operation in §3.2.
 - `tests/test_preview_contract_cross_repo.py` — lock, manifest, runner, coverage, comparison, transition, and mutation-unit tests.
 
 Modify:
 
-- `app/models/preview_disclosure_schemas.py`: `DisclosureBinding.binding_rules` ports recursive `public_types`; `PreviewDisclosureRequest.agreement` compares all nine package members and each proof's `sampled_leaf_list_digest` (`aim-data@6529e1ed…:25-139,142-253`; backend reference `d5d2e391…:128-138,202-232`).
+- `app/models/preview_disclosure_schemas.py`: `DisclosureBinding.binding_rules` ports recursive `public_types`; `PreviewDisclosureRequest` compares all nine package members and each proof's `sampled_leaf_list_digest` (`aim-data@6529e1ed…:25-139,142-253`; backend reference `d5d2e391…:128-138,202-232`). Add the package pre-validation described in §3.3 before nested commitment validation.
 - `app/services/preview_lifecycle.py`: `withdrawal_candidate`, `refresh_candidate`, and `supersession_candidate` preserve `aggregate_hash_profile` exactly, including `None` (`aim-data@6529e1ed…:124-176`).
 - `tests/test_preview_disclosure_schemas.py`: extend the closed-request and invalid-binding coverage with direct positive/negative tests for recursive public types, nine-member package identity, per-proof sampled-leaf mismatch, and exact `literal_error` (`aim-data@6529e1ed…:8-82`).
 - `tests/test_preview_lifecycle.py`: parameterize withdraw, refresh, and supersession over omitted legacy, explicit v1, and explicit v2 (`aim-data@6529e1ed…:62-93`).
@@ -86,6 +86,7 @@ Create:
 Modify:
 
 - `app/services/listing_preview_disclosure.py`: `allocate_candidate` and `_decide_preview` use `.get("aggregate_hash_profile")`, not a v1 default, when inheriting a historical binding; semantic comparisons may still treat absence as v1 (`backend@d5d2e391…:113-145,179-219`).
+- `app/schemas/listing_preview.py`: add the same `PreviewDisclosureRequest` package pre-validation as AIM Data (§3.3), ahead of nested commitment validation; keep the later v2 transport check and all existing validators.
 - `tests/test_listing_preview_database.py`: extend historical-v1, no-sample, and withdrawal coverage for legacy/v1/v2 allocation persistence, wire omission, and anchor behavior (`backend@d5d2e391…:379-418,560-676`).
 - `tests/test_listing_preview_contracts.py`: point cross-repository byte assertions at the new corpus and add exact error-type/error-code assertions (`backend@d5d2e391…:249-316,369-374`).
 
@@ -119,6 +120,23 @@ No ref-like string (`HEAD`, branch, tag, slash, caret, tilde, colon), extra fiel
 
 Rows are sorted by `id`; `models` is a nonempty sorted unique array. Accept rows contain exactly `id`, `operation`, `input_path`, `expected`, `models`, `bytes_path`, `byte_length`, and `sha256`. Reject rows contain exactly `id`, `operation`, `input_path`, `expected`, `models`, `expected_error_type`, plus `expected_error_code` only for a custom validator. `input_path` and `bytes_path` are normalized relative POSIX paths fixed to the directories above; absolute paths and `..` fail.
 
+The only `models` tokens are the exact strings in this dispatch table. A manifest row uses the token(s) named by its §3.3 abbreviation, sorted lexically; unknown tokens, missing required tokens, extra tokens, and operation/token mismatches fail before dispatch. Imports come only from the runner's own repository root.
+
+| Operation / abbreviation | Manifest token | AIM Data import and callable | Backend import and callable |
+|---|---|---|---|
+| `binding-model`, `disclosure-preimage` / B | `shared.DisclosureBinding` | `app.models.preview_disclosure_schemas.DisclosureBinding`; `app.services.preview_signing_service.disclosure_bytes` for preimage | `app.schemas.listing_preview.DisclosureBinding`; `app.utils.preview_signing.disclosure_bytes` for preimage |
+| `proof-model` / P | `shared.PreviewProof` | `app.models.dataset_commitment_schemas.DatasetPreviewProofContract` | `app.schemas.dataset_commitment.PreviewSignedProofContract` |
+| `commitment-model` / C | `shared.PreviewCommitment` | `app.models.dataset_commitment_schemas.DatasetCommitmentContract` | `app.schemas.dataset_commitment.PreviewSignedCommitmentContract` |
+| `request-model`, `request-bytes` / R | `shared.PreviewDisclosureRequest` | `app.models.preview_disclosure_schemas.PreviewDisclosureRequest` and `app.services.preview_signing_service.request_bytes` | `app.schemas.listing_preview.PreviewDisclosureRequest` and `app.utils.dataset_commitment.canonical_json_bytes` of `model_dump(mode="json")` |
+| `request-model`, `request-bytes` / lifecycle R | `shared.WithdrawalRequest`, `shared.RefreshRequest`, or `shared.SupersessionRequest` according to the ID prefix | Same class name in `app.models.preview_disclosure_schemas`; `request_bytes` for bytes | Same class name in `app.schemas.listing_preview`; canonical request model bytes |
+| `platform-envelope-model`, `platform-envelope-preimage` / E | `shared.PlatformEnvelope` | `app.models.preview_disclosure_schemas.PlatformEnvelope`; `app.services.preview_signing_service.platform_envelope_bytes` for preimage | `app.schemas.listing_preview.PlatformEnvelope`; `app.utils.preview_signing.platform_envelope_bytes` for preimage |
+| `local-candidate` / LC | `shared.LocalCandidate` | `app.services.preview_signing_service.LocalCandidate.validate` | `app.schemas.listing_preview.DisclosureBinding` plus canonical binding bytes |
+| `request-bytes` / CR (alongside R) | `aim_data.construct_request` | `app.services.preview_signing_service.construct_request` | The deterministic request projection described below, then `PreviewDisclosureRequest` |
+
+For `local-candidate`, B is represented by `shared.LocalCandidate` alone; for `request-approve-v2`, R and CR are both represented. The direct `request-model` rejection vectors use `shared.PreviewDisclosureRequest`; lifecycle byte vectors use the matching lifecycle token alone. `request-none` uses the base request token. Validate the exact operation/token relation, not just membership in this table.
+
+`request-approve-v2` has one canonical JSON input envelope with exactly `candidate`, `commitment`, `proofs`, and `approved_p1`. `candidate` is the complete `DisclosureBinding` object for `LocalCandidate.validate`; `commitment` is the complete signed commitment object; `proofs` is the ordered complete proof-object array equal to `commitment.proofs`; `approved_p1` is an object with exactly `summary_id`, `summary_approval_id`, `summary_hash`, `render_hash`, `aggregate_hash`, `content_revision`, `source_revision`, `listing_id`, and `listing_version_id`, each copied byte-for-byte as a JSON value from `candidate`. No `signer`, private key, signature override, path, or extra envelope member is accepted. The signer is runner-local: derive an Ed25519 private key from `SHA-256(b"preview-contract-cross-repo-v1 synthetic signing seed")`, construct a test-only signer exposing `_keys()` and `sign_disclosure(binding)` with the real `disclosure_bytes`, and require the candidate/commitment/proofs' signer references and signatures to match that key. Both runners derive the same key in memory; no key material enters the corpus, log, or artifact. AIM calls `LocalCandidate.validate(candidate)` then the real `construct_request(..., signer=signer, approved_p1=approved_p1)`. Backend derives the identical seller signature over `disclosure_bytes(candidate)`, builds the six request fields from the envelope, validates `PreviewDisclosureRequest`, and serializes its canonical model bytes. A mismatched approved P1 projection or malformed envelope fails; production identities and keys are forbidden.
+
 ### 3.2 Operations and output contract
 
 The complete operation vocabulary is:
@@ -127,7 +145,7 @@ The complete operation vocabulary is:
 - `proof-model`: validate `DatasetPreviewProofContract` / `PreviewSignedProofContract`; output canonical model bytes.
 - `commitment-model`: validate `DatasetCommitmentContract` / `PreviewSignedCommitmentContract`; output canonical model bytes.
 - `disclosure-preimage`: call the real `disclosure_bytes`; output its domain-prefixed bytes (`aim-data@6529e1ed…:121-126`; backend `d5d2e391…:101-106`).
-- `request-model`: validate the concrete request class named by `models`; output canonical model bytes.
+- `request-model`: validate the concrete request class named by the exact token table above; output canonical model bytes.
 - `request-bytes`: validate the request and call the real request serializer. When `models` names `aim_data.construct_request`, construct through `LocalCandidate` and `construct_request` first (`aim-data@6529e1ed…:295-375`).
 - `platform-envelope-model`: validate `PlatformEnvelope`; output canonical model bytes.
 - `platform-envelope-preimage`: call the real `platform_envelope_bytes`; output its domain-prefixed bytes (`aim-data@6529e1ed…:129-138`; backend `d5d2e391…:109-118`).
@@ -151,10 +169,11 @@ Accept vectors:
 | `binding-legacy-withdraw` | `binding-model` | B | withdrawal, omitted profile |
 | `binding-v1-withdraw` | `binding-model` | B | withdrawal, v1 |
 | `binding-v2-withdraw` | `binding-model` | B | withdrawal, v2 |
-| `proof-v1-policy-v1` | `proof-model` | P | package v1, policy v1 |
-| `proof-v2-policy-v2` | `proof-model` | P | package v2, policy v2 |
+| `proof-v1-policy-v1` | `proof-model` | P | package v1, policy v1; `signature_algorithm` omitted; sibling `direction=left` |
+| `proof-v2-policy-v2` | `proof-model` | P | package v2, policy v2; `signature_algorithm` present; sibling `direction=right` |
 | `commitment-v1-previous-absent` | `commitment-model` | C | v1 proof; optional previous ID absent |
 | `commitment-v2-previous-present` | `commitment-model` | C | v2 proof; previous ID present |
+| `commitment-no-proofs` | `commitment-model` | C | valid standalone commitment with `proofs` omitted; default empty list |
 | `preimage-binding-legacy` | `disclosure-preimage` | B | legacy bytes |
 | `preimage-binding-v1` | `disclosure-preimage` | B | v1 bytes |
 | `preimage-binding-v2` | `disclosure-preimage` | B | v2 bytes |
@@ -189,6 +208,7 @@ Reject vectors:
 | `literal-request-profile` | `request-model` / R | `literal_error` |
 | `literal-binding-profile`, `literal-binding-decision`, `literal-binding-preview-type`, `literal-binding-content-type`, `literal-binding-sample-decision`, `literal-binding-aggregate-profile`, `literal-binding-rights-code`, `literal-binding-signature-algorithm`, `literal-binding-signature-profile` | `binding-model` / B | `literal_error` |
 | `literal-proof-media-type`, `literal-proof-package-profile`, `literal-proof-scan-policy`, `literal-proof-scan-verdict`, `literal-proof-signature-algorithm` | `proof-model` / P | `literal_error` |
+| `literal-proof-sibling-direction` | `proof-model` / P | nested `ProofSibling.direction` `literal_error` |
 | `literal-commitment-canonicalization`, `literal-commitment-hash`, `literal-commitment-signature-algorithm` | `commitment-model` / C | `literal_error` |
 | `literal-envelope-profile`, `literal-envelope-signature-algorithm`, `literal-signer-key-algorithm`, `literal-signer-key-status` | `platform-envelope-model` / E | `literal_error` |
 | `request-proof-v1-unsupported` | `request-model` / R | `value_error`, code `unsupported_proof` |
@@ -198,36 +218,53 @@ Reject vectors:
 
 The ordinary nested public-type shape is exercised by all four approved bindings. Inputs use fixed synthetic UUIDs, timestamps, digests, keys, and signatures only. No customer value, raw row, credential, local path, or customer identifier is allowed.
 
+The initial inventory above is exact, including `commitment-no-proofs`; adding an accept row to repair a coverage hole requires a reviewed specification revision. The following field-presence matrix fixes the non-required fields from the pinned models. Every row has an accepted present and absent case; all other named-model fields are required and appear in their corresponding direct accept vector. Nested instances count only when their parent vector accepts. For nested `ProofSibling.direction`, the two proof-model vectors provide the two allowed values and the rejection above exercises an unknown value. For proof package/profile/scan-policy values, the two proof-model vectors provide v1 and v2; all other enumerated literal/enum values are assigned by the purposes in the inventory (four rights codes, two binding decisions/sample decisions, and three signer-key statuses).
+
+| Model and `field.is_required() is False` path | Present accepted vector | Absent accepted vector |
+|---|---|---|
+| `DisclosureBinding.aggregate_hash_profile` | `binding-v1-approve-licensed` | `binding-legacy-approve-owner` |
+| Proof contract `signature_algorithm` | `proof-v2-policy-v2` | `proof-v1-policy-v1` |
+| Commitment contract `previous_commitment_id` | `commitment-v2-previous-present` | `commitment-v1-previous-absent` |
+| Commitment contract `canonicalization_profile`, `hash_algorithm`, `signature_algorithm` | `commitment-v2-previous-present` | `commitment-v1-previous-absent` |
+| Commitment contract `proofs` | `commitment-v1-previous-absent` | `commitment-no-proofs` |
+| `SignerKeyEvidence.valid_until` | `envelope-model-v2-bounded` | `envelope-model-legacy-open` |
+
+Set the absent commitment default fields in `commitment-v1-previous-absent` all absent together, and the present fields in `commitment-v2-previous-present` all present together. A required nullable field remains explicitly present, including `null`. The matrix is verified against the live pinned classes, not substituted for the model-derived coverage walk; a newly added default field without both cases fails coverage.
+
+The two `package-mismatch-profile` and `package-mismatch-signer-reference` rows must remain `request-model` / R with exact `package_mismatch`. Use at least two proofs, copy the same ordered proofs into `commitment.proofs`, and vary exactly the named member between them. Both repos add a `PreviewDisclosureRequest` `mode="before"` validator that, only when the raw request is a mapping with at least two proof mappings and every proof has all nine package keys, compares the raw nine-member package tuples and raises `ValueError("package_mismatch")` when they differ. The raw comparison is necessary also for the single-literal media type: nested proof or commitment validation would otherwise reject before package identity is checked. This runs before nested commitment `mixed_profiles` and before the existing v2 `unsupported_proof` transport check. Missing package keys and a single invalid proof continue through existing nested validation; isolated `literal-*` proof vectors still report `literal_error`. Keep the later transport check for a uniform v1 request; `request-proof-v1-unsupported` still reports `unsupported_proof`. Assert exactly one Pydantic `value_error` with code `package_mismatch` for each of the nine mismatch inputs in both repositories, with no earlier `unsupported_proof`, `mixed_profiles`, or `literal_error`.
+
 ### 3.4 Manifest and schema-coverage algorithms
 
 `verify-manifest` performs, in order: safe-root/symlink checks; canonical JSON checks; schema/key checks; sorted/unique ID and model checks; exact operation check; exact file-set equality; rejection-has-no-bytes check; input SHA read safety; accept byte length/SHA check; exact `manifest.sha256` check; exact lock digest check. Any failure exits nonzero before a model is imported.
 
 Each runner records coverage independently from its own imported models:
 
-1. Register exactly `DisclosureBinding`, the proof contract, the commitment contract, `PreviewDisclosureRequest`, and `PlatformEnvelope` at the source locations cited in §2.
+1. Register exactly `DisclosureBinding`, the proof contract, the commitment contract, `PreviewDisclosureRequest`, and `PlatformEnvelope`. Proof/commitment sources are AIM `app/models/dataset_commitment_schemas.py:212-279` and backend `app/schemas/dataset_commitment.py:331-394`; binding/request/envelope sources are in §2. Include recursively nested `ProofSibling` and `SignerKeyEvidence`.
 2. Resolve `model_fields` and annotations with `typing.get_origin/get_args`; unwrap `Annotated`, unions, and containers; enumerate every `Literal` and every Enum member. Never use JSON schema or a handwritten field list.
 3. For every accept vector/model pair, retain the parsed input before validation. Dispatch the operation, including nested instances. Attribute a nested field to the nested model class and its concrete input path, not to the parent and not by text search.
 4. Count a field present when its key exists in that model's input object, even when the value is `null`; count absent when the key does not exist. Count literal/enum coverage only after that model accepts the vector.
 5. Evaluate a model only in operations and parent contexts where that model itself accepts. A rejected full request does not count toward proof coverage; `proof-v1-policy-v1` does.
-6. Fail for any field with no accepted present case; any `field.is_required() is False` field with no accepted absent case; or any allowed Literal/Enum value with no accepted value case. Report model, field path, and missing condition.
-7. Run coverage in both repositories before comparing bytes. Removing `proof-v1-policy-v1` must fail both jobs.
+6. Fail for any field with no accepted present case; any `field.is_required() is False` field with no accepted absent case; or any allowed Literal/Enum value with no accepted value case. Report model, field path, and missing condition. Also require the proof contract's v1 and v2 `package_profile` and `scan_policy` values in accepted **direct `proof-model`** vectors; nested commitment/request instances do not discharge this direct-model requirement. This makes deletion of `proof-v1-policy-v1` observable even though a v1 proof remains nested in a commitment.
+7. Run coverage in both repositories before comparing bytes. Removing `proof-v1-policy-v1` must fail both jobs at coverage with model, field path, and missing v1 value, after all integrity and transition checks pass as described in §9.
 
 `compare` requires identical IDs/statuses, exact expected error type, exact custom code where declared, expected byte equality, cross-runner byte equality, and matching byte length/SHA. Changing `sampled_leaf_list_mismatch` to another `value_error` code therefore fails.
 
 ## 4. Lock transitions and immutable anchor
 
-`aim-transition` diffs `preview-contract-backend.lock.json` against the PR merge base. It accepts only: initial installation when the file is absent; no SHA change; or a new `backend_sha` that is the fetched backend commit under test, changes the manifest digest to that commit's digest, and is declared as the paired backend anchor. A same-manifest pin-only change fails.
+For either transition command, a `pull_request` event uses `git merge-base HEAD origin/<base-ref>` after fetching the base ref; a `push` to `main` uses the event's `before` SHA as the diff base (verify it is reachable with the full checkout), including a merge commit. The all-zero `before` SHA is allowed only for initial repository creation and uses the empty tree. Reject other event types, unavailable bases, and shallow histories. Classify the lock diff from that base through the tested `HEAD`; unchanged locks are accepted. Unit tests cover both event kinds and initial installation.
 
-`backend-transition` accepts only: initial installation; no SHA change; or the single reverse-pin follow-up where `contract_anchor_sha` is unchanged, `manifest_sha256` is unchanged, and only `aim_data_sha` advances to the fetched AIM commit whose own lock names that anchor/digest. Any non-anchor pin bump fails.
+`aim-transition` accepts only: initial installation when the file is absent at the diff base; no SHA change; or a new `backend_sha` equal to the fetched backend `HEAD` with a new `manifest_sha256` equal to its verified corpus digest. The anchor declaration is the AIM lock's `backend_sha` together with the fetched backend commit's own corpus transition: require that commit's first-parent corpus `manifest.sha256` is absent (initial installation) or differs, and that its manifest/file-set checks pass. Thus an unchanged-manifest, non-anchor SHA bump cannot be declared merely by editing a lock or PR description. The backend reverse lock's `contract_anchor_sha`, read from the tested backend checkout during `backend-transition`, must later equal this same SHA; it cannot be self-referential inside anchor `A`. The backend `A..HEAD` confinement separately proves no later contract change. A same-manifest pin-only change fails. Test the structural declaration and a same-digest non-anchor bump on both PR and push events.
+
+`backend-transition` accepts only: initial installation; no SHA change; or the single reverse-pin follow-up where `manifest_sha256` is unchanged, `aim_data_sha` advances to the fetched AIM commit whose own lock names `A` and that digest, and `contract_anchor_sha` either remains `A` or changes once from an initial placeholder to `A`. The placeholder must be a valid pre-`A` backend ancestor, never a floating ref; no later change to `contract_anchor_sha` is allowed except a new reviewed paired wire anchor. Require the diff from `A` to the tested `HEAD` to contain only the two permitted paths below. Any non-anchor pin bump fails. The push of the AIM merge classifies against its `before` SHA as no-change or a permitted AIM transition; the push of the backend merge classifies the reverse-pin sequence against its `before` SHA, with the same anchored evidence. Test both.
 
 `anchor-diff` runs:
 
 ```bash
 git merge-base --is-ancestor "$CONTRACT_ANCHOR_SHA" HEAD
-git diff --exit-code "$CONTRACT_ANCHOR_SHA"..HEAD -- app/schemas/listing_preview.py app/schemas/dataset_commitment.py app/utils/preview_signing.py app/utils/dataset_commitment.py tests/fixtures/preview/cross_repo_contract/v1
+git diff --exit-code "$CONTRACT_ANCHOR_SHA"..HEAD -- . ':(exclude)preview-contract-aim-data.lock.json' ':(exclude).github/workflows/preview-contract-cross-repo.yml'
 ```
 
-The lock and workflow paths are excluded. AIM paths are never compared in a backend diff; they execute from the pinned AIM checkout. Once AIM pins `A`, the backend branch must not amend, rebase, or delete `A`.
+The entire `A..HEAD` tree diff is confined to the reverse lock and the named workflow; a changed, added, renamed, or deleted path anywhere else fails, including `app/services/listing_preview_disclosure.py`. AIM paths are never compared in a backend diff; they execute from the pinned AIM checkout. Once AIM pins `A`, the backend branch must not amend, rebase, or delete `A`. Test a disposable post-anchor change to `app/services/listing_preview_disclosure.py` and require nonzero `anchor-diff` exit.
 
 ## 5. Exact workflows and runner commands
 
@@ -400,7 +437,7 @@ Provision only after Max authorizes the provider mutation:
 
 Local SecOps generates two independent Ed25519 keypairs, stores each private key directly in the named Infisical entry, installs each public key on only its target with `read_only:true`, and copies the private value directly into only the named holder repository secret. Do not print, export to a transcript, reuse, give write access, or add either value to a PR input or artifact.
 
-Before the first workflow run, smoke-test each key in an isolated `GIT_SSH_COMMAND` process: `git ls-remote` of its target must succeed at the pinned SHA, and `git ls-remote` of its holder repository must fail. Then verify the holder secret exists by name and run a temporary workflow checkout. Record only exit status, repository slug, key/deploy-key ID, date, and workflow URL.
+Before the first workflow run, smoke-test each key in an isolated `GIT_SSH_COMMAND` process. Run `git ls-remote <target SSH URL> refs/heads/main`, require exactly one nonempty `<40-hex-SHA><TAB>refs/heads/main` record, then `git fetch --no-tags <target SSH URL> <pinned SHA>` into an empty temporary repository and require `git rev-parse FETCH_HEAD` to equal the pinned SHA exactly. This proves the specific commit is readable even if it is not a ref. With the same key, `git ls-remote <holder SSH URL> refs/heads/main` must exit nonzero. Do not treat exit zero with empty output as success. Then verify the holder secret exists by name and run a temporary workflow checkout. Record only exit status, target/holder repository slugs, resolved SHA, key/deploy-key ID, date, and workflow URL, never credential values.
 
 Rotation is add-before-remove: generate a new pair; add the new read-only public key to the same target; replace the named Infisical value and holder GitHub secret without printing it; repeat both positive and negative smoke tests; rerun both gates; then delete the old deploy key and record old/new deploy-key IDs. A suspected disclosure revokes the affected direction immediately; that gate remains failed closed until replacement.
 
@@ -409,20 +446,20 @@ Rotation is add-before-remove: generate a new pair; add the new read-only public
 1. Create both target-only keys, Infisical entries, and holder secrets; pass positive/negative smoke tests.
 2. Open the paired implementation PRs. Commit backend anchor `A`; set AIM's lock to `A` and its manifest digest.
 3. Observe one successful `Preview contract cross-repo` PR job in each repository. The backend may use a diagnostic reverse pin but remains unmergeable.
-4. **Max-gated admin step:** enable protection and merge-method settings below in both repositories and read them back.
+4. **Max-gated admin step:** read existing protection in both repositories. After the new check has reported green, atomically replace only the obsolete required context from the deleted workflow (`producer-contract`, if present) with `Preview contract cross-repo`, apply the remaining protection/merge-method settings below, and read them back before either merge.
 5. Prove a disposable failing mutation PR is unmergeable by an administrator.
 6. Merge AIM Data as `B`; add the backend's one reverse-pin follow-up naming `B`; rerun; merge backend by merge commit; confirm both `main` jobs pass and `A` is an ancestor.
 
 ### 6.3 Exact protection settings and read-back
 
-For each of `aidotmarket/aim-data` and `aidotmarket/ai-market-backend`, Max preserves all stronger existing protection and applies these exact minimums: required check `Preview contract cross-repo`, strict/up-to-date branch required, administrators enforced, zero pull-request bypass actors, force pushes disabled, deletions disabled, and repository merge methods `allow_merge_commit=true`, `allow_squash_merge=false`, `allow_rebase_merge=false`.
+For each of `aidotmarket/aim-data` and `aidotmarket/ai-market-backend`, Max preserves all unrelated stronger existing protection and applies these exact minimums: required check `Preview contract cross-repo`, strict/up-to-date branch required, administrators enforced, zero pull-request bypass actors, force pushes disabled, deletions disabled, and repository merge methods `allow_merge_commit=true`, `allow_squash_merge=false`, `allow_rebase_merge=false`. First read both `contexts` and `checks` from protection; if the deleted AIM workflow's `producer-contract` appears in either, remove precisely that entry in the same required-status-checks API update that adds the observed new context. Do not remove any other context or check. The backend has no deleted parity workflow; retain any backend `producer-contract` producer if one exists. Refuse the transition if the new check has not reported green on the implementation PR. Read protection back immediately after the update and require the new context present and the obsolete AIM context absent before merge.
 
 The Max-gated commands are:
 
 ```bash
 REPO=aidotmarket/aim-data
 gh api "repos/$REPO/branches/main/protection" > /tmp/preview-protection-before.json
-jq '{strict:true,contexts:((.required_status_checks.contexts // []) + ["Preview contract cross-repo"] | unique)}' /tmp/preview-protection-before.json > /tmp/preview-required-checks.json
+jq --arg repo "$REPO" '{strict:true,contexts:(((.required_status_checks.contexts // []) | map(select(. != (if $repo == "aidotmarket/aim-data" then "producer-contract" else "__never__" end)))) + ["Preview contract cross-repo"] | unique),checks:((.required_status_checks.checks // []) | map(select(.context != (if $repo == "aidotmarket/aim-data" then "producer-contract" else "__never__" end))))}' /tmp/preview-protection-before.json > /tmp/preview-required-checks.json
 gh api --method PUT "repos/$REPO/branches/main/protection/required_status_checks" --input /tmp/preview-required-checks.json
 gh api --method POST "repos/$REPO/branches/main/protection/enforce_admins"
 gh api --method DELETE "repos/$REPO/branches/main/protection/allow_force_pushes" || test "$?" = 1
@@ -431,11 +468,13 @@ gh api --method PATCH "repos/$REPO" -F allow_merge_commit=true -F allow_squash_m
 test "$(jq '.required_pull_request_reviews.bypass_pull_request_allowances.users | length' /tmp/preview-protection-before.json)" = 0
 test "$(jq '.required_pull_request_reviews.bypass_pull_request_allowances.teams | length' /tmp/preview-protection-before.json)" = 0
 test "$(jq '.required_pull_request_reviews.bypass_pull_request_allowances.apps | length' /tmp/preview-protection-before.json)" = 0
-gh api "repos/$REPO/branches/main/protection" --jq '{contexts:.required_status_checks.contexts,strict:.required_status_checks.strict,enforce_admins:.enforce_admins.enabled,force_pushes:.allow_force_pushes.enabled,deletions:.allow_deletions.enabled,bypass:.required_pull_request_reviews.bypass_pull_request_allowances}'
+gh api "repos/$REPO/branches/main/protection" --jq '{contexts:.required_status_checks.contexts,checks:.required_status_checks.checks,strict:.required_status_checks.strict,enforce_admins:.enforce_admins.enabled,force_pushes:.allow_force_pushes.enabled,deletions:.allow_deletions.enabled,bypass:.required_pull_request_reviews.bypass_pull_request_allowances}'
 gh api "repos/$REPO" --jq '{allow_merge_commit,allow_squash_merge,allow_rebase_merge}'
 ```
 
 Repeat with `REPO=aidotmarket/ai-market-backend`. If any bypass array is nonempty, stop: Max must remove the named allowance in GitHub before proceeding; the command deliberately does not silently erase an existing governance setting. Preserve the two read-back outputs, failed-mutation mergeability API output, and job URLs.
+
+For rollback, keep the replacement workflow and its required check runnable while reverting contract and pin commits, in the backend-first then AIM order in §10. Revert the AIM workflow deletion only after both reverted mains have green `Preview contract cross-repo` jobs. If restoring the old parity workflow is necessary, first observe its `producer-contract` job green on the rollback PR, then in one Max-gated required-status-checks API update replace `Preview contract cross-repo` with `producer-contract`; read back contexts/checks immediately. Merge the workflow restoration only after that read-back. Preserve every unrelated required check and stronger protection setting throughout. Record the before/after protection JSON and green job URLs. Never leave a revision requiring a context with no producer; if either check cannot report green, stop rollback before merge and use a new paired repair PR.
 
 ## 7. Deletion closure
 
@@ -453,7 +492,7 @@ Historical reports may retain old names but cannot be executable inputs.
 ## 8. T-811 ports and required tests
 
 1. Port backend recursive `public_types` and `binary_sample_forbidden` to `DisclosureBinding.binding_rules`; unit and corpus tests cover top-level binary, array-of-binary, object-field binary, object→array→binary, and an ordinary nested public schema (`backend@d5d2e391…:127-143`; AIM insertion at `6529e1ed…:123-139`).
-2. Expand AIM package identity from four members to all nine: URL, media type, profile, byte ceiling, scan policy, scan policy version, scanned at, scan verdict, signer reference. One negative vector changes each member (`aim-data@6529e1ed…:187-199`; backend `d5d2e391…:202-219`).
+2. Expand AIM package identity from four members to all nine: URL, media type, profile, byte ceiling, scan policy, scan policy version, scanned at, scan verdict, signer reference. Add the before-validator in both request classes as specified in §3.3 so all nine negative vectors reach `package_mismatch` before nested/later validators; a uniform v1 proof still reaches `unsupported_proof` (`aim-data@6529e1ed…:187-199`; backend `d5d2e391…:202-219`).
 3. Compute the per-request sampled digest once and reject any proof whose `sampled_leaf_list_digest` differs with exact code `sampled_leaf_list_mismatch` (`backend@d5d2e391…:230-236`).
 4. Preserve omitted/v1/v2 `aggregate_hash_profile` through AIM withdraw/refresh/supersede and backend allocation/withdrawal. Legacy serialization omits the key (`aim-data@6529e1ed…:44-79`; backend `d5d2e391…:48-83`).
 5. Assert Pydantic `literal_error` directly for every literal vector in §3.3; no `ValueError` base assertion or message substring passes.
@@ -473,8 +512,8 @@ Evidence lives in both implementation PR descriptions and the “Changing the ve
 | AC6 | four binary vectors, nine package mismatch vectors, sampled-leaf mismatch, and focused AIM tests |
 | AC7 | nine lifecycle request vectors plus both repositories' lifecycle/database tests |
 | AC8 | `deleted-consumers`, focused tests, Node run, evidence-builder run, and `git grep` report |
-| AC9 | Disposable M1 and M2 anchors. M1 adds optional omit-None binding field **and** v2 vector/bytes; M2 adds the field with no vector. For each, AIM pin-only branch fails and backend fails before pin, then still fails after diagnostic pin: M1 by acceptance/bytes, M2 by coverage. Record four failing job URLs per mutation and both mutation SHAs, then delete branches. Unit simulation is supplemental only. |
-| AC10 | `coverage` reports; delete `proof-v1-policy-v1` in a diagnostic commit and record both jobs failing |
+| AC9 | Disposable M1 and M2 anchors. M1 adds optional omit-None binding field **and** v2 vector/bytes; M2 adds the field with no vector. For each, AIM pin-only branch fails and backend fails before pin, then still fails after diagnostic pin: M1 by acceptance/bytes, M2 by coverage. Record three failing job URLs per mutation and both mutation SHAs, then delete branches. Unit simulation is supplemental only. |
+| AC10 | `coverage` reports; use the disposable paired diagnostic corpus/anchor below to remove `proof-v1-policy-v1`; record both jobs passing integrity/transition and runner stages, then failing coverage on the missing direct proof v1 value |
 | AC11 | transition unit tests; diagnostic same-manifest bump to a non-anchor commit fails both applicable jobs |
 | AC12 | GitHub protection/repository read-backs; administrator sees disposable failing PR as not mergeable; post-merge `git merge-base --is-ancestor A main` |
 | AC13 | two positive target and two negative holder smoke-test records; fork PR failure; `git grep pull_request_target .github/workflows/preview-contract-cross-repo.yml` has no hit |
@@ -484,6 +523,8 @@ Evidence lives in both implementation PR descriptions and the “Changing the ve
 
 For the error-code-swap mutation, change only `sampled_leaf_list_mismatch` to `sampled_leaf_digest_mismatch`; both remain Pydantic `value_error`, and both jobs must fail on code inequality. For the non-anchor bump, choose an exact fetched commit that changes no contract path and keep `manifest_sha256` unchanged; transition classification must fail before runners. Never merge mutation branches.
 
+For the AC10 v1-removal diagnostic, fork disposable paired branches from a known green pair. In the backend branch, remove only the `proof-v1-policy-v1` row, its input, and its byte file; regenerate canonical `manifest.json` and `manifest.sha256`, commit these as a new diagnostic anchor `A_v1`, and leave all model code unchanged. In the AIM branch, update only its lock to `backend_sha=A_v1` and the recomputed manifest digest; the `aim-transition` rule treats this changed corpus commit as a new diagnostic anchor. For the backend reverse job, make one disposable reverse-pin commit whose lock names `A_v1`, the diagnostic AIM commit, and the same digest, so `backend-transition` and `anchor-diff` pass. Run both PR jobs. Their recorded logs must show successful lock/manifest verification and runner completion, then `coverage` failure naming the proof contract's missing direct `package_profile=aim-preview-package-v1` (and `scan_policy=aim-preview-policy-v1`) observation. The diagnostic manifest and locks are changed together; a stale digest/file-set failure does not count. Never merge these branches; remove them after recording both job URLs and exact SHAs.
+
 ## 10. Runbook change and rollback
 
 After both code mains are green, update existing `aidotmarket/runbooks/aim-data.md`; do not create a new page and do not move the procedure to `listing-enrichment-platform-signing-key.md`. Add “Changing the verified-preview wire contract” with: paired-branch creation; vector-first backend anchor `A`; raw byte review; AIM pin/compatibility work and first merge `B`; backend reverse-pin-only follow-up; merge-commit ancestry check; credential names/scopes and rotation; lock-transition rules; protected-check bootstrap; required evidence fields; and the rollback sequence below. Refresh `INDEX.md` only if its purpose text or verification date changes.
@@ -491,8 +532,8 @@ After both code mains are green, update existing `aidotmarket/runbooks/aim-data.
 Rollback:
 
 1. Before either merge, close both PRs and revoke only newly installed keys if abandoning the gate.
-2. After AIM-only merge, revert the AIM merge; backend main is unchanged. Confirm the restored prior workflow/check policy before removing the new key.
-3. After both merges, revert backend first only while AIM remains backward-compatible, then revert AIM. Run both main gates after each revert.
+2. After AIM-only merge, use a rollback PR that retains the runnable new workflow and required check while reverting AIM's contract/pin changes; backend main is unchanged. Observe a green main gate. If restoring the old workflow is necessary, use the Max-gated check migration in §6.3 after its job reports green; only then merge workflow restoration and remove the new key.
+3. After both merges, revert backend contract/pin changes first only while AIM remains backward-compatible, then revert AIM's contract/pin changes. Retain runnable gates and run both main gates after each revert. Restore the old workflow only through the §6.3 protection migration.
 4. Never delete the authoritative corpus, float/loosen a pin, rewrite anchor `A`, or bypass the required check to make rollback green.
 5. A non-backward-compatible wire rollback is a new paired wire change with a new anchor, vectors, pins, reviews, and evidence.
 
