@@ -69,10 +69,12 @@ cd /Users/max/Projects/ai-market && DSN="$(scripts/test-db-dsn.sh 2>/dev/null)" 
   -c "set default_transaction_read_only=on" \
   -c "select 'legacy_row_columns', count(*) from information_schema.columns where table_schema='public' and column_name in ('verified_rows','row_data','approved_sample','sample_preview')" \
   -c "select 'datasets_sample_data', count(sample_data) from datasets" \
-  -c "select 'relay_nodes', count(*) filter (where relay_mode) from aim_nodes"; unset DSN
+  -c "select 'relay_nodes', count(*) filter (where relay_mode) from aim_nodes" \
+  -c "select 'relay_sessions', count(*) from aim_sessions where connection_mode='relay'" \
+  -c "select 'staging_rows', (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter)+(select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
 ```
 
-Expected: every flag `<unset>` or `false` (`FULFILLMENT_STAGING_DIR` `<unset>`), `objects 0`, `multipart_uploads 0`, disk `ABSENT` or `0`, and all three database counts 0. Anything else: see below.
+Expected: every flag `<unset>` or `false` (`FULFILLMENT_STAGING_DIR` `<unset>`), `objects 0`, `multipart_uploads 0`, disk `ABSENT` or `0`, and every database count 0. Anything else: see below.
 
 Never set any of these flags to true in production without a peer-to-peer design approved by unanimous Council and Max's approval to enable it.
 
