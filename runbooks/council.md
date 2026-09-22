@@ -29,7 +29,7 @@ error_signatures:
 
 This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
-> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
@@ -84,7 +84,7 @@ A reviewer may return `REJECT` with no build mandates when its conclusion is to 
 
 The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC (non-Council) receives the one-sentence pickup instruction; Gemini runs through `gemini_transport.py` (see Gemini member). GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-Roster since S1721 (CORE v9.18): the required gate voters are exactly GLM,
+Roster since S1721 (CORE §5): the required gate voters are exactly GLM,
 DeepSeek, and Gemini, unanimous 3/3. An unusable vote (no verdict, failed
 launch, or model mismatch) is rerun once; then the gate fails. CC is a
 non-Council second opinion by explicit name and is never counted. Kimi is

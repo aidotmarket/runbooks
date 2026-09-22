@@ -26,7 +26,7 @@ error_signatures:
 | Background dispatch + polling (S1148) | SHIPPED | `codex_cli_bridge.py:dispatch_codex_cli_streaming; council_request action=check_build` | covered by dispatch suite | 2026-07-08 |
 | Review dispatch (mode=review, READ-ONLY advisory) (S1147 gate reviews) | SHIPPED | `tools/agents.py:_handle_call_mp` | see When it breaks-06 caveat | 2026-07-07 |
 | Spec authoring (mode=author, Gate 1) (S1147) | SHIPPED | `tools/agents.py:_handle_call_mp` | — | 2026-07-07 |
-| Concurrency mutex (one Codex CLI at a time) (S1148, MP+CC serialized cleanly) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
+| Concurrency mutex (one Codex CLI at a time) — LEGACY `codex_cli_bridge` only (S1148). Minimal-bridge builds queue per repository via Task Spooler (CORE v9.20; `runbooks/task-spooler-build-queue.md`) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
 | Pre-push CI verification gate + auto-revert (S1150, manifest synthesis fix 25006e5e) | SHIPPED | `ci_verification.py (CI_WORKFLOW_TEST_PATHS)` | agent-dispatch.md §Q | 2026-07-09 |
 | Progress-based stall abort (S1111) | SHIPPED | `codex_cli_bridge.py (MP_PROGRESS_WINDOW_S=900)` | — | 2026-06-01 |
 | Hard timeout backstop (env-tunable) (S1111 fix 995e1338) | SHIPPED | `.env MP_HARD_UPPER_BOUND_S=1800; envelope default in tools/agents.py:_build_mp_provider_envelope` | tests/regression/test_legacy_dispatch_unchanged.py | 2026-06-01 |
@@ -77,7 +77,7 @@ error_signatures:
   expected_failures:
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (When it breaks-01)
-  next_step_success: gated cross-review by the voter panel CC+GLM+DeepSeek (Kimi comparison-only) with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
+  next_step_success: gated cross-review by the Council (GLM, DeepSeek, Gemini) with the builder excluded — unanimous 3/3 valid verdicts for every gate (CORE §5); CC is a non-Council second opinion that never counts. Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult When it breaks symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required
@@ -316,7 +316,7 @@ error_signatures:
 - Frontier-only model policy: MP runs exactly ONE configured model, the current OpenAI frontier (Max S516). No fallback tiers in production dispatch.
 - Spec-grounded dispatches reference the committed spec path @ pinned SHA (agent-dispatch.md §T); never paste long specs inline.
 - Council and CI safeguards are never bypassed with `break_glass`. Runbook context is obtained by reading the relevant Markdown directly; missing or stale guidance is corrected as documentation, not converted into an attestation, debt, or admission decision.
-- One Codex CLI at a time (fcntl mutex) — do not remove the lock to "parallelize".
+- Legacy `codex_cli_bridge`: one Codex CLI at a time (fcntl mutex) — do not remove the lock to "parallelize". Minimal-bridge builds are serialised per repository by Task Spooler, not by this lock (CORE v9.20).
 - Model telemetry is EVIDENCE, not a label (S1205, T-2026-000243). `model_actual` is read back from the Codex rollout file and `model_matched` is a real comparison that fails CLOSED — false whenever the dispatch failed or the rollout is missing, unparseable, ambiguous, or disagrees with the CLI banner. Never restore a hardcoded default of true, and never add a bypass env var: an evidence gap must read as a failure, not a pass. The honest limit: the rollout records the model we REQUESTED. Combined with the fact that an unsupported model is a hard 400 with no substitution, requested == served for any turn that COMPLETES. Do not overclaim it as a server attestation.
 - The expected model for every Council member is sourced from Living State `infra:council-comms` → `body.model_policy.agent_frontier_models`. The hardcoded dict in council_gate_runner.py is a last-resort fallback that logs CRITICAL when it fires. Add new members to the registry, not to the dict.
 - Provider version pins are not mismatches. GLM serves `z-ai/glm-5.2-20260616` for requested `z-ai/glm-5.2`; Vertex can suffix a version. `_model_matches()` accepts `expected` plus a `-`/`@`/`:` suffix. MP is the exception and compares EXACTLY, because its rollout returns the exact requested string.
