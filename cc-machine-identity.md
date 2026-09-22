@@ -9,10 +9,10 @@ error_signatures: []
 # CC machine identity (council reviewer credential)
 
 ## A. Purpose
-Stop the recurring destruction of Max's Claude login and keep the CC council reviewer dispatchable without any human credential. Owns: how CC authenticates, how the key rotates, and how to diagnose credential failures on the CC path.
+Stop the recurring destruction of Max's Claude login and keep the explicit-name, non-Council CC second-opinion path dispatchable without any human credential. Owns: how CC authenticates, how the key rotates, and how to diagnose credential failures on the CC path.
 
 ## B. The design (S1573, causal story corrected S1582 per T-2026-000686)
-**The Council panel path runs CC on the OAuth machine profile, on Max's plan, by Max's directive.** `scripts/council_dir.py:_cc_env` deliberately strips `ANTHROPIC_API_KEY` (and every override var) from the child environment; that stripping is correct and must not be "fixed". The dedicated API key below remains live only for **non-panel** headless dispatches through `claude_code_client._build_env`.
+**The explicit-name, non-Council CC path runs on the OAuth machine profile, on Max's plan, by Max's directive.** `scripts/council_dir.py:_cc_env` deliberately strips `ANTHROPIC_API_KEY` (and every override var) from the child environment; that stripping is correct and must not be "fixed". The dedicated API key below remains live only for **non-Council** headless dispatches through `claude_code_client._build_env`. CC never counts in a gate.
 
 **Corrected root cause of the recurring 401s (S1581 evidence, T-2026-000686).** The S1573 theory — sibling OAuth grants revoking each other server-side — is contradicted by direct evidence and is retired. Nothing was ever revoked: the config-scoped Keychain credential (`Claude Code-credentials-2d3f080c`) was valid and unexpired through every incident. The real cause was `scripts/setup_cc_profile.sh`: when its interactive `claude login` is abandoned before browser completion, the CLI leaves `~/.claude-koskadeux/.credentials.json` with EMPTY accessToken/refreshToken strings (metadata populated). Claude Code prefers that file over the Keychain, and empty tokens return a 401 that reads exactly like revocation. 23 quarantined stubs 13–20 Aug match ~18 setup-script re-runs in shell history: CC failed, an operator re-ran the setup script to repair it, the abandoned login wrote a fresh stub, and the stub caused the next failure. The repair was the cause. The S1532 profile isolation itself was correct and holds.
 
@@ -39,7 +39,7 @@ Stop the recurring destruction of Max's Claude login and keep the CC council rev
 `python3 -c "import sys; sys.path.insert(0,'/Users/max/koskadeux-mcp'); import cc_profile; print(cc_profile.status())"` — expect `council_api_key: True`. End-to-end: dispatch `council_request(agent=cc, mode=open_response, task='Reply with exactly: COUNCIL-CC-OK')`.
 
 ## E. Scope boundaries
-Kimi and GLM have their own transports (see `infra:council-comms`). The same one-account defect exists on the OpenAI side (MP builder + GLM on `/Users/max/.codex/auth.json`) — tracked under BQ-GLM-CODEX-TRANSPORT-MIGRATION-S1566; apply the same identity-separation principle there when that work resumes.
+GLM has its own transport (see `infra:council-comms`); Kimi is removed. The same one-account defect exists on the OpenAI side (MP builder + GLM on `/Users/max/.codex/auth.json`) — tracked under BQ-GLM-CODEX-TRANSPORT-MIGRATION-S1566; apply the same identity-separation principle there when that work resumes.
 
 ## F. Attempt log — daily OAuth logout (track here until solved; Max directive S1600)
 

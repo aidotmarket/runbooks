@@ -16,7 +16,7 @@ error_signatures:
 
 **Fetch trigger:** locating any repository, service, secret, config, or deploy surface.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 3 and 4.
+**Source:** CORE §§3–4.
 
 ## Capabilities
 
@@ -52,7 +52,7 @@ Do not hardcode repository, service, secret, configuration, or deploy locators i
 
 ### Normative projection — CORE §4, Infrastructure
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §4.
 
 > For any operational query (service health, deploy status, repo locations, infrastructure config), check Living State.
 
@@ -69,7 +69,7 @@ are not separate current gateway tools.
 
 ### Normative projection — CORE §3, Data and Security
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §3.
 
 > MUST NOT commit secrets, tokens, or credentials. Infisical is the only secret store.
 

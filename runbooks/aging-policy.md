@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** stale or critical-stale standup or queue decision.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, section 6.
+**Source:** CORE §6.
 
 ## Capabilities
 
@@ -38,7 +38,7 @@ error_signatures:
 
 ### Normative projection — CORE §6
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §6.
 
 > - **7-day threshold:** Any BQ item that has passed Gate 2 (or Gate 1 with no Gate 2 required) and has not been dispatched for build within 7 days is STALE.
 > - **14-day threshold:** Any stale item older than 14 days is CRITICAL-STALE.

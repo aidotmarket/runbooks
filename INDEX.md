@@ -29,7 +29,7 @@
 
 ## Activation Verification Runbook
 - Path: `activation-verification.md`
-- Purpose: **S612 Process Consolidation Owner**: this runbook is the single canonical reference for CI gates AND deploy verification after the S612 consolidation that collapsed ~8 process BQs into BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1). Per Council mandate, this file now covers BOTH pre-merge CI gates (branch protection, lint, smoke tests) and post-merge activation verification (proof-of-life checks). **Section layout:** - **§CI Gates (pre-merge)** — main-branch protection rules across ai-market-backend, ai-market-frontend, ops-ai-market, koskadeux-mcp, aim-node; required CI checks before merge; branch-protection configuration. - **§Lint gates** — lint pass enforcement; ops-ai-market lint configuration. - **§Deploy verification (post-merge)** — Railway deploy receipt verification; production smoke tests; activation proof-of-life (existing body below). Backend correctness primitives (atomic-write idempotency, token target binding, entity CAS locking) are explicitly NOT consolidated under this BQ per Council mandate; they remain product backend BQs. Revisions land as PRs; require MP review-mode approval. Filed under S612.
+- Purpose: **S612 Process Consolidation Owner**: this runbook is the single canonical reference for CI gates AND deploy verification after the S612 consolidation that collapsed ~8 process BQs into BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1). Per Council mandate, this file now covers BOTH pre-merge CI gates (branch protection, lint, smoke tests) and post-merge activation verification (proof-of-life checks). **Section layout:** - **§CI and local gates (pre-merge)** — use each repository's actual workflow inventory. In particular, ai-market-frontend has no PR CI; its only workflow is `.github/workflows/deploy-receipt.yml`, so frontend review evidence comes from the required local checks below. - **§Lint gates** — lint pass enforcement; ops-ai-market lint configuration. - **§Deploy verification (post-merge)** — Railway deploy receipt verification; production smoke tests; activation proof-of-life (existing body below). Backend correctness primitives (atomic-write idempotency, token target binding, entity CAS locking) are explicitly NOT consolidated under this BQ per Council mandate; they remain product backend BQs. Revisions land as PRs; require MP review-mode approval. Filed under S612.
 - Owner: `unassigned`
 - Last verified: `2026-07-11`
 - Aliases: none
@@ -47,7 +47,7 @@
 
 ## Agent Dispatch
 - Path: `runbooks/agent-dispatch.md`
-- Purpose: **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole authority for CC, GLM, and DeepSeek voter dispatch and explicit-name Kimi comparison dispatch. All reviewer-wrapper, exact-SHA, package-validation, turn-budget, retry, parser, verdict-persistence, and Council Hall instructions below are historical and must not be executed. The only active reviewer path is `council_request` as a thin trigger over `scripts/council_dir.py`: one request file in, one response file out. This runbook remains authoritative only for the separate MP build path and general non-reviewer dispatch operations.
+- Purpose: **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole authority for GLM, DeepSeek, and Gemini voter dispatch and explicit-name non-Council CC second-opinion dispatch. All reviewer-wrapper, exact-SHA, package-validation, turn-budget, retry, parser, verdict-persistence, and Council Hall instructions below are historical and must not be executed. The only active reviewer path is `council_request` as a thin trigger over `scripts/council_dir.py`: one request file in, one response file out. This runbook remains authoritative only for the separate MP build path and general non-reviewer dispatch operations.
 - Owner: `vulcan`
 - Last verified: `2026-09-21`
 - Aliases: none
@@ -326,7 +326,7 @@
 
 ## CC machine identity (council reviewer credential)
 - Path: `cc-machine-identity.md`
-- Purpose: Stop the recurring destruction of Max's Claude login and keep the CC council reviewer dispatchable without any human credential. Owns: how CC authenticates, how the key rotates, and how to diagnose credential failures on the CC path.
+- Purpose: Stop the recurring destruction of Max's Claude login and keep the explicit-name, non-Council CC second-opinion path dispatchable without any human credential. Owns: how CC authenticates, how the key rotates, and how to diagnose credential failures on the CC path.
 - Owner: `unassigned`
 - Last verified: `2026-08-27`
 - Aliases: none

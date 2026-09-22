@@ -109,10 +109,10 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   next_step_success: fold mandates per G-04 notes if the verdict carries them, then continue the gate flow per council-gate-process.md
   next_step_failure: re-read the entity, repeat bq_update with gate_status_update=true and the fresh expected_version, and verify again; for a parse failure, re-dispatch CC with the raw-JSON instruction
 - id: E-03
-  trigger: An instance needs the peer bus for a follow-up message or wants the single MP builder lane.
+  trigger: An instance needs the peer bus for a follow-up message or wants an MP repository queue.
   pre_conditions:
     - peer bus drained this cycle (at open, before dispatch, before merge, before close)
-    - for a lane request, no unacked lane claim from the peer
+    - for a repository-queue request, no unacked claim for that repository from the peer
   tool_or_endpoint: peer_msg_send(to=<peer>, kind=claim, ref_entity=<entity>, body=<lane_claim>) followed by dispatch_mp_build(task=<bounded_build_task>, cwd=<absolute_repo>, bq_code=<code>, caller_instance=<self>, dispatch_class=structural) once the lane is known free
   argument_sourcing:
     ref_entity: vary it with a session or round marker on follow-ups, or change kind, because the bus silently dedupes identical (from, to, kind, ref_entity) tuples
@@ -120,8 +120,8 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
     absolute_repo: resolve from config:resource-registry and verify the clean isolated checkout/base before dispatch
   idempotency: NOT_IDEMPOTENT
   expected_success:
-    shape: persisted row returned with a new message id; a lane claim is acked or uncontested; the build dispatches without mutex contention
-    verification: the returned row id differs from any earlier message; no mp_busy error on dispatch
+    shape: persisted row returned with a new message id; a repository claim is acked or uncontested; the build dispatches without same-repository contention
+    verification: the returned row id differs from any earlier message; the repository Task Spooler socket shows no overlapping build
   expected_failures:
     - signature: peer_msg_silent_dedupe
       cause: identical tuple to an earlier message; the send returns success but no new message is delivered
@@ -187,12 +187,12 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
   integrity_check: a new message row id is returned and the peer acks
 - id: G-06
   symptom_ref: F-06
-  component_ref: MP builder lane
-  root_cause: single-builder lane contention, or a silently completed task mistaken for a failure
-  repair_entry_point: wait for the peer's lane-free status; verify ground truth with git status before any redispatch
+  component_ref: MP per-repository build queue
+  root_cause: same-repository queue contention, or a silently completed task mistaken for a failure
+  repair_entry_point: wait for that repository's queue-free status; verify ground truth with git status before any redispatch
   change_pattern: coordination only; no forced release except a genuine stale-claim reconciliation
   rollback_procedure: none
-  integrity_check: dispatch proceeds without mp_busy and no duplicate build lands
+  integrity_check: dispatch proceeds without same-repository overlap and no duplicate build lands; unrelated repositories may run in parallel
 ```
 
 ## Changes and maintenance

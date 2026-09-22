@@ -9,7 +9,7 @@ error_signatures: []
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for CI gates AND deploy verification after the S612 consolidation that collapsed ~8 process BQs into BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1). Per Council mandate, this file now covers BOTH pre-merge CI gates (branch protection, lint, smoke tests) and post-merge activation verification (proof-of-life checks).
 >
 > **Section layout:**
-> - **§CI Gates (pre-merge)** — main-branch protection rules across ai-market-backend, ai-market-frontend, ops-ai-market, koskadeux-mcp, aim-node; required CI checks before merge; branch-protection configuration.
+> - **§CI and local gates (pre-merge)** — use each repository's actual workflow inventory. In particular, ai-market-frontend has no PR CI; its only workflow is `.github/workflows/deploy-receipt.yml`, so frontend review evidence comes from the required local checks below.
 > - **§Lint gates** — lint pass enforcement; ops-ai-market lint configuration.
 > - **§Deploy verification (post-merge)** — Railway deploy receipt verification; production smoke tests; activation proof-of-life (existing body below).
 >
@@ -115,6 +115,20 @@ Expected output:
 - If the response includes version or SHA data, it matches the pushed commit
 - If not, run one probe against the changed endpoint or response field
 **3. `ai-market-frontend`**
+
+Pre-merge evidence: opening a draft PR does not run frontend CI. The builder
+report and reviewer request must include local results from the exact candidate
+SHA for all three commands:
+
+```bash
+npm run typecheck
+npm test
+npm run lint
+```
+
+`npm test` is the Vitest suite. A PR, deploy receipt, or green backend Gold
+Path run is not a substitute for these frontend results.
+
 Identify:
 ```bash
 git -C /Users/max/Projects/ai-market/ai-market-frontend diff --name-only <base>..<head>

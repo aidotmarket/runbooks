@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** before Council dispatch or voter validation.
 
-> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
@@ -22,7 +22,7 @@ error_signatures:
 > Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
 > Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
-**Source constitution:** CORE v9.13, SHA-256 `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`, sections 4 and 5. Normative extracts below name their CORE section and source SHA.
+**Source:** CORE §§4–5. Normative extracts below name their CORE section.
 
 ## Capabilities
 
@@ -42,7 +42,7 @@ error_signatures:
 
 ### Normative projection — CORE §4
 
-Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
+Source: CORE §4.
 
 > Each Council brain has different tools, behavioral defaults, and quirks. **This document names the roles; the live roster and current models live in `infra:council-comms` and the model registry — CORE does not pin model versions, because they change.** Before dispatching any Council task, check `state_get("infra:council-comms")` for the canonical reference.
 
@@ -53,7 +53,7 @@ separate current gateway tool.
 
 ### Normative projection — CORE §5
 
-Source SHA: `a8b4fa86b5cebc2c704e72219a0adfd8d63c84efd6dce60e6f7198161782e268`.
+Source: CORE §5.
 
 > The gate voter panel is exactly **GLM, DeepSeek, Gemini** — three voters, unanimous 3/3, an unusable vote rerun once and then the gate fails. CC is an explicit-name, non-Council second opinion; Kimi is removed (S1721). All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
 
