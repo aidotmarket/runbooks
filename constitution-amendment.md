@@ -1,7 +1,7 @@
 ---
 title: Constitution Amendment — changing CORE.md
 owner: mars
-last_verified: '2026-07-28'
+last_verified: '2026-09-22'
 aliases: []
 error_signatures:
 - missing / malformed / model-mismatched verdict
@@ -14,7 +14,7 @@ error_signatures:
 
 # Constitution Amendment — changing CORE.md
 
-**The rule (CORE v9.16; voter roster updated S1651):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (CC, GLM, DeepSeek — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. Kimi is an explicit-name, non-voting comparison seat. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
+**The rule (per CORE §5):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (GLM, DeepSeek, Gemini — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. CC is a non-Council second opinion dispatched by explicit name and never counts toward the gate; Kimi is removed. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 
 ## Overview
 
@@ -35,14 +35,14 @@ error_signatures:
 |---|---|---|---|---|
 | Living State entity | `tools/state.py:state_request` | Postgres `state_entities`, key `infra:constitution` (body.content, body.version_label, append-only amendment records) | kd_session_open boot payload; ops console | Boot source of truth. Optimistic `expected_version` on every write. |
 | Git mirror | `ai-market-backend:docs/core/CORE.md` | git, backend main | Railway auto-deploys backend on push (docs-only change still rebuilds) | Mirrors the entity byte-for-byte. On divergence the entity wins (G-02). |
-| Boot delivery | `tools/session.py:kd_session_open` | Titan-1 `registry.db` | both instances on every open | 46,000-char wire budget; §3 marker assertion; constitution_source=db. |
-| Council gate | `tools/agents.py:council_request` | council task logs | CC / GLM / DeepSeek voters; Kimi comparison-only | 3/3 valid unanimous voter verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
+| Boot delivery | `tools/session.py:kd_session_open` | Titan-1 `registry.db` | both instances on every open | 64,000-char boot wire budget (the boot kernel, not full CORE, is delivered); §3 marker assertion; constitution_source=db. |
+| Council gate | `tools/agents.py:council_request` | council task logs | GLM / DeepSeek / Gemini voters; CC non-Council second opinion only | 3/3 valid unanimous voter verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
 
 ## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan / Mars | dispatch the amendment diff to each voter | `council_request` (agent=cc, glm, deepseek) | MCP session | COMPLETE |
+| Vulcan / Mars | dispatch the amendment diff to each voter | `council_request` (agent=glm, deepseek, gemini) | MCP session | COMPLETE |
 | Vulcan / Mars | apply the entity patch | `state_request` action=patch | MCP session (boot-gated) | COMPLETE |
 | Vulcan / Mars | commit + push the git mirror | `shell_request` (git; `KD_ALLOW_MAIN_PUSH=1` on the push) | Titan-1 shell | COMPLETE |
 | Max | final approval / veto | direct instruction in session | human | COMPLETE |
@@ -55,11 +55,11 @@ error_signatures:
   pre_conditions:
     - Exact old→new wording drafted (verbatim strings, not a paraphrase)
     - The §3 comms marker text is untouched by the diff
-    - Projected content size under 46,000 chars
+    - Boot kernel stays within its manifest `enforced_kernel_max_chars` and the boot wire within 64,000 chars
     - No explicit Max supersession is inferred; the standard path applies unless Max has expressly named the exact matter being superseded
-  tool_or_endpoint: council_request (three voter dispatches, agent=cc / glm / deepseek; optional agent=kimi only for explicit non-voting comparison)
+  tool_or_endpoint: council_request (three voter dispatches, agent=glm / deepseek / gemini; optional agent=cc only for an explicit non-Council second opinion that never counts)
   argument_sourcing:
-    diff: give CC the exact old→new wording required by its read-only review path; GLM and DeepSeek must read the pinned commit through their bounded read-only paths; any Kimi comparison remains non-authoritative
+    diff: give each voter the exact old→new wording and the pinned commit (runbooks/council.md); any CC second opinion remains non-authoritative
     verdict_enum: offer APPROVE | APPROVED_WITH_MANDATES | REJECT verbatim
   idempotency: IDEMPOTENT
   expected_success:
@@ -135,6 +135,22 @@ error_signatures:
       once the entity is patched, the running tree fast-forwarded and the handler reloaded. If it
       still fails after the operator reports the cutover complete, the tree and the entity have
       genuinely diverged: escalate with both hashes rather than retrying.
+      RELOAD IS ONLY FOR CODE (S1739, CORE v9.19): tools/boot_kernel_v2.py `_read_artifact` reads
+      KERNEL.md and manifest from disk on every call and nothing caches them, so a repin that changes
+      only boot_kernel/v2 data files and tests needs the fast-forward of /Users/max/koskadeux-mcp and
+      no handler reload. Reload only when the fast-forward also changes Python the running server
+      imports. v9.19 cutover order that worked: MERGING on the bus; push both mains with
+      `KD_ALLOW_MAIN_PUSH=1 git push origin refs/heads/<branch>:refs/heads/main` (the pre-push
+      guardrail refuses a raw SHA as the local ref: "refusing malformed pre-push record ... local_ref");
+      PATCH infra:constitution via localhost:8765/api/call with body {content, version_label, change,
+      source, core_amendment_<session>} and expected_version (patch merges body keys; earlier
+      core_amendment_* records survive); readback via tools.session._constitution_entity_content (the backend
+      GET with .env INTERNAL_API_KEY; `state_request get` truncates this entity's content, so never verify through it) and
+      byte-compare to `git show origin/main:docs/core/CORE.md`; `git pull --ff-only` in
+      /Users/max/koskadeux-mcp; load_boot_kernel(readback) PASS; CUTOVER DONE on the bus. Kernel
+      text growth also moves `serialized_boot_kernel_chars` and `finalized_wire_chars` in the manifest
+      and the pinned literals in tests/test_boot_kernel_v2.py and
+      tests/test_boot_delivery_contract_fixture.py; take the new values from the failing assertions.
       SECOND WRITER (S1721 observation, traced S1733): between the two v9.18 PATCH attempts something
       wrote backend CORE.md into infra:constitution as v30. The only write path to that entity outside
       the session tooling is the ops console boot-content editor, PUT /ops/boot-content/constitution
@@ -166,7 +182,7 @@ error_signatures:
     file_content: git show origin/main:docs/core/CORE.md
   idempotency: IDEMPOTENT
   expected_success:
-    shape: version_label matches, marker text present, sizes equal and under 46,000
+    shape: version_label matches, marker text present, entity text byte-equal to the file
     verification: read-only comparison
   expected_failures:
     - signature: entity and file differ
@@ -211,17 +227,17 @@ error_signatures:
   repair_entry_point: docs/core/CORE.md §3 Execution Philosophy (Communicating with Max clause)
   change_pattern: restore the marker sentence verbatim ("The ONLY Max-facing output in a round is one short end-of-round summary"), re-run the boot-contract test, then re-apply the amendment around the protected text; if size is the problem, trim history prose per the v9.9 precedent rather than raising the budget
   rollback_procedure: revert to the prior entity version (entity history) and prior git commit
-  integrity_check: test_constitution_comms_invariant.py green; content size under 46,000
+  integrity_check: test_constitution_comms_invariant.py green; load_boot_kernel PASS on the repinned pair
 ```
 
 ## Changes and maintenance
 
 ### H.1 Invariants
 
-- Every CORE.md change — including editorial — requires a unanimous Council gate (CC, GLM, DeepSeek; 3/3 valid verdicts) AND Max's direct approval, unless Max explicitly supersedes the Council for the exact named matter under CORE v9.16 §5. Kimi comparison cannot satisfy the gate. Supersession must be recorded in the Event Ledger and may never be inferred. No reduced quorum, voter substitution, or builder vote is permitted.
+- Every CORE.md change — including editorial — requires a unanimous Council gate (GLM, DeepSeek, Gemini; 3/3 valid verdicts) AND Max's direct approval, unless Max explicitly supersedes the Council for the exact named matter under CORE §5. A CC second opinion cannot satisfy the gate. Supersession must be recorded in the Event Ledger and may never be inferred. No reduced quorum, voter substitution, or builder vote is permitted.
 - The §3 comms-invariant marker text stays verbatim; the boot-contract test enforces it.
 - `infra:constitution` is the boot source of truth; the git file is a mirror.
-- Total content stays under the 46,000-char boot wire budget.
+- The boot wire stays within the 64,000-char budget (tools/session.py BOOT_WIRE_BUDGET_CHARS).
 - Amendment records in the entity body are append-only; approvals are quoted verbatim.
 
 ### H.2 BREAKING predicates
@@ -257,7 +273,7 @@ Postgres (state_entities) on Railway; the koskadeux MCP server (localhost:8765) 
 
 #### config default
 
-The 46,000-char boot wire budget (koskadeux-mcp boot fit logic); KD_ALLOW_MAIN_PUSH gate on backend main pushes.
+The 64,000-char boot wire budget (koskadeux-mcp boot fit logic, BOOT_WIRE_BUDGET_CHARS); KD_ALLOW_MAIN_PUSH gate on backend main pushes.
 
 ### H.6 Adjudication
 
