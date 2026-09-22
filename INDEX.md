@@ -1134,6 +1134,15 @@
 - Error signatures: none
 - Status: current
 
+## Transactional email from the backend (Resend)
+- Path: `runbooks/transactional-email.md`
+- Purpose: Every customer-facing system email the ai.market backend sends (verification, password reset, magic links, inquiry notices, lifecycle emails, sale and order emails) goes through one class: `EmailService` in `ai-market-backend/app/services/email_service.py`, obtained with `get_email_service()`. Its single sending entry point is `EmailService.send_email(...)`; every `send_<something>` method builds the subject and HTML/text body and then calls `send_email`.
+- Owner: `vulcan`
+- Last verified: `2026-09-22`
+- Aliases: Resend, RESEND_API_KEY, EmailService, send_email, sale notification, order ready email, noreply@ai.market
+- Error signatures: 'EmailService' object has no attribute 'send_seller_sale_notification', 'EmailService' object has no attribute 'send_order_ready', idempotent email provider unavailable, synthetic-triggered email suppressed
+- Status: current
+
 ## two-factor-auth — TOTP Two-Factor Authentication Reference
 - Path: `two-factor-auth.md`
 - Purpose: Reference for the customer-facing TOTP (authenticator-app) two-factor flow in `ai-market-backend`: how a user enrolls, how the secret is stored, the server-side encryption key it depends on, and the failure modes and fixes. This is the runbook to read first whenever 2FA enable/verify returns a 500 on `ai.market/dashboard/settings`.

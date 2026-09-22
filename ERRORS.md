@@ -1,5 +1,13 @@
 # Error signatures
 
+## `'EmailService' object has no attribute 'send_order_ready'`
+
+- [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
+
+## `'EmailService' object has no attribute 'send_seller_sale_notification'`
+
+- [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
+
 ## `'oauth_provider' is an invalid keyword argument for User`
 
 - [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
@@ -639,6 +647,10 @@
 ## `HTTP 503 Publish unavailable: security services offline`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `idempotent email provider unavailable`
+
+- [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
 
 ## `immutable mint-policy validation failed`
 
@@ -1383,6 +1395,10 @@
 ## `support_reconciliation_deadline`
 
 - [Issue Channel](issue-channel.md)
+
+## `synthetic-triggered email suppressed`
+
+- [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
 
 ## `target socket remains usable after a check opportunity`
 
