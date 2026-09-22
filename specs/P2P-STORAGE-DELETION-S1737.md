@@ -59,8 +59,11 @@ Acceptance, generated rather than hand-listed: the builder's script walks the AS
 
 ## After deploy
 
-A runbooks PR, which is a release-1 gate (do not deploy release 1 without it), rewrites `runbooks/delivery-ack-monitor.md` down to the surviving legacy monitor (no manifest route, no `MANIFEST_DELIVERY_REQUIRED` remedy) and the procedure in `runbooks/data-delivery-p2p.md` so it never names a dropped object: step 3 loses the `relay_nodes`, `relay_sessions` and `staging_rows` lines; the rest stays until the bucket is gone. The current step 3 is run only before merge; after the migration, only the rewritten procedure is run.
+Release 1 (code). Gate: a runbooks PR that rewrites `runbooks/delivery-ack-monitor.md` down to the surviving legacy monitor (no manifest route, no `MANIFEST_DELIVERY_REQUIRED` remedy) merges with it. Then: `/health` green; run the full procedure in `runbooks/data-delivery-p2p.md` (every object still exists); confirm on Railway that no previous-image deployment is running for web, worker or beat.
 
-1. `/health` green; `alembic_version` at the new head; run the rewritten procedure.
-2. Remove `LISTING_ASSET_*` from Infisical `ai-market-backend` prod (`infisical-secrets.md`).
-3. Max deletes the `aimarket-listing-assets` bucket and its bucket-scoped token in the Cloudflare dashboard (he created both, 2026-09-16). Then drop the bucket step from the procedure, retire `listing-asset-store.md`, and update the current-state table.
+Release 2 (migration). Run the full procedure immediately before merging. Gate: a runbooks PR that removes the `relay_nodes`, `relay_sessions`, `relay_registered` and `staging_rows` lines from procedure step 3 merges with it. Then: `/health` green; `alembic_version` at the new head; run the rewritten procedure.
+
+Afterwards:
+
+1. Remove `LISTING_ASSET_*` from Infisical `ai-market-backend` prod (`infisical-secrets.md`).
+2. Max deletes the `aimarket-listing-assets` bucket and its bucket-scoped token in the Cloudflare dashboard (he created both, 2026-09-16). Then drop the bucket step from the procedure, retire `listing-asset-store.md`, and update the current-state table.
