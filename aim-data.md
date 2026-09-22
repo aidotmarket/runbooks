@@ -157,7 +157,7 @@ Which AI agents touch AIM Data and what they can do.
 | allAI (embedded chat / CoPilot) | AIM Data container UI; all LLM calls go out through the ai.market `/agentic` proxy (no customer Anthropic key) | Every-page in-product assistant; on the S3 setup screen it walks the seller through creating the IAM role, hands them the trust policy stamped with their external ID, and validates the pasted role ARN | Proxy-only. Metered + capped per the allAI usage billing policy (see the allAI usage billing section below; `monthly_free_cap` shipped S779). |
 | ai.market MCP server (server-side) | ai.market backend | Exposes the marketplace to AI agents: search, listing detail, purchase intent, requirements board | AIM Data's listings are automatically agent-discoverable through this. No extra integration on the seller's side. |
 | AIM Data MCP server (customer-side) | Inside the AIM Data container | Exposes seller-side data operations (listing draft, publish, source management) to local AI agents | Customer-side automation. Off by default; customer enables when they want agent-driven publishing. |
-| AG / MP / DeepSeek / CC (Council) | ai.market backend during build/review | Reviews specs and PRs that touch AIM Data. Not customer-facing. | Internal dev only. Never exposed to sellers or buyers. |
+| MP (builder); GLM / DeepSeek / Gemini (Council); CC (non-Council second opinion) | ai.market backend during build/review | Reviews specs and PRs that touch AIM Data. Not customer-facing. | Internal dev only. Never exposed to sellers or buyers. |
 
 The principle from CORE.md §2 holds end-to-end: **allAI mediates everything**. Buyers and sellers never communicate directly. The agent that prepared the listing on the seller's side is the same one that answers a buyer's clarifying question on the marketplace side.
 
@@ -264,6 +264,8 @@ The **only** path that puts a listing on the live market:
 ### Buyer purchases, delivery happens
 
 When a buyer purchases on ai.market, Stripe processes payment. ai.market sends the seller's AIM Data instance a signed delivery token over the Trust Channel. AIM Data validates the token, opens an encrypted peer-to-peer channel to the buyer (ChaCha20-Poly1305, per-session ephemeral keys), and streams the bytes. The relay sees only ciphertext. ai.market never sees the data. Stripe Connect pays out the seller minus the 5% marketplace commission.
+
+> **Production reality (S1737, 2026-09-22):** the paragraph above is the design and the rule, not what production does today. Live AIM Data orders use the legacy Trust Channel fulfilment path: the install streams the file to the ai.market backend, which writes it to `/tmp/fulfillment` and issues the buyer token (verified end to end S1736, order `fb5eab96`). That path is being replaced under T-2026-000839. Rule, current violations and verification: `runbooks/data-delivery-p2p.md`.
 
 ### Update to a new version
 

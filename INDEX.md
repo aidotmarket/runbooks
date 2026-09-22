@@ -83,9 +83,9 @@
 
 ## ai.market Listing-Asset Object Store (Cloudflare R2)
 - Path: `listing-asset-store.md`
-- Purpose: **Purpose:** the one object store ai.market owns. It holds seller-chosen free-sample files (multi-file datasets, both routes) and — after the chunk D amendment of `specs/BQ-MULTI-FILE-DATASETS-S1717-GATE2.md` — delivery staging for AIM Data-route directory orders. Before it existed the backend had no store of its own: the rows sample lived in Postgres and fulfillment staging was `/tmp/fulfillment` on a Railway container with no volume (Gate 2 §2, §4.4). Decision D-G2-1: Max, 2026-09-16 ("Lets do the cloudflare bucket"), Event Ledger `cc3a2b7e`.
+- Purpose: **Superseded use (Max, S1736, 2026-09-22):** delivered files and real seller-row samples must never be stored here. Delivery is peer-to-peer only; R2 for delivered files was rejected. The chunk C0/D code that writes samples and `orders/` staging stays flag-off (`MULTI_FILE_DATASETS_ENABLED`, `WORKSPACE_SAMPLE_FILES_ENABLED` unset in production) until it is rebuilt peer-to-peer. Verified S1737: bucket holds 0 objects. Rule and procedure: `runbooks/data-delivery-p2p.md`. The text below records what was built and how to operate the bucket; it is not authority to put seller data in it.
 - Owner: `mars`
-- Last verified: `2026-09-17`
+- Last verified: `2026-09-22`
 - Aliases: listing asset store, aimarket-listing-assets, sample file store, LISTING_ASSET_BUCKET
 - Error signatures: sample_store_unavailable, listing_asset_access_denied
 - Status: current
@@ -513,6 +513,15 @@
 - Error signatures: none
 - Status: archived
 
+## Data delivery is peer-to-peer only (ai.market never holds a delivered file)
+- Path: `runbooks/data-delivery-p2p.md`
+- Purpose: File delivery is peer to peer. The buyer gets the bytes directly from the seller's AIM Data install or from the seller's own cloud storage. ai.market holds the order record and issues download permission (a token, or a short-lived scoped credential or signed link on the seller's own storage). It never stores, stages, caches, relays or proxies the bytes of a delivered data file, on disk, in memory beyond a pass-through, or in any object store it owns.
+- Owner: `vulcan`
+- Last verified: `2026-09-22`
+- Aliases: P2P delivery rule, peer-to-peer delivery, no custody of delivered files, delivery custody, automatic rejection reason, stream-to-disk, /tmp/fulfillment
+- Error signatures: none
+- Status: current
+
 ## Data verification — seller journey and operator checks
 - Path: `data-verification-seller-journey.md`
 - Purpose: The feature built under `BQ-DATA-VERIFICATION-S1590` (specs `specs/BQ-DATA-VERIFICATION-S1590-GATE1.md`, `-GATE2.md`, `-PAYIN-ONBOARDING-AMENDMENT.md`, `-GENERAL-AVAILABILITY-AMENDMENT.md`) lets a seller pay for a point-in-time structural scan that AIM Data executes inside the seller's environment. What crosses to ai.market is the approved aggregate manifest (the signed shape report), the sanitized structural context, the owner consent/launch envelope and, on failure, fixed-enum terminal errors; no raw cell values, sample rows, locators or credentials ever leave the seller's environment (Gate 1 §6). This page is the operating view: what the seller sees, what ai.market does at each step, and how an operator confirms the path is live without spending money or touching a customer. Design rules live in the specs; do not restate or amend them here.
@@ -533,9 +542,9 @@
 
 ## Dataset-Card Publishing (HuggingFace / Kaggle / data.world)
 - Path: `dataset-card-publishing.md`
-- Purpose: Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata-only by default; actual sample rows publish only to HuggingFace and only with a seller-approved disclosure snapshot.
+- Purpose: Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata only; real seller rows are never published (retired S1736, `runbooks/data-delivery-p2p.md`).
 - Owner: `vulcan`
-- Last verified: `2026-07-10`
+- Last verified: `2026-09-22`
 - Aliases: none
 - Error signatures: job status dead with 401/403 in last_error, job status dead with 400 in last_error (Kaggle), row stays pending > 10 min, status dead, first job dead with 4xx
 - Status: current
