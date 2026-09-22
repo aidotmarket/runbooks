@@ -60,10 +60,11 @@ d=json.load(sys.stdin)
 for k in ("MULTI_FILE_DATASETS_ENABLED","WORKSPACE_SAMPLE_FILES_ENABLED","DEMO_FULFILLMENT","FULFILLMENT_STAGING_DIR"): print(k, d.get(k,"<unset>"))
 s3=boto3.client("s3",endpoint_url=d["LISTING_ASSET_ENDPOINT"],aws_access_key_id=d["LISTING_ASSET_R2_ACCESS_KEY_ID"],aws_secret_access_key=d["LISTING_ASSET_R2_SECRET_ACCESS_KEY"],region_name="auto")
 b=d["LISTING_ASSET_BUCKET"]
-print("delivery_objects", s3.list_objects_v2(Bucket=b,Prefix="orders/",MaxKeys=1000).get("KeyCount"))
+keys=[o["Key"] for pg in s3.get_paginator("list_objects_v2").paginate(Bucket=b) for o in pg.get("Contents",[])]
+print("delivery_objects", sum(k.startswith("orders/") for k in keys))
 print("delivery_multipart_uploads", len(s3.list_multipart_uploads(Bucket=b,Prefix="orders/").get("Uploads",[])))
-print("sample_objects (allowed)", s3.list_objects_v2(Bucket=b,Prefix="samples/",MaxKeys=1000).get("KeyCount"), s3.list_objects_v2(Bucket=b,Prefix="samples-staging/",MaxKeys=1000).get("KeyCount"))
-print("other_prefix_objects", sum(1 for o in s3.list_objects_v2(Bucket=b,MaxKeys=1000).get("Contents",[]) if not o["Key"].startswith(("orders/","samples/","samples-staging/"))))'
+print("sample_objects (allowed)", sum(k.startswith(("samples/","samples-staging/")) for k in keys))
+print("other_prefix_objects", sum(not k.startswith(("orders/","samples/","samples-staging/")) for k in keys))'
 # 2. Container disk at the effective staging path (pass the remote command as ONE quoted string; `railway ssh -- sh -c ...` silently runs in the app directory instead)
 railway ssh -e production -s ai-market-backend 'D="${FULFILLMENT_STAGING_DIR:-/tmp/fulfillment}"; echo "$D"; test -d "$D" && find "$D" -type f | wc -l || echo ABSENT'
 # 3. Database (read-only counts; DSN script as used in dataset-card-publishing.md)
