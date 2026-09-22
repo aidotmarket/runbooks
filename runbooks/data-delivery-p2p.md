@@ -60,8 +60,10 @@ d=json.load(sys.stdin)
 for k in ("MULTI_FILE_DATASETS_ENABLED","WORKSPACE_SAMPLE_FILES_ENABLED","DEMO_FULFILLMENT","FULFILLMENT_STAGING_DIR"): print(k, d.get(k,"<unset>"))
 s3=boto3.client("s3",endpoint_url=d["LISTING_ASSET_ENDPOINT"],aws_access_key_id=d["LISTING_ASSET_R2_ACCESS_KEY_ID"],aws_secret_access_key=d["LISTING_ASSET_R2_SECRET_ACCESS_KEY"],region_name="auto")
 b=d["LISTING_ASSET_BUCKET"]
-print("objects", s3.list_objects_v2(Bucket=b,MaxKeys=1000).get("KeyCount"))
-print("multipart_uploads", len(s3.list_multipart_uploads(Bucket=b).get("Uploads",[])))'
+print("delivery_objects", s3.list_objects_v2(Bucket=b,Prefix="orders/",MaxKeys=1000).get("KeyCount"))
+print("delivery_multipart_uploads", len(s3.list_multipart_uploads(Bucket=b,Prefix="orders/").get("Uploads",[])))
+print("sample_objects (allowed)", s3.list_objects_v2(Bucket=b,Prefix="samples/",MaxKeys=1000).get("KeyCount"), s3.list_objects_v2(Bucket=b,Prefix="samples-staging/",MaxKeys=1000).get("KeyCount"))
+print("other_prefix_objects", sum(1 for o in s3.list_objects_v2(Bucket=b,MaxKeys=1000).get("Contents",[]) if not o["Key"].startswith(("orders/","samples/","samples-staging/"))))'
 # 2. Container disk at the effective staging path (pass the remote command as ONE quoted string; `railway ssh -- sh -c ...` silently runs in the app directory instead)
 railway ssh -e production -s ai-market-backend 'D="${FULFILLMENT_STAGING_DIR:-/tmp/fulfillment}"; echo "$D"; test -d "$D" && find "$D" -type f | wc -l || echo ABSENT'
 # 3. Database (read-only counts; DSN script as used in dataset-card-publishing.md)
@@ -72,15 +74,17 @@ cd /Users/max/Projects/ai-market && DSN="$(scripts/test-db-dsn.sh 2>/dev/null)" 
   -c "select 'relay_nodes', count(*) filter (where relay_mode) from aim_nodes" \
   -c "select 'relay_sessions', count(*) from aim_sessions where connection_mode='relay'" \
   -c "select 'relay_registered', count(*) from aim_nodes where relay_registered_at is not null" \
-  -c "select 'staging_rows', (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter)+(select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
+  -c "select 'delivery_tables_present', count(*) from information_schema.tables where table_schema='public' and table_name in ('order_staging','transfer_session_members','transfer_chunk_receipts','transfer_part_receipts','order_delivery_members','buyer_download_meter')" \
+  -c "select 'sample_rows (allowed)', (select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
+# Before the storage deletion ships, the six delivery tables still exist: also run  select (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter);  and expect 0.
 ```
 
-Expected: every flag `<unset>` or `false` (`FULFILLMENT_STAGING_DIR` `<unset>`), `objects 0`, `multipart_uploads 0`, disk `ABSENT` or `0`, and every database count 0. Anything else: see below.
+Expected: `MULTI_FILE_DATASETS_ENABLED`, `DEMO_FULFILLMENT` `<unset>` or `false`, `FULFILLMENT_STAGING_DIR` `<unset>`; `delivery_objects 0`, `delivery_multipart_uploads 0`, `other_prefix_objects 0`; disk `ABSENT` or `0`; `legacy_row_columns`, `datasets_sample_data` and every relay count 0; `delivery_tables_present` 0 once the storage deletion has shipped (6 before, with 0 rows). Sample objects and sample rows are allowed (seller-chosen public samples, CORE v9.19) and are reported for information only. Anything else: see below.
 
-Never set any of these flags to true in production without a peer-to-peer design approved by unanimous Council and Max's approval to enable it.
+Never set `MULTI_FILE_DATASETS_ENABLED` or `DEMO_FULFILLMENT` to true in production without a peer-to-peer design approved by unanimous Council and Max's approval to enable it. `WORKSPACE_SAMPLE_FILES_ENABLED` gates only the seller-chosen public sample; enabling it needs Max's go-ahead for samples, not a peer-to-peer design.
 
 ## When it breaks
 
-- **Delivered bytes found on ai.market infrastructure** (any bucket object or multipart upload, files under `/tmp/fulfillment`, a non-zero database count, a relay session carrying data): this is customer data held against the rule. Stop the path that wrote it (turn the flag off), tell Mars on the peer bus and Max directly, and record the object keys, order ids and seller ids without reading content. Deletion follows Max's decision.
+- **Delivered bytes found on ai.market infrastructure** (any `orders/…` or unexpected-prefix bucket object or multipart upload, files under `/tmp/fulfillment`, a non-zero delivery or relay count, a relay session carrying data; sample objects and sample rows are not a breach): this is customer data held against the rule. Stop the path that wrote it (turn the flag off), tell Mars on the peer bus and Max directly, and record the object keys, order ids and seller ids without reading content. Deletion follows Max's decision.
 - **A review approves a change that stores or relays delivered bytes**: the gate is invalid. Reopen it at Gate 2 with this page cited.
 - **Legacy path files in `/tmp/fulfillment`**: expected until step 2 ships; the Railway container disk is ephemeral, so files vanish on redeploy (this is also why buyers could not download in the S1736 end-to-end run). Do not "fix" that by moving staging to a bucket.
