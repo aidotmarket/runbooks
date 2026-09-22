@@ -12,6 +12,8 @@ error_signatures: ["NameError: name 'uuid' is not defined", "AUTHORIZATION_MISMA
 
 When a seller's AIM Data install streams a purchased dataset to ai.market over the trust channel, accepted chunks are acknowledged in windows (every 4th chunk and the final chunk, `ACK_WINDOW = 4`, on both the legacy and manifest routes). After each ACK the backend (`app/api/v1/endpoints/trust_websocket.py`, `_handle_fulfillment_action`) schedules a per-transfer monitor (`schedule_ack_monitor` in `app/services/fulfillment_listener_service.py`): if no further chunk arrives within 30 s it re-sends the ACK once, and after another 30 s it aborts the transfer (`FulfillmentListenerService.abort_transfer`, legacy or manifest route). The monitor is keyed by the canonical transfer UUID string; a non-UUID transfer id is never scheduled.
 
+> The transfer this monitor watches streams the buyer's file through ai.market, which breaks the peer-to-peer delivery rule (`runbooks/data-delivery-p2p.md`). It is the live path until T-2026-000839 replaces it; keep it working, do not extend it.
+
 A monitor stops only when the proven owner of that exact transfer ends it:
 
 - a chunk, complete or error frame, after the `(transfer_id, order_id, seller_id)` session is confirmed (`_legacy_handle_chunk`, `_legacy_handle_complete`, `_legacy_handle_error`, `ManifestFulfillment.dispatch`);

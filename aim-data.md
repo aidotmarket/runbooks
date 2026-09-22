@@ -265,6 +265,8 @@ The **only** path that puts a listing on the live market:
 
 When a buyer purchases on ai.market, Stripe processes payment. ai.market sends the seller's AIM Data instance a signed delivery token over the Trust Channel. AIM Data validates the token, opens an encrypted peer-to-peer channel to the buyer (ChaCha20-Poly1305, per-session ephemeral keys), and streams the bytes. The relay sees only ciphertext. ai.market never sees the data. Stripe Connect pays out the seller minus the 5% marketplace commission.
 
+> **Production reality (S1737, 2026-09-22):** the paragraph above is the design and the rule, not what production does today. Live AIM Data orders use the legacy Trust Channel fulfilment path: the install streams the file to the ai.market backend, which writes it to `/tmp/fulfillment` and issues the buyer token (verified end to end S1736, order `fb5eab96`). That path is being replaced under T-2026-000839. Rule, current violations and verification: `runbooks/data-delivery-p2p.md`.
+
 ### Update to a new version
 
 When I release a new version:
