@@ -88,6 +88,10 @@
 
 - [allAI — Agent Intelligence Layer](allai-agents.md)
 
+## `ai.market can only be used within its organisation`
+
+- [GCP Auth](gcp-auth.md)
+
 ## `ai.market returned an invalid scan-spec response`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
@@ -475,6 +479,10 @@
 ## `env_var_in_inherited_only`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `Error 403: org_internal`
+
+- [GCP Auth](gcp-auth.md)
 
 ## `Error occurred during tool execution`
 
