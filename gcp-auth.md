@@ -1,13 +1,17 @@
 ---
 title: GCP Auth
 owner: vulcan
-last_verified: '2026-09-21'
+last_verified: '2026-09-22'
 aliases:
 - Vertex authentication
 - Gmail OAuth
 - gcloud credentials
 - Trust Channel KMS
+- Sign in with Google
+- OAuth consent screen
 error_signatures:
+- 'Error 403: org_internal'
+- ai.market can only be used within its organisation
 - 'invalid_grant: Bad Request'
 - Failed to authenticate Gmail
 - 'RefreshError: Reauthentication is needed. Please run gcloud auth application-default login'
@@ -25,7 +29,7 @@ error_signatures:
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Gmail OAuth refresh-token storage and use | SHIPPED | `ai-market-backend gmail_tokens table + GmailService/GmailWatchService` | Exercised by briefing send and drop-pipeline watch paths | 2026-06-01 |
-| OAuth consent screen = Internal (non-expiring refresh tokens) | SHIPPED | `Google Auth Platform > Audience > User type (project aimarket-prod)` | Found NOT Internal on 2026-09-21 despite the 2026-06-01 check; Max set it to Internal 2026-09-21 (S1734) | 2026-09-21 |
+| OAuth consent screen = External, publishing status In production (customer Google sign-in works; Gmail refresh tokens do not expire) | SHIPPED | `Google Auth Platform > Audience > User type (project aimarket-prod)` | Found NOT Internal on 2026-09-21 despite the 2026-06-01 check; Max set it to Internal 2026-09-21 (S1734), which blocked every non-ai.market customer at Google sign-in (`Error 403: org_internal`, first customer sergey@eolymp.com, 2026-09-22); Max set it to External + In production 2026-09-22 (S1736). Verified after the change: max@ and finance@ refresh tokens refresh and read Gmail | 2026-09-22 |
 | gcloud CLI session auth (Pub/Sub and GCP admin) | SHIPPED | `gcloud CLI on Titan-1` | Verified via gcloud auth list and pubsub list | 2026-06-01 |
 | Pub/Sub gmail-push topic and subscription | SHIPPED | `GCP Pub/Sub gmail-push -> api.ai.market gmail webhook` | Verified via gcloud pubsub topics/subscriptions list | 2026-06-01 |
 | Vertex AI Gemini API-key auth | SHIPPED | `ai-market-backend app.core.config Settings.VERTEX_GEMINI_KEY` | Verified via Infisical key-prefix check expecting AQ. | 2026-06-01 |
@@ -33,12 +37,12 @@ error_signatures:
 
 ## Architecture & interactions
 
-GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; these stay valid only while the GCP OAuth consent screen for project `aimarket-prod` is set to User Type Internal (External/Testing apps expire refresh tokens after 7 days and silently break briefings, the drop pipeline, and draft sending). The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
+GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; the same GCP project `aimarket-prod` also holds the customer "Sign in with Google" client (`240358013785-fb8tb9r8...`, backend `GOOGLE_OAUTH_CLIENT_ID`), so the consent-screen setting serves both. It MUST be User Type External with publishing status In production: Internal blocks every customer outside the ai.market Workspace (`Error 403: org_internal`), and Testing expires Gmail refresh tokens after 7 days and limits sign-in to listed test users. The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Gmail OAuth | `GmailService / GmailWatchService` | `gmail_tokens (Railway Postgres)` | Gmail API, briefing, drop pipeline, draft sending | Refresh tokens non-expiring only while consent screen is Internal |
-| OAuth Consent Screen | `GCP Console OAuth consent (project aimarket-prod)` | GCP project config | Gmail OAuth | User Type MUST be Internal; single most important setting |
+| Gmail OAuth | `GmailService / GmailWatchService` | `gmail_tokens (Railway Postgres)` | Gmail API, briefing, drop pipeline, draft sending | Refresh tokens non-expiring while the consent screen is In production (External or Internal); they expire in 7 days under Testing |
+| OAuth Consent Screen | `GCP Console OAuth consent (project aimarket-prod)` | GCP project config | Gmail OAuth and customer Google sign-in | MUST be External + In production; Internal locks customers out, Testing expires tokens |
 | gcloud CLI | `gcloud on Titan-1` | local gcloud config | Pub/Sub admin, GCP admin tasks | Interactive browser login only; Vulcan cannot do it headlessly |
 | Pub/Sub | `gmail-push topic + gmail-push-sub` | GCP Pub/Sub | Gmail watch to `https://api.ai.market/api/v1/webhooks/gmail` | Drives the inbound drop pipeline |
 | Vertex AI Gemini | `genai.Client(vertexai=True, api_key=...)` | `VERTEX_GEMINI_KEY (Infisical)` | Gemini embeddings and chat | API-key auth (AQ. prefix); embed calls MUST pass output_dimensionality |
@@ -89,7 +93,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_failure: Isolate using When it breaks-03 for account/project mismatch.
 - id: E-02
   trigger: Gmail-dependent jobs (briefing, drop pipeline, draft sending) stopped because refresh tokens expired.
-  pre_conditions: [OAuth consent screen confirmed or being set to Internal, GOOGLE_OAUTH_CREDENTIALS_JSON available in Railway env, railway CLI authenticated on Titan-1]
+  pre_conditions: [OAuth consent screen confirmed External + In production, GOOGLE_OAUTH_CREDENTIALS_JSON available in Railway env, railway CLI authenticated on Titan-1]
   tool_or_endpoint: python3 scripts/setup_gmail_auth.py <address> run by Max on Titan-1 with GOOGLE_OAUTH_CREDENTIALS_JSON from the backend service env and DATABASE_URL set to the Postgres service's DATABASE_PUBLIC_URL (both read via the Railway account token from Infisical, never printed); the script writes gmail_tokens directly. Max signs in in the browser AS the target account. Done this way 2026-09-21 (S1734) for finance@ and max@; no redeploy was needed.
   argument_sourcing:
     credentials: GOOGLE_OAUTH_CREDENTIALS_JSON sourced from Railway env (no local secret files)
@@ -98,7 +102,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: gmail_tokens rows for max@ai.market and finance@ai.market hold fresh refresh tokens and each passes a direct refresh check, verification: briefing and drop pipeline resume; confirm rows updated_at is current}
   expected_failures:
-    - {signature: "consent_screen_not_internal", cause: tokens re-expire in 7 days because User Type is still External/Testing}
+    - {signature: "consent_screen_testing", cause: tokens re-expire in 7 days because publishing status is Testing}
     - {signature: "db_unreachable_from_titan", cause: DATABASE_URL left at the backend default or the private postgres.railway.internal host; set it to the Postgres service DATABASE_PUBLIC_URL and re-run the script (no manual UPDATE needed)}
   next_step_success: Verify briefing and drop pipeline resume on the next scheduled run.
   next_step_failure: Apply Repair-01 to fix the consent screen before re-issuing tokens.
@@ -136,7 +140,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
-| F-01 | Morning briefing or drop pipeline silently stopped | Gmail refresh token expired because the OAuth consent screen is External/Testing rather than Internal | Open the GCP Console OAuth consent screen for project aimarket-prod and check User Type; check gmail_tokens.updated_at age | Repair-01 | CONFIRMED |
+| F-01 | Morning briefing or drop pipeline silently stopped | Gmail refresh token expired because the OAuth consent screen publishing status is Testing rather than In production | Open the GCP Console OAuth consent screen for project aimarket-prod and check Publishing status; check gmail_tokens.updated_at age | Repair-01 | CONFIRMED |
 | F-02 | gcloud reports `Reauthentication failed` | The interactive gcloud session expired | Run gcloud auth list and confirm whether max@ai.market is still active | Repair-02 | CONFIRMED |
 | F-03 | gcloud reports `does not have permission` or operations hit the wrong project | Wrong gcloud account active or gcloud pointed at the wrong project | Compare gcloud config account and project against max@ai.market and aimarket-prod | Repair-03 | CONFIRMED |
 | F-04 | AG council reviews fail with `RefreshError: Reauthentication is needed. Please run gcloud auth application-default login` | The AG adapter authenticated with the local user OAuth/ADC token (now expired) instead of the Vertex API key. Vertex Gemini uses the Vertex Express API key (`VERTEX_API_KEY`, AQ. prefix), NOT OAuth/ADC (How to operate, H.1). Recurs whenever the local ADC token expires. | Confirm `VERTEX_API_KEY` is present in the com.koskadeux.mcp process env (`ps eww <mcp pid>`) and AQ.-prefixed in Infisical bd272d48 | Repair-04 | CONFIRMED |
@@ -156,11 +160,11 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
 - id: G-01
   symptom_ref: F-01
   component_ref: OAuth Consent Screen
-  root_cause: The OAuth consent screen for aimarket-prod is External/Testing, so Gmail refresh tokens expire after 7 days and break briefings, the drop pipeline, and draft sending.
+  root_cause: The OAuth consent screen for aimarket-prod is in publishing status Testing, so Gmail refresh tokens expire after 7 days and break briefings, the drop pipeline, and draft sending.
   repair_entry_point: GCP Console OAuth consent screen (project aimarket-prod)
-  change_pattern: Set User Type to Internal (use MAKE INTERNAL or edit), then re-issue Gmail tokens via E-02 (setup_gmail_auth.py <address> writes gmail_tokens directly). Only the live Workspace users max@ai.market and finance@ai.market authorize; allai@ai.market is an alias of finance@ and there is no ally@ai.market account.
-  rollback_procedure: None required; Internal is the only correct setting. If re-issuance fails, retain the prior token rows until new tokens are confirmed written.
-  integrity_check: Confirm User Type reads Internal and gmail_tokens rows for both addresses show a current updated_at, then confirm the next briefing run succeeds.
+  change_pattern: Set publishing status to In production with User Type External (Audience > Publish app; Branding must have app name, support email, home page https://ai.market and privacy policy https://ai.market/legal/privacy). Never use Make internal: it blocks customer Google sign-in, then re-issue Gmail tokens via E-02 (setup_gmail_auth.py <address> writes gmail_tokens directly). Only the live Workspace users max@ai.market and finance@ai.market authorize; allai@ai.market is an alias of finance@ and there is no ally@ai.market account.
+  rollback_procedure: None required; External + In production is the only correct setting. If re-issuance fails, retain the prior token rows until new tokens are confirmed written.
+  integrity_check: Confirm User Type reads External and Publishing status reads In production and gmail_tokens rows for both addresses show a current updated_at, then confirm the next briefing run succeeds.
 - id: G-02
   symptom_ref: F-02
   component_ref: gcloud CLI
@@ -217,7 +221,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
 
 ### H.1 Invariants
 
-- The OAuth consent screen for aimarket-prod MUST be User Type Internal, or Gmail refresh tokens expire after 7 days.
+- The OAuth consent screen for aimarket-prod MUST be User Type External with publishing status In production. Internal blocks customer Google sign-in (`org_internal`); Testing expires Gmail refresh tokens after 7 days.
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
 - Every Gemini embed call MUST pass `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS`.
 - The gcloud interactive login can only be performed by Max in a browser; it is never headless.
@@ -228,7 +232,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
 
 ### H.2 BREAKING predicates
 
-- Changing the OAuth consent screen away from Internal is BREAKING because refresh tokens begin expiring.
+- Changing the OAuth consent screen to Internal is BREAKING (customers outside ai.market cannot sign in with Google); changing it to Testing is BREAKING (Gmail refresh tokens begin expiring).
 - Renaming or aliasing `VERTEX_GEMINI_KEY` is BREAKING because Pydantic case-sensitive settings will fail to load the key.
 - Moving Gemini auth to the Trust Channel service-account ADC path is BREAKING because Gemini and KMS use independent credential mechanisms and scopes.
 
@@ -240,7 +244,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
 ### H.4 SAFE predicates
 
 - Verifying auth state via the read-only gcloud and Infisical checks is SAFE.
-- Re-issuing Gmail tokens while the consent screen is already Internal is SAFE.
+- Re-issuing Gmail tokens while the consent screen is already External + In production is SAFE.
 
 ### H.5 Boundary definitions
 
@@ -305,7 +309,7 @@ scenario_set:
     type: isolate
     refs: [F-01, G-01]
     scenario: |
-      id: F-01. trigger: morning briefing or drop pipeline silently stopped. verification: check the OAuth consent screen User Type and gmail_tokens age. expected_success: classify as expired Gmail refresh token from a non-Internal consent screen. next_step_success: apply G-01.
+      id: F-01. trigger: morning briefing or drop pipeline silently stopped. verification: check the OAuth consent screen User Type and gmail_tokens age. expected_success: classify as expired Gmail refresh token from a consent screen in Testing. next_step_success: apply G-01.
     expected_answers:
       - kind: human_action
         verb: classify
@@ -349,12 +353,12 @@ scenario_set:
     type: repair
     refs: [G-01, F-01]
     scenario: |
-      id: G-01. trigger: consent screen is External so Gmail tokens keep expiring. change_pattern: set User Type to Internal then re-issue tokens via E-02. expected_success: User Type Internal and fresh tokens for both addresses. next_step_failure: retain prior token rows until new tokens are confirmed.
+      id: G-01. trigger: consent screen is in Testing so Gmail tokens keep expiring. change_pattern: publish the app (External + In production) then re-issue tokens via E-02. expected_success: External + In production and fresh tokens for both addresses. next_step_failure: retain prior token rows until new tokens are confirmed.
     expected_answers:
       - kind: human_action
         verb: set
         object: OAuth consent screen User Type
-        target: Internal then re-issue tokens
+        target: External + In production then re-issue tokens
     weight: 0.08333333333333333
   - id: I-09
     type: repair
@@ -371,7 +375,7 @@ scenario_set:
     type: evolve
     refs: [Changes and maintenance]
     scenario: |
-      id: H-01. trigger: a proposal would switch the OAuth consent screen away from Internal. expected_success: classify as BREAKING because refresh tokens begin expiring. next_step_success: block the change and keep Internal.
+      id: H-01. trigger: a proposal would switch the OAuth consent screen to Internal or back to Testing. expected_success: classify as BREAKING (Internal locks customers out of Google sign-in; Testing expires refresh tokens). next_step_success: block the change and keep External + In production.
     expected_answers:
       - kind: classification
         label: BREAKING
