@@ -24,6 +24,8 @@ Accepted exceptions (Max, same decision):
 - Kaggle and Hugging Face mirrors on ai.market-owned accounts of public datasets (the published mirror listings, including Sergey's). These are public copies, not purchase deliveries.
 - Listing samples built from a seller's real rows only with that seller's explicit agreement, and even then served from the seller's install or the seller's cloud, never stored by ai.market.
 
+Max decided on 2026-09-22 (S1737) that unused storage and relay code is deleted rather than guarded or rebuilt; only the manifest contract (member list, per-file hashes, `manifest_hash`, per-file grant/consume, buyer-side hash verification) is kept for the peer-to-peer design. Spec: `specs/P2P-STORAGE-DELETION-S1737.md`.
+
 ## Automatic rejection reason in review
 
 Any Council voter (GLM, DeepSeek, Gemini) or peer (Vulcan, Mars) reviewing a spec, PR or config change must return REJECT, with no mandate needed, if the change would make ai.market write, upload, stage, cache, relay or proxy the bytes of a delivered seller data file, or store real seller rows as a sample. Cite this page. This is not a trade-off to be weighed against convenience or launch dates. A change that removes such a path is in scope for any delivery item.
@@ -35,9 +37,10 @@ The Council request standard (`REVIEW_PROTOCOL`, see `runbooks/council.md`) carr
 | Path | What it does today | Live? | Plan step / ticket |
 | --- | --- | --- | --- |
 | Legacy trust-channel fulfilment, `app/services/fulfillment_listener_service.py` `_legacy_handle_complete`, `STAGING_DIR` default `/tmp/fulfillment` | Seller install streams the file to the backend, which writes it to container disk and issues a buyer token; the seller-bound response also carries the buyer's raw download token (`trust_websocket.py`) | **Yes** — this is how every AIM Data order is delivered today | Step 2, T-2026-000839 |
-| Manifest (multi-file) delivery, `app/services/manifest_fulfillment.py` → R2 `orders/…` | Multipart-uploads seller files into `aimarket-listing-assets` | No — `MULTI_FILE_DATASETS_ENABLED` unset (default False) | Step 4 |
-| Listing samples, `app/services/listing_asset_store.py`, `app/services/public_sample_service.py`, `app/api/v1/endpoints/vz_samples.py` | Stores and proxies sample bytes from R2 | No — local route gated by `MULTI_FILE_DATASETS_ENABLED`, workspace route by `WORKSPACE_SAMPLE_FILES_ENABLED`; both unset | Step 4 |
-| `delivery_service.py` `trust_channel_proxy` mode; AIM `relay_mode` (`aim_service.py`, `aim_relay_service.py`) | Streams through ai.market | Relay unused (0 of 2 `aim_nodes` have `relay_mode`, prod read S1737) | Step 5 |
+| Manifest (multi-file) delivery, `app/services/manifest_fulfillment.py` → R2 `orders/…` | Multipart-uploads seller files into `aimarket-listing-assets` | No — `MULTI_FILE_DATASETS_ENABLED` unset (default False) | Being deleted (Max, S1737) |
+| Listing samples, `app/services/listing_asset_store.py`, `app/services/public_sample_service.py`, `app/api/v1/endpoints/vz_samples.py` | Stores and proxies sample bytes from R2 | No — local route gated by `MULTI_FILE_DATASETS_ENABLED`, workspace route by `WORKSPACE_SAMPLE_FILES_ENABLED`; both unset | Being deleted (Max, S1737) |
+| AIM `relay_mode` (`app/api/v1/aim_relay.py`, `aim_relay_service.py`, relay branches in `aim_service.py`) | Relays AIM Node sessions through ai.market | No — 0 of 2 `aim_nodes` have `relay_mode` (prod read S1737) | Being deleted (Max, S1737) |
+| `delivery_service.py` `_queue_delivery_request` (`delivery_mode: trust_channel_proxy`) | Asks the seller install to stream the file to the backend — the request half of the legacy path above | **Yes** | Step 2, T-2026-000839 (not deleted until a peer-to-peer replacement exists) |
 | `demo_fulfillment_service.py` `STAGING_DIR` | Writes generated synthetic rows, not seller bytes, to `/tmp/fulfillment` | No — `DEMO_FULFILLMENT` default False, unset in production, and startup refuses it in production (`config.py`) | Not seller data |
 | Seller Workspace S3 route (`order_service` `assume_seller_role`) | Buyer downloads from the seller's bucket with a scoped credential | Yes | Compliant — the model for step 2 |
 
