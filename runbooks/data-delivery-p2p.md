@@ -72,15 +72,14 @@ cd /Users/max/Projects/ai-market && DSN="$(scripts/test-db-dsn.sh 2>/dev/null)" 
   -c "set default_transaction_read_only=on" \
   -c "select 'legacy_row_columns', count(*) from information_schema.columns where table_schema='public' and column_name in ('verified_rows','row_data','approved_sample','sample_preview')" \
   -c "select 'datasets_sample_data', count(sample_data) from datasets" \
-  -c "select 'relay_nodes', count(*) filter (where relay_mode) from aim_nodes" \
+  -c "select 'relay_columns_present', count(*) from information_schema.columns where table_schema='public' and table_name='aim_nodes' and column_name in ('relay_mode','relay_registered_at')" \
   -c "select 'relay_sessions', count(*) from aim_sessions where connection_mode='relay'" \
-  -c "select 'relay_registered', count(*) from aim_nodes where relay_registered_at is not null" \
   -c "select 'delivery_tables_present', count(*) from information_schema.tables where table_schema='public' and table_name in ('order_staging','transfer_session_members','transfer_chunk_receipts','transfer_part_receipts','order_delivery_members','buyer_download_meter')" \
   -c "select 'sample_rows (allowed)', (select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
 # Before the storage deletion ships, the six delivery tables still exist: also run  select (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter);  and expect 0.
 ```
 
-Expected: `MULTI_FILE_DATASETS_ENABLED`, `DEMO_FULFILLMENT` `<unset>` or `false`, `FULFILLMENT_STAGING_DIR` `<unset>`; `delivery_objects 0`, `delivery_multipart_uploads 0`, `other_prefix_objects 0`; disk `ABSENT` or `0`; `legacy_row_columns`, `datasets_sample_data` and every relay count 0; `delivery_tables_present` 0 once the storage deletion has shipped (6 before, with 0 rows). Sample objects and sample rows are allowed (seller-chosen public samples, CORE v9.19) and are reported for information only. Anything else: see below.
+Expected: `MULTI_FILE_DATASETS_ENABLED`, `DEMO_FULFILLMENT` `<unset>` or `false`, `FULFILLMENT_STAGING_DIR` `<unset>`; `delivery_objects 0`, `delivery_multipart_uploads 0`, `other_prefix_objects 0`; disk `ABSENT` or `0`; `legacy_row_columns`, `datasets_sample_data` and `relay_sessions` 0; `relay_columns_present` 0 once the storage deletion has shipped (before it, also run `select count(*) filter (where relay_mode), count(relay_registered_at) from aim_nodes` and expect 0, 0); `delivery_tables_present` 0 once the storage deletion has shipped (6 before, with 0 rows). Sample objects and sample rows are allowed (seller-chosen public samples, CORE v9.19) and are reported for information only. Anything else: see below.
 
 Never set `MULTI_FILE_DATASETS_ENABLED` or `DEMO_FULFILLMENT` to true in production without a peer-to-peer design approved by unanimous Council and Max's approval to enable it. `WORKSPACE_SAMPLE_FILES_ENABLED` gates only the seller-chosen public sample; enabling it needs Max's go-ahead for samples, not a peer-to-peer design.
 
