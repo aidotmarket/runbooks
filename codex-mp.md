@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-21'
+last_verified: '2026-09-22'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -151,6 +151,21 @@ error_signatures:
       cause: component too hard for low effort — re-dispatch that fold at default, note it in the report
   next_step_success: as E-01
   next_step_failure: F-15 / Repair-13
+- id: E-06
+  trigger: A queued or running dispatch_mp_build job must be cancelled (brief superseded, wrong base, Max changed direction)
+  pre_conditions:
+    - task_id and ts_job_id from the dispatch result
+  tool_or_endpoint: task spooler (`ts`) on the job's queue socket, then the Codex child
+  procedure: |
+    cd /Users/max/koskadeux-state/ts-sockets
+    for s in ts-*.socket; do TS_SOCKET=$PWD/$s ts -l | awk -v j=<ts_job_id> '$1==j' | grep -q . && echo $s; done   # find the socket
+    TS_SOCKET=$PWD/<socket> ts -k <ts_job_id>          # stops bridge_runner.py; ts -l then shows the job finished, exit -1
+    pgrep -fl <worktree-id>                            # ts -k does NOT stop the codex exec child (seen S1737)
+    pkill -TERM -P <codex pid>; kill -TERM <codex pid> # stop it and its children
+    git -C <repo> ls-remote origin <expected_branch>   # confirm nothing was pushed
+  expected_success: no process names the worktree; no remote branch; no report.json is written for the task_id
+  idempotency: IDEMPOTENT
+  next_step_success: post a peer_msg status that the job was cancelled; the unpushed worktree under /var/tmp/koskadeux/minimal-bridge-worktrees/ is left for normal pruning
 ```
 
 ## When it breaks
