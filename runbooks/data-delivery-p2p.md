@@ -71,6 +71,7 @@ cd /Users/max/Projects/ai-market && DSN="$(scripts/test-db-dsn.sh 2>/dev/null)" 
   -c "select 'datasets_sample_data', count(sample_data) from datasets" \
   -c "select 'relay_nodes', count(*) filter (where relay_mode) from aim_nodes" \
   -c "select 'relay_sessions', count(*) from aim_sessions where connection_mode='relay'" \
+  -c "select 'relay_registered', count(*) from aim_nodes where relay_registered_at is not null" \
   -c "select 'staging_rows', (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter)+(select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
 ```
 
