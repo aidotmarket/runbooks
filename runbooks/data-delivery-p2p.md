@@ -12,7 +12,7 @@ error_signatures: []
 
 File delivery is peer to peer. The buyer gets the bytes directly from the seller's AIM Data install or from the seller's own cloud storage. ai.market holds the order record and issues download permission (a token, or a short-lived scoped credential or signed link on the seller's own storage). It never stores, stages, caches, relays or proxies the bytes of a delivered data file, on disk, in memory beyond a pass-through, or in any object store it owns.
 
-Authority: Max, S1736 (2026-09-22). The S1736 handoff records it under Event Ledger dedupe keys `s1736-delivery-must-be-p2p` and `s1736-p2p-audit-decisions`; those keys were not independently re-read in S1737. The rule restates Boot Kernel v2 (CORE v9.18) P2, P8 and S1, which stand on their own.
+Authority: Max, S1736 (2026-09-22). The S1736 handoff records it under Event Ledger dedupe keys `s1736-delivery-must-be-p2p` and `s1736-p2p-audit-decisions`; those keys were not independently re-read in S1737. The rule restates Boot Kernel v2 (CORE v9.19) P2, P8 and S1, which stand on their own; v9.19 adds the public-sample exception below.
 
 Rejected designs, do not propose them again:
 
@@ -22,13 +22,13 @@ Rejected designs, do not propose them again:
 Accepted exceptions (Max, same decision):
 
 - Kaggle and Hugging Face mirrors on ai.market-owned accounts of public datasets (the published mirror listings, including Sergey's). These are public copies, not purchase deliveries.
-- Listing samples built from a seller's real rows only with that seller's explicit agreement, and even then served from the seller's install or the seller's cloud, never stored by ai.market.
+- A public sample: a portion of their own data that the seller chooses to publish on their listing. ai.market may store and show it (CORE v9.19 Data & Security; Max S1739, Event Ledger 45675b19 and 58dae0d1, superseding the S1736/S1737 rule that samples were never stored by ai.market). Only what the seller explicitly selects for publication qualifies; ai.market never reads, profiles or extracts from the rest of the seller's data to make one.
 
 Max decided on 2026-09-22 (S1737) that unused storage and relay code is deleted rather than guarded or rebuilt; only the manifest contract (member list, per-file hashes, `manifest_hash`, per-file grant/consume, buyer-side hash verification) is kept for the peer-to-peer design. Spec: `specs/P2P-STORAGE-DELETION-S1737.md`.
 
 ## Automatic rejection reason in review
 
-Any Council voter (GLM, DeepSeek, Gemini) or peer (Vulcan, Mars) reviewing a spec, PR or config change must return REJECT, with no mandate needed, if the change would make ai.market write, upload, stage, cache, relay or proxy the bytes of a delivered seller data file, or store real seller rows as a sample. Cite this page. This is not a trade-off to be weighed against convenience or launch dates. A change that removes such a path is in scope for any delivery item.
+Any Council voter (GLM, DeepSeek, Gemini) or peer (Vulcan, Mars) reviewing a spec, PR or config change must return REJECT, with no mandate needed, if the change would make ai.market write, upload, stage, cache, relay or proxy the bytes of a delivered seller data file, or store any seller data other than the public sample the seller chose to publish. Cite this page. This is not a trade-off to be weighed against convenience or launch dates. A change that removes such a path is in scope for any delivery item.
 
 The Council request standard (`REVIEW_PROTOCOL`, see `runbooks/council.md`) carries this reason once the S1737 change to it merges; until then include this paragraph in the request body of any delivery-touching review.
 
@@ -38,7 +38,7 @@ The Council request standard (`REVIEW_PROTOCOL`, see `runbooks/council.md`) carr
 | --- | --- | --- | --- |
 | Legacy trust-channel fulfilment, `app/services/fulfillment_listener_service.py` `_legacy_handle_complete`, `STAGING_DIR` default `/tmp/fulfillment` | Seller install streams the file to the backend, which writes it to container disk and issues a buyer token; the seller-bound response also carries the buyer's raw download token (`trust_websocket.py`) | **Yes** — this is how every AIM Data order is delivered today | Step 2, T-2026-000839 |
 | Manifest (multi-file) delivery, `app/services/manifest_fulfillment.py` → R2 `orders/…` | Multipart-uploads seller files into `aimarket-listing-assets` | No — `MULTI_FILE_DATASETS_ENABLED` unset (default False) | Being deleted (Max, S1737) |
-| Listing samples, `app/services/listing_asset_store.py`, `app/services/public_sample_service.py`, `app/api/v1/endpoints/vz_samples.py` | Stores and proxies sample bytes from R2 | No — local route gated by `MULTI_FILE_DATASETS_ENABLED`, workspace route by `WORKSPACE_SAMPLE_FILES_ENABLED`; both unset | Being deleted (Max, S1737) |
+| Listing samples, `app/services/listing_asset_store.py`, `app/services/public_sample_service.py`, `app/api/v1/endpoints/vz_samples.py` | Stores and serves the seller-chosen public sample from R2 | No — local route gated by `MULTI_FILE_DATASETS_ENABLED`, workspace route by `WORKSPACE_SAMPLE_FILES_ENABLED`; both unset | Kept: permitted public-sample exception (Max S1739, CORE v9.19); not part of the storage deletion |
 | AIM `relay_mode` (`app/api/v1/aim_relay.py`, `aim_relay_service.py`, relay branches in `aim_service.py`) | Relays AIM Node sessions through ai.market | No — 0 of 2 `aim_nodes` have `relay_mode` (prod read S1737) | Being deleted (Max, S1737) |
 | `delivery_service.py` `_queue_delivery_request` (`delivery_mode: trust_channel_proxy`) | Asks the seller install to stream the file to the backend — the request half of the legacy path above | **Yes** | Step 2, T-2026-000839 (not deleted until a peer-to-peer replacement exists) |
 | `demo_fulfillment_service.py` `STAGING_DIR` | Writes generated synthetic rows, not seller bytes, to `/tmp/fulfillment` | No — `DEMO_FULFILLMENT` default False, unset in production, and startup refuses it in production (`config.py`) | Not seller data |
