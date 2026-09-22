@@ -4,7 +4,7 @@
 - Path: `account-capability-onboarding.md`
 - Purpose: Covers the capability model that gates buying and selling on ai.market: how a user becomes a seller, what "provisioning" vs "active" means, the readiness signals that move a seller to active, the `require_capability` guard, the 403 `CapabilityRequiredError` contract, the self-serve buyer→seller request endpoint, the read-capabilities endpoint, and the capability-aware dashboard. Backing code verified against `aidotmarket/ai-market-backend` deployed main `839eef35` (slice-2 ship, S1054) and `aidotmarket/ai-market-frontend` deployed main `4932ecd` (capability-aware dashboard + floating setup bar, S1054).
 - Owner: `Vulcan / Mars (ai.market backend peers)`
-- Last verified: `2026-07-02`
+- Last verified: `2026-09-22`
 - Aliases: none
 - Error signatures: none
 - Status: current
