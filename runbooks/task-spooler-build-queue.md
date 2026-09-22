@@ -74,7 +74,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
 | Vulcan / Mars | Dispatch a build | `dispatch_mp_build` (enqueues via tsp_queue, returns a handle) | operator | COMPLETE |
 | Vulcan / Mars | Inspect, reorder, unblock or clear the queue | `ts -l`, `ts -c`, `ts -U`, `ts -r`, `ts -K` per How to operate | operator | COMPLETE |
 | MP (Codex) | Build, including on this control surface (Max ruling S1488 event `6005ec17`: Codex may edit any builder control file; its only rule is that it cannot review its own work as a Council member, CORE S4) | minimal bridge | builder | COMPLETE |
-| Council (CC/GLM/DeepSeek voters; Kimi comparison) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
+| Council (GLM/DeepSeek/Gemini voters) | Gate 3 correctness adjudication | council dispatch | reviewer | COMPLETE |
 
 ## How to operate
 
@@ -169,6 +169,23 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   next_step_success: Poll the report path or `ts -l`; do not block
   next_step_failure: Fix the argument and dispatch again; nothing was queued
 
+- id: E-05
+  trigger: The ts server for a repository must be restarted or cleared entirely
+  pre_conditions:
+    - No job you care about is running (`ts -l` shows no `running` row)
+    - Peer instance has been told, because a restart loses queued jobs
+  tool_or_endpoint: TS_SOCKET=<socket> ts -K
+  argument_sourcing:
+    arg: TS_SOCKET for the affected repository only
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: "Server exits; next `ts` invocation on that socket starts a fresh one"
+    verification: "`ts -l` returns an empty table"
+  expected_failures:
+    - signature: jobs lost on kill
+      cause: "EXPECTED. ts holds the queue in the server process. Queued jobs do not survive a kill. This is the accepted trade for having no broker; the durable record of what was dispatched lives in the bridge outcomes DB, not in ts."
+  next_step_success: Re-dispatch anything that was queued and had not started
+  next_step_failure: See F-03
 - id: E-07
   trigger: Two queued jobs on one repository socket must run in a different order (e.g. the agreed merge order needs a later-queued build first)
   pre_conditions:
@@ -188,23 +205,6 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   next_step_success: Tell the peer the new order on the bus
   next_step_failure: Leave the order as is; withdraw and re-dispatch only per E-03 and F-02
 
-- id: E-05
-  trigger: The ts server for a repository must be restarted or cleared entirely
-  pre_conditions:
-    - No job you care about is running (`ts -l` shows no `running` row)
-    - Peer instance has been told, because a restart loses queued jobs
-  tool_or_endpoint: TS_SOCKET=<socket> ts -K
-  argument_sourcing:
-    arg: TS_SOCKET for the affected repository only
-  idempotency: IDEMPOTENT
-  expected_success:
-    shape: "Server exits; next `ts` invocation on that socket starts a fresh one"
-    verification: "`ts -l` returns an empty table"
-  expected_failures:
-    - signature: jobs lost on kill
-      cause: "EXPECTED. ts holds the queue in the server process. Queued jobs do not survive a kill. This is the accepted trade for having no broker; the durable record of what was dispatched lives in the bridge outcomes DB, not in ts."
-  next_step_success: Re-dispatch anything that was queued and had not started
-  next_step_failure: See F-03
 ```
 
 ## When it breaks
