@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** product design, positioning, or customer-surface decision.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 2 and 9.
+**Source constitution:** CORE §§2 and 9 (current `docs/core/CORE.md`).
 
 ## Capabilities
 
@@ -46,10 +46,10 @@ Source: CORE §2.
 
 ### Normative projection — CORE §2, ai.market
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §2 (v9.19 wording for IS NOT).
 
 > - **IS:** A non-custodial B2B data marketplace. Four marketplace functions: **list/sell, buy, develop/integrate, request**. Agent-first — designed for AI systems to discover, evaluate, and transact programmatically. The website is the primary transaction surface for buyers and sellers — discovering data, evaluating listings, and transacting.
-> - **IS NOT:** A data warehouse. Never stores or touches raw customer data. We are the index and the trust/billing layer.
+> - **IS NOT:** A data warehouse. Never stores or touches raw customer data, except the public sample a seller chooses to publish on their own listing (see Data & Security). We are the index and the trust/billing layer.
 > - **AI-discoverable everywhere:** Listings on ai.market are built to be **found by LLMs and AI agents globally** — in ChatGPT, Gemini, Claude, and any agentic search — not just on our website. This is core customer value, not a feature: customers' data must be discoverable wherever buyers ask, without buyers having to come to ai.market directly. Every public listing surface carries structured metadata (JSON-LD, schema.org, llms.txt, agent-readable manifests) optimized for LLM and agent indexing. **The default question on any listing field is: "Will an LLM agent find this when a buyer asks for it elsewhere in the world, in any language?"**
 > - **MUST integrate with:** allAI (mediation, search, agent-facing discovery, listing generation), AIM Data (receives metadata + listing manifests; serves both the non-dev GUI and developer/programmatic buy/sell/request surfaces), vectorAIz (receives Qdrant-format dataset uploads and their listing manifests)
 > - **Revenue:** **5% commission on successful data transactions.** No listing fees. Utility pricing — infrastructure, not a broker.
