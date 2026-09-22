@@ -37,22 +37,7 @@ From Titan-1 with the Railway-mirrored credentials (values never printed): `List
 
 ## Procedures
 
-**Re-verify access (read-only unless you write the health-check key):**
-
-```bash
-cd /Users/max/Projects/ai-market/ai-market-backend && unset RAILWAY_TOKEN
-railway variables -e production -s ai-market-backend --json > /tmp/rv.json   # never cat this file
-.venv/bin/python - <<'EOF'
-import json,boto3,socket,urllib3.util.connection as uc
-uc.allowed_gai_family=lambda: socket.AF_INET          # Titan-1: IPv6 to *.r2.cloudflarestorage.com times out
-from botocore.config import Config
-d=json.load(open('/tmp/rv.json'))
-s3=boto3.client('s3',endpoint_url=d['LISTING_ASSET_ENDPOINT'],aws_access_key_id=d['LISTING_ASSET_R2_ACCESS_KEY_ID'],
-  aws_secret_access_key=d['LISTING_ASSET_R2_SECRET_ACCESS_KEY'],region_name='auto',config=Config(connect_timeout=10,read_timeout=20,retries={'max_attempts':1}))
-print(s3.list_objects_v2(Bucket=d['LISTING_ASSET_BUCKET'],MaxKeys=1).get('KeyCount'))
-EOF
-rm -f /tmp/rv.json
-```
+**Re-verify access (read-only):** run step 1 of the procedure in `runbooks/data-delivery-p2p.md`. It pipes the Railway variables straight into the check, so no secret file is written, and prints the object and multipart-upload counts. A count means the token works; the expected value is 0 (see the banner above).
 
 **Check or change the lifecycle rules:** Cloudflare dashboard → R2 → `aimarket-listing-assets` → Settings → Object Lifecycle Rules (`https://dash.cloudflare.com/d5346d3e0f8f344c5f4915aaca689adf/r2/default/buckets/aimarket-listing-assets/settings`). The bucket-scoped backend token is Object Read & Write only and cannot read or write lifecycle configuration through the S3 API, so the dashboard is the record; re-read it after any change and update the table above in the same session.
 

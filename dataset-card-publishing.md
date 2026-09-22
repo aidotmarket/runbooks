@@ -16,14 +16,14 @@ error_signatures:
 ## Overview
 
 
-Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata-only by default; actual sample rows publish only to HuggingFace and only with a seller-approved disclosure snapshot.
+Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata only; real seller rows are never published (retired S1736, `runbooks/data-delivery-p2p.md`).
 
 ## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | HF metadata-only card publish (no snapshot required) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests (backend 26ac843e) | 2026-07-09 |
-| HF row-backed sample publish (seller-approved snapshot, exact version) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
+| HF row-backed sample publish (seller-approved snapshot, exact version) | RETIRED — backend now forces metadata-only (`huggingface_service.py`) and `disclosure_snapshot.py` refuses `approved_rows`; see `runbooks/data-delivery-p2p.md` | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 | HF stale-data-file sweep on metadata-only republish | SHIPPED | `app/services/huggingface_service.py:_remove_stale_hf_data_files` | unit tests | 2026-07-09 |
 | Kaggle metadata card publish (blob-token contract) | SHIPPED | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | 16 unit tests (full flow, version path, body-Error, title-collision) | 2026-07-10 |
 | data.world metadata card publish | DEPRECATED | — | never enabled; channel code removed T-2026-000210 | 2026-07-10 |
@@ -168,8 +168,8 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
 ### H.1 Invariants
 
 - Kaggle and data.world channels are metadata-only PERIOD — no row-publishing code path exists and none may be added without a full Council gate (customer-data surface, unanimous).
-- HF sample rows publish ONLY with a seller-approved disclosure snapshot (sample_decision=approved_rows, exact version). Hard line — do not relax (Max directive + unanimous Council, S1164).
-- Raw customer data never touches ai.market infrastructure; cards carry public listing metadata and (HF only) seller-approved sample rows.
+- Superseded S1736: ai.market does not publish or store real seller rows. Cards are metadata only. Hugging Face and Kaggle mirrors of public datasets on ai.market accounts remain allowed. A seller-agreed sample is served from the seller's own install or cloud, never from an ai.market account (`runbooks/data-delivery-p2p.md`). The S1164 approved-rows branch is retired.
+- Raw customer data never touches ai.market infrastructure; cards carry public listing metadata only.
 - Every card carries a backlink to the ai.market listing and feeds JSON-LD sameAs — AI-discoverability is the point (CORE §2).
 - All provider secrets live in Infisical (mirrored to Railway env); no secrets in code or chat.
 - Flipping a *_SUBMISSION_ENABLED flag in production is a Max-only action.

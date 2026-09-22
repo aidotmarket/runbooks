@@ -12,7 +12,7 @@ error_signatures: []
 
 File delivery is peer to peer. The buyer gets the bytes directly from the seller's AIM Data install or from the seller's own cloud storage. ai.market holds the order record and issues download permission (a token, or a short-lived scoped credential or signed link on the seller's own storage). It never stores, stages, caches, relays or proxies the bytes of a delivered data file, on disk, in memory beyond a pass-through, or in any object store it owns.
 
-Authority: Max, S1736 (2026-09-22), Event Ledger dedupe keys `s1736-delivery-must-be-p2p` and `s1736-p2p-audit-decisions`. It restates CORE P2, P8 and S1.
+Authority: Max, S1736 (2026-09-22). The S1736 handoff records it under Event Ledger dedupe keys `s1736-delivery-must-be-p2p` and `s1736-p2p-audit-decisions`; those keys were not independently re-read in S1737. The rule restates CORE P2, P8 and S1, which stand on their own.
 
 Rejected designs, do not propose them again:
 
@@ -36,30 +36,39 @@ The Council request standard (`REVIEW_PROTOCOL`, see `runbooks/council.md`) carr
 | --- | --- | --- | --- |
 | Legacy trust-channel fulfilment, `app/services/fulfillment_listener_service.py` `_legacy_handle_complete`, `STAGING_DIR` default `/tmp/fulfillment` | Seller install streams the file to the backend, which writes it to container disk and issues a buyer token; the seller-bound response also carries the buyer's raw download token (`trust_websocket.py`) | **Yes** — this is how every AIM Data order is delivered today | Step 2, T-2026-000839 |
 | Manifest (multi-file) delivery, `app/services/manifest_fulfillment.py` → R2 `orders/…` | Multipart-uploads seller files into `aimarket-listing-assets` | No — `MULTI_FILE_DATASETS_ENABLED` unset (default False) | Step 4 |
-| Listing samples, `listing_asset_store.py` / `public_sample_service.py` / `vz_samples.py` | Stores and proxies sample bytes from R2 | No — `WORKSPACE_SAMPLE_FILES_ENABLED` unset (default False) | Step 4 |
-| `delivery_service.py` `trust_channel_proxy` mode; AIM `relay_mode` (`aim_service.py`, `aim_relay_service.py`) | Streams through ai.market | Relay unused (0 of 4 `aim_nodes`, S1736) | Step 5 |
-| `demo_fulfillment_service.py` `STAGING_DIR` | Also defaults to `/tmp/fulfillment`; imported by `fulfillment_service.py` | Not yet classified | Classify under step 2 |
+| Listing samples, `app/services/listing_asset_store.py`, `app/services/public_sample_service.py`, `app/api/v1/endpoints/vz_samples.py` | Stores and proxies sample bytes from R2 | No — local route gated by `MULTI_FILE_DATASETS_ENABLED`, workspace route by `WORKSPACE_SAMPLE_FILES_ENABLED`; both unset | Step 4 |
+| `delivery_service.py` `trust_channel_proxy` mode; AIM `relay_mode` (`aim_service.py`, `aim_relay_service.py`) | Streams through ai.market | Relay unused (0 of 2 `aim_nodes` have `relay_mode`, prod read S1737) | Step 5 |
+| `demo_fulfillment_service.py` `STAGING_DIR` | Writes generated synthetic rows, not seller bytes, to `/tmp/fulfillment` | No — `DEMO_FULFILLMENT` default False, unset in production, and startup refuses it in production (`config.py`) | Not seller data |
 | Seller Workspace S3 route (`order_service` `assume_seller_role`) | Buyer downloads from the seller's bucket with a scoped credential | Yes | Compliant — the model for step 2 |
 
-Checks run on 2026-09-22: both flags absent from Railway `production` / `ai-market-backend`; `config.py` lines 64–65 default both to False; `aimarket-listing-assets` holds 0 objects.
+Checks run on 2026-09-22 (S1737) with the procedure below: all three flags unset in production; bucket 0 objects and 0 in-progress multipart uploads; `/tmp/fulfillment` absent on the running backend container; the dropped legacy row columns (`verified_rows`, `row_data`, `approved_sample`, `sample_preview`) absent from the production schema.
 
-## Procedure: verify ai.market holds no delivered data
+## Procedure: check where delivered data could sit
 
-Run after any delivery change, before launch, and whenever a review asks.
+Run after any delivery change, before launch, and whenever a review asks. It reads names and counts only, never content, and never writes secrets to disk. It checks the stores that exist today; while the legacy path is live, a clean result means only that nothing is held right now.
 
 ```bash
-cd /Users/max/Projects/ai-market/ai-market-backend && unset RAILWAY_TOKEN && git fetch -q origin
-git grep -nE "MULTI_FILE_DATASETS_ENABLED|WORKSPACE_SAMPLE_FILES_ENABLED" origin/main -- app/core   # both must default to False
-railway variables -e production -s ai-market-backend --json > /tmp/rv.json                      # never cat this file
-python3 -c "import json;d=json.load(open('/tmp/rv.json'));[print(k,d.get(k,'<unset>')) for k in ('MULTI_FILE_DATASETS_ENABLED','WORKSPACE_SAMPLE_FILES_ENABLED')]"
+cd /Users/max/Projects/ai-market/ai-market-backend && unset RAILWAY_TOKEN
+# 1. Flags and the bucket (Railway variables piped, never saved)
+railway variables -e production -s ai-market-backend --json | .venv/bin/python -c '
+import json,sys,boto3,socket,urllib3.util.connection as uc
+uc.allowed_gai_family=lambda: socket.AF_INET   # Titan-1: IPv6 to R2 times out
+d=json.load(sys.stdin)
+for k in ("MULTI_FILE_DATASETS_ENABLED","WORKSPACE_SAMPLE_FILES_ENABLED","DEMO_FULFILLMENT"): print(k, d.get(k,"<unset>"))
+s3=boto3.client("s3",endpoint_url=d["LISTING_ASSET_ENDPOINT"],aws_access_key_id=d["LISTING_ASSET_R2_ACCESS_KEY_ID"],aws_secret_access_key=d["LISTING_ASSET_R2_SECRET_ACCESS_KEY"],region_name="auto")
+b=d["LISTING_ASSET_BUCKET"]
+print("objects", s3.list_objects_v2(Bucket=b,MaxKeys=1000).get("KeyCount"))
+print("multipart_uploads", len(s3.list_multipart_uploads(Bucket=b).get("Uploads",[])))'
+# 2. Container disk (pass the remote command as ONE quoted string; `railway ssh -- sh -c ...` silently runs in the app directory instead)
+railway ssh -e production -s ai-market-backend "test -d /tmp/fulfillment && find /tmp/fulfillment -type f | wc -l || echo ABSENT"
 ```
 
-Both must print `<unset>` or `false`. Then list the bucket with the read-only procedure in `listing-asset-store.md` (same `/tmp/rv.json`, `list_objects_v2`); the key count must be 0. Delete `/tmp/rv.json` afterwards.
+Expected: every flag `<unset>` or `false`, `objects 0`, `multipart_uploads 0`, disk `ABSENT` or `0`. Anything else: see below.
 
-Never set either flag to true in production until its step-4 peer-to-peer rebuild has shipped with unanimous Council approval and Max has approved enabling it.
+Never set any of these flags to true in production without a peer-to-peer design approved by unanimous Council and Max's approval to enable it.
 
 ## When it breaks
 
-- **Delivered bytes found on ai.market infrastructure** (any key under `orders/` or `samples*/` in the bucket, a relay session carrying data, files kept beyond one legacy transfer): this is customer data held against the rule. Stop the path that wrote it (turn the flag off), tell Mars on the peer bus and Max directly, and record the object keys, order ids and seller ids without reading content. Deletion follows Max's decision.
+- **Delivered bytes found on ai.market infrastructure** (any bucket object or multipart upload, a relay session carrying data, files under `/tmp/fulfillment`): this is customer data held against the rule. Stop the path that wrote it (turn the flag off), tell Mars on the peer bus and Max directly, and record the object keys, order ids and seller ids without reading content. Deletion follows Max's decision.
 - **A review approves a change that stores or relays delivered bytes**: the gate is invalid. Reopen it at Gate 2 with this page cited.
 - **Legacy path files in `/tmp/fulfillment`**: expected until step 2 ships; the Railway container disk is ephemeral, so files vanish on redeploy (this is also why buyers could not download in the S1736 end-to-end run). Do not "fix" that by moving staging to a bucket.

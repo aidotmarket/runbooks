@@ -542,7 +542,7 @@
 
 ## Dataset-Card Publishing (HuggingFace / Kaggle / data.world)
 - Path: `dataset-card-publishing.md`
-- Purpose: Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata-only by default; actual sample rows publish only to HuggingFace and only with a seller-approved disclosure snapshot.
+- Purpose: Every published or updated ai.market listing gets a metadata dataset card pushed to external data platforms, each carrying a backlink to `https://ai.market/listings/{slug}`. This is core AI-discoverability work (CORE §2, ai.market pillar): buyers asking an LLM anywhere in the world should surface our customers' listings. Cards are metadata only; real seller rows are never published (retired S1736, `runbooks/data-delivery-p2p.md`).
 - Owner: `vulcan`
 - Last verified: `2026-07-10`
 - Aliases: none
