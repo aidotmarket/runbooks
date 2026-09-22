@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-21'
+last_verified: '2026-09-22'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
@@ -12,7 +12,7 @@ error_signatures:
 
 # Codex / MP — Council Primary Builder
 
-**MP** is the Council name for OpenAI **Codex** (model **`gpt-5.6-sol`** — Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+**MP** is the Council name for OpenAI **Codex** (model **`gpt-6-sol`** since 2026-09-22 — Max S1738, "please just implement it as the builder model", koskadeux-mcp #231, Codex CLI 0.155.1; before that `gpt-5.6-sol`, Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 
 ## Overview
 
@@ -26,7 +26,7 @@ error_signatures:
 | Background dispatch + polling (S1148) | SHIPPED | `codex_cli_bridge.py:dispatch_codex_cli_streaming; council_request action=check_build` | covered by dispatch suite | 2026-07-08 |
 | Review dispatch (mode=review, READ-ONLY advisory) (S1147 gate reviews) | SHIPPED | `tools/agents.py:_handle_call_mp` | see When it breaks-06 caveat | 2026-07-07 |
 | Spec authoring (mode=author, Gate 1) (S1147) | SHIPPED | `tools/agents.py:_handle_call_mp` | — | 2026-07-07 |
-| Concurrency mutex (one Codex CLI at a time) (S1148, MP+CC serialized cleanly) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
+| Concurrency mutex (one Codex CLI at a time) — LEGACY `codex_cli_bridge` only (S1148). Minimal-bridge builds queue per repository via Task Spooler (CORE v9.20; `runbooks/task-spooler-build-queue.md`) | SHIPPED | `codex_cli_bridge.py:CODEX_LOCK_FILE (/var/tmp/koskadeux/codex_cli.lock, fcntl LOCK_EX)` | — | 2026-07-08 |
 | Pre-push CI verification gate + auto-revert (S1150, manifest synthesis fix 25006e5e) | SHIPPED | `ci_verification.py (CI_WORKFLOW_TEST_PATHS)` | agent-dispatch.md §Q | 2026-07-09 |
 | Progress-based stall abort (S1111) | SHIPPED | `codex_cli_bridge.py (MP_PROGRESS_WINDOW_S=900)` | — | 2026-06-01 |
 | Hard timeout backstop (env-tunable) (S1111 fix 995e1338) | SHIPPED | `.env MP_HARD_UPPER_BOUND_S=1800; envelope default in tools/agents.py:_build_mp_provider_envelope` | tests/regression/test_legacy_dispatch_unchanged.py | 2026-06-01 |
@@ -77,7 +77,7 @@ error_signatures:
   expected_failures:
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (When it breaks-01)
-  next_step_success: gated cross-review by the voter panel CC+GLM+DeepSeek (Kimi comparison-only) with builder excluded — 3/3 valid participation required, then 2/3 standard or 3/3 unanimous for high-risk (security/auth/money/production-data/customer-data); no AG fallback (AG paused). Then merge; patch entity verdicts; same-session spec commit if gated
+  next_step_success: gated cross-review by the Council (GLM, DeepSeek, Gemini) with the builder excluded — unanimous 3/3 valid verdicts for every gate (CORE §5); CC is a non-Council second opinion that never counts. Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult When it breaks symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required
@@ -151,6 +151,21 @@ error_signatures:
       cause: component too hard for low effort — re-dispatch that fold at default, note it in the report
   next_step_success: as E-01
   next_step_failure: F-15 / Repair-13
+- id: E-06
+  trigger: A queued or running dispatch_mp_build job must be cancelled (brief superseded, wrong base, Max changed direction)
+  pre_conditions:
+    - task_id and ts_job_id from the dispatch result
+  tool_or_endpoint: task spooler (`ts`) on the job's queue socket, then the Codex child
+  procedure: |
+    cd /Users/max/koskadeux-state/ts-sockets
+    for s in ts-*.socket; do TS_SOCKET=$PWD/$s ts -l | awk -v j=<ts_job_id> '$1==j' | grep -q . && echo $s; done   # find the socket
+    TS_SOCKET=$PWD/<socket> ts -k <ts_job_id>          # stops bridge_runner.py; ts -l then shows the job finished, exit -1
+    pgrep -fl <worktree-id>                            # ts -k does NOT stop the codex exec child (seen S1737)
+    pkill -TERM -P <codex pid>; kill -TERM <codex pid> # stop it and its children
+    git -C <repo> ls-remote origin <expected_branch>   # confirm nothing was pushed
+  expected_success: no process names the worktree; no remote branch; no report.json is written for the task_id
+  idempotency: IDEMPOTENT
+  next_step_success: post a peer_msg status that the job was cancelled; the unpushed worktree under /var/tmp/koskadeux/minimal-bridge-worktrees/ is left for normal pruning
 ```
 
 ## When it breaks
@@ -301,7 +316,7 @@ error_signatures:
 - Frontier-only model policy: MP runs exactly ONE configured model, the current OpenAI frontier (Max S516). No fallback tiers in production dispatch.
 - Spec-grounded dispatches reference the committed spec path @ pinned SHA (agent-dispatch.md §T); never paste long specs inline.
 - Council and CI safeguards are never bypassed with `break_glass`. Runbook context is obtained by reading the relevant Markdown directly; missing or stale guidance is corrected as documentation, not converted into an attestation, debt, or admission decision.
-- One Codex CLI at a time (fcntl mutex) — do not remove the lock to "parallelize".
+- Legacy `codex_cli_bridge`: one Codex CLI at a time (fcntl mutex) — do not remove the lock to "parallelize". Minimal-bridge builds are serialised per repository by Task Spooler, not by this lock (CORE v9.20).
 - Model telemetry is EVIDENCE, not a label (S1205, T-2026-000243). `model_actual` is read back from the Codex rollout file and `model_matched` is a real comparison that fails CLOSED — false whenever the dispatch failed or the rollout is missing, unparseable, ambiguous, or disagrees with the CLI banner. Never restore a hardcoded default of true, and never add a bypass env var: an evidence gap must read as a failure, not a pass. The honest limit: the rollout records the model we REQUESTED. Combined with the fact that an unsupported model is a hard 400 with no substitution, requested == served for any turn that COMPLETES. Do not overclaim it as a server attestation.
 - The expected model for every Council member is sourced from Living State `infra:council-comms` → `body.model_policy.agent_frontier_models`. The hardcoded dict in council_gate_runner.py is a last-resort fallback that logs CRITICAL when it fires. Add new members to the registry, not to the dict.
 - Provider version pins are not mismatches. GLM serves `z-ai/glm-5.2-20260616` for requested `z-ai/glm-5.2`; Vertex can suffix a version. `_model_matches()` accepts `expected` plus a `-`/`@`/`:` suffix. MP is the exception and compares EXACTLY, because its rollout returns the exact requested string.
