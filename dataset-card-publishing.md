@@ -1,7 +1,7 @@
 ---
 title: Dataset-Card Publishing (HuggingFace / Kaggle / data.world)
 owner: vulcan
-last_verified: '2026-07-10'
+last_verified: '2026-09-22'
 aliases: []
 error_signatures:
 - job status dead with 401/403 in last_error
@@ -23,7 +23,7 @@ Every published or updated ai.market listing gets a metadata dataset card pushed
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | HF metadata-only card publish (no snapshot required) | SHIPPED | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests (backend 26ac843e) | 2026-07-09 |
-| HF row-backed sample publish (seller-approved snapshot, exact version) | RETIRED — backend now forces metadata-only (`huggingface_service.py`) and `disclosure_snapshot.py` refuses `approved_rows`; see `runbooks/data-delivery-p2p.md` | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
+| HF row-backed sample publish (seller-approved snapshot, exact version) | RETIRED — backend now forces metadata-only (`huggingface_service.py`) and `app/schemas/disclosure_snapshot.py` refuses `approved_rows`; see `runbooks/data-delivery-p2p.md` | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | unit tests | 2026-07-09 |
 | HF stale-data-file sweep on metadata-only republish | SHIPPED | `app/services/huggingface_service.py:_remove_stale_hf_data_files` | unit tests | 2026-07-09 |
 | Kaggle metadata card publish (blob-token contract) | SHIPPED | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | 16 unit tests (full flow, version path, body-Error, title-collision) | 2026-07-10 |
 | data.world metadata card publish | DEPRECATED | — | never enabled; channel code removed T-2026-000210 | 2026-07-10 |
@@ -38,7 +38,7 @@ Kaggle row: fixed and live-verified S1167 (T-2026-000207 resolved; merges 6ccbd7
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Submission orchestrator | `app/services/search_submission_service.py:handle_listing_event` | search_submission_jobs table (provider, event_type, status, disclosure_version, dedup_hour_utc, last_error) | listing published/updated events; scheduler drains pending jobs ~2 min | Enqueues one job per enabled provider per event; idle guard skips updated events when disclosure_version AND rendered card hash match the last succeeded job for that provider (hashes live as JSON in that job's last_error — known semantic wrinkle, GLM LOW) |
-| HuggingFace channel | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.huggingface_url; HF repo ai-market/{slug}-sample | HF Hub API (HUGGINGFACE_TOKEN); DisclosureSnapshotService.get_snapshot_for_hf_card | Metadata-only branch is structurally README-only and sweeps stale data files; row branch pushes only seller-approved rows for the exact disclosure version; on success persists URL and regenerates JSON-LD sameAs (regen failure logs, does not fail job); 429/5xx retried, 400/401/403/404 terminal |
+| HuggingFace channel | `app/services/huggingface_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.huggingface_url; HF repo ai-market/{slug}-sample | HF Hub API (HUGGINGFACE_TOKEN); DisclosureSnapshotService.get_snapshot_for_hf_card | Metadata-only branch is structurally README-only and sweeps stale data files; the historical row branch is retired (S1736); current code publishes metadata only |
 | Kaggle channel | `app/services/kaggle_service.py:_upsert_kaggle_dataset` | Listing.source_delivery.kaggle_url | kaggle.com/api/v1 (KAGGLE_USERNAME + KAGGLE_API_TOKEN, Bearer-only) | Metadata-only PERIOD — no row path exists in code. Proven contract: POST /blobs/upload (Bearer, JSON) → PUT bytes to createUrl (no auth) → POST /datasets/create/new or /datasets/create/version/{owner}/{slug} (Bearer, JSON, title ≤50 chars); HTTP 200 with body.status=="Error" is a FAILURE |
 | data.world channel | `app/services/dataworld_service.py:publish_dataset_card_for_search_submission` | Listing.source_delivery.dataworld_url | api.data.world/v0 | DEPRECATED 2026-07-10: data.world is retiring its Open Data Community on July 13, 2026 (docs.data.world/en/408855), which is the exact surface this channel publishes to. Never enabled, never had a token, zero jobs/URLs ever. Do NOT enable; code removal tracked in T-2026-000210 |
 | Disclosure snapshots | `app/services/disclosure_snapshot_service.py:get_snapshot_for_hf_card` | disclosure snapshot tables | HF channel only | Returns metadata-only snapshots too; strict get_snapshot_for_hf keeps its 409 for no-row snapshots |
@@ -176,8 +176,7 @@ Log locations: backend logs on Railway (service ai-market-backend); job-level er
 
 ### H.2 BREAKING predicates
 
-- Adds any data-row publishing capability to Kaggle or data.world channels (violates H.1).
-- Publishes HF rows without an approved_rows disclosure snapshot for the exact version (violates H.1).
+- Adds publishing of real seller rows to any provider, with or without seller approval (violates H.1 and `runbooks/data-delivery-p2p.md`).
 - Removes or weakens the metadata-only sweep of stale HF data files.
 - Changes the search_submission_jobs schema by removing a field or adding a required field without a default.
 
@@ -319,7 +318,7 @@ scenario_set:
     type: evolve
     refs:
       - H.2
-    scenario: A proposal adds seller-approved sample-row publishing to the data.world channel, mirroring the HF row branch. Classify.
+    scenario: A proposal restores seller-approved sample-row publishing on any channel, as the retired HF row branch once did. Classify.
     expected_answers:
       - kind: classification
         verdict: BREAKING
