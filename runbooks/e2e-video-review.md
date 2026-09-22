@@ -65,10 +65,9 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
 |---|---|---|---|---|
 | Vulcan/Mars | Read the decision log before changing anything here | this runbook H.7 | none | COMPLETE |
 | Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Titan-1 | PARTIAL — cannot be settled until a real recording exists |
-| Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<kimi\|glm>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in H.6; current calls use the deployed role/schema projection |
-| Kimi | Compare a proposed question set or gate outside a binding gate vote | `council_request agent=kimi mode=open_response` | Council dispatch | COMPLETE — preserve the comparison receipt separately; CC/GLM/DeepSeek remain the voter panel |
-| CC | Review built code | `council_request mode=review` | Council dispatch | COMPLETE — note CC supports review mode only, not open_response |
-| Gemini | Analyse a recording and return findings | Vertex, existing Council connection | Google Cloud project | PLANNED |
+| Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<glm\|deepseek\|gemini>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in H.6; current calls use the deployed role/schema projection |
+| CC | Provide an explicit-name non-Council second opinion | `council_request agent=cc mode=review` | Read-only non-Council dispatch | COMPLETE — preserve the result separately; it never counts in a gate |
+| GLM / DeepSeek / Gemini | Review or analyse under the current voter roster | `council_request mode=review` | Read-only Council dispatch | COMPLETE — all three are required for a gate |
 
 ## How to operate
 
@@ -94,9 +93,9 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
   trigger: A change to the questions, the gate, or the finding schema is proposed
   pre_conditions:
     - the change names the H.6 decision it revises
-  tool_or_endpoint: "council_request(agent=<kimi|glm>, mode=open_response, task=<adversarial_prompt>, cwd=<repo>) once for each of two schema-visible challengers, separately"
+  tool_or_endpoint: "council_request(agent=<glm|deepseek|gemini>, mode=open_response, task=<adversarial_prompt>, cwd=<repo>) once for each of two schema-visible challengers, separately"
   argument_sourcing:
-    reviewers: select Kimi and GLM only after confirming both in the deployed role projection and connected client schema; this is non-gate deliberation and does not alter the binding voter contract
+    reviewers: select two of GLM, DeepSeek, and Gemini only after confirming both in the deployed role projection and connected client schema; this is non-gate deliberation and does not alter the binding voter contract
     adversarial_prompt: proposed change, governing decision and evidence, plus an explicit instruction to find counterexamples and unsafe assumptions
     repo: canonical checkout containing the evidence under discussion
   idempotency: IDEMPOTENT

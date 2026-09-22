@@ -38,7 +38,7 @@ error_signatures:
 
 ### Normative projection — CORE §2, pillar frame
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §2.
 
 > The ecosystem has four product pillars. The story flows: **marketplace → engine → conduits.** ai.market is where buyers and sellers transact; allAI is the engine that does the work for customers; AIM Data and vectorAIz are the customer-facing data products through which customers' data is turned into marketplace listings and reaches the network. Koskadeux/Council is the meta-orchestration layer that builds them all — important, but not itself a product. **The business is data.**
 
@@ -56,7 +56,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ### Normative projection — CORE §2, allAI
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §2.
 
 > - **IS:** The AI brain of the ecosystem and **the worker that does the heavy lifting for customers**. **Primary customer value: making listing data easy** — allAI generates metadata, classifies fields, drafts descriptions, runs quality validation, and turns raw data into discoverable, agent-findable listings, so the customer doesn't have to. Mediates ALL buyer-seller interactions — including across languages: buyers and sellers each operate in their own language, and allAI carries meaning between them (listing metadata, search, and mediated communications). Shared memory + RAG knowledge base. **Learns from every metadata generation interaction.** Mission: **become the best metadata classifying AI in the world for data, in any language** — every customer who runs metadata generation through allAI improves the model for every other customer. The compounding metadata corpus and feedback loop is our long-term moat (the data asset, not any single model — models are swappable; the corpus is not).
 > - **IS NOT:** Optional. Not just a copilot the customer can ignore. **allAI doing the work IS the product experience.** Removing allAI also enables disintermediation — buyers contact sellers directly, bypassing the platform.
@@ -64,7 +64,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ### Normative projection — CORE §2, AIM Data
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §2.
 
 > - **IS:** **A conduit, not a worker.** The conduit through which **allAI's metadata generation, classification, and listing work reaches the customer's data sources**, serving two audiences from one product. For non-technical users: a customer-hosted desktop GUI (Docker app running locally at the customer site) surfacing data-source profiling, PII management, metadata review and approval, listing publication, monitoring, and a request inbox. For developers operating at scale: a programmatic surface — pip-installable Python package + CLI + MCP server + SDK — giving programmatic access to all four marketplace functions (buy, sell, develop/integrate, request) and to allAI's listing/metadata work, plus peer-to-peer data transfer between buyer and seller nodes; the MCP server makes the marketplace and allAI accessible to AI agents. When in connected / approved mode, hosts ai.market agents that run on the customer's data sources to validate quality scores and assist metadata generation. Agents only run with explicit customer approval per data source.
 > - **IS NOT:** A cloud service or model host. Runs on the customer's / participant's own infrastructure; outbound connections only — works behind any firewall. Never phones home with customer data. **Not the worker — the worker is allAI.**
@@ -74,7 +74,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ### Normative projection — CORE §2, vectorAIz
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §2.
 
 > - **IS:** Our second customer-facing data product, co-equal with AIM Data. It turns corporate data into a Qdrant (vector database) format and can upload that data to the marketplace the same way AIM Data does. A distinct product with its own brand and repo (`aidotmarket/vectoraiz`).
 > - **IS NOT:** Branded under ai.market. It is our product, but it ships under its own brand, not as part of the AIM Data conduit. Not a worker — the worker is allAI.
@@ -83,7 +83,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ### Normative projection — CORE §9, durable and deferred surface
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §9.
 
 > The durable shape of the product. The **locked but evolvable specifics** (deferred Federate specifics, gating policy, sequencing) live in `docs/core/BUSINESS-CONTEXT.md` under "Product Surface (locked decisions)" — they are product decisions that can change with a Council Hall, so they do not belong in the constitution.
 

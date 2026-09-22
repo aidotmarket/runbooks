@@ -23,7 +23,7 @@ error_signatures:
 # Agent Dispatch
 
 > **S1527 reviewer-transport supersession.** `runbooks/council.md` is the sole
-> authority for CC, GLM, and DeepSeek voter dispatch and explicit-name Kimi comparison dispatch. All reviewer-wrapper, exact-SHA,
+> authority for GLM, DeepSeek, and Gemini voter dispatch and explicit-name non-Council CC second-opinion dispatch. All reviewer-wrapper, exact-SHA,
 > package-validation, turn-budget, retry, parser, verdict-persistence, and
 > Council Hall instructions below are historical and must not be executed.
 > The only active reviewer path is `council_request` as a thin trigger over
@@ -31,7 +31,7 @@ error_signatures:
 > runbook remains authoritative only for the separate MP build path and general
 > non-reviewer dispatch operations.
 
-> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
@@ -109,7 +109,7 @@ Carried from the retired root copy, corrected at S1351, and cut over at S1651.
 `infra:council-comms` remains canonical for live roster state. Read it before dispatching.
 
 
-**Gate voter panel: CC + GLM + DeepSeek — exactly three** (Max direct instruction S1651; CORE v9.16). ACTIVATION STATUS: CUTOVER CANDIDATE. `REQUIRED_MEMBERS` is exactly `{cc, glm, deepseek}`; `VALID_MEMBER_IDS` also registers Kimi so it can be dispatched by explicit name, but Kimi is not a required member and cannot vote. Missing, failed, malformed, or model-mismatched required voters fail closed. Kimi observations are recorded separately under `shadow_observations` and cannot change consensus, status, mandates, completion, override acknowledgement, spec approval, all-reviewer expansion, or shared health.
+**Gate voter panel: GLM + DeepSeek + Gemini — exactly three** (Max direct instruction S1721; CORE §5). ACTIVATION STATUS: CURRENT. `REQUIRED_MEMBERS` is exactly `{glm, deepseek, gemini}`; CC remains callable by explicit name only as a non-Council second opinion, and Kimi is removed. Missing, failed, malformed, or model-mismatched required voters fail closed; an unusable vote is rerun once before the gate fails. Non-Council findings cannot change consensus, status, mandates, completion, override acknowledgement, spec approval, all-reviewer expansion, or shared health.
 
 Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: PENDING — vulcan records the ledger id here at apply time.
 
@@ -117,9 +117,9 @@ Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's s
 
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
-- **CC**: first-class code/spec reviewer via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified (`claude-opus-4-8`; mismatch discards the vote), full terminal envelope preserved through async status reads. Never a build path for BQ/development code.
-- **Kimi**: explicit-name, non-voting comparison reviewer with bounded read-only at-SHA repository tools (`read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, `git_show`) through the shared provider review loop. It has no gate, write, shell, network, state, secret, restart, or deployment authority. Its observations are retained only in the separate audit field.
-- **DeepSeek**: required gate voter under S1651 via the bounded read-only Codex transport. Its verdict is required for every complete panel and cannot be substituted by Kimi, MP, or AG.
+- **CC**: explicit-name, non-Council second opinion via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified, full terminal envelope preserved through async status reads. It never counts in a gate and is never a build path for BQ/development code.
+- **Kimi**: removed entirely; no current dispatch or Council seat remains.
+- **DeepSeek**: required gate voter via the bounded read-only Codex transport. Its verdict is required for every complete panel and cannot be substituted by CC, MP, AG, or removed Kimi.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
 - **AG is RETIRED IN CODE 2026-08-11 (koskadeux-mcp f0c3eab03c, 'Retire DeepSeek AG and XAI integrations'): ag_server.py and antigravity_client.py are gone, `council_request` has no `ag` member, and nothing listens on 8766 (verified S1721, 2026-09-19).** Every AG procedure, failure mode and schema note below is historical.
 - **XAI is RETIRED** (Max go, S994).
@@ -150,9 +150,9 @@ fetch fails but the local origin ref is usable, the job records
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP, CC, GLM, DeepSeek, Kimi comparison, retained AG backend, Vulcan | Normalizes task args and mode boundaries before backend invocation. |
-| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | CC, GLM, DeepSeek voters; Kimi comparison | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
-| Kimi review path | shared `provider_readonly_review.py` loop | immutable Git objects, evidence ledger, returned envelope | Kimi | Reads authorized files only through `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show` at the pinned commit. |
+| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion; Vulcan | Normalizes task args and mode boundaries before backend invocation. |
+| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | GLM, DeepSeek, Gemini voters; CC non-Council second opinion | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
+| Kimi review path | removed | historical immutable Git objects and evidence only | Kimi | No current dispatch path or seat remains. |
 | git push guardrail, pre-push hook | repository pre-push hook and environment resolution | local ref, remote ref, push environment | git remote | Guards main pushes; remote-ref equality is authoritative for the push outcome. |
 | MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, git branch, build task record | Codex CLI / GPT-5.5 | Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
 | AG Backend | `koskadeux-mcp/ag_server.py` -> `antigravity_client.py` | AG server task record, Vertex auth env | Gemini CLI / Gemini 3.1 Pro | Read-only review prompts must state no file modification. |
@@ -230,9 +230,9 @@ approvals. `deadline_at` is `dispatched_at + timeout_s`, computed after the
 | `timeout_s` | at dispatch, S1345 | the bound the caller declared | `null` means no bound was declared, NOT that the task is unbounded in effect |
 | `deadline_at` | at dispatch, S1345 | when the task said it would be done by | that anything happens at that moment |
 
-Only the Kimi review dispatch is wired so far. Every other call site still records
-`null` for both, which is honest rather than absent: no bound was declared to the
-dispatcher. Wiring MP, CC, GLM and AG is separate work.
+**Historical S1345 note:** only the former Kimi review dispatch was wired at
+that time. Kimi is now removed. Retained records with `null` for both fields
+mean no bound was declared; do not infer a current dispatch path from them.
 
 **Read those two fields for exactly what they are.** They are
 declaration, not enforcement. Nothing in `async_dispatch.py` kills a runaway
@@ -322,15 +322,16 @@ Timeout knobs:
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | MP | mandatory build dispatch from Codex CLI | Codex CLI / GPT-5.5 | full repo write only in explicit build/author mode | COMPLETE |
-| AG | dispatch from `antigravity_client.py` | Gemini CLI / Gemini 3.1 Pro | repo read | COMPLETE |
+| Gemini | current gate-voter dispatch | pinned Vertex AI CLI | read-only review | COMPLETE |
+| AG | retired former dispatch from `antigravity_client.py` | removed | none | PARTIAL — retired; not a current Council path |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | active gate review from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no BQ/development build authority | COMPLETE |
-| Kimi | dispatch through the shared provider read-only review loop | Kimi Code subscription transport / exact deployed registry model | bounded read-only at-SHA repository tools; no writes or privileged effects | COMPLETE — exact-SHA read path covered; verify endpoint/model in the live contract and receipt |
+| CC | explicit-name non-Council second opinion from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no gate or BQ/development build authority | COMPLETE |
+| Kimi | removed | removed | none | PARTIAL — historical evidence only; no current dispatch path or seat |
 | GLM | Council gate voter through the shared parameterized Codex transport (`glm_codex_transport.py`) | Codex CLI / glm-5.3 direct from z.ai, reasoning effort max (verified 2026-09-21; the OpenRouter z-ai/glm-5.2 provider loop is history) | `:read-only` Codex permission profile, `~/.codex` denied, API key excluded from the model's shell; no writes | COMPLETE |
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
-This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. AG is `COMPLETE` here and PAUSED operationally; DeepSeek is `COMPLETE` here and a required voter under S1651. The live gate voter panel is CC + GLM + DeepSeek, Kimi is comparison-only, and the Council roster block plus `infra:council-comms` carries current operational truth.
+This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. The live gate voter panel is GLM + DeepSeek + Gemini; CC is an explicit-name non-Council second opinion, Kimi is removed, and the Council roster block plus `infra:council-comms` carries current operational truth.
 
 XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in Capabilities, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
 
@@ -389,8 +390,8 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
     - {signature: schema_roster_mismatch, cause: upstream advertises DeepSeek but the connected client cached an older council_request enum; refresh/reconnect before dispatch and do not substitute a voter}
     - {signature: schema_validation_failure, cause: result did not match required review shape}
     - {signature: repository_review_coverage_incomplete, cause: required exact-SHA files were not read completely}
-  next_step_success: Add DeepSeek's verdict and immutable read evidence to the Council review set; any Kimi result remains comparison-only.
-  next_step_failure: Repair the DeepSeek path and retry; do not substitute MP, AG, Kimi, or any other non-voter.
+  next_step_success: Add DeepSeek's verdict and immutable read evidence to the GLM/DeepSeek/Gemini Council review set.
+  next_step_failure: Repair the DeepSeek path and retry; do not substitute MP, AG, CC, removed Kimi, or any other non-voter.
 - id: E-04
   trigger: After any change to the laptop-routing env-var deployment surface (KOSKADEUX_DISABLE_LAPTOP_ROUTING in com.koskadeux.council-hall.plist or related agents), the fix must be smoke-verified before claiming durable.
   pre_conditions: [plist_change_committed_to_disk, plist_passes_plutil_lint, council_hall_currently_running_or_intentionally_down]
@@ -411,22 +412,22 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
   next_step_success: Patch the relevant BQ body.s<session>_durability_fix_resolution with smoke evidence (new PID, response time, hostname, env var presence in both bash wrapper and python child); record plist backup path for rollback.
   next_step_failure: Use G-06 to recover (restore plist from backup, re-validate, redo bootout+bootstrap on patched plist).
 - id: E-05
-  trigger: Any MP build dispatch while Vulcan and Mars share the single Codex CLI lane.
-  pre_conditions: [peer_bus_drained, no_peer_mp_dispatch_in_flight, lane_claim_announced_on_peer_bus]
+  trigger: Any MP build dispatch while Vulcan and Mars share per-repository Task Spooler queues.
+  pre_conditions: [peer_bus_drained, no_same_repository_mp_dispatch_in_flight, repository_claim_announced_on_peer_bus]
   tool_or_endpoint: peer_msg_send(kind=claim, to=<peer>, ref_entity=<build_ref>, body=<lane_claim>) then council_request(agent=mp, mode=build, task=<build_task>, cwd=<absolute_repo>, bq_code=<bq_code>, caller_instance=<self>, dispatch_class=structural, session_id=<session_id>)
   argument_sourcing:
-    lane_claim: announce BEFORE dispatch, naming the ref_entity, the work item, and the queued items behind it (established S1303, peer-bus msgs #1524-#1526)
+    lane_claim: announce BEFORE dispatch, naming the ref_entity, repository, work item, and any queued items for that repository
     build_task: derive the bounded implementation brief from the approved BQ/spec and include the required output manifest
     absolute_repo: resolve the clean isolated checkout from config:resource-registry and verify its base SHA before dispatch
     runbook_context: read the relevant Markdown directly before dispatch; no caller-authored evidence or gate field is required
-    dispatch_order: strictly one MP task at a time across BOTH instances; queue everything else behind the active task
-    release: announce lane release on the peer bus when the active task reaches a terminal state
+    dispatch_order: strictly one MP task at a time per repository; different repositories use different Task Spooler sockets and may run in parallel
+    release: announce the repository queue release on the peer bus when the active task reaches a terminal state
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: exactly one MP task active system-wide with a matching prior bus claim, verification: "check_build shows a single in-flight MP task; peer bus shows claim before dispatch timestamp"}
+  expected_success: {shape: at most one active MP task for the repository with a matching prior bus claim, verification: "check_build and the repository Task Spooler socket show no same-repository overlap; peer bus shows claim before dispatch timestamp"}
   expected_failures:
-    - {signature: mp_busy, cause: a second MP dispatch entered the shared Codex CLI lane while a task was in flight; the harness progress guard kills a task at ~900s, losing whichever build it lands on}
-  next_step_success: Dispatch the next queued lane item and announce the new claim.
-  next_step_failure: check_build both task_ids to establish which survived; after the lane clears, re-dispatch the killed task; never retry into an occupied lane.
+    - {signature: mp_busy, cause: a second MP dispatch entered the same repository queue while a task was in flight}
+  next_step_success: Dispatch the next item for that repository when its queue is free; unrelated repositories may continue in parallel.
+  next_step_failure: check_build both task_ids to establish their state; after the repository queue clears, re-dispatch only work not already delivered.
 - id: E-06
   trigger: A Vulcan/Mars session opens, or is about to dispatch, merge, or close, and must synchronize with its peer before acting.
   pre_conditions: [session_registered_in_registry, peer_bus_reachable]
@@ -479,14 +480,14 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
 |---|---|---|---|---|---|
 | F-01 | Gateway timeout, including 5xx from dispatch endpoints | Task too large for synchronous path, backend process hung, gateway timeout lower than backend timeout | Compare gateway response, backend logs, and task duration; check whether a background task id was created | G-01 | CONFIRMED |
 | F-02 | AG progress-guard timeout | Recurring BQ-COUNCIL-AG-PROGRESS-GUARD-FIX issue, broad prompt, Gemini server stall | Inspect AG transcript for last progress marker and verify AG server health | G-02 | CONFIRMED |
-| F-03 | MP mutex queue visible during multiple MP dispatches | Multiple MP dispatches serialize through the Codex CLI path; observable queue, not a correctness failure | Check task start times and mutex/queue logs before declaring failure | G-03 | CONFIRMED |
+| F-03 | MP queue visible during multiple builds in one repository | MP builds serialize through that repository's Task Spooler socket; builds for different repositories may run in parallel | Check repository identity, Task Spooler socket, and task start times before declaring failure | G-03 | CONFIRMED |
 | F-04 | Dispatcher stale but files committed | MP completed local work but gateway task state or Living State did not refresh | Compare git log/status with dispatcher task record and build entity `body.summary` | G-04 | CONFIRMED |
 | F-05 | MCP tool prefix lowercase silent-fail | Tool prefix used as `koskadeux:` instead of capitalized `Koskadeux:` | Check the tool name casing in the dispatched prompt or MCP call trace | G-05 | CONFIRMED |
 | F-06 | DeepSeek dispatch fails (connection refused on 127.0.0.1:8768, or the server crash-loops at startup) | Server down; launcher resolved no or invalid DEEPSEEK_API_KEY from Infisical; or the stored key is expired, malformed, or overwritten so the startup auth-probe gets HTTP 401 from api.deepseek.com | Check the listener with `lsof -nP -iTCP:8768 -sTCP:LISTEN` and tail `/var/tmp/koskadeux/deepseek_server.log` plus `_error.log`; a startup 401 means a bad stored key value, an Infisical fetch error means launcher wiring (wrong project) | G-06 | CONFIRMED |
 | F-07 | Peer-bus message silently deduplicated (send returns an older row; the new body never persists) | peer_msg_send dedupes on (from_instance, to_instance, kind, ref_entity) and returns the prior row as idempotent success (T-2026-000339); observed dropping substantive coordination updates in S1321 and S1324 | Compare the returned row's created_at and body against what was just sent; a stale created_at or mismatched body means the send was deduped, not delivered | G-07 | CONFIRMED |
 | F-08 | MP dispatch task record stuck in running after the Codex process exited, or a correct build failed on the one-commit post-build invariant | Handler does not bind task-record lifecycle to process lifecycle (T-2026-000351); the one-commit invariant counts commits against the caller checkout's possibly stale local HEAD rather than the actual branch point (T-2026-000360) | Check whether the expected branch or commit exists on the remote via git fetch plus git log; a pushed remote-equal artifact with a running record is the stale-record defect; a failed task with a preserved_commit_ref plus a stale pre_build_base_sha is the invariant defect | G-08 | CONFIRMED |
 | F-09 | HISTORICAL (superseded at deployed `fdf50693`): GLM or DeepSeek returned a countable verdict over a silently truncated inline diff | Before the shared at-SHA review loop, the GLM/DeepSeek inline path capped evidence at 40,000 characters; DeepSeek was retired at that time (a gate voter again since S1651, on the Codex directory transport) and GLM uses the four bounded exact-SHA tools | Historical verdicts remain unproven; current GLM verification requires a pinned dispatch SHA, complete required-file tool coverage, and a binding strict verdict | G-09 | CONFIRMED |
-| F-10 | HISTORICAL (superseded at deployed `fdf50693`): Kimi timed out while receiving one unbounded inlined diff | Before the shared at-SHA review loop, Kimi received the full inline diff under a latency cap | Historical failures remain diagnostic records; current Kimi verification requires a pinned dispatch SHA, complete paginated at-SHA reads, and a binding strict verdict | G-10 | CONFIRMED |
+| F-10 | HISTORICAL (superseded at deployed `fdf50693`): Kimi timed out while receiving one unbounded inlined diff | Before the shared at-SHA review loop, Kimi received the full inline diff under a latency cap | Historical failures remain diagnostic records; Kimi has no current dispatch path or Council seat | G-10 | CONFIRMED |
 | F-11 | `git push` to main prints a guardrail refusal and `error: failed to push some refs`, while the same stderr block also prints a successful ref update, and the commit is in fact on the remote | The pre-push guardrail appears to evaluate `KD_ALLOW_MAIN_PUSH` in a context where it is not visible, prints a refusal, and returns non-zero while the push itself completes; the precise mechanism is not established; observed live in S1326 on koskadeux-mcp when `KD_ALLOW_MAIN_PUSH=1 git push origin main` printed the refusal and error alongside `2257a367..2961f03d main -> main` (T-2026-000367) | Never conclude a push outcome from `git push` output; run `git fetch`, then compare `git rev-parse` against the remote ref, or use `git ls-remote`, and check `git rev-list --left-right --count` against the remote branch | G-11 | CONFIRMED |
 | F-12 | A structural build terminal receipt says `worktree_retirement_ambiguous`, `retained_recovery_required`, or names a retained worktree after a forced failure. | The same-filesystem move, Git registration repair/proof, invocation retirement, or exactly-once disposition did not complete unambiguously. | Read the exact terminal receipt and quarantine journal; inspect only its named recovery path; verify tracked/untracked bytes, top-level, common directory, and receipt device/inode. A local path miss outside the gateway view is not deletion evidence. | G-12 | CONFIRMED |
 
@@ -571,7 +572,7 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
   component_ref: Kimi review path
   root_cause: HISTORICAL — the former Kimi inline path supplied one unbounded diff and could exhaust its latency budget (T-2026-000365). The deployed path at fdf50693 replaced it with paginated exact-SHA repository reads.
   repair_entry_point: provider_readonly_review.py and the Kimi review dispatch handler
-  change_pattern: For current Kimi reviews, pin dispatch_sha and require complete paginated reads for every required file before accepting the strict verdict. A repository-tool failure or incomplete coverage fails the review closed.
+  change_pattern: Preserve this only as historical Kimi evidence. Kimi has no current dispatch path or Council seat; do not use this repair to initiate a new review.
   rollback_procedure: None; re-dispatch scoped.
   integrity_check: The Kimi envelope records the exact dispatch SHA, complete required-file coverage in its evidence ledger, exact model match, and a valid binding verdict.
 - id: G-11
@@ -781,7 +782,7 @@ scenario_set:
     type: operate
     refs: [E-03, Agent capabilities, council:I-01]
     scenario: |
-      id: E-03. trigger: A gate review needs DeepSeek's required active-voter coverage. pre_conditions: DeepSeek provider is healthy, review scope is read-only, and the exact dispatch SHA is known. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; model and limits from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deepseek + dispatch_sha + review_scope. expected_success: DeepSeek returns a schema-valid binding verdict with complete exact-SHA evidence through its bounded read-only Codex path. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, or schema validation failure. next_step_success: add the DeepSeek vote to the GLM/DeepSeek/Gemini gate set; any Kimi response remains comparison-only. next_step_failure: fail the gate closed and retry DeepSeek without substituting MP, AG, or Kimi.
+      id: E-03. trigger: A gate review needs DeepSeek's required active-voter coverage. pre_conditions: DeepSeek provider is healthy, review scope is read-only, and the exact dispatch SHA is known. tool_or_endpoint: council_request(agent=deepseek, mode=review, task=<review_prompt>, cwd=<repo>, dispatch_sha=<sha>). argument_sourcing: task from gate ACs and changed-file coverage; cwd from the reviewed repo; exact immutable SHA from git; model and limits from infra:council-comms. idempotency: IDEMPOTENT_WITH_KEY on deepseek + dispatch_sha + review_scope. expected_success: DeepSeek returns a schema-valid binding verdict with complete exact-SHA evidence through its bounded read-only Codex path. expected_failures: provider health failure, model mismatch, repository-tool failure, incomplete required-file coverage, or schema validation failure. next_step_success: add the DeepSeek vote to the GLM/DeepSeek/Gemini gate set. next_step_failure: fail the gate closed and retry DeepSeek without substituting MP, AG, CC, or removed Kimi.
     expected_answers:
       - kind: tool_call
         tool: council_request
@@ -1000,7 +1001,8 @@ GLM/DeepSeek/Gemini roster or permit fallback.
 This section records retained middleware plumbing from
 BQ-COUNCIL-DISPATCH-MIDDLEWARE-WIRING. References to AG or DeepSeek below are
 implementation history, not current gate eligibility; current voting uses only
-CC, GLM, and DeepSeek, Kimi is comparison-only, and MP is the mandatory builder.
+GLM, DeepSeek, and Gemini, CC is a non-Council second opinion, Kimi is removed,
+and MP is the mandatory builder.
 
 The wired middleware path fires only for structural dispatches:
 `dispatch_class="structural"` in the handler args for MP, AG, or DS.
@@ -1109,8 +1111,9 @@ Historical fallback behavior did not break dispatch:
   continues.
 
 Manual diff inlining belonged to that former path and must not be used as
-current gate evidence. Current GLM and DeepSeek voters (and Kimi, comparison-only) use only the bounded
-exact-SHA four-tool loop; CC uses its pinned read-only review path.
+current gate evidence. Current GLM and DeepSeek voters use only the bounded
+exact-SHA four-tool loop; Gemini uses its pinned voter path, and CC uses its
+pinned read-only path only for a non-Council second opinion.
 
 Design references:
 
@@ -1268,7 +1271,7 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 **Procedure (do NOT redispatch a rebuild):**
 1. Confirm delivery: `git log --oneline -3`, `git status --short`, and inspect the commit diff against the chunk's spec scope.
 2. Complete the wrapper's pre-push gates manually: run the chunk's new tests plus `ci_verification.py:CI_WORKFLOW_TEST_PATHS` locally; all green or stop.
-3. Run the chunk's Gate 3 review with the builder excluded and the complete active panel (MP built it → CC + GLM + DeepSeek review; Kimi may compare but cannot vote).
+3. Run the chunk's Gate 3 review with the builder excluded and the complete active panel (MP built it → GLM + DeepSeek + Gemini review). CC may provide an explicit-name non-Council second opinion but cannot vote; Kimi is removed.
 4. On pass, push as a deliberate instance merge: `KD_ALLOW_MAIN_PUSH=1 git push origin main` (fast-forward only).
 5. Record the workaround: patch the BQ entity (chunk verdicts + `wrapper_incident`) and emit a `decision` event.
 
@@ -1292,7 +1295,7 @@ The manual-recovery loop in §U is now largely obsolete: the pipeline auto-recov
 The schema-sanitizer fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. The historical S1150 close schema triggered the incident; that field has since been retired. If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
 
 ## Gate-change consultation for shipped mandates (S1164, discharges S1164-D4)
-Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — CC, GLM, and DeepSeek — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL voter mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit CC/GLM/DeepSeek review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. Any Kimi result is comparison-only. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
+Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — GLM, DeepSeek, and Gemini — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL voter mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit GLM/DeepSeek/Gemini review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. CC may provide an explicit-name non-Council second opinion but never counts in the gate; Kimi is removed. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
 
 ## §V — CC gate-review dispatch mechanics (S1231)
 
@@ -1302,7 +1305,7 @@ CC (`council_request agent=cc mode=review`) is a read-only gate voter with files
 - **Exactly one pinned ref.** Supplying conflicting `dispatch_sha`/`head`/`sha` aliases fails `dispatch_sha_alias_conflict`; supplying none fails `dispatch_sha_required`.
 - **Inline diff cap, CC-only.** The CC preload inlines the pinned diff and HARD-FAILS loud (`cc_review_diff_truncated`) if it exceeds `CC_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 120000, read at process start — a change needs a handler restart). Shipped T-2026-000263 @ koskadeux-mcp 83c9189d after a 45.4k single-file Gate 2 spec could not pass the shared 40k cap and `review_paths` cannot narrow a single file.
 - **Historical inline-diff truncation controls remain relevant only to CC and retained legacy backends.** CC's preload fails closed on `cc_review_diff_truncated`. The former GLM and Kimi inline-cap defects tracked by T-2026-000399/T-2026-000400 were superseded by deployed `fdf50693`: both use the shared exact-SHA loop with only `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show`, pagination to completion, and required-file coverage before a verdict. DeepSeek's S1651 required vote uses its bounded read-only Codex transport, not the retained inline backend.
-- **Model verification.** A `model_matched: false` CC result discards the vote (CORE §5); redispatch.
+- **Model verification.** A `model_matched: false` voter result discards the vote (CORE §5); redispatch that voter. A CC result never counts as a vote.
 - **Historical output-schema contract (S1248; superseded by the current Council directory transport).** The former CC review path injected no output schema into the prompt and validated the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA`. The live response-file path in `runbooks/council.md` preserves reviewer output unchanged, including a `REJECT` with no mandates, and operators must not invent a mandate.
 
 ## §W — A dispatched build reports "running" for ever (abandoned worker, S1338, discharges S1338-D1)
@@ -1568,7 +1571,7 @@ one line. Prefer construction over a claim that a hazard did not occur the one
 time it was tried.
 
 **Council panels are covered by NEITHER signal and there is no mechanical check
-for them.** A review dispatched to CC, GLM or Kimi is a thread task that spawns
+for them.** A review dispatched to GLM, DeepSeek, Gemini, or non-Council CC is a thread task that spawns
 no subprocess, so signal 1 cannot see it, and signal 2 cannot tell it apart from
 something that already died. Panel safety is enforced SOCIALLY — by step 2
 below, by the peer bus, and by each instance not closing while it has a panel
@@ -1764,7 +1767,7 @@ auto-injected "REQUIRED CONTEXT" block that can contain irrelevant and wrong
 material — a Stripe/payments section and a 15% figure have both been observed,
 against an actual 5% commission, plus a stale 4/4 unanimity claim against the
 real 3-voter panel. Inoculate explicitly in the prompt: name the correct panel
-(CC, GLM, DeepSeek), identify Kimi as comparison-only, state the correct commission, cite T-2026-000446, and tell the
+(GLM, DeepSeek, Gemini), identify CC as a non-Council second opinion and Kimi as removed, state the correct commission, cite T-2026-000446, and tell the
 reviewer the injected block is overridden. Reviewers otherwise review against
 the injected content.
 

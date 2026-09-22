@@ -22,7 +22,7 @@ error_signatures:
 
 This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
 
-> **CURRENT ROSTER - S1721, CORE v9.18. This block supersedes every older roster statement on this page.**
+> **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
@@ -35,7 +35,7 @@ This runbook documents the stable gate-process slice: Build Queue entity shape, 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
 | Build Queue entity tracking | SHIPPED | `build:bq-* Living State entities` | Gate transitions verified through BQ entity state review | 2026-04-29 |
-| Gate 1 design review | SHIPPED | `build:bq-*.gate1` | CC/GLM/DeepSeek design-review artifacts attached to BQ records | 2026-07-27 |
+| Gate 1 design review | SHIPPED | `build:bq-*.gate1` | GLM/DeepSeek/Gemini design-review artifacts attached to BQ records | 2026-07-27 |
 | Gate 2 chunking and implementation spec | SHIPPED | `specs/BQ-*-GATE2.md` | Chunk specs reviewed before build dispatch | 2026-04-29 |
 | Gate 3 post-build audit | SHIPPED | `build:bq-*.gate3` | Mandatory reviewer verdicts checked against commit SHAs | 2026-04-29 |
 | Gate 4 production verification | SHIPPED | `build:bq-*.gate4` | Customer-perspective verification recorded before completion | 2026-04-29 |
@@ -51,10 +51,10 @@ Strategic why: the BQ system exists because Council work needs reproducible deci
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| BQ Entity | `build:bq-* Living State entities` | gate fields, builders, reviewers, verdicts, body summary | Vulcan, Mars, MP, CC, GLM, DeepSeek | Canonical work record for gate status and provenance. |
-| Gate 1 Design | `build:bq-*.gate1` | problem statement, design verdicts, mandates | CC, GLM, DeepSeek, Vulcan, Mars | Approves the shape of the work before implementation planning. |
-| Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP author; CC, GLM, DeepSeek reviewers; Vulcan, Mars | MP authors the bounded implementation plan; the active gate panel reviews it before build dispatch. |
-| Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | CC, GLM, DeepSeek | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
+| BQ Entity | `build:bq-* Living State entities` | gate fields, builders, reviewers, verdicts, body summary | Vulcan, Mars, MP, GLM, DeepSeek, Gemini | Canonical work record for gate status and provenance. |
+| Gate 1 Design | `build:bq-*.gate1` | problem statement, design verdicts, mandates | GLM, DeepSeek, Gemini, Vulcan, Mars | Approves the shape of the work before implementation planning. |
+| Gate 2 Chunking | `specs/BQ-*-GATE2.md` | chunk plan, files touched, ACs, risks, test plan | MP author; GLM, DeepSeek, Gemini reviewers; Vulcan, Mars | MP authors the bounded implementation plan; the active gate panel reviews it before build dispatch. |
+| Gate 3 Audit | `build:bq-*.gate3` | commit SHAs, audit rounds, findings, mandates | GLM, DeepSeek, Gemini | Verifies implemented changes against Gate 1 and Gate 2 evidence. |
 | Gate 4 Verification | `build:bq-*.gate4` | production checks, customer-perspective verification | reviewer agents, Vulcan | Confirms the shipped behavior and closes the BQ only after review evidence exists. |
 | Cross-Review Gate | `cross_review_gate.py` | builders, reviewers, `gateN.<agent>_verdict` fields | `state_request(action=bq_complete)`, Living State | Preserves the base completion set and requires `approved_reviewers - shadow_reviewers - builders - authors` to be non-empty. |
 | Compliance Gate | `BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION` | gate status, author-mode provenance | dispatch surfaces, BQ state | Blocks build dispatch when Gate 1 mandates are unresolved or author/review mode is ambiguous. |
@@ -96,7 +96,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 | AG | retired in code 2026-08-11 (koskadeux-mcp f0c3eab03c); not dispatchable | Gemini / Vertex | — | RETIRED |
 | Vulcan | gate orchestrator and Living State operator | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 
-MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly GLM, DeepSeek, and Gemini (S1721, CORE v9.18), unanimous 3/3, an unusable vote rerun once and then the gate fails; CC is a non-Council second opinion and Kimi is removed. HISTORICAL (S1651, CORE v9.16, superseded): the panel was CC, GLM, and DeepSeek; DeepSeek replaced Kimi as a voter, Kimi is registered only for explicit-name comparison review for the remainder of its paid credit, and AG is paused. Any missing required voter fails closed. Kimi and GLM use the shared bounded read-only exact-SHA repository review loop, while CC uses its read-only review path. Vulcan and Mars orchestrate as equal-authority non-voters. Cross-review completion retains every base-valid approving actor, including MP where it is neither builder nor author and the existing Vulcan/Mars paths, then subtracts only registered shadow reviewers, builders, and authors. `council_reviewers.py` supplies the executable `REQUIRED_REVIEWER_ORDER` and `SHADOW_REVIEWERS`; `infra:council-comms` remains canonical for live membership and model strings.
+MP is the mandatory builder and is excluded from voting on its own work. The active gate panel is exactly GLM, DeepSeek, and Gemini (S1721, CORE §5), unanimous 3/3, with an unusable vote rerun once before the gate fails; CC is an explicit-name non-Council second opinion and Kimi is removed. HISTORICAL (S1651, superseded): the panel was CC, GLM, and DeepSeek; DeepSeek replaced Kimi as a voter, Kimi was registered only for explicit-name comparison review for the remainder of its paid credit, and AG was paused. Any missing required voter fails closed. Vulcan and Mars orchestrate as equal-authority non-voters. Cross-review completion retains every base-valid approving actor, including MP where it is neither builder nor author and the existing Vulcan/Mars paths, then subtracts only registered shadow reviewers, builders, and authors. `council_reviewers.py` supplies the executable `REQUIRED_REVIEWER_ORDER` and `SHADOW_REVIEWERS`; `infra:council-comms` remains canonical for live membership and model strings.
 
 ## How to operate
 

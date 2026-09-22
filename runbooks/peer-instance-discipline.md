@@ -44,7 +44,7 @@ This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mar
 | Close Boundary | Connected `kd_session_close` schema and close-status surface | Instance-scoped close transaction | Repository and handoff state | Update a runbook only when the operating procedure changed; documentation is not a close gate. |
 | Claim Transition | `state_request action=bq_update` | `build:bq-*` entity version, status, gate, assignee fields | Build Queue lifecycle | Work starts only after a CAS status transition succeeds against the version just read. |
 | Peer Message Bus | `peer_msg_send` / `peer_msg_inbox` | peer-bus messages keyed by recipient, sender, kind, and ack state | Vulcan, Mars | Claim/status/request/response/alert messages coordinate work without Max relay. |
-| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; CC/GLM/DeepSeek required voters; Kimi explicit-name comparison | Validate the connected schema against `council_reviewers.py`; any missing required voter keeps review and promotion unavailable. |
+| Dispatch Surface | `council_request` / `dispatch_mp_build` | dispatch tasks, BQ entity refs, branch state | MP builder; GLM/DeepSeek/Gemini required voters; CC explicit-name non-Council second opinion | Validate the connected schema against `council_reviewers.py`; any missing required voter keeps review and promotion unavailable. |
 | Git/Shell Surface | shell plus git CLI | local worktree, `origin/main`, branches | target repos | Either peer may inspect, commit, merge, and push within the same authority boundaries. |
 | Max Escalation | direct user thread | strategic decision record, BQ notes | Max | Used only for strategic forks or cross-instance unblocks agents cannot resolve. |
 
@@ -57,9 +57,9 @@ There are no lanes, ownership splits, primary approvals, worker audits, or close
 | Vulcan | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="vulcan")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | COMPLETE — gate work still fails closed unless all required voter paths are available |
 | Mars | Open, claim, operate, schema-supported dispatch, merge, close | `kd_session_open(instance="mars")`, state tools, shell, git, dispatch tools | Full trusted-operator scope | COMPLETE — gate work still fails closed unless all required voter paths are available |
 | MP | Mandatory delegated builder; never a vote on its own work | `council_request(mode=build)`, `dispatch_mp_build` | Build scope | COMPLETE |
-| CC/GLM/DeepSeek | Independent active gate voters | `council_request(mode=review)` | Read-only review at the exact SHA | COMPLETE — all three are required; any missing voter fails closed |
+| GLM/DeepSeek/Gemini | Independent active gate voters | `council_request(mode=review)` | Read-only review at the exact SHA | COMPLETE — all three are required; any missing voter fails closed |
 | AG | Paused from the active panel; advisory only when current state explicitly permits | `council_request(mode=review)` | Non-gate read-only advice | PARTIAL — callable advisory path retained; active-panel coverage intentionally absent |
-| Kimi | Explicit-name comparison reviewer | `council_request(agent=kimi, mode=review)` | Read-only, non-voting | COMPLETE — never supplies gate coverage |
+| CC | Explicit-name non-Council second opinion | `council_request(agent=cc, mode=review)` | Read-only, non-voting | COMPLETE — never supplies gate coverage; Kimi is removed |
 | Max | Strategic adjudication | direct instruction | Business/product owner | COMPLETE |
 
 ## How to operate

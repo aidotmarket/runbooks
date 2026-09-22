@@ -19,7 +19,7 @@ error_signatures:
 
 **Harness status, measured S1374.** The legibility harness was run against this runbook on 2026-07-27T23:09:41Z and returned INFRASTRUCTURE_FAILURE with aggregate 0.0 because `KOSKADEUX_MCP_URL` is not configured in this environment. No legibility score has been measured for this document. The Maintenance pass rate is the pending-tooling constant, not a result.
 
-**Governing CORE clauses:** §S4 (builders MUST push to main after tests pass; Council gates are the quality check) and §S16 (build status is canonical in Living State, code is canonical in Git).
+**Current build rule:** builders push only their own build/spec branch; merges to `main` happen after the required gate passes. Build status is canonical in Living State and code is canonical in Git. Do not quote the superseded CORE line-85 wording while its amendment is in progress.
 
 **Why this exists.** In S1372 a build base was written into an MP brief from local `main` at `526dd85` without checking `origin/main`, which was two commits ahead at `01250a1`. MP branched faithfully from the stale base and re-added footer legal links Max had deliberately deleted under T-2026-000279. The tree was clean and the branch was correct; the base was wrong. It self-corrected only because a later `git reset --soft origin/main` during a squash reparented the commit. That is luck, not process. This runbook is the S1371-D1 and S1371-D2 obligation.
 

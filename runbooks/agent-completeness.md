@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** agent creation or Gate 3 agent-compliance review.
 
-**Source constitution:** CORE v9.11, SHA-256 `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`, sections 3 and 4.
+**Source:** CORE §§3–4.
 
 ## Capabilities
 
@@ -57,7 +57,7 @@ error_signatures:
 
 ### Normative projection — CORE §3, Agent Completeness Contract
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §3.
 
 > Every agent MUST satisfy ALL of the following before it can pass Gate 3:
 >
@@ -80,7 +80,7 @@ Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
 
 ### Normative projection — CORE §4, Agent Discovery
 
-Source SHA: `3fd79b73debfae8f084ca4ccc4a4199e2b574d44e60c489567d6bc6b40941632`.
+Source: CORE §4.
 
 > All agents register with a central discovery endpoint:
 >
