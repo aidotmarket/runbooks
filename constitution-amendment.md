@@ -1,7 +1,7 @@
 ---
 title: Constitution Amendment — changing CORE.md
 owner: mars
-last_verified: '2026-07-28'
+last_verified: '2026-09-22'
 aliases: []
 error_signatures:
 - missing / malformed / model-mismatched verdict
@@ -135,6 +135,21 @@ error_signatures:
       once the entity is patched, the running tree fast-forwarded and the handler reloaded. If it
       still fails after the operator reports the cutover complete, the tree and the entity have
       genuinely diverged: escalate with both hashes rather than retrying.
+      RELOAD IS ONLY FOR CODE (S1739, CORE v9.19): tools/boot_kernel_v2.py `_read_artifact` reads
+      KERNEL.md and manifest from disk on every call and nothing caches them, so a repin that changes
+      only boot_kernel/v2 data files and tests needs the fast-forward of /Users/max/koskadeux-mcp and
+      no handler reload. Reload only when the fast-forward also changes Python the running server
+      imports. v9.19 cutover order that worked: MERGING on the bus; push both mains with
+      `KD_ALLOW_MAIN_PUSH=1 git push origin refs/heads/<branch>:refs/heads/main` (the pre-push
+      guardrail refuses a raw SHA as the local ref: "refusing malformed pre-push record ... local_ref");
+      PATCH infra:constitution via localhost:8765/api/call with body {content, version_label, change,
+      source, core_amendment_<session>} and expected_version (patch merges body keys; earlier
+      core_amendment_* records survive); readback via tools.session._constitution_entity_content and
+      byte-compare to `git show origin/main:docs/core/CORE.md`; `git pull --ff-only` in
+      /Users/max/koskadeux-mcp; load_boot_kernel(readback) PASS; CUTOVER DONE on the bus. Kernel
+      text growth also moves `serialized_boot_kernel_chars` and `finalized_wire_chars` in the manifest
+      and the pinned literals in tests/test_boot_kernel_v2.py and
+      tests/test_boot_delivery_contract_fixture.py; take the new values from the failing assertions.
       SECOND WRITER (S1721 observation, traced S1733): between the two v9.18 PATCH attempts something
       wrote backend CORE.md into infra:constitution as v30. The only write path to that entity outside
       the session tooling is the ops console boot-content editor, PUT /ops/boot-content/constitution
