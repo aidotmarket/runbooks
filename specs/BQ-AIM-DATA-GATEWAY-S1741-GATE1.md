@@ -89,7 +89,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
   - The seller's door sees the buyer's network address, as any direct transfer does. The shipped Seller Workspace route has the same property, since the seller's bucket logs see the buyer.
   - The door hostname is revealed to the buyer after purchase and can identify the seller, for example `data.<company>.com`.
   
-  Proposed: the website shows the seller this before they enable a gateway listing and recommends a neutral hostname. An ai.market-provided neutral name is out of scope for v1. This is flagged for Max (D-A below).
+  Decided (Max, D-A in §11): the website shows the seller this before they enable a gateway listing and recommends a neutral hostname. An ai.market-provided neutral name is out of scope for v1.
 
 ## 6. Supply chain and release
 
@@ -149,16 +149,16 @@ Releases are semantic versions. Compose pins the image by digest.
 - Any local UI beyond a localhost health endpoint.
 - Changes to vectorAIz or Seller Workspace.
 
-## 11. Open for Max
+## 11. Decided by Max
 
-- **D-A: identity exposure through the door.** After purchase the buyer learns the door hostname and the seller sees the buyer's network address. Recommendation: accept this for v1, with a warning to the seller and neutral-hostname guidance. Alternative: ai.market issues neutral hostnames (DNS only; the bytes still go direct).
+- **D-A: identity exposure through the door. Accepted for v1** (Max S1741, "I agree with your recommendations", recorded in the Event Ledger under dedupe key `s1741-aim-data-gateway-d-a`). After purchase the buyer learns the door hostname and the seller's door sees the buyer's network address. Before a gateway listing is enabled, the website warns the seller and recommends a neutral hostname. An ai.market-issued neutral hostname stays out of scope for v1 (§10).
 
 ## 12. Review questions
 
 1. Does anything in §3 or §4 let seller bytes touch ai.market, or let ai.market reach into the customer's systems beyond §5? Automatic REJECT under `data-delivery-p2p.md` if so.
 2. Is the key-compromise blast radius in §5 acceptable with the default gateway-side allowlist? What else should be required at Gate 2?
 3. Is the metadata boundary in D9 tight enough to keep value leakage out (for example distinct-count estimates on low-cardinality columns, or paths that embed identifiers), and still rich enough for allAI to classify and match datasets for the moat?
-4. Is D-A's v1 anonymity position consistent with CORE P5 as practised (the Seller Workspace precedent), or must a neutral hostname be in v1?
+4. Max has accepted D-A for v1. Does it conflict with CORE P5 as practised (the Seller Workspace precedent) in a way that must be raised with him again? Is the seller warning enough, or should Gate 2 add anything that costs little?
 5. Go or Python for D11, given CISO reviewability, the Parquet and S3 libraries, and our builder and reviewer strengths?
 6. SIMPLER / BETTER: is there a smaller design that meets Max's two requirements? In particular, should v1 drop S3 and support mounted folders only, leaving S3 to be mounted by the customer?
 
