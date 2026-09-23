@@ -168,9 +168,9 @@ error_signatures:
   idempotency: IDEMPOTENT
   next_step_success: post a peer_msg status that the job was cancelled; the unpushed worktree under /var/tmp/koskadeux/minimal-bridge-worktrees/ is left for normal pruning
 - id: E-07
-  trigger: MP must build in a repository the minimal bridge does not know yet (a new repo, e.g. aidotmarket/aim-data-gateway in S1741); dispatch refuses with minimal_bridge_repo_unresolved
+  trigger: MP must build in a repository the minimal bridge does not know yet (precedent: aidotmarket/aim-data-gateway in S1741, since registered by PR #233); dispatch refuses with minimal_bridge_repo_unresolved
   pre_conditions:
-    - the repo exists on GitHub and is cloned on Titan-1 at its canonical path (git clone into /Users/max/Projects/ai-market/<name>)
+    - the repo exists on GitHub and is cloned on Titan-1 at its canonical checkout path (usually /Users/max/Projects/ai-market/<name>; the existing entries in _MINIMAL_BRIDGE_REPO_PATHS show the exceptions)
     - the peer is idle or closed before the handler reload (Repair entry for model swaps has the restart rule)
   tool_or_endpoint: add one line '"aidotmarket/<name>": "<full checkout path>"' to _MINIMAL_BRIDGE_REPO_PATHS in koskadeux-mcp tools/agents.py, merge it through the normal koskadeux-mcp PR path (precedent PR #233, commit 821f5aa1), then reload the handler with launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
   argument_sourcing:
