@@ -428,6 +428,10 @@
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
 
+## `duplicate key value violates unique constraint on listings slug`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
+
 ## `duplicate_cardinality`
 
 - [Issue Channel](issue-channel.md)
@@ -735,6 +739,10 @@
 ## `jobs lost on kill`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
+
+## `Kaggle create/new rejected, title already in use`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
 
 ## `kickstart non-zero / no fresh pid`
 
@@ -1507,6 +1515,10 @@
 ## `unsupported_target_repo`
 
 - [Build Queue Reconciliation](runbooks/build-queue-reconciliation.md)
+
+## `UPDATE 0 on listings slug rename`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
 
 ## `ValidationError: SECRET_KEY must be set`
 
