@@ -340,7 +340,7 @@ Related legacy defects found while writing this spec are filed as T-2026-000850 
 
 ## 12. Open questions for Max
 
-- **Q2 Transaction lifetime / cross-device email verification.** (a) 30-minute transaction; an email verification opened on another device asks the user to go back to the app and reconnect **(recommended)**; (b) 60-minute transaction; (c) no email verification before connector consent.
+None open. - **Q2 decided by Max (2026-09-23): (a).** 30-minute transaction; if the email is verified on another device, the user returns to the assistant and connects again.
 
 ## 13. Surprising findings (for the Council)
 

@@ -550,7 +550,7 @@ Q-numbers used in the body of this spec refer to the entries below (adopted) or 
 
 ## 11. Open questions for Max
 
-- **Q8 Early access.** (a) user-id allowlist until P1 ships **(recommended)**; (b) open to all ai.market accounts once OAuth is live.
+None open. - **Q8 decided by Max (2026-09-23): (a).** Early access is a user allowlist (test accounts and Max) until the P1 buyer-tools BQ ships.
 
 ## 12. The hard part
 

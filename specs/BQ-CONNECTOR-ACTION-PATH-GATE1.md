@@ -292,7 +292,7 @@ Q-numbers used in the body of this spec refer to the entries below (adopted) or 
 
 ## 10. Open questions for Max
 
-- **Q2 Checkout-handoff REVIEW threshold in P1** (design: "above buyer threshold"; no such setting exists until P3 limits). (a) $500 platform default until the buyer sets one on the web **(recommended)**; (b) always REVIEW; (c) never REVIEW in P1 (the web payment is itself the human step).
+None open. - **Q2 decided by Max (2026-09-23): (a).** Checkout-handoff REVIEW threshold in P1 is a $500 platform default until the buyer sets their own limit on the web.
 
 ## 11. The hard part
 Exactly-once across three transaction owners that were never designed to share one. The executor commits inside its audit writer (`action_executor_service.py:825`), the canonical checkout commits inside `create_checkout` (`transaction_service.py:1680`), and S1735's constructor requires the caller to own the transaction. Making "request row + pending transition + effect + audit" one unit means changing commit ownership in code that just passed Tier-3 review, without changing flag-off behaviour. The second hard part is that the policy engine was built as "first match by priority", so "tighten-only" is a semantic change: the floor must be code, evaluated first, and every existing DB policy must be proven unable to lift it. Third, the checkout refactor must preserve five order creators' S1735 guarantees while pulling only the web path onto the new service — and the two MCP paths that stay behind (Q4) are exactly the ones that pay sellers synchronously on confirm.
