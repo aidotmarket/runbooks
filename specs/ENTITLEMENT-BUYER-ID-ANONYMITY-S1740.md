@@ -17,15 +17,16 @@
   - When the order's `delivery_config.gatekeeper_url` is set, the token is appended as a query parameter to the seller-controlled URL `{gatekeeper_url}/download?token=...` (`:265`). The docstring says it "is then presented to the seller's Gatekeeper Worker" (`:205-206`).
   - It is issued by `OrderService.issue_download_token` (`order_service.py:1579`, `buyer_id=str(buyer_id)`) and a second call at `:1669`, and it is returned by `POST /api/v1/orders/{order_id}/download` (`orders.py:260-306`).
   - It is redeemed back on ai.market by `redeem_download_token` (`order_service.py:~1702-1712`), which checks `claims["sub"] == str(buyer_id)`.
-  - Production (S1740, read-only): no order carries a `gatekeeper_url`, so no seller has received one yet. The code path is live and covered by tests (`test_s1681_s3_delivery.py`, `test_delivery_r1_fold.py`).
+  - Production (S1740, read-only, 2026-09-23 06:04:40 UTC: `select count(*) filter (where delivery_config ? 'gatekeeper_url'), count(*) from orders` → `0 | 5`): no order carries a `gatekeeper_url`, so no seller has received one yet. The code path is live and covered by tests (`test_s1681_s3_delivery.py`, `test_delivery_r1_fold.py`).
 - So the two entitlement formats do not interoperate today. This buyer→seller-node path is not live end to end, and the leak is latent. Once someone finishes "M3" integration it becomes real, and the shared field list is where it would leak.
 
 ## Change
 
 1. **Backend, delivery JWT (ai-market-backend `app/core/security.py`, `app/services/order_service.py`):**
-   - Replace `"sub": buyer_id` with an opaque, order-scoped buyer binding: `"sub": hmac_sha256(DOWNLOAD_TOKEN_SECRET_KEY or SECRET_KEY, f"{order_id}:{buyer_id}")` in hex.
-   - `redeem_download_token` recomputes the value from the authenticated buyer and the order id and compares it with `hmac.compare_digest`. The binding to the buyer is kept, but the seller-visible value reveals nothing and does not repeat across orders.
-   - Tests: the issued token contains neither the buyer UUID nor anything derived from it without the key; redeem still refuses another user.
+   - New delivery JWTs carry no `sub` at all, and no buyer-derived value: no hash and no pseudonym. That follows `runbooks/counterparty-anonymity.md`: counterparty-visible surfaces use order and listing references only.
+   - `redeem_download_token` drops its `claims["sub"] == str(buyer_id)` comparison. Ownership is already enforced by `_authorize_download_access(order_id, buyer_id, ...)` (`order_service.py:~1713`) against the authenticated buyer. The signed `order_id` claim must still equal the path order, and the `jti` reservation check stays.
+   - Tokens issued before the release still carry `sub = buyer UUID`. They stay valid for their existing TTL, because redeem simply ignores `sub`. No buyer loses access, and no key-coupling question arises.
+   - Tests: a new token's decoded payload contains neither the buyer UUID nor any `sub`; redeem by another authenticated user is refused (403); a pre-change token with a UUID `sub` still redeems within its TTL.
 2. **Backend, entitlement token (ai-market-backend):** remove `buyer_id` from the entitlement payload in `generate_download_token`. Ownership is already enforced before signing (`:76`, `row["buyer_id"] != user_id` → "Not your order"), and the order id identifies the purchase. Keep the audit `actor_id=user_id` (server-side only). Add a test: the token contains no `buyer_id` and no user-identifying value, and `validate_download_token` still accepts it.
 3. **AIM Data (aim-data):** remove `buyer_id` from the `required` tuple and from the docstring in `entitlement_service.py`. Change the log line in `raw_listings.py:451` to `file_id` and `order_id` only. Add a test: a token without `buyer_id` validates, and the log never contains a buyer identifier.
 4. **Governing specs:** add a supersession note at the top of `ai-market-backend/specs/BQ-VZ-RAW-DELIVERY.md` and `aim-data/specs/BQ-AIM-RAW-LISTINGS.md`. The note names this spec as the controlling anonymity amendment, and strikes or marks every clause that puts `buyer_id` into a seller-visible payload, required claim, query parameter, Trust request or log (backend spec ~`:31-53`, `:214-223`, `:245-250`, `:315-322`, `:349-362`; AIM Data spec ~`:142-160`). Server-side audit `actor_id` stays.
@@ -38,6 +39,7 @@ The two formats don't interoperate today, so no live download can break and the 
 ## Out of scope
 
 - Finishing M3, the buyer→seller-node redirect.
+- The legacy `JWTService.create_download_token` (`app/services/jwt_service.py:11-35`, schema `app/schemas/jwt_schema.py:19-26`) signs a plaintext `user_id`. S1740 found no call site in `app`. The backend build deletes the unused producer and its schema field if it confirms there are still no callers. If a caller exists, it removes `user_id` from the payload instead, and the build report names the caller.
 - The `delivery_service` JWT (`delivery_service.py:~250`). It carries `buyer_id`, but it travels only between the buyer and ai.market's trust-channel proxy and never reaches the seller device. The seller-facing trust frames had `buyer_id` removed in d78f2d08.
 
 ## Acceptance
