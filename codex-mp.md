@@ -1,13 +1,14 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-22'
+last_verified: '2026-09-24'
 aliases: []
 error_signatures:
 - gateway timeout on foreground dispatch >30s
 - 'RepairExhaustedError: schema repair exhausted'
 - silent past 300s with status still running
 - dispatches 4xx/hang after swap
+- minimal bridge has no configured checkout for repo
 ---
 
 # Codex / MP — Council Primary Builder
@@ -166,6 +167,25 @@ error_signatures:
   expected_success: no process names the worktree; no remote branch; no report.json is written for the task_id
   idempotency: IDEMPOTENT
   next_step_success: post a peer_msg status that the job was cancelled; the unpushed worktree under /var/tmp/koskadeux/minimal-bridge-worktrees/ is left for normal pruning
+- id: E-07
+  trigger: MP must build in a repository the minimal bridge does not know yet (precedent: aidotmarket/aim-data-gateway in S1741, since registered by PR #233); dispatch refuses with minimal_bridge_repo_unresolved
+  pre_conditions:
+    - the repo exists on GitHub and is cloned on Titan-1 at its canonical checkout path (usually /Users/max/Projects/ai-market/<name>; the existing entries in _MINIMAL_BRIDGE_REPO_PATHS show the exceptions)
+    - the peer is idle or closed before the handler reload (Repair entry for model swaps has the restart rule)
+  tool_or_endpoint: add one line '"aidotmarket/<name>": "<full checkout path>"' to _MINIMAL_BRIDGE_REPO_PATHS in koskadeux-mcp tools/agents.py, merge it through the normal koskadeux-mcp PR path (precedent PR #233, commit 821f5aa1), then reload the handler with launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
+  argument_sourcing:
+    repo_key: the lower-case org/repo passed as repo= on dispatch_mp_build / council_request
+    path: the checkout that the bridge fetches and cuts worktrees from; it must be a real directory or dispatch still refuses
+    override: KD_BRIDGE_REPO_PATH_<ORG_REPO upper-cased, non-alphanumerics as _> in the handler environment takes precedence over the map (portability only; the map is the record)
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: a dispatch with repo=aidotmarket/<name> is accepted and returns a task_id
+    verification: check_build on that task reaches clean_exit and report.json names the expected branch and a pushed head
+  expected_failures:
+    - signature: 'minimal bridge has no configured checkout for repo'
+      cause: map entry missing, handler not reloaded since the merge, or the path is not a directory on Titan-1
+  next_step_success: dispatch the real build
+  next_step_failure: check the running handler's start time against the merge commit; reload again when the peer is idle
 ```
 
 ## When it breaks

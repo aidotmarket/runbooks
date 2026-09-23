@@ -104,6 +104,10 @@
 
 - [Alerts at session open (S1529)](runbooks/alerts-at-open.md)
 
+## `ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL`
+
+- [GCP Auth](gcp-auth.md)
+
 ## `any non-APPROVE-class verdict`
 
 - [Constitution Amendment — changing CORE.md](constitution-amendment.md)
@@ -927,6 +931,10 @@
 ## `migration_rollback_in_logs`
 
 - [Session Registry Recovery](session-registry-recovery.md)
+
+## `minimal bridge has no configured checkout for repo`
+
+- [Codex / MP — Council Primary Builder](codex-mp.md)
 
 ## `minimal bridge secret scan error`
 

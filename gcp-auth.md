@@ -1,7 +1,7 @@
 ---
 title: GCP Auth
 owner: vulcan
-last_verified: '2026-09-22'
+last_verified: '2026-09-24'
 aliases:
 - Vertex authentication
 - Gmail OAuth
@@ -17,6 +17,7 @@ error_signatures:
 - 'RefreshError: Reauthentication is needed. Please run gcloud auth application-default login'
 - 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED
 - Reauthentication failed
+- ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL
 ---
 
 # GCP Auth
@@ -33,6 +34,7 @@ error_signatures:
 | gcloud CLI session auth (Pub/Sub and GCP admin) | SHIPPED | `gcloud CLI on Titan-1` | Verified via gcloud auth list and pubsub list | 2026-06-01 |
 | Pub/Sub gmail-push topic and subscription | SHIPPED | `GCP Pub/Sub gmail-push -> api.ai.market gmail webhook` | Verified via gcloud pubsub topics/subscriptions list | 2026-06-01 |
 | Vertex AI Gemini API-key auth | SHIPPED | `ai-market-backend app.core.config Settings.VERTEX_GEMINI_KEY` | Verified via Infisical key-prefix check expecting AQ. | 2026-06-01 |
+| AIM Data gateway TEST KMS project (`aimarket-gw-test-s1741`, Ed25519 SOFTWARE key) | SHIPPED | `GCP project aimarket-gw-test-s1741, key ring gateway-a0-test (us-central1)` | Live A0 probe S1741 (Event f831ffb3): signature verified in Python and Go, tampering rejected; re-signed identically with `gcloud kms asymmetric-sign` 2026-09-24 | 2026-09-24 |
 | Trust Channel KMS service-account ADC | SHIPPED | `ai-market-backend app/core/gcp_credentials.py + app/core/kms_lifecycle.py` | `tests/test_kms_lifecycle_s1606.py`; live RSA registration and both Trust Channel handshakes | 2026-08-25 |
 
 ## Architecture & interactions
@@ -58,6 +60,8 @@ GCP authentication for ai.market spans four independent auth paths. Gmail OAuth 
 | Pub/Sub topic | `gmail-push` |
 | Pub/Sub subscription | `gmail-push-sub` delivering to `https://api.ai.market/api/v1/webhooks/gmail` |
 | Prod GCP account | `max@ai.market` (the personal account `maxdrobbins@gmail.com` has no aimarket-prod access) |
+| Gateway TEST project | `aimarket-gw-test-s1741` (org `1062465481671`, billing account `016674-D537CF-25DBD2`, created S1741 with Max's approval) |
+| Gateway TEST key | `projects/aimarket-gw-test-s1741/locations/us-central1/keyRings/gateway-a0-test/cryptoKeys/gateway-a0-probe/cryptoKeyVersions/1` (`EC_SIGN_ED25519`, `SOFTWARE`) |
 | Vertex models | `gemini-embedding-001` (embeddings), `gemini-2.5-flash` (chat) |
 
 Vertex client construction is `genai.Client(vertexai=True, api_key=settings.VERTEX_GEMINI_KEY.get_secret_value())`; every `embed_content` call MUST pass `EmbedContentConfig(output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS)` because the default output is 3072-dimensional, larger than the qdrant collection.
@@ -134,6 +138,35 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
     - {signature: CRYPTO_SCHEME_MISMATCH, cause: an operation was routed to the wrong purpose-specific KMS key}
   next_step_success: Keep the credential secret-backed and record only service-account identity, key id, algorithms, deployment identity, and probe result.
   next_step_failure: Keep Trust Channel registration fail-closed; repair the exact credential, IAM, key name, or algorithm mismatch without exporting any KMS private key.
+- id: E-05
+  trigger: The gcloud session on Titan-1 has expired and an agent needs it for a GCP admin task while Max is reachable only through a browser (S1741).
+  pre_conditions: [Max available to sign in to Google in any browser as max@ai.market, an agent shell on Titan-1]
+  tool_or_endpoint: gcloud auth login max@ai.market --no-launch-browser, started in the background with its stdin read from a named pipe (mkfifo) so the verification code can be written into it later.
+  argument_sourcing:
+    url: the sign-in URL gcloud prints; give it to Max
+    code: the verification code Google shows Max after he approves; Max pastes it to the agent (or the agent reads it from Max's screen with his permission) and the agent writes it into the pipe
+    flags: use --no-launch-browser only; do not pass --update-adc=false, which gcloud rejects
+  idempotency: NOT_IDEMPOTENT
+  expected_success: {shape: gcloud auth list shows max@ai.market as the active account, verification: run E-01}
+  expected_failures:
+    - {signature: "code expired or reused", cause: the code was entered too late or twice; restart the command and get a new URL}
+  next_step_success: Continue the GCP task; the sign-in itself stays Max's (H.1 invariant).
+  next_step_failure: Ask Max to run gcloud auth login on Titan-1 directly.
+- id: E-06
+  trigger: A build or probe needs a TEST Cloud KMS Ed25519 key for the AIM Data gateway (S1741 A0; the gateway permission and listing keys use Ed25519 at the SOFTWARE level, Gate 2 Amendment A).
+  pre_conditions: [E-01 passes as max@ai.market, use only the TEST project aimarket-gw-test-s1741, never aimarket-prod]
+  tool_or_endpoint: gcloud kms keys describe / keys versions list / asymmetric-sign against the TEST key; to recreate from scratch - gcloud projects create aimarket-gw-test-s1741 --organization=1062465481671; gcloud billing projects link aimarket-gw-test-s1741 --billing-account=016674-D537CF-25DBD2; gcloud services enable cloudkms.googleapis.com --project aimarket-gw-test-s1741; gcloud kms keyrings create gateway-a0-test --location us-central1; gcloud kms keys create gateway-a0-probe --keyring gateway-a0-test --location us-central1 --purpose asymmetric-signing --default-algorithm ec-sign-ed25519 --protection-level software
+  argument_sourcing:
+    project: aimarket-gw-test-s1741 (a project name may not contain parentheses)
+    guard: the A0 probe (ai-market-backend branch build/aim-gateway-a0-kms-ed25519-s1741, scripts/gateway/a0_kms_ed25519_probe.py) refuses unless both project and key ring contain "test"
+    protection_level: SOFTWARE; Cloud HSM refuses EC_SIGN_ED25519 with ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL
+  idempotency: IDEMPOTENT
+  expected_success: {shape: key version 1 ENABLED, algorithm EC_SIGN_ED25519, protection SOFTWARE; gcloud kms asymmetric-sign returns a 64-byte signature that verifies against the version's public key, verification: Ed25519 is deterministic, so re-signing the same input gives identical bytes}
+  expected_failures:
+    - {signature: "ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL", cause: the key was requested at HSM level; use SOFTWARE}
+    - {signature: "refused: both GCP_PROJECT_ID and GCP_KMS_KEYRING must contain 'test'", cause: the probe was pointed at a non-test project or ring}
+  next_step_success: Record the key version name and verification result on the build entity.
+  next_step_failure: Stop; do not fall back to any aimarket-prod key.
 ```
 
 ## When it breaks
@@ -149,6 +182,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 | F-05 | qdrant upsert fails because embeddings are 3072-dimensional | An embed call omitted output_dimensionality so it defaulted to 3072 while the qdrant collection is smaller | Inspect the embed call site for EmbedContentConfig(output_dimensionality=...) | Repair-05 | CONFIRMED |
 | F-06 | Marketplace search takes ~11s · any Gemini **embedding** call takes ~10.4s · qdrant sync outbox throughput stuck near 14k rows/hour | The embedding client is pointed at the **global** Vertex endpoint (`aiplatform.googleapis.com`). `gemini-embedding-001` costs ~10.4s per call there and ~0.3s on any regional endpoint. Latency is flat regardless of batch size and identical on parallel calls, so it looks like a hang, not a queue. Do NOT go looking for a slow model, a bad supplier, or a network problem: DNS/TCP/TLS all complete in ~50ms and TTFB is the whole 10.4s. | From the production container (`railway ssh`), POST the same payload to `aiplatform.googleapis.com` and to `us-west1-aiplatform.googleapis.com` and compare TTFB. Expect ~10.4s vs ~0.3s. | Repair-06 | CONFIRMED |
 | F-07 | Trust Channel registration returns 503 or a handshake logs `CRYPTO_SCHEME_MISMATCH` | KMS credential is unavailable/invalid, IAM or key readiness failed, or signing/decrypt was routed to the wrong purpose-specific key | Verify non-secret credential metadata matches between Infisical and Railway; confirm both version-1 algorithms; inspect the exact deployment and correlated Trust Channel log window | Repair-07 | CONFIRMED |
+| F-08 | `ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL` creating an Ed25519 key | Cloud HSM does not offer `EC_SIGN_ED25519` | Check the requested protection level | E-06 (use SOFTWARE) | CONFIRMED |
 
 ### Checking every saved Gmail login (S1734)
 
@@ -224,7 +258,8 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
 - The OAuth consent screen for aimarket-prod MUST be User Type External with publishing status In production. Internal blocks customer Google sign-in (`org_internal`); Testing expires Gmail refresh tokens after 7 days.
 - `VERTEX_GEMINI_KEY` is the canonical uppercase secret name for the Vertex Express API key; no aliases are permitted in production code.
 - Every Gemini embed call MUST pass `output_dimensionality=settings.LLM_EMBEDDING_DIMENSIONS`.
-- The gcloud interactive login can only be performed by Max in a browser; it is never headless.
+- The gcloud interactive login can only be performed by Max in a browser; it is never headless. An agent may start it and enter Max's verification code for him (E-05), but Max always signs in and approves.
+- AIM Data gateway TEST keys live only in `aimarket-gw-test-s1741`; gateway tests and probes never touch `aimarket-prod` keys.
 - `GCP_SERVICE_ACCOUNT_JSON` is the production Trust Channel KMS credential, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway. It is independent of Vertex Gemini auth and must never be printed or written outside an approved secret-backed transfer.
 - Trust Channel KMS signing and decryption MUST use distinct keys with algorithms `RSA_SIGN_PKCS1_2048_SHA256` and `RSA_DECRYPT_OAEP_2048_SHA256`, respectively.
 - **Embeddings MUST use a REGIONAL Vertex endpoint; completions MUST use the GLOBAL one.** These are two separate clients in `app/core/llm.py` (`_get_gemini_embedding_client()` regional, `_get_gemini_client()` global) and MUST NOT be merged. `gemini-embedding-001` is ~10.4s on global and ~0.3s regionally; the approved completion model (`APPROVED_GEMINI_MODEL`, currently `gemini-3.1-pro-preview`) returns **HTTP 404 on every regional endpoint** and is served only from global. Google's published model-location table claims otherwise and is wrong — MP cited it and approved a change that would have 404'd every allAI completion. Measure from the production container; the container is ground truth. The region is `VERTEX_EMBEDDING_LOCATION` (default `us-west1`, matching Railway `us-west2`); setting it to `global` is the rollback and costs the 10.4s back.
