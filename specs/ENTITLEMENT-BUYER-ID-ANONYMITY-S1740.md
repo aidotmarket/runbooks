@@ -39,7 +39,7 @@ The two formats don't interoperate today, so no live download can break and the 
 ## Out of scope
 
 - Finishing M3, the buyer→seller-node redirect.
-- The legacy `JWTService.create_download_token` (`app/services/jwt_service.py:11-35`, schema `app/schemas/jwt_schema.py:19-26`) signs a plaintext `user_id`. S1740 found no call site in `app`. The backend build deletes the unused producer and its schema field if it confirms there are still no callers. If a caller exists, it removes `user_id` from the payload instead, and the build report names the caller.
+- The legacy `JWTService.create_download_token` (`app/services/jwt_service.py:11-35`) signs a plaintext `user_id`, and S1740 found no call site for it in `app`. On that evidence the backend build may delete only this unused producer. The schema `DownloadTokenPayload` (`app/schemas/jwt_schema.py:19-26`) stays unchanged, because its `user_id` field has live server-side consumers: `app/middleware/gatekeeper.py:36,64,75`, registered at `app/main.py:789-790`, and `app/services/download_authorization_service.py:8-12`. Those consumers are ai.market-internal (download counting and rate limiting) and not seller-visible. Remove the field only if a whole-repo search finds no consumer, or port every consumer in the same change with a focused test (GLM Gate 1 R3 mandate).
 - The `delivery_service` JWT (`delivery_service.py:~250`). It carries `buyer_id`, but it travels only between the buyer and ai.market's trust-channel proxy and never reaches the seller device. The seller-facing trust frames had `buyer_id` removed in d78f2d08.
 
 ## Acceptance
