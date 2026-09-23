@@ -774,6 +774,15 @@
 - Error signatures: transparency/keys HTTP 503 Preview unavailable, signing_configuration_unavailable, signing_key_unavailable, signing_key_invalid, signing_environment_not_allowed
 - Status: current
 
+## Listing licences and signed records
+- Path: `runbooks/listing-licenses.md`
+- Purpose: Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Max's S1738 decision uses production because no staging environment exists: enable, immediately run §14 on `*-0N@e2e-test.ai.market`, and turn the flag off on any failed step. This page itself makes no live-enable claim.
+- Owner: `vulcan`
+- Last verified: `2026-09-23`
+- Aliases: listing licenses, Standard Data Licence, seller licence, signed licence record
+- Error signatures: SELLER_TERMS_ACCEPTANCE_PENDING, WEBSITE_LICENSE_PUBLISH_REQUIRED, LICENSE_ACCEPTANCE_STALE, LICENSE_ACCEPTANCE_REQUIRED, LICENSE_ACCEPTANCE_INVALID, LICENSE_AUTHORITY_REQUIRED, LICENSE_RIDER_ACCEPTANCE_STALE, LEGAL_IDENTITY_CONFLICT, LEGAL_IDENTITY_REQUIRED, SELLER_LEGAL_IDENTITY_REQUIRED, BUYER_LEGAL_IDENTITY_REQUIRED, LICENSE_DOCUMENT_INVALID, LICENSE_SECRET_DETECTED, LICENSE_PROHIBITED_TERMS, LICENSE_SIZE_INVALID, LICENSE_MIME_MISMATCH, LICENSE_TEXT_INVALID_UTF8, LICENSE_TEXT_NOT_NFC, LICENSE_LANGUAGE_NOT_ENGLISH, LICENSE_PDF_INVALID, LICENSE_PDF_ACTIVE_CONTENT, LICENSE_MALWARE_DETECTED, LICENSE_MALWARE_SCAN_UNAVAILABLE, LICENSE_UPLOAD_UNAVAILABLE, LICENSE_TERMINATED, LICENSE_NOT_TERMINATED, LICENSE_TERMINATION_ACTOR_REQUIRED, LICENSE_TERMINATION_INVALID, missing_active_markers, LISTING_LICENSES_ENABLED=true is incompatible with X402_ENABLED=true
+- Status: current
+
 ## Listing slug rename (seller-identifying slug)
 - Path: `listing-slug-rename.md`
 - Purpose: A listing's slug is public. It appears in the listing URL, the JSON-LD, the sitemap and the names of the metadata cards we mirror to Hugging Face and Kaggle. A slug that names the seller, such as a company name, breaks the anonymity rule (CORE P5/S1; `ai-market-backend` runbook `runbooks/public-seller-anonymity.md`). This page renames such a slug to a neutral one. The page is a production-data procedure: the exact values for a given listing are Council-approved before it runs.

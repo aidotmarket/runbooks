@@ -212,6 +212,10 @@
 
 - [E2E Browser Runner](e2e-browser-runner.md)
 
+## `BUYER_LEGAL_IDENTITY_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
 ## `BUYER_REQUEST_MATCH_RELEVANCE_QUESTION`
 
 - [Buyer Request Publication and Discovery](runbooks/buyer-request-publication-and-discovery.md)
@@ -772,6 +776,102 @@
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
 
+## `LEGAL_IDENTITY_CONFLICT`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LEGAL_IDENTITY_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_ACCEPTANCE_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_ACCEPTANCE_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_ACCEPTANCE_STALE`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_AUTHORITY_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_DOCUMENT_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_LANGUAGE_NOT_ENGLISH`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_MALWARE_DETECTED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_MALWARE_SCAN_UNAVAILABLE`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_MIME_MISMATCH`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_NOT_TERMINATED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_PDF_ACTIVE_CONTENT`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_PDF_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_PROHIBITED_TERMS`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_RIDER_ACCEPTANCE_STALE`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_SECRET_DETECTED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_SIZE_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_TERMINATED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_TERMINATION_ACTOR_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_TERMINATION_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_TEXT_INVALID_UTF8`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_TEXT_NOT_NFC`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_UPLOAD_UNAVAILABLE`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
 ## `Listing published, disclosure snapshot pending`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
@@ -779,6 +879,10 @@
 ## `listing_asset_access_denied`
 
 - [ai.market Listing-Asset Object Store (Cloudflare R2)](listing-asset-store.md)
+
+## `LISTING_LICENSES_ENABLED=true is incompatible with X402_ENABLED=true`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
 
 ## `live Stripe publishable-key prefix refused before network access`
 
@@ -839,6 +943,10 @@
 ## `missing or conflicting pin`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `missing_active_markers`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
 
 ## `missing_design_artifact`
 
@@ -1280,9 +1388,17 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `SELLER_LEGAL_IDENTITY_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
 ## `seller_profiles_connect_id_never_written`
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
+
+## `SELLER_TERMS_ACCEPTANCE_PENDING`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
 
 ## `seller_workspace_aws_connect_disabled`
 
@@ -1559,6 +1675,10 @@
 ## `webhook_predicate_column_mismatch`
 
 - [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
+
+## `WEBSITE_LICENSE_PUBLISH_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
 
 ## `worker_step_limit_exceeded`
 
