@@ -844,6 +844,14 @@
 
 - [Listing licences and signed records](runbooks/listing-licenses.md)
 
+## `LICENSE_SELECTION_INVALID`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
+## `LICENSE_SELECTION_REQUIRED`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
+
 ## `LICENSE_SIZE_INVALID`
 
 - [Listing licences and signed records](runbooks/listing-licenses.md)

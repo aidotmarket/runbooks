@@ -5,6 +5,8 @@ last_verified: '2026-09-23'
 aliases: [listing licenses, Standard Data Licence, seller licence, signed licence record]
 error_signatures:
   - SELLER_TERMS_ACCEPTANCE_PENDING
+  - LICENSE_SELECTION_REQUIRED
+  - LICENSE_SELECTION_INVALID
   - WEBSITE_LICENSE_PUBLISH_REQUIRED
   - LICENSE_ACCEPTANCE_STALE
   - LICENSE_ACCEPTANCE_REQUIRED
@@ -140,7 +142,7 @@ rtk proxy curl -fsS https://api.ai.market/health
 rtk proxy curl -fsS https://api.ai.market/api/v1/legal/terms/current
 ```
 
-The newest deployment must be SUCCESS and serve the intended image. The public terms response must be HTTP 200 with `terms_version: "1.1"`, `effective_at` equal to the selected instant and `terms_hash_sha256` equal to the locally calculated SHA-256. Fetch `/api/v1/legal/terms/document` and hash its raw bytes too. `app/api/v1/endpoints/legal_terms.py` registers `/current` and `/document` only at flag-on startup. The flag's first redeploy still presents legacy terms 1.0. Do not call a clean `/health` or a successful set command Gate 4 completion.
+The newest deployment must be SUCCESS and serve the intended image. The public terms response must be HTTP 200 with `terms_version: "1.1"`, `effective_at` equal to the selected instant and `terms_hash_sha256` equal to the locally calculated SHA-256. Fetch `/api/v1/legal/terms/document` and hash its raw bytes too. `app/api/v1/endpoints/legal_terms.py` registers `/current` and `/document` only at flag-on startup. The redeploy caused by setting `TERMS_1_1_EFFECTIVE_AT` alone (flag still off) still serves legacy terms 1.0; only the flag-on redeploy serves 1.1. Do not call a clean `/health` or a successful set command Gate 4 completion.
 
 ```yaml operate
 - id: E-02
@@ -219,6 +221,8 @@ Get product authority first. Freeze normative full text and buyer/seller summari
 
 | Symptom | Cause | Repair |
 | --- | --- | --- |
+| `LICENSE_SELECTION_REQUIRED` (422) | Flag on and a listing create/update arrived without `license_selection` (`app/services/listing_management_service.py`) | Seller must choose Standard or upload their own licence in the website listing form or Seller Workspace; old clients must upgrade. |
+| `LICENSE_SELECTION_INVALID` (422) | `license_selection` shape wrong: Standard with a version other than 1.0 or with custom fields, or custom without document id/rider hash (`app/schemas/license_selection.py`) | Resend a valid selection from the current UI; for custom, finish the upload/scan first so a document id exists. |
 | `LICENSE_ACCEPTANCE_STALE` or `LICENSE_RIDER_ACCEPTANCE_STALE` | Client selection, document or order snapshot hash differs from server recomputation | Stop purchase/issuance; fetch canonical served text and hashes, compare selected version/variant and stored snapshot; have the actor review and sign fresh bytes. Do not edit old acceptance. |
 | `LEGAL_IDENTITY_CONFLICT` / `LEGAL_IDENTITY_REQUIRED` | Billing and typed name/jurisdiction differ, or one is missing | Reconcile through returned `reconciliation_url` and real identity evidence; never silently prefer the typed value (`app/services/legal_identity.py`). |
 | `SELLER_TERMS_ACCEPTANCE_PENDING` | Inherited seller has not genuinely accepted 1.1 | Seller completes `/api/v1/legal/terms/accept`; verify derived binding. Do not insert a synthetic row. |
