@@ -9,6 +9,10 @@
 - The "IS" bullet says the gateway sends nothing identifying until the seller chooses to (design D9, two-phase).
 - The "IS NOT" bullet says the gateway reads only what the customer mounts into it (design D6: no cloud SDK in v1).
 
+**R4 changes to the proposed text** (R3 on `1c1b0932`: GLM 2 and GLM 4):
+- An exact old→new block for the version header (lines 3–4) is added.
+- "Never sends customer data" becomes "Never sends data values or file bytes", so the permitted structural metadata cannot be misread as forbidden.
+
 **R3 changes to the proposed text** (R2 on `833c2dba`: GLM NIT 4, DeepSeek F5):
 - Lines 64–65 (vectorAIz) are added, because they still said vectorAIz uploads "the same way AIM Data does" and called it "the AIM Data conduit".
 - The "IS" bullet no longer says "single-use": each permission is for one file of one order, and the design allows bounded resume.
@@ -23,7 +27,24 @@
 
 **Unchanged:** P1 (marketplace → engine → conduits; two co-equal customer-facing data products), P2, S1, the public-sample exception, vectorAIz, and every safety rule. The boot kernel's P7 and P8 are regenerated from the amended text by the normal kernel projection, and the result stays within the kernel character budget.
 
-Each change below gives the exact old text (CORE v9.20 line numbers) and the exact new text. Nothing else in CORE changes except the version header, which gains a v9.21 line citing this amendment, the vote and Max's approval.
+Each change below gives the exact old text (CORE v9.20 line numbers) and the exact new text. Nothing else in CORE changes. The version header change is given exactly, below. Its only variable content is the four bracketed fields, filled in mechanically at application: the approval date, the three voters' final response ids, and Max's approval Event Ledger id. The existing `**Prior:**` lines stay unchanged below the new one.
+
+## CORE v9.20 line 3-4
+
+**Old:**
+
+```text
+**Version:** 9.20
+**Last Updated:** 2026-09-22 (S1738 — consistency with practice: builders push only their own build branch and never main, and a change reaches main only when an instance merges it after the required gate; MP builds queue per repository rather than one at a time. Max superseded the Council for this amendment under §5; Event Ledger 1fa70eaa.)
+```
+
+**New:**
+
+```text
+**Version:** 9.21
+**Last Updated:** [APPROVAL DATE, YYYY-MM-DD] (S1741 — AIM Data becomes the self-hosted gateway: an open-source, hardened Docker sandbox for sellers who keep their data on their own infrastructure, which describes data in place with structural metadata only, serves purchased files directly to the buyer through one seller-controlled delivery endpoint, and reports deliveries; all other seller management moves to the ai.market website. vectorAIz wording aligned. Unanimous Council: GLM [GLM RESPONSE ID], DeepSeek [DEEPSEEK RESPONSE ID], Gemini [GEMINI RESPONSE ID]; Max approved the exact wording, Event Ledger [MAX APPROVAL EVENT ID].)
+**Prior:** 9.20, 2026-09-22 (S1738 — consistency with practice: builders push only their own build branch and never main, and a change reaches main only when an instance merges it after the required gate; MP builds queue per repository rather than one at a time. Max superseded the Council for this amendment under §5; Event Ledger 1fa70eaa.)
+```
 
 ## CORE v9.20 line 48
 
@@ -71,7 +92,7 @@ Each change below gives the exact old text (CORE v9.20 line numbers) and the exa
 ```text
 ### AIM Data — The Gateway
 - **IS:** The self-hosted gateway for sellers who keep their data on their own infrastructure, shipped as a hardened Docker sandbox under an open-source licence so the customer's security team can inspect every line that runs inside their perimeter. It does three things only: it describes the seller's data where it sits to ai.market with structural metadata only (never data values, and nothing identifying until the seller chooses to send it), plus a public sample only when the seller explicitly chooses one; it serves purchased files directly to the buyer through a single delivery endpoint that the seller's own IT exposes, admitting only download permissions signed by ai.market, each for one file of one order; and it reports each delivery to ai.market for billing and payout. Everything else a seller does (listing, allAI metadata review, pricing, licences, earnings, requests) happens on the ai.market website, the same for every seller.
-- **IS NOT:** A cloud service, a worker, a management application, or a second place to manage listings. It never gives ai.market access into the customer's systems: it reads only what the customer mounts into it, makes outbound connections only to ai.market's control plane, and accepts inbound connections only on the delivery endpoint the customer chooses to expose. It runs without host privileges and never updates itself. Never sends customer data to ai.market other than the seller-chosen public sample. **Not the worker — the worker is allAI.**
+- **IS NOT:** A cloud service, a worker, a management application, or a second place to manage listings. It never gives ai.market access into the customer's systems: it reads only what the customer mounts into it, makes outbound connections only to ai.market's control plane, and accepts inbound connections only on the delivery endpoint the customer chooses to expose. It runs without host privileges and never updates itself. Never sends data values or file bytes to ai.market other than the seller-chosen public sample. **Not the worker — the worker is allAI.**
 - **Data plane:** Non-custodial and peer to peer. The buyer downloads over TLS directly from the seller's delivery endpoint; ai.market issues the permission and records the delivery receipt, and never carries, relays, caches or stores the bytes.
 - **MUST integrate with:** ai.market (pairing, a signed control channel, metadata intake, download permissions, delivery receipts, billing), allAI (through ai.market, on the metadata the gateway sends)
 ```

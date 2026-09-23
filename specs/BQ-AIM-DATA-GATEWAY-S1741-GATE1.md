@@ -1,4 +1,4 @@
-# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway (R3)
+# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway (R4)
 
 **Build Queue entity:** `build:bq-aim-data-gateway-rebuild-s1741` (P0, owner Vulcan).
 **Authority:** Max, S1741, 2026-09-23.
@@ -50,7 +50,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
 
   Both keys are new and dedicated, not the platform key (`app/core/config.py:641`) or the scan-spec key. They are held in KMS or HSM, used only by a signing service outside the web API process, and used by different code paths. The gateway pins both public keys at pairing; rotation and revocation are announced over the control channel, signed by the outgoing key. The current delivery JWT is HS256-signed with the backend `SECRET_KEY` (`app/core/security.py:188`, `:253`; `config.py:115` `SECRET_KEY`, `:119` `ALGORITHM`), and verifying it would require the gateway to hold that secret. That is not acceptable, so the gateway does not use it.
 - **D6. Only the customer's own storage, mounted by the customer.** In v1 the gateway reads only folders the customer mounts read-only into the container. It includes no cloud SDK. A customer whose data is in S3 or similar mounts it with their own tool (for example `mountpoint-s3`, `rclone` or `s3fs`) and their own credentials. The install guide documents this. ai.market is never a principal the customer's cloud trusts. (DeepSeek R1 SIMPLER, adopted: this is simpler for Max's "as simple as possible", removes a dependency, and removes a class of credential configuration.)
-- **D7. Outbound to one host, inbound on one door.** The only outbound connection is HTTPS to `api.ai.market:443` for the control channel. Inbound, only two things ever arrive at the door: buyer downloads and ai.market's periodic door probe (§3 step 3). There is no other network path, no telemetry, no auto-update and no tunnel. **Enforcement, not just behaviour:** the reference compose file puts the gateway on an internal Docker network whose only route out is a pinned, allowlisting forward proxy sidecar that permits `api.ai.market:443` alone and resolves DNS itself (the gateway has no direct DNS or internet route). The install guide also gives the equivalent host-firewall rule for customers who run the gateway without the sidecar. A compromised gateway process therefore cannot reach a second host. The sidecar is one small pinned image, counted in D11's review budget.
+- **D7. Outbound to one host, inbound on one door.** The only outbound connection is HTTPS to `api.ai.market:443` for the control channel. Inbound, only two things ever arrive at the door: buyer downloads and ai.market's periodic door probe (§3 step 3). There is no other network path, no telemetry, no auto-update and no tunnel. **Enforcement, not just behaviour:** the gateway has exactly one outbound dial path in code: it resolves and connects only to `api.ai.market:443`, pins ai.market's TLS certificate chain, and has no general HTTP client, proxy support or DNS use beyond that one name. The compose file adds nothing else to the customer's perimeter. The install guide gives the exact egress rule (allow `api.ai.market:443` and its resolver, deny everything else) for the customer's host firewall or network policy; a security team will apply its own egress control anyway, and this states what it must allow. (DeepSeek R3 SIMPLER, adopted over R3's proxy sidecar, which added a second image to the perimeter.)
 - **D8. Hardened sandbox by default.**
   - The image runs as a fixed non-root UID with a read-only root filesystem, `cap_drop: [ALL]` and `no-new-privileges`. It has no Docker socket and no host networking.
   - Writable state lives on one named volume.
@@ -86,7 +86,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
   - The wire contract is language-neutral, with golden byte vectors shared by the Python backend and the gateway (the S1732 preview-contract corpus pattern). This keeps the two sides from drifting.
 - **D12. Nothing unlisted can be served, even with the permission key stolen.** The gateway serves a file only if all three hold:
   - (i) it is inside the customer's local offer ceiling, a config glob list that defaults to every configured source and is never set remotely;
-  - (ii) it is in the gateway's offerable set. A file enters that set only through an instruction signed by the **listing key** and naming the file id and SHA-256. ai.market sends that instruction when the seller publishes a listing version, and removes it on unlist;
+  - (ii) at bind time (the first serve of a permission), it is in the gateway's offerable set; a `jti` already bound may finish after an unlist (§3 step 5). A file enters that set only through an instruction signed by the **listing key** and naming the file id and SHA-256. ai.market sends that instruction when the seller publishes a listing version, and removes it on unlist;
   - (iii) a valid permission signed by the **permission key** names it.
 
   The gateway checks the permission signature first, then the offerable set, then the ceiling. The permission key cannot add a file to the offerable set, and neither key can change the ceiling. Optional stricter mode: `offer_requires_local_approval: true` makes each file also need `aim-gateway approve <file-id>` run locally.
@@ -120,7 +120,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
    - caps the response at 4 KiB, with a 5-second timeout.
 
    The check also reads the door's TLS certificate and flags (D-A, §11) an organisation name in the subject, or subject alternative names beyond the door host.
-4. **Buy.** After payment the buyer's order page (or the agent API) gets the door URL and one permission per file. Each permission carries the gateway id, order id, listing version id, file id, SHA-256, a `jti`, a start deadline no more than 15 minutes out, and a transfer deadline of the start deadline plus the file size at 1 MB/s, capped at 24 hours. It carries no buyer identity (S1740). **Re-issue:** the buyer can get a fresh permission from the order page for any file whose previous permission expired or closed **without a complete matching receipt** (unused, interrupted, retries exhausted, or past the transfer deadline). The new permission has a new `jti` and the old one stays refused. Partial attempts do not count against the tier's download limit; only a completed download does. A re-issued permission may resume from the byte offset the gateway recorded for that order and file, so a very large file on a slow link completes across several permissions instead of being stranded by the 24-hour cap. Delivery and settlement still wait for one complete matching receipt.
+4. **Buy.** After payment the buyer's order page (or the agent API) gets the door URL and one permission per file. Each permission carries the gateway id, order id, listing version id, file id, SHA-256, a `jti`, a start deadline no more than 15 minutes out, and a transfer deadline of the start deadline plus the file size at 1 MB/s, capped at 24 hours. It carries no buyer identity (S1740). **Re-issue:** the buyer can get a fresh permission from the order page for any file whose previous permission expired or closed **without a complete matching receipt** (unused, interrupted, retries exhausted, or past the transfer deadline). Before the new permission is issued, ai.market sends the gateway a signed revocation for the old `jti` over the control channel, and the new permission is issued only once the gateway confirms it; the old `jti` is then refused even before its own deadline. The new permission has a new `jti`. Partial attempts do not count against the tier's download limit; only a completed download does. The gateway keeps one coverage ledger per (order, file) across all its permissions: the at-most-twice rule counts serves per byte range across every permission for that order and file, not per `jti`. A re-issued permission resumes from the coverage the ledger shows, so a very large file on a slow link completes across several permissions instead of being stranded by the 24-hour cap. Re-issue is limited to 5 incomplete permissions per file per order in 24 hours; beyond that the order page routes the buyer to support. Receipts are per (order, file) and cumulative: each receipt reports the ledger's total coverage, and the one whose coverage is the whole file, with the file's SHA-256 re-checked at bind against the gateway's index, is the complete matching receipt. Delivery and settlement still wait for it. A download that completed with a matching receipt but fails the buyer's "Verify file" is resolved through the dispute path, not re-issue.
 5. **Serve.** The gateway checks D12 in order, and also the audience (its own id) and the deadlines. `jti` rules:
    - The first request that starts serving bytes before the start deadline **binds** the `jti` to that file.
    - Later HTTP Range requests with the same permission are allowed until the transfer deadline, but each byte range is served at most twice. This allows retries and blocks repeated full reads.
@@ -173,7 +173,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
 - **What a stolen permission key gets:** the ability to issue permissions for files already on a gateway's offerable set, which then download from the door. It gives no access to anything not offerable (D12), and it cannot make a file offerable.
 - **What stolen permission and listing keys together get:** any file inside the customer's local ceiling. That is why the ceiling is local, and why the optional local-approval mode exists for customers who want no remote path at all.
 - **Mitigations:** both keys in KMS or HSM behind a separate signing service; rotation and a revocation list over the channel; the receipt audit trail.
-- **Anonymity (CORE P5; Max D-A, §11):** permissions carry no buyer id. What remains:
+- **Anonymity (boot kernel P5, CORE §2 allAI "mediates ALL buyer-seller interactions", S1740; Max D-A, §11):** permissions carry no buyer id. What remains:
   - The seller's door sees the buyer's network address, as any direct transfer does. The shipped Seller Workspace route has the same property.
   - The door hostname, and its TLS certificate, are revealed to the buyer after purchase and can identify the seller.
 
@@ -232,7 +232,7 @@ Releases are semantic versions. Compose pins the image by digest.
    - a file outside the ceiling
    - an offer instruction signed with the permission key
    - an `http://` door URL at registration (422)
-6. An interrupted large download resumes with Range and completes. A third serve of the same range is refused. After a container restart, the `jti` is still bound or closed. Two interrupted attempts, and separately an expiry before full coverage, are each followed by a successful authenticated re-issue that resumes and completes, while the old `jti` stays refused. Two sources with the same relative path list as two files and serve only the hash-bound one. Under the reference compose profile, an attempt to reach a second host or an outside DNS server fails while the control channel keeps working.
+6. An interrupted large download resumes with Range and completes. A third serve of the same range is refused. After a container restart, the `jti` is still bound or closed. Two interrupted attempts, and separately an expiry before full coverage, are each followed by a successful authenticated re-issue that resumes and completes, while the old `jti` stays refused. Two sources with the same relative path list as two files and serve only the hash-bound one. The gateway binary contains no code path that dials any host but `api.ai.market:443` (checked by test and by a static scan of the binary's network calls). Under the documented egress rule, a scripted attempt from inside the container to reach a second host or an outside DNS server fails while the control channel keeps working.
 7. Receipt and 48-hour hold with no dispute lead to delivered, then settlement, in the test environment. "Didn't arrive" freezes settlement. A missing or mismatched receipt leaves the order undelivered.
 8. Door check: private, loopback and metadata addresses, redirects and oversized responses are all refused. An OV certificate or extra SANs raise the D-A flag.
 9. Unpairing refuses the next permission within one control-channel round trip.
@@ -256,28 +256,28 @@ Releases are semantic versions. Compose pins the image by digest.
   - R2 adds, per Mars's peer review: the door's TLS certificate can identify the seller too, so the warning also asks for a domain-validated certificate naming nothing else, and the door check flags one that identifies an organisation (§3 step 3). This makes Max's accepted position actionable without changing it.
   - An ai.market-issued neutral hostname stays out of scope for v1 (§10).
 
-## 12. Round 3 fold log and review questions
+## 12. Round 4 fold log and review questions
 
-**R2 inputs** (all on `833c2dba`):
-- GLM `122652`: REQUEST_CHANGES. One MEDIUM (incomplete permissions could not be re-issued), two LOW (file-id uniqueness across sources, egress enforcement) and two NITs (a leftover "AIM Data conduit" phrase in CORE, trailing whitespace).
-- DeepSeek `122655`: APPROVE_WITH_NITS. F1 the large-file cap, F2 the sample cap, F3 a line cite, F4 close precedence, F5 "single-use" wording in the amendment.
-- Gemini `122657`: APPROVE_WITH_NITS. Re-issue of incomplete transfers, display-name extension, unlist during a transfer.
+**R3 inputs** (all on `1c1b0932`):
+- GLM `125540`: REQUEST_CHANGES. Two MEDIUMs: the egress sidecar sat outside the perimeter, supply-chain and budget statements; the amendment had no exact v9.21 header text. One LOW: revoking the old `jti` on re-issue, and a range floor across permissions. One NIT: "customer data" wording in the amendment.
+- DeepSeek `125543`: APPROVE_WITH_NITS. F1 D12 bind scope; F2 sidecar accounting; F3 completed but corrupted; F4 CORE line 40; F5 P5 cite; F6 kernel budget unverifiable; SIMPLER: drop the sidecar.
+- Gemini `125545`: APPROVE_WITH_NITS. A re-issue rate bound; cumulative receipts across permissions.
 
 **Adopted:**
-- GLM 1, DeepSeek F1 and Gemini 1: re-issue for any permission that ended without a complete matching receipt, resume from the recorded offset, and partial attempts free (§3 step 4; acceptance 6).
-- GLM 2: domain-separated file id and tuple lookup (D9).
-- GLM 3: egress enforced by an internal network plus an allowlisting proxy sidecar, with a host-firewall alternative (D7; acceptance 6).
-- GLM 4: the amendment also replaces CORE v9.20 lines 64–65 (vectorAIz "the same way AIM Data does" and "the AIM Data conduit").
-- GLM 5: whitespace stripped.
-- DeepSeek F2: the sample follows the existing platform limits, and the CORE citation is corrected (D9).
-- DeepSeek F3: the line cite is fixed (D5).
-- DeepSeek F4: close takes precedence (§3 step 5).
-- DeepSeek F5: the amendment now says "download permissions signed by ai.market, each for one file of one order".
-- Gemini 2: the extension comes from the media type (D9).
-- Gemini 3: unlist refuses new binds, and bound transfers may finish (§3 step 5).
+- GLM 1, DeepSeek F2 and DeepSeek SIMPLER: the sidecar is removed. The single dial target is enforced in code and by the customer's documented egress rule (D7; acceptance 6). "Only the gateway container" is true again.
+- GLM 2: the amendment now carries an exact old→new header block. Its only variable fields are the four bracketed values filled at application (approval date, three verdict file ids, Max's Event Ledger id), shown to Max before he approves.
+- GLM 3: signed revocation of the old `jti` before re-issue; a per-(order, file) coverage ledger across permissions (§3 step 4).
+- GLM 4: the amendment now says "never sends data values or file bytes to ai.market".
+- DeepSeek F1: D12 (ii) applies at bind.
+- DeepSeek F3: a completed but corrupted download goes to dispute.
+- DeepSeek F5: the P5 cite is corrected.
+- Gemini 1: a re-issue rate bound of 5 per file per order in 24 hours.
+- Gemini 2: cumulative per-(order, file) receipts.
 
-**Not adopted:** none.
+**Not adopted:**
+- DeepSeek F4 (CORE line 40). Line 40 still holds: AIM Data is how customer data becomes listings "and reaches the network", the network meaning buyers, and delivery is peer to peer. No change is needed.
+- DeepSeek F6. The kernel budget is enforced fail-closed at application (`constitution-amendment.md` E-03), so no design change is needed.
 
-**Risk questions:** the six questions from R2 stand; please re-answer them only where R3 changes your answer. GLM: confirm your MEDIUM finding is closed. All voters: check the new egress sidecar (D7) against D11 and the "as simple as possible" requirement.
+**Risk questions:** the R2 questions stand; please re-answer them only where R4 changes your answer. GLM: confirm both MEDIUM findings are closed.
 
 Voters return APPROVE, APPROVE_WITH_NITS, REQUEST_CHANGES or REJECT with SHA-bound findings. MP's response is advisory and not counted.
