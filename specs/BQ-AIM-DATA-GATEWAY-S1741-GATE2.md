@@ -495,9 +495,10 @@ The golden vectors (§10) define every body.
 
 ### 8.1 Keys
 
-- **Where the keys live.** Two asymmetric signing keys, `gateway-permission` and `gateway-listing`, in Google Cloud KMS, HSM protection level. The backend already uses Cloud KMS (`app/services/kms_service.py`).
+- **Where the keys live.** Two asymmetric signing keys, `gateway-permission` and `gateway-listing`, in Google Cloud KMS at the SOFTWARE protection level. Cloud KMS offers `EC_SIGN_ED25519` only at that level; it is not available in Cloud HSM (Google's algorithm table, checked by build step A0, 2026-09-23). Gate 1 D5 requires the keys to be held "in KMS or HSM", so this meets it: the private keys are generated in and never leave Cloud KMS, they are not exportable, every signature is an audited KMS call, and only the `gateway-signer` service's credential can use them (§8.2). The backend already uses Cloud KMS (`app/services/kms_service.py`).
 - **Algorithm.** `EC_SIGN_ED25519` (EdDSA), as Gate 1 D5 settled. Build step A0 verifies that this algorithm is available in the project's KMS location, and that KMS signatures verify with Go's `crypto/ed25519` and with the Python used by the tests.
 - **If A0 fails (GLM 9).** The build stops and the algorithm comes back to Council. There is no automatic fallback and only one token format.
+- **Amendment A (A0, S1741).** The original text asked for the HSM protection level, which Cloud KMS does not offer for Ed25519. Rather than change the Gate 1 algorithm to ES256 (the only way to reach HSM), the keys use the SOFTWARE level. The remaining A0 check, a live KMS signature verified in Go and Python, runs in a test key ring before chunk A.
 
 ### 8.2 Signing service
 
