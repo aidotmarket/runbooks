@@ -1,9 +1,9 @@
-# BQ-AIM-DATA-GATEWAY-S1741: Gate 2, implementation specification (R3)
+# BQ-AIM-DATA-GATEWAY-S1741: Gate 2, implementation specification (R4)
 
 **Build Queue entity:** `build:bq-aim-data-gateway-rebuild-s1741`.
 **Design authority:** Gate 1 [BQ-AIM-DATA-GATEWAY-S1741-GATE1.md](BQ-AIM-DATA-GATEWAY-S1741-GATE1.md), approved 3/3 at runbooks `8078d1e40f05734b734299cc0d17b547cd2aff2d` (Event Ledger `fb0d7272`) and merged at `ac8e8ed`. CORE v9.21 (Event Ledger `4349f80f`, `5d1edea7`).
 **Reviewers:** GLM, DeepSeek and Gemini vote, and the vote must be unanimous. MP gives an advisory review and does not vote (Max S1741; route live at koskadeux-mcp `e670d015`).
-**Status:** R3. R2 (at `6a1cba99`) returned GLM REQUEST_CHANGES (5), DeepSeek APPROVE_WITH_NITS (4), Gemini APPROVE and MP REQUEST_CHANGES (4, advisory); §16 maps each R2 finding. R1 (at `588fba11`) returned GLM REQUEST_CHANGES (12 findings), DeepSeek REQUEST_CHANGES (6), Gemini APPROVE_WITH_NITS (3) and MP REQUEST_CHANGES (5, advisory), plus Mars's peer read of §0–§5. Every finding is folded; §15 maps each one to where it landed. §0–§5 freeze the website ↔ backend contract that chunk C (Mars) builds against.
+**Status:** R4. R3 (at `b4dcde8a`) returned GLM APPROVE_WITH_NITS (2), DeepSeek REQUEST_CHANGES (1 MEDIUM, 3 minor), Gemini APPROVE_WITH_NITS (1) and MP REQUEST_CHANGES (4, advisory); §17 maps each R3 finding. R2 (at `6a1cba99`) returned GLM REQUEST_CHANGES (5), DeepSeek APPROVE_WITH_NITS (4), Gemini APPROVE and MP REQUEST_CHANGES (4, advisory); §16 maps each R2 finding. R1 (at `588fba11`) returned GLM REQUEST_CHANGES (12 findings), DeepSeek REQUEST_CHANGES (6), Gemini APPROVE_WITH_NITS (3) and MP REQUEST_CHANGES (5, advisory), plus Mars's peer read of §0–§5. Every finding is folded; §15 maps each one to where it landed. §0–§5 freeze the website ↔ backend contract that chunk C (Mars) builds against.
 
 **Pins:**
 - ai-market-backend `53ae0916` (main after licence D)
@@ -180,7 +180,7 @@ The existing listing flow gains one source type. Chunk C does not create a separ
 ```json
 {
   "door_url": "https://…",
-  "hold": {"until": "time | null", "disputable": true},
+  "hold": {"state": "pending_confirmation | until | no_hold", "until": "time | null", "disputable": true},
   "problem": "Problem | null",
   "files": [
     {
@@ -204,13 +204,14 @@ The existing listing flow gains one source type. Chunk C does not create a separ
 - **Browser download (GLM 1, Mars 1).** The browser downloads by top-level navigation to `browser_url`, so the browser's own download manager saves and resumes it. There is no cross-origin `fetch` and the door serves no CORS headers.
 - **Agent download.** An agent sends `Authorization: Bearer <token>` to `download_url`. `Range` is supported on both.
 - **Token in a URL.** The token is bound to one order, one file and one gateway, expires at its transfer deadline, and cannot move more than two serves of any byte. The door answers with `Referrer-Policy: no-referrer`, `Cache-Control: no-store` and `Content-Disposition: attachment`. The seller's door logs are the seller's own.
-- **Hold (GLM R2 2, MP R2 3, DeepSeek R2 4).** `hold.until` is `payout_hold_until`, one helper shared by this view, the problem route and `order_payout_eligibility`, computed exactly as payout computes it today (`order_money_service.py:884-893`): for an order with a transaction, the latest `confirmed` transaction event plus 48 hours (`null` until that event exists); otherwise `escrow_hold_until`. `hold.disputable` is true until `payout_hold_until` has passed.
-- **Browser resume across a re-issue (MP R2 2).** Within one permission, the browser's download manager resumes the same `browser_url`. A new permission is a new URL, so the browser cannot append to the earlier partial file. For a browser, re-issue therefore restarts the file from byte 0 (`mode = restart`, §2.2), which is the retry the second serve exists for. The view also shows a copyable command for the header path (`download_url` never changes, only the token), for example `curl -C - -H "Authorization: Bearer <token>" -o <display_name> <download_url>`, which resumes across permissions without restarting.
+- **Hold (GLM R2 2, MP R2 3, DeepSeek R2 4).** `hold.until` is `payout_hold_until`, one helper shared by this view, the problem route and `order_payout_eligibility`, computed exactly as payout computes it today (`order_money_service.py:884-893`): for an order with a transaction, the latest `confirmed` transaction event plus 48 hours; otherwise `escrow_hold_until`. The helper returns one of three states (GLM R3 1, MP R3 3): `pending_confirmation` (a transaction with no `confirmed` event yet; `until` is `null`), `until` (a timestamp), or `no_hold` (no transaction and `escrow_hold_until` is `null`). `hold` in the view is `{"state", "until", "disputable"}`, and `disputable` follows the problem window in §2.3 exactly.
+- **Browser resume across a re-issue (MP R2 2).** Within one permission, the browser's download manager resumes the same `browser_url`. A new permission is a new URL, so the browser cannot append to the earlier partial file. For a browser, re-issue therefore restarts the file from byte 0 (`mode = restart`, §2.2), which is the retry the second serve exists for. The view also shows a copyable command for the header path (`download_url` never changes, only the token), for example `curl -C - -H "Authorization: Bearer <token>" -o <display_name> <download_url>`, which resumes across permissions without restarting. `-C -` resumes from what the buyer's own file holds, which is the right point for the buyer; it can differ from `resume_offset`, which counts only bytes the door wrote (DeepSeek R3 3).
+- **After two serves (MP R3 1).** If a browser download is interrupted again after a restart, `restart` is refused because some bytes have been served twice. Gate 1 §3 step 4 settles this case: bytes already served twice go to the problem path, not to another serve. The view then offers the header command (which fetches only the missing bytes, each still within its two serves) and "Report a problem". Reaching it takes two interrupted transfers, each running past its transfer deadline.
 - **`coverage_exhausted` (GLM 11).** Some bytes not yet transmitted can no longer be served (§6.5). The view offers "Report a problem" and no re-issue.
 
 ### 2.2 Re-issue
 
-`POST /orders/{order_id}/gateway-delivery/files/{file_id}/permissions` with `{"mode": "restart | resume"}` → `201 Permission`. `restart` (the browser default) issues `ro = 0` and needs every byte of the file to have been written at most once so far; otherwise it answers `409 restart_unavailable` and the view offers `resume`. `resume` (the agent default) issues `ro = resume_offset`.
+`POST /orders/{order_id}/gateway-delivery/files/{file_id}/permissions` with `{"mode"?: "restart | resume"}` → `201 Permission`. `mode` is optional and defaults to `resume`; chunk C sends `restart` explicitly (Gemini R3 1). `restart` issues `ro = 0` and needs every byte of the file to have been written at most once so far; otherwise it answers `409 restart_unavailable` and the view offers `resume`. `resume` issues `ro = resume_offset`.
 
 Errors:
 - `409 delivery_complete`
@@ -229,9 +230,14 @@ The deprecated `POST /orders/{order_id}/dispute` is **not** used. Gateway orders
 
 `POST /orders/{order_id}/gateway-delivery/problems` with `{"category": "missing_data | corrupted", "file_ids": ["hex"], "note"?: "string ≤ 2000"}` → `201 Problem`.
 
-`Problem` = `{"problem_id": "uuid", "category": "…", "file_ids": ["hex"], "opened_at": "time", "opened_by": "customer | system", "state": "open | resolved", "resolution": "null | released | refunded | partially_refunded", "support_case_id": "uuid"}`.
+`Problem` = `{"problem_id": "uuid", "category": "…", "file_ids": ["hex"], "opened_at": "time", "opened_by": "customer | system", "state": "open | refund_pending | resolved", "resolution": "null | released | refunded | partially_refunded", "support_case_id": "uuid"}`.
 
-- **When.** Allowed from payment until `payout_hold_until` (§2.1) has passed: while the order is `paid`, `in_escrow`, `pending_delivery` or `delivery_failed`, and while it is `delivered` or `completed` and `payout_hold_until` is `null` or still in the future. Otherwise `409 problem_window_closed`. A file id not in the order is `422 file_not_in_order`. One problem is open per order at a time: a second call while one is open adds its `file_ids` to it and returns `200`.
+- **When (DeepSeek R3 1, MP R3 3, GLM R3 1).** One rule, used by the route and by `hold.disputable`:
+  - while any file of the order is not `delivered` (order status `paid`, `in_escrow`, `pending_delivery` or `delivery_failed`): always allowed, whatever the hold says. Payout cannot happen in these states, because `gateway_delivery_incomplete` refuses it;
+  - once every file is delivered (status `delivered` or `completed`): allowed while the hold is `pending_confirmation`, or is `until` a time still in the future. Closed when that time has passed, and closed at once for `no_hold`;
+  - a problem opened after payout ownership was taken marks the payout `reconciliation_required`, as the legacy dispute does (below).
+
+  Otherwise `409 problem_window_closed`. A file id not in the order is `422 file_not_in_order`. One problem is open per order at a time: a second call while one is open adds its `file_ids` to it and returns `200`.
 - **What it does, in one transaction under the order money lock** (the same lock the legacy dispute takes, `order_service.py:1967`):
   - writes a `gateway_delivery_problems` row with the file ids and `state = open`; this row is the authoritative hold, read by the new payout reason `gateway_problem_open` (GLM R2 BETTER);
   - sets `orders.disputed_at` to now and `dispute_category`, and **clears** `dispute_resolved_at` (GLM R2 3), so the existing `disputed` reason (`order_money_service.py:846-847`) also refuses payout, and the order shows as disputed on existing surfaces;
@@ -239,7 +245,11 @@ The deprecated `POST /orders/{order_id}/dispute` is **not** used. Gateway orders
   - opens a support case through the CRM support workflow (`crm_support_service.open_dispute`, a `DisputeCase` with `transaction_id`), so it appears where support already works disputes.
 - **What it does not do.** It does not set `revoked`, and it does not change the order status. Delivery continues.
 - **`note`.** Optional. The support case's `opened_reason` is built from the category and the files' display names, plus the note when given.
-- **Resolution (MP R2 1).** The legacy resolve path refuses orders whose status is not `disputed` (`order_service.py:2049-2052`), so it is not used. Chunk A adds `resolve_gateway_problem(problem_id, outcome)`, called from an admin route `POST /admin/gateway-problems/{problem_id}/resolve` `{"outcome": "released | refunded | partially_refunded", "refund_cents"?}` and from the `DisputeCase` transition to `resolved`. Under the order money lock it sets the problem `resolved`; on release it sets `dispute_resolved_at`; on a refund it goes through the existing refund path first. It never changes the delivery status. Payout becomes eligible again only when no problem is open and every other reason has cleared.
+- **Resolution (MP R2 1, MP R3 4, GLM R3 2).** The legacy resolve path refuses orders whose status is not `disputed` (`order_service.py:2049-2052`), so it is not used. A gateway problem is resolved only through `resolve_gateway_problem(problem_id, outcome, resolved_by)`, reached from one admin route, `POST /admin/gateway-problems/{problem_id}/resolve` with `{"outcome": "released | refunded | partially_refunded", "refund_cents"?, "note"?}`. The route requires the existing admin role check (as `disputes.py:327-350` does) and records `resolved_by`. In one database transaction under the order money lock it:
+  - on `released`: sets the problem `resolved`, sets `dispute_resolved_at`, and moves the linked `DisputeCase` to `resolved` with the outcome in its audit record, through a variant of the CRM transition that does not commit on its own;
+  - on `refunded` or `partially_refunded`: admits the refund through the existing refund path and sets the problem `refund_pending`; the handler that applies the refund's effects then sets it `resolved` and resolves the `DisputeCase` the same way. The refund reasons keep payout refused meanwhile.
+
+  It never changes the delivery status. The generic CRM transition to `resolved` is refused for a case linked to an open gateway problem (`409 gateway_problem_requires_outcome`), so a case cannot close while its hold stays open, and money cannot move without a recorded outcome. Payout becomes eligible again only when no problem is open and every other reason has cleared.
 - **Repeated problems.** A new problem after a resolved one opens a fresh row, sets `disputed_at` again and clears `dispute_resolved_at`, all under the same lock. History stays in `gateway_delivery_problems` and the CRM.
 - **Alignment with `build:bq-dispute-hold-gate-s1711`.** That item makes an open dispute freeze settlement for every order. This route freezes gateway orders through `gateway_problem_open` and the existing `disputed` reason, and chunk E adds a further guard, `gateway_delivery_incomplete`, which refuses payout for a gateway order until every file has a complete matching receipt. When S1711 lands, its predicate covers these orders too, and nothing here conflicts with it.
 
@@ -300,11 +310,11 @@ The gateway signs this with its gateway key, one receipt per (order, file) state
 ```json
 {"op": "receipt", "oid": "uuid", "fid": "hex", "sha256": "hex", "size_bytes": 0,
  "jtis": ["uuid"], "transmitted": [[0, 1048575]], "transmitted_bytes": 0,
- "max_serves_reached": [[start, end]], "outcome": "in_progress | complete | aborted_block_mismatch | aborted_deadline",
+ "max_serves_reached_bytes": 0, "outcome": "in_progress | complete | aborted_block_mismatch | aborted_deadline",
  "blocks_verified": true, "first_byte_at": "time", "last_byte_at": "time", "seq": 0}
 ```
 
-- **`transmitted`** is the normalized, merged set of byte intervals the door actually wrote to a buyer connection, across every listed `jti`. Bytes reserved for a request but not written are never in it (§6.5). It holds at most 1,024 intervals (§6.5), so a receipt stays well under the 1 MiB message limit (MP R2 4).
+- **`transmitted`** is the normalized, merged set of byte intervals the door actually wrote to a buyer connection, across every listed `jti`. Bytes reserved for a request but not written are never in it (§6.5). It holds at most 1,024 intervals (§6.5), and `max_serves_reached_bytes` is a count, not a list (DeepSeek R3 2), so a receipt stays well under the 1 MiB message limit (MP R2 4).
 - **`blocks_verified`** is true when every transmitted byte came from a block whose hash matched the block list bound to `sha256` at the moment it was read (§6.6).
 - **Complete matching receipt.** `outcome = complete`, `transmitted_bytes = size_bytes`, `sha256` equals the listing version's value, `blocks_verified = true`, and every `jti` was issued for that (order, file).
 - **Acknowledged bytes.** A door cannot observe what the buyer's disk kept. "Transmitted" is the strongest fact the gateway can sign, and the buyer's check is "Verify file" plus a problem during the hold.
@@ -407,8 +417,8 @@ A description runs only for a signed `describe` instruction (§3.2) that is unex
 - **After a crash.** On start, every still-open request keeps its reservation up to `written_through` plus one 8 MiB window, and gives back the rest. So a crash can cost at most one window of one serve, never a replay.
 - **Two serves per byte (Gate 1 §3 step 5).** A byte can be written at most twice across all permissions of an order. Disconnecting before the first byte, or partway through, uses up nothing that was not written.
 - **Closing a `jti` (Gate 1 §3 step 5; GLM R2 1, DeepSeek R2 1).** In the same transaction that settles a request, if `transmitted` for the (order, file) now covers every byte, every `issued` or `bound` `jti` for that (order, file) is set `closed`. A `jti` is also closed at its `td`. Closing is durable before the complete receipt is queued, and it takes precedence: after close, even a range served only once is refused. So one permission never gives two full reads.
-- **Fragmentation (MP R2 4).** A request that would leave more than 1,024 disjoint `transmitted` intervals for the (order, file) is refused with `416` before anything is reserved. Ordinary sequential and resumed downloads never approach this.
-- **Coverage exhausted.** When a byte that has not been transmitted has `count = 2` (possible only after crashes), the gateway reports it in `max_serves_reached` and `prepare_ack` refuses with `coverage_exhausted`; the buyer is sent to a problem report (§2.3).
+- **Fragmentation (MP R2 4, MP R3 2, DeepSeek R3 4).** A response writes a contiguous run of bytes from its start, so, however early it stops, it adds at most one new `transmitted` interval. The reservation transaction therefore admits a request only when the current interval count plus the number of other open requests for that (order, file), plus one, is at most 1,024. Otherwise the door answers `409` with code `coverage_fragmented` before anything is reserved. This holds for short writes and concurrent requests alike. Ordinary sequential and resumed downloads never approach it.
+- **Coverage exhausted.** When a byte that has not been transmitted has `count = 2` (possible only after crashes), the gateway counts it in `max_serves_reached_bytes` and `prepare_ack` refuses with `coverage_exhausted`; the buyer is sent to a problem report (§2.3).
 - **Ranges.** Only a single range per request is supported. A multi-range request is answered `416`.
 
 ### 6.6 Door server
@@ -507,7 +517,7 @@ The golden vectors (§10) define every body.
   - `gateway_offers(gateway_id, file_id, sha256, listing_version_id, instruction_id, op, sent_at, acked_at, ack_refusal)`
   - `gateway_permissions(jti, order_id, gateway_id, file_id, sha256, sd, td, ro, issued_at, revoked_at)`
   - `gateway_order_files(order_id, file_id, state, transmitted_bytes, last_receipt_seq, complete_receipt_seq)`
-  - `gateway_delivery_problems(id, order_id, category, file_ids, note, opened_by, opened_at, dispute_case_id, state, resolution, resolved_at)`
+  - `gateway_delivery_problems(id, order_id, category, file_ids, note, opened_by, opened_at, dispute_case_id, state[open|refund_pending|resolved], resolution, refund_cents, resolved_by, resolved_at)`
 - **Where the file SHA-256 is recorded.** Listing versions record each gateway file's `sha256` in the existing `listing_version_members` manifest contract (kept by the S1737 deletion spec), with `source = {"type": "gateway", "gateway_id", "file_id"}`.
 - **Door-check worker.** A Celery beat task every 5 minutes on a dedicated worker service whose egress is restricted to public addresses. It implements Gate 1 §3 step 3 and the public-global-unicast rule (§4).
 - **Canary correlation.** The same worker reads the canary DNS and host logs every 5 minutes and marks a gateway `open` on any hit for its labels (§6.7).
@@ -526,7 +536,7 @@ The golden vectors (§10) define every body.
   - re-issue `restart` refused with `restart_unavailable` once any byte has two serves, and `resume` still allowed;
   - permission issue and re-issue with revocation, prepare, and the confirmation timeout;
   - receipt aggregation into a complete matching receipt; `blocks_verified = false` or a short `transmitted` never completes;
-  - problems: a `missing_data` problem on a `pending_delivery` order freezes payout (reasons `gateway_problem_open` and `disputed`) and opens a `DisputeCase`; open, release and reopen on one order freezes payout again; release works on a `pending_delivery` order through `resolve_gateway_problem` and payout then becomes eligible; on a transaction order with `escrow_hold_until = null`, a problem after a complete receipt but before confirmation plus 48 hours succeeds, and after it returns `problem_window_closed`; `corrupted` stores the validated file ids; an unknown file id is refused; a second problem adds to the open one; after the hold the window is closed; release and refund both clear it; payout refuses a gateway order without complete receipts (`gateway_delivery_incomplete`);
+  - problems: a `missing_data` problem on a `pending_delivery` order freezes payout (reasons `gateway_problem_open` and `disputed`) and opens a `DisputeCase`; open, release and reopen on one order freezes payout again; release works on a `pending_delivery` order through `resolve_gateway_problem` and payout then becomes eligible; on a transaction order with `escrow_hold_until = null`, a problem after a complete receipt but before confirmation plus 48 hours succeeds, and after it returns `problem_window_closed`; a problem on a `pending_delivery` order after the hold has passed succeeds; a `no_hold` legacy order that is `completed` returns `problem_window_closed`; a transaction order before its confirmation event succeeds; the resolve route returns `403` for a non-admin and records `resolved_by`; release, full refund, partial refund and an invalid outcome leave the problem, the `DisputeCase` and the money state consistent, including a refund whose effects arrive later; the generic CRM resolve of a linked case is refused; `corrupted` stores the validated file ids; an unknown file id is refused; a second problem adds to the open one; after the hold the window is closed; release and refund both clear it; payout refuses a gateway order without complete receipts (`gateway_delivery_incomplete`);
   - revoking a gateway with open orders needs confirmation and opens system problems;
   - the flag-off 404s;
   - the migration upgrade and downgrade on a disposable database;
@@ -540,7 +550,7 @@ The golden vectors (§10) define every body.
   - reservations: a disconnect before the first byte and a disconnect halfway each leave the unwritten bytes servable and produce no complete receipt; a crash keeps at most one 8 MiB window reserved;
   - an interrupted download that resumes at a nonzero offset, across a re-issue, produces a complete matching receipt;
   - after one complete download and a restart, every further request under that `jti` is refused, including a range served only once, and exactly one complete receipt is sent;
-  - a request that would exceed 1,024 transmitted intervals is refused with `416`;
+  - at 1,024 intervals, with and without other open requests, a new request is refused with `coverage_fragmented`, and a disconnect at the boundary never leaves more than 1,024 intervals;
   - a same-size, same-mtime change is caught at the first block served, including under fragmented Range requests from nonzero offsets;
   - D12: a valid permission for an unoffered file, an offer signed with the permission key, a file outside the ceiling, a file id collision across sources, and an unoffer after bind (the bound `jti` finishes; no new bind);
   - unsigned, replayed, expired or wrong-key `describe` is refused;
@@ -589,13 +599,13 @@ A0 (KMS algorithm check) → A, and in parallel B0 (library budget) → B, both 
 
 **Owners:** Vulcan owns A, B and D. Mars owns C. Both own E.
 
-## 14. Review questions (Gate 2 R3)
+## 14. Review questions (Gate 2 R4)
 
-1. §6.5: does the `jti` closing rule match Gate 1 §3 step 5 exactly, including precedence and restart?
-2. §2.1 and §2.3: is `payout_hold_until` now the same clock for the view, the problem window and payout, for transaction and legacy orders?
-3. §2.3: do `gateway_problem_open`, clearing `dispute_resolved_at` on reopen, and `resolve_gateway_problem` give a working freeze and release for every order state, including `pending_delivery`?
-4. §2.2: is `restart` for the browser plus the header command for resume an acceptable answer to resume across re-issues, given no CORS?
-5. §6.5 and §3.3: does the 1,024-interval limit with a summary-only `prepare_ack` keep every message under 1 MiB without blocking an honest download?
+1. §2.3: is the problem window now one unambiguous rule: always open before full delivery, and tied to the three hold states after it?
+2. §2.3: does the single admin resolve path, with `refund_pending` and the refused generic CRM resolve, keep the problem, the support case and the money consistent?
+3. §6.5: does admission counting open requests bound the interval list under short writes and concurrency?
+4. §2.1: is sending the twice-served browser case to the problem path, as Gate 1 §3 step 4 says, acceptable?
+5. Is anything in R4 a drift from a Gate 1 decision?
 6. SIMPLER / BETTER: what here could be removed without breaking a Gate 1 decision?
 
 ## 15. R1 fold log
@@ -639,3 +649,15 @@ A0 (KMS algorithm check) → A, and in parallel B0 (library budget) → B, both 
 | DeepSeek R2 2 (fold-log attribution) | §4 |
 | DeepSeek R2 3 (line number) | §2.3 |
 | MP R2 BETTER (in-browser assembly across permissions) | Not adopted: it needs cross-origin fetch and CORS on the door, which R2 removed (GLM R1 1). The header command covers resume across permissions, and `restart` covers the browser. |
+
+## 17. R3 fold log
+
+| Finding | Where it landed |
+| --- | --- |
+| DeepSeek R3 1 (MEDIUM, window before delivery), MP R3 3, GLM R3 1 | §2.3 one window rule; §2.1 three hold states; §10 chunk A tests |
+| MP R3 4 (CRM resolution), GLM R3 2 (admin principal) | §2.3 single admin resolve path, `refund_pending`, generic CRM resolve refused; §9; §10 |
+| MP R3 2 (partial writes), DeepSeek R3 4 (`416`) | §6.5 admission counts open requests; `409 coverage_fragmented`; §10 chunk B |
+| DeepSeek R3 2 (`max_serves_reached` size) | §3.4 count instead of list |
+| DeepSeek R3 3 (curl offset) | §2.1 note on `-C -` |
+| Gemini R3 1 (`mode` default) | §2.2 optional, defaults to `resume` |
+| MP R3 1 (browser after two serves) | §2.1: Gate 1 §3 step 4 sends twice-served bytes to the problem path; the header command still fetches the missing bytes. Not changed further, as another serve would breach a settled decision. |
