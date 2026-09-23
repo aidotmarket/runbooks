@@ -1,0 +1,38 @@
+# BQ-LISTING-LICENSES-S1735 Gate 2 — amendment 1 (S1738)
+
+**Status:** Proposed Gate 2 amendment; this document does not itself record Council approval or complete any Gate 3 or Gate 4 proof.
+**Amends:** [BQ-LISTING-LICENSES-S1735-GATE2.md](BQ-LISTING-LICENSES-S1735-GATE2.md), approved on r3 `51581db9`. This amendment supersedes only the named passages below. All other Gate 2 text, including the §2 normative licence, covenant and rider bytes and the existing delivery-door inventory, stands unchanged.
+**Authority:** Max S1738, Event Ledger `18f1cdab` (“Stop AIM-DATA work. No one is using it. Put all effort into its replacement.”); legacy AIM Data is frozen and the AIM Data part of licence chunk D is withdrawn (aim-data PR #79 closed). CORE v9.21, Event Ledger `4349f80f`, makes the replacement AIM Data a self-hosted gateway rebuilt under `build:bq-aim-data-gateway-rebuild-s1741`. Max S1735, Event Ledger `0b06e6fe`, selected Standard plus seller's own upload and buyer-facing counterparty reference “identified to ai.market under order X”.
+**Shipped boundary:** `ai-market-backend` main `53ae0916` already refuses legacy AIM Data and vectorAIz publish, member, sample, finalization and confirmation paths before any write when `LISTING_LICENSES_ENABLED=true`, through `require_website_license_publish`; the `/api/marketplace/publish` alias is removed. Frontend main `6b6862cf` is the paired surface pin. These are shipped facts, not chunk D work assigned here.
+
+## 1. Legacy AIM Data is withdrawn from seller-licence scope
+
+The §9 “AIM Data” publish paragraph is withdrawn. Do not add `license_selection` to the frozen `aim-data` frontend, API client, local publish receiver or gateway v2 publish schema. Do not restore the removed `/api/marketplace/publish` alias. With the licence flag on, legacy AIM Data publication must refuse `WEBSITE_LICENSE_PUBLISH_REQUIRED` before a listing, licence document, seller acceptance, sample, member grant or other publish-side write. The website is the seller's licence authority. A seller using the new S1741 self-hosted gateway creates and licenses a listing through the website listing flow; gateway spec chunk C supplies that integration. The gateway has no licence-selection, signing or publishing code.
+
+In §12.4, read the heading as **“Chunk D — seller web, API and Seller Workspace”** and the repository row in §12 as **backend + frontend**. The chunk D file list excludes gateway v2 publish schema and every `aim-data` file or test. Its acceptance checks cover the website/API and Seller Workspace publish flows, including equal canonical hashes and seller records for equivalent inputs, approval-hash invalidation, custom-upload hygiene, and a flag-on legacy AIM Data publish refusal with `WEBSITE_LICENSE_PUBLISH_REQUIRED` and no write. The prior “all three publish routes” phrase is superseded by the active website/API and Seller Workspace routes. Retain the named backend and frontend tests where applicable; remove the AIM Data `tests/test_marketplace_publish_license.py` and `frontend/src/pages/DatasetDetail.test.tsx` obligations. Chunk D's rollback and dispatch dependency remain as written.
+
+## 2. Other AIM Data licence references in Gate 2
+
+| Gate 2 location | Amendment |
+| --- | --- |
+| §1 M7 proof; §3.2 vector introduction; §12.1 chunk A AC | Cross-implementation vectors cover backend and frontend. The frozen legacy AIM Data vector implementation and fixture are no longer required. The six published §3.2 vectors and canonical hashing algorithm remain unchanged. |
+| §6 AIM Data manifest/member delivery door; §12.3 chunk C; §14 step 6 | Keep the legacy delivery-door refusal inventory and tests. These are access checks on already-existing orders, not a live seller-licence publish surface. Do not treat them as authorization to add legacy AIM Data licence code. |
+| §9 AIM Data paragraph | Withdrawn as specified in §1 of this amendment. |
+| §12 chunk D repository row, heading, files, AC/tests; §12.8 cross-repo manifest | Chunk D spans backend and frontend only; its manifest binds those active repositories. The S1741 gateway integration belongs to gateway spec chunk C, not licence chunk D. |
+| §14 step 2; §14 step 7 “all three implementations” | Use the Seller Workspace cloud-source proof in §3 below. Hash-vector tests cover backend and frontend; no frozen AIM Data hash implementation is required. |
+
+The §7/§6 legacy download and member references remain delivery gates by design. The historical `aim-data` surface pin in the Gate 2 header remains an authoring provenance record, not a current work assignment.
+
+## 3. Gate 4 steps 2–4 and 7
+
+**Step 2 replaces the existing step 2:** The same `seller-01` publishes a second listing through **Seller Workspace, using a cloud source**, with a clean custom PDF/text and the permitted rider. Prove the upload hygiene receipt, exact original source bytes and `source_sha256`, exact canonical licence/rider/covenant hash bytes, the Seller Workspace review/approval/publication fold, and the amber notice. A separate attempt containing a secret pattern and a conflicting marketplace term must refuse without an active document or listing publication. Also attempt a legacy AIM Data publish while `LISTING_LICENSES_ENABLED=true`; prove it returns `WEBSITE_LICENSE_PUBLISH_REQUIRED` before any write, with before/after database cardinality and no seller acceptance, licence document or listing created.
+
+**Step 3 record check replaces its identity clause:** Keep the normal-browser Standard-listing purchase, full-text download/hash, Buy screen, payment, signed-record download, one-order/one-acceptance, exact component hashes and green-badge proofs. Verify that the immutable backend acceptance retains the frozen legal-party identities and that the buyer-facing signed record shows the buyer's own identity but describes the seller only as **“identified to ai.market under order X”**, with X bound to that order. It must not disclose the seller's legal name or jurisdiction to the buyer.
+
+**Step 4 record check adds:** Keep the authenticated agent purchase, `authority_confirmed:true`, null typed name, bound principal/credential, custom PDF/text, rider/covenant and seller sales-history checks. Verify the buyer-facing custom record applies the same order-bound counterparty reference and does not expose the seller's legal name or jurisdiction. Seller history must resolve its own authorized record; it must not be used as evidence that both parties receive an identical unredacted view.
+
+**Step 7 changes only the vector-proof phrase:** run the hash-vector tests in **backend and frontend**. Retain the race, x402, inherited-listing, migration/schema, affected-suite, teardown-inventory and runbook-check proofs.
+
+## 4. Record-rendering consequence
+
+In §10, the on-demand record renderer still derives from the immutable `license_acceptances` row containing both frozen parties and still authorizes only a recorded party. Its **buyer projection**, including `?format=pdf`, shows the buyer's own legal identity and the seller solely as “identified to ai.market under order X”; it does not expose the seller's legal name or jurisdiction. The §12.5 phrase “both parties can render equal records” is superseded: test party-authorized, role-appropriate projections and stranger refusal, including the buyer HTML/PDF redaction. The stock licence's reference to parties “identified in the signed licence record” remains satisfied by the stored immutable record and the buyer-visible order-bound reference; no §2 normative text changes.
