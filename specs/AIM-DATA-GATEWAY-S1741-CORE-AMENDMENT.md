@@ -9,6 +9,8 @@
 - The "IS" bullet says the gateway sends nothing identifying until the seller chooses to (design D9, two-phase).
 - The "IS NOT" bullet says the gateway reads only what the customer mounts into it (design D6: no cloud SDK in v1).
 
+**R5 change:** the count of bracketed header fields is corrected to five (DeepSeek R4 F1). The CORE text itself is unchanged from R4.
+
 **R4 changes to the proposed text** (R3 on `1c1b0932`: GLM 2 and GLM 4):
 - An exact old→new block for the version header (lines 3–4) is added.
 - "Never sends customer data" becomes "Never sends data values or file bytes", so the permitted structural metadata cannot be misread as forbidden.
@@ -27,7 +29,7 @@
 
 **Unchanged:** P1 (marketplace → engine → conduits; two co-equal customer-facing data products), P2, S1, the public-sample exception, vectorAIz, and every safety rule. The boot kernel's P7 and P8 are regenerated from the amended text by the normal kernel projection, and the result stays within the kernel character budget.
 
-Each change below gives the exact old text (CORE v9.20 line numbers) and the exact new text. Nothing else in CORE changes. The version header change is given exactly, below. Its only variable content is the four bracketed fields, filled in mechanically at application: the approval date, the three voters' final response ids, and Max's approval Event Ledger id. The existing `**Prior:**` lines stay unchanged below the new one.
+Each change below gives the exact old text (CORE v9.20 line numbers) and the exact new text. Nothing else in CORE changes. The version header change is given exactly, below. Its only variable content is the five bracketed fields, filled in mechanically at application: the approval date, the three voters' final response ids, and Max's approval Event Ledger id. The existing `**Prior:**` lines stay unchanged below the new one.
 
 ## CORE v9.20 line 3-4
 

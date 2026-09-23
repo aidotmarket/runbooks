@@ -1,4 +1,4 @@
-# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway (R4)
+# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway (R5)
 
 **Build Queue entity:** `build:bq-aim-data-gateway-rebuild-s1741` (P0, owner Vulcan).
 **Authority:** Max, S1741, 2026-09-23.
@@ -26,7 +26,7 @@ AIM Data exists for one seller: an organisation that keeps its data on its own i
 
 | Finding at the pin | Evidence |
 | --- | --- |
-| Too large to review | About 59,800 lines of Python under `app/`, 29,300 of frontend, 31 routers and about 120 service modules. They cover chat and credits, SQL query, PII scanning, OCR and document conversion, a buyer portal, data requests, billing and earnings, and auto-update. Most of it duplicates the website. |
+| Too large to review | About 59,800 lines of Python under `app/`, about 31,000 of frontend source (excluding the lockfile), 32 routers and about 120 service modules. They cover chat and credits, SQL query, PII scanning, OCR and document conversion, a buyer portal, data requests, billing and earnings, and auto-update. Most of it duplicates the website. |
 | Host control by default | `docker-compose.aim-data.yml` mounts `/var/run/docker.sock` for one-click update (`app/services/update_service.py`) and adds `cap_add: SYS_PTRACE`. `Dockerfile.customer` has no `USER`, so the app runs as root. |
 | Unpinned supply chain | 19 of 91 `requirements.txt` lines are exact pins. `cloudflared` is fetched from `releases/latest` at build time with no checksum. |
 | Vendor-trusted cloud access | The S3 connector has the seller create an IAM role that trusts ai.market's AWS account (`AI_MARKET_AWS_ACCOUNT_ID` in compose; `docs/INSTALL.md` "Set up the S3 connector"). |
@@ -50,7 +50,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
 
   Both keys are new and dedicated, not the platform key (`app/core/config.py:641`) or the scan-spec key. They are held in KMS or HSM, used only by a signing service outside the web API process, and used by different code paths. The gateway pins both public keys at pairing; rotation and revocation are announced over the control channel, signed by the outgoing key. The current delivery JWT is HS256-signed with the backend `SECRET_KEY` (`app/core/security.py:188`, `:253`; `config.py:115` `SECRET_KEY`, `:119` `ALGORITHM`), and verifying it would require the gateway to hold that secret. That is not acceptable, so the gateway does not use it.
 - **D6. Only the customer's own storage, mounted by the customer.** In v1 the gateway reads only folders the customer mounts read-only into the container. It includes no cloud SDK. A customer whose data is in S3 or similar mounts it with their own tool (for example `mountpoint-s3`, `rclone` or `s3fs`) and their own credentials. The install guide documents this. ai.market is never a principal the customer's cloud trusts. (DeepSeek R1 SIMPLER, adopted: this is simpler for Max's "as simple as possible", removes a dependency, and removes a class of credential configuration.)
-- **D7. Outbound to one host, inbound on one door.** The only outbound connection is HTTPS to `api.ai.market:443` for the control channel. Inbound, only two things ever arrive at the door: buyer downloads and ai.market's periodic door probe (§3 step 3). There is no other network path, no telemetry, no auto-update and no tunnel. **Enforcement, not just behaviour:** the gateway has exactly one outbound dial path in code: it resolves and connects only to `api.ai.market:443`, pins ai.market's TLS certificate chain, and has no general HTTP client, proxy support or DNS use beyond that one name. The compose file adds nothing else to the customer's perimeter. The install guide gives the exact egress rule (allow `api.ai.market:443` and its resolver, deny everything else) for the customer's host firewall or network policy; a security team will apply its own egress control anyway, and this states what it must allow. (DeepSeek R3 SIMPLER, adopted over R3's proxy sidecar, which added a second image to the perimeter.)
+- **D7. Outbound to one host, inbound on one door.** The only outbound connection is HTTPS to `api.ai.market:443` for the control channel. Inbound, only two things ever arrive at the door: buyer downloads and ai.market's periodic door probe (§3 step 3). There is no other network path, no telemetry, no auto-update and no tunnel. **Enforcement, not just behaviour:** a supported installation requires deny-all egress except TLS to `api.ai.market:443`. The customer provides it by one of two documented profiles: (a) their own allowlisting egress proxy, which the gateway uses only through an HTTP CONNECT to that one host; or (b) a firewall or network policy with DNS answered only for `api.ai.market`. Inside the gateway there is exactly one dial path in code: it connects only to `api.ai.market:443` (directly or through the configured CONNECT proxy), pins ai.market's TLS certificate chain, and has no general HTTP client. The gateway also **checks the control is present**: at start and every 24 hours it tries to open a TLS connection to `egress-canary.ai.market:443` and to resolve a random name under a canary zone that only ai.market's authoritative DNS serves. Both must fail. If either succeeds, the gateway reports "egress open", and ai.market also sees the canary connection or DNS query itself. ai.market then shows the seller the gateway as unsupported and issues no permissions for it until the check passes. (The R3 proxy sidecar stays removed; DeepSeek R3 SIMPLER.)
 - **D8. Hardened sandbox by default.**
   - The image runs as a fixed non-root UID with a read-only root filesystem, `cap_drop: [ALL]` and `no-new-privileges`. It has no Docker socket and no host networking.
   - Writable state lives on one named volume.
@@ -61,7 +61,8 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
   - **Phase 1 is automatic, for every file under the configured sources.** For each file the gateway sends:
     - an opaque file id: an HMAC, keyed by a secret generated on the gateway's volume, over the source's configured name and the file's path relative to that source (domain-separated, so identical relative paths in two sources get different ids). Every phase-2 request, offer instruction, permission and serve looks a file up by the tuple (gateway id, file id, SHA-256), never by file id alone;
     - a display name: the alias from the customer's config, or else the neutral default `file-<first 8 of id>.<ext>`, where `<ext>` comes from the detected media type's standard extension (for example `.csv`, `.parquet`), never from the file's own name;
-    - size, media type and SHA-256.
+    - size and media type;
+    - a content commitment: an HMAC of the file's SHA-256 keyed by the same gateway secret, so ai.market can tell when a file changes but cannot match it against any file held elsewhere. The raw SHA-256 stays on the gateway until phase 2.
 
     No path, directory name, file name or column name leaves in phase 1.
   - **Phase 2 is one file at a time, only after an explicit seller action.** On the website the seller chooses "describe this file". That page states what will be sent and asks for confirmation. Only then does the gateway send, for that file alone:
@@ -70,7 +71,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
     - null rate, to the nearest 5%;
     - distinct count as a bucket (1, 2–10, 11–100, 101–1,000, more than 1,000).
 
-    It never sends cell values, minimums, maximums, top values or free text. Tabular formats in v1 are CSV/TSV, JSON Lines and Parquet. Other media types get phase 1 only.
+    It also sends the file's raw SHA-256, which listing versions, permissions and receipts are bound to. It never sends cell values, minimums, maximums, top values or free text. Tabular formats in v1 are CSV/TSV, JSON Lines and Parquet. Other media types get phase 1 only.
   - **Public sample.** A public sample is sent only after a separate explicit seller action. It is exactly the bytes the seller chose, a portion of their own data (the CORE v9.19 exception), within the platform's existing sample limits (`SAMPLE_MAX_FILE_BYTES` 64 MiB, `SAMPLE_MAX_TOTAL_BYTES` 256 MiB, `SAMPLE_MAX_FILES` 10 at `app/core/config.py:71-73`).
   - **Preview and audit.** `aim-gateway preview <file>` prints, without sending anything, the exact phase-1 and phase-2 payloads. Every outbound message body is appended to a local audit log.
   - **What allAI works from.** allAI classifies and enriches phase-2 metadata on ai.market, which also feeds corpus capture (`build:bq-structure-metadata-corpus-capture-s1396`). Column names, types, counts and bucketed statistics are enough for classification and dataset matching; values are not needed.
@@ -120,7 +121,7 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
    - caps the response at 4 KiB, with a 5-second timeout.
 
    The check also reads the door's TLS certificate and flags (D-A, §11) an organisation name in the subject, or subject alternative names beyond the door host.
-4. **Buy.** After payment the buyer's order page (or the agent API) gets the door URL and one permission per file. Each permission carries the gateway id, order id, listing version id, file id, SHA-256, a `jti`, a start deadline no more than 15 minutes out, and a transfer deadline of the start deadline plus the file size at 1 MB/s, capped at 24 hours. It carries no buyer identity (S1740). **Re-issue:** the buyer can get a fresh permission from the order page for any file whose previous permission expired or closed **without a complete matching receipt** (unused, interrupted, retries exhausted, or past the transfer deadline). Before the new permission is issued, ai.market sends the gateway a signed revocation for the old `jti` over the control channel, and the new permission is issued only once the gateway confirms it; the old `jti` is then refused even before its own deadline. The new permission has a new `jti`. Partial attempts do not count against the tier's download limit; only a completed download does. The gateway keeps one coverage ledger per (order, file) across all its permissions: the at-most-twice rule counts serves per byte range across every permission for that order and file, not per `jti`. A re-issued permission resumes from the coverage the ledger shows, so a very large file on a slow link completes across several permissions instead of being stranded by the 24-hour cap. Re-issue is limited to 5 incomplete permissions per file per order in 24 hours; beyond that the order page routes the buyer to support. Receipts are per (order, file) and cumulative: each receipt reports the ledger's total coverage, and the one whose coverage is the whole file, with the file's SHA-256 re-checked at bind against the gateway's index, is the complete matching receipt. Delivery and settlement still wait for it. A download that completed with a matching receipt but fails the buyer's "Verify file" is resolved through the dispute path, not re-issue.
+4. **Buy.** After payment the buyer's order page (or the agent API) gets the door URL and one permission per file. Each permission carries the gateway id, order id, listing version id, file id, SHA-256, a `jti`, a start deadline no more than 15 minutes out, and a transfer deadline of the start deadline plus the file size at 1 MB/s, capped at 24 hours. It carries no buyer identity (S1740). **Re-issue:** the buyer can get a fresh permission from the order page for any file whose previous permission expired or closed **without a complete matching receipt** (unused, interrupted, or past the transfer deadline). Before the new permission is issued, ai.market sends the gateway a signed revocation for the old `jti` over the control channel, and the new permission is issued only once the gateway confirms it. Confirmation is idempotent: it succeeds whether that `jti` was active, expired or already closed. the old `jti` is then refused even before its own deadline. The new permission has a new `jti`. Partial attempts do not count against the tier's download limit; only a completed download does. The gateway keeps one coverage ledger per (order, file) across all its permissions. It counts serves per byte, over normalized byte intervals: overlapping, suffix and open-ended HTTP Ranges are all resolved to absolute byte intervals before counting. No byte is served more than twice across every permission for that order and file. A byte already served twice is not served again under any permission: if the buyer still lacks it, that goes to the dispute path, not re-issue. A re-issued permission resumes from the coverage the ledger shows, so a very large file on a slow link completes across several permissions instead of being stranded by the 24-hour cap. Re-issue is limited to 5 incomplete permissions per file per order in 24 hours; beyond that the order page routes the buyer to support. Receipts are per (order, file) and cumulative: each receipt reports the ledger's total coverage, and the one whose coverage is the whole file, with the file's SHA-256 re-checked at bind against the gateway's index, is the complete matching receipt. Delivery and settlement still wait for it. A download that completed with a matching receipt but fails the buyer's "Verify file" is resolved through the dispute path, not re-issue.
 5. **Serve.** The gateway checks D12 in order, and also the audience (its own id) and the deadlines. `jti` rules:
    - The first request that starts serving bytes before the start deadline **binds** the `jti` to that file.
    - Later HTTP Range requests with the same permission are allowed until the transfer deadline, but each byte range is served at most twice. This allows retries and blocks repeated full reads.
@@ -221,7 +222,7 @@ Releases are semantic versions. Compose pins the image by digest.
 
 1. A clean host installs with one compose file and one pairing code, and needs nothing else from ai.market.
 2. A container scan shows: non-root, read-only rootfs, zero capabilities, no socket, and exactly one outbound hostname observed in a 24-hour soak.
-3. **No values or identifiers leave without the seller.** Marker strings are planted in cell values, directory names, file names and column names. Captured outbound traffic and the audit log show zero cell markers ever, and zero path or file-name markers ever. Column-name markers appear only after the phase-2 confirmation for that file, and never when the config drop or rename map covers them. Distinct counts appear only as buckets.
+3. **No values or identifiers leave without the seller.** Marker strings are planted in cell values, directory names, file names and column names. Captured outbound traffic and the audit log show zero cell markers ever, and zero path or file-name markers ever. No fixture's raw SHA-256 appears before that file's phase-2 confirmation. Column-name markers appear only after the phase-2 confirmation for that file, and never when the config drop or rename map covers them. Distinct counts appear only as buckets.
 4. A buyer downloads a file through a real TLS reverse proxy. ai.market's logs and storage contain zero bytes of it (the `data-delivery-p2p.md` procedure), and "Verify file" matches.
 5. Refused with no bytes sent:
    - replay after close
@@ -232,7 +233,7 @@ Releases are semantic versions. Compose pins the image by digest.
    - a file outside the ceiling
    - an offer instruction signed with the permission key
    - an `http://` door URL at registration (422)
-6. An interrupted large download resumes with Range and completes. A third serve of the same range is refused. After a container restart, the `jti` is still bound or closed. Two interrupted attempts, and separately an expiry before full coverage, are each followed by a successful authenticated re-issue that resumes and completes, while the old `jti` stays refused. Two sources with the same relative path list as two files and serve only the hash-bound one. The gateway binary contains no code path that dials any host but `api.ai.market:443` (checked by test and by a static scan of the binary's network calls). Under the documented egress rule, a scripted attempt from inside the container to reach a second host or an outside DNS server fails while the control channel keeps working.
+6. An interrupted large download resumes with Range and completes. A third serve of the same range is refused. After a container restart, the `jti` is still bound or closed. Two interrupted attempts, and separately an expiry before full coverage, are each followed by a successful authenticated re-issue that resumes and completes, while the old `jti` stays refused. Two sources with the same relative path list as two files and serve only the hash-bound one. The gateway binary contains no code path that dials any host but `api.ai.market:443`, except the canary probe (checked by test and by a static scan of the binary's network calls). Under each documented egress profile, a scripted attempt from inside the container to reach a second host or to resolve an arbitrary name fails while the control channel keeps working. With egress left open, the canary check reports "egress open" and ai.market refuses permissions for that gateway.
 7. Receipt and 48-hour hold with no dispute lead to delivered, then settlement, in the test environment. "Didn't arrive" freezes settlement. A missing or mismatched receipt leaves the order undelivered.
 8. Door check: private, loopback and metadata addresses, redirects and oversized responses are all refused. An OV certificate or extra SANs raise the D-A flag.
 9. Unpairing refuses the next permission within one control-channel round trip.
@@ -256,28 +257,24 @@ Releases are semantic versions. Compose pins the image by digest.
   - R2 adds, per Mars's peer review: the door's TLS certificate can identify the seller too, so the warning also asks for a domain-validated certificate naming nothing else, and the door check flags one that identifies an organisation (§3 step 3). This makes Max's accepted position actionable without changing it.
   - An ai.market-issued neutral hostname stays out of scope for v1 (§10).
 
-## 12. Round 4 fold log and review questions
+## 12. Round 5 fold log and review questions
 
-**R3 inputs** (all on `1c1b0932`):
-- GLM `125540`: REQUEST_CHANGES. Two MEDIUMs: the egress sidecar sat outside the perimeter, supply-chain and budget statements; the amendment had no exact v9.21 header text. One LOW: revoking the old `jti` on re-issue, and a range floor across permissions. One NIT: "customer data" wording in the amendment.
-- DeepSeek `125543`: APPROVE_WITH_NITS. F1 D12 bind scope; F2 sidecar accounting; F3 completed but corrupted; F4 CORE line 40; F5 P5 cite; F6 kernel budget unverifiable; SIMPLER: drop the sidecar.
-- Gemini `125545`: APPROVE_WITH_NITS. A re-issue rate bound; cumulative receipts across permissions.
+**R4 inputs** (all on `ac909c7b`):
+- GLM `132345`: REQUEST_CHANGES. One MEDIUM: raw SHA-256 left in automatic phase 1, a content fingerprint that can be matched elsewhere. One LOW: egress described as enforcement, while the customer rule was only advice. One NIT: per-byte ledger semantics.
+- DeepSeek `132348`: APPROVE_WITH_NITS. F1 "four" bracketed fields should be five; F2 routers and frontend counts; F3 bytes at two serves go to dispute; F4 kernel budget unverifiable (it is checked at application).
+- Gemini `132350`: APPROVE_WITH_NITS. Revocation confirmation must be idempotent.
 
 **Adopted:**
-- GLM 1, DeepSeek F2 and DeepSeek SIMPLER: the sidecar is removed. The single dial target is enforced in code and by the customer's documented egress rule (D7; acceptance 6). "Only the gateway container" is true again.
-- GLM 2: the amendment now carries an exact old→new header block. Its only variable fields are the four bracketed values filled at application (approval date, three verdict file ids, Max's Event Ledger id), shown to Max before he approves.
-- GLM 3: signed revocation of the old `jti` before re-issue; a per-(order, file) coverage ledger across permissions (§3 step 4).
-- GLM 4: the amendment now says "never sends data values or file bytes to ai.market".
-- DeepSeek F1: D12 (ii) applies at bind.
-- DeepSeek F3: a completed but corrupted download goes to dispute.
-- DeepSeek F5: the P5 cite is corrected.
-- Gemini 1: a re-issue rate bound of 5 per file per order in 24 hours.
-- Gemini 2: cumulative per-(order, file) receipts.
+- GLM 1: phase 1 sends a gateway-keyed content commitment, and the raw SHA-256 is released only at phase 2 (D9; acceptance 3).
+- GLM 2: deny-all egress is a supported-install requirement, with two concrete profiles and a DNS constraint. The gateway checks it with a canary: ai.market-controlled targets, verified from both sides. An open gateway is unsupported and gets no permissions (D7; acceptance 6).
+- GLM 3: per-byte counting over normalized intervals (§3 step 4).
+- DeepSeek F1: five, in both files.
+- DeepSeek F2: 32 routers; about 31,000 lines of frontend excluding the lockfile.
+- DeepSeek F3: bytes served twice go to dispute, and "retries exhausted" is removed from the re-issue reasons.
+- Gemini 1: idempotent revocation confirmation.
 
-**Not adopted:**
-- DeepSeek F4 (CORE line 40). Line 40 still holds: AIM Data is how customer data becomes listings "and reaches the network", the network meaning buyers, and delivery is peer to peer. No change is needed.
-- DeepSeek F6. The kernel budget is enforced fail-closed at application (`constitution-amendment.md` E-03), so no design change is needed.
+**Not adopted:** DeepSeek F4. It needs no design change: E-03 checks the budget fail-closed at application.
 
-**Risk questions:** the R2 questions stand; please re-answer them only where R4 changes your answer. GLM: confirm both MEDIUM findings are closed.
+**Risk questions:** the R2 questions stand; please re-answer them only where R5 changes your answer. GLM: confirm your MEDIUM finding is closed. All voters: is the egress canary (D7) sound, and is it still as simple as it can be?
 
 Voters return APPROVE, APPROVE_WITH_NITS, REQUEST_CHANGES or REJECT with SHA-bound findings. MP's response is advisory and not counted.
