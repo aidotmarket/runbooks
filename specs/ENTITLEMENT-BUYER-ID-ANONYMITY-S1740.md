@@ -1,4 +1,4 @@
-# Download entitlement token must not carry the buyer's user id (S1740)
+# Download tokens that reach the seller must not carry the buyer's user id (S1740)
 
 **BQ:** `build:bq-entitlement-buyer-id-anonymity-s1740` (P1). **Rule:** CORE P5/S1 and Max's anonymity decision c3af20e0: a seller never learns the buyer's identity. The anonymity release is live at backend `d78f2d08`, and `runbooks/counterparty-anonymity.md` in ai-market-backend lists its surfaces. **Origin:** combined Gate 3 R3, question 6 (Gemini 021744): this is a counterparty leak, but not a blocker for that merge; it is a cross-repo follow-up. **Risk class:** customer data, so the design and the build each need a unanimous Council (GLM, DeepSeek, Gemini).
 
@@ -12,17 +12,28 @@
 - The seller's AIM Data validates it at `GET /download/{file_id}` (`app/routers/raw_listings.py:421-458`) via `EntitlementService.validate_entitlement` (`entitlement_service.py:~80-150`).
   - It expects a different wire format: `Bearer base64(json).base64(sig)` with a derived shared secret.
   - It requires `buyer_id` among its fields (`:128`) and writes it to the seller's log: "Serving raw file %s to buyer %s" (`raw_listings.py:451`).
-- So the two formats do not interoperate today. This buyer→seller-node path is not live end to end, and the leak is latent. Once someone finishes "M3" integration it becomes real, and the shared field list is where it would leak.
+- A second, live token in the same family: the delivery JWT from `create_delivery_token` (`app/core/security.py:188-267`).
+  - Its payload carries `"sub": buyer_id` (`:240`).
+  - When the order's `delivery_config.gatekeeper_url` is set, the token is appended as a query parameter to the seller-controlled URL `{gatekeeper_url}/download?token=...` (`:265`). The docstring says it "is then presented to the seller's Gatekeeper Worker" (`:205-206`).
+  - It is issued by `OrderService.issue_download_token` (`order_service.py:1579`, `buyer_id=str(buyer_id)`) and a second call at `:1669`, and it is returned by `POST /api/v1/orders/{order_id}/download` (`orders.py:260-306`).
+  - It is redeemed back on ai.market by `redeem_download_token` (`order_service.py:~1702-1712`), which checks `claims["sub"] == str(buyer_id)`.
+  - Production (S1740, read-only): no order carries a `gatekeeper_url`, so no seller has received one yet. The code path is live and covered by tests (`test_s1681_s3_delivery.py`, `test_delivery_r1_fold.py`).
+- So the two entitlement formats do not interoperate today. This buyer→seller-node path is not live end to end, and the leak is latent. Once someone finishes "M3" integration it becomes real, and the shared field list is where it would leak.
 
 ## Change
 
-1. **Backend (ai-market-backend):** remove `buyer_id` from the entitlement payload in `generate_download_token`. Ownership is already enforced before signing (`:76`, `row["buyer_id"] != user_id` → "Not your order"), and the order id identifies the purchase. Keep the audit `actor_id=user_id` (server-side only). Add a test: the token contains no `buyer_id` and no user-identifying value, and `validate_download_token` still accepts it.
-2. **AIM Data (aim-data):** remove `buyer_id` from the `required` tuple and from the docstring in `entitlement_service.py`. Change the log line in `raw_listings.py:451` to `file_id` and `order_id` only. Add a test: a token without `buyer_id` validates, and the log never contains a buyer identifier.
-3. **Runbook:** add the entitlement token to the surfaces listed in `runbooks/counterparty-anonymity.md`.
+1. **Backend, delivery JWT (ai-market-backend `app/core/security.py`, `app/services/order_service.py`):**
+   - Replace `"sub": buyer_id` with an opaque, order-scoped buyer binding: `"sub": hmac_sha256(DOWNLOAD_TOKEN_SECRET_KEY or SECRET_KEY, f"{order_id}:{buyer_id}")` in hex.
+   - `redeem_download_token` recomputes the value from the authenticated buyer and the order id and compares it with `hmac.compare_digest`. The binding to the buyer is kept, but the seller-visible value reveals nothing and does not repeat across orders.
+   - Tests: the issued token contains neither the buyer UUID nor anything derived from it without the key; redeem still refuses another user.
+2. **Backend, entitlement token (ai-market-backend):** remove `buyer_id` from the entitlement payload in `generate_download_token`. Ownership is already enforced before signing (`:76`, `row["buyer_id"] != user_id` → "Not your order"), and the order id identifies the purchase. Keep the audit `actor_id=user_id` (server-side only). Add a test: the token contains no `buyer_id` and no user-identifying value, and `validate_download_token` still accepts it.
+3. **AIM Data (aim-data):** remove `buyer_id` from the `required` tuple and from the docstring in `entitlement_service.py`. Change the log line in `raw_listings.py:451` to `file_id` and `order_id` only. Add a test: a token without `buyer_id` validates, and the log never contains a buyer identifier.
+4. **Governing specs:** add a supersession note at the top of `ai-market-backend/specs/BQ-VZ-RAW-DELIVERY.md` and `aim-data/specs/BQ-AIM-RAW-LISTINGS.md`. The note names this spec as the controlling anonymity amendment, and strikes or marks every clause that puts `buyer_id` into a seller-visible payload, required claim, query parameter, Trust request or log (backend spec ~`:31-53`, `:214-223`, `:245-250`, `:315-322`, `:349-362`; AIM Data spec ~`:142-160`). Server-side audit `actor_id` stays.
+5. **Runbook:** add both tokens to the surfaces listed in `runbooks/counterparty-anonymity.md`.
 
 ## Ordering and compatibility
 
-The two formats don't interoperate today, so no live download can break and the two repos can ship independently. For the day M3 integration lands: the AIM Data change makes the node tolerant (no `buyer_id` needed), and any old node that still requires `buyer_id` would reject a new token, which fails closed. To keep old nodes working, M3 would ship after this AIM Data release reaches the fleet. Record that constraint in the aim-data release notes. Nothing else changes: no schema, no migration, no flag.
+The two formats don't interoperate today, so no live download can break and the two repos can ship independently. For the day M3 integration lands: the AIM Data change makes the node tolerant (no `buyer_id` needed), and any old node that still requires `buyer_id` would reject a new token, which fails closed. To keep old nodes working, M3 would ship after this AIM Data release reaches the fleet. The aim-data build adds this constraint to `CHANGELOG.md` under the next release, and the M3 readiness check (whenever M3 is specced) must confirm the fleet's reported AIM Data version is at least that release. Nothing else changes: no schema, no migration, no flag.
 
 ## Out of scope
 
@@ -31,6 +42,6 @@ The two formats don't interoperate today, so no live download can break and the 
 
 ## Acceptance
 
-- `git grep -n buyer_id` in the token builder and in AIM Data's entitlement and raw-listings files finds no remaining payload or log use.
+- Neither token's signed payload, nor the returned token or URL, nor the node's log, contains `buyer_id` or the buyer UUID. The ownership check and the SQL select of `buyer_id` inside `raw_download_service.py` stay, because they are server-side authorization.
 - Focused tests pass in both repos, with no new failures versus main.
 - Gate 3 unanimous on each repo's diff.
