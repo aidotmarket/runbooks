@@ -1,7 +1,7 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-09-21'
+last_verified: '2026-09-23'
 aliases:
 - Council dispatch
 - review transport
@@ -31,9 +31,9 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
-> **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> **CC and MP reviews are not Council votes.** `council_request agent=cc` and `council_request agent=mp mode=review` are explicit non-voting second opinions: never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
-> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp")`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
 > Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
 > Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
@@ -46,6 +46,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 | Member launcher | SHIPPED | `scripts/council_dir.py:start` | Detached lifetime proven with the real 43KB S1567 R7 package: Kimi 2765s, GLM (minimal Codex transport) ~510s, both response files retained (S1568) | 2026-08-17 |
 | DeepSeek reviewer seat | REQUIRED GATE VOTER (Max decision S1651, CORE v9.16) | `deepseek_codex_transport.py`, `config/deepseek_codex/` | Transport, config, environment-isolation, explicit-name directory routing, roster/audit visibility, and candidate-versus-three-voter-base non-authority tests | 2026-09-01 |
 | MP build dispatch | SHIPPED | `tools/agents.py:_handle_dispatch_mp_build` | Live remote no-op dispatch plus existing minimal-bridge tests | 2026-08-26 |
+| MP non-voting review route | BUILD BRANCH S1738; deploy separately | `tools/agents.py`, `scripts/council_dir.py`, `mp_codex_transport.py` | Directory routing, read-only argv, and gate non-counting tests | 2026-09-23 |
 | Retired CC build wrappers physically removed | MERGED; DEPLOYMENT PENDING | `tools/agents.py` at koskadeux-mcp PR #217 / `5a3b02290d225d2c3bed38aeac09f0ae2d47df45` | 187 focused tests passed; identical branch/main failure sets | 2026-09-09 |
 | Council Hall | DEPRECATED | — | Absent from live tool registration | 2026-08-12 |
 | Reviewer wrappers and verdict persistence | DEPRECATED | — | Absence and routing tests | 2026-08-12 |
@@ -54,25 +55,25 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 There is one Council reviewer path.
 
-1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` is available by explicit name as a non-Council second opinion only.
+1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` and `mp` with `mode=review` are available by explicit name as non-Council second opinions.
 2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
 3. Return `status=submitted` with the request path and response path immediately.
 4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
 
-`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before the one request writer stores a request, the shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path. A request file may be supplied without `task` or `mode`.
+`council_request` is only the public trigger. If `review_package_path` is supplied, its bytes become the original request bytes. Otherwise the encoded `task` text becomes the original request bytes. Before the one request writer stores a request, the shared bytes helper prepends the standard `REVIEW_PROTOCOL`; the original bytes remain the exact suffix. `mode=review` and `mode=open_response` use this same path for Council members and CC. MP uses this path only with explicit `mode=review`; MP author/build stays on the minimal bridge.
 
 The standard preamble is the complete review contract approved in S1557. It requires exact artifact identity, environment truth, ground truth and boundaries, honest builder verification including failures and untrusted signals, prior-round delta, and three to six risk questions in the request body. It tells the reviewer to verify load-bearing claims, read whatever is necessary, return a verdict even when its turn budget expires, name incomplete coverage, produce SHA-bound evidenced findings, and answer the standing SIMPLER and BETTER questions. Do not shorten or hand-edit the prefix at dispatch time; its exact bytes are locked by the focused test.
 
 The manual equivalent is:
 
-    scripts/council_dir.py ask <glm|deepseek|gemini|cc|all> <request_file>
-    scripts/council_dir.py run <glm|deepseek|gemini|cc|all>
+    scripts/council_dir.py ask <glm|deepseek|gemini|cc|mp|all> <request_file>
+    scripts/council_dir.py run <glm|deepseek|gemini|cc|mp|all>
     scripts/council_dir.py ask deepseek <request_file>
     scripts/council_dir.py run deepseek
 
 `ask all` and `run all` mean the three required reviewers, GLM, DeepSeek, and
-Gemini (`REQUIRED_REVIEWER_ORDER`). They never include CC. Use `ask cc`
-explicitly for a non-Council second opinion; it is never counted.
+Gemini (`REQUIRED_REVIEWER_ORDER`). They never include CC or MP. Use `ask cc`
+or `ask mp` explicitly for a non-Council second opinion; neither is counted.
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -82,7 +83,7 @@ The response is `response-<stamp>.md` beside `request-<stamp>.md`. That file is 
 
 A reviewer may return `REJECT` with no build mandates when its conclusion is to stop the proposed work. The response file and its explanation remain the complete verdict; the operator must not invent a mandate to satisfy a response shape. The directory transport does not schema-validate or discard that response.
 
-The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC (non-Council) receives the one-sentence pickup instruction; Gemini runs through `gemini_transport.py` (see Gemini member). GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). Each template supplies a `:read-only` permission profile, denies `/Users/max/.codex`, and excludes its provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory for all four registered reviewers, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
+The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC (non-Council) receives the one-sentence pickup instruction; Gemini runs through `gemini_transport.py` (see Gemini member). GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. MP reviews use `/Users/max/council/mp/` and the model named in `~/.codex/config.toml`, without loading that config. `mp_codex_transport.py` provisions a private `CODEX_HOME` (`/Users/max/koskadeux-state/agents/mp-review/codex-home`, template `config/mp_codex/` plus a copy of the CLI `auth.json` only) and `HOME` (`/Users/max/koskadeux-state/agents/mp-review`), and runs `codex exec --model <configured model> --config 'approval_policy="never"' --ephemeral --skip-git-repo-check -o <response>` with an environment of only `CODEX_HOME`, `HOME`, `PATH`, `TMPDIR`, `LANG` and `LC_ALL`. The template selects the `mp-review` permission profile, which extends `:read-only` and denies reads of `/Users/max/.codex` and the private Codex home. Do not add `--sandbox read-only`: it overrides the named profile and drops the read denies. It does not use build sockets, Task Spooler, a build lock, or build worktrees. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). The GLM and DeepSeek templates supply a `:read-only` permission profile, deny `/Users/max/.codex`, and exclude their provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
 Roster since S1721 (CORE §5): the required gate voters are exactly GLM,
 DeepSeek, and Gemini, unanimous 3/3. An unusable vote (no verdict, failed
@@ -195,10 +196,14 @@ Chrome proof remain required before the cleanup can be called live.
 | Gemini | Council gate voter (S1721) | `gemini_transport.py` and directory exchange | Own sandbox (`sandbox/gemini_member.sb`); writes only its own home; launcher-injected Vertex key | COMPLETE |
 | GLM | Council gate voter | Directory exchange | Own Council directory | COMPLETE |
 | DeepSeek | Council gate voter (S1651) | Shared parameterized Codex transport and directory exchange | Dedicated `HOME`/`CODEX_HOME`; Infisical-injected DeepSeek key | REGISTERED |
-| MP | Mandatory build; never a voter | Separate MP build path | Explicit build/author workspace | COMPLETE |
+| MP | Mandatory build or explicit non-voting review | Minimal bridge for build; read-only directory exchange for review | Build workspace or `/Users/max/council/mp/` | REVIEW ROUTE ON S1738 BUILD BRANCH |
 | Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
 
 ## How to operate
+
+### Explicit MP review (S1738; available after code deployment)
+
+Call `council_request(agent="mp", mode="review", task=<review request>)`, or supply `review_package_path=<existing file>` in place of `task`. Supply `cwd` and `dispatch_sha` when reviewing a pinned checkout so the request includes the controller's checkout context. The call returns `status=submitted` with `request_file` under `/Users/max/council/mp/` and the matching `response_file`; the response file appearing is completion. Inspect that file and its launcher log directly. `ask all` remains the three gate voters and excludes MP. Never use this path for MP author/build work or count an MP response as a gate vote. Do not send MP a candidate it authored.
 
 ```yaml operate
 - id: E-01
@@ -269,7 +274,7 @@ Chrome proof remain required before the cleanup can be called live.
   expected_failures:
     - {signature: MP build failure, cause: follow the separate MP build runbook}
   next_step_success: Verify the MP artifact independently.
-  next_step_failure: Follow MP build recovery; do not route MP through the reviewer directory.
+  next_step_failure: Follow MP build recovery; MP author/build never routes through the reviewer directory.
 ```
 
 ## When it breaks
@@ -385,8 +390,8 @@ Chrome proof remain required before the cleanup can be called live.
 - `council_request` is the only public Council reviewer trigger.
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
-- GLM, DeepSeek, Gemini, and the non-Council CC path all use `scripts/council_dir.py`.
-- CC is dispatchable by explicit name as a non-Council second opinion and affects no consensus, mandate, completion, override, spec-approval, all-reviewer expansion, or shared-health decision. A missing, failed, non-canonical, or model-mismatched required vote fails closed after one rerun.
+- GLM, DeepSeek, Gemini, and the non-Council CC and MP review paths all use `scripts/council_dir.py`.
+- CC and MP reviews are dispatchable by explicit name as non-Council second opinions. Their responses do not count toward Council consensus, gate mandates, or unanimous gate completion. A missing, failed, non-canonical, or model-mismatched required vote fails closed after one rerun.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.
@@ -396,7 +401,7 @@ Chrome proof remain required before the cleanup can be called live.
 ### H.2 BREAKING predicates
 
 - Adding another Council reviewer transport, Hall, wrapper, parser, retry layer, persistence step, or pre-dispatch reviewer gate is BREAKING.
-- Routing MP through the reviewer directory is BREAKING.
+- Routing MP author/build through the reviewer directory is BREAKING.
 
 ### H.3 REVIEW predicates
 
@@ -410,7 +415,7 @@ Chrome proof remain required before the cleanup can be called live.
 
 #### module
 
-The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`; GLM and DeepSeek use the parameterized path in `codex_reviewer_transport.py` through their provider wrappers.
+The reviewer module is `tools/agents.py:_handle_council_member` plus `scripts/council_dir.py`; GLM and DeepSeek use the parameterized path in `codex_reviewer_transport.py` through their provider wrappers. MP review uses `mp_codex_transport.py`, which reuses the shared Codex reviewer runner with the `mp-review` permission profile in a private `CODEX_HOME`.
 
 #### public contract
 
