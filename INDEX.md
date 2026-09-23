@@ -373,9 +373,9 @@
 - Path: `codex-mp.md`
 - Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6-sol`** since 2026-09-22 — Max S1738, "please just implement it as the builder model", koskadeux-mcp #231, Codex CLI 0.155.1; before that `gpt-5.6-sol`, Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-09-22`
+- Last verified: `2026-09-24`
 - Aliases: none
-- Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap
+- Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo
 - Status: current
 
 ## Connectivity Layer
@@ -679,9 +679,9 @@
 - Path: `gcp-auth.md`
 - Purpose: GCP authentication for ai.market spans four independent auth paths. Gmail OAuth uses long-lived refresh tokens stored in the `gmail_tokens` Railway Postgres table; the same GCP project `aimarket-prod` also holds the customer "Sign in with Google" client (`240358013785-fb8tb9r8...`, backend `GOOGLE_OAUTH_CLIENT_ID`), so the consent-screen setting serves both. It MUST be User Type External with publishing status In production: Internal blocks every customer outside the ai.market Workspace (`Error 403: org_internal`), and Testing expires Gmail refresh tokens after 7 days and limits sign-in to listed test users. The gcloud CLI holds a separate interactive session used for Pub/Sub and GCP admin; it requires a browser login and cannot be driven headlessly. Vertex AI Gemini uses a Vertex Express API key (prefix `AQ.`) held in Infisical as `VERTEX_GEMINI_KEY`. The Trust Channel KMS runtime separately uses `GCP_SERVICE_ACCOUNT_JSON`, canonical in Infisical `ai-market-backend`/`prod` and synchronized to Railway production; application credentials are configured before the shared KMS client is initialized. The KMS credential is not a Gemini credential.
 - Owner: `vulcan`
-- Last verified: `2026-09-22`
+- Last verified: `2026-09-24`
 - Aliases: Vertex authentication, Gmail OAuth, gcloud credentials, Trust Channel KMS, Sign in with Google, OAuth consent screen
-- Error signatures: Error 403: org_internal, ai.market can only be used within its organisation, invalid_grant: Bad Request, Failed to authenticate Gmail, RefreshError: Reauthentication is needed. Please run gcloud auth application-default login, 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED, Reauthentication failed
+- Error signatures: Error 403: org_internal, ai.market can only be used within its organisation, invalid_grant: Bad Request, Failed to authenticate Gmail, RefreshError: Reauthentication is needed. Please run gcloud auth application-default login, 401 UNAUTHENTICATED ACCESS_TOKEN_TYPE_UNSUPPORTED, Reauthentication failed, ALGORITHM_NOT_SUPPORTED_FOR_PROTECTION_LEVEL
 - Status: current
 
 ## GitHub → Reconciliation Webhook
