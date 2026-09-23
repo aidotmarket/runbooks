@@ -355,7 +355,7 @@
 - Path: `cloudflare-and-dns.md`
 - Purpose: Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.com — DNS records, Workers, the live mcp.ai.market tunnel, and the API access patterns. Supersedes the prior `cloudflare-worker.md` (now Worker-detail subsection of this doc) and the partial Cloudflare table in `ai-market-backend/docs/core/INFRASTRUCTURE.md`.
 - Owner: `unassigned`
-- Last verified: `2026-07-17`
+- Last verified: `2026-09-23`
 - Aliases: none
 - Error signatures: none
 - Status: current

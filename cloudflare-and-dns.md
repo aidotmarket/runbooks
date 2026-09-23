@@ -1,7 +1,7 @@
 ---
 title: Cloudflare and DNS
 owner: unassigned
-last_verified: '2026-07-17'
+last_verified: '2026-09-23'
 aliases: []
 error_signatures: []
 ---
@@ -51,6 +51,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 | `mcp.vectoraiz.com.ai.market` | Proxied | same tunnel as above | **Drift item — looks like a typo creating a 4-label FQDN; cleanup candidate** |
 | `get.ai.market` (AAAA `100::`) | Proxied | `get-ai-market` Worker | Installer hub for AIM Data + AIM Node (see §Workers) |
 | `pm-bounces.ai.market` | DNS-only | `pm.mtasv.net` | Postmark bounce handler |
+| `connect.ai.market` | DNS-only | `04tecdf8.up.railway.app` | Public customer MCP connector. Railway service `ai-market-connector` (`a08ef347-d2d1-4fcb-ba50-9299a9484fd5`), custom domain id `519d4d32-649c-4adc-afe1-b9dca9100168`, target port 8080. Added 2026-09-23 on Max's instruction; the service is empty until the connector build deploys to it. Not to be confused with `mcp.ai.market` (internal Koskadeux gateway). |
 
 **Email — Google Workspace + Postmark + SES + Resend (triple-vendor):**
 
@@ -66,7 +67,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 
 **Domain verification TXT (don't touch — Railway / Lovable / Search Console):**
 
-- `_railway-verify.ai.market`, `_railway-verify.www.ai.market`, `_railway-verify.ops.ai.market`, `_railway-verify.secrets.ai.market`
+- `_railway-verify.ai.market`, `_railway-verify.www.ai.market`, `_railway-verify.ops.ai.market`, `_railway-verify.secrets.ai.market`, `_railway-verify.connect.ai.market` (added 2026-09-23)
 - `_lovable.ops.ai.market` (two records — investigate if both still needed)
 
 **NS records (delegation indicator):**
@@ -391,6 +392,30 @@ List active Workers:
 - **Pre-S572** — Resource registry + `mcp-gateway.md` claim Tailscale Funnel replaced Cloudflare Tunnel for `mcp.ai.market`. **Migration did not complete** — cloudflared remains the active transport (S688 verification).
 - **S688 (2026-05-22)** — Live audit; this runbook authored. Five drift items filed.
 - **S964 (2026-06-20)** — Apex `ai.market` SPF deduped: a triplicate `include:_spf.google.com` (≈10–12 nested lookups, at/over the RFC 7208 limit → permerror risk) collapsed to a single include (`v=spf1 include:_spf.google.com ~all`). Verified live at the authoritative NS. `send.ai.market` (amazonses) unchanged. Original backed up on Titan-1. Also confirmed the token carries Workers-KV edit scope.
+- **2026-09-23** — `connect.ai.market` created for the public customer MCP connector: empty Railway service `ai-market-connector`, custom domain attached, DNS-only CNAME plus `_railway-verify` TXT added through the API (procedure: §Adding a Railway-hosted subdomain).
+
+## Adding a Railway-hosted subdomain
+
+Procedure used for `connect.ai.market` on 2026-09-23. Railway issues the CNAME target and an ownership TXT record; both go into the `ai.market` zone as DNS-only records (Railway terminates TLS, so do not proxy).
+
+1. Re-fetch the live zone (Verification quick reference) and confirm the name is unused.
+2. If the target service does not exist yet, create it empty so the hostname is claimed by us and nothing else is exposed. Railway GraphQL (`backboard.railway.app/graphql/v2`, `RAILWAY_API_TOKEN` from `/Users/max/bin/railway-env.sh`, then `unset RAILWAY_TOKEN`; send a browser User-Agent or Cloudflare blocks the call):
+
+        mutation { serviceCreate(input: {projectId: "e81dd66f-808c-412e-b32c-f6d910f0ac5d", name: "<service>"}) { id name } }
+
+3. Attach the custom domain and read back the records Railway requires:
+
+        mutation { customDomainCreate(input: {domain: "<host>.ai.market", environmentId: "23e322c3-b195-45d8-9151-c4c27a998c33", projectId: "e81dd66f-808c-412e-b32c-f6d910f0ac5d", serviceId: "<service id>", targetPort: <port>}) {
+          id status { dnsRecords { fqdn recordType requiredValue } verificationDnsHost verificationToken verified certificateStatus } } }
+
+4. Create both records with the Cloudflare API (token: `CLOUDFLARE_API_TOKEN`, Infisical `ai-market-backend`/`prod`, fetched with the raw v3 API and the sysadmin token file, see `infisical-secrets.md`):
+
+        POST /zones/f82ac6762af544d71e8ad5eb3d7fca0c/dns_records
+        {"type":"CNAME","name":"<host>.ai.market","content":"<requiredValue>","proxied":false,"ttl":1}
+        {"type":"TXT","name":"_railway-verify.<host>.ai.market","content":"<verificationToken>","ttl":1}
+
+5. Verify: `dig +short <host>.ai.market CNAME @1.1.1.1` returns the Railway target, and a `customDomain` query shows `verified: true` and the certificate issued. An empty service answers HTTPS with Railway's "application failed to respond" page until a deployment exists; that is expected.
+6. Add the record to the zone table above in the same session.
 
 ## References
 
