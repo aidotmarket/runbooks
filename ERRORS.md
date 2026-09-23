@@ -428,6 +428,10 @@
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
 
+## `duplicate key value violates unique constraint on listings slug`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
+
 ## `duplicate_cardinality`
 
 - [Issue Channel](issue-channel.md)
@@ -1507,6 +1511,10 @@
 ## `unsupported_target_repo`
 
 - [Build Queue Reconciliation](runbooks/build-queue-reconciliation.md)
+
+## `UPDATE 0 on listings slug rename`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
 
 ## `ValidationError: SECRET_KEY must be set`
 
