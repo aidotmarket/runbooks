@@ -1,5 +1,7 @@
 # BQ-PREVIEW-CONTRACT-CROSS-REPO-GATE-S1732 — Gate 2 implementation specification
 
+Amended by [Gate 2 Amendment A2](BQ-PREVIEW-CONTRACT-CROSS-REPO-GATE-S1732-GATE2-AMENDMENT-1.md).
+
 Status: **GATE 2 implementation specification.** Gate 1 is approved (Council 3/3 R3). This document authorizes only the two implementation chunks below and the companion runbook update. It does not authorize deployment, GitHub/Infisical mutation, customer-data access, feature enablement, or a wire-format change. Gate 3 requires unanimous GLM, DeepSeek, and Gemini review.
 
 Authority and source identities read on 2026-09-22:
