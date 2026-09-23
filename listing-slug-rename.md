@@ -127,6 +127,7 @@ Nothing is deleted at any step.
 ## When it breaks
 
 - `UPDATE 0` on listings: the slug changed since the pre-check, or the id is wrong. Roll back the transaction and re-run step 1.
+- Kaggle `metadata --update` answers `A public dataset can NOT be changed to private` (first seen S1740, kaggle 2.2.4). Kaggle does not allow a public dataset to become private at all, and it rejects the whole update, so the title is not changed either. Step 2 cannot be completed for a public Kaggle mirror. Stop before step 3, record the state (the Hugging Face side may already be private, which is safe to keep), and take the choice to Max: delete the old Kaggle dataset (overrides "never delete"), keep it public with only a retitle (its URL still carries the old slug), or skip Kaggle.
 - Unique violation on `slug`: the new slug already exists. Stop, and choose a different neutral slug with Council.
 - Kaggle `create/new` rejected with "already in use": step 2 did not free the title. Check the old dataset's title, fix it, and re-enqueue.
 - A card job ends `dead`: follow `dataset-card-publishing.md` When it breaks. The rename stands; re-enqueue after the fix.
