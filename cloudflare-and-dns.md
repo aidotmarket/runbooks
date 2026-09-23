@@ -52,6 +52,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 | `get.ai.market` (AAAA `100::`) | Proxied | `get-ai-market` Worker | Installer hub for AIM Data + AIM Node (see §Workers) |
 | `pm-bounces.ai.market` | DNS-only | `pm.mtasv.net` | Postmark bounce handler |
 | `connect.ai.market` | DNS-only | `04tecdf8.up.railway.app` | Public customer MCP connector. Railway service `ai-market-connector` (`a08ef347-d2d1-4fcb-ba50-9299a9484fd5`), custom domain id `519d4d32-649c-4adc-afe1-b9dca9100168`, target port 8080. Added 2026-09-23 on Max's instruction; the service is empty until the connector build deploys to it. Not to be confused with `mcp.ai.market` (internal Koskadeux gateway). |
+| `auth.ai.market` | DNS-only | `r4sae793.up.railway.app` | Authorization server for the customer MCP connector (issuer `https://auth.ai.market`). Railway service `ai-market-connector-auth` (`5ee110fc-df73-4107-b8fd-469099cb64d2`), custom domain id `8b41594b-2ef9-4b43-9689-5df8f9b47892`, target port 8080. Added 2026-09-23 after Gate 1 approved the split authorization server; empty until the build deploys. |
 
 **Email — Google Workspace + Postmark + SES + Resend (triple-vendor):**
 
@@ -67,7 +68,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 
 **Domain verification TXT (don't touch — Railway / Lovable / Search Console):**
 
-- `_railway-verify.ai.market`, `_railway-verify.www.ai.market`, `_railway-verify.ops.ai.market`, `_railway-verify.secrets.ai.market`, `_railway-verify.connect.ai.market` (added 2026-09-23)
+- `_railway-verify.ai.market`, `_railway-verify.www.ai.market`, `_railway-verify.ops.ai.market`, `_railway-verify.secrets.ai.market`, `_railway-verify.connect.ai.market` (added 2026-09-23), `_railway-verify.auth.ai.market` (added 2026-09-23)
 - `_lovable.ops.ai.market` (two records — investigate if both still needed)
 
 **NS records (delegation indicator):**
@@ -393,6 +394,7 @@ List active Workers:
 - **S688 (2026-05-22)** — Live audit; this runbook authored. Five drift items filed.
 - **S964 (2026-06-20)** — Apex `ai.market` SPF deduped: a triplicate `include:_spf.google.com` (≈10–12 nested lookups, at/over the RFC 7208 limit → permerror risk) collapsed to a single include (`v=spf1 include:_spf.google.com ~all`). Verified live at the authoritative NS. `send.ai.market` (amazonses) unchanged. Original backed up on Titan-1. Also confirmed the token carries Workers-KV edit scope.
 - **2026-09-23** — `connect.ai.market` created for the public customer MCP connector: empty Railway service `ai-market-connector`, custom domain attached, DNS-only CNAME plus `_railway-verify` TXT added through the API (procedure: §Adding a Railway-hosted subdomain).
+- **2026-09-23** — `auth.ai.market` created the same way for the connector's authorization server (Railway service `ai-market-connector-auth`), after the connector's Gate 1 split the authorization server from the MCP service.
 
 ## Adding a Railway-hosted subdomain
 
