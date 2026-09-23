@@ -48,7 +48,7 @@ First use (S1740):
 | Hugging Face mirror | Repo `ai-market/{slug}-sample` | Step 2 makes the old repo private. Step 5's job creates the new repo. Never delete. |
 | Kaggle mirror | Dataset `maxrobbinsaimarket/{slug, max 50 chars}`. Kaggle rejects a second dataset with the same title in the account. The backend's collision fallback versions a dataset under the NEW slug, which does not exist yet. | Step 2 retitles the old dataset to the archive title and makes it private, which frees the title. Step 5's job then creates the new dataset cleanly. Never delete. |
 | Frontend | The old URL must keep working | Step 4 deploys a permanent redirect old → new (`next.config.ts` `redirects()`) right after the rename is verified. This is the point of no return; see Rollback. |
-| Frontend page cache | ISR `revalidate: 3600` (`lib/api.ts` fetchPublicListing) | Wait out the hour or verify through the API; the page self-heals. |
+| Frontend page cache | `lib/api.ts` fetchPublicListing uses `cache: 'no-store'` (frontend main and 3f8a6b2c) | None; the page reflects the database on the next request. |
 | Sitemap | Built from the database and cached for one hour | Verify after the cache expires. |
 | Search | The Qdrant payload has no slug; queries read `l.slug` from Postgres (`listing_search_service.py`) | Verify only. |
 | `ai_crawler_events.listing_slug` | Historical analytics | Left unchanged (history). |
@@ -69,6 +69,7 @@ First use (S1740):
    - the `listing_summary_records` state and the `listing_preview_disclosure_heads` rows;
    - that `select count(*) from listings where slug = '<new>'` returns 0;
    - the old mirrors' current visibility and title.
+   - that the NEW mirror identities do not exist, checked with the card credentials. Hugging Face: `HfApi(token=...).dataset_info("ai-market/<new>-sample")` raises `RepositoryNotFoundError`. Kaggle: `kaggle datasets list --mine --search <distinctive new-slug word>` (it includes private datasets) does not list `maxrobbinsaimarket/<new, max 50 chars>`. **Stop on any hit**; an existing destination is a new decision for Council.
 2. **Make the old mirrors private, and free the Kaggle title.**
    - Hugging Face: set the old repo private.
    - Kaggle: download the old dataset's metadata, set `title` to the archive title and `isPrivate` to true, and upload the metadata.
@@ -108,7 +109,7 @@ First use (S1740):
    - The new HF and Kaggle cards return 200 and link back to the new URL.
    - The old HF and Kaggle URLs still return 401 or 404 when logged out.
    - A marketplace search for the title returns the new slug.
-   - After one hour: the listing page's JSON-LD and the sitemap carry the new slug and no `<old>`.
+   - The listing page's JSON-LD carries the new slug and no `<old>` immediately. The sitemap does too, after its one-hour cache expires.
 
    Record the evidence in the Event Ledger.
 
