@@ -45,9 +45,9 @@ First use (S1740):
 | `listings.source_delivery` | `huggingface_url`, `kaggle_url` of the old mirrors | Step 3 removes both keys, so the publishers create new mirrors instead of versioning the old ones. |
 | `inquiries.listing_slug` | Denormalized copy shown in inquiry context | Step 3 updates the rows for this listing. |
 | `listing_summary_records` / `listing_preview_disclosure_heads` | The `listing_summary_content_update` trigger invalidates an approved summary on any content-column change, including `slug`. The invalidation turns preview heads ineligible. | Step 1 records the state. If an approved summary exists, the seller re-approves it afterwards (the seller's own action in the listing editor). The first use has only an already-invalidated summary and no preview heads, so nothing is lost. |
-| Hugging Face mirror | Repo `ai-market/{slug}-sample` | Step 2 makes the old repo private. Step 4's job creates the new repo. Never delete. |
-| Kaggle mirror | Dataset `maxrobbinsaimarket/{slug, max 50 chars}`. Kaggle rejects a second dataset with the same title in the account. The backend's collision fallback versions a dataset under the NEW slug, which does not exist yet. | Step 2 retitles the old dataset to the archive title and makes it private, which frees the title. Step 4's job then creates the new dataset cleanly. Never delete. |
-| Frontend | The old URL must keep working | Step 5 deploys a permanent redirect old → new (`next.config.ts` `redirects()`) right after the rename. This is the point of no return; see Rollback. |
+| Hugging Face mirror | Repo `ai-market/{slug}-sample` | Step 2 makes the old repo private. Step 5's job creates the new repo. Never delete. |
+| Kaggle mirror | Dataset `maxrobbinsaimarket/{slug, max 50 chars}`. Kaggle rejects a second dataset with the same title in the account. The backend's collision fallback versions a dataset under the NEW slug, which does not exist yet. | Step 2 retitles the old dataset to the archive title and makes it private, which frees the title. Step 5's job then creates the new dataset cleanly. Never delete. |
+| Frontend | The old URL must keep working | Step 4 deploys a permanent redirect old → new (`next.config.ts` `redirects()`) right after the rename is verified. This is the point of no return; see Rollback. |
 | Frontend page cache | ISR `revalidate: 3600` (`lib/api.ts` fetchPublicListing) | Wait out the hour or verify through the API; the page self-heals. |
 | Sitemap | Built from the database and cached for one hour | Verify after the cache expires. |
 | Search | The Qdrant payload has no slug; queries read `l.slug` from Postgres (`listing_search_service.py`) | Verify only. |
@@ -58,7 +58,7 @@ First use (S1740):
 
 - Database: the prod DSN script `scripts/test-db-dsn.sh` in the ai-market workspace, as in `dataset-card-publishing.md` E-02.
 - Card-channel credentials: `HUGGINGFACE_TOKEN`, `KAGGLE_USERNAME` and `KAGGLE_API_TOKEN` from Infisical `ai-market-backend` prod, exported only into the shell that runs the command. Never print or paste them.
-- Clients: a throwaway venv with `kaggle` 2.2.4 and `huggingface_hub` 1.32.0 (both verified S1740). Hugging Face uses `HfApi().update_repo_settings(repo_id=..., repo_type="dataset", private=...)`. Kaggle uses `kaggle datasets metadata -p DIR OWNER/SLUG`, then edits `title` and `isPrivate` in the downloaded metadata JSON, then runs `kaggle datasets metadata --update -p DIR OWNER/SLUG`; `dataset_metadata_update` sends title, subtitle, description, isPrivate, licenses and keywords from that file.
+- Clients: a throwaway venv with `kaggle` 2.2.4 and `huggingface_hub` 1.32.0 (both verified S1740). Hugging Face uses `HfApi(token=os.environ["HUGGINGFACE_TOKEN"]).update_repo_settings(repo_id=..., repo_type="dataset", private=...)` (pass the token explicitly; a clean environment has no cached login). The Kaggle CLI reads `KAGGLE_API_TOKEN` (and `KAGGLE_USERNAME`) from the environment. Kaggle uses `kaggle datasets metadata -p DIR OWNER/SLUG`, then edits `title` and `isPrivate` in the downloaded metadata JSON, then runs `kaggle datasets metadata --update -p DIR OWNER/SLUG`; `dataset_metadata_update` sends title, subtitle, description, isPrivate, licenses and keywords from that file.
 
 ## Procedure
 
@@ -94,13 +94,13 @@ First use (S1740):
    ```
 
    Then check that `https://api.ai.market/api/v1/public/listings/<new>` returns 200, that its JSON-LD contains no `<old>` and no `sameAs`, and that the MCP listing detail for the id carries the new `url`.
-4. **Republish the cards.** Insert one `huggingface` and one `kaggle` `updated` job for the listing (`dataset-card-publishing.md` E-02). Wait for both to reach `succeeded`. Then read back:
+4. **Deploy the frontend redirect.** The branch with the `redirects()` entry old → new (`permanent: true`) merges right after step 3 is verified, so the old URL is broken only for that short gap. Announce on the peer bus before and after (the merge rule). Frontend deploy per the frontend deploy runbook. **From here on the change is one-way**: browsers and crawlers cache a 308.
+5. **Republish the cards.** Insert one `huggingface` and one `kaggle` `updated` job for the listing (`dataset-card-publishing.md` E-02). Wait for both to reach `succeeded`. Then read back:
    - `source_delivery`: the new URLs, named from the new slug;
    - `jsonld.sameAs`: only the new mirrors;
    - `jsonld.url`: the new slug.
 
-   A `dead` job does not block step 5: the listing is already consistent without mirrors. Follow `dataset-card-publishing.md` When it breaks, then re-enqueue.
-5. **Deploy the frontend redirect.** The branch with the `redirects()` entry old → new (`permanent: true`) merges right after step 3 is verified, so the old URL is broken only for that short gap. Announce on the peer bus before and after (the merge rule). Frontend deploy per the frontend deploy runbook. **From here on the change is one-way**: browsers and crawlers cache a 308.
+   A `dead` job does not undo anything: the listing and redirect are already consistent without mirrors. Follow `dataset-card-publishing.md` When it breaks, then re-enqueue.
 6. **Verify from outside:**
    - `https://ai.market/listings/<new>` returns 200.
    - `https://ai.market/listings/<old>` returns 308 to the new URL.
@@ -115,12 +115,11 @@ First use (S1740):
 ## Rollback
 
 - **Before step 3:** set the old mirrors public again and restore the old Kaggle title from the step-1 record. Nothing else has changed.
-- **After step 3, before step 5:**
+- **After step 3, before step 4:**
   - Reverse step 3 with the same guarded statements (swap `<old>` and `<new>`).
   - Restore `jsonld` and `source_delivery` from the step-1 record.
-  - Make any new mirror created by step 4 private.
-  - Then undo step 2.
-- **After step 5:** do not move the slug back, because cached 308s would point old visitors at a slug that no longer exists. Fix forward on the new slug. If a return is required anyway, first revert and deploy the frontend redirect, then keep the new slug working through a reverse redirect before reversing step 3.
+    - Then undo step 2.
+- **After step 4:** do not move the slug back, because cached 308s would point old visitors at a slug that no longer exists. Fix forward on the new slug. If a return is required anyway, first revert and deploy the frontend redirect, then keep the new slug working through a reverse redirect before reversing step 3.
 
 Nothing is deleted at any step.
 
