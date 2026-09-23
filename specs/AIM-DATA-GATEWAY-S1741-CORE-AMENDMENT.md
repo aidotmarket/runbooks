@@ -4,6 +4,11 @@
 **Authority:** Max S1741, Event Ledger `904bacc0` and `308570bd`. Max approves the direction here and must still approve this exact wording after the Council vote (`constitution-amendment.md` E-02). **Gate:** unanimous GLM, DeepSeek and Gemini (CORE §5). MP reviews without a vote (CORE §4: MP "Available for explicit review dispatch, but not a gate voter").
 **Companion design:** [BQ-AIM-DATA-GATEWAY-S1741-GATE1.md](BQ-AIM-DATA-GATEWAY-S1741-GATE1.md). This amendment and that Gate 1 are voted in the same round and neither passes without the other.
 
+**R2 changes to the proposed text** (R1 on `062577e8`: DeepSeek found the amendment clean; Gemini F4 NIT):
+- Line 54 now reads "vectorAIz (dataset manifests)" (Gemini F4).
+- The "IS" bullet says the gateway sends nothing identifying until the seller chooses to (design D9, two-phase).
+- The "IS NOT" bullet says the gateway reads only what the customer mounts into it (design D6: no cloud SDK in v1).
+
 **What changes in substance:**
 - AIM Data stops being a management GUI, a developer CLI/SDK/MCP surface and a host for allAI agents. It becomes a gateway with three functions.
 - "Outbound connections only" becomes "outbound only to ai.market's control plane, plus the one delivery endpoint the customer chooses to expose" (Max `308570bd`).
@@ -41,7 +46,7 @@ Each change below gives the exact old text (CORE v9.20 line numbers) and the exa
 **New:**
 
 ```text
-- **MUST integrate with:** ai.market (mediation, listing generation, agent-facing answers), AIM Data (allAI classifies and enriches the structural metadata a seller's gateway sends; it never receives the data itself) and vectorAIz, Koskadeux (dev memory)
+- **MUST integrate with:** ai.market (mediation, listing generation, agent-facing answers), AIM Data (allAI classifies and enriches the structural metadata a seller's gateway sends; it never receives the data itself), vectorAIz (dataset manifests), Koskadeux (dev memory)
 ```
 
 ## CORE v9.20 line 56-61
@@ -61,8 +66,8 @@ Each change below gives the exact old text (CORE v9.20 line numbers) and the exa
 
 ```text
 ### AIM Data — The Gateway
-- **IS:** The self-hosted gateway for sellers who keep their data on their own infrastructure, shipped as a hardened Docker sandbox under an open-source licence so the customer's security team can inspect every line that runs inside their perimeter. It does three things only: it scans the seller's data where it sits and sends ai.market structural metadata (never data values), plus a public sample only when the seller explicitly chooses one; it serves purchased files directly to the buyer through a single delivery endpoint that the seller's own IT exposes, admitting only single-use download permissions signed by ai.market; and it reports each delivery to ai.market for billing and payout. Everything else a seller does (listing, allAI metadata review, pricing, licences, earnings, requests) happens on the ai.market website, the same for every seller.
-- **IS NOT:** A cloud service, a worker, a management application, or a second place to manage listings. It never gives ai.market access into the customer's systems: it uses only credentials the customer supplies, makes outbound connections only to ai.market's control plane, and accepts inbound connections only on the delivery endpoint the customer chooses to expose. It runs without host privileges and never updates itself. Never sends customer data to ai.market other than the seller-chosen public sample. **Not the worker — the worker is allAI.**
+- **IS:** The self-hosted gateway for sellers who keep their data on their own infrastructure, shipped as a hardened Docker sandbox under an open-source licence so the customer's security team can inspect every line that runs inside their perimeter. It does three things only: it describes the seller's data where it sits to ai.market with structural metadata only (never data values, and nothing identifying until the seller chooses to send it), plus a public sample only when the seller explicitly chooses one; it serves purchased files directly to the buyer through a single delivery endpoint that the seller's own IT exposes, admitting only single-use download permissions signed by ai.market; and it reports each delivery to ai.market for billing and payout. Everything else a seller does (listing, allAI metadata review, pricing, licences, earnings, requests) happens on the ai.market website, the same for every seller.
+- **IS NOT:** A cloud service, a worker, a management application, or a second place to manage listings. It never gives ai.market access into the customer's systems: it reads only what the customer mounts into it, makes outbound connections only to ai.market's control plane, and accepts inbound connections only on the delivery endpoint the customer chooses to expose. It runs without host privileges and never updates itself. Never sends customer data to ai.market other than the seller-chosen public sample. **Not the worker — the worker is allAI.**
 - **Data plane:** Non-custodial and peer to peer. The buyer downloads over TLS directly from the seller's delivery endpoint; ai.market issues the permission and records the delivery receipt, and never carries, relays, caches or stores the bytes.
 - **MUST integrate with:** ai.market (pairing, a signed control channel, metadata intake, download permissions, delivery receipts, billing), allAI (through ai.market, on the metadata the gateway sends)
 ```

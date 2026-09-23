@@ -1,9 +1,10 @@
-# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway
+# BQ-AIM-DATA-GATEWAY-S1741: Gate 1, rebuild AIM Data as a minimal self-hosted gateway (R2)
 
 **Build Queue entity:** `build:bq-aim-data-gateway-rebuild-s1741` (P0, owner Vulcan).
 **Authority:** Max, S1741, 2026-09-23.
 - Event Ledger `904bacc0`: AIM Data is narrowed to a gateway plus a Docker sandbox and rebuilt from scratch. MP reviews without a vote.
 - Event Ledger `308570bd`: delivery goes through one seller-controlled inbound door, and the public release is licensed Apache 2.0.
+- Event Ledger `408f01ae`: D-A accepted for v1 (§11); MP's non-voting review goes through a tooling route, not a CORE change.
 
 Max's words: "The only important difference between AIM-DATA and our web based tools for listing on the site, is that AIM-DATA 1. allows a customer who wants to host their own data on their own infrastructure to have a gateway to serve the data., 2. Using docker it is a sandbox and I envision that a sophisticated organization like a pharmaceutical or other large company with a CIOSP will require a sandbox and their own security. I plan to open source it so they can see the code that will go inside the firewall. I want things otherwise to be as simple as possible for the seller to list and maintain their offerings." Then: "I 100% agree with your recommendation. I would be find starting over so we do not deal with legacy code and building it as you suggested."
 
@@ -36,69 +37,155 @@ Fixing each of these inside the current codebase costs more than rebuilding a ga
 
 ## 2. Decisions
 
-- **D1. Three functions only.** The gateway (a) scans seller files where they sit and sends ai.market metadata, plus a public sample only when the seller explicitly selects one; (b) serves purchased files directly to the buyer; (c) reports each delivery to ai.market. Nothing else runs inside the customer's perimeter.
-- **D2. The website is the only management surface.** Pairing a gateway, choosing what to list, allAI enrichment and review, pricing, licences, samples, earnings, requests and payouts all happen on ai.market, using the flows every seller already uses. The gateway has no management UI: no login, no admin account, no local database server.
-- **D3. New codebase and repository.** A new repository, proposed as `aidotmarket/aim-data-gateway` and public under Apache 2.0 (`308570bd`), keeps the product name AIM Data. No code is copied from `aidotmarket/aim-data`. Protocol ideas may be reused only when rewritten against this spec. The old repository is frozen: security fixes only until the last install is migrated (§7), then archived.
-- **D4. Delivery goes through one seller-controlled door** (`308570bd`). The gateway listens on one HTTP port. The seller's own IT exposes it to the internet through their reverse proxy or firewall, which also terminates TLS. The buyer downloads straight from that address. ai.market never carries, relays, caches or stores the bytes (`data-delivery-p2p.md`, CORE S1).
-- **D5. Permissions are signed with a public key.** ai.market signs every download permission with an Ed25519 key. The gateway verifies it offline against an ai.market public key pinned at pairing, with rotation announced over the control channel. The current delivery JWT is HS-signed with the backend `SECRET_KEY` (`app/core/security.py:188` `create_delivery_token`), so a gateway could only verify it by holding that secret. That is not acceptable, and the new permissions use a separate asymmetric key. Gate 2 decides whether to reuse the platform Ed25519 key material (`app/core/config.py:641` `PLATFORM_ED25519_PUBLIC_KEY`, and the scan-spec key distributed under `build:bq-data-verification-platform-key-distribution-s1717`) or a dedicated delivery key. A dedicated key is the default.
-- **D6. Only the customer's own credentials.** The gateway reads mounted folders read-only, and S3-compatible storage using credentials the customer supplies (an instance or workload role, or its own keys). ai.market is never a principal the customer's cloud trusts.
-- **D7. Outbound to one host, plus the door.** The only outbound connection is HTTPS to `api.ai.market:443`, for the control channel. The only inbound connection is the door the seller chooses to expose. There are no other network paths, telemetry, auto-updates or tunnels.
-- **D8. Hardened sandbox by default.** The image runs as a fixed non-root UID with a read-only root filesystem, `cap_drop: [ALL]`, `no-new-privileges`, no Docker socket and no host networking. Writable state lives on one named volume. Every dependency is pinned by version and hash. Images are signed (Sigstore cosign) and ship with an SBOM (SPDX) and build provenance. Updates happen only when the customer changes the image tag. ai.market can refuse permissions for a version below a minimum it announces, but it can never change code on the customer's host.
-- **D9. Metadata is structure, never values.** For each file the gateway sends its relative path, size, modification time, SHA-256 and media type. For tabular formats (CSV/TSV, JSON Lines, Parquet in v1) it adds column names, inferred types, row count, and per-column null and distinct-count estimates. It sends no cell values, minimums, maximums, top values or free text. A public sample is sent only after an explicit seller action on the website. It is exactly the bytes the seller chose, capped in size, and it is the CORE v9.19 exception. The gateway writes every outbound message body to a local append-only audit log, so the customer can see everything that left. allAI classifies and enriches this metadata on ai.market, which also feeds the corpus capture (`build:bq-structure-metadata-corpus-capture-s1396`).
-- **D10. Simple pairing.** The seller clicks "Add a gateway" on the website and gets a one-time pairing code that expires in 15 minutes. The customer's IT runs the container with that code. The gateway generates its Ed25519 identity key locally, registers the public half, and receives the ai.market public key(s) and its gateway id. The private key never leaves the volume. Unpairing on the website revokes the gateway, and ai.market stops issuing permissions for it. This replaces the serial, the bootstrap token, the keystore passphrase, the admin account, OAuth loopback and the Postgres password.
-- **D11. Small enough to review.** Target: under 5,000 lines of non-test code and no more than 12 direct runtime dependencies. Anything a later change adds beyond this must be justified at its gate. Implementation language is a Gate 2 decision. Go is proposed (one static binary on a distroless base, a small dependency tree, reproducible builds). Python is the alternative (matches the rest of the estate, and Parquet reading is mature). Reviewers are asked to weigh in (Q5).
+- **D1. Three functions only.** The gateway does three things and nothing else runs inside the customer's perimeter:
+  - (a) it describes seller files to ai.market under the D9 boundary;
+  - (b) it serves purchased files directly to the buyer;
+  - (c) it reports each delivery to ai.market.
+- **D2. The website is the only management surface.** Pairing a gateway, choosing what to list, allAI enrichment and review, pricing, licences, samples, earnings, requests and payouts all happen on ai.market, in the flows every seller already uses. The gateway has no management UI, no login, no admin account and no local database server. Its only local interface is a read-only command-line `preview` (D9) that lets the customer's IT see exactly what would be sent.
+- **D3. New codebase and repository.** The repository is `aidotmarket/aim-data-gateway`, public from its first commit under Apache 2.0 (`308570bd`); the product name stays AIM Data. No code is copied from `aidotmarket/aim-data`, though protocol ideas may be reused when rewritten against this spec. The old repository is frozen: security fixes only until retirement (§7), then archived.
+- **D4. Delivery goes through one seller-controlled door** (`308570bd`). The gateway listens on one HTTP port. The seller's own IT exposes it to the internet over HTTPS through their reverse proxy or firewall, which terminates TLS. The buyer downloads straight from that address. ai.market never carries, relays, caches or stores the bytes (`data-delivery-p2p.md`, CORE S1). ai.market rejects a door URL that is not `https://`; only the synthetic test harness can bypass this, through an explicit test flag.
+- **D5. Two dedicated asymmetric keys.** ai.market signs with two Ed25519 keys:
+  - the **permission key**, which signs download permissions;
+  - the **listing key**, which signs the instruction that makes a file offerable (D12).
+  
+  Both keys are new and dedicated, not the platform key (`app/core/config.py:641`) or the scan-spec key. They are held in KMS or HSM, used only by a signing service outside the web API process, and used by different code paths. The gateway pins both public keys at pairing; rotation and revocation are announced over the control channel, signed by the outgoing key. The current delivery JWT is HS256-signed with the backend `SECRET_KEY` (`app/core/security.py:188`, `:253`; `config.py:119`), and verifying it would require the gateway to hold that secret. That is not acceptable, so the gateway does not use it.
+- **D6. Only the customer's own storage, mounted by the customer.** In v1 the gateway reads only folders the customer mounts read-only into the container. It includes no cloud SDK. A customer whose data is in S3 or similar mounts it with their own tool (for example `mountpoint-s3`, `rclone` or `s3fs`) and their own credentials. The install guide documents this. ai.market is never a principal the customer's cloud trusts. (DeepSeek R1 SIMPLER, adopted: this is simpler for Max's "as simple as possible", removes a dependency, and removes a class of credential configuration.)
+- **D7. Outbound to one host, inbound on one door.** The only outbound connection is HTTPS to `api.ai.market:443` for the control channel. Inbound, only two things ever arrive at the door: buyer downloads and ai.market's periodic door probe (§3 step 3). There is no other network path, no telemetry, no auto-update and no tunnel.
+- **D8. Hardened sandbox by default.**
+  - The image runs as a fixed non-root UID with a read-only root filesystem, `cap_drop: [ALL]` and `no-new-privileges`. It has no Docker socket and no host networking.
+  - Writable state lives on one named volume.
+  - Every dependency is pinned by version and hash.
+  - Images are signed (Sigstore cosign) with an SBOM (SPDX) and build provenance.
+  - Updates happen only when the customer changes the image tag. ai.market can refuse permissions below a minimum version it announces, but it can never change code on the customer's host.
+- **D9. Two-phase metadata; structure, never values, and nothing identifying without the seller.**
+  - **Phase 1 is automatic, for every file under the configured sources.** For each file the gateway sends:
+    - an opaque file id: an HMAC of the relative path, keyed by a secret generated on the gateway's volume;
+    - a display name: the alias from the customer's config, or else the neutral default `file-<first 8 of id>.<ext>`;
+    - size, media type and SHA-256.
+    
+    No path, directory name, file name or column name leaves in phase 1.
+  - **Phase 2 is one file at a time, only after an explicit seller action.** On the website the seller chooses "describe this file". That page states what will be sent and asks for confirmation. Only then does the gateway send, for that file alone:
+    - column names, after the customer's config rename and drop map;
+    - inferred types and row count;
+    - null rate, to the nearest 5%;
+    - distinct count as a bucket (1, 2–10, 11–100, 101–1,000, more than 1,000).
+    
+    It never sends cell values, minimums, maximums, top values or free text. Tabular formats in v1 are CSV/TSV, JSON Lines and Parquet. Other media types get phase 1 only.
+  - **Public sample.** A public sample is sent only after a separate explicit seller action. It is exactly the bytes the seller chose, capped in size (the CORE v9.19 exception).
+  - **Preview and audit.** `aim-gateway preview <file>` prints, without sending anything, the exact phase-1 and phase-2 payloads. Every outbound message body is appended to a local audit log.
+  - **What allAI works from.** allAI classifies and enriches phase-2 metadata on ai.market, which also feeds corpus capture (`build:bq-structure-metadata-corpus-capture-s1396`). Column names, types, counts and bucketed statistics are enough for classification and dataset matching; values are not needed.
+- **D10. Simple pairing.**
+  - The seller clicks "Add a gateway" on the website and gets a one-time pairing code valid for 15 minutes. The customer's IT runs the container with that code.
+  - The gateway generates its Ed25519 identity key locally, registers the public half, and receives the two ai.market public keys and its gateway id. The private key never leaves the volume.
+  - Unpairing revokes the gateway.
+  - This replaces the serial, the bootstrap token, the keystore passphrase, the admin account, the OAuth loopback and the Postgres password.
+- **D11. Small enough to review.**
+  - Target: under 5,000 lines of non-test code and no more than 12 direct runtime dependencies. Anything beyond that is justified at its gate.
+  - Proposed language: Go (GLM, Mars and DeepSeek lean the same way): one static binary on a distroless base, a small dependency tree, reproducible builds.
+  - Gate 2 confirms Go against evidence: Apache Arrow Go reads the Parquet fixture set correctly. If it does not, Gate 2 switches to Python.
+  - The wire contract is language-neutral, with golden byte vectors shared by the Python backend and the gateway (the S1732 preview-contract corpus pattern). This keeps the two sides from drifting.
+- **D12. Nothing unlisted can be served, even with the permission key stolen.** The gateway serves a file only if all three hold:
+  - (i) it is inside the customer's local offer ceiling, a config glob list that defaults to every configured source and is never set remotely;
+  - (ii) it is in the gateway's offerable set. A file enters that set only through an instruction signed by the **listing key** and naming the file id and SHA-256. ai.market sends that instruction when the seller publishes a listing version, and removes it on unlist;
+  - (iii) a valid permission signed by the **permission key** names it.
+  
+  The gateway checks the permission signature first, then the offerable set, then the ceiling. The permission key cannot add a file to the offerable set, and neither key can change the ceiling. Optional stricter mode: `offer_requires_local_approval: true` makes each file also need `aim-gateway approve <file-id>` run locally.
 
 ## 3. How it works
 
 ```
  Seller's network                                  │ Internet
  ┌───────────────────────────────┐                 │
- │ folders / S3 (customer creds) │                 │
+ │ folders mounted read-only     │                 │
+ │ (local, NFS, or S3 mounted    │                 │
+ │  by the customer)             │                 │
  │        │ read-only            │                 │
  │  ┌─────▼──────────────┐  outbound HTTPS only    │   ┌──────────────┐
  │  │  AIM Data gateway   │────────────────────────┼──▶│ api.ai.market │ control plane:
  │  │  (non-root sandbox) │  metadata, receipts     │   └──────▲───────┘ pairing, metadata,
  │  └─────▲──────────────┘                         │          │         permissions, receipts
  │        │ plain HTTP, internal                   │          │ signed permission
- │  ┌─────┴──────────────┐   TLS, the one door      │   ┌──────┴───────┐
+ │  ┌─────┴──────────────┐   HTTPS, the one door    │   ┌──────┴───────┐
  │  │ seller's reverse   │◀────────────────────────┼───│    buyer      │
  │  │ proxy / firewall   │   file bytes to buyer    │   └──────────────┘
  │  └────────────────────┘                         │
 ```
 
-1. **Pair** (D10). The gateway opens its control channel: an authenticated outbound HTTPS long-poll or WebSocket where every request is signed with the gateway key. Gate 2 chooses between the two and checks whether the existing trust-channel endpoint can serve without the legacy fulfilment handlers.
-2. **Scan.** The seller names sources in the gateway's config file (paths and S3 prefixes; the customer's IT owns this file). The gateway indexes them and sends metadata (D9). On the website the seller sees the gateway's files next to their cloud connections and builds listings with the normal flow: allAI enrichment, review, licence, price, optional public sample. A listing version pins each file's SHA-256, using the existing manifest contract kept by `P2P-STORAGE-DELETION-S1737.md` §Keep.
-3. **Door check.** The seller enters the public door URL on the website. ai.market calls `GET <door>/.well-known/aim-gateway` and expects a statement signed by the gateway key, naming its gateway id and a fresh nonce. That proves the URL reaches this gateway. A listing backed by a gateway cannot be published until the check passes, and the check re-runs before each permission is issued (cached for at most 5 minutes).
-4. **Buy.** After payment the buyer's order page (or the agent API) receives the door URL and one signed permission per file. Each permission carries the gateway id, order id, listing version id, file SHA-256, a single-use `jti`, and an expiry of no more than 15 minutes. It carries no buyer identity (the S1740 anonymity rule). Downloads go straight to the door.
-5. **Serve.** The gateway checks the signature against the pinned key, the audience (its own id), the expiry, whether the `jti` is unused (a local ledger on the volume), and whether the SHA-256 matches a file it indexed. It re-hashes the file while streaming. On a mismatch it aborts, and the buyer's client verifies the manifest hash too. HTTP Range resume is allowed within one permission's life.
-6. **Receipt.** The gateway sends a signed receipt (`jti`, bytes sent, SHA-256, start and end times, outcome) over the control channel. ai.market marks the file delivered when the receipt matches the permission, and the order when every file is delivered. Settlement, the 48-hour hold and disputes then work as today. A permission that expires unused can be re-issued from the order page, subject to the tier's download limits.
+1. **Pair** (D10). The gateway opens its control channel: an authenticated outbound HTTPS long-poll or WebSocket, with every message signed by the gateway key. Gate 2 chooses the transport and decides whether it reuses any existing trust-channel endpoint without the legacy fulfilment handlers.
+2. **Describe and list** (D9). The seller sees the gateway's files, under display names, next to their cloud connections on the website. They run phase 2 on the files they want to list, then build listings with the normal flow: allAI enrichment and review, licence, price, optional public sample. A listing version pins each file's id and SHA-256, using the manifest contract kept by `P2P-STORAGE-DELETION-S1737.md` §Keep. Publishing sends the listing-key instruction that makes those files offerable (D12).
+3. **Door check.** The seller enters the door URL on the website; it must be `https://` (D4). ai.market fetches `GET <door>/.well-known/aim-gateway` and expects a statement signed by the gateway key that names the gateway id and a fresh nonce. The check runs when the URL is entered, then every 5 minutes, never tied to an order, so the door cannot learn when a buyer is about to arrive. A listing backed by a gateway can be published, and permissions can be issued, only while the latest check is no more than 10 minutes old and passed. The fetch runs from an egress-restricted worker, not the API process. It:
+   - resolves the host once and rejects private, loopback, link-local and cloud-metadata ranges;
+   - pins the resolved IP for the request;
+   - follows no redirects;
+   - caps the response at 4 KiB, with a 5-second timeout.
+   
+   The check also reads the door's TLS certificate and flags (D-A, §11) an organisation name in the subject, or subject alternative names beyond the door host.
+4. **Buy.** After payment the buyer's order page (or the agent API) gets the door URL and one permission per file. Each permission carries the gateway id, order id, listing version id, file id, SHA-256, a `jti`, a start deadline no more than 15 minutes out, and a transfer deadline of the start deadline plus the file size at 1 MB/s, capped at 24 hours. It carries no buyer identity (S1740). An unused expired permission can be re-issued from the order page, within the tier's download limits.
+5. **Serve.** The gateway checks D12 in order, and also the audience (its own id) and the deadlines. `jti` rules:
+   - The first request that starts serving bytes before the start deadline **binds** the `jti` to that file.
+   - Later HTTP Range requests with the same permission are allowed until the transfer deadline, but each byte range is served at most twice. This allows retries and blocks repeated full reads.
+   - The `jti` **closes** when every byte has been served at least once, or at the transfer deadline.
+   - The ledger is SQLite on the volume, with a synchronous commit before the first byte of each response, so a restart never un-binds or reopens a `jti`.
+   
+   The gateway re-hashes the file while serving the first complete pass. On a mismatch it stops and reports.
+6. **Receipt.** The gateway sends a signed receipt (`jti`, bytes served, ranges, SHA-256, times, outcome). A receipt is the seller's evidence, not proof. The file counts as delivered when:
+   - a matching receipt has arrived, **and**
+   - the buyer has raised no problem during the 48-hour payout hold.
+   
+   The order page has a one-click "didn't arrive / file doesn't match", which opens a dispute and freezes settlement (the dispute-hold rule, `build:bq-dispute-hold-gate-s1711`). The order page also offers "Verify file": the buyer picks the downloaded file, it is hashed in the browser, and the result is compared with the listing's SHA-256. The agent API returns the SHA-256 for the agent to check. Neither is required, and neither sends the file anywhere.
 
 ## 4. What changes on ai.market
 
-- **Backend:** a gateway registry (id, public key, status, version, last seen, door URL, door-check result); pairing codes; the control channel; metadata intake into the existing listing and corpus models; the asymmetric permission signer and a public key endpoint; receipt intake connected to order delivery and settlement; a minimum-version policy. Everything ships dark behind one flag until chunk E passes.
-- **Frontend:** a Gateways page (pair, status, door setup and check, unpair); gateway files offered as a listing source in the existing listing flow; a "What we receive" panel showing, for each file, exactly what the gateway sent; door URL and permissions on the buyer's order page.
-- **Not changed:** Seller Workspace (cloud sellers), vectorAIz, the public sample store, licences, settlement.
+- **Backend (chunk A):**
+  - a gateway registry: id, public key, status, version, last seen, door URL, door-check result;
+  - pairing codes and the control channel;
+  - phase-1 and phase-2 metadata intake into the existing listing and corpus models;
+  - the permission and listing signing service with its two keys, and a public key endpoint;
+  - listing-key offer and unoffer instructions on publish and unlist;
+  - receipt intake connected to delivery, the dispute hold and settlement;
+  - the door-check worker;
+  - a minimum-version policy.
+  
+  Everything is dark behind one flag until chunk E passes.
+- **Frontend (chunk C, Mars):**
+  - a Gateways page: pair, status, door setup and check with its warnings, unpair;
+  - gateway files as a listing source, including the phase-2 "describe this file" confirmation;
+  - a "What we receive" panel rendered from the gateway's own audit-log entries relayed over the channel, so the seller sees byte for byte what left;
+  - door URL, permissions, "Verify file" and "didn't arrive / doesn't match" on the buyer's order page;
+  - the D-A seller acknowledgement.
+- **Wire contract frozen at Gate 2 for chunk C:** gateway list and status shape; phase-1 and phase-2 metadata exactly as sent; door-check result and failure reasons; the permission issue and re-issue endpoint with per-file deadlines; the dispute/mismatch hook; the per-seller D-A acknowledgement.
+- **Not changed:** Seller Workspace (cloud sellers), vectorAIz, the public sample store, licences, settlement rules.
 
 ## 5. Security and trust boundaries (for the customer's CISO and for this review)
 
-- **Inside the perimeter:** only the gateway container. It has read-only access to what the customer mounts or grants, its own volume, one outbound host and one inbound port.
-- **What ai.market can do to a gateway:** ask it for metadata, issue permissions for files the seller listed, announce key rotation and minimum versions, revoke it. It cannot run code, read arbitrary paths, pull files, or change configuration. The config file, the mounts and the door stay under customer control.
-- **What a stolen permission gets:** one file of one order, within 15 minutes, once.
-- **What a compromised ai.market signing key gets:** the ability to issue permissions for files the seller has already listed, which the attacker could then download from the door. It gives no access to anything unlisted. Mitigations are key rotation over the channel, a revocation list, and a customer option to require a second, gateway-side allowlist of listed files, which is the default. Reviewers are asked whether that is enough (Q2).
-- **Anonymity (CORE P5):** the permission carries no buyer id. What remains:
-  - The seller's door sees the buyer's network address, as any direct transfer does. The shipped Seller Workspace route has the same property, since the seller's bucket logs see the buyer.
-  - The door hostname is revealed to the buyer after purchase and can identify the seller, for example `data.<company>.com`.
+- **Inside the perimeter:** only the gateway container. It has read-only access to what the customer mounts, its own volume, one outbound host and one inbound port.
+- **What ai.market can do to a gateway:**
+  - request phase-2 metadata for a file, only after the seller's explicit action;
+  - send listing-key offer and unoffer instructions, within the customer's local ceiling;
+  - issue permissions for offerable files;
+  - probe the door's `/.well-known/aim-gateway` signed statement;
+  - announce key rotation and minimum versions;
+  - revoke the gateway.
   
-  Decided (Max, D-A in §11): the website shows the seller this before they enable a gateway listing and recommends a neutral hostname. An ai.market-provided neutral name is out of scope for v1.
+  It cannot run code, read files outside the configured sources, pull files, change the ceiling or change configuration. The config file, the mounts and the door stay under customer control.
+- **What a stolen permission gets:** at most one file of one order, before its deadlines, with each byte range served at most twice.
+- **What a stolen permission key gets:** the ability to issue permissions for files already on a gateway's offerable set, which then download from the door. It gives no access to anything not offerable (D12), and it cannot make a file offerable.
+- **What stolen permission and listing keys together get:** any file inside the customer's local ceiling. That is why the ceiling is local, and why the optional local-approval mode exists for customers who want no remote path at all.
+- **Mitigations:** both keys in KMS or HSM behind a separate signing service; rotation and a revocation list over the channel; the receipt audit trail.
+- **Anonymity (CORE P5; Max D-A, §11):** permissions carry no buyer id. What remains:
+  - The seller's door sees the buyer's network address, as any direct transfer does. The shipped Seller Workspace route has the same property.
+  - The door hostname, and its TLS certificate, are revealed to the buyer after purchase and can identify the seller.
+  
+  The website warns the seller before a gateway listing goes live. It asks for a neutral hostname and a domain-validated certificate naming nothing else, and the door check flags certificates that identify an organisation.
 
 ## 6. Supply chain and release
 
-The new repository is public from its first commit under Apache 2.0, and it includes:
+The repository is public from its first commit under Apache 2.0. It includes:
 
 - `SECURITY.md`
 - a threat model
 - a data-flow and egress statement matching §3 and §5
-- the list of outbound message types with an example of each
+- the list of outbound message types with an example of each, generated from the golden vectors
 
 CI does the following:
 
@@ -106,60 +193,103 @@ CI does the following:
 - produces the SBOM and provenance
 - signs with cosign keyless (GitHub OIDC)
 - runs dependency and image scanning
+- runs the golden-vector contract tests against the backend's copy
 - fails if the compose file or image drops any hardening from D8
 
 Releases are semantic versions. Compose pins the image by digest.
 
 ## 7. Legacy
 
-- **`aidotmarket/aim-data`:** frozen at `4f4cc983` for features. Security fixes only.
-- **Existing installs:** each is migrated by pairing a gateway, re-pointing its listings to the gateway's files (same SHA-256s, so listing versions carry over), then uninstalling. Gate 2 counts the installs from production (`aim_nodes` and activated serials) and names each one.
-- **Backend paths removed after the last migration**, in a separate deletion spec using the S1737 pattern: legacy trust-channel fulfilment, `_queue_delivery_request`, serial activation and metering, and the AIM Data-only publish routes. vectorAIz's routes stay.
+- **`aidotmarket/aim-data`:** frozen for features at `4f4cc983` (Max, relayed by Mars S1738: "Stop AIM-DATA work. No one is using it."). Security fixes only.
+- **Existing installs:** Gate 2 confirms from a production read (activated serials and `aim_nodes`, which had 2 rows at S1737) that no install serves a live listing. Any that does is named and migrated: pair a gateway, re-point the listing to the same SHA-256s, uninstall. If there are none, chunk F follows chunk E with no migration wait.
+- **Backend paths removed in chunk F**, under its own deletion spec using the S1737 pattern: legacy trust-channel fulfilment, `_queue_delivery_request`, serial activation and metering, and the AIM Data-only publish routes. vectorAIz's routes stay.
 - **`aidotmarket/aim-node`:** already parked (S833). Archived with the old repository.
 
-## 8. Chunks (all built by MP)
+## 8. Chunks (all built by MP; each gate reviewed by GLM, DeepSeek and Gemini, with MP non-voting where it did not build)
 
-| Chunk | Contents | Depends on |
-| --- | --- | --- |
-| A | Backend control plane: registry, pairing, channel, metadata intake, permission signer and key endpoint, receipts, flag | Gate 2 |
-| B | Gateway: pairing, config, scan and profile (D9), audit log, channel client, door, `jti` ledger, receipts, hardening | Gate 2 (can run in parallel with A against the frozen wire contract) |
-| C | Frontend: Gateways page, listing source, "What we receive", buyer order page | A |
-| D | Repository, CI, signing, SBOM, provenance, security documents, install guide | B |
-| E | Money-path proof in the S1656 test environment: pair, list, buy, download through a real reverse proxy, receipt, settlement. Then production canary with one real seller. | A, B, C, D |
-| F | Legacy removal (separate spec) | E plus all installs migrated |
+| Chunk | Contents | Owner | Depends on |
+| --- | --- | --- | --- |
+| A | Backend control plane (§4) | Vulcan | Gate 2 |
+| B | Gateway: pairing, config, phase-1/phase-2 description, preview, audit log, channel client, D12 checks, door, `jti` ledger, receipts, hardening | Vulcan | Gate 2 (can run in parallel with A against the frozen wire contract and golden vectors) |
+| C | Frontend (§4) | Mars | A |
+| D | Repository, CI, signing, SBOM, provenance, security documents, install guide | Vulcan and Mars | B |
+| E | Money-path proof in the S1656 test environment: pair, describe, list, buy, download through a real TLS reverse proxy, receipt, hold, settlement, dispute path. Then a production canary with one real seller. | Vulcan and Mars | A, B, C, D |
+| F | Legacy removal (separate spec) | either | E |
 
 ## 9. Acceptance (Gate 1 level; Gate 2 turns each into tests)
 
 1. A clean host installs with one compose file and one pairing code, and needs nothing else from ai.market.
 2. A container scan shows: non-root, read-only rootfs, zero capabilities, no socket, and exactly one outbound hostname observed in a 24-hour soak.
-3. No cell values leave: a fixture with planted marker strings in every column shows zero markers in the captured outbound traffic or the audit log.
-4. A buyer downloads a file through a real TLS reverse proxy. ai.market's logs and storage contain zero bytes of it, checked with the `data-delivery-p2p.md` procedure. The buyer's hash matches.
-5. Replay, expired, wrong-audience, tampered-signature and unlisted-file permissions are all refused with no bytes sent.
-6. Receipt leads to order delivered, then settlement, in the test environment. A missing or mismatched receipt leaves the order undelivered.
-7. Unpairing refuses the next permission within one control-channel round trip.
-8. Non-test code stays under 5,000 lines with no more than 12 direct dependencies, or the excess is justified at Gate 3.
-9. The image is signed, the SBOM and provenance verify, and two independent builds give the same digest.
+3. **No values or identifiers leave without the seller.** Marker strings are planted in cell values, directory names, file names and column names. Captured outbound traffic and the audit log show zero cell markers ever, and zero path or file-name markers ever. Column-name markers appear only after the phase-2 confirmation for that file, and never when the config drop or rename map covers them. Distinct counts appear only as buckets.
+4. A buyer downloads a file through a real TLS reverse proxy. ai.market's logs and storage contain zero bytes of it (the `data-delivery-p2p.md` procedure), and "Verify file" matches.
+5. Refused with no bytes sent:
+   - replay after close
+   - past the start deadline
+   - wrong audience
+   - tampered signature
+   - a file not offerable
+   - a file outside the ceiling
+   - an offer instruction signed with the permission key
+   - an `http://` door URL at registration (422)
+6. An interrupted large download resumes with Range and completes. A third serve of the same range is refused. After a container restart, the `jti` is still bound or closed.
+7. Receipt and 48-hour hold with no dispute lead to delivered, then settlement, in the test environment. "Didn't arrive" freezes settlement. A missing or mismatched receipt leaves the order undelivered.
+8. Door check: private, loopback and metadata addresses, redirects and oversized responses are all refused. An OV certificate or extra SANs raise the D-A flag.
+9. Unpairing refuses the next permission within one control-channel round trip.
+10. Non-test code stays under 5,000 lines with no more than 12 direct dependencies, or the excess is justified at Gate 3. The image is signed, the SBOM and provenance verify, and two independent builds give the same digest.
 
 ## 10. Out of scope
 
 - An ai.market-provided hostname or relay for the door.
 - Push-to-seller-cloud delivery (Max rejected it for v1).
-- Buyer-side software.
+- Built-in cloud SDKs (D6).
+- Buyer-side software beyond the in-browser "Verify file".
 - Federated learning.
-- Any local UI beyond a localhost health endpoint.
+- Any local UI beyond `preview`, `approve` and a localhost health endpoint.
 - Changes to vectorAIz or Seller Workspace.
 
 ## 11. Decided by Max
 
-- **D-A: identity exposure through the door. Accepted for v1** (Max S1741, "I agree with your recommendations", recorded in the Event Ledger under dedupe key `s1741-aim-data-gateway-d-a`). After purchase the buyer learns the door hostname and the seller's door sees the buyer's network address. Before a gateway listing is enabled, the website warns the seller and recommends a neutral hostname. An ai.market-issued neutral hostname stays out of scope for v1 (§10).
+- **D-A: identity exposure through the door. Accepted for v1.** Max S1741: "I agree with your recommendations". The decision is in the Event Ledger as `408f01ae`, under dedupe key `s1741-aim-data-gateway-d-a`.
+  - After purchase the buyer learns the door hostname, and the seller's door sees the buyer's network address.
+  - Before a gateway listing goes live, the website warns the seller and recommends a neutral hostname.
+  - R2 adds, per Mars's peer review: the door's TLS certificate can identify the seller too, so the warning also asks for a domain-validated certificate naming nothing else, and the door check flags one that identifies an organisation (§3 step 3). This makes Max's accepted position actionable without changing it.
+  - An ai.market-issued neutral hostname stays out of scope for v1 (§10).
 
-## 12. Review questions
+## 12. Round 2 fold log and review questions
 
+**R1 inputs** (all on `062577e8`):
+- GLM: no verdict; the run wrote an empty response. Re-dispatched this round.
+- DeepSeek `115311`: REQUEST_CHANGES. The amendment was clean; two MEDIUM findings, one LOW and one NIT.
+- Gemini `115314`: APPROVE_WITH_MANDATES. Three LOW Gate 2 mandates and one amendment NIT.
+- Mars: peer review, PR #265 comment 5792933901.
+
+**Adopted:**
+- DeepSeek F1, Gemini F3 and Mars 7: two-phase D9 with opaque ids, display names, a pre-send phase-2 confirmation, rename and drop maps, bucketed distinct counts, and `preview`. Acceptance 3 extended.
+- DeepSeek F2: D12, a mandatory offerable set signed by a separate listing key, plus a local ceiling. §5 corrected.
+- DeepSeek F3: §5 lists the door probe.
+- DeepSeek F4: repo "named".
+- DeepSeek Q2: dedicated keys in KMS or HSM (D5).
+- DeepSeek Q6 SIMPLER: mounted folders only (D6).
+- Gemini F1: `https://` only (D4), with 422 in acceptance.
+- Gemini F2 and Mars 4: the `jti` bind/close state machine, durable ledger and deadlines (§3 step 5, acceptance 6).
+- Mars 1: receipt is evidence; delivery needs the hold with no dispute; the "didn't arrive" button.
+- Mars 2: SSRF controls on the door check.
+- Mars 3: TLS-certificate identity added to D-A.
+- Mars 5: "Verify file" replaces the unsupported claim that the buyer's client verifies the hash.
+- Mars 6: a periodic door probe that is never tied to an order.
+- Mars 8: the chunk C wire items frozen at Gate 2.
+- Mars 9: §7 legacy install count.
+- Language: Go, with golden vectors and a Parquet evidence check (D11).
+- Amendment: Gemini F4 line-54 wording.
+
+**Not adopted:** none.
+
+**Risk questions:**
 1. Does anything in §3 or §4 let seller bytes touch ai.market, or let ai.market reach into the customer's systems beyond §5? Automatic REJECT under `data-delivery-p2p.md` if so.
-2. Is the key-compromise blast radius in §5 acceptable with the default gateway-side allowlist? What else should be required at Gate 2?
-3. Is the metadata boundary in D9 tight enough to keep value leakage out (for example distinct-count estimates on low-cardinality columns, or paths that embed identifiers), and still rich enough for allAI to classify and match datasets for the moat?
-4. Max has accepted D-A for v1. Does it conflict with CORE P5 as practised (the Seller Workspace precedent) in a way that must be raised with him again? Is the seller warning enough, or should Gate 2 add anything that costs little?
-5. Go or Python for D11, given CISO reviewability, the Parquet and S3 libraries, and our builder and reviewer strengths?
-6. SIMPLER / BETTER: is there a smaller design that meets Max's two requirements? In particular, should v1 drop S3 and support mounted folders only, leaving S3 to be mounted by the customer?
+2. D12 and §5: is the two-key-plus-local-ceiling boundary sound? Is there any path by which one key can extend what the gateway will serve?
+3. D9: is the two-phase boundary now tight enough (paths, names, buckets), and does phase 2 still give allAI and the corpus what they need?
+4. §3 step 5: is the `jti` state machine (bind, serve each range at most twice, close) free of replay and of stranded large downloads? Are the deadlines right?
+5. §3 step 6: does "receipt plus the hold with no dispute" protect buyers enough, given that receipts come from the seller's host?
+6. SIMPLER / BETTER: is anything here still more than Max's two requirements need? Does the amendment still say exactly what the design needs?
 
-Voters return APPROVE, APPROVE_WITH_NITS, REQUEST_CHANGES or REJECT with SHA-bound findings. MP's response is advisory and is not counted.
+Voters return APPROVE, APPROVE_WITH_NITS, REQUEST_CHANGES or REJECT with SHA-bound findings. MP's response is advisory and not counted.
