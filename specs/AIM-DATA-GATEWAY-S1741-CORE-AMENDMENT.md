@@ -9,6 +9,10 @@
 - The "IS" bullet says the gateway sends nothing identifying until the seller chooses to (design D9, two-phase).
 - The "IS NOT" bullet says the gateway reads only what the customer mounts into it (design D6: no cloud SDK in v1).
 
+**R3 changes to the proposed text** (R2 on `833c2dba`: GLM NIT 4, DeepSeek F5):
+- Lines 64–65 (vectorAIz) are added, because they still said vectorAIz uploads "the same way AIM Data does" and called it "the AIM Data conduit".
+- The "IS" bullet no longer says "single-use": each permission is for one file of one order, and the design allows bounded resume.
+
 **What changes in substance:**
 - AIM Data stops being a management GUI, a developer CLI/SDK/MCP surface and a host for allAI agents. It becomes a gateway with three functions.
 - "Outbound connections only" becomes "outbound only to ai.market's control plane, plus the one delivery endpoint the customer chooses to expose" (Max `308570bd`).
@@ -66,10 +70,26 @@ Each change below gives the exact old text (CORE v9.20 line numbers) and the exa
 
 ```text
 ### AIM Data — The Gateway
-- **IS:** The self-hosted gateway for sellers who keep their data on their own infrastructure, shipped as a hardened Docker sandbox under an open-source licence so the customer's security team can inspect every line that runs inside their perimeter. It does three things only: it describes the seller's data where it sits to ai.market with structural metadata only (never data values, and nothing identifying until the seller chooses to send it), plus a public sample only when the seller explicitly chooses one; it serves purchased files directly to the buyer through a single delivery endpoint that the seller's own IT exposes, admitting only single-use download permissions signed by ai.market; and it reports each delivery to ai.market for billing and payout. Everything else a seller does (listing, allAI metadata review, pricing, licences, earnings, requests) happens on the ai.market website, the same for every seller.
+- **IS:** The self-hosted gateway for sellers who keep their data on their own infrastructure, shipped as a hardened Docker sandbox under an open-source licence so the customer's security team can inspect every line that runs inside their perimeter. It does three things only: it describes the seller's data where it sits to ai.market with structural metadata only (never data values, and nothing identifying until the seller chooses to send it), plus a public sample only when the seller explicitly chooses one; it serves purchased files directly to the buyer through a single delivery endpoint that the seller's own IT exposes, admitting only download permissions signed by ai.market, each for one file of one order; and it reports each delivery to ai.market for billing and payout. Everything else a seller does (listing, allAI metadata review, pricing, licences, earnings, requests) happens on the ai.market website, the same for every seller.
 - **IS NOT:** A cloud service, a worker, a management application, or a second place to manage listings. It never gives ai.market access into the customer's systems: it reads only what the customer mounts into it, makes outbound connections only to ai.market's control plane, and accepts inbound connections only on the delivery endpoint the customer chooses to expose. It runs without host privileges and never updates itself. Never sends customer data to ai.market other than the seller-chosen public sample. **Not the worker — the worker is allAI.**
 - **Data plane:** Non-custodial and peer to peer. The buyer downloads over TLS directly from the seller's delivery endpoint; ai.market issues the permission and records the delivery receipt, and never carries, relays, caches or stores the bytes.
 - **MUST integrate with:** ai.market (pairing, a signed control channel, metadata intake, download permissions, delivery receipts, billing), allAI (through ai.market, on the metadata the gateway sends)
+```
+
+## CORE v9.20 line 64-65
+
+**Old:**
+
+```text
+- **IS:** Our second customer-facing data product, co-equal with AIM Data. It turns corporate data into a Qdrant (vector database) format and can upload that data to the marketplace the same way AIM Data does. A distinct product with its own brand and repo (`aidotmarket/vectoraiz`).
+- **IS NOT:** Branded under ai.market. It is our product, but it ships under its own brand, not as part of the AIM Data conduit. Not a worker — the worker is allAI.
+```
+
+**New:**
+
+```text
+- **IS:** Our second customer-facing data product, co-equal with AIM Data. It turns corporate data into a Qdrant (vector database) format and can upload that data to the marketplace. A distinct product with its own brand and repo (`aidotmarket/vectoraiz`).
+- **IS NOT:** Branded under ai.market. It is our product, but it ships under its own brand, not as part of AIM Data. Not a worker — the worker is allAI.
 ```
 
 ## CORE v9.20 line 357
