@@ -776,11 +776,11 @@
 
 ## Listing slug rename (seller-identifying slug)
 - Path: `listing-slug-rename.md`
-- Purpose: A listing's slug is public: it appears in the listing URL, in JSON-LD, in the sitemap and in the names of the metadata cards we mirror to Hugging Face and Kaggle. When a slug names the seller (for example a company name), it breaks the anonymity rule (CORE P5/S1; `ai-market-backend` runbook `runbooks/public-seller-anonymity.md`). This page renames such a slug to a neutral one without losing the listing's links. It is a production-data change, so the exact procedure for a given listing is Council-approved before it runs.
+- Purpose: A listing's slug is public. It appears in the listing URL, the JSON-LD, the sitemap and the names of the metadata cards we mirror to Hugging Face and Kaggle. A slug that names the seller, such as a company name, breaks the anonymity rule (CORE P5/S1; `ai-market-backend` runbook `runbooks/public-seller-anonymity.md`). This page renames such a slug to a neutral one. The page is a production-data procedure: the exact values for a given listing are Council-approved before it runs.
 - Owner: `vulcan`
 - Last verified: `2026-09-23`
 - Aliases: slug rename, branded slug, neutral slug
-- Error signatures: UPDATE 0 on listings slug rename, duplicate key value violates unique constraint on listings slug
+- Error signatures: UPDATE 0 on listings slug rename, duplicate key value violates unique constraint on listings slug, Kaggle create/new rejected, title already in use
 - Status: current
 
 ## Listing Summary (At a glance) Source-Fact Backfill

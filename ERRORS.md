@@ -740,6 +740,10 @@
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
 
+## `Kaggle create/new rejected, title already in use`
+
+- [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
+
 ## `kickstart non-zero / no fresh pid`
 
 - [Koskadeux Gateway Transport Runbook](gateway-transport.md)
