@@ -7,6 +7,8 @@ error_signatures:
 - 401 or 403
 - last_result missing or stale
 - Not Authorized
+- 'runbook router unavailable: runbook hash mismatch for <topic>'
+- 'capability disabled: <name>'
 ---
 
 # SysAdmin Operating Model (S1086)
@@ -89,6 +91,10 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
 | AgentHost SysAdmin | Receive events without probing | event-bus handler with `probe_on_startup=False` | backend runtime service identity | PARTIAL — never use registry presence as health proof |
 
 ## How to operate
+
+For every edit under backend `docs/runbooks/sysadmin/`, update the matching `integrity_hash` in `docs/runbooks/sysadmin/TOPIC-ROUTER.json` in the same commit. The hash is SHA-256 of the runbook's UTF-8 text. Backend `tests/test_sysadmin_topic_router_integrity.py` and `.github/workflows/sysadmin-runbook-integrity.yml` guard this rule (PR #461). One mismatch makes `RunbookRouter.load` unavailable and disables every SysAdmin capability.
+
+After the 2026-09-24 repair, `/api/v1/internal/agent-compliance` reported `HEALTHY`, no disabled capabilities, and all 11 contracts ok. At that time `compliant=false` remained only because the old check `tool_count_lte_8` was false (SysAdmin has 10 capabilities). Max decided on 2026-09-24 (Event Ledger 7f696f34) to raise the limit to 10; backend PR #462 renames the check to `tool_count_lte_10`. After #462 deploys, `compliant=true` is the expected healthy state.
 
 ```yaml operate
 - id: E-01
@@ -193,6 +199,7 @@ project, not `ai-market-backend`, when the shipped deployment rule calls that ou
 | F-04 | Titan-1 or MCP page says `mcp_server_unhealthy` | Titan-1 health endpoint returned non-2xx, or the MCP restart dry run saw Titan-1 unhealthy | Check `titan1_health` evidence `endpoint` and `status_code`; 2xx is healthy, 3xx redirect is misconfiguration, and non-2xx is a domain failure | G-04 | CONFIRMED |
 | F-05 | Escalation did not retry after a failed page attempt | pre-S1165 fingerprint was burned before send, or a new regression marked fingerprint before successful page | Grep for CRITICAL `Failed to escalate SysAdmin contract`; confirm the fingerprint is not in `escalated_fingerprints` until page success | G-05 | CONFIRMED |
 | F-06 | Production E2E route alarm mentions `e2e_routes_over_armed` | route flag truly armed beyond window, unparsable armed timestamp, or pre-S1165 string-bool parsing false alarm | Inspect `route_flag_enabled`, `armed_at`, allowlist counts, and `condition_status`; string `"false"` must coerce to false through `_settings_bool` | G-06 | CONFIRMED |
+| F-07 | `runbook router unavailable: runbook hash mismatch for <topic>` and `capability disabled: <name>` for all capabilities | A SysAdmin runbook changed without its `TOPIC-ROUTER.json` integrity hash | Compare the named runbook's UTF-8 SHA-256 with its `integrity_hash`; inspect `/agent-compliance` disabled capabilities | G-07 | CONFIRMED |
 
 For `monitor_unavailable`, stop before diagnosing the domain. For example,
 `monitored_failure_class=e2e_routes_over_armed` does not mean E2E routes are armed, and
@@ -256,6 +263,14 @@ Do not use AgentHost registry presence as proof of SysAdmin health.
   change_pattern: "Use `_settings_bool` for E2E_TEST_ROUTES_ENABLED; if truly armed, empty both E2E allowlists, redeploy with E2E_TEST_ROUTES_ENABLED=false, then verify E2E endpoints return 404."
   rollback_procedure: "Restore the prior safe disarmed env and redeploy. All Railway CLI commands must be prefixed with `unset RAILWAY_TOKEN &&`."
   integrity_check: "`route_flag_enabled=false`, allowlist counts are zero, and the contract returns ok=true with status disarmed."
+- id: G-07
+  symptom_ref: F-07
+  component_ref: SysAdmin runbook router
+  root_cause: "A runbook's UTF-8 text no longer matches its TOPIC-ROUTER.json integrity_hash."
+  repair_entry_point: "docs/runbooks/sysadmin/TOPIC-ROUTER.json"
+  change_pattern: "Update the matching integrity_hash from the runbook's UTF-8 SHA-256 in the same commit; run the integrity test and workflow. Never re-enable capabilities by hand."
+  rollback_procedure: "Restore the matching runbook and router entry together if the edit cannot be repaired."
+  integrity_check: "The router loads and /agent-compliance reports HEALTHY with no disabled capabilities and all 11 contracts ok; after backend PR #462, compliant is true and checks.tool_count_lte_10 is true."
 ```
 
 Auto-remediation is allowlisted only, dry-run first, budgeted, and verified by the named contract.
@@ -450,6 +465,8 @@ SysAdmin to the bounded set, added the singleton, moved compliance to live evide
 lifespan scheduling with cancel-on-shutdown.
 
 S1097 docs build added this runbook and router entry.
+
+2026-09-24 S1738: recorded the router-hash outage and CI guard from backend PR #461, plus Max's decision to raise the tool limit to 10 (check renamed `tool_count_lte_10` in backend PR #462).
 
 2026-07-12 S1165 (`02e3830f`): monitor-binding false-alarm fix. Bind probes now satisfy
 `CapabilityOutput`; `monitor_unavailable` separates broken checks from domain failures and escalates
