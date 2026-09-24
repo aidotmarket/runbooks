@@ -602,7 +602,7 @@ A read-only query of production shows:
 
 A0 (KMS algorithm check) → A, and in parallel B0 (library budget) → B, both against the frozen §3 vectors → C (after A's routes exist behind the flag) → D → E → F (separate spec).
 
-**Owners:** Vulcan owns A, B and D. Mars owns C. Both own E.
+**Owners:** Vulcan owns every chunk, A to F (Max, S1749, Event Ledger 78fff844). Mars gives brief help on request only. The original split (Vulcan A, B and D; Mars C; both E) is superseded.
 
 ## 14. Review questions (Gate 2 R4, carried into R5)
 
