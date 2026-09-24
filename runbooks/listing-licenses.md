@@ -40,7 +40,7 @@ error_signatures:
 
 # Listing licences and signed records
 
-Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Max's S1738 decision uses production because no staging environment exists: enable, immediately run §14 on `*-0N@e2e-test.ai.market`, and turn the flag off on any failed step. This page itself makes no live-enable claim.
+Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the [S1656 money-path test environment](../money-path-test-environment.md). Production retains read-only health, current-terms and document-hash checks.
 
 ## Capabilities
 
@@ -94,20 +94,20 @@ Compare all six lines in order with the table, and compare live `?format=json` r
 | Seller browser/API | Sign a chosen Standard or custom selection, then publish | Seller capability, own clean document, legal identity and fresh component hashes; `app/services/seller_license_service.py` |
 | Buyer browser | Review full text and hashes, sign once, open order-history JSON/PDF | Authenticated buyer; `app/api/v1/endpoints/orders.py`, frontend `components/BuyButton.tsx` |
 | Authenticated agent | Purchase with returned hashes and `authority_confirmed:true` | Bound principal/credential, typed name null; `app/services/license_acceptance_service.py` |
-| Operator | Check deployment/config/schema and reconcile evidence; disable on failed §14 step | Existing Railway/DB authority only; no direct record edit or ad-hoc contract reconstruction |
+| Operator | Check deployment/config/schema and reconcile evidence; disable for a licence defect or unsafe enabled configuration | Existing Railway/DB authority only; no direct record edit or ad-hoc contract reconstruction |
 
 ## How to operate
 
 ```yaml operate
 - id: E-01
-  trigger: Enable listing licences for the S1738 production test-pool run
+  trigger: Enable listing licences in production under the S1738 decision (procedure retained as the enablement record)
   pre_conditions:
     - Exact deployed backend/frontend SHAs and image identities match the reviewed candidates; record them
     - Production Alembic head is s1738_preserve_binding_summary; /health has no model/schema drift
     - X402_ENABLED is not true; record the nonsecret flag state
     - Deployed seed digests match all six §3.2 vectors as described above
     - The terms 1.1 source document has one effective-date placeholder and the chosen UTC RFC 3339 instant/hash are recorded
-    - The standing seller-01 and buyer-02 test identities and test-payment path are ready for amended §14
+    - The S1656 money-path test environment is designated for amended §14 Seller Workspace listing and buyer purchase/refund proof
   tool_or_endpoint: Railway CLI on the explicitly selected production environment; public /health and /api/v1/legal/terms/current
   argument_sourcing:
     effective_at: S1738 launch instant chosen and recorded by the operator in UTC RFC 3339 (example shape 2026-09-23T12:00:00Z)
@@ -115,7 +115,7 @@ Compare all six lines in order with the table, and compare live `?format=json` r
   idempotency: CHECK CURRENT VALUES BEFORE EACH SET; EACH SET REDEPLOYS
   expected_success:
     shape: both deployments SUCCESS, health clean, current terms version 1.1 and hash equal to dated source bytes
-    verification: execute amended §14 immediately on the named test pool; retain all receipts
+    verification: confirm /health, current terms 1.1 and its effective instant/hash, and the served terms-document hash in production; retain receipts. Run amended §14 in S1656.
   expected_failures:
     - signature: LISTING_LICENSES_ENABLED=true is incompatible with X402_ENABLED=true
       cause: startup configuration refuses the combination; keep licence flag off and reconcile X402 state
@@ -146,7 +146,7 @@ The newest deployment must be SUCCESS and serve the intended image. The public t
 
 ```yaml operate
 - id: E-02
-  trigger: Any amended §14 step fails or the enabled configuration is unsafe
+  trigger: A licence defect is found in production or in the S1656 amended §14 proof, or the enabled configuration is unsafe; a probe expectation mismatch alone is not a defect until the refusal and absence of writes are checked
   pre_conditions:
     - Capture the failure, exact deployment/flag identity and affected order ids without secrets
   tool_or_endpoint: railway variables -e production -s ai-market-backend --set LISTING_LICENSES_ENABLED=false
@@ -222,6 +222,7 @@ Get product authority first. Freeze normative full text and buyer/seller summari
 | Symptom | Cause | Repair |
 | --- | --- | --- |
 | `LICENSE_SELECTION_REQUIRED` (422) | Flag on and a listing create/update arrived without `license_selection` (`app/services/listing_management_service.py`) | Seller must choose Standard or upload their own licence in the website listing form or Seller Workspace; old clients must upgrade. |
+| `422 {"detail":"Request validation failed"}` on Seller Workspace publication create | With the flag on, `ListingPublishRequest` requires `license_selection`; the Seller Workspace route sanitises schema validation errors (`app/schemas/seller_listing_publication.py`, `app/api/v1/endpoints/seller_workspace.py`). This is distinct from `LICENSE_SELECTION_REQUIRED` on the unlisted-listing publish path (`app/services/listing_management_service.py`). | Confirm the request was refused with no write before treating a probe expectation mismatch as a defect. The production seller probe (`e2e-harness` `b039e089`) expected `LICENSE_SELECTION_REQUIRED` from `POST /api/v1/seller-workspace/listing-publication` without `license_selection`, but received this 422 at 22:49:39Z (Railway deploy `8138aafd`, Event `99d5ea8c`). Refusal with no write meets Gate 2 §9; send a valid selection for publication. |
 | `LICENSE_SELECTION_INVALID` (422) | `license_selection` shape wrong: Standard with a version other than 1.0 or with custom fields, or custom without document id/rider hash (`app/schemas/license_selection.py`) | Resend a valid selection from the current UI; for custom, finish the upload/scan first so a document id exists. |
 | `LICENSE_ACCEPTANCE_STALE` or `LICENSE_RIDER_ACCEPTANCE_STALE` | Client selection, document or order snapshot hash differs from server recomputation | Stop purchase/issuance; fetch canonical served text and hashes, compare selected version/variant and stored snapshot; have the actor review and sign fresh bytes. Do not edit old acceptance. |
 | `LEGAL_IDENTITY_CONFLICT` / `LEGAL_IDENTITY_REQUIRED` | Billing and typed name/jurisdiction differ, or one is missing | Reconcile through returned `reconciliation_url` and real identity evidence; never silently prefer the typed value (`app/services/legal_identity.py`). |
@@ -238,4 +239,4 @@ Preserve exact backend/frontend image and commit SHAs, Alembic current/head, nam
 
 ## Changes
 
-- 2026-09-23, S1738: first operator page from backend `0d21ec3f`, frontend `9c9e4f1`, Gate 2 §13 and amendment 1. Production enablement and Gate 4 evidence remain separate live steps.
+- 2026-09-23, S1738: first operator page from backend `0d21ec3f`, frontend `9c9e4f1`, Gate 2 §13 and amendment 1. Licences enabled at 22:31Z (Event `15ce797f`). The flag was off from about 22:49–22:57Z after a seller probe expected the wrong error for a refused, no-write request (Event `99d5ea8c`); Max `36740951` re-enabled it with deploy `b56e4c48` SUCCESS (Event `b19fa14d`). Amended §14 Seller Workspace and buyer purchase/refund proof moved to S1656 because production takes live payments only, hides test listings from buyers, and its test seller has no cloud source or live payouts (buyer side previously placed there by Max `2806dd13`).

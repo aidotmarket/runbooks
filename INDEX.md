@@ -776,7 +776,7 @@
 
 ## Listing licences and signed records
 - Path: `runbooks/listing-licenses.md`
-- Purpose: Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Max's S1738 decision uses production because no staging environment exists: enable, immediately run §14 on `*-0N@e2e-test.ai.market`, and turn the flag off on any failed step. This page itself makes no live-enable claim.
+- Purpose: Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the S1656 money-path test environment. Production retains read-only health, current-terms and document-hash checks.
 - Owner: `vulcan`
 - Last verified: `2026-09-23`
 - Aliases: listing licenses, Standard Data Licence, seller licence, signed licence record
