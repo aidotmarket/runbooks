@@ -240,6 +240,10 @@
 
 - [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
 
+## `capability disabled: <name>`
+
+- [SysAdmin Operating Model (S1086)](sysadmin.md)
+
 ## `Card setup for this paid service is unavailable`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
@@ -1339,6 +1343,10 @@
 ## `rows return to dead_letter`
 
 - [Qdrant Sync Outbox](qdrant-sync-outbox.md)
+
+## `runbook router unavailable: runbook hash mismatch for <topic>`
+
+- [SysAdmin Operating Model (S1086)](sysadmin.md)
 
 ## `runner/job failure before the Publish request`
 

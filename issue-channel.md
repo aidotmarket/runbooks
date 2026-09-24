@@ -30,6 +30,8 @@ Provider observations are the sole authority for whether an issue exists and whe
 
 The watcher collects and resolves issues even when dispatch, the local worker, or the support API is unavailable. Keep the Railway service at one replica; the singleton guard deliberately rejects a second replica.
 
+The Titan-1 `com.koskadeux.issue-channel-poller` runs every 300 seconds. Since koskadeux-mcp PR #234, it sends one high-priority peer message to both Mars and Vulcan when an `issue-channel:` ticket is non-terminal, unclaimed by an active instance, and older than 60 minutes. It deduplicates alerts for six hours in `/Users/max/koskadeux-state/issue-channel/unowned-alerts.json` and never notifies Max. A crash between sending and writing dedupe state can repeat one alert.
+
 ## Live dispatch boundary
 
 The live rule table is `config/issue_channel/dispatch_rules.yaml`:
@@ -121,6 +123,10 @@ Refer to credentials and identities by name only. Never paste or log their value
 Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway reads, and Cloudflare reads. Do not give the local poller provider credentials or the watcher a broader support identity.
 
 ## Normal health check
+
+At every instance check-in, start with open `issue-channel:` tickets and the snapshot's open issues. Claim a ticket with `support_ticket_patch` using `ownership_action=claim`, or resolve it with evidence; do not leave an unowned fallback ticket waiting for the next alert.
+
+GitHub Actions failure email is not an operator signal for Max. His GitHub Settings → Notifications → Actions is set to "on GitHub" only for failed workflows, with no email. Use the issue channel and provider evidence for detection and diagnosis.
 
 Confirm the newest watcher deployment is successful and read its current logs from the linked Railway project:
 
@@ -431,6 +437,16 @@ Verify: inspect `created_at`, `leased_at`, `lease_expires_at`, `reservation_rele
 
 Repair or rollback: fix the executor, transport, or backend before new admission. Reconcile unknown outcomes from the journal; never blind-retry a worker that may have run. Let the deterministic fallback provide the low-confidence operator surface while collection and snapshot publication continue.
 
+### Fallback ticket (outcome_unknown / lease_expiry) with no owner
+
+Symptom: a non-terminal `issue-channel:` fallback ticket remains unclaimed after `outcome_unknown` or lease expiry; the poller alerts Mars and Vulcan once it is older than 60 minutes.
+
+Likely cause: triage ended without an accepted report and the fallback handoff had no active owner. From 2026-09-23 ~10:40Z to 2026-09-24 ~10:00Z, every listing-detail page returned HTTP 500; Site Smoke Test failed from its first run, but the fallback ticket stayed unowned for about 23 hours. Frontend PR #81 fixed the page.
+
+Verify: inspect the exact ticket `source_ref`, ownership and handoff phase, then check the Site Smoke Test and direct provider evidence. Do not infer resolution from a timeout or the fallback ticket alone.
+
+Repair or rollback: claim the ticket with `support_ticket_patch` (`ownership_action=claim`), diagnose the provider failure, fix it, and resolve only with a complete provider-success witness.
+
 ### Fallback ticket absent
 
 Symptom: an `outcome_unknown` or `expired_unleased` intent without an accepted report has no linked fallback ticket.
@@ -582,3 +598,7 @@ Likely cause: PR #313 cleanup did not reach the inspected revision, the workflow
 Verify: confirm `.github/workflows/issue-channel-canary.yml` is absent at current `main`, the workflow no longer exists, and runs `33326033562`, `33326033541`, `33326033578`, and `33326033569` are green. Preserve the completed canary's exact one-canonical, one-intent, one-ticket proof.
 
 Repair or rollback: do not recreate or dispatch the deleted workflow. A future deliberate canary requires fresh explicit authorization and a separately reviewed temporary workflow, followed by the same failure, newer-success, complete-observation, resolution, and cleanup sequence.
+
+## Changes
+
+2026-09-24 S1738: documented the unowned-ticket peer alert, check-in ownership duty, GitHub Actions notification setting, and fallback-ticket recovery after the listing-detail outage.
