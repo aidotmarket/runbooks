@@ -94,7 +94,7 @@ Known limitation: singleton state is process-local; multi-worker consistency is 
 
 For every edit under backend `docs/runbooks/sysadmin/`, update the matching `integrity_hash` in `docs/runbooks/sysadmin/TOPIC-ROUTER.json` in the same commit. The hash is SHA-256 of the runbook's UTF-8 text. Backend `tests/test_sysadmin_topic_router_integrity.py` and `.github/workflows/sysadmin-runbook-integrity.yml` guard this rule (PR #461). One mismatch makes `RunbookRouter.load` unavailable and disables every SysAdmin capability.
 
-After the 2026-09-24 repair, `/api/v1/internal/agent-compliance` reported `HEALTHY`, no disabled capabilities, and all 11 contracts ok. `compliant=false` remains because `tool_count_lte_8` is false; this is an open follow-up, not evidence that the router is still broken.
+After the 2026-09-24 repair, `/api/v1/internal/agent-compliance` reported `HEALTHY`, no disabled capabilities, and all 11 contracts ok. At that time `compliant=false` remained only because the old check `tool_count_lte_8` was false (SysAdmin has 10 capabilities). Max decided on 2026-09-24 (Event Ledger 7f696f34) to raise the limit to 10; backend PR #462 renames the check to `tool_count_lte_10`. After #462 deploys, `compliant=true` is the expected healthy state.
 
 ```yaml operate
 - id: E-01
@@ -270,7 +270,7 @@ Do not use AgentHost registry presence as proof of SysAdmin health.
   repair_entry_point: "docs/runbooks/sysadmin/TOPIC-ROUTER.json"
   change_pattern: "Update the matching integrity_hash from the runbook's UTF-8 SHA-256 in the same commit; run the integrity test and workflow. Never re-enable capabilities by hand."
   rollback_procedure: "Restore the matching runbook and router entry together if the edit cannot be repaired."
-  integrity_check: "The router loads and /agent-compliance reports HEALTHY with no disabled capabilities and all 11 contracts ok; track tool_count_lte_8 separately."
+  integrity_check: "The router loads and /agent-compliance reports HEALTHY with no disabled capabilities and all 11 contracts ok; after backend PR #462, compliant is true and checks.tool_count_lte_10 is true."
 ```
 
 Auto-remediation is allowlisted only, dry-run first, budgeted, and verified by the named contract.
@@ -466,7 +466,7 @@ lifespan scheduling with cancel-on-shutdown.
 
 S1097 docs build added this runbook and router entry.
 
-2026-09-24 S1738: recorded the router-hash outage and CI guard from backend PR #461, plus the remaining `tool_count_lte_8` compliance item.
+2026-09-24 S1738: recorded the router-hash outage and CI guard from backend PR #461, plus Max's decision to raise the tool limit to 10 (check renamed `tool_count_lte_10` in backend PR #462).
 
 2026-07-12 S1165 (`02e3830f`): monitor-binding false-alarm fix. Bind probes now satisfy
 `CapabilityOutput`; `monitor_unavailable` separates broken checks from domain failures and escalates
