@@ -64,14 +64,20 @@ data, seller credentials, object-store credentials or full document text in logs
 1. Run `clamd` and `freshclam` in a dedicated Railway service in the same project and
    environment as the backend. The backend sends bytes with `INSTREAM` over the private network.
    Keep one warm signature engine and update its definitions during runtime.
-2. Base the service on the official `docker.io/clamav/clamav:stable` image **pinned by OCI index
-   digest** `sha256:0e31ce089574268aefa0b543767d66b70240ab51ed49eec53e07f18d5629d817`, resolved
-   on 2026-09-25. The observed index included `linux/amd64` manifest
-   `sha256:e8388295191bff0893fb889d9415ae975491201c989b205e30c9057b1985d36a`; verify Railway's
-   selected architecture and the pulled manifest in Gate 2. The tag is descriptive; the digest
-   is the build input. Replace this pin only through a reviewed image-update change with
-   vulnerability and smoke evidence. [Official Docker
-   image](https://hub.docker.com/r/clamav/clamav), [ClamAV Docker
+2. Base the service on the official `docker.io/clamav/clamav-debian:stable` image **pinned by OCI
+   index digest** `sha256:df80497be841a8ad57f95e04f978216241457f8f8ad608f1f682e3cd0fe63c45`,
+   verified read-only with `docker buildx imagetools inspect` on 2026-09-25. The index has
+   `linux/amd64` manifest `sha256:a1ebc843a1bf773c442a0739778d30e9072da7c52417ab7d805942510fa88394`
+   and `linux/arm64` manifest `sha256:32770534ece41601bed0005be5d1e1b7a76d734255c0ad02ad52f9281eb30418`.
+   The previous Alpine index `sha256:0e31ce089574268aefa0b543767d66b70240ab51ed49eec53e07f18d5629d817`
+   had `linux/amd64` only, so it is superseded. The tag is descriptive; the Debian index digest
+   is the build input. Gate 2 must smoke-test the exact config on this image before adoption.
+   Record Railway's actual host architecture and pulled platform manifest; it must match one of
+   these native manifests, or release sizing and deployment stop for review. Record Titan-1's
+   architecture and selected manifest as well; emulated timing and memory cannot size Railway.
+   Replace the pin only through a reviewed image-update change with vulnerability and smoke
+   evidence. [Official Docker
+   image](https://hub.docker.com/r/clamav/clamav-debian), [ClamAV Docker
    manual](https://docs.clamav.net/manual/Installing/Docker.html).
 3. Keep the scanner private. Configure no Railway public domain and no public TCP proxy. Use its
    `*.railway.internal` name and TCP 3310 in the backend's
@@ -102,10 +108,27 @@ data, seller credentials, object-store credentials or full document text in logs
   volume to this service/environment; restore from upstream definitions, not an unreviewed
   copied database, if it is corrupt. A temporary upstream update outage may use the last
   verified definitions only while age remains within the gate below.
-- Set `StreamMaxLength` to **1 MiB** to match `MAX_LICENSE_BYTES`. Leave the application's 1 MiB
-  check in place; a daemon size-limit reply still fails closed. Record the exact mounted
-  `clamd.conf` and `freshclam.conf` in the Gate 2 scanner infrastructure candidate. Avoid a
-  hidden mutable Railway-only config that the S1656 equivalent cannot reproduce.
+- Bind `StreamMaxLength 1M`, `MaxScanSize 16M`, `MaxFileSize 8M`, `MaxRecursion 8`,
+  `MaxFiles 1000`, `AlertExceedsMax yes`, `HeuristicAlerts yes`, and
+  `HeuristicScanPrecedence yes` in `clamd.conf`.
+  The 1 MiB wire cap matches `MAX_LICENSE_BYTES`; the larger extraction limits allow ordinary
+  compressed PDF content while bounding amplification, nested depth and file count. They are
+  admission limits, not permission to skip content and call it clean. ClamAV documents
+  `AlertExceedsMax` detections for MaxScanSize, MaxFileSize and MaxRecursion; Gate 2 must prove
+  MaxFiles exceedance also refuses on the pinned engine, since its documented alert guarantee
+  does not name MaxFiles. Any limit-exceeded `FOUND`, including
+  `Heuristics.Limits.Exceeded.*`, maps to `LICENSE_MALWARE_DETECTED`; a protocol `ERROR`, socket
+  failure or ambiguous `OK` in a limit fixture maps to `LICENSE_MALWARE_SCAN_UNAVAILABLE` or
+  blocks release. An incomplete scan must never be accepted as clean. Leave the application's
+  1 MiB check in place. Record the exact mounted `clamd.conf` and `freshclam.conf` in Gate 2;
+  avoid a hidden mutable Railway-only config. [ClamAV configuration
+  sample](https://github.com/Cisco-Talos/clamav/blob/main/etc/clamd.conf.sample).
+- Bind `EnableShutdownCommand no`, `EnableStatsCommand no`, `EnableReloadCommand no`,
+  `EnableSelfCheckCommand no`, `EnableVersionCommand yes`, and `SelfCheck 60` in `clamd.conf`.
+  Leave `NotifyClamd` unset in `freshclam.conf`: freshclam writes updated definitions to the
+  scanner-owned volume; clamd's internal 60-second `SelfCheck` notices database changes and
+  reloads them. No peer-issued socket reload is needed. Gate 2 must observe a successful
+  definition update, subsequent clamd reload, new `VERSION` date and clean/EICAR scans.
 - Require definitions no older than **48 hours** by their database build timestamp. Read
   `VERSION` and parse/validate its database date, cross-check `freshclam` update status and
   daemon logs. If the date is absent, unparsable, in the future beyond clock tolerance, or older
@@ -122,9 +145,12 @@ data, seller credentials, object-store credentials or full document text in logs
 ### 3.2 Resource and cost envelope
 
 - Start one replica with **4 GiB memory limit and 1 vCPU limit**, no scale-to-zero. Set
-  `MaxThreads=2` and a backend admission cap of two concurrent uploads per backend replica;
-  measure actual CPU, latency and reload peak before increasing either. This is an initial
-  ceiling, not a promise that 4 GiB always suffices.
+  `MaxThreads=2` and an **aggregate cap of two in-flight scans across every backend process
+  and replica**. Pin production `WORKERS=1` and one backend replica for this release, with one
+  process-owned semaphore covering both scans; any additional worker or replica requires a
+  shared admission mechanism and multi-process proof before scaling. Measure actual CPU,
+  latency and reload peak before increasing either limit. This is an initial ceiling, not a
+  promise that 4 GiB always suffices.
 - ClamAV's Docker guidance says the signature engine can consume over 1.2 GiB and briefly
   roughly double during concurrent reload; it recommends at least 3 GiB and prefers 4 GiB. The
   supplied Event `b06fc964` measurement found an in-backend invocation OOM at 768 MiB and pass
@@ -151,12 +177,14 @@ data, seller credentials, object-store credentials or full document text in logs
   authenticate an individual backend process to `clamd`. [ClamD
   protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html), [Railway private
   networking](https://docs.railway.com/networking/private-networking).
-- Accept the private network as the initial trust boundary only after inventorying every service
-  in that Railway project/environment and confirming no untrusted workload can reach the
-  scanner. An internal peer could otherwise send scans or daemon control commands. Do not claim
-  a shared secret is enforceable by raw `clamd` TCP; it is not. If the inventory cannot support
-  this boundary, Gate 2 must add an authenticated narrow proxy or service-level isolation and
-  return that material design change for review before deployment.
+- Accept the private network as the trust boundary only while every service in that Railway
+  project/environment is inventoried and reviewed as trusted. The scanner's allowed peer list,
+  no-public-domain rule and no-TCP-proxy rule are standing infrastructure constraints. Gate 2
+  records the approved list and adds a Railway configuration drift check to the deployment
+  gate and the recurring daily operations check: it fails on an unreviewed peer, any public
+  route, or changed command flags, and stops scanner rollout/admission until reviewed. Raw
+  `clamd` TCP cannot enforce a shared secret. If the peer boundary cannot be maintained, add an
+  authenticated narrow proxy or service isolation as a separately reviewed design change.
 - Keep the scanner's volume, config and outbound definition-update permissions scoped to this
   service. Do not put backend database or object-store secrets in the scanner. Log scan outcome,
   duration, definition age and a correlation ID only; omit file bytes, terms text, seller
@@ -177,14 +205,18 @@ data, seller credentials, object-store credentials or full document text in logs
   compatible. The upload is already bounded and in memory at that seam
   (`aidotmarket/ai-market-backend@7643fc8b42a895f90776fd53c9784631ef21d658:app/services/custom_license_service.py:148-165,200-231`).
   Do not make a second unbounded copy.
+- Before sending any upload bytes, issue a bounded `zVERSION\0` on its own connection and
+  validate the database date against the 48-hour gate. Stale, unknown or malformed dates refuse
+  without opening an `INSTREAM` connection. The scan must begin promptly after this check;
+  if the deadline or freshness state changes, refuse rather than reuse the result. This orders
+  the freshness certificate before the scan it guards.
 - For one scan, open one TCP connection; send `zINSTREAM\0`, then each at-most-64-KiB chunk
   preceded by an unsigned 32-bit network-order length, then a four-byte zero length. Read
   exactly one bounded NUL-terminated reply and close the socket. Send the original bytes, not
   extracted text, a local path, hash, or base64. `clamd`'s protocol specifies the framing and
   reports an `INSTREAM size limit exceeded` error when over its configured cap. [ClamD
   protocol](https://docs.clamav.net/manual/Usage/ClamdProtocol.html).
-- Before accepting a clean scan, issue a bounded `VERSION` command on its own connection and
-  validate the database date. Do this for each upload, including immediately after a daemon
+- Do the `VERSION` freshness check for each upload, including immediately after a daemon
   restart; a five-minute monitoring poll alone could otherwise admit a stale scan. If the pinned
   daemon's `VERSION` format cannot provide a trustworthy age, Gate 2 must implement an equally
   fail-closed service readiness/freshness signal and return that protocol change for review. A
@@ -206,12 +238,13 @@ data, seller credentials, object-store credentials or full document text in logs
 | Scanner/client outcome | API-level result | Storage rule |
 | --- | --- | --- |
 | Exact clean `stream: OK`, with fresh verified definitions | Continue secret/text/terms checks | Existing commit rules only |
-| Valid `stream: ... FOUND` | `LICENSE_MALWARE_DETECTED` (existing 422 mapping) | No object or row write |
+| Valid `stream: ... FOUND`, including any `Heuristics.Limits.Exceeded.*` | `LICENSE_MALWARE_DETECTED` (existing 422 mapping) | No object or row write |
 | `ERROR`, including `INSTREAM size limit exceeded`, parse error or daemon internal failure | `LICENSE_MALWARE_SCAN_UNAVAILABLE` (existing 422 mapping) | No object or row write |
-| Connect refused/DNS failure, socket EOF, partial reply, unexpected reply, bad framing or oversized reply | `LICENSE_MALWARE_SCAN_UNAVAILABLE` | No object or row write |
+| Connect refused/DNS failure, socket EOF, socket write break/reset during early daemon termination, partial reply, unexpected reply, bad framing or oversized reply | `LICENSE_MALWARE_SCAN_UNAVAILABLE` | No object or row write |
 | Connect, write or read deadline; queue wait deadline; stale/unknown signatures; unset configuration | `LICENSE_MALWARE_SCAN_UNAVAILABLE` | No object or row write |
 
-Catch only the expected transport/protocol errors and map them deliberately to
+Catch expected transport/protocol errors, including `BrokenPipeError` and
+`ConnectionResetError` from writes as `OSError` subclasses, and map them deliberately to
 `CustomLicenseError`. Preserve cancellation and process-level failures as such; ensure the
 request cannot later commit after a cancelled or timed-out scan. Never interpret the presence of
 `OK` inside an error or an EOF as clean. The endpoint's existing 422 mapping is a compatibility
@@ -220,15 +253,14 @@ contract, not proof a scanner is healthy
 
 ### 4.3 Concurrency and backpressure
 
-- Bound backend in-flight scan admission to two per backend replica, with a two second queue
-  wait. Reject excess as scanner unavailable before opening a connection; no unbounded thread
+- Bound backend in-flight scan admission to two across all processes and replicas, with a two
+  second queue wait. Reject excess as scanner unavailable before opening a connection; no unbounded thread
   accumulation or socket queue. Because `asyncio.to_thread` is the current bridge, the semaphore
   must cover the await, and cancellation must not release capacity while the worker continues to
   scan. Gate 2 must prove that ownership with a cancellation regression.
-- Match daemon `MaxThreads=2`; start with one warm scanner replica. Count backend replicas and
-  set an aggregate cap compatible with daemon capacity, or use a shared admission mechanism if
-  backend scale exceeds one replica. Local per-process semaphores alone do not provide a global
-  cap. Document the actual production replica count before release.
+- Match daemon `MaxThreads=2`; start with one warm scanner replica. Pin and record `WORKERS=1`,
+  one backend process and one backend replica. Local process semaphores do not provide a global
+  cap if either count grows; require a shared admission mechanism before such a change.
 - Record bounded metrics: accepted, detected, unavailable by reason, queue rejection, in-flight,
   response latency p50/p95/p99 and definition age. Alert on sustained unavailable errors or
   queue rejects, not merely process health. Do not retry a scan automatically after an ambiguous
@@ -251,9 +283,9 @@ contract, not proof a scanner is healthy
 | --- | --- |
 | Warm daemon OOM during signature reload | 4 GiB initial cap, reload peak test, Railway memory/OOM alert, fresh update + scan after reload; stop if peak exceeds cap. |
 | Outdated or corrupted definitions | Six-hour update cadence, 24-hour alert, 48-hour refusal, persisted scanner-owned volume, `VERSION` and updater cross-check; no clean result with unknown age. |
-| Scanner reachable by another project service | Verify project/environment service inventory and private-only settings; add authenticated proxy or isolate if trust cannot be established. |
+| Scanner reachable by another project service | Deployment and daily operations drift checks fail on unreviewed peers, public routes or enabled admin commands; add authenticated proxy or isolate if trust cannot be maintained. |
 | Backend timeouts or thread exhaustion under load | Absolute scan and queue deadlines, bounded admission, cancellation proof, load test with real daemon; stop if request p95 exceeds approved budget. |
-| Inconsistent size limits or malformed protocol reply | Both sides pinned to 1 MiB; exhaustive fake-server matrix and real-container proof; every ambiguous result fails closed. |
+| Inconsistent size limits, incomplete extraction or malformed protocol reply | Wire cap 1 MiB, bound extraction limits with limit alerts, exhaustive fake-server and real-container limit fixtures; every ambiguous result fails closed. |
 | Rolling image update changes engine behavior | Digest pin, scanner-first rollout, clean/EICAR/size-limit probes after every image or definition change, revert digest if new engine fails. |
 | Ongoing cost or volume growth | One replica, measured week-long RAM/CPU/volume bill, limit and alert; reauthorize any higher sustained spend. |
 
@@ -261,13 +293,13 @@ contract, not proof a scanner is healthy
 
 | ID | Concrete pass condition | Evidence required |
 | --- | --- | --- |
-| AC1 | Scanner deploys from the reviewed official digest, exact platform manifest recorded; `clamd` and `freshclam` stay running through initial load and one update | Image digest, config, service identity, startup/update/reload logs, `VERSION`, memory peak |
-| AC2 | Internal backend can connect to port 3310; no public domain or TCP proxy exists; project peer inventory supports the stated trust boundary | Railway service/network settings and scoped connectivity probes |
-| AC3 | Clean valid text/PDF uploads succeed, EICAR text/PDF is refused as `LICENSE_MALWARE_DETECTED`, and no infected or unscanned document/object is committed | API status/body, scanner result, DB/object-store absence, deployed backend/scanner SHAs |
+| AC1 | Scanner deploys from the reviewed official multi-arch digest on a native platform; `clamd` and `freshclam` stay running through initial load and one update | Image index and platform manifest, Railway and Titan-1 architecture, config, startup/update/SelfCheck reload logs, `VERSION`, memory peak |
+| AC2 | Internal backend can connect to port 3310; `VERSION`/`INSTREAM` work; private-peer `zSHUTDOWN\0`, `zSTATS\0`, `zRELOAD\0` and `zSELFCHECK\0` receive `COMMAND UNAVAILABLE`; no public domain or TCP proxy exists; reviewed peer inventory and recurring drift check pass | Railway service/network settings, scoped command probes, deployment and daily drift-check receipts |
+| AC3 | Clean valid text/PDF uploads succeed; EICAR and limit-exceeding nested/compressed PDF uploads are refused; no infected or incompletely scanned document/object is committed | API status/body, scanner result, DB/object-store absence, deployed backend/scanner SHAs |
 | AC4 | Every error row in §4.2 fails closed; secret, PDF active-content, text and prohibited-term checks retain their order and codes | Fake-server unit results, existing hygiene regressions, focused endpoint tests |
 | AC5 | Definition age warning at 24 hours and refusal after 48 hours work, including missing/malformed date and updater failure | Synthetic time/date tests, real-container status and alert sample |
-| AC6 | Under chosen concurrency, load and reload, no OOM, unbounded wait, thread leak or HTTP-budget overrun; backpressure is visible | Real-container load test with p95/p99 and peak RAM/CPU, queue and cancellation evidence |
-| AC7 | S1656 equivalent uses the same digest and config, and S1738 licence Gate 4 exercises it before release | Environment commit/pin, Compose service and private network contract, Gate 4 receipts |
+| AC6 | Across all backend processes/replicas and during reload, in-flight scans never exceed two; no OOM, unbounded wait, thread leak or HTTP-budget overrun; backpressure is visible | Recorded `WORKERS`, process and replica counts; real-container load test with p95/p99 and peak RAM/CPU, queue and cancellation evidence |
+| AC7 | S1656 equivalent uses the same digest and config, passes cold `compose up` from an empty signature volume, and S1738 licence Gate 4 exercises it before release | Environment commit/pin, native architecture, Compose healthcheck/dependency and private network, cold-start and Gate 4 receipts |
 | AC8 | Production rollout respects actual `LISTING_LICENSES_ENABLED` state and leaves flag-off behavior unchanged; rollback restores fail-closed old path or disables admission | Flag state receipt, before/after route evidence, rollback rehearsal and live post-deploy probes |
 | AC9 | PR #464 is closed as superseded without merge; scanner cost and owner are recorded | PR status, Railway estimated/actual usage and Max decision receipt |
 
@@ -276,25 +308,54 @@ contract, not proof a scanner is healthy
 1. Unit-test a fake `clamd` TCP server against exact wire bytes: command terminator, 64-KiB
    length prefixes, zero terminator, 1 MiB edge, chunk boundary, fragmented reply and NUL
    framing. Vary `OK`, `FOUND`, `ERROR`, size-limit, malformed, oversized, early close,
-   DNS/connect refusal and each timeout. Assert one correct error code and zero post-scan writes
-   on every refusal.
+   DNS/connect refusal, mid-stream socket break/reset and each timeout. Assert a stale `VERSION`
+   prevents any `INSTREAM` bytes, one correct error code and zero post-scan writes on every
+   refusal.
 2. Run existing licence hygiene, upload and flag-off tests on the backend candidate and its
    pinned base. Specifically verify that size/MIME failures do not contact the daemon, scanner
    failure precedes secret/text/terms checks, and PDF active-content refusal remains. Existing
    tests inject a scanner and assert flag-off route absence
    (`aidotmarket/ai-market-backend@7643fc8b42a895f90776fd53c9784631ef21d658:tests/test_custom_license_upload.py:44-56,109-131`);
    they are a baseline, not sufficient real-daemon proof.
-3. Add a real `clamav/clamav` container at the exact digest to CI or the isolated test
+3. Add a real `clamav/clamav-debian` container at the exact digest to CI or the isolated test
    environment, with a pinned configuration and fresh definitions. Submit a valid clean text
    file, a valid clean PDF, the standard EICAR test string in accepted text/PDF upload shapes, a
-   limit-exceeding stream to the daemon, and a reload while scans arrive. Record engine/database
-   versions, update age, latency, memory, results and DB/object absence. Keep EICAR bytes
+   limit-exceeding stream to the daemon, and a reload while scans arrive. Add accepted-shape
+   nested/compressed PDFs that separately exceed MaxScanSize, MaxFileSize, MaxRecursion and
+   MaxFiles; repeat the limit fixtures during a definition reload and with an outer upload
+   exactly at 1 MiB. Each must refuse, never return accepted `stream: OK`, and produce no
+   `LicenseDocument` or object-store write. If this ClamAV image reports a MaxFiles overrun as
+   clean, Gate 2 is blocked until an enforceable refusal mechanism is reviewed and proved.
+   Record engine/database versions, update age, latency, memory, results and DB/object absence.
+   Keep EICAR bytes
    confined to this test; they are a harmless antivirus test pattern, not production seller
    content.
 4. Extend the S1656 money-path test environment with a `license-scanner` Compose service using
    **the same image digest, `clamd.conf`, `freshclam.conf`, 1 MiB stream limit, private bridge
    and readiness contract** as production. Backend Compose config points at
-   `license-scanner:3310`. No public port mapping. Pin the environment commit and image
+   `license-scanner:3310`. The exact required S1656 Compose fragments are:
+
+   ```yaml
+   services:
+     license-scanner:
+       healthcheck:
+         test: ["CMD", "/opt/license-scanner/healthcheck"]
+         interval: 10s
+         timeout: 5s
+         start_period: 120s
+         retries: 18
+     backend:
+       depends_on:
+         license-scanner:
+           condition: service_healthy
+   ```
+
+   The scanner configuration mount supplies the executable `/opt/license-scanner/healthcheck`
+   in both S1656 and Railway. Gate 2 defines and smoke-tests it against the pinned image: exit
+   zero only when a TCP connection to `127.0.0.1:3310` receives a well-formed `zVERSION\0`
+   reply with a database date no older than 48 hours; missing, malformed, future or stale dates
+   and connection errors exit nonzero. It must not invoke `freshclam` or accept `PING` alone.
+   No public port mapping. Pin the environment commit and image
    alongside its backend version. The existing S1656 environment uses an owned private Compose
    bridge and pinned backend
    (`aidotmarket/runbooks@b7009e89575ec0cef6b0c5e9c1a19b28848ee43a:money-path-test-environment.md:42-74`); modify the owning environment repo in
@@ -307,8 +368,10 @@ contract, not proof a scanner is healthy
 ## 9. Rollout, monitoring and rollback
 
 1. Before deployment, record Council disposition, exact scanner/backend/environment commits and
-   image digests, current production `LISTING_LICENSES_ENABLED` state, backend replica count,
-   Railway project/environment, private peer inventory and spend authorization. Close PR #464 as
+   image index and selected platform digests, Railway/Titan-1 architecture, current production
+   `LISTING_LICENSES_ENABLED` state, backend `WORKERS`, process and replica counts,
+   Railway project/environment, private peer inventory, deployment/daily drift-check result
+   and spend authorization. Close PR #464 as
    superseded once the reviewed replacement is accepted; never use its image as a stepping
    stone.
 2. Deploy the scanner service **first**, private only, with definitions and health monitoring.
@@ -337,19 +400,28 @@ contract, not proof a scanner is healthy
    uploaded clean documents; do not down-migrate or delete them. Restore service availability by
    fixing scanner/definitions and repeating clean/EICAR probes, not by disabling the scan.
 
-## 10. Open questions for Council
+## 10. Round 1 disposition
 
-1. Is Railway private project/environment isolation sufficient for this unauthenticated `clamd`
-   protocol after peer inventory, or must Gate 2 include an authenticated proxy or separate
-   project boundary? If stronger isolation is required, review the changed design before
-   implementation.
-2. Is 48 hours the accepted maximum signature age for seller terms, with warning at 24 hours?
+| Finding | Severity | Raiser | Binding answer |
+| --- | --- | --- | --- |
+| Internal scan limit can return clean after skipped content | HIGH | GLM | §3.1 extraction limits/alerts; §4.2 outcome map; §8 real-container limit matrix |
+| Alpine image lacks native arm64 | MEDIUM | GLM | §2 Debian multi-arch index/manifests; §7 AC1/AC7; §9 architecture evidence |
+| Unauthenticated admin commands and one-time peer inventory | MEDIUM | GLM | §3.1 command flags/SelfCheck; §3.3 standing boundary; §7 AC2 |
+| Shutdown command exposure | MEDIUM | Gemini | §3.1 `EnableShutdownCommand no`; §7 AC2 private-peer probe |
+| S1656 cold-start readiness race | MEDIUM | Gemini | §8 exact Compose healthcheck/dependency; §7 AC7 cold bootstrap |
+| Worker processes can exceed scanner capacity | LOW | GLM | §3.2/§4.3 aggregate cap and `WORKERS=1`; §7 AC6; §9 rollout counts |
+| Freshness check follows scan | LOW | DeepSeek | §4.1 pre-stream `VERSION`; §8 stale-first test |
+| Administrative flags unspecified | LOW | DeepSeek | §3.1 command flags/SelfCheck; §7 AC2 probes |
+| Socket write error on early daemon termination | NIT | Gemini | §4.2 `OSError` mapping; §8 mid-stream close test |
+| External attribution, image-variant and CORE classification observations | NIT | DeepSeek | §2 image selection and §1 non-custodial scope; Event Ledger attribution remains explicitly limited pending direct receipt |
+
+## 11. Open questions for Council
+
+1. Is 48 hours the accepted maximum signature age for seller terms, with warning at 24 hours?
    Should a known upstream outage have any exception? This design proposes **no exception**
    without an explicit new decision.
-3. Does the six-second scan wall deadline and two-scan concurrency cap meet the observed
+2. Does the six-second scan wall deadline and two-scan aggregate concurrency cap meet the observed
    production request budget and seller upload volume? Gate 2 must bring measured real-daemon
    evidence if they need adjustment.
-4. Who owns the scanner service, signature alerts, image digest updates and monthly spend
+3. Who owns the scanner service, signature alerts, image digest updates and monthly spend
    review? Record a named operator and escalation path before Gate 4.
-5. Does Council require a dedicated authenticated proxy to suppress `clamd` administrative
-   commands from other private peers, even if all current peers are trusted?
