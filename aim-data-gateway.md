@@ -14,7 +14,7 @@ This page covers what is live today: the repository and release, and the egress 
 
 ## Repository and release
 
-- Repo: `aidotmarket/aim-data-gateway` (public), checkout `/Users/max/Projects/ai-market/aim-data-gateway`.
+- Repo: `aidotmarket/aim-data-gateway` (public), checkout `/Users/max/Projects/ai-market/aim-data-gateway` (fetch and read `origin/main`; the local `main` branch there can be stale).
 - Image: `ghcr.io/aidotmarket/aim-gateway`, published by `.github/workflows/release.yml` on a `v*` tag. The workflow builds twice and compares digests, pushes, checks an anonymous pull, signs with cosign keyless and attaches SBOM and provenance. The binary version comes from the tag.
 - Current release: `v0.1.1`. `v0.1.0` is a superseded prerelease (it reported `0.1.0-dev`).
 
@@ -34,7 +34,7 @@ The origin `192.0.2.1` is deliberately unroutable (TEST-NET-1). Proxying makes C
 ### Server-side check (backend)
 
 - Code: `app/services/aim_gateway_canary_cf.py` (adapter) and `_correlate_canary_logs()` in `app/tasks/aim_gateway_door.py`. The adapter is installed only when all three settings are set: `GATEWAY_CANARY_CF_API_TOKEN`, `GATEWAY_CANARY_CF_ZONE_ID` (`f82ac6762af544d71e8ad5eb3d7fca0c`) and `GATEWAY_CANARY_ZONE` (`gw-canary.ai.market`). Without it, every gateway stays `unknown` and cannot publish.
-- Source: Cloudflare GraphQL `dnsAnalyticsAdaptiveGroups`, filtered by `queryName_in`. The worker waits 3 minutes after a result arrives (analytics lag) and looks back 5 minutes before receipt.
+- Source: Cloudflare GraphQL `dnsAnalyticsAdaptiveGroups`, filtered by `queryName_in`. The worker waits 3 minutes after a result arrives (analytics lag) and queries from 5 minutes before receipt up to the time of the query.
 - **Sampling (Amendment C, Max decision dde536b1):** Cloudflare keeps 1 in 10 DNS queries (`sampleInterval` 10). A hit means `open`. A miss counts as "no server-side hit", not as proof. The expected detection rate for a gateway that lies is about 10% per hourly canary, about 92% within 24 hours.
 - Token: Infisical project `ai-market-backend`, env `prod`, key `GATEWAY_CANARY_CF_API_TOKEN` (requested from Max on 2026-09-25; until it exists, the general `CLOUDFLARE_API_TOKEN` in the same project, which has Analytics Read, was used for verification). Scope: Zone → Analytics → Read on ai.market only. Only a human creates or rotates this token, in the Cloudflare dashboard; agents never mint or copy it.
 
