@@ -20,6 +20,7 @@ error_signatures:
 - OAuth session expired and could not be refreshed
 - is not set; source the credential first
 - no response written after
+- 'gemini: no response written after'
 - required reviewer missing from the live tool schema
 ---
 
@@ -30,11 +31,11 @@ error_signatures:
 This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
-> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
-> **CC and MP reviews are not Council votes.** `council_request agent=cc` and `council_request agent=mp mode=review` are explicit non-voting second opinions: never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
+> **CC and MP reviews are not standing Council votes.** `council_request agent=cc` and `council_request agent=mp mode=review` are explicit non-voting second opinions outside the Gemini stand-in exception: otherwise never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
 > Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp")`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
-> Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model).
+> Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model); Max S1751, Event Ledger 1dccefe2 (Gemini-only CC stand-in).
 > Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
 ## Capabilities
@@ -87,8 +88,12 @@ The launcher does not pin a checkout, select files, retry, create a session, per
 
 Roster since S1721 (CORE §5): the required gate voters are exactly GLM,
 DeepSeek, and Gemini, unanimous 3/3. An unusable vote (no verdict, failed
-launch, or model mismatch) is rerun once; then the gate fails. CC is a
-non-Council second opinion by explicit name and is never counted. Kimi is
+launch, or model mismatch) is rerun once. If Gemini's rerun is still unusable,
+CC takes its third seat for that gate round; GLM and DeepSeek remain required.
+Any other voter's unusable rerun fails the gate. Record CC as standing in for
+Gemini and cite both failed Gemini response stamps in the gate record (Max S1751,
+Event Ledger 1dccefe2). Otherwise CC is a non-Council second opinion by explicit
+name and is never counted. Kimi is
 removed. There is no shadow seat: the shadow-seat mechanics below were built in
 S1649, remain in code, and apply only if a seat is ever registered outside the
 required set (`SHADOW_REVIEWERS` is empty today). The canonical roster is
@@ -155,7 +160,7 @@ Council consumption is observed by the record-only `council_providers` source in
 - Dynamic model configuration must stay on: a stock CLI rewrites any `*flash` id to gemini-3.5-flash, and a voter must never change model silently.
 - Model pin: `infra:council-comms` `body.model_policy.agent_frontier_models.gemini` (`gemini-3.8-flash`, v76+; Max: "until 4 is available"). `GEMINI_REVIEW_MODEL` is the voter's runtime override only. The response file is written only when the CLI's own record shows the pinned model served every `main` (reasoning) turn; otherwise the launch fails with `model_mismatch main=<ids>` and there is no vote. The gate applies the same model check to every member against its pin.
 - Credential: `VERTEX_GEMINI_KEY` from the launched MCP environment. It reaches the CLI but is redacted from the model-controlled shell.
-- Failure codes: `cli_not_installed`, `gemini_home_unprovisioned`, `credential_unavailable`, `timeout` (7200 s), `cli_output_unreadable`, `model_mismatch`, `empty_response`. Each is an unusable vote: rerun once, then the gate fails.
+- Failure codes: `cli_not_installed`, `gemini_home_unprovisioned`, `credential_unavailable`, `timeout` (7200 s), `cli_output_unreadable`, `model_mismatch`, `empty_response`. Each is an unusable vote: rerun once, then use CC as Gemini's stand-in for that gate round if the rerun is still unusable (Max S1751, Event Ledger 1dccefe2; record both failed Gemini response stamps).
 - Verified live configuration, 2026-09-21 (S1733): GLM = `glm-5.3` from z.ai, reasoning effort `max`; DeepSeek = `deepseek-v4-pro`, reasoning effort `xhigh`; both Codex CLI 0.153.4, `codex exec --ephemeral --skip-git-repo-check -o <response>`, `:read-only` permission profile, live web search, network on, `~/.codex` denied, provider key excluded from the model's shell, deployed `config.toml` byte-identical to the checked template. Gemini = `gemini-3.8-flash` on CLI 0.60.0; the release checker found no Gemini 4 id answering on Vertex at 07:15 UTC. Hardcoded fallback pins in `council_gate_runner.py` agree with all three. CC (non-Council) = `claude-opus-4-8`, effort max, inside `sandbox/council_member.sb`.
 - Release checker: launchd `com.koskadeux.gemini-release-checker`, daily 09:15 local, `scripts/check_gemini_release.py`. It follows the Living State pin (never the runtime override), probes candidate Gemini 4 ids with the free countTokens call, and opens one ops-board ticket when one answers or when the pinned model stops answering. It only reports; switching the pin is Max's decision. Exit 1 means it could not run or ran incompletely. Verify: `launchctl list | grep gemini-release-checker` (last exit 0). It replaces `com.koskadeux.eu_gemini_checker`, booted out in S1721 (plist in `~/Library/LaunchAgents/archive-s1721/`).
 
@@ -282,7 +287,7 @@ Call `council_request(agent="mp", mode="review", task=<review request>)`, or sup
 | ID | Symptom | Probable Causes | Verification Procedure | Repair Ref | Confidence |
 |---|---|---|---|---|---|
 | F-01 | `no response written after` | CLI failure or member did not write the named file | Read the launcher's bounded output and check the exact response path | G-01 | CONFIRMED |
-| F-08 | A member worker is still running long after its peers answered, the launcher log has stopped growing, and its last lines are a retry such as Gemini `Attempt 1 failed. Retrying with backoff... fetch failed` (S1737: 22 min, no progress after minute 5) | The CLI is hung on a network retry and will not write a response | `ps -eo pid,etime,command \| grep "council_dir.py start <member>"`; compare the launcher log mtime with now | Stop the worker and its children (`kill -TERM` on each `pgrep -P <pid>` child, then the worker), confirm no process names the request, then dispatch the request again. That redispatch is the voter's one allowed rerun; if it also returns nothing the gate fails | CONFIRMED |
+| F-08 | A member worker is still running long after its peers answered, the launcher log has stopped growing, and its last lines are a retry such as Gemini `Attempt 1 failed. Retrying with backoff... fetch failed` (S1737: 22 min, no progress after minute 5) | The CLI is hung on a network retry and will not write a response | `ps -eo pid,etime,command \| grep "council_dir.py start <member>"`; compare the launcher log mtime with now | Stop the worker and its children (`kill -TERM` on each `pgrep -P <pid>` child, then the worker), confirm no process names the request, then dispatch the request again. That redispatch is the voter's one allowed rerun; if Gemini's rerun also returns nothing, use CC as its stand-in and record both failed Gemini response stamps (Max S1751, Event Ledger 1dccefe2); if any other voter's rerun returns nothing, the gate fails | CONFIRMED |
 | F-02 | `GLM_z_AI_API_KEY is not set`, `MOONSHOT_API_KEY is not set`, or `DEEPSEEK_API_KEY is not set` | Credential was not injected into the MCP process | Check presence and approved source without printing the value | G-02 | CONFIRMED |
 | F-03 | CC returns `auth_unavailable`, `cc_busy`, or `Not logged in`; **or** a submitted CC review never produces its response file while `council/cc/launcher-<stamp>.md.log` ends with `dedicated CC profile busy after bounded lock wait of 900s; holder: pid=<n>` | The dedicated CC profile is absent, its OAuth login is unusable, or another CC review (often the peer instance's) holds the profile lock; a detached dispatch that waits out the 900 s bound exits with only that launcher-log line — `council_request` already returned `submitted`, so nothing else reports the loss (S1718, request 20260917-142957) | Run `cc_profile.status()` and require `isolated=true` and `credential_usable=true`; for `cc_busy`, confirm the existing lock holder is still running; when polling for a CC response file, also read the launcher log — the busy line means re-dispatch once the holder's response file exists | G-03 | CONFIRMED |
 | F-04 | Response appears under an old wrapper task, Hall database, verdict branch, or `/var/tmp/koskadeux/verdicts` | Retired transport is still deployed or running | Inspect live tool list, process list, deployed SHA, and returned request/response paths | G-04 | CONFIRMED |
