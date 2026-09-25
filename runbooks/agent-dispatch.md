@@ -33,6 +33,7 @@ error_signatures:
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
+> The stand-in does not apply to a CORE amendment gate, which still requires GLM, DeepSeek and Gemini plus Max's direct approval (CORE §5).
 > **CC is not a standing Council member.** `council_request agent=cc` remains an explicit non-Council second opinion outside the Gemini stand-in exception: otherwise never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
 > Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
@@ -117,7 +118,7 @@ Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's s
 
 Per-agent:
 - **MP**: mandatory builder for both instances; never substituted; never a gate reviewer or voter.
-- **CC**: explicit-name, non-Council second opinion via the read-only review path (`council_request agent=cc mode=review`): plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified, full terminal envelope preserved through async status reads. It never counts in a gate and is never a build path for BQ/development code.
+- **CC**: explicit-name, non-Council second opinion via the read-only review path (`council_request agent=cc mode=review`), except as Gemini's S1751 stand-in: plan mode, no permission bypass, Read/Glob/Grep-only tool surface, pinned dispatch_sha, model verified, full terminal envelope preserved through async status reads. It never counts in a gate except as Gemini's S1751 stand-in and is never a build path for BQ/development code.
 - **Kimi**: removed entirely; no current dispatch or Council seat remains.
 - **DeepSeek**: required gate voter via the bounded read-only Codex transport. Its verdict is required for every complete panel and cannot be substituted by CC, MP, AG, or removed Kimi.
 - **GLM**: gate voter, review-only, with the same bounded read-only at-SHA repository tools as Kimi through the shared provider review loop. It has no write, shell, network, state, secret, restart, or deployment authority. Live exact-SHA proof: task `ff0f2f67` on koskadeux-mcp `fdf50693`; malformed terminal JSON was repaired once under the unchanged evidence identity and returned a binding verdict.
@@ -136,7 +137,7 @@ Dispatch is a gateway-controlled routing layer. Operators submit a task, target 
 
 Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder.
 
-Current operational truth is the block above: MP is mandatory builder, GLM/DeepSeek/Gemini are the required gate voters, CC is an explicit-name non-Council second opinion, Kimi is removed, and AG is retired.
+Current operational truth is the block above: MP is mandatory builder, GLM/DeepSeek/Gemini are the required gate voters, CC is an explicit-name non-Council second opinion except as Gemini's S1751 stand-in, Kimi is removed, and AG is retired.
 
 MP build base selection is independent of the mutable caller checkout. For
 `dispatch_mp_build`, an optional explicit `base_sha` must be a lower-case
@@ -150,8 +151,8 @@ fetch fails but the local origin ref is usable, the job records
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion; Vulcan | Normalizes task args and mode boundaries before backend invocation. |
-| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | GLM, DeepSeek, Gemini voters; CC non-Council second opinion | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
+| Dispatch Gateway | `koskadeux-mcp/tools/agents.py:_handle_call_*` | task records, Living State build refs | MP builder; GLM, DeepSeek, Gemini voters; CC non-Council second opinion except as Gemini's S1751 stand-in; Vulcan | Normalizes task args and mode boundaries before backend invocation. |
+| MP/Council review middleware | `koskadeux-mcp/tools/agents.py` review dispatch handlers and provider read-only review loop | immutable Git-object evidence, returned envelope | GLM, DeepSeek, Gemini voters; CC non-Council second opinion except as Gemini's S1751 stand-in | Preloads or reads exact-SHA review evidence and applies provider-specific bounds before dispatch. |
 | Kimi review path | removed | historical immutable Git objects and evidence only | Kimi | No current dispatch path or seat remains. |
 | git push guardrail, pre-push hook | repository pre-push hook and environment resolution | local ref, remote ref, push environment | git remote | Guards main pushes; remote-ref equality is authoritative for the push outcome. |
 | MP Backend | `koskadeux-mcp/dispatch_codex_cli.py` | Codex config, git branch, build task record | Codex CLI / GPT-5.5 | Synchronous reviews may time out; substantial builds use `dispatch_mp_build`. |
@@ -325,13 +326,13 @@ Timeout knobs:
 | Gemini | current gate-voter dispatch | pinned Vertex AI CLI | read-only review | COMPLETE |
 | AG | retired former dispatch from `antigravity_client.py` | removed | none | PARTIAL — retired; not a current Council path |
 | DeepSeek | dispatch from `deepseek_server.py` | DeepSeek API / deepseek-v4-pro | repo read | COMPLETE |
-| CC | explicit-name non-Council second opinion from Claude Code wrapper | Claude Code / Opus | read-only pinned-SHA review; no gate or BQ/development build authority | COMPLETE |
+| CC | explicit-name non-Council second opinion from Claude Code wrapper except as Gemini's S1751 stand-in | Claude Code / Opus | read-only pinned-SHA review; gate authority only as Gemini's S1751 stand-in; no BQ/development build authority | COMPLETE |
 | Kimi | removed | removed | none | PARTIAL — historical evidence only; no current dispatch path or seat |
 | GLM | Council gate voter through the shared parameterized Codex transport (`glm_codex_transport.py`) | Codex CLI / glm-5.3 direct from z.ai, reasoning effort max (verified 2026-09-21; the OpenRouter z-ai/glm-5.2 provider loop is history) | `:read-only` Codex permission profile, `~/.codex` denied, API key excluded from the model's shell; no writes | COMPLETE |
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
-This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. The live gate voter panel is GLM + DeepSeek + Gemini; CC is an explicit-name non-Council second opinion, Kimi is removed, and the Council roster block plus `infra:council-comms` carries current operational truth.
+This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. The live gate voter panel is GLM + DeepSeek + Gemini; CC is an explicit-name non-Council second opinion except as Gemini's S1751 stand-in, Kimi is removed, and the Council roster block plus `infra:council-comms` carries current operational truth.
 
 XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in Capabilities, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
 
@@ -923,8 +924,8 @@ rounds:
 
 The former degraded-round rule allowed a primary verdict to carry after a
 terminal DeepSeek failure. It is not current gate authority. Current gate rounds
-require complete valid GLM/DeepSeek/Gemini participation; a missing, failed, malformed,
-model-mismatched, or incomplete active voter fails the gate closed.
+require complete valid GLM/DeepSeek/Gemini participation (or CC as Gemini's S1751 stand-in); a missing, failed, malformed,
+model-mismatched, or incomplete active voter fails the gate closed after one rerun, except that Gemini's unusable rerun invokes the CC stand-in.
 
 ## §M Sandbox-Based Review-Mode Tool Restriction
 
@@ -1001,7 +1002,7 @@ GLM/DeepSeek/Gemini roster or permit fallback.
 This section records retained middleware plumbing from
 BQ-COUNCIL-DISPATCH-MIDDLEWARE-WIRING. References to AG or DeepSeek below are
 implementation history, not current gate eligibility; current voting uses only
-GLM, DeepSeek, and Gemini, CC is a non-Council second opinion, Kimi is removed,
+GLM, DeepSeek, and Gemini (or CC as Gemini's S1751 stand-in), CC is otherwise a non-Council second opinion, Kimi is removed,
 and MP is the mandatory builder.
 
 The wired middleware path fires only for structural dispatches:
@@ -1113,7 +1114,7 @@ Historical fallback behavior did not break dispatch:
 Manual diff inlining belonged to that former path and must not be used as
 current gate evidence. Current GLM and DeepSeek voters use only the bounded
 exact-SHA four-tool loop; Gemini uses its pinned voter path, and CC uses its
-pinned read-only path only for a non-Council second opinion.
+pinned read-only path for a non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received.
 
 Design references:
 
@@ -1271,7 +1272,7 @@ Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cf
 **Procedure (do NOT redispatch a rebuild):**
 1. Confirm delivery: `git log --oneline -3`, `git status --short`, and inspect the commit diff against the chunk's spec scope.
 2. Complete the wrapper's pre-push gates manually: run the chunk's new tests plus `ci_verification.py:CI_WORKFLOW_TEST_PATHS` locally; all green or stop.
-3. Run the chunk's Gate 3 review with the builder excluded and the complete active panel (MP built it → GLM + DeepSeek + Gemini review). CC may provide an explicit-name non-Council second opinion but cannot vote; Kimi is removed.
+3. Run the chunk's Gate 3 review with the builder excluded and the complete active panel (MP built it → GLM + DeepSeek + Gemini review). CC may provide an explicit-name non-Council second opinion but cannot vote except as Gemini's S1751 stand-in after its unusable rerun; Kimi is removed.
 4. On pass, push as a deliberate instance merge: `KD_ALLOW_MAIN_PUSH=1 git push origin main` (fast-forward only).
 5. Record the workaround: patch the BQ entity (chunk verdicts + `wrapper_incident`) and emit a `decision` event.
 
@@ -1295,7 +1296,7 @@ The manual-recovery loop in §U is now largely obsolete: the pipeline auto-recov
 The schema-sanitizer fix is now IMPLEMENTED: `antigravity_client._gemini_sanitize_schema` (koskadeux-mcp `fc8a0d4a`) recursively strips `additionalProperties`/`$schema`/`unevaluatedProperties` from every tool inputSchema before building Gemini FunctionDeclarations. The historical S1150 close schema triggered the incident; that field has since been retired. If AG ever fails again with `FunctionDeclaration ... extra_forbidden`, a NEW rejected key has appeared — add it to the `_REJECTED` tuple in the sanitizer rather than editing tool schemas.
 
 ## Gate-change consultation for shipped mandates (S1164, discharges S1164-D4)
-Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — GLM, DeepSeek, and Gemini — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL voter mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit GLM/DeepSeek/Gemini review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. CC may provide an explicit-name non-Council second opinion but never counts in the gate; Kimi is removed. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
+Loosening or altering ANY mechanism installed under a unanimous Council mandate (customer-data, security, auth, payments) requires a fresh design vote at the SAME bar (unanimous) BEFORE build — even when Max directs the change; his directive settles the business decision, the vote hardens the implementation invariants. Procedure: (1) write a compact spec stating context, the exact loosening, and the invariants that stay hard; (2) read infra:council-comms and dispatch the current standing voters — GLM, DeepSeek, and Gemini — with verdict APPROVE/APPROVED_WITH_MANDATES/REJECT; (3) fold ALL voter mandates into the build prompt as BINDING; (4) normal MP build → Gate 3 exact-commit GLM/DeepSeek/Gemini review → merge → Gate 4 live verify; (5) record the decision as a state event naming the vote and mandates. CC may provide an explicit-name non-Council second opinion but never counts in the gate except as Gemini's S1751 stand-in after its unusable rerun; Kimi is removed. Historical precedent: S1164 used the then-current MP/AG/DeepSeek roster; that roster is not current authority.
 
 ## §V — CC gate-review dispatch mechanics (S1231)
 
@@ -1944,7 +1945,7 @@ Precedent S691 (first complete codified application; predecessor durability gap 
 8. Verify env in BOTH the bash wrapper AND python child PIDs: `pstree -p <NEW_PID>`; for each PID, `ps -E -p <PID> | grep KOSKADEUX_DISABLE_LAPTOP_ROUTING` (no tr pipe).
 9. Cross-check `launchctl print gui/$(id -u)/<service>` shows the env var in the canonical 'environment' Dict, NOT only 'inherited environment'.
 10. Smoke the MP lane only through an explicitly bounded build-mode diagnostic in a disposable test branch; MP open-response/review mode is not current gate or review authority.
-11. If reviewer routing also changed, run separate read-only smoke reviews through the active GLM/DeepSeek/Gemini paths at an exact test commit; never use MP or CC as replacement voter coverage.
+11. If reviewer routing also changed, run separate read-only smoke reviews through the active GLM/DeepSeek/Gemini paths at an exact test commit; never use MP or CC as replacement voter coverage except CC as Gemini's S1751 stand-in after its unusable rerun.
 
 ### T-2026-000300 harness semantics (shipped 2026-07-21, koskadeux-mcp @ 57590559)
 

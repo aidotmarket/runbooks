@@ -32,6 +32,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
+> The stand-in does not apply to a CORE amendment gate, which still requires GLM, DeepSeek and Gemini plus Max's direct approval (CORE §5).
 > **CC and MP reviews are not standing Council votes.** `council_request agent=cc` and `council_request agent=mp mode=review` are explicit non-voting second opinions outside the Gemini stand-in exception: otherwise never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
 > Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp")`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
@@ -56,7 +57,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 There is one Council reviewer path.
 
-1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` and `mp` with `mode=review` are available by explicit name as non-Council second opinions.
+1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` and `mp` with `mode=review` are available by explicit name as non-Council second opinions, except that `cc` stands in for Gemini under S1751 after Gemini's unusable rerun.
 2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
 3. Return `status=submitted` with the request path and response path immediately.
 4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
@@ -74,7 +75,7 @@ The manual equivalent is:
 
 `ask all` and `run all` mean the three required reviewers, GLM, DeepSeek, and
 Gemini (`REQUIRED_REVIEWER_ORDER`). They never include CC or MP. Use `ask cc`
-or `ask mp` explicitly for a non-Council second opinion; neither is counted.
+or `ask mp` explicitly for a non-Council second opinion; neither is counted except `cc` as Gemini's S1751 stand-in, using the same request file Gemini received.
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -197,7 +198,7 @@ Chrome proof remain required before the cleanup can be called live.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| CC | Non-Council second opinion by explicit name; never counted (S1721) | Directory exchange | Own Council directory | COMPLETE |
+| CC | Non-Council second opinion by explicit name; never counted (S1721) except as Gemini's S1751 stand-in | Directory exchange | Own Council directory | COMPLETE |
 | Gemini | Council gate voter (S1721) | `gemini_transport.py` and directory exchange | Own sandbox (`sandbox/gemini_member.sb`); writes only its own home; launcher-injected Vertex key | COMPLETE |
 | GLM | Council gate voter | Directory exchange | Own Council directory | COMPLETE |
 | DeepSeek | Council gate voter (S1651) | Shared parameterized Codex transport and directory exchange | Dedicated `HOME`/`CODEX_HOME`; Infisical-injected DeepSeek key | REGISTERED |
@@ -216,7 +217,7 @@ Call `council_request(agent="mp", mode="review", task=<review request>)`, or sup
   pre_conditions: [member_is_glm_deepseek_gemini_or_cc, request_file_is_readable]
   tool_or_endpoint: council_request(agent=<member>, review_package_path=<request_file>)
   argument_sourcing:
-    agent: glm, deepseek, or gemini; cc only for a non-Council second opinion
+    agent: glm, deepseek, or gemini; cc for a non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received
     review_package_path: the exact file to copy into the member directory
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request path exists and the call returns without waiting for the response path}
@@ -229,7 +230,7 @@ Call `council_request(agent="mp", mode="review", task=<review request>)`, or sup
   pre_conditions: [member_is_glm_deepseek_gemini_or_cc, task_text_is_present]
   tool_or_endpoint: council_request(agent=<member>, task=<text>)
   argument_sourcing:
-    agent: glm, deepseek, or gemini; cc only for a non-Council second opinion
+    agent: glm, deepseek, or gemini; cc for a non-Council second opinion or, as Gemini's S1751 stand-in after its unusable rerun, use E-01 with the same request file Gemini received
     task: exact text to write to the request file
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request file contains the task and the call does not require the response file to exist}
@@ -242,7 +243,7 @@ Call `council_request(agent="mp", mode="review", task=<review request>)`, or sup
   pre_conditions: [required_member_credentials_available, request_file_is_readable]
   tool_or_endpoint: scripts/council_dir.py ask all <request_file>
   argument_sourcing:
-    request_file: one plain file; the same bytes are copied once to GLM, DeepSeek, and Gemini only; use ask cc explicitly for a non-Council second opinion
+    request_file: one plain file; the same bytes are copied once to GLM, DeepSeek, and Gemini only; use ask cc explicitly for a non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for CC}
   expected_failures:
@@ -396,7 +397,7 @@ Call `council_request(agent="mp", mode="review", task=<review request>)`, or sup
 - `dispatch_mp_build` is the only separately advertised public build trigger.
 - Build checking and listing are `council_request` actions, not separate tools.
 - GLM, DeepSeek, Gemini, and the non-Council CC and MP review paths all use `scripts/council_dir.py`.
-- CC and MP reviews are dispatchable by explicit name as non-Council second opinions. Their responses do not count toward Council consensus, gate mandates, or unanimous gate completion. A missing, failed, non-canonical, or model-mismatched required vote fails closed after one rerun.
+- CC and MP reviews are dispatchable by explicit name as non-Council second opinions. Their responses do not count toward Council consensus, gate mandates, or unanimous gate completion except that CC counts as Gemini's S1751 stand-in after Gemini's unusable rerun. A missing, failed, non-canonical, or model-mismatched required vote fails closed after one rerun, except that Gemini's unusable rerun invokes the CC stand-in; any other voter's unusable rerun fails the gate.
 - One request file produces one response file in the same member directory.
 - Responses are returned unchanged.
 - One member runs at most one request; busy creates no request file.

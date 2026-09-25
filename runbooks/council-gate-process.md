@@ -24,6 +24,7 @@ This runbook documents the stable gate-process slice: Build Queue entity shape, 
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
+> The stand-in does not apply to a CORE amendment gate, which still requires GLM, DeepSeek and Gemini plus Max's direct approval (CORE §5).
 > **CC is not a standing Council member.** `council_request agent=cc` remains an explicit non-Council second opinion outside the Gemini stand-in exception: otherwise never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
 > Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
@@ -89,7 +90,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | MP | mandatory builder; not a gate voter | Codex CLI / gpt-5.6-sol | repository write only in explicit build/author mode | COMPLETE |
-| CC | non-Council second opinion only; never counted (S1721) | Claude Code read-only review path | repository read | COMPLETE |
+| CC | non-Council second opinion except as Gemini's S1751 stand-in; never counted (S1721) outside that exception | Claude Code read-only review path | repository read | COMPLETE |
 | DeepSeek | active gate voter | shared parameterized Codex transport / deepseek-v4-pro | read-only fence on the pinned checkout | COMPLETE |
 | Gemini | active gate voter (S1721) | `gemini_transport.py` / pinned Gemini CLI 0.60.0, gemini-3.8-flash | own sandbox; read anything, write only its own home | COMPLETE |
 | GLM | active gate voter | shared parameterized Codex transport / glm-5.3 direct from z.ai (`config/glm_codex/config.toml`, reasoning effort max; verified 2026-09-21) | `:read-only` Codex permission profile; Codex writes the one response file via `-o` | COMPLETE |
@@ -136,7 +137,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
 - id: E-03
   trigger: A chunk build has landed and must pass Gate 3 post-build audit.
   pre_conditions: [feature_branch_exists, commit_sha_known, gate2_spec_reviewed, builder_recorded, connected_client_schema_lists_every_required_voter]
-  tool_or_endpoint: council_request(agent=<glm|deepseek|gemini>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) for every active voter; use agent=cc only for an explicit non-Council second opinion
+  tool_or_endpoint: council_request(agent=<glm|deepseek|gemini>, mode=review, task=<audit_prompt>, cwd=<repo>, dispatch_sha=<commit_sha>) for every active voter; use agent=cc for an explicit non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received
   argument_sourcing:
     audit_prompt: include Gate 1, Gate 2, commit SHA, changed files, and explicit read-only review instructions
     commit_sha: use the build commit being promoted
@@ -166,7 +167,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
     - {signature: cross_review_block, cause: only builders supplied approval or verification}
     - {signature: break_glass_left_enabled, cause: emergency sentinel was used and not removed}
   next_step_success: Close the session handoff with entity key, commit, and verification summary.
-  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current GLM/DeepSeek/Gemini panel; an independent base-valid MP approval can satisfy completion only when MP is neither builder nor author and cannot replace a required gate voter, while CC second opinions cannot satisfy completion.
+  next_step_failure: Use F-01 or F-04 and obtain valid read-only evidence from the current GLM/DeepSeek/Gemini panel (or CC as Gemini's S1751 stand-in); an independent base-valid MP approval can satisfy completion only when MP is neither builder nor author and cannot replace a required gate voter, while CC second opinions outside the stand-in exception cannot satisfy completion.
 - id: E-05
   trigger: A guard-class (decides-something) change reaches Gate 4 and state_request(action=bq_complete) requires directional evidence, not prose, that the guard works in the deployed direction.
   pre_conditions: [gate3_passed, merge_sha_pinned, real_gate_implementation_importable, bq_entity_live, evidence_path_writable]
@@ -230,7 +231,7 @@ MP is the mandatory builder and is excluded from voting on its own work. The act
   component_ref: Compliance Gate
   root_cause: Author-mode and review-mode provenance were mixed, so the same agent may count as builder and reviewer.
   repair_entry_point: BQ-COUNCIL-COMPLIANCE-GATE-AUTHORING-DISTINCTION
-  change_pattern: Discard the tainted review as completion evidence, preserve it as build context if useful, and redispatch strict read-only review to the required current GLM/DeepSeek/Gemini voter; MP and CC (non-Council) cannot replace that voter.
+  change_pattern: Discard the tainted review as completion evidence, preserve it as build context if useful, and redispatch strict read-only review to the required current GLM/DeepSeek/Gemini voter; MP and CC (non-Council) cannot replace that voter except CC as Gemini's S1751 stand-in after its unusable rerun.
   rollback_procedure: Remove the tainted reviewer verdict from gate evidence while keeping the builder record.
   integrity_check: Verify no files changed during the replacement review dispatch.
 - id: G-05
