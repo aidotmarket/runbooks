@@ -292,6 +292,10 @@
 
 - [Council Review Collection, Gate Recording, and Lane Coordination](runbooks/council-review-collection.md)
 
+## `compose-contract: FAIL: missing: live Stripe secret-key prefix refused before network access`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `config_read_ok false`
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
