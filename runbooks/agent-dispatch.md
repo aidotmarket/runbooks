@@ -1300,13 +1300,13 @@ Loosening or altering ANY mechanism installed under a unanimous Council mandate 
 
 ## §V — CC gate-review dispatch mechanics (S1231)
 
-CC (`council_request agent=cc mode=review`) is a read-only gate voter with filesystem access, but its dispatch contract differs from the shared Kimi/GLM exact-SHA review loop:
+CC (`council_request agent=cc mode=review`) is a read-only non-Council second opinion with filesystem access, except as Gemini's S1751 stand-in after its unusable rerun; its dispatch contract differs from the shared Kimi/GLM exact-SHA review loop:
 
 - **Pinned worktree required.** `cwd` must be a checkout whose HEAD equals `dispatch_sha`, or the dispatch fails `checkout_not_pinned` (`cc_review_target_invalid`). Never re-point the live server checkout (`/Users/max/koskadeux-mcp`); create a detached worktree: `git worktree add --detach <path> <sha>` and pass that as `cwd`.
 - **Exactly one pinned ref.** Supplying conflicting `dispatch_sha`/`head`/`sha` aliases fails `dispatch_sha_alias_conflict`; supplying none fails `dispatch_sha_required`.
 - **Inline diff cap, CC-only.** The CC preload inlines the pinned diff and HARD-FAILS loud (`cc_review_diff_truncated`) if it exceeds `CC_REVIEW_DIFF_INLINE_CAP_CHARS` (env, default 120000, read at process start — a change needs a handler restart). Shipped T-2026-000263 @ koskadeux-mcp 83c9189d after a 45.4k single-file Gate 2 spec could not pass the shared 40k cap and `review_paths` cannot narrow a single file.
 - **Historical inline-diff truncation controls remain relevant only to CC and retained legacy backends.** CC's preload fails closed on `cc_review_diff_truncated`. The former GLM and Kimi inline-cap defects tracked by T-2026-000399/T-2026-000400 were superseded by deployed `fdf50693`: both use the shared exact-SHA loop with only `read_file_at_sha`, `list_dir_at_sha`, `grep_at_sha`, and `git_show`, pagination to completion, and required-file coverage before a verdict. DeepSeek's S1651 required vote uses its bounded read-only Codex transport, not the retained inline backend.
-- **Model verification.** A `model_matched: false` voter result discards the vote (CORE §5); redispatch that voter. A CC result never counts as a vote.
+- **Model verification.** A `model_matched: false` voter result discards the vote (CORE §5); redispatch that voter. A CC result never counts as a vote except as Gemini's S1751 stand-in (Max, Event Ledger 1dccefe2).
 - **Historical output-schema contract (S1248; superseded by the current Council directory transport).** The former CC review path injected no output schema into the prompt and validated the final message against `council_output_schemas.TARGET_VERDICT_SCHEMA`. The live response-file path in `runbooks/council.md` preserves reviewer output unchanged, including a `REJECT` with no mandates, and operators must not invent a mandate.
 
 ## §W — A dispatched build reports "running" for ever (abandoned worker, S1338, discharges S1338-D1)
