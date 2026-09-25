@@ -1,3 +1,5 @@
+> **SUPERSEDED by Event `352e36a6` and [BQ-LISTING-LICENSES-S1735-AMENDMENT-TEXT-ONLY-CUSTOM-S1738.md](BQ-LISTING-LICENSES-S1735-AMENDMENT-TEXT-ONLY-CUSTOM-S1738.md).** The scanner service is cancelled.
+
 # BQ-LICENSE-SCANNER-SERVICE-S1738 Gate 1 design specification
 
 **Status:** Proposed Gate 1 design; no Council approval, implementation, merge, or deployment is asserted.
