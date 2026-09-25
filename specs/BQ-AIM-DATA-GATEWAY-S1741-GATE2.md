@@ -385,6 +385,7 @@ Mars read §0–§5 (peer #6003) and his answers are folded: download by navigat
 - **What is recorded.** For each file: size, modification time, media type (from magic bytes, using a small built-in table; `application/octet-stream` otherwise), a streamed SHA-256 and, in the same read, a **block list**: the SHA-256 of each 8 MiB block (the last one may be shorter). The block list stays in `gateway.db` and is never sent. For inventory only, a file is re-hashed when its size or mtime changes; serving never relies on size or mtime (§6.6).
 - **Rescan.** Every 15 minutes, and immediately after reconnecting. There is no remote rescan request (GLM SIMPLER).
 - **What is sent.** Phase-1 records (§3.5 ids and commitments, plus display names) go in `inventory` messages of up to 1,000 records each, as a full snapshot with a generation number, so deletions are visible.
+- **Deletions (Amendment B, S1750).** Because a generation may span several messages, the server never infers a deletion from absence. A file that was in the gateway's previous inventory and is no longer found is sent in the next generation with `present: false`. The resume rule in §7.2 guarantees that entry arrives, so it is sent once.
 
 ### 6.3 Description (phase 2)
 
@@ -481,6 +482,10 @@ A description runs only for a signed `describe` instruction (§3.2) that is unex
 - **Pairing.** `POST /api/v1/gateway-channel/pair {code, gateway_public_key, version}` returns `{gateway_id, permission_keys: [{kid, alg, key}], listing_keys: [...], minimum_version, canary_host, canary_zone}`. This is the only unauthenticated call; the single-use code authorises it, under the limits in §1.1.
 - **Connection.** On each connection the server sends a 32-byte nonce. The gateway answers with a signed `hello {gid, nonce, version, ts}`, and the server verifies it against the registered public key.
 - **Gateway → server messages.** Every one is signed by the gateway key, with a monotonic `seq`. These are the audit-log entries.
+- **Resume and acknowledgement (Amendment B, S1750).** The server accepts audit entries strictly in order (`seq` = last stored + 1, `prev_hash` = last stored entry hash) and refuses a repeated `seq`, so the gateway must know where the server stopped:
+  - After it verifies `hello`, the server sends `{"resume": {"seq": <last stored seq, 0 if none>, "entry_hash": "<its entry hash, empty if none>"}}` before anything else. The gateway resends its local audit entries from `seq + 1` in order. If the server's `seq` is ahead of the gateway's log, or the hash does not match the gateway's own entry at that `seq`, the gateway stops sending, logs `audit_divergence` locally and retries on the next connection; it never rewrites or skips local entries.
+  - After storing each entry, the server sends `{"ack": <seq>}`. The gateway treats an entry (for example a queued receipt) as delivered only once its `seq` is acknowledged, either by `ack` or by a later `resume`.
+  - Neither message is signed: both only report what the server stored, the gateway's entries stay self-authenticating through the hash chain, and a false value can only make the gateway resend (refused as out of order) or wait, never lose or forge an entry.
 - **Server → gateway messages.** Every one is a signed instruction (§3.2). There are no unsigned requests.
 - **Prepare (GLM BETTER, GLM 5).** Before any permission is returned, first issue or re-issue, the backend sends `prepare` and waits up to 10 seconds for `prepare_ack`. The gateway runs serve-order steps 3–5 (§6.6), checks that it holds the block list for `sha256`, and returns its resume point and coverage summary. The backend issues the permission only when `ready` is true, with `ro` set by the re-issue `mode` (§2.2).
 
