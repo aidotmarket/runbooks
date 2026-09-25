@@ -1,7 +1,7 @@
 ---
 title: Council Gate Process
 owner: mp
-last_verified: '2026-09-21'
+last_verified: '2026-09-25'
 aliases: []
 error_signatures:
 - authoring_distinction_trap
@@ -21,6 +21,12 @@ error_signatures:
 ## Overview
 
 This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
+
+> **ACTIVE OVERRIDE - Max S1738, Event Ledger `d50cbd80` (2026-09-25). Applies to Mars and Vulcan for every review. Read this before the roster block below.**
+> Max, verbatim: "I would like for you to implement option A. for all future reviews for both you and Vulcan. I would like to drop gemini as a reviewer and use CC for 10 days until Gemini 4 is out and stable for all reviews, you and vulcan. I would also like to implement option c."
+> 1. **Roster (d50cbd80):** for 10 days, 2026-09-25 to 2026-10-05, until Gemini 4 is out and stable, Gemini is not dispatched for any review. CC holds the third voting seat; GLM and DeepSeek are still required and the panel stays unanimous. No Gemini attempt or failed response stamps are needed; the gate record says "CC in Gemini seat per d50cbd80". Controller practice (not part of d50cbd80): at the end of the period, confirm with Max before dispatching Gemini again.
+> 2. **Review package standard (d50cbd80, option A):** before any dispatch the controller (a) creates a detached worktree pinned at the exact candidate SHA (`git worktree add --detach <path> <sha>`) with dependencies installed and passes it as `cwd`; (b) runs the focused tests and lint there and puts the commands and results in the request; (c) checks the cross-repo contract (response headers vs browser reads and CORS exposure, UI labels vs test selectors, pinned SHAs, API fields) and fixes mismatches before review; (d) sends companion PRs of one release as one package; (e) asks for verdict plus findings only.
+> 3. **Tiering and re-review (d50cbd80, option C):** small changes that do not touch the money path, auth, security or customer data get one reviewer; specs and changes touching those areas get the full unanimous panel. Classify with the tier rule and escalation triggers in `runbooks/council-gate-process.md`, section "Rational-use tiering and stopping rules (ADOPTED by Max, 2026-08-18, S1570)"; its Tier 3 list, including the fail-closed envelope around those areas, always takes the full panel. When a fold is re-reviewed, it goes only to the reviewer(s) who raised the finding and covers only the delta, including HIGH findings, unless the fold changes the design, in which case every voter re-reviews. This replaces the earlier standing rule that HIGH folds go to all three voters. Precedence: S1570's stopping rule still decides whether a re-review is needed (objective, locally verifiable APPROVE_WITH_MANDATES items end the review once the evidence is recorded; REQUEST_CHANGES and REJECT findings are always re-reviewed); d50cbd80 decides who re-reviews.
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
