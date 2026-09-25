@@ -276,6 +276,10 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `Cloudflare token re-read returned an unexpected state`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `Codex FIFO unavailable`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
@@ -359,6 +363,10 @@
 ## `Data verification unavailable.`
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
+
+## `database cardinality result incomplete`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `Dataset with id '<id>' not found.`
 
@@ -547,6 +555,10 @@
 ## `Failed to authenticate Gmail`
 
 - [GCP Auth](gcp-auth.md)
+
+## `Failed to proxy http://localhost:18000`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `FAILED_VOIDED`
 
@@ -1372,6 +1384,10 @@
 
 - [Money-Path Clean-Seed Proof Loop and the S3 Verification-Artifact Route](money-path-proof-loop.md)
 
+## `s3-fixture: refused or failed; inspect run ownership and required test-env configuration (provider details suppressed)`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `SAMPLE_MAX_FILE_BYTES: {configured_limit}`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
@@ -1556,6 +1572,10 @@
 
 - [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
 
+## `synthetic_purchase_requires_e2e_guard`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `target socket remains usable after a check opportunity`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
@@ -1739,6 +1759,10 @@
 ## `wrong_emergency_lever`
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
+
+## `x-api-key header is required`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `you cannot find the reasoning for an existing choice`
 
