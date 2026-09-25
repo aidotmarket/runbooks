@@ -272,6 +272,14 @@
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
 
+## `Cloudflare DNS analytics unavailable`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
+## `Cloudflare GraphQL error`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
 ## `Cloudflare targets remain or absence is unproved`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
@@ -279,6 +287,10 @@
 ## `Cloudflare token re-read returned an unexpected state`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `Cloudflare zone unavailable`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
 
 ## `Codex FIFO unavailable`
 
@@ -727,6 +739,10 @@
 ## `interactive-login garbage from the infisical CLI`
 
 - [Account Teardown & User-Data Erasure](account-teardown.md)
+
+## `invalid canary label`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
 
 ## `invalid_assignment_query`
 

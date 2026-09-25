@@ -108,6 +108,15 @@
 - Error signatures: Device ID already registered to another user, AUTH_FAILED or Device is inactive or revoked, HTTP 503 KMS not ready, HTTP 404 Device not found, target socket remains usable after a check opportunity, A remains authorized after an exception, B disconnects with A, no targeted indeterminate injection exists, zero rows, active DB row but no live socket, CRYPTO_SCHEME_MISMATCH, KMS readiness check failed
 - Status: current
 
+## AIM Data gateway — operations
+- Path: `aim-data-gateway.md`
+- Purpose: The AIM Data gateway is the small open-source Go service that sellers run with Docker to list and serve files from their own infrastructure. It replaces legacy AIM Data (`aim-data.md`), which is frozen. Design authority: `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE1.md` and `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE2.md`. Build record: Living State `build:bq-aim-data-gateway-rebuild-s1741`.
+- Owner: `vulcan`
+- Last verified: `2026-09-25`
+- Aliases: aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary
+- Error signatures: Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label
+- Status: current
+
 ## AIM Data Release Process
 - Path: `aim-data-release-process.md`
 - Purpose: Builds and publishes new AIM Data versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds, and runs smoke tests.

@@ -468,6 +468,7 @@ A description runs only for a signed `describe` instruction (§3.2) that is unex
 
 - **Result.** `closed` only if every probe is closed and there is no server-side hit. `open` and `unknown` make the gateway `unsupported`: no new permissions and no publishing. Detection latency is at most 1 hour.
 - **Reporting.** A `canary_result` message reports `{state, dns, tcp, proxy, label, at}`.
+- **Server-side evidence is sampled (Amendment C, S1751; Max decision, Event Ledger dde536b1).** ai.market reads the server-side side from Cloudflare DNS analytics for the canary zone, which keeps 1 in 10 queries (`sampleInterval` 10). A logged query for the label within the window makes the result `open`. A query that is not in the logs counts as "no server-side hit", as the table above says; it is not proof that no query was made. The gateway's own signed result stays the main evidence. The server-side check catches a gateway that reports `closed` while its egress is open about 1 time in 10 per hourly canary, about 92% within 24 hours. A complete log source (our own authoritative name server for the canary zone) is a possible later hardening; it is not required for flag-on. Operations: `aim-data-gateway.md`.
 
 ## 7. Control channel
 
