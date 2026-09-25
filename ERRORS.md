@@ -716,6 +716,10 @@
 
 - [Agent Completeness](runbooks/agent-completeness.md)
 
+## `Incorrect API key provided: sk-svcac`
+
+- [Codex / MP — Council Primary Builder](codex-mp.md)
+
 ## `infrastructure_locator_guessed`
 
 - [Infrastructure Discovery](runbooks/infrastructure-discovery.md)

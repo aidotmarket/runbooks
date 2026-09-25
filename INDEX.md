@@ -384,7 +384,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-09-24`
 - Aliases: none
-- Error signatures: gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo
+- Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo
 - Status: current
 
 ## Connectivity Layer
