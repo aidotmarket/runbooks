@@ -19,10 +19,13 @@ immutable tree; source identity does not prove the deployed SHA. Runbooks base:
 
 ## 1. Problem and evidence
 
-1. The application installs `AgentAuthMiddleware` over the entire `/api/v1/agent` prefix. Its
-   public-prefix list does not include Agent API routes, so every such path first needs
-   `X-API-Key`; absent headers receive 401 `x-api-key header is required`.
-   [aidotmarket/ai-market-backend@7643fc8b42a895f90776fd53c9784631ef21d658:app/main.py:795-806;
+1. The application installs `AgentAuthMiddleware` over `/api/v1/agent`. Its existing public
+   exceptions are `/api/v1/agent/openapi.json`, `/api/v1/agent/llms.txt`,
+   `/api/v1/agent/sse` and `/api/v1/agent/tools/call`; the latter two are existing public MCP
+   transport/tool routes with their own controls. Protected search, details, eval, wallet,
+   purchase, order and delivery paths first need `X-API-Key`; absent headers receive 401
+   `x-api-key header is required`.
+   [aidotmarket/ai-market-backend@7643fc8b42a895f90776fd53c9784631ef21d658:app/main.py:795-814;
    aidotmarket/ai-market-backend@7643fc8b42a895f90776fd53c9784631ef21d658:app/middleware/agent_auth.py:21-30,80-108]
 2. The key service looks up an eight-character prefix and SHA-256 key hash in `agent_api_keys`,
    checks active/revoked/suspended status, and returns scopes, spend cap/used and requests per
@@ -98,12 +101,22 @@ bounded spend cap before purchase; administrative ceilings and authorization are
 The policy is not synthesized from the JWT. The client, user, organization and policy are re-read
 for paid operations, so revocation and budget changes take effect during token lifetime.
 
-Legacy `agent_api_keys` remain valid under the old path during migration. Existing key-plus-OAuth
-callers continue to work only when the two credentials resolve to the same user/organization;
-mismatched dual credentials fail closed. After the flag is enabled, a valid OAuth bearer is
-sufficient for Agent API routes, and a valid legacy key can accompany it without changing its
-effective identity or raising its limits. Never select whichever of two conflicting credentials
-grants more authority.
+Legacy `agent_api_keys` remain valid under the old path during migration. Source search implies
+production rows are expected to be zero: M2 deliberately key-gated the Agent Beta, provides no
+issuance path, and only tests insert keys. This is a hypothesis, not a production count. Gate 2
+must read the production row count without exposing keys or owner data before rollout. If nonzero,
+pause enablement, measure active use through privacy-safe counts and route traces, preserve the
+legacy path, and return a concrete caller migration/compatibility plan for review before enabling
+the flag. No automatic key retirement or backfill is assumed.
+
+**Exactly one credential is selected per request.** With the flag on, a syntactically valid OAuth
+bearer selects the OAuth actor; `X-API-Key`, if also sent, is ignored entirely for authorization,
+charging and records. A malformed/invalid bearer never falls back to a key. Without a bearer, a
+key-only request takes the unchanged legacy path. With the flag off, the current key middleware
+and route dependencies remain authoritative, including any route's existing independent OAuth
+check. Ignoring an extra key under flag on lets a caller remove a stale header without changing
+OAuth authority; selecting only the bearer prevents the extra credential from increasing scope,
+RPM or spend cap. The selected policy alone owns reservation and release.
 
 ### 2.1 Route classification
 
@@ -116,13 +129,16 @@ grants more authority.
 | `GET /api/v1/agent/wallet/balance`, `POST /api/v1/agent/wallet/deposit` | OAuth, wallet scope | No anonymous zero-balance response; deposit still requires user authority and Stripe controls. |
 | `POST /api/v1/agent/purchase`, `POST /api/v1/agent/orders/instant` | OAuth, `market.purchase`, paid policy | Same spend reservation, licence, seller, funds and synthetic guards. |
 | `GET /api/v1/agent/orders`, `GET /api/v1/agent/orders/{id}/data`, `POST /api/v1/agent/orders/{id}/request_access`, `GET /api/v1/agent/orders/{id}/artifact` | OAuth, owner and scope | No order enumeration or access by another user/client/organization; licence gate before issuance. |
-| Other routes mounted at `/api/v1/agent/*`, including tool and SSE routers | Current authorization until inventoried | No wildcard public exemption; explicit route-table review and separate approval. |
+| `GET /api/v1/agent/sse`, `POST /api/v1/agent/tools/call` | Existing public MCP admission | Retain existing transport/tool policy and rate controls; this flag does not extend their authority. |
+| Other routes mounted at `/api/v1/agent/*` | Current authorization until inventoried | No wildcard public exemption; explicit route-table review and separate approval. |
 
 The three anonymous catalogue routes serve the P3 discoverability goal without allowing sample
 bytes or economic actions. They may require a public projection rather than exposing current
 service output directly. Existing public root discovery paths retain their own policy. Exact
 method and routed ASGI path determine admission; a matching text prefix cannot open a sibling
-route.
+route. Gate 2 must test each route and method, including the four exceptions above, under flag
+off, flag on and rollback. Today's middleware uses public *prefixes*; implementation must replace
+that ambiguity with exact routed-path classification while preserving each exception's policy.
 
 ### 2.2 Principal and credential binding
 
@@ -151,11 +167,30 @@ route.
    not a bearer token, JWT `jti`, secret or caller-supplied ID. The order, acceptance, transaction
    and audit row agree on principal and credential. S1735's immutable document hash, signer
    authority, active acceptance and issuance gates remain in force.
-6. A request with both bearer and key must validate both. Require their user and organization
-   binding to agree and use the more restrictive applicable scope and cap, reserving against both ledgers atomically if both
-   are presented for a paid action. Reject a revoked or
-   suspended presented key rather than ignoring it. No fallback from a bad bearer to a valid key,
-   or from a bad key to a valid bearer.
+6. Request actor resolution follows the single-credential matrix below. An ignored header cannot
+   supply a principal, scope, rate budget, cap, transaction link or audit identity. Any downstream
+   dependency still reading both credentials must be migrated to the selected actor before
+   flag-on admission; otherwise the route stays closed.
+
+| Flag | Headers on a protected request | Admission and principal | Scope and RPM | Reservation, transaction linkage, audit, idempotency and release |
+| --- | --- | --- | --- | --- |
+| Off | OAuth only | 401 at key gate; no actor. | None. | None. |
+| Off | Key only | Valid key enters today's route; existing downstream bearer requirements still apply. Key principal. | Existing key scope and in-process key RPM. | Existing key spend behavior, `api_key_id`, key audit/idempotency/release; no OAuth charge or new linkage. |
+| Off | Both | Today's key gate and route dependencies apply; no new OAuth admission. Key is the middleware actor. | Existing key scope and in-process key RPM; any route's existing bearer check remains. | Existing key spend behavior/linkage and route behavior; no new OAuth policy reservation. |
+| Off | Neither | 401 at key gate; no actor. | None. | None. |
+| On | OAuth only | Valid agent bearer admits. OAuth client, owner and bound organization are the actor. | Intersection of token/client/policy/route scopes; shared client RPM. | One OAuth policy reservation when paid; `oauth_client_id` only; OAuth audit, namespaced idempotency and one release. |
+| On | Key only | Today's valid-key path and downstream requirements. Key principal. | Existing key scope and in-process key RPM. | Existing key spend behavior, `api_key_id`, key audit/idempotency/release; no OAuth charge. |
+| On | Both | Valid agent bearer admits; key ignored even if invalid or mismatched. Invalid bearer denies without fallback. OAuth principal only. | OAuth intersection and shared client RPM only. | One OAuth policy reservation when paid; `oauth_client_id` only; OAuth audit, namespaced idempotency and one release; no key charge/link. |
+| On | Neither | Denied; no actor. | None. | None. |
+
+For every selected OAuth request, the OAuth client's current owner/organization and policy own
+scope, shared RPM counter, spend reservation, `transactions.oauth_client_id` (and no
+`api_key_id`), namespaced licence credential, audit identity, idempotency namespace and exactly
+one release. For every selected key request, the existing key principal/scope, in-process key RPM,
+key spend behavior, `transactions.api_key_id` (and no `oauth_client_id`), audit identity,
+idempotency and release remain exactly as today. A denied request creates no reservation or
+transaction. Public exceptions and newly approved anonymous discovery use their route-specific
+public policy, not this protected-credential matrix.
 
 ### 2.3 Spend, checkout and records
 
@@ -173,6 +208,18 @@ route.
    organization ceiling. No missing/zero policy is treated as unlimited; zero cap denies paid
    actions. Configure integer cents, nonnegative bounds and a deliberate owner/admin update rule.
    Rate limit and spend cap failures are distinct 429/403 outcomes.
+   Every OAuth-admitted protected request, including reads and rejected paid attempts after
+   admission, must consume the selected client's `rate_limit_rpm` budget before route work. Use a
+   shared Redis sliding-window counter keyed by OAuth client ID, building on
+   `app.core.redis_cache.redis_rate_limit_check_strict`. Its current pipeline performs count and
+   increment as separate Redis operations, so Gate 2 must make the check/increment atomic (for
+   example a Lua script) before using it across replicas. A missing/nonpositive RPM policy or
+   unavailable shared limiter fails protected OAuth admission closed; over-limit returns 429
+   `Retry-After` (positive seconds), while scope denial and spend-cap denial retain separate
+   reasons/statuses. Public-route limits and legacy key RPM keep their existing policies.
+   Client/policy suspension and revocation must deny protected OAuth requests within 5 seconds
+   across replicas, including already-issued tokens; paid operations re-read authoritative state
+   immediately before reservation/charge.
 4. Extend transactions with nullable `oauth_client_id` referencing the OAuth client, while
    retaining `api_key_id` for historical and legacy transactions. New agent transactions require
    exactly one credential FK, with a validated ownership snapshot. Do not create a dummy
@@ -198,6 +245,9 @@ route.
    abuse signal; local process memory alone does not coordinate replicas. Set explicit burst and
    minute ceilings in Gate 2, with `Retry-After`, metrics and a quick disable switch. Use the
    backend's canonical trusted-IP resolver.
+   `/api/v1/agent/sse` and `/api/v1/agent/tools/call` are already public MCP surfaces; their
+   present transport/tool limits and disclosure policy remain in force outside this flag. Gate 2
+   inventories and tests them explicitly before changing any of those controls.
 3. Bound query length, `limit`, result work, evaluation cost and pagination. Avoid unbounded
    fan-out and cache stampedes. Anonymous responses may be cached briefly only when the projection
    is public and seller changes invalidate or expire safely; private bearer responses are
@@ -241,31 +291,39 @@ route.
 7. **Schema transition:** new nullable OAuth references must not rewrite historical key-linked
    transactions or audit rows. Migration and rollback must preserve both identities and all legal
    acceptance records.
-8. **Compatibility:** any existing key use must keep working under the flag only with matching
-   OAuth principal; report observed key users via privacy-safe counts before enforcing a
-   retirement schedule. No key revocation is authorized by this spec.
+8. **Compatibility:** key-only use keeps today's behavior under either flag setting. When both
+   headers are present under flag on, only OAuth has authority; the extra key never widens it.
+   Verify the production key-row count read-only and resolve any nonzero active use before
+   enablement. No key revocation is authorized by this spec.
 
 ## 5. Acceptance criteria
 
 - **AC1 — route policy:** a generated FastAPI route inventory lists every method under
   `/api/v1/agent`, including mounted tool/SSE routes, with exact anonymous/protected treatment.
   Flag off reproduces current 401 for unauthenticated search; flag on returns 200 for a valid
-  anonymous `q=test` search and public OpenAPI/eval, without exposing private fields.
+  anonymous `q=test` search and public OpenAPI/eval, without exposing private fields. Exact-path
+  classification tests cover search, details, eval, OpenAPI, llms.txt, SSE and tools/call with
+  flag off, on and rolled back, preserving the four existing exceptions' separate policies.
 - **AC2 — one credential:** an eligible self-service OAuth client can obtain the documented agent
   bearer and call protected routes without `X-API-Key`. The response, decoded claims and handler
   agree on type, audience, subject, client and scopes. A client-credentials request does not
   silently grant authorization-code delegation.
 - **AC3 — negative auth:** absent/invalid/expired/wrong-audience/user/AIM Data/refresh bearer,
-  inactive owner, revoked client, suspended policy, removed organization membership and mismatched
-  dual credentials cannot access protected data or purchase. Revocation is effective for an
-  existing token within the stated SLA.
+  inactive owner, revoked client, suspended policy and removed organization membership cannot
+  access protected data or purchase. A bad bearer with a valid key cannot fall back. Under flag
+  on an extra mismatched or invalid key is ignored; the bearer receives only its own policy.
+  Suspension/revocation is effective for existing tokens across replicas within 5 seconds and
+  is re-read immediately before charge.
 - **AC4 — scopes:** `market.read`, wallet and `market.purchase` are separately enforced; read-only
   clients cannot deposit, buy or issue delivery. No default `read write` string implies
   `market.purchase`.
 - **AC5 — money guard:** both `/purchase` and `/orders/instant`, plus canonical agent checkout,
   deny above-cap attempts before debit/Stripe side effect. Parallel requests cannot exceed cap;
   retries do not double reserve; failed/cancelled/refunded attempts release exactly once. Wallet
-  and organization ceilings still apply.
+  and organization ceilings still apply. PostgreSQL integration proves one selected credential
+  and one reservation/linkage for OAuth-only, key-only and both-header calls, concurrent purchases,
+  retry/idempotency, revocation between reservation and charge, process failure and refund; each
+  reservation releases exactly once and transaction/order/acceptance/audit identities agree.
 - **AC6 — legal binding:** S1735 acceptance records the exact licence hash, buyer legal principal,
   authority and namespaced OAuth client or legacy key ID in the same order/transaction path.
   Missing or stale acceptance creates no charge or credential. Every download, request-access and
@@ -279,9 +337,16 @@ route.
 - **AC9 — discovery safety:** anonymous limits apply across replicas; abusive queries get 429;
   only public published metadata is returned; preview, wallet, orders and delivery remain
   inaccessible without the correct actor.
-- **AC10 — compatibility and operations:** legacy key-plus-matching-OAuth requests retain their
-  prior permitted behavior, and an operator can disable the flag to restore the current closed
-  state without losing accepted orders, reservations or audit evidence.
+- **AC10 — compatibility and operations:** key-only requests retain today's full behavior with
+  flag off, on and rolled back. The both-header matrix is tested for valid, invalid and
+  mismatched credentials with zero/nonzero OAuth policies. The read-only production key-row count
+  and any required migration plan are recorded before rollout. An operator can disable the flag
+  without losing accepted orders, reservations or audit evidence.
+- **AC11 — protected OAuth RPM:** every protected OAuth request uses the client's positive RPM
+  policy and an atomic shared Redis counter. After RPM valid calls in one minute, request RPM+1
+  returns 429 with positive `Retry-After`; a second replica sees the same counter. Counter outage
+  fails closed, and 429 is distinguishable from scope and cap denials. Suspension/revocation denies on both
+  replicas within 5 seconds.
 
 ## 6. Test plan and evidence gates
 
@@ -291,12 +356,16 @@ route.
    an explicit decision on authorization-code/refresh support.
 2. **Auth integration:** construct real signed tokens for each type/audience/grant, exercise the
    actual middleware and route dependency together, create/revoke/rotate a client, change
-   owner/organization authority during token lifetime, and test mixed key/bearer requests. Mocking
+   owner/organization authority during token lifetime, and test all eight flag/header matrix
+   cases including both-header mismatch and invalid/zero policies. Test RPM+1, cross-replica
+   atomicity, `Retry-After`, limiter outage and the 5-second revocation SLA. Mocking
    `verify_access_token` alone is insufficient.
 3. **Money integration:** use PostgreSQL row locks and concurrent tasks to test cap boundaries,
    idempotent retries, wallet debit failure, Stripe session failure, webhook replay, refund and
-   reconciliation. Assert persisted totals and no orphan order, transaction, acceptance or audit
-   entry after failure.
+   reconciliation. Include revocation between reservation and charge, process failure and both
+   headers under flag off/on; verify only the selected credential's ledger changes and every
+   release happens exactly once. Assert persisted totals and no orphan order, transaction,
+   acceptance or audit entry after failure.
 4. **Legal and synthetic integration:** exercise both Agent API purchase routes and the canonical
    checkout with S1735 on, a published listing, exact acceptance hashes and guarded synthetic
    pairs. Inspect records and every access door after licence termination.
@@ -322,6 +391,8 @@ route.
 1. Add an `AGENT_API_OAUTH_ACCESS_ENABLED` flag defaulting **false** in every environment. With
    false, the current middleware key gate and route behavior remain the operational fallback.
    Schema may land while disabled; no client receives new authority from the migration alone.
+   The `oauth_access/oauth_agent` client-credentials token change is gated by this same flag;
+   these new tokens must not be issued while it is off.
 2. Deploy schema and read compatibility first; verify old key-linked records. Then deploy actor
    resolution and shared paid guard behind the flag. Observe denial, cap, audit and latency
    metrics in S1656 before any production enablement.
@@ -355,10 +426,10 @@ route.
 4. Should `/datasets/{id}/eval` expose its complete current field set anonymously, or a reduced
    projection? The proposal requires the reduced public projection until P3 review approves each
    field.
-5. What revocation SLA and token-epoch behavior are acceptable for regenerated client secrets? The
-   proposal requires immediate database denial on paid calls.
-6. Must legacy key-plus-OAuth callers continue beyond the initial rollout, and what observed usage
-   justifies a retirement date? No retirement is proposed now.
+5. What token-epoch behavior should accompany regenerated client secrets? The proposal fixes a
+   5-second revocation SLA across replicas and requires immediate database denial on paid calls.
+6. Does the read-only production count reveal any real legacy key users who need an explicit
+   migration plan? No retirement is proposed now.
 7. Should `/wallet/deposit` remain in the Agent API, or redirect the human owner to the existing
    wallet UI? Either option must retain wallet scope, consent and payment controls.
 
@@ -369,3 +440,32 @@ change backend code, mutate production data, approve a Council verdict, merge or
 must supply the concrete migration and route-by-route implementation plan against a freshly pinned
 backend SHA, with any changed assumptions called out. The runbook index and checker are authoring
 checks only.
+
+## Appendix A. Authority and evidence records
+
+The following is the verbatim **field content supplied for this review**, with full IDs and UTC
+timestamps. The Event Ledger's storage path and full serialized records were not available in this
+worktree or through the available search result, so fields beyond those shown are not claimed.
+This makes the cited decision and findings inspectable here without database access; Gate 2 should
+attach an immutable ledger export if one becomes available.
+
+| Event ID | Time and actor | Verbatim supplied fields |
+| --- | --- | --- |
+| `75245973-7c4e-4425-8e07-5f1fc4139813` | `2026-09-25T07:44:44Z`; `max`; `trust_tier: human` | `title: "Max decisions (S1738, 2026-09-25): Agent API open via OAuth; ClamAV as a dedicated service; test refund via real-Stripe test pair; dispute refund bug fixed now"`<br>`payload.1_agent_api: "A: open /api/v1/agent/* to the standard OAuth client_credentials bearer its own OpenAPI documents (agent-key middleware no longer the only door) (Events 285e48c6, 9e322a2c)"`<br>`source_ref: Max chat 2026-09-25 "I agree with your recommendations"` |
+| `285e48c6-7064-4e9c-891a-d84e5272c51e` | `2026-09-24T23:11:55Z`; `mars` | `finding that /api/v1/agent/* requires an agent_api_keys key no product route issues; live GET api.ai.market/api/v1/agent/search -> 401 x-api-key header is required.` |
+| `9e322a2c-4423-4657-8a11-251c26729501` | `2026-09-24T23:23:55Z`; `mars` | `correction - the Agent API is the March 2026 Agent Beta (M2, commit c52341643), gated by agent keys by design; no issuance path exists; only tests insert keys.` |
+
+**Review environment and checks.** This candidate changes this spec only; it includes no backend
+code, migration, deployment or production mutation. `python3 scripts/index.py && python3
+scripts/check.py` passed with `indexed 135 runbooks` and `checked 135 runbooks` (exit 0). No backend
+tests or lint were run for this document change; no finite turn budget was supplied. The live
+symptom rests on one unauthenticated
+GET returning HTTP 401 on 2026-09-25; there was no authenticated flow or deployment-SHA proof.
+The minimal reproducible status-only probe is:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' 'https://api.ai.market/api/v1/agent/search?q=test'
+```
+
+The historical shell invocation was not retained, so this command reproduces the stated request
+rather than claiming to be its original receipt. No second production request is implied.
