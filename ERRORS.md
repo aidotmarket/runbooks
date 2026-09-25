@@ -616,6 +616,10 @@
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
 
+## `gemini: no response written after`
+
+- [Council](runbooks/council.md)
+
 ## `gemini_home_unprovisioned`
 
 - [Council](runbooks/council.md)
