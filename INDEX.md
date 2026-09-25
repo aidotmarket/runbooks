@@ -418,7 +418,7 @@
 - Path: `runbooks/council.md`
 - Purpose: This runbook is maintained by Vulcan. Neither instance is senior to the other.
 - Owner: `vulcan`
-- Last verified: `2026-09-23`
+- Last verified: `2026-09-25`
 - Aliases: Council dispatch, review transport, glm-codex-transport, deepseek-codex-transport, glm-profile-isolation, gemini member, gemini-transport, gemini release checker, three-voter council
 - Error signatures: model_mismatch main=, gemini_home_unprovisioned, Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, gemini: no response written after, required reviewer missing from the live tool schema
 - Status: current
@@ -427,7 +427,7 @@
 - Path: `runbooks/council-gate-process.md`
 - Purpose: This runbook documents the stable gate-process slice: Build Queue entity shape, Gate 1 through Gate 4 transitions, author/reviewer provenance, and the cross-review completion gate.
 - Owner: `mp`
-- Last verified: `2026-09-21`
+- Last verified: `2026-09-25`
 - Aliases: none
 - Error signatures: authoring_distinction_trap, break_glass_left_enabled, chunk_scope_gap, cross_review_block, directional_evidence_missing, fabricated_line_reference, gate1_status_trap, harness_bound_to_stale_code, missing_design_artifact, unresolved_mandates
 - Status: current

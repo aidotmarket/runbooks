@@ -1,7 +1,7 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-09-23'
+last_verified: '2026-09-25'
 aliases:
 - Council dispatch
 - review transport
@@ -29,6 +29,11 @@ error_signatures:
 ## Overview
 
 This runbook is maintained by Vulcan. Neither instance is senior to the other.
+
+> **ACTIVE OVERRIDE - Max S1738, Event Ledger `d50cbd80` (2026-09-25). Applies to Mars and Vulcan for every review. Read this before the roster block below.**
+> 1. **Roster, 2026-09-25 to 2026-10-05 (or until Max reinstates Gemini once Gemini 4 is released and stable):** do not dispatch Gemini. CC holds the third voting seat on every gate; GLM and DeepSeek are still required and the panel stays unanimous. No Gemini attempt or failed response stamps are needed; the gate record says "CC in Gemini seat per d50cbd80". This is Max's matter-specific direction on the CORE section 5 roster for this period. After the period, the roster block below applies again unless Max decides otherwise.
+> 2. **Review package standard:** before any dispatch the controller (a) creates a detached worktree pinned at the exact candidate SHA (`git worktree add --detach <path> <sha>`) with dependencies installed and passes it as `cwd`; (b) runs the focused tests and lint there and puts the commands and results in the request; (c) checks the cross-repo contract (response headers vs browser reads and CORS exposure, UI labels vs test selectors, pinned SHAs, API fields) and fixes mismatches before review; (d) sends companion PRs of one release as one release package; (e) asks for verdict plus findings only, without restating the request.
+> 3. **Tiering and re-review:** apply "Rational-use tiering and stopping rules" (S1570) below. Tier 0: tests plus recorded builder verification. Tier 1: one reviewer, for changes that do not touch the money path, auth, security or customer data. Tier 3: the full unanimous panel, for specs, money path, auth, security and customer data (the constitutional floor is unchanged). A fold is re-reviewed only by the reviewer(s) who raised the finding, delta-only, including HIGH findings, unless the fold changes design, architecture or a trust boundary, in which case every voter re-reviews. This replaces the earlier standing rule that HIGH folds go to all three voters.
 
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
