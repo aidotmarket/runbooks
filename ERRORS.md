@@ -480,6 +480,10 @@
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
 
+## `door_check_stale`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
 ## `duplicate key value violates unique constraint on listings slug`
 
 - [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
@@ -1148,6 +1152,10 @@
 
 - [Lifecycle Emails](runbooks/lifecycle-emails.md)
 
+## `order_not_deliverable`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
 ## `origin_mismatch`
 
 - [AIM Data — Sign in with ai.market](aim-data-sign-in-with-ai-market.md)
@@ -1331,6 +1339,10 @@
 ## `Reauthentication failed`
 
 - [GCP Auth](gcp-auth.md)
+
+## `receipt_sequence_mismatch`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
 
 ## `recording manifest or artifact refusal before Playwright launch`
 

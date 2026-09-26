@@ -114,7 +114,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-09-26`
 - Aliases: aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary, gateway-signer, gateway signer, gateway KMS keys
-- Error signatures: Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label, signer_unavailable, KMS credentials are unconfigured, KMS credentials are invalid, signer_key_version_mismatch, gateway_unavailable, DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations
+- Error signatures: receipt_sequence_mismatch, order_not_deliverable, door_check_stale, Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label, signer_unavailable, KMS credentials are unconfigured, KMS credentials are invalid, signer_key_version_mismatch, gateway_unavailable, DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations
 - Status: current
 
 ## AIM Data Release Process
@@ -724,7 +724,7 @@
 - Path: `infisical-secrets.md`
 - Purpose: **Deployed**: S357 (2026-03-30) **URL**: https://secrets.ai.market **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326` **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 - Owner: `unassigned`
-- Last verified: `2026-08-28`
+- Last verified: `2026-09-26`
 - Aliases: none
 - Error signatures: none
 - Status: current
