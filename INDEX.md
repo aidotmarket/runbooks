@@ -724,7 +724,7 @@
 - Path: `infisical-secrets.md`
 - Purpose: **Deployed**: S357 (2026-03-30) **URL**: https://secrets.ai.market **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326` **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 - Owner: `unassigned`
-- Last verified: `2026-08-28`
+- Last verified: `2026-09-26`
 - Aliases: none
 - Error signatures: none
 - Status: current

@@ -1,7 +1,7 @@
 ---
 title: Infisical Secrets Management
 owner: unassigned
-last_verified: '2026-08-28'
+last_verified: '2026-09-26'
 aliases: []
 error_signatures: []
 ---
