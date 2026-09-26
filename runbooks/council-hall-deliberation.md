@@ -18,6 +18,8 @@ error_signatures:
 
 This runbook documents the Council Hall deliberation pattern: independent assessment, collection/synthesis, and cross-pollination for decisions where one review pass is insufficient.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 ## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |

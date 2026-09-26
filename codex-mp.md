@@ -79,7 +79,7 @@ error_signatures:
   expected_failures:
     - signature: 'gateway timeout on foreground dispatch >30s'
       cause: use background dispatch + check_build polling (When it breaks-01)
-  next_step_success: gated cross-review by the Council (GLM, DeepSeek, Gemini) with the builder excluded — unanimous 3/3 valid verdicts for every gate (CORE §5); CC is a non-Council second opinion that never counts. Then merge; patch entity verdicts; same-session spec commit if gated
+  next_step_success: gated cross-review by the Council (GLM, DeepSeek, Gemini) with the builder excluded — unanimous 3/3 valid verdicts for every gate (CORE §5); CC is a non-Council second opinion that never counts (d50cbd80 override: CC in Gemini seat through 2026-10-05; see runbooks/council.md ACTIVE OVERRIDE). Then merge; patch entity verdicts; same-session spec commit if gated
   next_step_failure: consult When it breaks symptom table BEFORE diagnosing from code
 - id: E-02
   trigger: A structural (middleware) build with CI gate + manifest is required

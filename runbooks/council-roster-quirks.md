@@ -14,7 +14,9 @@ error_signatures:
 
 **Fetch trigger:** before Council dispatch or voter validation.
 
-> **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
+> **ACTIVE OVERRIDE - Max S1738, Event Ledger `d50cbd80` (2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review. CC holds the third voting seat with GLM and DeepSeek; the full panel remains unanimous. Apply the option A package standard and option C tiering and raiser-only fold re-review in `runbooks/council.md` ACTIVE OVERRIDE to the older roster and dispatch text below.
+>
+> **CURRENT ROSTER - S1721, CORE §5. This block supersedes older roster statements on this page, subject to the d50cbd80 active override above.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.

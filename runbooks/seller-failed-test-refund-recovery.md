@@ -14,6 +14,8 @@ error_signatures:
 
 Status: implementation integrated by Mars on September 12, 2026, at environment candidate `7b50ae6db00d7457baaf29b4b5796b64f305746d`, from delegated source `07aca0f238d36efa1dbdbe54f0612265f0da4054` (follow-up to `4b46150334bb8b7601722a352cee44336c212867`), branch `codex/s1712-failed-run-release`, delegated base `1408afc57e1614d3d105e88cbaab80310dfb9ee1`. This is the bounded two-file harness slice, not a deployed or fully accepted product. Mars owns the combined normal P/N harness and final exact-candidate review; Vulcan owns this delegated slice and Seller Workspace. Authority is the accepted payment specification section8 plus F1 and peer requests4186/4196. No additional user approval is pending for that scope.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** For any pending review described below, dispatch GLM, DeepSeek, and CC unanimously; do not dispatch Gemini. Use the option A package standard and option C tiering and raiser-only fold re-review in `runbooks/council.md` ACTIVE OVERRIDE.
+
 ## What this process does
 
 A failed paid test run must not be reset while money or buyer access is unresolved. Each exact failed role is bound to the owner-authored failure, source versions, packaged accounts, order, transaction, real PaymentIntent and captured Charge. The private product command establishes durable payout exclusion and revokes access before the harness can request a normal Stripe TEST refund. The normal signed webhook and processor must then apply the refund, including actual posted accounting entries. Only immutable verified per-role evidence permits closure. A successful P payout is preserved when N fails; P is never refunded merely to clear the environment.

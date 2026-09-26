@@ -53,6 +53,8 @@ builder/test transcript, or `bridge_outcomes.db`: those defaults are already
 durable and have their own `KD_TS_*` / `KD_BRIDGE_*` contracts. It also does not
 make Task Spooler's queue server state a member of the five-record migration.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 ### Architecture & interactions.1 Why the previous queue was replaced
 
 The hand-written SQLite FIFO at `/var/tmp/koskadeux/control/codex_queue.sqlite3` produced seven defects, catalogued from a live end-to-end observation on 2026-08-09 09:00-09:46 UTC (Mars S1487 field report, folded to `build:bq-minimal-builder-bridge-s1455` `phase2_queue_acceptance_criteria_s1488`):

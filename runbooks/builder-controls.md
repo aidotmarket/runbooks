@@ -17,6 +17,8 @@ error_signatures:
 
 This runbook exists by Max directive (S1455): a reference for future builders on exactly what controls surround the build and why. It is the companion to the S1455 minimal-bridge rebuild (specs/BQ-MINIMAL-BUILDER-BRIDGE-S1455-GATE1.md in koskadeux-mcp), whose Gate 1 R1 passed unanimously with mandates folded at 9cc065fc.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 ## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |

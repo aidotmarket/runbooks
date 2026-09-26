@@ -11,6 +11,8 @@ error_signatures: []
 ## A. Purpose
 Stop the recurring destruction of Max's Claude login and keep the explicit-name, non-Council CC second-opinion path dispatchable without any human credential. Owns: how CC authenticates, how the key rotates, and how to diagnose credential failures on the CC path.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
+
 ## B. The design (S1573, causal story corrected S1582 per T-2026-000686)
 **The explicit-name, non-Council CC path runs on the OAuth machine profile, on Max's plan, by Max's directive.** `scripts/council_dir.py:_cc_env` deliberately strips `ANTHROPIC_API_KEY` (and every override var) from the child environment; that stripping is correct and must not be "fixed". The dedicated API key below remains live only for **non-Council** headless dispatches through `claude_code_client._build_env`. CC never counts in a gate.
 

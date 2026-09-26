@@ -16,6 +16,8 @@ error_signatures:
 
 **The rule (per CORE §5):** every amendment to CORE.md — including editorial changes — normally requires a **unanimous Council gate (GLM, DeepSeek, Gemini — 3/3 valid verdicts per CORE §5 decision rules) AND Max's direct approval**. CC is a non-Council second opinion dispatched by explicit name and never counts toward the gate; Kimi is removed. The only alternative is Max explicitly stating that he supersedes the Council for the exact matter named; that statement stands in place of Council approval and must be recorded in the Event Ledger. No agent may infer supersession from urgency or a general instruction. Either instance may then apply the authorized exact change. No reduced quorum, voter substitution, or builder vote is permitted.
 
+Max's d50cbd80 review-roster override does not say it amends CORE §5, so a CORE amendment gate during 2026-09-25 to 2026-10-05 needs Max's direction on the Gemini seat.
+
 ## Overview
 
 
