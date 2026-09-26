@@ -1,7 +1,7 @@
 ---
 title: Listing licences and signed records
 owner: vulcan
-last_verified: '2026-09-23'
+last_verified: '2026-09-26'
 aliases: [listing licenses, Standard Data Licence, seller licence, signed licence record]
 error_signatures:
   - capability_required
@@ -41,7 +41,7 @@ error_signatures:
 
 # Listing licences and signed records
 
-Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the [S1656 money-path test environment](../money-path-test-environment.md). Production retains read-only health, current-terms and document-hash checks.
+Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1` (E-05, the `capability_required` and refund-livemode rows were verified on 2026-09-26 at backend `445f43af`); these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the [S1656 money-path test environment](../money-path-test-environment.md). Production retains read-only health, current-terms and document-hash checks.
 
 ## Capabilities
 
