@@ -1,16 +1,16 @@
 ---
 title: AIM Data gateway — operations
 owner: vulcan
-last_verified: '2026-09-25'
-aliases: [aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary]
-error_signatures: [Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label]
+last_verified: '2026-09-26'
+aliases: [aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary, gateway-signer, gateway signer, gateway KMS keys]
+error_signatures: [Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label, signer_unavailable, KMS credentials are unconfigured, KMS credentials are invalid, signer_key_version_mismatch, gateway_unavailable, DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations]
 ---
 
 # AIM Data gateway — operations
 
 The AIM Data gateway is the small open-source Go service that sellers run with Docker to list and serve files from their own infrastructure. It replaces legacy AIM Data (`aim-data.md`), which is frozen. Design authority: `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE1.md` and `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE2.md`. Build record: Living State `build:bq-aim-data-gateway-rebuild-s1741`.
 
-This page covers what is live today: the repository and release, and the egress canary (DNS records, the backend's server-side check and its credentials). Pairing configuration, the `gateway-signer` service and the production KMS keys are not provisioned yet; add them here when they are.
+This page covers what is live today: the repository and release, the egress canary, the `gateway-signer` service with its KMS keys, and the backend's gateway settings. The feature flag `AIM_GATEWAY_ENABLED` is still off (as of 2026-09-26); record the flip here when it happens.
 
 ## Repository and release
 
@@ -56,9 +56,57 @@ curl -s https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $
 
 Because of sampling, a single fresh label is often missing. To prove the pipeline works, resolve about 20 fresh labels and expect a few to show up within a few minutes (S1751: 4 of 20 after 6 minutes).
 
+## Signing: gateway-signer and KMS keys
+
+Every permission and every listing-control message the gateway accepts is an Ed25519 JWT signed by Google Cloud KMS. Only the private Railway service `gateway-signer` holds KMS credentials; the backend API asks it to sign over Railway's private network with a bearer token and never holds the KMS credential itself.
+
+### KMS (GCP project `aimarket-prod`)
+
+- Keyring `projects/aimarket-prod/locations/us-central1/keyRings/ai-market-gateway`.
+- Keys `gateway-permission` and `gateway-listing`, both `EC_SIGN_ED25519`, protection `SOFTWARE`, version 1.
+- KIDs and public keys (base64url raw Ed25519): `gateway-permission-v1` = `IEcnEsLqaai5sL6cJVTa-DRysB2CFcljfrM6iffcBYg`; `gateway-listing-v1` = `xsvG105nguYBmkzUMVucerYBMA0tNbXhO9D5A8_IU08`.
+- Service account `gateway-signer@aimarket-prod.iam.gserviceaccount.com` has `cloudkms.signerVerifier` and `cloudkms.viewer` on those two keys only. Exactly one key exists for it; its JSON is the Railway variable `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON` on `gateway-signer` only (set by Max). Only a human creates or rotates that key.
+- Project audit config logs `cloudkms` DATA_READ and DATA_WRITE, so every `AsymmetricSign` appears in Cloud Audit Logs with the service-account principal.
+
+### Service `gateway-signer` (Railway project ai-market, production)
+
+- Code: `services/gateway_signer/` in `aidotmarket/ai-market-backend` (FastAPI, `POST /sign_permission_key`, `POST /sign_listing_key`, unauthenticated `GET /health`). It builds one KMS client from `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON` and fails closed (503 `signer_unavailable`) with no fallback to Application Default Credentials.
+- Service id `dcee2123-6d23-450d-996e-d02c515e7ada`. No public domain, one replica, health check `/health`, private address `gateway-signer.railway.internal:8080`.
+- Variables: `GATEWAY_SIGNER_TOKEN` (reference to the backend's value), `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON`, `GATEWAY_KMS_PROJECT/LOCATION/KEYRING`, `GATEWAY_PERMISSION_KEY` and `GATEWAY_LISTING_KEY` (full `.../cryptoKeyVersions/1` paths), `GATEWAY_PERMISSION_KID`, `GATEWAY_LISTING_KID`, `PORT=8080`, `RAILWAY_DOCKERFILE_PATH=services/gateway_signer/Dockerfile`.
+- **No repository source, on purpose.** Connected to the backend repo, Railway applies the repo's root `railway.json`/`railway.toml` and builds the backend `Dockerfile` whatever the service's own Dockerfile setting says; the container then crash-loops on `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations` (S1752). Railway's API also refuses to set a per-service config file on new services ("Config as Code is deprecated"). Until the move to Railway Infrastructure as Code (`build:bq-railway-cli-v5-upgrade-s1751`, deadline 2026-12-01), deploy by upload.
+
+### Deploy (Koskadeux, after the change is merged to backend main)
+
+```bash
+SHA=<merged main sha>; D=/Users/max/worktrees/signer-deploy-$SHA; mkdir -p $D
+cd /Users/max/Projects/ai-market/ai-market-backend && git fetch -q origin && git archive $SHA services/gateway_signer | tar -x -C $D
+cd $D && zsh -ic "railway up --service gateway-signer --environment production \
+  --project e81dd66f-808c-412e-b32c-f6d910f0ac5d --detach -m 'gateway-signer from ai-market-backend@$SHA'"
+```
+
+Upload only `services/gateway_signer/` (no root `railway.json`). Keep the service's watch patterns empty: with patterns set, an upload deploy is `SKIPPED`. Merging to main does not redeploy the signer.
+
+### Backend settings (service ai-market-backend)
+
+Non-secret: `GATEWAY_SIGNER_URL=http://gateway-signer.railway.internal:8080`, `GATEWAY_KMS_PROJECT/LOCATION/KEYRING`, `GATEWAY_PERMISSION_KEY`, `GATEWAY_LISTING_KEY`, `GATEWAY_PERMISSION_PUBLIC_KEYS` and `GATEWAY_LISTING_PUBLIC_KEYS` (JSON lists `[{"kid":...,"alg":"EdDSA","key":...}]` with the KIDs above), `GATEWAY_IMAGE=ghcr.io/aidotmarket/aim-gateway@sha256:b02954e7647f2eee5090ce2749eb3c572fb2ad33d44d41a9d32fe164367fb6da` (v0.1.1, anonymous pull verified), `GATEWAY_VERSION=0.1.1`, `GATEWAY_MINIMUM_VERSION=0.1.1`, `GATEWAY_INSTALL_GUIDE_URL=https://github.com/aidotmarket/aim-data-gateway#install-with-compose`, plus the canary settings above. Secrets from Infisical `ai-market-backend/prod`: `GATEWAY_SIGNER_TOKEN`, `GATEWAY_PAIRING_PEPPER`, `GATEWAY_CANARY_CF_API_TOKEN`. The backend must never hold `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON`. If any pairing setting is missing, the seller's pairing call returns 503 `gateway_unavailable`.
+
+### Verify signing
+
+Run a probe inside the signer container (it has the token; `railway ssh` does not forward stdin, so pass the script base64-encoded). Sign an `aim-minver+jwt` listing claim (`op=minimum_version`, `aud`, `iid`, `iat`=now, `version`), then check:
+
+1. HTTP 200 with `token` and `key_version` = the full `gateway-listing/cryptoKeyVersions/1` path.
+2. The signature verifies with the `gateway-listing-v1` public key above and fails with the permission key.
+3. Cloud Audit Logs show the call: `gcloud logging read 'protoPayload.serviceName="cloudkms.googleapis.com" AND protoPayload.methodName:"AsymmetricSign"' --project aimarket-prod --limit 3`, principal `gateway-signer@aimarket-prod.iam.gserviceaccount.com`.
+
+Proved in S1752 (2026-09-26 02:16 CEST): all three passed. To prove the private-network path, run the same probe from the backend container with `PROBE_URL=http://gateway-signer.railway.internal:8080` once the backend has redeployed with `GATEWAY_SIGNER_TOKEN`.
+
 ## When it breaks
 
 - `Cloudflare GraphQL error: ... authentication` or an HTTP 401/403 in the correlation worker log: the token is missing Analytics Read or was revoked. Ask Max to fix the token in Cloudflare and Infisical, then redeploy the backend. While it is broken, every gateway falls to `unknown` (fail-closed), so publishing and new permissions stop.
 - `Cloudflare zone unavailable`: `GATEWAY_CANARY_CF_ZONE_ID` is wrong or the token is not scoped to ai.market.
 - All gateways `unknown` although they report `closed`: check that all three settings are set on the backend and the worker (Celery beat runs correlation every 300 s).
 - A gateway flips to `open` while it reports `closed`: this is the check working. The seller's egress is open. The gateway stays unsupported until its canary is clean.
+- Signer returns 503 `signer_unavailable` and its log says `KMS credentials are unconfigured` or `KMS credentials are invalid`: `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON` is missing or malformed on `gateway-signer`. Max replaces it; never paste or print it.
+- `signer_key_version_mismatch`: `GATEWAY_PERMISSION_KEY`/`GATEWAY_LISTING_KEY` on the signer do not name the version KMS used. Keep full `cryptoKeyVersions/N` paths.
+- KMS `PERMISSION_DENIED` in the signer log: the service account lost `signerVerifier` on that key.
+- `gateway-signer` crash-loops with `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations`: it was connected to the repo and built the backend image. Remove that deployment, disconnect the source, and deploy by upload (above).

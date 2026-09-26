@@ -384,6 +384,10 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
 ## `Dataset with id '<id>' not found.`
 
 - [Run It As A Seller (done means a seller can do it)](run-it-as-a-seller.md)
@@ -632,6 +636,10 @@
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
 
+## `gateway_unavailable`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
 ## `gemini: no response written after`
 
 - [Council](runbooks/council.md)
@@ -795,6 +803,14 @@
 ## `kickstart non-zero / no fresh pid`
 
 - [Koskadeux Gateway Transport Runbook](gateway-transport.md)
+
+## `KMS credentials are invalid`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
+## `KMS credentials are unconfigured`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
 
 ## `KMS readiness check failed`
 
@@ -1475,6 +1491,14 @@
 ## `Set AUTHOR_DISPATCH_DATABASE_URL, DATABASE_PUBLIC_URL, or DATABASE_URL`
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
+
+## `signer_key_version_mismatch`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
+
+## `signer_unavailable`
+
+- [AIM Data gateway — operations](aim-data-gateway.md)
 
 ## `signing_configuration_unavailable`
 

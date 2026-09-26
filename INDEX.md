@@ -112,9 +112,9 @@
 - Path: `aim-data-gateway.md`
 - Purpose: The AIM Data gateway is the small open-source Go service that sellers run with Docker to list and serve files from their own infrastructure. It replaces legacy AIM Data (`aim-data.md`), which is frozen. Design authority: `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE1.md` and `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE2.md`. Build record: Living State `build:bq-aim-data-gateway-rebuild-s1741`.
 - Owner: `vulcan`
-- Last verified: `2026-09-25`
-- Aliases: aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary
-- Error signatures: Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label
+- Last verified: `2026-09-26`
+- Aliases: aim-gateway, AIM Data gateway, gateway canary, egress canary, gw-canary, gateway-signer, gateway signer, gateway KMS keys
+- Error signatures: Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudflare DNS analytics unavailable, invalid canary label, signer_unavailable, KMS credentials are unconfigured, KMS credentials are invalid, signer_key_version_mismatch, gateway_unavailable, DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations
 - Status: current
 
 ## AIM Data Release Process
