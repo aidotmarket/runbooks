@@ -837,6 +837,15 @@
 - Error signatures: none
 - Status: current
 
+## Marketplace identity and contact policy
+- Path: `runbooks/marketplace-identity-policy.md`
+- Purpose: This page is the current rule for what buyers and sellers learn about each other on ai.market. Authority: Max, S1753, 2026-09-27, Event Ledger `78777ec9`. It supersedes Max's anonymity decision `c3af20e0` and the licence-record decision `0b06e6fe` where they conflict with it. CORE P5 and S1 are unchanged: allAI mediates buyer-seller interaction and there is no direct off-platform channel.
+- Owner: `mars`
+- Last verified: `2026-09-27`
+- Aliases: seller identity, buyer identity, counterparty identity, seller branding, verified seller brand, anonymity policy, supplier arrangement, sold and licensed by ai.market
+- Error signatures: none
+- Status: current
+
 ## Max Reporting — the End-of-Round Summary Discipline
 - Path: `max-reporting.md`
 - Purpose: The system-enforced comms contract: between the start of a round and its single end-of-round summary, an instance emits nothing Max-facing, with exactly two carve-outs. CORE §3 is the canonical statement; `infra:opening-prompt` carries the longer elaboration and points back to CORE §3. This runbook is the operator page: how to compose the summary, when a carve-out applies, how to diagnose violations, and how the rule may change.
