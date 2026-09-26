@@ -8,6 +8,10 @@
 
 - [Transactional email from the backend (Resend)](runbooks/transactional-email.md)
 
+## `'get' is a dict method, but a PaymentIntent is not a dict`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `'oauth_provider' is an invalid keyword argument for User`
 
 - [Seller purchase access after refunds](runbooks/seller-refund-access-diagnosis.md)
@@ -243,6 +247,10 @@
 ## `capability disabled: <name>`
 
 - [SysAdmin Operating Model (S1086)](sysadmin.md)
+
+## `capability_required`
+
+- [Listing licences and signed records](runbooks/listing-licenses.md)
 
 ## `Card setup for this paid service is unavailable`
 
@@ -1283,6 +1291,10 @@
 ## `progress_guard_timeout`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
+
+## `Provider refund binding mismatch`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `publish stops writing after the manifest edit`
 
