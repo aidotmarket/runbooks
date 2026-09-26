@@ -62,7 +62,7 @@ Historical roster snapshots only: S528 described DeepSeek as a graduated full vo
 |---|---|---|---|---|
 | Start-bound participant | Independent assessment and cross-poll response when selected by explicit `agents` or the verified deployed default | Backend selected through `council_request` | Read-oriented Hall evidence scope | COMPLETE |
 | Hall orchestrator | Neutral prompt construction, participant binding, synthesis, escalation | MCP tools and Living State | Gateway, Living State, evidence repositories | COMPLETE |
-| Current gate-voter panel | Gate review outside Hall deliberation for the S1721 `{glm, deepseek, gemini}` panel | Current voter backend from `infra:council-comms` | Read-only gate evidence scope | COMPLETE |
+| Gate-voter panel | Gate review outside Hall deliberation; d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md` places CC in Gemini's seat through 2026-10-05 | Voter backend from `infra:council-comms` | Read-only gate evidence scope | COMPLETE |
 | MP | Mandatory builder; not a gate voter | Builder backend from `infra:council-comms` | Repository write only through authorized build flow | COMPLETE |
 | AG | Retired; no current dispatch or gate-voting authority | Retired backend metadata in `infra:council-comms` | None for current gates | PARTIAL — retired |
 | DeepSeek | Required gate voter under S1721 | Bounded read-only Codex transport | Required for current gates | COMPLETE |
@@ -529,7 +529,7 @@ The How to operate error signatures remain meaningful as protocol violations (e.
 is now a mistake the orchestrating peer can make by hand); the `duplicate_deliberation` and
 `participant_config_missing` signatures referred to service state and can no longer occur
 mechanically — their intent survives as "do not run two deliberations on one question" and
-"dispatch only the exact governed voter roster GLM/DeepSeek/Gemini; CC is non-Council and Kimi is removed".
+"dispatch only the governed voter roster under the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: GLM, DeepSeek, and CC in Gemini's seat through 2026-10-05; Kimi is removed".
 
 If deliberation volume ever justifies re-automating this, that is a new Gate 1 design item,
 not a restoration of the deleted code.

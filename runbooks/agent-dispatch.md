@@ -116,7 +116,7 @@ Carried from the retired root copy, corrected at S1351, and cut over at S1651.
 `infra:council-comms` remains canonical for live roster state. Read it before dispatching.
 
 
-**Gate voter panel: GLM + DeepSeek + Gemini — exactly three** (Max direct instruction S1721; CORE §5). ACTIVATION STATUS: CURRENT. `REQUIRED_MEMBERS` is exactly `{glm, deepseek, gemini}`; CC remains callable by explicit name as a non-Council second opinion except when standing in for Gemini under Max S1751, Event Ledger 1dccefe2, and Kimi is removed. An unusable vote is rerun once; if Gemini's rerun is still unusable, CC takes its third seat for that gate round with GLM and DeepSeek still required, and the gate record names CC as standing in and cites both failed Gemini response stamps. Any other voter's unusable rerun fails the gate. Non-Council findings cannot change consensus, status, mandates, completion, override acknowledgement, spec approval, all-reviewer expansion, or shared health.
+**S1721 base gate voter panel: GLM + DeepSeek + Gemini — exactly three** (Max direct instruction S1721; CORE §5). This is subject to the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: through 2026-10-05 CC holds Gemini's seat and Gemini is not dispatched. `REQUIRED_MEMBERS` in code is `{glm, deepseek, gemini}`; the following Gemini failure and stand-in mechanics describe the base rule, not dispatch during the override. Under that base rule, an unusable vote is rerun once; if Gemini's rerun is still unusable, CC takes its third seat for that gate round with GLM and DeepSeek still required, and the gate record names CC as standing in and cites both failed Gemini response stamps. Any other voter's unusable rerun fails the gate. Non-Council findings cannot change consensus, status, mandates, completion, override acknowledgement, spec approval, all-reviewer expansion, or shared health.
 
 Authority: Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: PENDING — vulcan records the ledger id here at apply time.
 
@@ -143,7 +143,7 @@ Dispatch is a gateway-controlled routing layer. Operators submit a task, target 
 
 Historical rationale, superseded for current roster/build roles: MP's Codex CLI automation and wiring-gap detection made it the primary dispatch builder; AG supplied a secondary cross-vote; DeepSeek's S528 record justified its former full-voter seat; and CC once served as fallback builder.
 
-Current operational truth is the block above: MP is mandatory builder, GLM/DeepSeek/Gemini are the required gate voters, CC is an explicit-name non-Council second opinion except as Gemini's S1751 stand-in, Kimi is removed, and AG is retired.
+Current operational review dispatch follows the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: MP is mandatory builder; GLM and DeepSeek are required; CC holds Gemini's third seat through 2026-10-05; Gemini is not dispatched; Kimi is removed and AG is retired.
 
 MP build base selection is independent of the mutable caller checkout. For
 `dispatch_mp_build`, an optional explicit `base_sha` must be a lower-case
@@ -338,7 +338,7 @@ Timeout knobs:
 | Vulcan | dispatch orchestration | GPT-5.6-sol / MCP tools | gateway, LS, all repos | COMPLETE |
 | XAI | RETIRED - see retired-agents appendix | Grok CLI | retired | PARTIAL — retired; see appendix for cold-storage and reactivation procedure |
 
-This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. The live gate voter panel is GLM + DeepSeek + Gemini; CC is an explicit-name non-Council second opinion except as Gemini's S1751 stand-in, Kimi is removed, and the Council roster block plus `infra:council-comms` carries current operational truth.
+This table records IMPLEMENTATION coverage, not operational roster status. A `COMPLETE` row means the adapter and auth scope are wired, not that the agent currently votes. The S1721 base panel is GLM + DeepSeek + Gemini; during the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`, CC holds Gemini's seat through 2026-10-05 and Gemini is not dispatched. Kimi is removed; `infra:council-comms` supplies model and dispatch details.
 
 XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status is constrained to `COMPLETE|PARTIAL|GAP|PLANNED`. The dispatch status is `DEPRECATED` in Capabilities, and the retirement record is the retired-agents appendix plus `infra:council-comms.retired_agents.xai`.
 

@@ -17,7 +17,7 @@ error_signatures:
 > **ACTIVE OVERRIDE - Max S1738, Event Ledger `d50cbd80` (2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review. CC holds the third voting seat with GLM and DeepSeek; the full panel remains unanimous. Apply the option A package standard and option C tiering and raiser-only fold re-review in `runbooks/council.md` ACTIVE OVERRIDE to the older roster and dispatch text below.
 >
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes older roster statements on this page, subject to the d50cbd80 active override above.**
-> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs all three: unanimous 3/3, each vote with valid participation (the voter's pinned model verified). An unusable vote is rerun once; if it is still unusable the gate fails. A voter is never dropped from the panel.
+> **S1721 base roster, subject to the d50cbd80 ACTIVE OVERRIDE above:** the Council is GLM, DeepSeek and Gemini. During the override CC takes Gemini's seat without a Gemini dispatch; use `runbooks/council.md` for the current gate. The base rule requires unanimous 3/3 valid votes, with an unusable vote rerun once.
 > **CC is not a Council member.** `council_request agent=cc` remains as an explicit non-Council second opinion: never counted, cannot unlock completion. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
 > Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc",)`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
@@ -57,7 +57,7 @@ separate current gateway tool.
 
 Source: CORE §5.
 
-> The gate voter panel is exactly **GLM, DeepSeek, Gemini** — three voters, unanimous 3/3, an unusable vote rerun once and then the gate fails. CC is an explicit-name, non-Council second opinion; Kimi is removed (S1721). All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and the active roster live in `infra:council-comms`, not here.
+> **S1721 base roster, subject to the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`:** GLM, DeepSeek and Gemini form the base panel. Through 2026-10-05 CC holds Gemini's seat, Gemini is not dispatched, and unanimity applies. Kimi is removed. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and dispatch configuration live in `infra:council-comms`.
 
 > Vulcan and Mars are two cooperating frontier-model instances (current model strings live in the registry, not here), **peers of equal authority** over shell, git, dispatch, and Living State.
 
