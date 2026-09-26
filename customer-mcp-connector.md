@@ -19,7 +19,16 @@ Railway project `ai-market` is `e81dd66f-808c-412e-b32c-f6d910f0ac5d`; the produ
 | `ai-market-connector` | `a08ef347-d2d1-4fcb-ba50-9299a9484fd5` | `connect.ai.market` | `519d4d32-649c-4adc-afe1-b9dca9100168` | 8080 |
 | `ai-market-connector-auth` | `5ee110fc-df73-4107-b8fd-469099cb64d2` | `auth.ai.market` | `8b41594b-2ef9-4b43-9689-5df8f9b47892` | 8080 |
 
-DNS setup and verification are in `cloudflare-and-dns.md` under “Adding a Railway-hosted subdomain.” Current Railway certificate status as a separate provider check is **UNVERIFIED** in this record; the HTTPS health checks below succeeded.
+DNS setup and verification are in `cloudflare-and-dns.md` under “Adding a Railway-hosted subdomain.” Mars read back both Railway custom domains through GraphQL on 2026-09-26 at 19:53 CEST with this query shape (substitute each custom domain ID from the table):
+
+```graphql
+{ customDomain(id:"<id>", projectId:"e81dd66f-808c-412e-b32c-f6d910f0ac5d") { domain syncStatus status { verified certificateStatus } } }
+```
+
+| Domain | `verified` | `certificateStatus` | `syncStatus` | `dig` CNAME target |
+| --- | --- | --- | --- | --- |
+| `connect.ai.market` | `true` | `CERTIFICATE_STATUS_TYPE_VALID` | `ACTIVE` | `04tecdf8.up.railway.app.` |
+| `auth.ai.market` | `true` | `CERTIFICATE_STATUS_TYPE_VALID` | `ACTIVE` | `r4sae793.up.railway.app.` |
 
 ## Configuration and deployment
 
@@ -36,21 +45,38 @@ The intended settings are described by backend files `railway.connector.json` an
 
 The resource service runs the auth health stub until Chunk 3. Chunk 3 must switch its entrypoint to `app.mcp.connector.asgi:app`; `tests/connector/test_key_isolation.py::test_resource_service_switches_entrypoint_when_asgi_exists` enforces that switch. The start command overrides the backend Dockerfile command, so these services do not run migrations at startup.
 
-Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The stub reads none of `SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, a signing key, or an audit HMAC key; none is present yet. Add the needed values during OAuth stage / Chunk 3 through Infisical, the single secret store. The existing native sync `railway-backend-prod` targets only `ai-market-backend`; a sync or secret path for each new service is still to be set up. Exact future secret paths and values are **UNVERIFIED**.
+Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The stub reads none of the future secrets or datastore references; none is present yet. Before OAuth stage / Chunk 3, provision and verify these sources separately:
+
+| Owner | Future variables | Required scope and verification |
+| --- | --- | --- |
+| Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Set up a separate correctly scoped secret path and native sync for each service. The existing `railway-backend-prod` sync targets only `ai-market-backend`. Exact new paths, syncs, values, and audit HMAC variable name are **UNVERIFIED**. |
+| Railway | `DATABASE_URL` as a restricted connector runtime DSN; `REDIS_URL` | Create these as Railway variables/service references for the intended service. Never store them in Infisical, per `infisical-secrets.md`. The restricted role and references are not yet provisioned or verified. |
+
+Before enable, verify that each connector Infisical path contains no `DATABASE_URL` or `REDIS_URL`, and use Railway GraphQL readback to confirm the intended service references and only the intended secret names. Suppress values in evidence.
 
 The deployment procedure used a clean archive of backend main rather than a repository attachment:
 
 ```bash
-git archive <backend main sha> | tar -x -C <dir>
-cd <dir>
-railway up --service <svc> --environment production --project e81dd66f-808c-412e-b32c-f6d910f0ac5d --detach -m '<msg>'
+SHA=2df3e416cf421141311ca915a781487d24214953 # Replace with the full 40-character backend main SHA for a later deployment.
+D=/Users/max/worktrees/connector-deploy-$SHA
+mkdir -p "$D"
+git -C /Users/max/Projects/ai-market/ai-market-backend fetch -q origin
+git -C /Users/max/Projects/ai-market/ai-market-backend archive "$SHA" | tar -x -C "$D"
+cd "$D"
+unset RAILWAY_TOKEN
+railway up --service ai-market-connector-auth --environment production --project e81dd66f-808c-412e-b32c-f6d910f0ac5d --detach -m "connector from ai-market-backend@$SHA"
+railway up --service ai-market-connector --environment production --project e81dd66f-808c-412e-b32c-f6d910f0ac5d --detach -m "connector from ai-market-backend@$SHA"
 ```
 
 Use the account token from `~/bin/railway-env.sh` with `RAILWAY_TOKEN` unset. Railway GraphQL requests need a browser User-Agent. Do not print token values.
 
-Backend main `2df3e416c` was uploaded at about 19:05–19:07 CEST on 2026-09-26. The connector deployment `dbea8e89-50d1-4093-8351-90f86b5402a2` and auth deployment `5f73a187-ce60-4721-865d-8fce1324a6de` both reached `SUCCESS`. On both `https://connect.ai.market` and `https://auth.ai.market`, `/healthz` returned HTTP 200 with `{"status":"ok"}`, `/readyz` returned HTTP 200, and `/mcp` returned HTTP 404. These checks establish the health stub only.
+Backend main `2df3e416cf421141311ca915a781487d24214953` was uploaded at about 19:05–19:07 CEST on 2026-09-26. The initial connector deployment `dbea8e89-50d1-4093-8351-90f86b5402a2` and auth deployment `5f73a187-ce60-4721-865d-8fce1324a6de` both reached `SUCCESS`. On both `https://connect.ai.market` and `https://auth.ai.market`, `/healthz` returned HTTP 200 with `{"status":"ok"}`, `/readyz` returned HTTP 200, and `/mcp` returned HTTP 404. These checks establish the health stub only.
 
-Backend migration `s_connector_foundation_001` has been live since 2026-09-26 18:38 CEST through backend `2df3e416c` (PR #488). The restricted runtime DB role and its audit-table INSERT/SELECT grant remain an operator step before Gate 4. While `CONNECTOR_RUNTIME_DB_ROLE` is unset, that migration skips grants; it refuses owner, migrator, or superuser-reachable roles. The future role identity and grant verification are **UNVERIFIED**.
+Backend migration `s_connector_foundation_001` has been live since 2026-09-26 18:38 CEST through backend `2df3e416cf421141311ca915a781487d24214953` (PR #488). While `CONNECTOR_RUNTIME_DB_ROLE` is unset, that migration skips grants; it refuses owner, migrator, or superuser-reachable roles.
+
+GLM's read-only production DB readback on 2026-09-26 found that `ai_market_app` has `DELETE`, `INSERT`, `REFERENCES`, `SELECT`, `TRIGGER`, `TRUNCATE`, and `UPDATE` on `connector_audit_events` (`relacl`: `ai_market_app=arwdDxtm/postgres`; row-level security off). `has_table_privilege` returned true for `UPDATE` and `DELETE`. Append-only behavior today rests on the table triggers only; the current ACL does **not** satisfy the connector runtime privilege gate.
+
+**Mandatory before Gate 4 and before any connector service receives a database DSN:** create a separate connector runtime role with effective `INSERT` and `SELECT` only on `connector_audit_events`. Verify with `has_table_privilege` that `UPDATE`, `DELETE`, and `TRUNCATE` are all false for every role permitted as a connector runtime/application role. Also prove and record that `ai_market_app` is unreachable from connector services, or revoke its `UPDATE`, `DELETE`, and `TRUNCATE` grants on this table through a reviewed migration and verify the effective privileges again. Record the role, reachability/grant decision, and verification results on this page before issuing a DSN. This future verification is **PENDING**; the observed production ACL above is the current result.
 
 ## Capacity sample
 
@@ -58,7 +84,11 @@ The Chunk 2 point-in-time sample was taken on a Saturday evening. PostgreSQL `ma
 
 ## Rollback
 
-Redeploy the previous deployment or scale the affected service to zero. All four connector flags are already off. The prior deployment IDs and any scale-to-zero execution are **UNVERIFIED** in this record.
+Before the 2026-09-26 drill, Railway deployment history contained exactly one deployment per service: connector `dbea8e89-50d1-4093-8351-90f86b5402a2` and auth `5f73a187-ce60-4721-865d-8fce1324a6de`. There was no earlier deployment to restore. All four connector flags were off.
+
+At 19:54 CEST, Mars tested Railway GraphQL `mutation { deploymentRemove(id:"<deployment id>") }` against connector deployment `dbea8e89-50d1-4093-8351-90f86b5402a2`. Its status became `REMOVED`; `https://connect.ai.market/healthz` returned HTTP 404 within 10 seconds while `https://auth.ai.market/healthz` still returned HTTP 200. Mars then used the archive deployment procedure above to restore the connector as deployment `3abe2c20-6321-4481-960c-ffd7f7c0b24d`.
+
+Current rollback is `deploymentRemove` on the affected bad deployment. Once an earlier named deployment exists, redeploy that known deployment using the archive procedure and record its ID. Check the affected service health and leave the other service untouched.
 
 ## When it breaks
 
