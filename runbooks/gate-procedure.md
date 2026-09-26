@@ -14,6 +14,8 @@ error_signatures:
 
 **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 **Source:** CORE §5.
 
 ## Capabilities
@@ -51,7 +53,7 @@ Source: CORE §5.
 
 > CCP is the **full-ceremony gate flow, reserved for expensive-to-reverse work** (schema, auth, money, customer data) per the Charter's risk sizing. Low-risk reversible internal work does not run the full CCP — it gets one reviewer, one round.
 
-> **Voters:** GLM, DeepSeek, Gemini — exactly three. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work. CC is available only by explicit name for a non-Council second opinion and never counts in a gate. Kimi is removed.
+> **Voters:** Under the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`, GLM and DeepSeek are required, CC holds Gemini's third seat through 2026-10-05, and Gemini is not dispatched. The panel is unanimous. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work. Kimi is removed.
 
 > - **Round 1 (Positions):** voters evaluate independently, full position, each sees only the spec.
 > - **Round 2 (Debate):** voters see Round 1 positions; react, challenge, concede, or hold.
@@ -70,7 +72,7 @@ Source: CORE §5.
 > - **Gate 1 (Design):** architecture review. APPROVED → build. APPROVED_WITH_MANDATES → Gate 2. REJECT → redesign.
 > - **Gate 2 (Spec):** verify mandates addressed. APPROVED → build unblocked. REJECT → fix spec.
 > - **Build:** MP executes — the mandatory builder for both instances. Compliance gate blocks dispatch if Gate 2 not passed.
-> - **Gate 3 (Audit):** post-build review by the gate voter panel (GLM, DeepSeek, Gemini; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
+> - **Gate 3 (Audit):** post-build review by the gate voter panel (during the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: GLM, DeepSeek, CC in Gemini's seat; builder excluded). PASS → deploy. REVISE/REJECT → back to Gate 2, never Gate 1.
 > - **Gate 4 (Production Verification):** deployed and verified working. Nothing is done until Gate 4 passes. Cross-review required (reviewer ≠ builder).
 
 ### Selection and eligibility

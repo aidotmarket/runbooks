@@ -11,6 +11,8 @@ error_signatures: []
 ## S.1 Purpose
 Alembic-based database schema migration procedures across ai-market-backend, koskadeux-mcp (Living State database), and any other service with versioned schema. Owned by **BQ-PROCESS-BUILD-QUEUE-INTEGRITY-S612** (P1, delegated migration-discipline section). Filed S612 per DS mandate that the runbook set was missing dedicated schema-migration coverage.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
+
 ## S.2 Pre-migration checklist
 Before authoring any new Alembic revision:
 1. `alembic heads` MUST return exactly 1 head on the target branch.

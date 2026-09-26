@@ -19,6 +19,8 @@ ancestor of production-reported revision
 `SUCCESS` for deployment `82d8c1dc-2c81-4c22-ad65-f9f00c193ac3`, created
 `2026-08-18T22:07:14.283Z`.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 Preflight on 2026-08-19 found that the deployed anonymous path concatenates a
 fresh `generated_at` timestamp into the cache-marked block, guaranteeing a miss
 on every anonymous request. No paid proof was sent. Exact backend candidate

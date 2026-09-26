@@ -61,9 +61,12 @@ handlers require restarting `koskadeux_server.py` (`com.koskadeux.mcp`), not the
 | `lilly_server.py` | — | `com.koskadeux.lilly` | Companion service. |
 | `council-hall` | — | `com.koskadeux.council-hall` | Council hall service. |
 
-The current gate voter panel is CC + DeepSeek + GLM exactly. MP is the mandatory builder,
-not a gate voter; AG is PAUSED; XAI is RETIRED. `infra:council-comms` is canonical for the
-live roster, model assignments, and dispatch configuration.
+For current review dispatch, follow the d50cbd80 ACTIVE OVERRIDE in
+`runbooks/council.md`: GLM and DeepSeek are required, CC holds Gemini's third
+voting seat through 2026-10-05, Gemini is not dispatched, and the panel is
+unanimous. Its option A package standard and option C tiering also apply.
+MP is the mandatory builder, not a gate voter; AG is PAUSED; XAI is RETIRED.
+`infra:council-comms` records live model assignments and dispatch configuration.
 
 ## Transport: why cloudflared (not Tailscale Funnel)
 

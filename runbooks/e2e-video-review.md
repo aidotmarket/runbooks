@@ -59,6 +59,8 @@ error_signatures:
 
 Prose: a run produces a video, a step transcript and a trace. An assembler turns those into one evidence object. The model reads the video plus that object and returns structured findings. A gate decides what each finding has earned. Severity is applied by us from the category, not by the model. A stable signature decides whether a finding is new or the same one recurring. The point of the whole chain is that a finding arrives with its evidence attached, because the failure mode of this programme has always been output that looks like insight.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 ## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |

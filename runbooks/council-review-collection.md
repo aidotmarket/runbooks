@@ -18,6 +18,13 @@ error_signatures:
 
 # Council Review Collection, Gate Recording, and Lane Coordination
 
+**Current review authority:** Follow the d50cbd80 ACTIVE OVERRIDE in
+`runbooks/council.md` before dispatch: GLM and DeepSeek are required, CC holds
+Gemini's third voting seat through 2026-10-05, Gemini is not dispatched, and
+the panel is unanimous. Apply its option A package standard and option C
+tiering and fold re-review rule. Kimi dispatch and the older roster/transport
+examples below are historical diagnostics, not current instructions.
+
 ## Overview
 
 
@@ -25,7 +32,7 @@ error_signatures:
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Kimi review dispatch (read-only at-SHA) | SHIPPED | `tools/agents.py` | `provider_readonly_review` harness tests | 2026-07-30 |
+| Kimi review dispatch (read-only at-SHA) | HISTORICAL — removed from current dispatch | `tools/agents.py` at the recorded 2026-07-30 state | `provider_readonly_review` harness tests | 2026-07-30 |
 | GLM review dispatch (read-only at-SHA) | SHIPPED | `council_dispatch_middleware/` | live proof S1369 task ff0f2f67 | 2026-07-30 |
 | CC review dispatch (agentic audit) | SHIPPED | `council_hall/agent_adapters.py` | live use through S1407 | 2026-07-30 |
 | Gate result recording on BQ entities | SHIPPED | `state_service.py` | live use through S1407 | 2026-07-30 |
@@ -39,7 +46,7 @@ Backing-code paths are relative to the koskadeux-mcp repository root.
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
 | Review dispatcher | council_request(agent=..., mode=review) | dispatch receipts | koskadeux-mcp gateway | dispatch_sha resolves against cwd or the server process cwd; see E-01 |
-| Kimi reviewer | Kimi Code subscription transport via the shared provider_readonly_review harness | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | Verify plan endpoint/model in the live receipt and registry; exact model match mandatory; fails closed on coverage gaps |
+| Historical Kimi reviewer | Former Kimi Code subscription transport via the shared provider_readonly_review harness | evidence ledger per dispatch | read_file_at_sha, list_dir_at_sha, grep_at_sha, git_show | Retained diagnostic only; Kimi has no current review dispatch |
 | GLM reviewer | OpenRouter pinned endpoint via the same harness | evidence ledger per dispatch | the same read-only tool set | USD 5 authorized live max; exact model match mandatory |
 | CC reviewer | council dispatch path, agentic | structured_payload in receipt | repo checkout at SHA | raw structured_payload is authoritative over legacy coercion |
 | Gate recorder | `state_request(action=bq_update)` | build:bq-* entities, Event Ledger | Living State | Set `gate_status_update=true` to update `body.gateN.status`; see E-02. |
@@ -55,19 +62,19 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | mars | dispatch reviews, collect verdicts, record gates, coordinate lane | council_request, state_request, peer_msg tools | full operator | COMPLETE |
 | vulcan | same as mars (symmetric peer) | same | full operator | COMPLETE |
 | mp | builder only; excluded from reviewing its own work | dispatch_mp_build | build lane | COMPLETE |
-| cc, glm, deepseek (kimi comparison-only, no vote) | review-only voters | per infra:council-comms | read-only at SHA | COMPLETE |
+| GLM, DeepSeek, CC (d50cbd80 temporary third seat) | Current review voters; follow `runbooks/council.md` ACTIVE OVERRIDE | per infra:council-comms | read-only at SHA | COMPLETE |
 
 ## How to operate
 
 ```yaml operate
 - id: E-01
-  trigger: Dispatching a Kimi or GLM review of a commit, including commits in repos other than koskadeux-mcp.
+  trigger: Historical Kimi/GLM dispatch example for diagnosing a commit review, including commits in repos other than koskadeux-mcp; use the current d50cbd80 panel and dispatch rules in runbooks/council.md instead.
   pre_conditions:
     - dispatch SHA is a full 40-hex commit reachable in a local checkout
     - the checkout has fetched the SHA
     - the connected client council_request enum contains the selected required voter; if upstream and client differ, refresh or reconnect before dispatch
     - review scoped within the reviewer cost cap; for Kimi 3-page deltas use max_tokens 20000 plus a summary word cap; for GLM multi-page reads quote the file path on its own line and instruct re-issuing identical args changing only offset
-  tool_or_endpoint: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>)
+  tool_or_endpoint: 'HISTORICAL: council_request(agent=<kimi|glm>, mode=review, task=<review_prompt>, dispatch_sha=<SHA>, cwd=<repo_root_containing_SHA>); current dispatch follows runbooks/council.md ACTIVE OVERRIDE'
   argument_sourcing:
     review_prompt: derive from the exact gate/spec questions and changed-file coverage, with explicit read-only scope
     cwd: absolute path of the repo checkout that contains the dispatch SHA; the resolver uses args.cwd or the server process cwd, and review_sources entries do NOT satisfy it (root-caused S1407, verified live on backend SHA 00a45639)

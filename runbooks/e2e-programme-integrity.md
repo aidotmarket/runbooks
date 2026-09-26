@@ -66,6 +66,8 @@ error_signatures:
 
 Prose: the catalog defines the 30 journeys. A charter claims some of them and carries the goal an AI executes in a real browser against production. The guard checks committed charters. The queue decides what actually runs and is NOT the same set. The publisher folds outcomes into one record, fail-soft, and the Test page renders it. Integrity is not any one of these — it is the agreement between them. Every incident in this programme has been a disagreement between two of these surfaces that nothing detected.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+
 ## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |

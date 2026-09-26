@@ -380,7 +380,7 @@
 
 ## Codex / MP — Council Primary Builder
 - Path: `codex-mp.md`
-- Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6-sol`** since 2026-09-22 — Max S1738, "please just implement it as the builder model", koskadeux-mcp #231, Codex CLI 0.155.1; before that `gpt-5.6-sol`, Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is NOT a gate voter — the S1651 gate panel is CC/GLM/DeepSeek and Kimi is explicit-name comparison-only — though explicit MP review dispatch remains available outside gate voting. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+- Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6-sol`** since 2026-09-22 — Max S1738, "please just implement it as the builder model", koskadeux-mcp #231, Codex CLI 0.155.1; before that `gpt-5.6-sol`, Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is not a gate voter, though explicit MP review dispatch remains available outside gate voting. The S1651 CC/GLM/DeepSeek panel and Kimi comparison seat are historical. For current reviews, follow the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: GLM and DeepSeek are required, CC holds Gemini's third seat through 2026-10-05, Gemini is not dispatched, unanimity applies, and option A/option C govern the package and review tier. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
 - Last verified: `2026-09-24`
 - Aliases: none
@@ -452,7 +452,7 @@
 
 ## Council Review Collection, Gate Recording, and Lane Coordination
 - Path: `runbooks/council-review-collection.md`
-- Purpose: Backing-code paths are relative to the koskadeux-mcp repository root.
+- Purpose: **Current review authority:** Follow the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md` before dispatch: GLM and DeepSeek are required, CC holds Gemini's third voting seat through 2026-10-05, Gemini is not dispatched, and the panel is unanimous. Apply its option A package standard and option C tiering and fold re-review rule. Kimi dispatch and the older roster/transport examples below are historical diagnostics, not current instructions.
 - Owner: `mars`
 - Last verified: `2026-07-30`
 - Aliases: council-verdict-collection, gate-recording

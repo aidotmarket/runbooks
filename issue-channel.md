@@ -26,6 +26,8 @@ error_signatures:
 
 The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption (DeepSeek balance; see Council provider consumption for limits), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
+
 Provider observations are the sole authority for whether an issue exists and whether it is resolved. A partial, unavailable, untrusted, or unordered observation never resolves an episode. Absence from a lookback window, expiry, timeout, and worker text are not success witnesses.
 
 The watcher collects and resolves issues even when dispatch, the local worker, or the support API is unavailable. Keep the Railway service at one replica; the singleton guard deliberately rejects a second replica.

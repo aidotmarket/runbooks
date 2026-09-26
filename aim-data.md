@@ -10,6 +10,8 @@ error_signatures: []
 
 AIM Data is what a data seller installs on their own infrastructure to list datasets on the ai.market marketplace. It runs as a Docker container on the seller's machine, profiles the data, generates the listing metadata via allAI, and never copies the raw data anywhere. When a buyer purchases a listing, ai.market issues a signed delivery token and the bytes flow peer-to-peer from the seller's AIM Data install to the buyer. ai.market handles discovery, payments via Stripe, and the delivery token, but never sees or touches raw data.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
+
 **IS:** Customer-deployed Docker app. Local-first. Non-custodial. Tied to one seller identity on ai.market. The conduit through which allAI's metadata-generation work reaches the seller's data sources.
 
 **IS NOT:** A cloud service. A data warehouse. A data mover. AIM Data never phones home with raw data, never stores buyer-side state, and never holds keys to the customer's S3 buckets. Long-lived AWS credentials stay in the customer's account. AIM Data only holds short-lived assumed-role sessions when it reads.

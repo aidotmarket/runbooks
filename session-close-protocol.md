@@ -14,6 +14,8 @@ Vulcan and Mars are equal-authority peers. Each session is keyed by instance and
 plans, operates, and closes independently; there are no role-based lanes, lifecycle
 slots, parent-session dependency, or peer close ordering.
 
+**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
+
 Close a peer's session only when Max explicitly requests it, that peer approaches its
 context limit, or that peer has no eligible work and is intentionally stopping. One peer's
 close never waits for, forces, or implies the other peer's close.
