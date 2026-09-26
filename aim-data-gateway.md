@@ -10,7 +10,7 @@ error_signatures: [Cloudflare GraphQL error, Cloudflare zone unavailable, Cloudf
 
 The AIM Data gateway is the small open-source Go service that sellers run with Docker to list and serve files from their own infrastructure. It replaces legacy AIM Data (`aim-data.md`), which is frozen. Design authority: `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE1.md` and `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE2.md`. Build record: Living State `build:bq-aim-data-gateway-rebuild-s1741`.
 
-This page covers what is live today: the repository and release, the egress canary, the `gateway-signer` service with its KMS keys, and the backend's gateway settings. The feature flag `AIM_GATEWAY_ENABLED` is still off (as of 2026-09-26); record the flip here when it happens.
+This page covers what is live today: the repository and release, the egress canary, the `gateway-signer` service with its KMS keys, the door-check worker, and the backend's gateway settings. The feature flag `AIM_GATEWAY_ENABLED` is still off (as of 2026-09-26); record the flip here when it happens.
 
 ## Repository and release
 
@@ -73,7 +73,7 @@ Every permission and every listing-control message the gateway accepts is an Ed2
 - Code: `services/gateway_signer/` in `aidotmarket/ai-market-backend` (FastAPI, `POST /sign_permission_key`, `POST /sign_listing_key`, unauthenticated `GET /health`). It builds one KMS client from `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON` and fails closed (503 `signer_unavailable`) with no fallback to Application Default Credentials.
 - Service id `dcee2123-6d23-450d-996e-d02c515e7ada`. No public domain, one replica, health check `/health`, private address `gateway-signer.railway.internal:8080`.
 - Variables: `GATEWAY_SIGNER_TOKEN` (reference to the backend's value), `GATEWAY_SIGNER_GCP_CREDENTIALS_JSON`, `GATEWAY_KMS_PROJECT/LOCATION/KEYRING`, `GATEWAY_PERMISSION_KEY` and `GATEWAY_LISTING_KEY` (full `.../cryptoKeyVersions/1` paths), `GATEWAY_PERMISSION_KID`, `GATEWAY_LISTING_KID`, `PORT=8080`, `RAILWAY_DOCKERFILE_PATH=services/gateway_signer/Dockerfile`.
-- **No repository source, on purpose.** Connected to the backend repo, Railway applies the repo's root `railway.json`/`railway.toml` and builds the backend `Dockerfile` whatever the service's own Dockerfile setting says; the container then crash-loops on `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations` (S1752). Railway's API also refuses to set a per-service config file on new services ("Config as Code is deprecated"). Until the move to Railway Infrastructure as Code (`build:bq-railway-cli-v5-upgrade-s1751`, deadline 2026-12-01), deploy by upload.
+- **No repository source, on purpose.** Connected to the backend repo, Railway built and ran the backend root `Dockerfile` instead of the service's Dockerfile setting, and the container crash-looped on `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations`. This happened twice in S1752 (Dockerfile path with and without a leading slash; deployment `configFile` was null both times, so the root config file is not proven to be the cause; the second run reused an image for the same commit). Railway's API also refuses to set a per-service config file on new services ("Config as Code is deprecated"). Until the move to Railway Infrastructure as Code (`build:bq-railway-cli-v5-upgrade-s1751`, deadline 2026-12-01), deploy by upload.
 
 ### Deploy (Koskadeux, after the change is merged to backend main)
 
@@ -100,6 +100,19 @@ Run a probe inside the signer container (it has the token; `railway ssh` does no
 
 Proved in S1752 (2026-09-26 02:16 CEST): all three passed. To prove the private-network path, run the same probe from the backend container with `PROBE_URL=http://gateway-signer.railway.internal:8080` once the backend has redeployed with `GATEWAY_SIGNER_TOKEN`.
 
+## Door-check worker: ai-market-gateway-door-worker
+
+Gate 2 requires door checks and canary correlation to run on a dedicated worker, not the ordinary Celery worker. Celery beat (`ai-market-celery-beat`) schedules `aim_gateway.schedule_door_checks` and `aim_gateway.canary_log_reader` every 300 s onto queue `gateway_door_checks`; only this service consumes that queue. `aim_gateway.gateway_refund_watch` stays on the ordinary worker (`scheduled` queue).
+
+- Service id `11316ad6-b28f-4516-b968-0313d02835bd`, repo `aidotmarket/ai-market-backend` branch `main` (auto-deploys with the backend), Dockerfile `/Dockerfile`, no health check, one replica, restart ON_FAILURE, no domain.
+- Start command (service setting, not a config file): `sh -c 'python -m app.core.seller_schema_readiness && exec celery -A app.core.celery_app worker --loglevel=info --concurrency=2 --prefetch-multiplier=1 -Q gateway_door_checks'`.
+- Variables are references only: `DATABASE_URL`, `REDIS_URL`, `CELERY_VISIBILITY_TIMEOUT`, `ORDER_PAYOUT_DISPATCH_ENABLED` from `ai-market-celery-worker`; `SECRET_KEY`, `DOWNLOAD_TOKEN_SECRET_KEY`, `INTERNAL_API_KEY`, `AIM_GATEWAY_ENABLED`, `GATEWAY_CANARY_CF_API_TOKEN`, `GATEWAY_CANARY_CF_ZONE_ID`, `GATEWAY_CANARY_ZONE`, `GATEWAY_CANARY_HOST`, `GATEWAY_VERSION`, `GATEWAY_MINIMUM_VERSION`, `GATEWAY_PERMISSION_PUBLIC_KEYS`, `GATEWAY_LISTING_PUBLIC_KEYS` from `ai-market-backend`. It holds no signer token, no pairing pepper and no KMS credential.
+- Egress: Railway cannot restrict a service's egress to public addresses, so the rule is enforced in code: `_public_addresses()` in `app/tasks/aim_gateway_door.py` refuses any door host that resolves to a non-global address (`address_not_public`), which covers Railway's private network.
+- `AIM_GATEWAY_ENABLED` is set explicitly on the backend (`false` until flag-on) because the workers read it by reference; a reference to an unset variable renders empty and fails settings validation. The ordinary worker also references it (for refund watch).
+- Created S1752 (2026-09-26). Before it existed, beat had queued about 1,100 no-op tasks since the S1741 merge; the worker drained them on first start. With the flag off every task returns immediately.
+
+Check: `railway logs --service ai-market-gateway-door-worker --environment production` shows `aim_gateway.schedule_door_checks` and `aim_gateway.canary_log_reader` received and succeeded every 5 minutes; the Redis list `gateway_door_checks` stays near 0. While the flag is off this proves liveness only. After flag-on, also confirm `aim_gateway.door_check` tasks run for paired gateways and their `gateway_door_checks` rows get a real `state` (not left pending).
+
 ## When it breaks
 
 - `Cloudflare GraphQL error: ... authentication` or an HTTP 401/403 in the correlation worker log: the token is missing Analytics Read or was revoked. Ask Max to fix the token in Cloudflare and Infisical, then redeploy the backend. While it is broken, every gateway falls to `unknown` (fail-closed), so publishing and new permissions stop.
@@ -110,3 +123,4 @@ Proved in S1752 (2026-09-26 02:16 CEST): all three passed. To prove the private-
 - `signer_key_version_mismatch`: `GATEWAY_PERMISSION_KEY`/`GATEWAY_LISTING_KEY` on the signer do not name the version KMS used. Keep full `cryptoKeyVersions/N` paths.
 - KMS `PERMISSION_DENIED` in the signer log: the service account lost `signerVerifier` on that key.
 - `gateway-signer` crash-loops with `DATABASE_URL or AUTHOR_DISPATCH_DATABASE_URL is required for migrations`: it was connected to the repo and built the backend image. Remove that deployment, disconnect the source, and deploy by upload (above).
+- Redis list `gateway_door_checks` keeps growing: `ai-market-gateway-door-worker` is down or not consuming that queue. Gateways then never get a door result and cannot publish.
