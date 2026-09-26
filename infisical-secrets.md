@@ -27,6 +27,14 @@ Before advising on secret names, project/environment selection, access, verifica
 
 **CAUTION (why this matters):** because the sync prioritizes Infisical, a **stale** value in Infisical for a shared key will be pushed over a good Railway value on the next sync. This took prod down once (S1125: stale `GITHUB_TOKEN` + `GCP_SERVICE_ACCOUNT_JSON` clobbered working Railway creds). Before enabling/triggering a sync, ensure Infisical is not stale for shared keys — use `reconcile-from-railway`. Railway-managed vars (e.g. `DATABASE_URL`, `REDIS_URL`, `RAILWAY_*`) must NOT live in Infisical.
 
+**Second incident (S1751/S1752, 2026-09-26):** Infisical `prod` still held `X402_ENABLED=true` after production had moved to `false` on Railway. Two ordinary secret writes through local-secops (`GATEWAY_PAIRING_PEPPER`, `GATEWAY_SIGNER_TOKEN`, 23:12-23:13 UTC, audit.log lines 147-148) made the sync push the whole set, which flipped Railway to `true`. Every backend deploy then failed at startup with `LISTING_LICENSES_ENABLED=true is incompatible with X402_ENABLED=true`; production stayed up only because the previous deployment kept running. Fixed with `secops_execute.py --reconcile X402_ENABLED --execute`; that Infisical write itself triggered a new backend deploy, which is expected. Lesson: **a write to any `prod` secret re-pushes every Infisical-owned key and redeploys the backend.**
+
+**Who owns which flag (checked 2026-09-26; recheck with a names-only diff of `railway variables --json` against `infisical export --format json`):**
+
+- Infisical-owned (change them in Infisical, never only on Railway, or the next sync reverts you): `X402_ENABLED`, `STRIPE_TEST_MODE`, `SYSADMIN_HEAL_ENABLED`, `KAGGLE_SUBMISSION_ENABLED`, `BACKUP_LOCAL_FALLBACK_ENABLED`, `CRM_V2_READ_MODE`, `CRM_V2_WRITE_MODE`, and all `SELLER_WORKSPACE_*` flags.
+- Railway-only (not in Infisical, so the sync leaves them alone; change them on Railway): `AIM_GATEWAY_ENABLED`, `LISTING_LICENSES_ENABLED`, `CUSTOM_LICENSE_TEXT_SUBMISSIONS_ENABLED`, `ORDER_PAYOUT_DISPATCH_ENABLED`, `STRIPE_PAYIN_ONBOARDING_ENABLED`, `DATA_VERIFICATION_ENABLED`, `E2E_TEST_ROUTES_ENABLED`, `E2E_PREFLIGHT_ROUTES_ENABLED`, `ANON_CHAT_ENABLED`, `HUGGINGFACE_SUBMISSION_ENABLED`, `CORPUS_CORRECTION_DELTA_ENABLED`, `CORPUS_METADATA_GENERATION_INTERACTION_ENABLED`, `ALLAI_REMEDIATOR_INCIDENT_QUEUE_ENABLED`, `TERMS_GATE_MODE`.
+- Before any Infisical `prod` write, compare the Infisical value of every Infisical-owned flag with Railway and reconcile drift first.
+
 ## Quick Reference
 
 | Resource | ID |
