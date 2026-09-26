@@ -111,7 +111,7 @@ Gate 2 requires door checks and canary correlation to run on a dedicated worker,
 - `AIM_GATEWAY_ENABLED` is set explicitly on the backend (`false` until flag-on) because the workers read it by reference; a reference to an unset variable renders empty and fails settings validation. The ordinary worker also references it (for refund watch).
 - Created S1752 (2026-09-26). Before it existed, beat had queued about 1,100 no-op tasks since the S1741 merge; the worker drained them on first start. With the flag off every task returns immediately.
 
-Check: `railway logs --service ai-market-gateway-door-worker --environment production` shows `aim_gateway.schedule_door_checks` and `aim_gateway.canary_log_reader` received and succeeded every 5 minutes; the Redis list `gateway_door_checks` stays near 0.
+Check: `railway logs --service ai-market-gateway-door-worker --environment production` shows `aim_gateway.schedule_door_checks` and `aim_gateway.canary_log_reader` received and succeeded every 5 minutes; the Redis list `gateway_door_checks` stays near 0. While the flag is off this proves liveness only. After flag-on, also confirm `aim_gateway.door_check` tasks run for paired gateways and their `gateway_door_checks` rows get a real `state` (not left pending).
 
 ## When it breaks
 
