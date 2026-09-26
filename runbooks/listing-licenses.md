@@ -1,9 +1,10 @@
 ---
 title: Listing licences and signed records
 owner: vulcan
-last_verified: '2026-09-23'
+last_verified: '2026-09-26'
 aliases: [listing licenses, Standard Data Licence, seller licence, signed licence record]
 error_signatures:
+  - capability_required
   - SELLER_TERMS_ACCEPTANCE_PENDING
   - LICENSE_SELECTION_REQUIRED
   - LICENSE_SELECTION_INVALID
@@ -40,7 +41,7 @@ error_signatures:
 
 # Listing licences and signed records
 
-Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1`; these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the [S1656 money-path test environment](../money-path-test-environment.md). Production retains read-only health, current-terms and document-hash checks.
+Operate the seller's listing licence, buyer's signed record and terms 1.1 gate. ai.market is not a party to the seller–buyer licence. Support supplies records and process facts, not legal advice. Source was read at backend `0d21ec3f` and frontend `9c9e4f1` (E-05, the `capability_required` and refund-livemode rows were verified on 2026-09-26 at backend `445f43af`); these are source pins, not a claim about the deployed images. Authority: `specs/BQ-LISTING-LICENSES-S1735-GATE2.md` §§12.7–14 and amendment 1. Licences are enabled in production as of 2026-09-23T22:31Z (Event `15ce797f`), with `TERMS_1_1_EFFECTIVE_AT=2026-09-23T22:30:00Z`, terms 1.1 hash `502c5f3190a560b32320ad8ea860dca60c7ba5e2f2fa907bc72072a0ec361c82`, and `X402_ENABLED=false` (Max `18fab669`; x402 remains off and is not implemented). Amended §14 Seller Workspace listing and buyer purchase/refund proof runs in the [S1656 money-path test environment](../money-path-test-environment.md). Production retains read-only health, current-terms and document-hash checks.
 
 ## Capabilities
 
@@ -217,6 +218,24 @@ Use the generated `tests/test_listing_license_route_inventory.py` route set and 
 
 Get product authority first. Freeze normative full text and buyer/seller summaries, code, version and variants; add new resource bytes and published vectors in `app/resources/licenses/` and `app/services/license_hashing.py`; seed only that exact version; expose its immutable public URL and JSON-LD (`app/api/v1/endpoints/license_documents.py`, `app/services/public_listing_jsonld.py`); update backend/frontend selection, hash and record tests; obtain unanimous exact-candidate review; then include it in a separate enablement decision. Never edit released `1.0` bytes or reinterpret a signed hash. The sequence is Gate 2 §13 product governance, not an existing one-command stock-licence tool.
 
+```yaml operate
+- id: E-05
+  trigger: Enable or roll back seller custom licence text submission (spec amendment TEXT-ONLY-CUSTOM-S1738 section 6)
+  pre_conditions:
+    - LISTING_LICENSES_ENABLED=true and X402_ENABLED=false in production; record both and the deployed backend/frontend SHAs
+    - The same backend SHA has passed the S1656 custom-text journey (publish, refusals, buyer exact bytes) and the Standard purchase/refund termination proof
+  tool_or_endpoint: rtk proxy railway variables -e production -s ai-market-backend --set CUSTOM_LICENSE_TEXT_SUBMISSIONS_ENABLED=true (rollback sets false; touch nothing else)
+  idempotency: CHECK CURRENT VALUE FIRST; EACH SET REDEPLOYS
+  expected_success:
+    shape: newest deployment SUCCESS, /health 200, the flag true inside the running container
+    verification: rtk proxy railway ssh -s ai-market-backend -e production -- 'printenv LISTING_LICENSES_ENABLED CUSTOM_LICENSE_TEXT_SUBMISSIONS_ENABLED X402_ENABLED' prints true, true, false; record before/after in the Event Ledger
+  expected_failures:
+    - signature: capability_required
+      cause: POST /api/v1/licenses/custom checks seller capability before the flag, so a pool account without seller readiness gets 403 whatever the flag says; it proves nothing about the flag
+```
+
+Enabled in production on 2026-09-26 03:27Z at backend `445f43af` (Events `d631f63e` before, `74eb63f6` after). No production pool account has seller capability (buyer-01 lacks profile, company, TOTP and live payouts), so the first production custom submission is unproven until a real seller submits one; the route is proven in S1656 at the same SHA. Rollback is the flag alone: existing custom documents, purchases and signed records stay served.
+
 ## When it breaks
 
 | Symptom | Cause | Repair |
@@ -232,6 +251,8 @@ Get product authority first. Freeze normative full text and buyer/seller summari
 | `missing_active_markers` assertion in `tests/test_listing_license_route_inventory.py` | New delivery route lacks the active-acceptance marker | Keep enablement closed; enumerate derived route set and add the reviewed gate before another deploy. This is a test failure, not an HTTP error code. |
 | `LISTING_LICENSES_ENABLED=true is incompatible with X402_ENABLED=true` | `app/core/config.py` startup validator rejects both flags | Keep licence flag off; reconcile actual X402 setting. Do not bypass the validator. |
 | `LICENSE_TERMINATED`, `LICENSE_ACCEPTANCE_REQUIRED` or `LICENSE_NOT_TERMINATED` | Missing/ended contract or premature deletion confirmation | Check order and immutable acceptance/event rows. Never issue a new token or directly flip status. |
+| `403 capability_required` with `missing_steps` on `POST /api/v1/licenses/custom` | Caller lacks seller capability; checked before the custom-submission flag | Complete seller readiness (profile, company, TOTP, live payouts) through the product. Not a flag fault. |
+| Refund `charge.refunded` stored `failed` with `Provider refund binding mismatch` | Backend before `445f43af` (#480) required `livemode` on Stripe Refund objects, which Stripe never returns, so every real refund failed and the licence stayed active | Deploy #480 or later, then re-deliver the event (Stripe event retry to the endpoint). Licence terminates through the normal refund path. |
 
 ## Repair, evidence and retention
 
@@ -240,3 +261,4 @@ Preserve exact backend/frontend image and commit SHAs, Alembic current/head, nam
 ## Changes
 
 - 2026-09-23, S1738: first operator page from backend `0d21ec3f`, frontend `9c9e4f1`, Gate 2 §13 and amendment 1. Licences enabled at 22:31Z (Event `15ce797f`). The flag was off from about 22:49–22:57Z after a seller probe expected the wrong error for a refused, no-write request (Event `99d5ea8c`); Max `36740951` re-enabled it with deploy `b56e4c48` SUCCESS (Event `b19fa14d`). Amended §14 Seller Workspace and buyer purchase/refund proof moved to S1656 because production takes live payments only, hides test listings from buyers, and its test seller has no cloud source or live payouts (buyer side previously placed there by Max `2806dd13`).
+- 2026-09-26, S1738: Gate 4 r3 in S1656 completed at backend `445f43af` (evidence `acceptance-evidence/s1738-license-20260925-r3/gate4-reconciliation.md`). It found three defects, fixed under unanimous Tier 3: #478 journey-pair TEST refund admission, #479 every web `payment_intent.succeeded` crashing on Stripe 15 objects since 2026-09-13, #480 every real refund rejected for missing `livemode`. Custom text submission enabled in production (E-05).
