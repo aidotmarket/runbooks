@@ -513,6 +513,15 @@
 - Error signatures: none
 - Status: archived
 
+## Customer MCP connector — build and operations
+- Path: `customer-mcp-connector.md`
+- Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. Both public services currently run a health-only auth stub with connector flags off; this is not a working customer MCP or OAuth release.
+- Owner: `unassigned`
+- Last verified: `2026-09-26`
+- Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
+- Error signatures: Config as Code is deprecated
+- Status: current
+
 ## Daily CRM Briefing — First Real-Content Verification
 - Path: `archive/evidence/briefing-verification-2026-04-25.md`
 - Purpose: **Date**: 2026-04-25 07:00 UTC (first delivery after S499 data backfill + S501/S502 Chunk A fixes) **Owner**: Max / Vulcan next-session **Gate**: BQ-CRM-USER-SCOPING-BACKFILL-AND-FALLBACK AC11 — contact_count > 0 for 7 consecutive days starts today

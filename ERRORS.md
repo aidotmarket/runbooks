@@ -316,6 +316,10 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `Config as Code is deprecated`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `config_read_ok false`
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
