@@ -1,14 +1,14 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-09-26'
+last_verified: '2026-09-27'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [Config as Code is deprecated]
+error_signatures: [Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'"]
 ---
 
 # Customer MCP connector — build and operations
 
-This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. Both public services currently run a health-only auth stub with connector flags off; this is not a working customer MCP or OAuth release.
+This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
 
 ## Railway services and DNS
 
@@ -45,14 +45,49 @@ The intended settings are described by backend files `railway.connector.json` an
 
 The resource service runs the auth health stub until Chunk 3. Chunk 3 must switch its entrypoint to `app.mcp.connector.asgi:app`; `tests/connector/test_key_isolation.py::test_resource_service_switches_entrypoint_when_asgi_exists` enforces that switch. The start command overrides the backend Dockerfile command, so these services do not run migrations at startup.
 
-Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The stub reads none of the future secrets or datastore references; none is present yet. Before OAuth stage / Chunk 3, provision and verify these sources separately:
+Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The resource health stub reads none of these secrets or datastore references. `CONNECTOR_OAUTH_SIGNING_KEYS` is now provisioned on `ai-market-connector-auth` (see "Signing keyset: DONE" below). Distinct `SECRET_KEY` values, the resource audit HMAC key, and the Railway DSN and Redis references remain pending. Before OAuth stage / Chunk 3, provision and verify the remaining sources separately:
 
 | Owner | Future variables | Required scope and verification |
 | --- | --- | --- |
-| Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Set up a separate correctly scoped secret path and native sync for each service. The existing `railway-backend-prod` sync targets only `ai-market-backend`. Exact new paths, syncs, values, and audit HMAC variable name are **UNVERIFIED**. |
+| Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Signing keyset: **DONE** in `ai-market-backend`/`prod` at `/connector-auth`, synced only to `ai-market-connector-auth` by `railway-connector-auth-prod` (details below). Distinct `SECRET_KEY` paths and syncs, the resource audit HMAC key name, and their verification remain **PENDING**. The root `railway-backend-prod` sync targets only `ai-market-backend`. |
 | Railway | `DATABASE_URL` as a restricted connector runtime DSN; `REDIS_URL` | Create these as Railway variables/service references for the intended service. Never store them in Infisical, per `infisical-secrets.md`. The restricted role and references are not yet provisioned or verified. |
 
 Before enable, verify that each connector Infisical path contains no `DATABASE_URL` or `REDIS_URL`, and use Railway GraphQL readback to confirm the intended service references and only the intended secret names. Suppress values in evidence.
+
+### Signing keyset: DONE (S1753, 2026-09-27)
+
+Max's decision is Event Ledger `3d152156`; provisioning and verification are recorded in Events `53a51344`, `c8d012e4`, and `fa836fd2`. `CONNECTOR_OAUTH_SIGNING_KEYS` lives in Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), environment `prod`, folder `/connector-auth`. The second native sync, `railway-connector-auth-prod`, sends that folder only to Railway `ai-market-connector-auth` (`5ee110fc-df73-4107-b8fd-469099cb64d2`), with auto-sync on, initial behavior `overwrite-destination`, and `disableSecretDeletion` true. A canary in `/connector-auth` did not appear in `ai-market-backend` or `ai-market-connector` after a forced `railway-backend-prod` root sync pass. That proves the root sync is non-recursive for this recorded setup.
+
+The keyset has two P-256/ES256 public keys. `cs-20260927-251e63b07eed486c` signs; both it and `cs-20260927-f99004199d45d762` are published in JWKS. Their RFC 7638 thumbprints, in that order, are `_E2lVi8hJvz9E__tQjYH6TK0wPpDFhwWHCN4XcS0muU` and `hq0qWxa0BdJNJ2EfNNf78K8nVj0JVn1j9GoSd-lIjM0`. The canonical JWKS SHA-256 is `75d3999ee3bc147a30fb444207dbcd58330266945b97ab14f545489495d2cc19`. These are public identifiers and metadata, not signing material.
+
+### How to operate: connector signing keyset tool
+
+For the one-time provisioning sequence, use koskadeux-mcp main 0d7c6c25 or a reviewed successor in a clean detached checkout. The tool is `scripts/connector_keyset/connector_signing_keyset.py` (PR #253). Run it with `/Users/max/koskadeux-mcp/venv/bin/python`. Save its JSON receipts in a private scratch directory; they contain names and public metadata only. The sequence is:
+
+```bash
+PY=/Users/max/koskadeux-mcp/venv/bin/python
+TOOL=scripts/connector_keyset/connector_signing_keyset.py
+$PY "$TOOL" --selftest
+$PY "$TOOL" inventory > baseline.json
+$PY "$TOOL" drift-check
+$PY "$TOOL" canary
+$PY "$TOOL" canary --execute > canary-proof.json
+$PY "$TOOL" create-sync --canary-proof canary-proof.json
+$PY "$TOOL" create-sync --execute --canary-proof canary-proof.json
+$PY "$TOOL" generate --canary-proof canary-proof.json
+$PY "$TOOL" generate --execute --canary-proof canary-proof.json
+$PY "$TOOL" verify --baseline baseline.json
+```
+
+Review each dry run before its `--execute` step. The tool refuses when `/Users/max/local-secops/HALT` exists, if the signing secret already exists, or on drift. `--selftest` makes no network calls. Its audit JSONL is `~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`. This sequence records how provisioning was done; the live secret now exists, so `generate` will refuse. **Rotation is not supported by this tool.** Rotation needs a separate reviewed procedure.
+
+The canary forces one `railway-backend-prod` sync pass, which redeployed `ai-market-backend` (`e5ab7c66`, healthy, values identical). Creating the connector sync and writing the key each redeployed `ai-market-connector-auth` (`a414391a` and `02354162`, both `SUCCESS`). The generate write did not redeploy the backend. Any Infisical `prod` write can trigger both syncs, so do not write to `/connector-auth` except through this tool for initial provisioning or a reviewed procedure.
+
+### S1753 incident: Python standard-library shadowing (2026-09-27)
+
+Events `12389ec2` and `5bb4880c`: koskadeux-mcp PR #249 added a `secrets/` package directly under `scripts/`, which shadowed Python's standard-library `secrets` module for any program started as `python scripts/X.py`. Railway issue-channel-watcher crashed from about 08:46Z to 09:40Z UTC with asyncpg `module 'secrets' has no attribute 'token_bytes'`. PR #253 fixed this by renaming the package to `scripts/connector_keyset/` and adding `tests/test_scripts_no_stdlib_shadow.py`. Never name a file or directory directly under koskadeux-mcp `scripts/` after a Python standard-library module.
+
+### Deployment procedure
 
 The deployment procedure used a clean archive of backend main rather than a repository attachment:
 
@@ -71,6 +106,12 @@ railway up --service ai-market-connector --environment production --project e81d
 Use the account token from `~/bin/railway-env.sh` with `RAILWAY_TOKEN` unset. Railway GraphQL requests need a browser User-Agent. Do not print token values.
 
 Backend main `2df3e416cf421141311ca915a781487d24214953` was uploaded at about 19:05–19:07 CEST on 2026-09-26. The initial connector deployment `dbea8e89-50d1-4093-8351-90f86b5402a2` and auth deployment `5f73a187-ce60-4721-865d-8fce1324a6de` both reached `SUCCESS`. On both `https://connect.ai.market` and `https://auth.ai.market`, `/healthz` returned HTTP 200 with `{"status":"ok"}`, `/readyz` returned HTTP 200, and `/mcp` returned HTTP 404. These checks establish the health stub only.
+
+### Authorization server deployed, flags off (S1753, 2026-09-27)
+
+Event `d8c9189f`: backend PR #505, the connector authorization server access-log redaction fix, merged as `c0695626b31188bdd30360f7a5bd918d7423daf9`. A git archive of that backend main was deployed to `ai-market-connector-auth` using the recorded procedure above. Railway deployment `ad0b07ee-521c-4542-a4ad-7afb0f4b929e` reached `SUCCESS` at about 13:03 CEST. All four connector flags remain `false`. The resource service `ai-market-connector` at `connect.ai.market` still runs the health stub until Chunk 3.
+
+On `https://auth.ai.market`, `/healthz` and `/readyz` returned HTTP 200. `/.well-known/jwks.json` returned HTTP 200 with the two ES256 public keys `cs-20260927-251e63b07eed486c` and `cs-20260927-f99004199d45d762`; their RFC 7638 thumbprints matched the recorded values above, and the response contained no private key members. JWKS is served regardless of connector flags. `/.well-known/oauth-authorization-server` returned HTTP 404 because `CONNECTOR_OAUTH_ENABLED` is `false`. `/oauth/authorize`, POST `/oauth/token`, `/oauth/register`, and `/oauth/revoke` also returned HTTP 404 because OAuth endpoints are gated by that flag. Railway logs showed no logging errors, and access lines contained no client address or query.
 
 Backend migration `s_connector_foundation_001` has been live since 2026-09-26 18:38 CEST through backend `2df3e416cf421141311ca915a781487d24214953` (PR #488). While `CONNECTOR_RUNTIME_DB_ROLE` is unset, that migration skips grants; it refuses owner, migrator, or superuser-reachable roles.
 
@@ -98,5 +139,5 @@ Current rollback is `deploymentRemove` on the affected bad deployment. Once an e
 
 - `Config as Code is deprecated`: Railway refused a per-service config file. Keep the service source unattached and apply the settings above through `serviceInstanceUpdate`; deploy the backend archive with `railway up`.
 - A service starts the backend app or runs Alembic: check whether repository source or the root Dockerfile command replaced the service start command. Restore the recorded `startCommand` and use the archive upload procedure.
-- `/healthz` or `/readyz` stops returning HTTP 200: inspect the Railway deployment and its applied start command, health check path, and variables. A successful stub check is not proof of connector readiness.
-- `/mcp` returns HTTP 404 at this Chunk 2 state: that is the recorded stub behavior. The resource ASGI entrypoint and protocol checks belong to Chunk 3.
+- `/healthz` or `/readyz` stops returning HTTP 200: inspect the Railway deployment and its applied start command, health check path, and variables. Successful health checks are not proof of a working customer release.
+- `/mcp` returns HTTP 404 on the resource service at this Chunk 2 state: that is the recorded stub behavior. The resource ASGI entrypoint and protocol checks belong to Chunk 3.

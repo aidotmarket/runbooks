@@ -3,7 +3,7 @@ title: Infisical Secrets Management
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: []
-error_signatures: []
+error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY]
 ---
 
 # Infisical Secrets Management
@@ -22,6 +22,8 @@ Before advising on secret names, project/environment selection, access, verifica
 ## Source of Truth & Propagation (READ FIRST)
 
 **Infisical is the single source of truth for backend secrets.** As of S1125 the native **Infisical→Railway sync is LIVE** (sync `railway-backend-prod`, auto-sync ON, **disable-deletion ON**, initial behaviour "prioritize Infisical"). A change to a secret in Infisical `ai-market-backend`/`prod` now mirrors to the Railway `ai-market-backend` service automatically — no manual Railway set + redeploy for routine changes.
+
+**Connector auth folder (S1753, 2026-09-27):** `CONNECTOR_OAUTH_SIGNING_KEYS` is in the same Infisical project (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), `prod`, folder `/connector-auth`. A second native sync, `railway-connector-auth-prod`, sends that folder only to Railway `ai-market-connector-auth` (`5ee110fc-df73-4107-b8fd-469099cb64d2`); auto-sync is on, initial behavior is `overwrite-destination`, and `disableSecretDeletion` is true. The root `railway-backend-prod` sync is non-recursive: a folder canary did not reach `ai-market-backend` or `ai-market-connector` after a forced root sync pass. Infisical omits `includeAllSubFolders: false` from readback on both syncs, so treat omission as non-recursive only for these pinned, canary-proven shapes. Any Infisical `prod` write can trigger both syncs. Do not write to `/connector-auth` except through the one-time keyset tool or a reviewed procedure; see [customer-mcp-connector.md](customer-mcp-connector.md).
 
 **How secrets are moved / rotated / generated: the local AI.** Day-to-day credential work runs through the **Local SecOps assistant** on Titan-1 (local model + guardrailed executor; values never leave the host, no human types them). See **[local-secops.md](local-secops.md)** for full operation. It can generate/rotate owned secrets, and copy an existing value **Railway → Infisical** (`reconcile-from-railway`) when Railway has drifted ahead.
 
@@ -275,6 +277,13 @@ A plain `infisical secrets delete NAME` under machine-identity auth returns `400
 | GitHub API `Resource not accessible by personal access token` | Fine-grained PAT lacks that permission — expected on scope probes | Only escalate if it appears on an operation the token is documented to allow. |
 | GitHub `422 Deploy keys are disabled for this repository` when adding a deploy key | The org setting `deploy_keys_enabled_for_repositories` (Org settings → Member privileges → Deploy keys) is off. It was off until Max enabled it on 2026-09-23 (S1738) | Only Max changes it (org security setting). Check with `GET /orgs/aidotmarket` → `deploy_keys_enabled_for_repositories` |
 | A deploy key created with `read_only:true` accepts a push in the first minutes | Observed S1738: one push ~2 minutes after creation landed; every later probe was refused with `ERROR: The key you are authenticating with has been marked as read only` | Repeat the write-refusal probe until it refuses and delete any probe ref; record the time since key creation |
+| HTTP 403 `error code: 1010` from `secrets.ai.market` with default `Python-urllib/3.x` User-Agent | Cloudflare browser integrity check, not a token or permission failure | Send a fixed tool User-Agent. |
+| HTTP 500 with `FST_ERR_CTP_EMPTY_JSON_BODY` on a bodiless POST such as `/api/v1/secret-syncs/railway/{id}/sync-secrets` | `Content-Type: application/json` was sent with no body | Omit `Content-Type` when there is no body. |
+| `Infisical sync recursion setting unknown or enabled` | Infisical readback omits `includeAllSubFolders: false` for both recorded syncs | Treat omission as non-recursive only for the pinned root and connector sync shapes proven by the `/connector-auth` canary. Refuse other unknown or enabled shapes. Canonical index entry: customer-mcp-connector.md. See [customer-mcp-connector.md](customer-mcp-connector.md). |
+
+### Reading Infisical server logs
+
+For read-only diagnosis, Infisical runs on Railway project `fe02d729-5921-4199-8e6a-2e026acc1326` (`infisical secrets-management`), with services `Infisical`, `Postgres`, `Redis`, and `ai-market-backend`. In a scratch directory, run `railway link -p fe02d729-5921-4199-8e6a-2e026acc1326 -e production`, then `railway logs --service Infisical --lines 400`. Search by time or request ID. Never print secret values.
 
 ## When it breaks
 

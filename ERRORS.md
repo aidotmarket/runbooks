@@ -544,6 +544,10 @@
 
 - [GCP Auth](gcp-auth.md)
 
+## `error code: 1010`
+
+- [Infisical Secrets Management](infisical-secrets.md)
+
 ## `Error occurred during tool execution`
 
 - [Council](runbooks/council.md)
@@ -623,6 +627,10 @@
 ## `FRONTEND_URL must equal http://localhost:13000`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
+
+## `FST_ERR_CTP_EMPTY_JSON_BODY`
+
+- [Infisical Secrets Management](infisical-secrets.md)
 
 ## `gate1_status_trap`
 
@@ -743,6 +751,10 @@
 ## `Incorrect API key provided: sk-svcac`
 
 - [Codex / MP — Council Primary Builder](codex-mp.md)
+
+## `Infisical sync recursion setting unknown or enabled`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
 
 ## `infrastructure_locator_guessed`
 
@@ -1047,6 +1059,10 @@
 ## `model_mismatch main=`
 
 - [Council](runbooks/council.md)
+
+## `module 'secrets' has no attribute 'token_bytes'`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
 
 ## `mp_busy`
 

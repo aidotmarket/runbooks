@@ -19,6 +19,8 @@ error_signatures: []
 > there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md`
 > deliberately so that gated relocation owns the rename.
 
+Never name a file or directory directly under koskadeux-mcp `scripts/` after a Python standard-library module; see [the S1753 incident](customer-mcp-connector.md#s1753-incident-python-standard-library-shadowing-2026-09-27).
+
 ## What it is
 
 Exposes the Koskadeux MCP server on Titan-1 at `https://mcp.ai.market` so the hosted Claude
