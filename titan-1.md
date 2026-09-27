@@ -8,7 +8,7 @@ error_signatures: []
 
 # Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
 
-Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
+Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), [backup-and-recovery.md](./backup-and-recovery.md) (backup schedules, evidence, and limits), [disaster-recovery.md](./disaster-recovery.md) (recovery map), `infisical-secrets.md` (machine-identity creds).
 
 ## Identity & hardware
 | | |
@@ -35,8 +35,8 @@ Titan-1 is where **the company is actually built and operated**:
 - **Local AI council** — the model servers Vulcan/Mars dispatch to (AG/Gemini, DeepSeek, XAI/Grok bridge) run here.
 - **MCP orchestration** — the Koskadeux MCP server + gateway run here and are the tool interface both instances use.
 - **Local marketplace dev environment** — AIM Data and a local ai-market backend run here in Docker (see Docker stack).
-- **Backup origin** — every nightly S3 backup + the watchdog is a launchd job on this machine.
-- **Our own data** — our own AIM Data / vectorAIz dev data lives in the local Docker Postgres/Qdrant here, covered by Titan-1's local + physically-separate backup (not S3; customer data is non-custodial).
+- **Backup host for selected jobs** — Titan-1 runs the Qdrant, Railway-config, and Cloudflare S3 exports and the S3 freshness watchdog. The main ai.market Postgres dump runs on Railway at 02:00 UTC; the age-encrypted Infisical Postgres dump runs on Railway at 03:00 UTC. See [backup-and-recovery.md](./backup-and-recovery.md) for the current job map and limits.
+- **Our own data** — our own AIM Data / vectorAIz dev data lives in local Docker Postgres/Qdrant. The S799 owner decision excludes it from S3. A Sep 27 `tmutil isexcluded` check returned `Excluded` for `/Users/max/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw`; a prior Backblaze exclusion observation was not rechecked in this audit. This does not establish that every alternative backup is absent or that data was lost. Classify the important Docker volumes and prove an independent export and restore before claiming coverage. Time Machine recovery of selected host files is a separate claim: the actual registry SQLite file was extracted from the Sep 27 `20260927-141950` snapshot (61,440 bytes, integrity OK, six tables), but that does not prove Docker volume or whole-host disaster recovery. See [disaster-recovery.md](./disaster-recovery.md).
 
 ## Services & ports
 | Service | Port | Process | Autostart (LaunchAgent) | Purpose |
@@ -66,8 +66,8 @@ Support agents (also launchd): `auto-continue`, `nosleep` (caffeinate), `lilly`,
 | `gifted_shirley` | `github-mcp-server` | GitHub API for Claude Desktop |
 | `buildx_buildkit_aimdata-multi0` | `moby/buildkit` | multi-arch image builder |
 
-## Scheduled jobs (launchd → S3)
-nightly main-DB backup, Qdrant backup, Railway-config export, Cloudflare export, the S3 backup watchdog (Telegram alarm), and daily stats. Full label→script→purpose table and the "why everything shows as bash in Login Items" note live in `backup-and-recovery.md`.
+## Scheduled backup jobs
+The main ai.market Postgres dump is a Railway cron at 02:00 UTC, and the encrypted Infisical Postgres dump is a Railway cron at 03:00 UTC. Titan-1 launchd runs the Qdrant, Railway-config, and Cloudflare exports plus the S3 backup watchdog; daily stats is a separate local job. The Sep 27 controller review found the dedicated main-pinned watchdog path installed at 17:12:37Z and five target checks passing, including the six Qdrant collections. This is freshness evidence only; Telegram delivery and full disaster recovery were not certified. See [backup-and-recovery.md](./backup-and-recovery.md) for operational detail and [disaster-recovery.md](./disaster-recovery.md) for restore limits.
 
 ## CLI tooling (versions as of 2026-06-09)
 codex 0.138.0 · gemini 0.45.2 · claude 2.1.169 · gh 2.93.0 · grok 1.1.4 · infisical 0.43.91 · aws 2.34.62 · railway 4.30.3 · age 1.3.1 · python3 3.14.5

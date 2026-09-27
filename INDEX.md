@@ -1181,7 +1181,7 @@
 
 ## Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
 - Path: `titan-1.md`
-- Purpose: Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
+- Purpose: Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), backup-and-recovery.md (backup schedules, evidence, and limits), disaster-recovery.md (recovery map), `infisical-secrets.md` (machine-identity creds).
 - Owner: `unassigned`
 - Last verified: `2026-07-17`
 - Aliases: none
