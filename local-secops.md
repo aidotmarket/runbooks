@@ -63,6 +63,8 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 
 **Boundary with the rest of the system.** This tool writes the catalog (Infisical). It does **not** push to Railway. Backend production picks up a changed backend secret via the native Infisical→Railway sync, which is now LIVE (S1125) and mirrors Infisical→Railway automatically (see `infisical-secrets.md`). Local Council/agent services pick up a rotated key via `launchctl kickstart`.
 
+Local SecOps does not manage `/connector-auth` or `CONNECTOR_OAUTH_SIGNING_KEYS`; use the one-time keyset tool and reviewed rotation boundary in [customer-mcp-connector.md](customer-mcp-connector.md).
+
 ---
 
 ## Agent capabilities
