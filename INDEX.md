@@ -726,7 +726,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: none
-- Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY, Infisical sync recursion setting unknown or enabled
+- Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY
 - Status: current
 
 ## Infrastructure Discovery

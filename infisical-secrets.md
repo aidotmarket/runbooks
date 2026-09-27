@@ -3,7 +3,7 @@ title: Infisical Secrets Management
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: []
-error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY, 'Infisical sync recursion setting unknown or enabled']
+error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY]
 ---
 
 # Infisical Secrets Management
@@ -279,7 +279,7 @@ A plain `infisical secrets delete NAME` under machine-identity auth returns `400
 | A deploy key created with `read_only:true` accepts a push in the first minutes | Observed S1738: one push ~2 minutes after creation landed; every later probe was refused with `ERROR: The key you are authenticating with has been marked as read only` | Repeat the write-refusal probe until it refuses and delete any probe ref; record the time since key creation |
 | HTTP 403 `error code: 1010` from `secrets.ai.market` with default `Python-urllib/3.x` User-Agent | Cloudflare browser integrity check, not a token or permission failure | Send a fixed tool User-Agent. |
 | HTTP 500 with `FST_ERR_CTP_EMPTY_JSON_BODY` on a bodiless POST such as `/api/v1/secret-syncs/railway/{id}/sync-secrets` | `Content-Type: application/json` was sent with no body | Omit `Content-Type` when there is no body. |
-| `Infisical sync recursion setting unknown or enabled` | Infisical readback omits `includeAllSubFolders: false` for both recorded syncs | Treat omission as non-recursive only for the pinned root and connector sync shapes proven by the `/connector-auth` canary. Refuse other unknown or enabled shapes. See [customer-mcp-connector.md](customer-mcp-connector.md). |
+| `Infisical sync recursion setting unknown or enabled` | Infisical readback omits `includeAllSubFolders: false` for both recorded syncs | Treat omission as non-recursive only for the pinned root and connector sync shapes proven by the `/connector-auth` canary. Refuse other unknown or enabled shapes. Canonical index entry: customer-mcp-connector.md. See [customer-mcp-connector.md](customer-mcp-connector.md). |
 
 ### Reading Infisical server logs
 
