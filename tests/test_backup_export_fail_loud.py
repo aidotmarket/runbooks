@@ -33,7 +33,8 @@ def upload_spy(module, monkeypatch, returncode=0):
     payloads = []
 
     def run(argv, **kwargs):
-        payloads.append(json.loads(Path(argv[3]).read_text()))
+        assert argv[:3] == ["rtk", "proxy", "aws"]
+        payloads.append(json.loads(Path(argv[5]).read_text()))
         return SimpleNamespace(returncode=returncode, stderr=SENTINEL)
 
     monkeypatch.setattr(module.subprocess, "run", run)
@@ -42,12 +43,15 @@ def upload_spy(module, monkeypatch, returncode=0):
 
 def railway_responses(deployments=None):
     return [
-        {"data": {"me": {"workspaces": [{"projects": {"edges": [{"node": {"id": "p", "name": "project"}}],
-                                                   "pageInfo": {"hasNextPage": False}}}]}}},
-        {"data": {"project": {"name": "project", "environments": {"edges": [{"node": {"id": "e", "name": "production"}}],
-                                                                  "pageInfo": {"hasNextPage": False}},
-                              "services": {"edges": [{"node": {"id": "s", "name": "service"}}],
-                                           "pageInfo": {"hasNextPage": False}}}}},
+        {"data": {"workspaceType": {"fields": [{"name": "projects", "args": []}]},
+                  "projectType": {"fields": [{"name": "environments", "args": []}, {"name": "services", "args": []}]}}},
+        {"data": {"me": {"workspaces": [{"id": "w"}]}}},
+        {"data": {"workspace": {"projects": {"edges": [{"node": {"id": "p", "name": "project"}}],
+                                                    "pageInfo": {"hasNextPage": False}}}}},
+        {"data": {"project": {"environments": {"edges": [{"node": {"id": "e", "name": "production"}}],
+                                                 "pageInfo": {"hasNextPage": False}}}}},
+        {"data": {"project": {"services": {"edges": [{"node": {"id": "s", "name": "service"}}],
+                                              "pageInfo": {"hasNextPage": False}}}}},
         {"data": {"deployments": {"edges": [] if deployments is None else deployments}}},
         {"data": {"variables": {"SECRET_NAME": SENTINEL}}},
     ]
@@ -66,15 +70,16 @@ def test_railway_success_database_plugin_and_names_only(monkeypatch, capsys):
 
 
 @pytest.mark.parametrize("index,replacement", [
-    (0, {"errors": [{"message": SENTINEL}], "data": {"me": None}}),
-    (0, {"data": {"me": {"workspaces": [None]}}}),
-    (0, {"data": {"me": {"workspaces": [{"projects": {"edges": []}}]}}}),
-    (0, {"data": {"me": {"workspaces": [{"projects": {"edges": [], "pageInfo": {"hasNextPage": True}}}]}}}),
-    (1, {"errors": [{"message": SENTINEL}], "data": {"project": None}}),
-    (1, {"data": {"project": {"environments": {"edges": []}, "services": None}}}),
-    (2, {"errors": [{"message": SENTINEL}], "data": {"deployments": {"edges": []}}}),
-    (2, {"data": {"deployments": {"edges": [{"node": {}}], "pageInfo": {"hasNextPage": True}}}}),
-    (3, {"data": {"variables": None}}),
+    (0, {"errors": [{"message": SENTINEL}], "data": {}}),
+    (1, {"data": {"me": {"workspaces": [None]}}}),
+    (2, {"data": {"workspace": {"projects": {"edges": []}}}}),
+    (2, {"data": {"workspace": {"projects": {"edges": [], "pageInfo": {"hasNextPage": True}}}}}),
+    (3, {"errors": [{"message": SENTINEL}], "data": {"project": None}}),
+    (3, {"data": {"project": {"environments": {"edges": []}}}}),
+    (4, {"data": {"project": {"services": None}}}),
+    (5, {"errors": [{"message": SENTINEL}], "data": {"deployments": {"edges": []}}}),
+    (5, {"data": {"deployments": {"edges": [{"node": {}}, {"node": {}}]}}}),
+    (6, {"data": {"variables": None}}),
 ])
 def test_railway_incomplete_never_uploads(monkeypatch, capsys, index, replacement):
     module = load("railway_config_export", monkeypatch)
@@ -92,11 +97,11 @@ def test_railway_incomplete_never_uploads(monkeypatch, capsys, index, replacemen
 
 def cf_responses():
     return [
-        {"success": True, "result": [{"id": "z", "name": "zone"}], "result_info": {"total_pages": 1, "total_count": 1}},
-        {"success": True, "result": [{"id": "r", "content": SENTINEL}], "result_info": {"page": 1, "total_pages": 1, "total_count": 1}},
+        {"success": True, "result": [{"id": "z", "name": "zone"}], "result_info": {"page": 1, "count": 1, "total_pages": 1, "total_count": 1}},
+        {"success": True, "result": [{"id": "r", "content": SENTINEL}], "result_info": {"page": 1, "count": 1, "total_pages": 1, "total_count": 1}},
         {"success": True, "result": [{"id": "setting", "value": SENTINEL}]},
-        {"success": True, "result": [{"id": "n", "title": "namespace"}], "result_info": {"total_pages": 1, "total_count": 1}},
-        {"success": True, "result": [{"name": "key"}], "result_info": {"total_pages": 1, "total_count": 1}},
+        {"success": True, "result": [{"id": "n", "title": "namespace"}], "result_info": {"page": 1, "count": 1, "total_count": 1}},
+        {"success": True, "result": [{"name": "key"}], "result_info": {"count": 1}},
     ]
 
 
@@ -153,6 +158,17 @@ def test_kv_value_failure_never_uploads(monkeypatch, capsys):
     assert SENTINEL not in capsys.readouterr().err
 
 
+def test_invalid_utf8_kv_value_never_uploads(monkeypatch):
+    module, uploads = cloudflare_setup(monkeypatch, cf_responses())
+    monkeypatch.setattr(module.urllib.request, "urlopen",
+                        lambda *args, **kwargs: Mock(__enter__=lambda self: self,
+                                                     __exit__=lambda *args: None,
+                                                     read=lambda: b"\xff"))
+    with pytest.raises(RuntimeError, match="KV value read failed"):
+        module.main()
+    assert uploads == []
+
+
 @pytest.mark.parametrize("name", ["railway_config_export", "cloudflare_export"])
 def test_upload_failure_removes_temp_without_logging_stderr(monkeypatch, capsys, name):
     module = load(name, monkeypatch)
@@ -195,3 +211,179 @@ def test_http_denial_cli_exits_nonzero_without_upload_or_body(monkeypatch, capsy
     upload.assert_not_called()
     captured = capsys.readouterr()
     assert SENTINEL not in captured.out + captured.err + str(exit_info.value)
+
+
+def test_railway_multi_page_export_once(monkeypatch, capsys):
+    module = load("railway_config_export", monkeypatch)
+    args = [{"name": "first", "type": {"name": "Int"}}, {"name": "after", "type": {"name": "String"}}]
+    calls = []
+    def connection(nodes, more=False, cursor=None, count=2):
+        return {"edges": [{"node": node} for node in nodes],
+                "pageInfo": {"hasNextPage": more, "endCursor": cursor}, "totalCount": count}
+    def gql(query, variables=None):
+        variables = variables or {}
+        calls.append((query, variables))
+        if "__type" in query:
+            return {"data": {"workspaceType": {"fields": [{"name": "projects", "args": args}]},
+                             "projectType": {"fields": [{"name": key, "args": args} for key in ("environments", "services")]}}}
+        if "workspaces" in query:
+            return {"data": {"me": {"workspaces": [{"id": "w"}]}}}
+        if "workspace(" in query:
+            second = variables["after"] is not None
+            return {"data": {"workspace": {"projects": connection([{"id": "p2", "name": "two"}] if second else
+                                                                  [{"id": "p1", "name": "one"}], not second, "p1" if not second else "p2")}}}
+        if "project(" in query:
+            field = "environments" if "environments" in query else "services"
+            second = variables["after"] is not None
+            node = ({"id": "e2", "name": "staging"} if second else {"id": "e1", "name": "production"}) if field == "environments" else ({"id": "s2", "name": "db"} if second else {"id": "s1", "name": "api"})
+            return {"data": {"project": {field: connection([node], not second, field + "1" if not second else field + "2")}}}
+        if "deployments(" in query:
+            return {"data": {"deployments": {"edges": []}}}
+        if "variables(" in query:
+            return {"data": {"variables": {"SECRET_NAME": SENTINEL}}}
+        raise AssertionError(query)
+    monkeypatch.setattr(module, "gql", gql)
+    uploads = upload_spy(module, monkeypatch)
+    module.main()
+    assert len(uploads) == 1
+    assert [project["id"] for project in uploads[0]["projects"]] == ["p1", "p2"]
+    assert all([service["id"] for service in project["services"]] == ["s1", "s2"] for project in uploads[0]["projects"])
+    assert all("first:50,after:$after" in query for query, variables in calls if variables.get("after"))
+    assert SENTINEL not in json.dumps(uploads) + capsys.readouterr().out
+
+
+@pytest.mark.parametrize("second", [
+    {"edges": [{"node": {"id": "a"}}], "pageInfo": {"hasNextPage": True, "endCursor": "one"}},
+    {"edges": [{"node": {"id": "a"}}], "pageInfo": {"hasNextPage": False}},
+    {"edges": [{"node": {"id": "b"}}], "pageInfo": {"hasNextPage": True, "endCursor": None}},
+    {"edges": [{"node": {"id": "b"}}], "pageInfo": {"hasNextPage": False}, "totalCount": 3},
+])
+def test_railway_later_page_stall_duplicate_or_count_fails(second, monkeypatch):
+    module = load("railway_config_export", monkeypatch)
+    first = {"edges": [{"node": {"id": "a"}}], "pageInfo": {"hasNextPage": True, "endCursor": "one"}, "totalCount": 2}
+    responses = iter([first, second])
+    with pytest.raises(RuntimeError):
+        module.collect(lambda _: next(responses), "projects", True)
+
+
+def test_cloudflare_multi_page_zones_namespaces_and_kv(monkeypatch):
+    module = load("cloudflare_export", monkeypatch)
+    calls = []
+    def page(items, number, total):
+        return {"success": True, "result": items, "result_info": {"page": number, "count": len(items), "total_count": total}}
+    def cf(path, params=""):
+        calls.append((path, params))
+        if path == "/zones":
+            number = 2 if "page=2" in params else 1
+            return page([{"id": "z" + str(number), "name": "zone"}], number, 2)
+        if path.endswith("/dns_records"):
+            return page([{"id": "r"}], 1, 1)
+        if path.endswith("/settings"):
+            return {"success": True, "result": [{"id": "ssl", "value": "full"}]}
+        if path.endswith("/namespaces"):
+            number = 2 if "page=2" in params else 1
+            return page([{"id": "n" + str(number), "title": "namespace"}], number, 2)
+        if path.endswith("/keys"):
+            second = "cursor=" in params
+            return {"success": True, "result": [{"name": "k2" if second else "k1"}],
+                    "result_info": {"count": 1, **({} if second else {"cursor": "next"})}}
+        raise AssertionError(path)
+    monkeypatch.setattr(module, "cf", cf)
+    monkeypatch.setattr(module.urllib.request, "urlopen", lambda *args, **kwargs:
+                        Mock(__enter__=lambda self: self, __exit__=lambda *args: None, read=lambda: SENTINEL.encode()))
+    uploads = upload_spy(module, monkeypatch)
+    module.main()
+    assert len(uploads) == 1
+    assert [z["id"] for z in uploads[0]["zones"]] == ["z1", "z2"]
+    assert [n["id"] for n in uploads[0]["kv"]["namespaces"]] == ["n1", "n2"]
+    assert all(list(n["keys"]) == ["k1", "k2"] for n in uploads[0]["kv"]["namespaces"])
+    assert any("cursor=next" in params for _, params in calls)
+
+
+@pytest.mark.parametrize("second", [
+    {"success": False, "errors": [SENTINEL]},
+    {"success": True, "result": [{"id": "a"}], "result_info": {"page": 2, "count": 1, "total_count": 2}},
+    {"success": True, "result": [], "result_info": {"page": 2, "count": 0, "total_count": 2}},
+    {"success": True, "result": [{"id": "b"}], "result_info": {"page": 2, "count": 1, "total_count": 3}},
+])
+def test_cloudflare_later_page_failure_duplicate_stall_count(second, monkeypatch):
+    module = load("cloudflare_export", monkeypatch)
+    first = {"success": True, "result": [{"id": "a"}], "result_info": {"page": 1, "count": 1, "total_count": 2}}
+    responses = iter([first, second])
+    monkeypatch.setattr(module, "cf", lambda *args: next(responses))
+    with pytest.raises(RuntimeError):
+        module.pages("/zones", "zones", 50, "id")
+
+
+@pytest.mark.parametrize("second", [
+    {"success": False, "errors": [SENTINEL]},
+    {"success": True, "result": [{"name": "a"}], "result_info": {"count": 1}},
+    {"success": True, "result": [], "result_info": {"count": 0, "cursor": "one"}},
+    {"success": True, "result": [], "result_info": {"count": 0, "cursor": []}},
+])
+def test_kv_later_page_failure_duplicate_stall_or_malformed_cursor(second, monkeypatch):
+    module = load("cloudflare_export", monkeypatch)
+    first = {"success": True, "result": [{"name": "a"}], "result_info": {"count": 1, "cursor": "one"}}
+    responses = iter([first, second])
+    monkeypatch.setattr(module, "cf", lambda *args: next(responses))
+    with pytest.raises(RuntimeError):
+        module.kv_keys("/keys")
+
+
+def test_later_railway_page_error_never_uploads(monkeypatch, capsys):
+    module = load("railway_config_export", monkeypatch)
+    args = [{"name": "first", "type": {"name": "Int"}}, {"name": "after", "type": {"name": "String"}}]
+    responses = iter([
+        {"data": {"workspaceType": {"fields": [{"name": "projects", "args": args}]},
+                  "projectType": {"fields": [{"name": "environments", "args": args}, {"name": "services", "args": args}]}}},
+        {"data": {"me": {"workspaces": [{"id": "w"}]}}},
+        {"data": {"workspace": {"projects": {"edges": [{"node": {"id": "p", "name": "project"}}],
+                                               "pageInfo": {"hasNextPage": True, "endCursor": "next"}}}}},
+        {"errors": [{"message": SENTINEL}], "data": {"workspace": None}},
+    ])
+    monkeypatch.setattr(module, "gql", lambda *args, **kwargs: next(responses))
+    uploads = upload_spy(module, monkeypatch)
+    with pytest.raises(RuntimeError):
+        module.main()
+    assert uploads == []
+    assert SENTINEL not in capsys.readouterr().out
+
+
+def test_later_cloudflare_page_error_never_uploads(monkeypatch, capsys):
+    module = load("cloudflare_export", monkeypatch)
+    responses = iter([
+        {"success": True, "result": [{"id": "z", "name": "zone"}],
+         "result_info": {"page": 1, "count": 1, "total_count": 2}},
+        {"success": False, "errors": [SENTINEL]},
+    ])
+    monkeypatch.setattr(module, "cf", lambda *args: next(responses))
+    uploads = upload_spy(module, monkeypatch)
+    with pytest.raises(RuntimeError):
+        module.main()
+    assert uploads == []
+    assert SENTINEL not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("name", ["railway_config_export", "cloudflare_export"])
+def test_page_bound_fails(name, monkeypatch):
+    module = load(name, monkeypatch)
+    monkeypatch.setattr(module, "MAX_PAGES", 2)
+    if name.startswith("railway"):
+        number = 0
+        def fetch(_):
+            nonlocal number
+            number += 1
+            return {"edges": [{"node": {"id": str(number)}}],
+                    "pageInfo": {"hasNextPage": True, "endCursor": str(number)}}
+        with pytest.raises(RuntimeError, match="page bound"):
+            module.collect(fetch, "projects", True)
+    else:
+        number = 0
+        def cf(*_):
+            nonlocal number
+            number += 1
+            return {"success": True, "result": [{"name": str(number)}],
+                    "result_info": {"count": 1, "cursor": str(number)}}
+        monkeypatch.setattr(module, "cf", cf)
+        with pytest.raises(RuntimeError, match="page bound"):
+            module.kv_keys("/keys")
