@@ -142,6 +142,31 @@ failed verification are indistinguishable at the reader.
     through the Stripe API (payouts_enabled, charges_enabled, details_submitted)
     before comparing it to anything of ours.
   expect: Stripe's answer treated as ground truth and our four stores treated as caches.
+
+- id: E-03
+  name: Let a seller restart Stripe onboarding under a different email (unfinished account only)
+  when: >-
+    Stripe's hosted onboarding says "A Stripe account already exists for this email address" for an
+    email the seller no longer uses. Our Standard account was created with the user's ai.market email at
+    the time of the first Connect click (`stripe_connect.py` -> `create_standard_account(user.email)`),
+    so a later ai.market email change leaves Stripe asking for the old login.
+  preconditions: |
+    Max's explicit go for this production-data change (CORE S3). Stripe read (E-02) shows the account
+    unfinished: details_submitted=false, charges_enabled=false, payouts_enabled=false, balance 0.
+    No references in listings.stripe_connect_account_id, billing_entities.stripe_account_id or
+    seller_payout_entries.stripe_connect_account_id.
+  not_possible: |
+    The platform cannot change the email on a Standard account (Stripe returns "This application is not
+    authorized to edit the parameter 'email'", verified S1757) and cannot delete a live Standard account.
+  procedure: |
+    Save a before-image of the users row and the party_identity stripe_connect row, then in ONE
+    transaction: set users.stripe_account_id = NULL for that user (guarded on the old account id) and
+    delete the party_identity row with provider='stripe_connect' and that external_id. Keep stripe_events
+    rows. Log an Event Ledger production_data_change with the before-image path.
+  expect: |
+    The seller's next Connect Stripe click creates a new Standard account under their CURRENT ai.market
+    email. The old Stripe account stays at Stripe, unused.
+  precedent: S1757 2026-09-27, acct_1UHT6PRwbq3PpZHy, Event ddbb67c1-7cc2-4eea-8c46-9acc68b310a9.
 ```
 
 ---
