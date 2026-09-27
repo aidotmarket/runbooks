@@ -126,6 +126,15 @@ def test_cloudflare_success_upload_once(monkeypatch, capsys):
     assert SENTINEL not in capsys.readouterr().out
 
 
+def test_cloudflare_single_kv_page_empty_cursor_uploads_once(monkeypatch):
+    responses = cf_responses()
+    responses[4]["result_info"]["cursor"] = ""
+    module, uploads = cloudflare_setup(monkeypatch, responses)
+    module.main()
+    assert len(uploads) == 1
+    assert uploads[0]["kv"]["namespaces"][0]["keys"] == {"key": SENTINEL}
+
+
 @pytest.mark.parametrize("index,replacement", [
     (0, {"success": False, "errors": [SENTINEL]}),
     (0, {"success": True, "result": []}),
@@ -138,6 +147,9 @@ def test_cloudflare_success_upload_once(monkeypatch, capsys):
     (3, {"success": True, "result": [], "result_info": {"cursor": "next"}}),
     (4, {"success": False, "errors": [SENTINEL]}),
     (4, {"success": True, "result": [], "result_info": {"cursors": {"after": "next"}}}),
+    (4, {"success": True, "result": [{"name": "key"}], "result_info": {"count": 1, "cursor": 0}}),
+    (4, {"success": True, "result": [{"name": "key"}], "result_info": {"count": 1, "cursor": False}}),
+    (4, {"success": True, "result": [{"name": "key"}], "result_info": {"count": 1, "cursor": []}}),
 ])
 def test_cloudflare_incomplete_never_uploads(monkeypatch, capsys, index, replacement):
     responses = cf_responses()
@@ -266,7 +278,8 @@ def test_railway_later_page_stall_duplicate_or_count_fails(second, monkeypatch):
         module.collect(lambda _: next(responses), "projects", True)
 
 
-def test_cloudflare_multi_page_zones_namespaces_and_kv(monkeypatch):
+@pytest.mark.parametrize("terminal_cursor", [None, ""])
+def test_cloudflare_multi_page_zones_namespaces_and_kv(monkeypatch, terminal_cursor):
     module = load("cloudflare_export", monkeypatch)
     calls = []
     def page(items, number, total):
@@ -285,8 +298,13 @@ def test_cloudflare_multi_page_zones_namespaces_and_kv(monkeypatch):
             return page([{"id": "n" + str(number), "title": "namespace"}], number, 2)
         if path.endswith("/keys"):
             second = "cursor=" in params
+            info = {"count": 1}
+            if not second:
+                info["cursor"] = "next"
+            elif terminal_cursor is not None:
+                info["cursor"] = terminal_cursor
             return {"success": True, "result": [{"name": "k2" if second else "k1"}],
-                    "result_info": {"count": 1, **({} if second else {"cursor": "next"})}}
+                    "result_info": info}
         raise AssertionError(path)
     monkeypatch.setattr(module, "cf", cf)
     monkeypatch.setattr(module.urllib.request, "urlopen", lambda *args, **kwargs:
@@ -320,6 +338,9 @@ def test_cloudflare_later_page_failure_duplicate_stall_count(second, monkeypatch
     {"success": True, "result": [{"name": "a"}], "result_info": {"count": 1}},
     {"success": True, "result": [], "result_info": {"count": 0, "cursor": "one"}},
     {"success": True, "result": [], "result_info": {"count": 0, "cursor": []}},
+    {"success": True, "result": [], "result_info": {"count": 0, "cursor": False}},
+    {"success": True, "result": [], "result_info": {"count": 0, "cursor": 0}},
+    {"success": True, "result": [], "result_info": {"count": 0, "cursor": {}}},
 ])
 def test_kv_later_page_failure_duplicate_stall_or_malformed_cursor(second, monkeypatch):
     module = load("cloudflare_export", monkeypatch)

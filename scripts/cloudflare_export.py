@@ -102,7 +102,11 @@ def kv_keys(path):
         next_cursor = info.get("cursor")
         if next_cursor is None:
             return result
-        if not isinstance(next_cursor, str) or not next_cursor or next_cursor == cursor or next_cursor in seen_cursors:
+        if not isinstance(next_cursor, str):
+            fail("KV keys cursor stalled or malformed")
+        if next_cursor == "":
+            return result
+        if next_cursor == cursor or next_cursor in seen_cursors:
             fail("KV keys cursor stalled or malformed")
         seen_cursors.add(next_cursor)
         cursor = next_cursor
