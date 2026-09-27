@@ -515,11 +515,11 @@
 
 ## Customer MCP connector — build and operations
 - Path: `customer-mcp-connector.md`
-- Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
+- Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. Since S1757 the backend consent API and the website consent and Connected apps pages are deployed, also with flags off. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
-- Error signatures: Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes'
+- Error signatures: insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes'
 - Status: current
 
 ## Daily CRM Briefing — First Real-Content Verification

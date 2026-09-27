@@ -764,6 +764,10 @@
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
 
+## `insufficient_assurance`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `integrity_check_not_ok`
 
 - [Session Registry Recovery](session-registry-recovery.md)

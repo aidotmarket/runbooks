@@ -3,12 +3,12 @@ title: Customer MCP connector — build and operations
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'"]
+error_signatures: [insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'"]
 ---
 
 # Customer MCP connector — build and operations
 
-This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
+This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. Since S1757 the backend consent API and the website consent and Connected apps pages are deployed, also with flags off. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
 
 ## Railway services and DNS
 
@@ -122,6 +122,20 @@ GLM's read-only production DB readback on 2026-09-26 found that `ai_market_app` 
 **`ai_market_app` half: DONE (2026-09-27).** Max chose the revoke (Event Ledger `3d152156`). Backend PR #500, merged as `c231035f312d961dd3091a71ceae227105b3761b` after a unanimous Gate 3 (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`), adds revision `s_connector_audit_app_revoke_001`. It revokes `UPDATE`, `DELETE` and `TRUNCATE` on `connector_audit_events` from the role named in `ISSUE_CHANNEL_APPLICATION_DB_ROLE` and from `PUBLIC`. It refuses when that role is unset and the backend's seller-production predicate (`app/core/seller_production.py`) is true, or when the role is the owner, the migrating user, a superuser, or can reach one of them. Pre-merge read-only check: owner and migrator `postgres`; `ai_market_app` is not a superuser and cannot reach the owner, the migrator or any superuser. Railway deployment `fab83b3c-32ed-451c-b031-fe16c46a5c09` SUCCESS; `/health` healthy with Alembic current and head `s_connector_audit_app_revoke_001`. Read-only production readback on 2026-09-27 (owner DSN, `default_transaction_read_only=on`): `has_table_privilege('ai_market_app', 'connector_audit_events', ...)` is false for `UPDATE`, `DELETE` and `TRUNCATE`, and true for `INSERT` and `SELECT`. `PUBLIC` has no mutation privilege. `relacl` = `{postgres=arwdDxtm/postgres,ai_market_app=arxtm/postgres}`. `REFERENCES`, `TRIGGER` and `MAINTAIN` stay, as they are outside Max's decision.
 
 **Connector runtime role half: PENDING.** No separate connector runtime role exists yet. Create it, verify it the same way, and record it here before any connector service receives a database DSN.
+
+### Website/API consent stage released, flags off (S1757, 2026-09-27)
+
+Gate 3 was unanimous (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`). Backend PR #510 merged as `0e95c72607aecd65bb56b3fd65a117a25984f976` and Railway deployment `b89c5911` of `ai-market-backend` reached `SUCCESS`. Frontend PR #94 merged as `559da55f072ec1368a0abde7c6019be89cd918f7` and Railway deployment `50746c2d` of `ai-market-frontend` reached `SUCCESS`. All connector flags stay `false`.
+
+What shipped: backend `GET /api/v1/connector-oauth/status`, `GET /api/v1/connector-oauth/requests/{request}`, `POST /api/v1/connector-oauth/requests/{request}/decision`, `GET /api/v1/connector/grants` and `DELETE /api/v1/connector/grants/{id}`; a key-free sync-Session bridge in `app/mcp/connector_shared/`; and same-transaction grant revocation on password reset, 2FA enable and disable, organization membership create, invite and removal, and SSO membership creation (the user row is locked first). Frontend: `/oauth/connect` consent page, Connected apps in settings, and login, register, verify-email and callback resume through a 30-minute continuation.
+
+Verify after any backend deploy while flags are off: `/health` returns HTTP 200; `GET https://api.ai.market/api/v1/connector-oauth/status` returns `{"enabled":false}`; `GET /api/v1/connector-oauth/requests/<43 chars>` and `GET /api/v1/connector/grants` return HTTP 404; `POST /api/v1/auth/reset-password` with body `{"token":"bogus-token-xyz","new_password":"Str0ng!Password123"}` and `Content-Type: application/json` returns HTTP 400 `{"detail":"Invalid or expired reset token"}` (a malformed body returns 422 instead, which is not a regression signal). All five held on 2026-09-27 at about 18:42 CEST.
+
+Known gap: a user who signed in through SSO and has 2FA enabled cannot pass the consent assurance check (`insufficient_assurance`), because SSO sessions do not carry `auth_method == "2fa"`. The same applies to AIM Data OAuth. It is tracked as ticket T-2026-000879, to be settled before enable.
+
+### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
+
+The only copy of `CONNECTOR_OAUTH_SIGNING_KEYS` is Infisical `ai-market-backend`/`prod` `/connector-auth` and its synced Railway variable on `ai-market-connector-auth`. The 2026-09-27 03:04Z Infisical backup does not contain it (checked S1757). If both are lost, the keys cannot be restored, and there is no reviewed procedure to regenerate them. The provisioning tool's `generate` needs a canary proof that matches the live root sync (`connector_signing_keyset.py` `valid_canary_proof`), and `canary` refuses to mint a new one once the `railway-connector-auth-prod` sync exists (`require_syncs`). The S1753 proof saved as a local scratch receipt (`/Users/max/koskadeux-state/secrets/s1753/canary-proof.json`) still validated against the live root sync on 2026-09-27 at about 19:30 CEST (GLM read-only check), but it becomes invalid on any root-sync change and is not a reviewed or durable recovery route. Do not delete or recreate syncs, hand-write a proof, or create the secret by any other route. A lost keyset therefore means the authorization server stays down until a separately reviewed recovery or rotation procedure exists. Building that procedure is a pre-enable requirement of BQ-CONNECTOR-OAUTH. When it exists, record it here, including how to compare RFC 7638 thumbprints computed from the JWKS `kty`, `crv`, `x` and `y` members (JWKS itself publishes only `kid` and the public members). Any regenerated keyset invalidates every token signed with the old keys, so every connected client must reconnect.
 
 ## Capacity sample
 
