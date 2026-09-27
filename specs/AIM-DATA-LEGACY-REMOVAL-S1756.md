@@ -1,6 +1,6 @@
 # Remove the legacy AIM Data delivery and install paths (chunk F, S1756)
 
-**Status:** DRAFT. D1 decided by Max (2026-09-27, S1756): option A, with the condition in §3 D1. D2 open. Then the full panel (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80` until 2026-10-05; unanimity). Not approved. Not dispatchable.
+**Status:** DRAFT. D1 and D2 decided by Max (2026-09-27, S1756; §3). In review with the full panel (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80` until 2026-10-05; unanimity). Not approved. Not dispatchable.
 
 **Authority:** Gate 1 §7 of `specs/BQ-AIM-DATA-GATEWAY-S1741-GATE1.md` (approved 3/3 at `8078d1e4`, Event `fb0d7272`): legacy trust-channel fulfilment, `_queue_delivery_request`, serial activation and metering, and the AIM Data-only publish routes are removed in chunk F under their own deletion spec using the S1737 pattern; vectorAIz's routes stay. Gate 2 §12 (approved at `ed36b0ec`) narrows this: serial activation and metering are not removed while any vectorAIz install uses them, and this spec must first attribute every active serial to a product. Rule page: `runbooks/data-delivery-p2p.md` (the legacy path is the one remaining place ai.market carries delivered bytes; the gateway's direct delivery is its replacement, which T-2026-000839 was waiting for). Risk class: customer data, delivery and payments, so unanimous Council on this spec and on the build (CORE S3).
 
@@ -46,9 +46,12 @@ Other published listings do not depend on a legacy install: 10 AlphaFold `refere
 - B: keep the legacy fulfilment for vectorAIz only. Keeps a CORE S1 violation alive for a product with no active installs. Not recommended.
 - C (larger): also remove the trust channel transport and device registration. Simpler code, but vectorAIz loses its connected mode entirely. Not proposed here.
 
-**D2. Sergey's listing.** Gate 1 §7: an install serving a live listing is named and migrated (pair a gateway, re-point the listing, uninstall) before its path is removed. `5ab53e16` is that listing. Options: migrate it as the chunk E real-seller canary (Gate 1 §8) if Sergey agrees; or unpublish it until he pairs a gateway. The `kisa.cat` listings: migrate or unpublish on the owner's word (activated from our own IP; confirm whose account it is).
+**D2. Listings on legacy installs. Decided (Max, 2026-09-27 ~12:10 CEST, S1756).**
+- `kisa.cat` is Max's own account. Its two listings (`936a08d6`, `281a2b31`) are unpublished at the chunk F deploy; Max re-lists through the website if he wants them.
+- Sergey (`5ab53e16`) keeps his data on AWS, so he does not need a gateway. Max: "When proven I want to switch him to the web based tools but I need to know that the switch will work." His listing therefore moves to Seller Workspace (AWS S3), and only after a switch rehearsal passes (§6 step 2). His legacy install was last seen 2026-09-22 13:27Z, so his listing keeps its current path until the switch.
+- Consequence for chunk E: Sergey is not the Gate 1 §8 real-seller gateway canary; that needs a seller who keeps data on their own infrastructure.
 
-Until D2 is answered this spec is not sent to review.
+Review can proceed now; the deploy waits on §6 step 2.
 
 ## 4. Remove (assuming D1-A)
 
@@ -76,7 +79,7 @@ Until D2 is answered this spec is not sent to review.
 
 ## 6. Order of operations
 
-1. Max answers D1 and D2. 2. D2 is carried out (listing migrated or unpublished; confirmed by the same read). 3. Full panel on this spec. 4. MP builds; Gate 3 full panel. 5. One deploy: this code removal plus S1737's code and its one migration. 6. After deploy: `/health` green; `GET /api/v1/deliveries/<uuid>`, `GET /orders/<uuid>/download-file` and `POST /api/v1/vz/register` return 404 from outside; a gateway order and a Seller Workspace order still deliver (re-run the S1755 self-test step 8 and the workspace smoke); runbook status lines per §5 (runbook data kept, `data-delivery-p2p.md` table updated to "no path carries delivered bytes" with the old rows kept below as history); `aidotmarket/aim-data` archived with a README pointer to the gateway (Gate 1 §7), after Max's GO.
+1. Max answered D1 and D2 (§3). 2. **Sergey's switch, before the deploy.** (a) Rehearsal on current production with Max's `kisa.cat` account and its verified AWS connection: a folder shaped like Sergey's dataset in S3, listed through Seller Workspace with a licence, bought with a small real card payment, every file downloaded in a normal browser and its SHA-256 matched, the payout reaching the seller's Stripe account after the hold, and the refund decision path exercised. The existing proof (AWS order `c91951ed`, $25, 2026-09-10) is one synthetic one-row file, predates the licence and money-path changes since, and never reached payout (`runbooks/seller-workspace-live-release.md`: payout and full AWS release still open), so it is not enough. (b) Max reviews the result and gives GO. (c) Sergey connects his AWS bucket in Seller Workspace, his listing is re-pointed or re-published from it, one check purchase delivers, then his legacy install is retired. (d) The same read (§9) shows no published listing whose seller has an active legacy install. 3. Full panel on this spec. 4. MP builds; Gate 3 full panel. 5. One deploy: this code removal plus S1737's code and its one migration. 6. After deploy: `/health` green; `GET /api/v1/deliveries/<uuid>`, `GET /orders/<uuid>/download-file` and `POST /api/v1/vz/register` return 404 from outside; a gateway order and a Seller Workspace order still deliver (re-run the S1755 self-test step 8 and the workspace smoke); runbook status lines per §5 (runbook data kept, `data-delivery-p2p.md` table updated to "no path carries delivered bytes" with the old rows kept below as history); `aidotmarket/aim-data` archived with a README pointer to the gateway (Gate 1 §7), after Max's GO.
 
 ## 7. Build rules
 
