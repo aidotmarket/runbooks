@@ -132,6 +132,7 @@ try:
     manifest_ts = dt.datetime.fromisoformat(manifest["ts"])
     if manifest_ts.tzinfo is None:
         fail("health manifest timestamp has no timezone")
+    run_day = manifest_ts.astimezone(dt.timezone.utc).strftime("%Y%m%d")
     manifest_age = now - int(manifest_ts.timestamp())
     if manifest_age < 0 or manifest_age >= threshold:
         fail("stale health manifest")
@@ -145,13 +146,21 @@ try:
                 or not re.fullmatch(rf"qdrant/{collection}/[0-9]{{8}}/[^/\s]+", key)
                 or type(row.get("bytes")) is not int or row["bytes"] <= 0):
             fail("failed or incomplete health manifest")
+        key_day = key.split("/")[2]
+        try:
+            dt.datetime.strptime(key_day, "%Y%m%d")
+        except ValueError:
+            fail("invalid collection snapshot date")
+        if key_day != run_day:
+            fail("collection snapshot date differs from health manifest")
         reported[collection] = (key, row["bytes"])
     discovered = set()
     for key in objects:
         parts = key.split("/")
         if len(parts) < 4 or parts[0] != "qdrant" or not re.fullmatch(r"[A-Za-z0-9_-]+", parts[1]):
             fail("invalid Qdrant snapshot path")
-        discovered.add(parts[1])
+        if parts[2] == run_day:
+            discovered.add(parts[1])
     if not (expected | discovered) <= reported.keys():
         fail("missing collection in health manifest")
     for key, size in reported.values():

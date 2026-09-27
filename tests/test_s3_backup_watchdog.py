@@ -13,25 +13,25 @@ NAMES = ("action_logs", "aim_tools", "data_requests", "knowledge_base",
          "knowledge_base_v2", "listings")
 
 
-def stamp(hours_ago=1, seconds_ago=0):
-    return (NOW - dt.timedelta(hours=hours_ago, seconds=seconds_ago)).strftime("%Y-%m-%d %H:%M:%S")
+def stamp(hours_ago=1, seconds_ago=0, now=NOW):
+    return (now - dt.timedelta(hours=hours_ago, seconds=seconds_ago)).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def listing(key, hours_ago=1, size=20, seconds_ago=0):
-    return f"{stamp(hours_ago, seconds_ago)} {size} {key}\n"
+def listing(key, hours_ago=1, size=20, seconds_ago=0, now=NOW):
+    return f"{stamp(hours_ago, seconds_ago, now)} {size} {key}\n"
 
 
-def fixture():
-    keys = {name: f"qdrant/{name}/20260927/snapshot" for name in NAMES}
+def fixture(now=NOW, run_day="20260927"):
+    keys = {name: f"qdrant/{name}/{run_day}/snapshot" for name in NAMES}
     data = {
-        "postgres/ai-market/": listing("postgres/ai-market/dump"),
-        "postgres/infisical/": listing("postgres/infisical/dump"),
-        "qdrant/": "".join(listing(key) for key in keys.values()),
-        "railway-config/": listing("railway-config/export"),
-        "cloudflare/": listing("cloudflare/export"),
+        "postgres/ai-market/": listing("postgres/ai-market/dump", now=now),
+        "postgres/infisical/": listing("postgres/infisical/dump", now=now),
+        "qdrant/": "".join(listing(key, now=now) for key in keys.values()),
+        "railway-config/": listing("railway-config/export", now=now),
+        "cloudflare/": listing("cloudflare/export", now=now),
     }
     manifest = {"target": "qdrant", "status": "ok", "count": len(keys),
-                "ts": NOW.isoformat(),
+                "ts": now.isoformat(),
                 "collections": [
                     {"collection": name, "status": "ok", "key": key, "bytes": 20}
                     for name, key in keys.items()
@@ -40,7 +40,7 @@ def fixture():
 
 
 def run_case(tmp_path, data=None, manifest=None, *, envfile=True,
-             telegram_http="200", telegram_body=None, tz="Europe/Madrid"):
+             telegram_http="200", telegram_body=None, tz="Europe/Madrid", now=NOW):
     tmp_path.mkdir(parents=True, exist_ok=True)
     if data is None or manifest is None:
         data, manifest = fixture()
@@ -72,8 +72,8 @@ else:
 """)
     (bin_dir / "date").write_text(f"""#!/bin/sh
 case "$2" in
-  +%s) echo {int(NOW.timestamp())} ;;
-  +%FT%TZ) echo 2026-09-27T12:00:00Z ;;
+  +%s) echo {int(now.timestamp())} ;;
+  +%FT%TZ) echo {now.strftime('%Y-%m-%dT%H:%M:%SZ')} ;;
   *) exit 3 ;;
 esac
 """)
@@ -172,6 +172,48 @@ def test_failed_incomplete_and_discovered_collection(tmp_path):
     manifest["ts"] = (NOW - dt.timedelta(hours=26)).isoformat()
     code, log, _ = run_case(tmp_path / "old_manifest", data, manifest)
     assert code != 0 and "stale health manifest" in log
+
+
+def test_retired_historical_collection_does_not_expand_current_manifest(tmp_path):
+    data, manifest = fixture()
+    data["qdrant/"] += listing("qdrant/retired_collection/20260926/snapshot", 25)
+    code, log, calls = run_case(tmp_path, data, manifest)
+    assert code == 0 and "OK(qdrant): fresh snapshots for 6 collections" in log
+    assert calls == 0
+
+
+def test_current_run_extra_collection_requires_manifest_row(tmp_path):
+    data, manifest = fixture()
+    data["qdrant/"] += listing("qdrant/new_collection/20260927/snapshot")
+    code, log, calls = run_case(tmp_path, data, manifest)
+    assert code != 0 and "ALERT(qdrant): missing collection in health manifest" in log
+    assert calls == 1
+
+
+@pytest.mark.parametrize("key_day, reason", (
+    ("99999999", "invalid collection snapshot date"),
+    ("19700101", "collection snapshot date differs from health manifest"),
+    ("20260229", "invalid collection snapshot date"),
+))
+def test_reported_snapshot_date_must_be_real_and_match_manifest(tmp_path, key_day, reason):
+    data, manifest = fixture()
+    old_key = manifest["collections"][0]["key"]
+    new_key = old_key.replace("20260927", key_day)
+    manifest["collections"][0]["key"] = new_key
+    data["qdrant/"] = data["qdrant/"].replace(old_key, new_key)
+    code, log, calls = run_case(tmp_path, data, manifest)
+    assert code != 0 and f"ALERT(qdrant): {reason}" in log
+    assert calls == 1
+
+
+@pytest.mark.parametrize("tz", ("UTC", "Europe/Madrid", "America/Los_Angeles"))
+def test_offset_manifest_crossing_utc_midnight_uses_run_day(tmp_path, tz):
+    now = dt.datetime(2026, 9, 28, 0, 30, tzinfo=dt.timezone.utc)
+    data, manifest = fixture(now=now, run_day="20260927")
+    manifest["ts"] = "2026-09-28T01:45:00+02:00"  # 2026-09-27 23:45 UTC
+    code, log, calls = run_case(tmp_path, data, manifest, tz=tz, now=now)
+    assert code == 0 and "OK(qdrant): fresh snapshots for 6 collections" in log
+    assert calls == 0
 
 
 def test_telegram_http_api_and_missing_credentials_fail_visible(tmp_path):
