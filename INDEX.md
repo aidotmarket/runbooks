@@ -519,7 +519,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
-- Error signatures: Config as Code is deprecated, Infisical sync recursion setting unknown or enabled
+- Error signatures: Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes'
 - Status: current
 
 ## Daily CRM Briefing — First Real-Content Verification

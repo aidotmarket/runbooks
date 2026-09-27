@@ -3,7 +3,7 @@ title: Customer MCP connector — build and operations
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [Config as Code is deprecated, Infisical sync recursion setting unknown or enabled]
+error_signatures: [Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'"]
 ---
 
 # Customer MCP connector — build and operations
@@ -62,11 +62,11 @@ The keyset has two P-256/ES256 public keys. `cs-20260927-251e63b07eed486c` signs
 
 ### How to operate: connector signing keyset tool
 
-For the one-time provisioning sequence, use `koskadeux-mcp` main `7d240964` or a reviewed successor in a clean detached checkout. The tool is `scripts/secrets/connector_signing_keyset.py` (PRs #249-#252). Run it with `/Users/max/koskadeux-mcp/venv/bin/python`. Save its JSON receipts in a private scratch directory; they contain names and public metadata only. The sequence is:
+For the one-time provisioning sequence, use koskadeux-mcp main 0d7c6c25 or a reviewed successor in a clean detached checkout. The tool is `scripts/connector_keyset/connector_signing_keyset.py` (PR #253). Run it with `/Users/max/koskadeux-mcp/venv/bin/python`. Save its JSON receipts in a private scratch directory; they contain names and public metadata only. The sequence is:
 
 ```bash
 PY=/Users/max/koskadeux-mcp/venv/bin/python
-TOOL=scripts/secrets/connector_signing_keyset.py
+TOOL=scripts/connector_keyset/connector_signing_keyset.py
 $PY "$TOOL" --selftest
 $PY "$TOOL" inventory > baseline.json
 $PY "$TOOL" drift-check
@@ -82,6 +82,10 @@ $PY "$TOOL" verify --baseline baseline.json
 Review each dry run before its `--execute` step. The tool refuses when `/Users/max/local-secops/HALT` exists, if the signing secret already exists, or on drift. `--selftest` makes no network calls. Its audit JSONL is `~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`. This sequence records how provisioning was done; the live secret now exists, so `generate` will refuse. **Rotation is not supported by this tool.** Rotation needs a separate reviewed procedure.
 
 The canary forces one `railway-backend-prod` sync pass, which redeployed `ai-market-backend` (`e5ab7c66`, healthy, values identical). Creating the connector sync and writing the key each redeployed `ai-market-connector-auth` (`a414391a` and `02354162`, both `SUCCESS`). The generate write did not redeploy the backend. Any Infisical `prod` write can trigger both syncs, so do not write to `/connector-auth` except through this tool for initial provisioning or a reviewed procedure.
+
+### S1753 incident: Python standard-library shadowing (2026-09-27)
+
+Events `12389ec2` and `5bb4880c`: koskadeux-mcp PR #249 added a `secrets/` package directly under `scripts/`, which shadowed Python's standard-library `secrets` module for any program started as `python scripts/X.py`. Railway issue-channel-watcher crashed from about 08:46Z to 09:40Z UTC with asyncpg `module 'secrets' has no attribute 'token_bytes'`. PR #253 fixed this by renaming the package to `scripts/connector_keyset/` and adding `tests/test_scripts_no_stdlib_shadow.py`. Never name a file or directory directly under koskadeux-mcp `scripts/` after a Python standard-library module.
 
 ### Deployment procedure
 

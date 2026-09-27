@@ -1060,6 +1060,10 @@
 
 - [Council](runbooks/council.md)
 
+## `module 'secrets' has no attribute 'token_bytes'`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `mp_busy`
 
 - [Agent Dispatch](runbooks/agent-dispatch.md)
