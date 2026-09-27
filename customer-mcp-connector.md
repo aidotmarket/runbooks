@@ -45,7 +45,7 @@ The intended settings are described by backend files `railway.connector.json` an
 
 The resource service runs the auth health stub until Chunk 3. Chunk 3 must switch its entrypoint to `app.mcp.connector.asgi:app`; `tests/connector/test_key_isolation.py::test_resource_service_switches_entrypoint_when_asgi_exists` enforces that switch. The start command overrides the backend Dockerfile command, so these services do not run migrations at startup.
 
-Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The stub reads none of the future secrets or datastore references; none is present yet. Before OAuth stage / Chunk 3, provision and verify these sources separately:
+Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. The health stub reads none of these secrets or datastore references. `CONNECTOR_OAUTH_SIGNING_KEYS` is now provisioned on `ai-market-connector-auth` (see "Signing keyset: DONE" below). Distinct `SECRET_KEY` values, the resource audit HMAC key, and the Railway DSN and Redis references remain pending. Before OAuth stage / Chunk 3, provision and verify the remaining sources separately:
 
 | Owner | Future variables | Required scope and verification |
 | --- | --- | --- |

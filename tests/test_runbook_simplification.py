@@ -76,6 +76,18 @@ def test_duplicate_signature_is_rendered_but_rejected_by_checker(tmp_path: Path)
     ]
 
 
+def test_infisical_recursion_signature_indexes_both_runbooks(tmp_path: Path) -> None:
+    signature = "Infisical sync recursion setting unknown or enabled"
+    write(tmp_path, "customer-mcp-connector.md", page("Connector", signature))
+    write(tmp_path, "infisical-secrets.md", page("Infisical", signature))
+
+    errors = index.render_errors(index.load_pages(tmp_path))
+
+    assert "(customer-mcp-connector.md)" in errors
+    assert "(infisical-secrets.md)" in errors
+    assert check.check_signature_uniqueness(tmp_path) == []
+
+
 def test_malformed_header_fails(tmp_path: Path) -> None:
     path = write(tmp_path, "broken.md", "---\ntitle: [broken\n---\n\n# Broken\n")
 

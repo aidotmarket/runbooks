@@ -755,6 +755,7 @@
 ## `Infisical sync recursion setting unknown or enabled`
 
 - [Customer MCP connector — build and operations](customer-mcp-connector.md)
+- [Infisical Secrets Management](infisical-secrets.md)
 
 ## `infrastructure_locator_guessed`
 

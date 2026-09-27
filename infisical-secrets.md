@@ -3,7 +3,7 @@ title: Infisical Secrets Management
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: []
-error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY]
+error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY, 'Infisical sync recursion setting unknown or enabled']
 ---
 
 # Infisical Secrets Management

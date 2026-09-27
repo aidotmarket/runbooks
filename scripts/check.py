@@ -41,6 +41,14 @@ def check_page(path: Path, root: Path = ROOT) -> list[str]:
     return errors
 
 
+SHARED_ERROR_SIGNATURES = {
+    "Infisical sync recursion setting unknown or enabled": (
+        "customer-mcp-connector.md",
+        "infisical-secrets.md",
+    ),
+}
+
+
 def check_signature_uniqueness(root: Path = ROOT) -> list[str]:
     destinations: dict[str, list[str]] = {}
     for path in corpus_paths(root):
@@ -59,6 +67,7 @@ def check_signature_uniqueness(root: Path = ROOT) -> list[str]:
             destinations.items(), key=lambda item: item[0].casefold()
         )
         if len(paths) > 1
+        and tuple(sorted(paths)) != SHARED_ERROR_SIGNATURES.get(signature)
     ]
 
 
