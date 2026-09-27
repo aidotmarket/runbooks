@@ -56,7 +56,7 @@
   "gateway_id": "uuid",
   "name": "string",
   "status": "online | offline | revoked | unsupported",
-  "status_reason": "null | egress_open | version_below_minimum | never_connected",
+  "status_reason": "null | egress_open | egress_unknown | version_below_minimum | never_connected",
   "version": "semver | null",
   "minimum_version": "semver",
   "last_seen_at": "time | null",
@@ -78,7 +78,8 @@
 | `gateway_offline` | no control-channel connection |
 | `gateway_revoked` | the seller revoked it |
 | `version_below_minimum` | the gateway must be updated |
-| `egress_open` | the last canary result was `open` or `unknown` (§6.7) |
+| `egress_open` | the effective egress state is `open` (§6.7) |
+| `egress_unknown` | the effective egress state is `unknown`: no canary result, a stale one, or a `closed` result not yet confirmed by server-side correlation (§6.7). Blocks exactly like `egress_open`. The blocker code was split out in S1755 (the `status_reason` value predates it) so sellers are not told their network is open during the correlation wait after each deploy. |
 | `door_url_missing` | no door URL set |
 | `door_check_not_passed` | the last door check failed or never ran |
 | `door_check_stale` | the last pass is more than 10 minutes old |
@@ -98,7 +99,7 @@
 }
 ```
 
-`status` is `unsupported` whenever the last egress canary result is `open` or `unknown` (Gate 1 D7, §6.7) or the version is below `minimum_version`. `can_publish` is true only when `blockers` has no gateway-level code. `certificate_flags` are warnings only and never block publishing (Max D-A). Chunk C shows them next to the D-A notice.
+`status` is `unsupported` whenever the effective egress state is `open` or `unknown` (Gate 1 D7, §6.7) or the version is below `minimum_version`. `can_publish` is true only when `blockers` has no gateway-level code. `certificate_flags` are warnings only and never block publishing (Max D-A). Chunk C shows them next to the D-A notice.
 
 **Gateway usable (GLM 5).** One predicate is used for publishing, for the first permission and for every re-issue: `status = online`, egress `closed`, not revoked, a door check `passed` for the **current** `door_url` no more than 10 minutes ago (Gate 1 §3 step 3), and `identity_ack_at` set.
 
