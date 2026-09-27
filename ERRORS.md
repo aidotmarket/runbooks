@@ -64,6 +64,10 @@
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)
 
+## `A Stripe account already exists for this email address`
+
+- [Stripe Connect Identity Bridge](runbooks/stripe-connect-identity.md)
+
 ## `AC12 failed: parsed and normalised production snapshots differ after volatile fields were removed`
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
