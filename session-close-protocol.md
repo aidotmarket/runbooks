@@ -10,28 +10,56 @@ error_signatures: []
 
 ## Current equal-peer close contract
 
-Vulcan and Mars are equal-authority peers. Each session is keyed by instance and opens,
-plans, operates, and closes independently; there are no role-based lanes, lifecycle
+The active peers in `config:instance-registry` include `vulcan`, `mars`, and `athena`;
+all are full equal-authority peers. Each session is keyed by its registered lowercase
+instance name and opens, plans, operates, and closes independently; there are no role-based lanes, lifecycle
 slots, parent-session dependency, or peer close ordering.
 
 **Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](runbooks/council.md#overview) to any older roster or dispatch wording below.
 
 Close a peer's session only when Max explicitly requests it, that peer approaches its
 context limit, or that peer has no eligible work and is intentionally stopping. One peer's
-close never waits for, forces, or implies the other peer's close.
+close never waits for, forces, or implies another peer's close.
 
 Before `kd_session_close`, the closing peer must drain its peer inbox, leave its owned repos
-clean or intentionally committed, and prepare its own handoff. The close result must mark
-only the named instance closed and must leave the other peer's registry row, boot-gate state,
-work claims, and handoff untouched. Verify those instance-scoped effects before declaring
-close complete. Use `session-registry-recovery.md` if the instance row is stale or a close
-partially completes.
+clean or intentionally committed, and prepare its own full handoff. It supplies
+`instance=<its registered lowercase name>`. The explicit caller identity, registry
+instance, and resolved handoff instance must agree before any close side effect;
+otherwise close refuses. Successful close and idempotent reentry write and report only
+`infra:handoff:instance=<same name>` in Living State. Oversized content remains in the
+existing DB stash with its digest in the boot handoff. The next `kd_session_open` reads
+that same DB key. The close result must mark only the named instance closed and leave
+every other peer's registry row, boot-gate state, work claims, and handoff untouched.
+Verify the own-key write and those instance-scoped effects before declaring close complete.
+Use `session-registry-recovery.md` if the instance row is stale or a close partially completes.
+`primary` and `worker` remain deprecated aliases for genuinely legacy `vulcan` and `mars`
+inputs only.
 
 Runbooks are ordinary Markdown, not a close gate. If the work changed an operating
 procedure, correct the owning page before close and verify the resulting file and
 deployment like any other deliverable. Do not create filler when no procedure
 changed. Session-close success is the typed close result for the named instance;
 response prose or a local handoff file is not a substitute.
+
+### S1754 handoff diagnosis and recovery (Max S1760)
+
+The S1754 incident showed the legacy `primary` normalization could resolve `athena` as
+`vulcan`, losing Athena's handoff identity. Peer confirmations `6904` and `6907` verified
+the incident. Athena's DB handoff v8 was restored from Max's local artifact; Vulcan
+restored his own v466. That artifact is recovery evidence, not a boot source or a
+replacement for the DB handoff.
+
+For recovery, read `config:instance-registry` and the affected peer's
+`infra:handoff:instance=<registered lowercase name>` through the existing state API.
+If repair is authorized, use its guarded version-aware update for that peer's key,
+then read back that exact key and confirm the full content or existing stash/digest
+reference. Preserve all other peer keys and verify they did not change. Never repair
+Athena by writing Vulcan's key or by booting from a local file.
+
+Source fix [koskadeux-mcp PR261](https://github.com/aidotmarket/koskadeux-mcp/pull/261)
+at `92834fe8` is pending review and is **not live**. Its intended close behavior above
+must not be assumed of the deployed gateway until source merge, deployment, and served
+revision are verified; the legacy normalization bug remains the current risk.
 
 The intended current roles are MP as builder/non-voter; GLM, DeepSeek, and Gemini as
 the unanimous 3/3 voters (S1721); CC as an explicit-name non-Council second opinion; and Kimi removed. The exact signed deployed

@@ -15,10 +15,16 @@ error_signatures:
 # Session Open Protocol
 
 ## O.1 Purpose
-The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` and `mars`: handoff load, planning gate, and briefing review. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Absorbs the prior `session_open_standup.md` per AG S612 mandate to eliminate two-file fragmentation.
+The canonical Koskadeux session-open flow for active peers in `config:instance-registry`, including `vulcan`, `mars`, and `athena`: handoff load, planning gate, and briefing review. Each is a full equal peer. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Absorbs the prior `session_open_standup.md` per AG S612 mandate to eliminate two-file fragmentation.
 
 ## O.2 Instance open sequence
-1. `kd_session_open(session_id="S{N}", instance="vulcan")` or `kd_session_open(session_id="S{N}", instance="mars")`. Reads CORE.md + per-instance handoff + BQ status + service health in one atomic call. Registers session start in `registry.db`. Returns business briefing.
+The DB handoff isolation described here is the intended contract in
+[koskadeux-mcp PR261](https://github.com/aidotmarket/koskadeux-mcp/pull/261),
+head `92834fe8`; the fix is pending review and **not live**. Until its served
+revision is verified, the S1754 legacy normalization bug can still misroute
+Athena's handoff. See the recovery note in `session-close-protocol.md`.
+
+1. Resolve the active peer in `config:instance-registry`, then call `kd_session_open(session_id="S{N}", instance="<registered lowercase name>")` (for example, `instance="athena"`). It reads that peer's `infra:handoff:instance=<same name>` from Living State, plus CORE.md, BQ status, and service health; registers the session in `registry.db`; and returns a business briefing. The handoff key reported at open must match the requested peer. A missing handoff permits an empty DB handoff; an unreachable DB blocks boot for retry. Never substitute another peer's handoff or a local file.
 2. If the response indicates a stale registry row, reconcile per §O.5.
 3. Inspect the exact deployed `kd_session_plan` schema/contract identity and follow
    §O.2.1. A text sentence that says a plan was accepted is not state evidence.
@@ -43,15 +49,16 @@ or documentation-shaped filler. If no page covers the work, proceed truthfully
 and create or correct a page only when the operating procedure actually needs it.
 
 ## O.3 Peer open sequence
-Either peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
+Any active registered peer may open first. There is no parent session and no `.W` derivation. Work pickup is DB-driven and independent per instance.
 
-## O.3.5 Two-instance coordination
+## O.3.5 Active-peer coordination
 
-The boot gate is instance-keyed in `registry.db`. `vulcan` open does not disturb `mars`, and `mars` close marks only `mars` closed.
+The boot gate is instance-keyed in `registry.db`. Each registered peer opens and closes only its own instance; `athena` is equal to `vulcan` and `mars`. The active roster comes from `config:instance-registry`.
 
 - Each peer may open, plan, and operate concurrently. Each PLANNING→OPERATIONAL transition is independent.
 - If a peer sees a PLANNING_GATE error after a known gateway restart, re-open with `kd_session_open(instance=...)` then `kd_session_plan` and resume.
 - New opens pass `instance`, never `instance_role`, `parent_session_id`, or `.W` session ids.
+- `primary` and `worker` are deprecated input aliases for `vulcan` and `mars` only; neither alias names `athena`.
 - **Missing-instance and agent-dispatch opens are namespaced to `scratch` (S858), not defaulted to `vulcan`.** An open with no `instance` arg, or an agent sub-session opened via `council_request`, lands in the non-human `scratch` row and skips the human boot payload. `_instance_liveness_collision` additionally refuses an open when the named `instance` already holds a live `PLANNING`/`OPERATIONAL` row under a DIFFERENT `session_id` (same-id reopen is allowed; `scratch` is exempt). A live `scratch` row in the registry is normal, not a fault. See agent-dispatch.md §M.1 and session-registry-recovery.md Overview.
 
 
@@ -93,11 +100,11 @@ protocol.
 
 ## O.8 Canonical peer prompt
 Use the live `infra:opening-prompt` Living State entity returned by
-`kd_session_open` for either peer. The former
+`kd_session_open` for each active peer. The former
 `docs/instance-opening-prompt.md` file is retired and is not a current path.
 
 ## O.9 Business briefing review at open
-`kd_session_open` returns a `business_briefing` with the top BQs in business English. Either peer uses this for:
+`kd_session_open` returns a `business_briefing` with the top BQs in business English. Each peer uses this for:
 - Stale-priority signals (any item over 10 days untouched warrants a check).
 - Pending Max input items (one-line decisions blocking Federate or other P0 work).
 - Backfill count (any items missing business summary).
@@ -126,7 +133,7 @@ The `kd_session_open` boot payload has a hard wire budget of 64,000 JSON charact
 ## O.11 Related runbooks
 - `session-close-protocol.md` — transition and legacy close record.
 - `session-registry-recovery.md` — recovery when session registry desyncs.
-- `runbooks/peer-instance-discipline.md` — Vulcan/Mars peer operating discipline.
+- `runbooks/peer-instance-discipline.md` — peer operating discipline.
 - `build-queue-lifecycle.md` — BQ lifecycle and pickup semantics.
 
 ## O.12 Owner
