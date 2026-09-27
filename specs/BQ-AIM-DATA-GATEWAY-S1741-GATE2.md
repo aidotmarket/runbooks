@@ -56,7 +56,7 @@
   "gateway_id": "uuid",
   "name": "string",
   "status": "online | offline | revoked | unsupported",
-  "status_reason": "null | egress_open | version_below_minimum | never_connected",
+  "status_reason": "null | egress_open | egress_unknown | version_below_minimum | never_connected",
   "version": "semver | null",
   "minimum_version": "semver",
   "last_seen_at": "time | null",
@@ -78,7 +78,8 @@
 | `gateway_offline` | no control-channel connection |
 | `gateway_revoked` | the seller revoked it |
 | `version_below_minimum` | the gateway must be updated |
-| `egress_open` | the last canary result was `open` or `unknown` (§6.7) |
+| `egress_open` | the effective egress state is `open` (§6.7) |
+| `egress_unknown` | the effective egress state is `unknown`: no canary result, a stale one, or a `closed` result not yet confirmed by server-side correlation (§6.7). Blocks exactly like `egress_open`. Split out in S1755 so sellers are not told their network is open during the correlation wait after each deploy. |
 | `door_url_missing` | no door URL set |
 | `door_check_not_passed` | the last door check failed or never ran |
 | `door_check_stale` | the last pass is more than 10 minutes old |
