@@ -740,7 +740,7 @@
 
 ## Issue Channel
 - Path: `issue-channel.md`
-- Purpose: The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption (DeepSeek balance; see Council provider consumption for limits), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
+- Purpose: The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption (DeepSeek balance; see Council provider consumption for limits), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board. The VectorAIz Release CI current-main witness below is an open, reviewed MCP candidate, not deployed issue-channel behavior.
 - Owner: `mars`
 - Last verified: `2026-09-21`
 - Aliases: infrastructure failure channel, CI health board, issue channel watcher, issue channel poller
