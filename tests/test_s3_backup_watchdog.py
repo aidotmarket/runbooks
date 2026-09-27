@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/s3_backup_watchdog.sh"
 NOW = dt.datetime(2026, 9, 27, 12, tzinfo=dt.timezone.utc)
@@ -12,12 +13,12 @@ NAMES = ("action_logs", "aim_tools", "data_requests", "knowledge_base",
          "knowledge_base_v2", "listings")
 
 
-def stamp(hours_ago):
-    return (NOW - dt.timedelta(hours=hours_ago)).strftime("%Y-%m-%d %H:%M:%S")
+def stamp(hours_ago=1, seconds_ago=0):
+    return (NOW - dt.timedelta(hours=hours_ago, seconds=seconds_ago)).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def listing(key, hours_ago=1, size=20):
-    return f"{stamp(hours_ago)} {size} {key}\n"
+def listing(key, hours_ago=1, size=20, seconds_ago=0):
+    return f"{stamp(hours_ago, seconds_ago)} {size} {key}\n"
 
 
 def fixture():
@@ -48,14 +49,22 @@ def run_case(tmp_path, data=None, manifest=None, *, envfile=True,
     (tmp_path / "data.json").write_text(json.dumps(data))
     (tmp_path / "manifest.json").write_text(json.dumps(manifest))
     (bin_dir / "aws").write_text("""#!/usr/bin/env python3
-import json, os, pathlib, sys
+import datetime as dt, json, os, pathlib, sys
+from zoneinfo import ZoneInfo
 data = json.loads(pathlib.Path(os.environ["MOCK_DATA"]).read_text())
 if sys.argv[1:3] == ["s3", "ls"]:
     prefix = sys.argv[3].split("aimarket-backups-prod/", 1)[1]
     value = data.get(prefix)
     if value is None:
         sys.exit(3)
-    sys.stdout.write(value)
+    for line in value.splitlines(keepends=True):
+        try:
+            utc = dt.datetime.strptime(line[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            sys.stdout.write(line)
+        else:
+            local = utc.astimezone(ZoneInfo(os.environ["TZ"]))
+            sys.stdout.write(local.strftime("%Y-%m-%d %H:%M:%S") + line[19:])
 elif sys.argv[1:3] == ["s3", "cp"]:
     pathlib.Path(sys.argv[4]).write_bytes(pathlib.Path(os.environ["MOCK_MANIFEST"]).read_bytes())
 else:
@@ -96,22 +105,36 @@ print(os.environ["MOCK_TG_HTTP"], end="")
     return result.returncode, output, calls.read_text().count("call") if calls.exists() else 0
 
 
-def test_utc_listing_under_non_utc_timezone(tmp_path):
-    code, log, calls = run_case(tmp_path)
+@pytest.mark.parametrize("tz", ("UTC", "Europe/Madrid", "America/Los_Angeles"))
+def test_utc_listing_under_inherited_timezone(tmp_path, tz):
+    code, log, calls = run_case(tmp_path, tz=tz)
     assert code == 0 and log.count("OK(") == 5 and calls == 0
 
 
-def test_exact_threshold_and_malformed_or_missing_listing(tmp_path):
+@pytest.mark.parametrize("tz", ("UTC", "Europe/Madrid", "America/Los_Angeles"))
+def test_exact_threshold_and_malformed_or_missing_listing(tmp_path, tz):
     data, manifest = fixture()
     data["postgres/ai-market/"] = listing("postgres/ai-market/dump", 26)
+    data["railway-config/"] = listing("railway-config/export", 26, seconds_ago=-1)
     data["postgres/infisical/"] = "bad listing\n"
     data["cloudflare/"] = None
-    code, log, calls = run_case(tmp_path, data, manifest)
+    code, log, calls = run_case(tmp_path, data, manifest, tz=tz)
     assert code != 0 and calls == 3
     assert "ALERT(postgres)" in log
     assert "ALERT(infisical-secrets): malformed S3 listing" in log
     assert "ALERT(cloudflare): S3 listing failed" in log
+    assert "OK(railway-config)" in log
     assert log.count("message_id=42") == 3
+
+
+@pytest.mark.parametrize("tz", ("UTC", "Europe/Madrid", "America/Los_Angeles"))
+def test_qdrant_collection_at_exact_threshold(tmp_path, tz):
+    data, manifest = fixture()
+    key = "qdrant/listings/20260927/snapshot"
+    data["qdrant/"] = data["qdrant/"].replace(listing(key), listing(key, 26))
+    code, log, calls = run_case(tmp_path, data, manifest, tz=tz)
+    assert code != 0 and "ALERT(qdrant): stale or empty collection snapshot" in log
+    assert calls == 1 and "Telegram confirmed(qdrant): message_id=42" in log
 
 
 def test_qdrant_stale_and_missing_sibling(tmp_path):

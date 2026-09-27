@@ -1,5 +1,5 @@
 #!/bin/bash
-# S3 backup freshness watchdog. AWS CLI listing timestamps are UTC.
+# S3 backup freshness watchdog. Force UTC: AWS CLI renders listing times in local TZ.
 set -uo pipefail
 ENVF=${WATCHDOG_ENVF:-/Users/max/koskadeux-mcp/.env}
 MAX_AGE_H=26
@@ -64,7 +64,7 @@ alert() {
 
 for entry in "${TARGETS[@]}"; do
   name=${entry%%|*}; bucket=${entry#*|}
-  if ! aws s3 ls "$bucket" --recursive --profile "$PROFILE" > "$tmp/list" 2>/dev/null; then
+  if ! TZ=UTC aws s3 ls "$bucket" --recursive --profile "$PROFILE" > "$tmp/list" 2>/dev/null; then
     alert "$name" 'S3 listing failed'
     continue
   fi
