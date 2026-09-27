@@ -263,9 +263,9 @@
 
 ## Backup & Recovery — ai.market
 - Path: `backup-and-recovery.md`
-- Purpose: Source of truth for **what is backed up, where, on what cadence, how failure is alerted, and how to restore the market.** Destination/identity specifics: aws-s3.md. Secret locations: infisical-secrets.md. Architecture rationale: `BQ-AI-MARKET-COMPLETE-BACKUP-ARCHITECTURE-TITAN1-CENTRIC-S681`.
+- Purpose: Current backup evidence, restore limits, and recovery steps. A backup object or isolated component restore does not prove application recovery. Destination/identity specifics: aws-s3.md. Secret locations: infisical-secrets.md. Recovery map: disaster-recovery.md. Architecture rationale: `BQ-AI-MARKET-COMPLETE-BACKUP-ARCHITECTURE-TITAN1-CENTRIC-S681`.
 - Owner: `Vulcan-Primary / Mars-Worker`
-- Last verified: `2026-08-25`
+- Last verified: `2026-09-27`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -587,9 +587,9 @@
 
 ## Disaster Recovery — ai.market (what is in S3 and how to rebuild)
 - Path: `disaster-recovery.md`
-- Purpose: A copy of this file lives at `s3://aimarket-backups-prod/RESTORE-README.md` so the recovery map survives even if GitHub and Titan-1 are gone. This document is the **map**; `backup-and-recovery.md` (same repo) is the full **manual**.
+- Purpose: This repository file is the current map; backup-and-recovery.md has the operational detail. The S3 `RESTORE-README.md` copy was still the June 8 version (SHA256 beginning `595282`) on Sep 27. Sync is pending; do not rely on that copy for current recovery limits.
 - Owner: `unassigned`
-- Last verified: `2026-06-08`
+- Last verified: `2026-09-27`
 - Aliases: none
 - Error signatures: none
 - Status: current
