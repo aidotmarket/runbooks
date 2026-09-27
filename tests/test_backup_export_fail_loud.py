@@ -135,6 +135,77 @@ def test_cloudflare_single_kv_page_empty_cursor_uploads_once(monkeypatch):
     assert uploads[0]["kv"]["namespaces"][0]["keys"] == {"key": SENTINEL}
 
 
+@pytest.mark.parametrize("info", [
+    "malformed",
+    None,
+    {"cursor": "more"},
+    {"cursors": {"after": "more"}},
+    {"has_more": True},
+    {"count": True},
+    {"count": -1},
+    {"count": 0},
+    {"total_count": True},
+    {"total_count": -1},
+    {"total_count": 2},
+    {"page": True},
+    {"page": 0},
+    {"page": 2},
+    {"per_page": True},
+    {"per_page": 0},
+    {"total_pages": True},
+    {"total_pages": 0},
+    {"total_pages": 2},
+])
+def test_cloudflare_settings_bad_metadata_never_uploads(monkeypatch, capsys, info):
+    responses = cf_responses()
+    responses[2]["result_info"] = info
+    module, uploads = cloudflare_setup(monkeypatch, responses)
+    with pytest.raises(RuntimeError, match="settings"):
+        module.main()
+    assert uploads == []
+    captured = capsys.readouterr()
+    assert SENTINEL not in captured.out + captured.err
+
+
+def test_cloudflare_settings_page_size_below_result_never_uploads(monkeypatch):
+    responses = cf_responses()
+    responses[2]["result"] = [{"id": "first", "value": 1}, {"id": "second", "value": 2}]
+    responses[2]["result_info"] = {"count": 2, "total_count": 2, "page": 1,
+                                    "per_page": 1, "total_pages": 1}
+    module, uploads = cloudflare_setup(monkeypatch, responses)
+    with pytest.raises(RuntimeError, match="settings page size malformed"):
+        module.main()
+    assert uploads == []
+
+
+@pytest.mark.parametrize("info", [
+    {},
+    {"count": 1, "total_count": 1, "page": 1, "per_page": 1, "total_pages": 1},
+])
+def test_cloudflare_settings_terminal_metadata_uploads_once(monkeypatch, info):
+    responses = cf_responses()
+    responses[2]["result_info"] = info
+    module, uploads = cloudflare_setup(monkeypatch, responses)
+    module.main()
+    assert len(uploads) == 1
+    assert uploads[0]["zones"][0]["settings"] == {"setting": SENTINEL}
+
+
+@pytest.mark.parametrize("info", [None, {"count": 0, "total_count": 0, "page": 1,
+                                         "per_page": 1, "total_pages": 0},
+                                      {"count": 0, "total_count": 0, "page": 1,
+                                       "per_page": 1, "total_pages": 1}])
+def test_cloudflare_empty_complete_settings_uploads_once(monkeypatch, info):
+    responses = cf_responses()
+    responses[2]["result"] = []
+    if info is not None:
+        responses[2]["result_info"] = info
+    module, uploads = cloudflare_setup(monkeypatch, responses)
+    module.main()
+    assert len(uploads) == 1
+    assert uploads[0]["zones"][0]["settings"] == {}
+
+
 @pytest.mark.parametrize("index,replacement", [
     (0, {"success": False, "errors": [SENTINEL]}),
     (0, {"success": True, "result": []}),

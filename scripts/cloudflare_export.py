@@ -154,12 +154,26 @@ def main():
         zone = {"id": zid, "name": record(item, "zone", "name"), "status": item.get("status")}
         records = pages(f"/zones/{zid}/dns_records", "DNS records", 100, "id")
         zone["dns_records"], zone["dns_record_count"] = records, len(records)
-        settings, info = listing(cf(f"/zones/{zid}/settings"), "settings")
+        settings_response = cf(f"/zones/{zid}/settings")
+        settings, info = listing(settings_response, "settings")
         if any(not isinstance(setting, dict) or "value" not in setting for setting in settings):
             fail("settings")
-        if isinstance(info, dict) and ((info.get("total_count") is not None and info["total_count"] != len(settings)) or
-                                       (info.get("total_pages") not in (None, 0, 1))):
-            fail("settings pagination incomplete")
+        # Cloudflare documents this endpoint as a single array response without pagination metadata.
+        # Metadata may be absent, but supplied metadata must prove that this response is complete.
+        if "result_info" in settings_response:
+            if not isinstance(info, dict) or set(info) - {"count", "total_count", "page", "per_page", "total_pages"}:
+                fail("settings pagination malformed")
+            for field in ("count", "total_count"):
+                if field in info and (type(info[field]) is not int or info[field] != len(settings)):
+                    fail("settings count malformed")
+            if "page" in info and (type(info["page"]) is not int or info["page"] != 1):
+                fail("settings page malformed")
+            if "per_page" in info and (type(info["per_page"]) is not int or
+                                       info["per_page"] < 1 or info["per_page"] < len(settings)):
+                fail("settings page size malformed")
+            if "total_pages" in info and (type(info["total_pages"]) is not int or
+                                          info["total_pages"] not in ({0, 1} if not settings else {1})):
+                fail("settings pagination incomplete")
         if len({record(setting, "setting", "id") for setting in settings}) != len(settings):
             fail("duplicate setting")
         zone["settings"] = {record(setting, "setting", "id"): setting["value"] for setting in settings}
