@@ -515,7 +515,7 @@
 
 ## Customer MCP connector — build and operations
 - Path: `customer-mcp-connector.md`
-- Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. Both public services currently run a health-only auth stub with connector flags off; this is not a working customer MCP or OAuth release.
+- Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. The auth service now runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. The resource service still runs the health stub until Chunk 3. Neither service is a working customer release.
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
