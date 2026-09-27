@@ -1127,9 +1127,9 @@
 
 ## Session Registry Recovery
 - Path: `session-registry-recovery.md`
-- Purpose: **Model note.** As of CORE v9.2 (S811) Koskadeux runs **symmetric peers** (vulcan, mars) with no primary/worker lock slots. The session registry is an **instance-keyed `sessions` table** (one row per instance, plus a non-human `scratch` row) carrying a **durable monotonic high-water mark** (`session_seq` + Living State anchor `config:session-seq`), shipped S867. The older `infra:active-session-lock` primary/worker slot model and the iCloud lock-pointer are retired; recovery procedures here target the current model.
+- Purpose: The current instance roster has three active peers: `athena`, `mars`, and `vulcan` (previously verified 2026-09-27). Registry admission reads the roster; `scratch` is the non-human registry instance. The older two-peer and primary/worker lock-slot descriptions are historical. The `sessions` table is instance-keyed; `session_seq` and Living State `config:session-seq` provide the monotonic session-number floor. At production source `e8a3177ccf728107549aafa903d2574da5b7c104`, the current schema ladder is versions 1 through 9.
 - Owner: `vulcan`
-- Last verified: `2026-08-10`
+- Last verified: `2026-09-27`
 - Aliases: none
 - Error signatures: integrity_check_not_ok, schema_version_below_7, next_value_below_anchor, number_reused_or_regressed, restart_did_not_fire, migration_rollback_in_logs
 - Status: current
